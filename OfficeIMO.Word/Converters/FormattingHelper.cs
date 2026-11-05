@@ -59,7 +59,7 @@ namespace OfficeIMO.Word {
                 }
 
                 string? hyperlink = run.IsHyperLink && run.Hyperlink != null ? run.Hyperlink.Uri?.ToString() : null;
-                bool strike = run.Strike;
+                bool strike = run.Strikethrough;
                 bool superscript = run.VerticalTextAlignment == WordVerticalTextPosition.Superscript;
                 bool subscript = run.VerticalTextAlignment == WordVerticalTextPosition.Subscript;
                 bool code = IsCodeRun(run, paragraph._document?.Settings.FontFamily);

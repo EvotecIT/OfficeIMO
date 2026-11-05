@@ -11,10 +11,10 @@ using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 namespace OfficeIMO.Excel {
     // Represents a chart on a worksheet.
     public sealed partial class ExcelChart {
-        private static void ApplyGridlines(OpenXmlCompositeElement axis, bool showMajor, bool showMinor,
+        private static void ApplyGridlines(OpenXmlCompositeElement axis, bool? showMajor, bool? showMinor,
             OfficeColor? lineColor, OfficeLength? lineWidth) {
             OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
-            if (showMajor) {
+            if (showMajor == true || showMajor == null && axis.GetFirstChild<C.MajorGridlines>() != null) {
                 C.MajorGridlines major = axis.GetFirstChild<C.MajorGridlines>() ?? new C.MajorGridlines();
                 ApplyGridlineStyle(major, lineColor, lineWidth);
                 if (major.Parent == null) {
@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
                 axis.GetFirstChild<C.MajorGridlines>()?.Remove();
             }
 
-            if (showMinor) {
+            if (showMinor == true || showMinor == null && axis.GetFirstChild<C.MinorGridlines>() != null) {
                 C.MinorGridlines minor = axis.GetFirstChild<C.MinorGridlines>() ?? new C.MinorGridlines();
                 ApplyGridlineStyle(minor, lineColor, lineWidth);
                 if (minor.Parent == null) {
@@ -391,10 +391,10 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape style, OfficeLength? size, OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
+        private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape? style, OfficeLength? size, OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
             OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
             if (size.HasValue && (size.Value < OfficeLength.Points(2) || size.Value > OfficeLength.Points(72))) throw new ArgumentOutOfRangeException(nameof(size), "Native marker sizes must be between 2 and 72.");
-            marker.Symbol = new C.Symbol { Val = style.ToOpenXml() };
+            if (style.HasValue) marker.Symbol = new C.Symbol { Val = style.Value.ToOpenXml() };
             if (size != null) {
                 marker.Size = new C.Size { Val = checked((byte)decimal.Round(size.Value.ToEmus() / 12700m, 0, MidpointRounding.AwayFromZero)) };
             }

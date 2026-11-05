@@ -5,26 +5,26 @@ namespace PSWriteOffice.Services.Excel;
 
 internal static class ExcelTableStyleOptionService
 {
-    public static bool IsSwitchPresent(PSCmdlet cmdlet, string parameterName, SwitchParameter value)
+    public static bool? IsSwitchPresent(PSCmdlet cmdlet, string parameterName, SwitchParameter value)
     {
-        return value.IsPresent;
+        return cmdlet.MyInvocation.BoundParameters.ContainsKey(parameterName) ? value.IsPresent : (bool?)null;
     }
 
     public static void Apply(
         ExcelSheet sheet,
         string? tableOrRange,
         ExcelTableStyle style,
-        bool showFirstColumn,
-        bool showLastColumn,
-        bool noRowStripes,
-        bool showColumnStripes)
+        bool? showFirstColumn,
+        bool? showLastColumn,
+        bool? noRowStripes,
+        bool? showColumnStripes)
     {
         if (string.IsNullOrWhiteSpace(tableOrRange))
         {
             return;
         }
 
-        if (!showFirstColumn && !showLastColumn && !noRowStripes && !showColumnStripes)
+        if (!showFirstColumn.HasValue && !showLastColumn.HasValue && !noRowStripes.HasValue && !showColumnStripes.HasValue)
         {
             return;
         }
@@ -32,9 +32,9 @@ internal static class ExcelTableStyleOptionService
         sheet.SetTableStyle(
             tableOrRange!,
             style,
-            showFirstColumn: showFirstColumn ? true : null,
-            showLastColumn: showLastColumn ? true : null,
-            showRowStripes: noRowStripes ? false : null,
-            showColumnStripes: showColumnStripes ? true : null);
+            showFirstColumn: showFirstColumn,
+            showLastColumn: showLastColumn,
+            showRowStripes: noRowStripes.HasValue ? !noRowStripes.Value : (bool?)null,
+            showColumnStripes: showColumnStripes);
     }
 }

@@ -6,38 +6,55 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelReportLegend
 ## SYNOPSIS
-Adds a legend table to the current Excel report sheet.
+Adds a legend table that explains values or colors.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeExcelReportLegend [[-Title] <string>] -Header <string[]> -InputObject <Object[]> [-FirstColumnFillByValue <hashtable>] [-HeaderFillColor <string>] [-CaseSensitive] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelReportLegend [[-Title] <string>] -Header <string[]> -InputObject <Object[]> [-FirstColumnFillByValue <hashtable>] [-HeaderFillColor <OfficeColor>] [-CaseSensitive] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds a legend table to the current Excel report sheet.
+Adds a legend table that explains values or colors.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $legendRows = @(
-    [pscustomobject]@{ Status = 'Ready'; Meaning = 'Validated and ready' }
-    [pscustomobject]@{ Status = 'Review'; Meaning = 'Needs owner review' }
+$legend = @(
+    [pscustomobject]@{ Status = 'Ready'; Meaning = 'Validated and ready to ship' }
+    [pscustomobject]@{ Status = 'Review'; Meaning = 'Waiting for the owner' }
 )
-New-OfficeExcel -Path .\Operations.xlsx {
-    Add-OfficeExcelReportSheet -Name Summary {
-        Add-OfficeExcelReportLegend -Title 'Status legend' -Header Status, Meaning -InputObject $legendRows -FirstColumnFillByValue @{ Ready = '#d9f7be'; Review = '#fff7e6' }
+New-OfficeExcel -Path .\Reports\Release-Readiness.xlsx {
+    ExcelReportSheet 'Readiness' {
+        ExcelReportLegend 'Status' -Header Status, Meaning -InputObject $legend
     }
 }
 ```
 
-Renders legend rows and applies optional fill colors keyed by the first column.
+Explains the status values used in the report.
+
+### EXAMPLE 2
+```powershell
+$legend = @(
+    [pscustomobject]@{ Status = 'Ready'; Meaning = 'Validated and ready to ship' }
+    [pscustomobject]@{ Status = 'Review'; Meaning = 'Waiting for the owner' }
+    [pscustomobject]@{ Status = 'Blocked'; Meaning = 'Cannot ship until a dependency is fixed' }
+)
+New-OfficeExcel -Path .\Reports\Release-Readiness.xlsx {
+    ExcelReportSheet 'Readiness' {
+        ExcelReportTable (Import-OfficeCsv -Path .\Data\Release-Items.csv) 'Release 2026.11'
+        ExcelReportLegend 'Status' -Header Status, Meaning -InputObject $legend -FirstColumnFillByValue @{ Ready = '#DCFCE7'; Review = '#FEF3C7'; Blocked = '#FEE2E2' }
+    }
+}
+```
+
+Colours each status in the legend the same way as the rows of the readiness table.
 
 ## PARAMETERS
 
 ### -CaseSensitive
-Use case-sensitive matching for first-column fill values.
+Matches names and text using ordinal case sensitivity. Omission ignores case.
 
 ```yaml
 Type: SwitchParameter
@@ -69,12 +86,12 @@ Accept wildcard characters: False
 ```
 
 ### -Header
-Column headers.
+Header text identifying the target column.
 
 ```yaml
 Type: String[]
 Parameter Sets: Default
-Aliases: Headers
+Aliases: None
 Possible values:
 
 Required: True
@@ -88,7 +105,7 @@ Accept wildcard characters: False
 Optional header fill color.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -101,12 +118,12 @@ Accept wildcard characters: False
 ```
 
 ### -InputObject
-Rows. Each row may be an array, enumerable, hashtable, or object.
+Objects, dictionaries or native tabular data supplied directly or through the pipeline.
 
 ```yaml
 Type: Object[]
 Parameter Sets: Default
-Aliases: Rows
+Aliases: None
 Possible values:
 
 Required: True
@@ -117,7 +134,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
@@ -133,7 +150,7 @@ Accept wildcard characters: False
 ```
 
 ### -Title
-Optional legend title.
+Chart title.
 
 ```yaml
 Type: String

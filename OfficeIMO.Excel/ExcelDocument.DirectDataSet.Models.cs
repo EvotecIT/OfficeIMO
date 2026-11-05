@@ -453,7 +453,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private static string GetUniqueName(string baseName, HashSet<string> used, int maxLength) {
+            internal static string GetUniqueName(string baseName, HashSet<string> used, int maxLength) {
                 string trimmed = string.IsNullOrWhiteSpace(baseName) ? "Table" : baseName;
                 if (trimmed.Length > maxLength) {
                     trimmed = trimmed.Substring(0, maxLength);
@@ -483,13 +483,15 @@ namespace OfficeIMO.Excel {
                 string baseName = (name ?? string.Empty).Trim();
                 baseName = baseName.Trim('\'', ' ');
                 var builder = new StringBuilder(baseName.Length);
+                bool hasValidCharacter = false;
                 foreach (char ch in baseName) {
-                    builder.Append(ch is ':' or '\\' or '/' or '?' or '*' or '[' or ']' ? '_' : ch);
+                    bool invalid = ch is ':' or '\\' or '/' or '?' or '*' or '[' or ']' || char.IsControl(ch);
+                    builder.Append(invalid ? '_' : ch);
+                    hasValidCharacter |= !invalid && !char.IsWhiteSpace(ch);
                 }
 
-                string value = _multipleUnderscoresRegex.Replace(builder.ToString().Trim(), "_");
-                value = value.Trim('_');
-                if (string.IsNullOrWhiteSpace(value)) {
+                string value = builder.ToString().Trim();
+                if (!hasValidCharacter) {
                     return "Sheet1";
                 }
 
@@ -516,6 +518,8 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class DirectDataSetSheetModel {
+            internal StreamingWorksheetLayout? StreamingLayout { get; set; }
+
             internal DirectDataSetSheetModel(
                 int index,
                 string sheetName,

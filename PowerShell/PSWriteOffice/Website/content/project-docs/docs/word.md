@@ -27,7 +27,7 @@ New-OfficeWord -Path '.\Output\Revenue.docx' {
 
 ## Inspect and update
 
-Use `Get-OfficeWord` to load a file and the targeted `Get-OfficeWord*` and `Find-OfficeWord*` commands to locate content. Word inspection includes paragraphs, text, tables and cells, sections, images, shapes, lists, fields, bookmarks, notes, links, document properties, statistics, content controls, reviews, and tables of contents.
+Use `Open-OfficeWord` to load a file and the targeted `Get-OfficeWord*` commands to locate content. Word inspection includes paragraphs, text, tables and cells, sections, images, shapes, lists, fields, bookmarks, notes, links, document properties, statistics, content controls, reviews, and tables of contents.
 
 Update commands are intentionally specific: change text, styles, images, shapes, page setup, document properties, fields, or table-of-contents state without rebuilding the whole document.
 

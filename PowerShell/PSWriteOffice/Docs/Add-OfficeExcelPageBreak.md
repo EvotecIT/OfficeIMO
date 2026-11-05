@@ -25,6 +25,35 @@ ExcelSheet 'Data' { ExcelPageBreak -Row 25,50 -Column 8 }
 ```
 
 
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+    ExcelSheet 'Servers' {
+        ExcelPageBreak -Row 41
+    }
+}
+```
+
+Starts a new printed page at row 41.
+
+### EXAMPLE 3
+```powershell
+$sites = Import-OfficeExcel -Path .\Reports\Inventory.xlsx -Sheet Servers
+$firstRows = @()
+$rowNumber = 2
+foreach ($group in $sites | Group-Object Site) {
+    if ($rowNumber -gt 2) { $firstRows += $rowNumber }
+    $rowNumber += $group.Count
+}
+Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+    ExcelSheet 'Servers' {
+        ExcelPageBreak -Row $firstRows
+    }
+}
+```
+
+Adds a page break above the first row of each site block so every site starts on a new page.
+
 ## PARAMETERS
 
 ### -Column

@@ -6,33 +6,49 @@ schema: 2.0.0
 ---
 # Set-OfficeExcelChartLegend
 ## SYNOPSIS
-Configures legend visibility and styling for an Excel chart.
+Shows, hides, positions and styles the chart legend.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Set-OfficeExcelChartLegend -Chart <ExcelChart> [-Position <OfficeChartLegendPosition>] [-Overlay <bool>] [-Hide] [-FontSizePoints <Double>] [-Bold <Boolean>] [-Italic <Boolean>] [-Color <string>] [-FontName <string>] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelChartLegend [-Chart] <ExcelChart> [-Position <OfficeChartLegendPosition>] [-Hidden] [-Overlay] [-Font <string>] [-Size <OfficeLength>] [-Color <OfficeColor>] [-Bold] [-Italic] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Configures legend visibility and styling for an Excel chart.
+Shows, hides, positions and styles the chart legend.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $chart | Set-OfficeExcelChartLegend -Position Right
+New-OfficeExcel -Path .\Reports\Helpdesk-Trend.xlsx {
+    ExcelSheet 'Trend' {
+        ExcelChart -InputObject (Import-OfficeCsv -Path .\Data\Ticket-Trend.csv) -Category Week -Value Opened, Closed -Type Line -Address A1 -PassThru | ExcelChartLegend -Position Bottom
+    }
+}
 ```
 
-Shows the legend on the right side of the chart and returns the chart for chaining.
+Places the legend of a line chart under the plot area.
+
+### EXAMPLE 2
+```powershell
+New-OfficeExcel -Path .\Reports\Availability.xlsx {
+    ExcelSheet 'Uptime' {
+        $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\Data\Site-Uptime.csv) -Category Site -Value Uptime -Address A1 -Type Column -Title 'Uptime by site' -PassThru
+        ExcelChartLegend -Chart $chart -Hidden
+    }
+}
+```
+
+Removes the legend where the chart title already names the only series.
 
 ## PARAMETERS
 
 ### -Bold
-Optional bold setting for legend text.
+Applies bold text. An explicit false value clears bold; omission preserves the native value.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -54,14 +70,30 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -Color
-Optional legend text color. Named colors and hexadecimal values are accepted.
+Text or rule colour expressed as a literal OfficeColor or theme role.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Font
+Font family name.
 
 ```yaml
 Type: String
@@ -76,40 +108,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontName
-Optional legend font name.
-
-```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FontSizePoints
-Optional legend font size in points.
-
-```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Hide
-Hide the legend instead of positioning it.
+### -Hidden
+Hide or show the column.
 
 ```yaml
 Type: SwitchParameter
@@ -125,10 +125,10 @@ Accept wildcard characters: False
 ```
 
 ### -Italic
-Optional italic setting for legend text.
+Applies italic text. An explicit false value clears italic; omission preserves the native value.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -144,7 +144,7 @@ Accept wildcard characters: False
 Overlay the legend on the chart area.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -157,7 +157,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
@@ -188,6 +188,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Size
+Font size, interpreted as points for numbers; explicit physical units are accepted.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
@@ -197,7 +213,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Excel.ExcelChart`
+- `None`
 
 ## RELATED LINKS
 

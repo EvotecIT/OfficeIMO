@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 [OutputType(typeof(EmailMailboxWriterOptions))]
 public sealed class NewOfficeEmailMailboxWriterOptionsCommand : PSCmdlet {
     /// <summary>Serialization policy applied independently to each message.</summary>
-    [Parameter(ValueFromPipeline = true)] public EmailWriterOptions? MessageOptions { get; set; }
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Options")] public EmailWriterOptions? MessageOptions { get; set; }
     /// <summary>Concrete mbox escaping convention to write.</summary>
     [Parameter] public MboxVariant Variant { get; set; } = MboxVariant.Mboxrd;
 

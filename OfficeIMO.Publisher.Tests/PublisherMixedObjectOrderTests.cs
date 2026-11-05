@@ -5,21 +5,21 @@ namespace OfficeIMO.Publisher.Tests;
 public sealed class PublisherMixedObjectOrderTests {
     [Fact]
     public void Mixed_additions_preserve_append_order_and_old_page_scenes() {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         uint pageId = document.Pages[0].Id;
         var paint = OfficeShape.Rectangle(240, 120);
         paint.FillColor = OfficeColor.Red; paint.StrokeColor = null;
-        PublisherShape background = document.AddShape(pageId, paint, 72, 144);
+        PublisherShape background = document.AddShape(pageId, paint, OfficeLength.Points(72), OfficeLength.Points(144));
         PublisherPicture picture = document.AddImage(pageId,
-            PublisherPictureEditingFixture.Image(OfficeColor.Blue), 108, 144, 96, 96);
+            PublisherPictureEditingFixture.Image(OfficeColor.Blue), OfficeLength.Points(108), OfficeLength.Points(144), OfficeLength.Points(96), OfficeLength.Points(96));
         var oldPage = document.Pages[0];
-        PublisherTextFrame frame = document.AddTextFrame(pageId, 72, 144, 288, 108,
+        PublisherTextFrame frame = document.AddTextFrame(pageId, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(288), OfficeLength.Points(108),
             new[] { new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Overlapping text", 18, OfficeColor.Black) }) });
         paint.FillColor = OfficeColor.Green;
-        PublisherShape foreground = document.AddShape(pageId, paint, 72, 168);
+        PublisherShape foreground = document.AddShape(pageId, paint, OfficeLength.Points(72), OfficeLength.Points(168));
         Assert.Equal(new[] { background.Id, picture.Id, frame.Id, foreground.Id }, Order(document.Pages[0]));
         Assert.Equal(new[] { background.Id, picture.Id }, Order(oldPage));
-        document.SetPictureBounds(picture.Id, 120, 144, 96, 96);
+        document.SetPictureBounds(picture.Id, OfficeLength.Points(120), OfficeLength.Points(144), OfficeLength.Points(96), OfficeLength.Points(96));
         document.ReplaceStoryParagraphs(frame.StoryId, new[] {
             new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Changed text", 18, OfficeColor.Black) })
         });

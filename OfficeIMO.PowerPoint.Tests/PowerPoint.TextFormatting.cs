@@ -287,7 +287,7 @@ namespace OfficeIMO.Tests {
                 PowerPointTextBox box = slide.AddTextBox("Bullets");
                 box.SetBullets(new[] { "First", "Second" }, configure: paragraph => {
                     paragraph.SetBulletSizePercent(72)
-                        .SetBulletFont("Aptos")
+                        .SetBulletFontFamily("Aptos")
                         .SetHanging(global::OfficeIMO.OfficeLength.Points(16))
                         .SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
                 });

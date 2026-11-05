@@ -15,4 +15,4 @@ New-OfficeExcel -Path $candidate {
     }
 }
 
-Compare-OfficeExcelWorkbook -Path $baseline -DifferencePath $candidate
+Compare-OfficeDocument -ReferencePath $baseline -DifferencePath $candidate

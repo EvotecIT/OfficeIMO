@@ -992,7 +992,7 @@ namespace OfficeIMO.Word {
                 .Select(_ => new List<Paragraph>())
                 .ToList();
 
-            var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            var body = _document._document?.Body;
             if (body == null) {
                 return new List<WordParagraph>();
             }

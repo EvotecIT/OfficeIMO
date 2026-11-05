@@ -34,7 +34,7 @@ New-OfficePowerPoint -Path (Join-Path $documents 'service-map.pptx') {
 }
 
 New-OfficePdf -Path (Join-Path $documents 'service-map.pdf') {
-    $officeVisual | Add-OfficePdfVisual -Align Center
+    $officeVisual | Add-OfficePdfImage -Alignment Center
 }
 
 $officeVisual.Report

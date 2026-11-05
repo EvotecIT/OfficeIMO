@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(),
             textBox: "  retained  ");
 
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Numbers).ReadNumbers();
 
         Assert.Equal("  retained  ", Assert.Single(Assert.Single(projection.Sheets).TextBoxes));
@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithLargeTables(1,
             rotation: 30f, rows: 1, columns: 1);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.Equal(30d, Assert.Single(Assert.Single(result.Value.Slides).Tables).Rotation);
         using var bytes = new MemoryStream();
@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_nested_lists_use_native_word_numbering_and_level() {
         using MemoryStream package = CreatePagesPackageWithResolvedNestedList();
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult();
 
         WordParagraph paragraph = Assert.Single(result.Value.Paragraphs,
             candidate => candidate.Text == "Item");
@@ -57,10 +57,10 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("T", 1, 1, 42d, hasFormula: true)
         });
-        var options = new IWorkReadOptions { MaxProjectedTextCharacters = 7 };
+        var options = new IWorkLoadOptions { MaxProjectedTextCharacters = 7 };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options).ReadNumbers());
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers, options).ReadNumbers());
 
         Assert.Contains("text character count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
             bodyText: "First\r\nSecond");
 
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages).ReadPages();
 
         Assert.Collection(projection.Body.Paragraphs,
@@ -82,7 +82,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Out_of_range_color_components_disable_editable_pages_reconstruction() {
         using MemoryStream package = CreatePagesPackageWithColor(1.5f);
 
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages).ReadPages();
 
         Assert.False(projection.HasEditableContent);
@@ -94,7 +94,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Text_attribute_boundaries_cannot_split_utf16_surrogate_pairs() {
         using MemoryStream package = CreatePagesPackageWithSurrogateSplitBoundary();
 
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages).ReadPages();
 
         Assert.False(projection.HasEditableContent);
@@ -107,7 +107,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Overlap", 2, 1, 42d, headerRows: 2, footerRows: 1)
         });
 
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Numbers).ReadNumbers();
 
         Assert.False(projection.HasEditableContent);
@@ -128,9 +128,9 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)));
 
         IWorkDiagnostic[] diagnostics = kind switch {
-            IWorkDocumentKind.Pages => IWorkSourceDocument.Open(package, kind).ReadPages().Diagnostics.ToArray(),
-            IWorkDocumentKind.Numbers => IWorkSourceDocument.Open(package, kind).ReadNumbers().Diagnostics.ToArray(),
-            IWorkDocumentKind.Keynote => IWorkSourceDocument.Open(package, kind).ReadKeynote().Diagnostics.ToArray(),
+            IWorkDocumentKind.Pages => IWorkSourceDocument.Load(package, kind).ReadPages().Diagnostics.ToArray(),
+            IWorkDocumentKind.Numbers => IWorkSourceDocument.Load(package, kind).ReadNumbers().Diagnostics.ToArray(),
+            IWorkDocumentKind.Keynote => IWorkSourceDocument.Load(package, kind).ReadKeynote().Diagnostics.ToArray(),
             _ => throw new InvalidOperationException()
         };
 

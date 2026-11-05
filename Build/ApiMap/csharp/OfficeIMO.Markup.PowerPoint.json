@@ -9,6 +9,32 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "OfficeMarkupDocument.ToPowerPointDocument / ToPowerPointDocumentResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeMarkupDocument.ToPowerPoint(MarkupPowerPointExportOptions[, out OfficeConversionReport], CancellationToken)",
+      "replacement": "ToPowerPoint returns a detached caller-owned PowerPointDocument and throws on validation errors with the completed report; rejected disposable output is disposed. ToPowerPointAsync returns OfficeConversionResult<PowerPointDocument>. Mapping diagnostics and native Preflight/layout findings remain on the derived report. FailOnLoss is separate from malformed-input rejection.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeMarkupDocument.SaveAsPowerPoint / SaveAsPowerPointAsync : format-specific report",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeMarkupDocument.SaveAsPowerPoint(path|stream, options, CancellationToken) : OfficeConversionReport",
+      "replacement": "Use the report base contract and cast to OfficeMarkupPowerPointConversionReport for native evidence. Sync and async persistence apply the same validation and loss policy before writing. Native save options/defaults and caller stream ownership are retained.",
+      "category": "conversion",
+      "applied": true
+    }
+  ],
+  "extraChanges": [
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "MarkupPowerPointExportOptions.Theme",
+      "reason": "Applies immutable shared theme at native presentation creation and text styling."
     }
   ]
 }

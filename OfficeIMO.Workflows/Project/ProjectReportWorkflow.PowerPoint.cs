@@ -35,14 +35,14 @@ public static partial class ProjectReportWorkflow {
             var table = slide.AddTable(count + 1,part.Headers.Length);
             table.Left= OfficeIMO.OfficeLength.Points(view.PageMargin); table.Top= OfficeIMO.OfficeLength.Points(view.PageMargin + 72); table.Width= OfficeIMO.OfficeLength.Points(width); table.Height= OfficeIMO.OfficeLength.Points(height);
             table.SetColumnWidths((widths).Select(tableLength => global::OfficeIMO.OfficeLength.Points(tableLength)).ToArray()); table.HeaderRow = true;
-            var rows = table.RowItems;
+            var rows = table.Rows;
             for (int r = 0; r <= count; r++) {
                 rows[r].Height= global::OfficeIMO.OfficeLength.Points(r == 0 ? headerHeight : heights[start + r - 1]);
                 for (int c = 0; c < part.Headers.Length; c++) {
                     var cell = rows[r].Cells[c]; cell.Text = r == 0 ? part.Headers[c] : part.Rows[start + r - 1][c];
                     cell.FontSize = global::OfficeIMO.OfficeLength.Points(12); cell.FontFamily = "Arial"; cell.Bold = r == 0; cell.TextAutoFit = PowerPointTextAutoFit.None;
-                    cell.FillColor = r == 0 ? "183047" : r % 2 == 1 ? "F4F7FA" : "FFFFFF";
-                    cell.Color = OfficeIMO.OfficeColor.Parse(r == 0 ? "FFFFFF" : "183047"); cell.BorderColor = "E3EAF0";
+                    cell.FillColor = OfficeColor.Parse(r == 0 ? "183047" : r % 2 == 1 ? "F4F7FA" : "FFFFFF");
+                    cell.Color = OfficeIMO.OfficeColor.Parse(r == 0 ? "FFFFFF" : "183047"); cell.BorderColor = OfficeColor.Parse("E3EAF0");
                 }
             }
             slide.Notes.Text = "Editable report data. Source revision " + view.ModelRevision + ". " + view.Kind;

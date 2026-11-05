@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             return style;
         }
 
-        internal static ExcelTabularStylePlan? Create(ExcelWriterOptions options, int columnCount, CancellationToken ct) {
+        internal static ExcelTabularStylePlan? Create(ExcelWriterOptions options, int columnCount, CancellationToken ct, OfficeTheme? theme = null) {
             ct.ThrowIfCancellationRequested();
             if ((options.Styles == null || options.Styles.Count == 0)
                 && options.DefaultRowStyle == null && (options.ColumnStyles == null || options.ColumnStyles.Count == 0)) return null;
@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel {
             var styles = new Dictionary<string, DeclaredStyle>(StringComparer.OrdinalIgnoreCase);
             foreach (var item in definitions) {
                 ct.ThrowIfCancellationRequested();
-                ExcelNamedStyleInfo named = ExcelSheet.DefineDeclaredNamedStyle(stylesheet, item.Key, item.Value, false);
+                ExcelNamedStyleInfo named = ExcelSheet.DefineDeclaredNamedStyle(stylesheet, item.Key, item.Value, false, theme);
                 var format = (CellFormat)stylesheet.CellStyleFormats!.Elements<CellFormat>().ElementAt((int)named.FormatId).CloneNode(true);
                 format.FormatId = named.FormatId;
                 uint baseId = ExcelSheet.AddDefinitionCellFormat(stylesheet, format);

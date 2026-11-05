@@ -5,15 +5,15 @@ $path = Join-Path $documents 'Example-WordLineBreaks.docx'
 $document = New-OfficeWord -Path $path
 
 # Add-OfficeWordBreak creates a same-paragraph line break similar to Shift+Enter in Word.
-$paragraph = Add-OfficeWordParagraph -Target $document -Text 'Line 1 in the same paragraph' -PassThru
+$paragraph = Add-OfficeWordParagraph -Document $document -Text 'Line 1 in the same paragraph' -PassThru
 Add-OfficeWordBreak -Paragraph $paragraph
 Add-OfficeWordText -Paragraph $paragraph -Text 'Line 2 after the line break'
 Add-OfficeWordBreak -Paragraph $paragraph
 Add-OfficeWordText -Paragraph $paragraph -Text 'Line 3 still in the same paragraph'
 
 # An empty paragraph creates a visible blank line.
-Add-OfficeWordParagraph -Target $document
-Add-OfficeWordParagraph -Target $document -Text 'This text comes after an empty paragraph break.'
+Add-OfficeWordParagraph -Document $document
+Add-OfficeWordParagraph -Document $document -Text 'This text comes after an empty paragraph break.'
 
 Close-OfficeWord -Document $document -Save
 

@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Adds a metric to the current designed slide.</summary>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointKpi", DefaultParameterSetName = "Value")]
-[Alias("PowerPointKpi")]
+[Alias("PowerPointKpi") ]
 public sealed class AddOfficePowerPointKpiCommand : OfficeCmdlet {
     /// <summary>Gets or sets the value.</summary>
     [Parameter(Mandatory = true, Position = 0)]
@@ -33,7 +33,7 @@ public sealed class AddOfficePowerPointKpiCommand : OfficeCmdlet {
     [Parameter(ParameterSetName = "Delta")]
     public string? DeltaUnit { get; set; }
     /// <summary>Gets or sets the color.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Color { get; set; }
 
     /// <inheritdoc />

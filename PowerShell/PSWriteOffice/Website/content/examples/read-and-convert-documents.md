@@ -35,13 +35,13 @@ New-OfficeMarkdown -Path $markdownPath {
     [PSCustomObject]@{ Area = 'Examples'; State = 'Review' }
 ) | Export-OfficeCsv -Path $csvPath
 
-ConvertFrom-OfficeWordMarkdown -Path $markdownPath -OutputPath $wordPath
-ConvertTo-OfficeRtf -MarkdownPath $markdownPath -OutputPath $rtfPath
-ConvertFrom-OfficeRtf -Path $rtfPath -As Markdown -OutputPath $roundTripMarkdownPath
+Convert-OfficeDocument -Path $markdownPath -To Word -OutputPath $wordPath
+Convert-OfficeDocument -Path $markdownPath -To Rtf -OutputPath $rtfPath
+Convert-OfficeDocument -Path $rtfPath -To Markdown -OutputPath $roundTripMarkdownPath
 
 Get-OfficeDocumentCapability
-Get-OfficeDocumentChunk -Path $wordPath
-Get-OfficeDocumentChunk -Path $rtfPath
+Read-OfficeDocument -As Chunks -Path $wordPath
+Read-OfficeDocument -As Chunks -Path $rtfPath
 Import-OfficeCsv -Path $csvPath
 ```
 

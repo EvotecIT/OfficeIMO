@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies a style preset to the table.
         /// </summary>
-        public void ApplyStyle(PowerPointTableStylePreset preset) {
+        public PowerPointTable ApplyStyle(PowerPointTableStylePreset preset) {
             if (!string.IsNullOrWhiteSpace(preset.StyleId)) {
                 StyleId = preset.StyleId;
             }
@@ -35,17 +35,19 @@ namespace OfficeIMO.PowerPoint {
             if (preset.BandedColumns.HasValue) {
                 BandedColumns = preset.BandedColumns.Value;
             }
+            return this;
         }
 
         /// <summary>
         ///     Applies a table style by name, with optional banding/heading toggles.
         /// </summary>
-        public void ApplyStyleByName(string styleName, bool ignoreCase = true,
+        public PowerPointTable ApplyStyleByName(string styleName, bool ignoreCase = true,
             bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null,
             bool? bandedRows = null, bool? bandedColumns = null) {
             if (!TryApplyStyleByName(styleName, ignoreCase, firstRow, lastRow, firstColumn, lastColumn, bandedRows, bandedColumns)) {
                 throw new InvalidOperationException($"Table style '{styleName}' was not found in the presentation.");
             }
+            return this;
         }
 
         /// <summary>

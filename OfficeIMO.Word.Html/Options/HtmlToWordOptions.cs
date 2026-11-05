@@ -10,6 +10,9 @@ namespace OfficeIMO.Word.Html {
         /// <summary>Rejects a converted target when completed stages report fidelity loss.</summary>
         public bool FailOnLoss { get; set; }
 
+        /// <summary>Shared visual identity applied when creating a new Word document. Adding HTML to an existing document preserves its theme.</summary>
+        public OfficeTheme? Theme { get; set; }
+
         private HtmlConversionLimits _limits = new HtmlConversionLimits();
         /// <summary>
         /// Creates the default OfficeIMO HTML import profile.
@@ -412,6 +415,7 @@ namespace OfficeIMO.Word.Html {
         public HtmlWordExportOptions Clone() {
             var clone = new HtmlWordExportOptions {
                 FailOnLoss = FailOnLoss,
+                Theme = Theme,
                 FontFamily = FontFamily,
                 QuotePrefix = QuotePrefix,
                 QuoteSuffix = QuoteSuffix,

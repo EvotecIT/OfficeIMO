@@ -6,37 +6,103 @@ schema: 2.0.0
 ---
 # Get-OfficePdfSignature
 ## SYNOPSIS
-Gets lightweight PDF signature structure and preservation validation.
+Reports signature fields, byte ranges, DocMDP, DSS/LTV evidence and preservation markers.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Get-OfficePdfSignature [-Path] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfSignature [-Path] <string[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficePdfSignature -LiteralPath <string[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [<CommonParameters>]
+```
+
+### Document
+```powershell
+Get-OfficePdfSignature -Document <PdfDocument> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Reports signature fields, byte-range structure, DocMDP permissions, DSS/LTV evidence, and append-only preservation markers.
-Certificate-chain trust, revocation, digest, and CMS cryptographic verification are intentionally not performed.
+Reports signature fields, byte ranges, DocMDP, DSS/LTV evidence and preservation markers.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $report = Get-OfficePdfSignature -Path .\Signed.pdf
-$report.Signatures
-$report.Findings
+Get-OfficePdfSignature -Path @('C:\Path')
 ```
 
-Reads signature structure and reports whether OfficeIMO.Pdf found structural issues.
+
+### EXAMPLE 2
+```powershell
+Get-OfficePdfSignature -Document 'Value'
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficePdfSignature -LiteralPath @('C:\Path')
+```
+
 
 ## PARAMETERS
 
+### -Document
+Document for PDF inspection or extraction.
+
+```yaml
+Type: PdfDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed usage restrictions.
+IgnorePermissionRestrictions for PDF inspection or extraction.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+LiteralPath for PDF inspection or extraction.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+LoadOptions for PDF inspection or extraction.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -48,11 +114,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to inspect a Standard password-encrypted PDF.
+Password for PDF inspection or extraction.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -64,19 +130,19 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-PDF file path.
+Path for PDF inspection or extraction.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath, FullName, LiteralPath
+Type: String[]
+Parameter Sets: Path
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: False
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -84,7 +150,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
+- `OfficeIMO.Pdf.PdfDocument`
 
 ## OUTPUTS
 

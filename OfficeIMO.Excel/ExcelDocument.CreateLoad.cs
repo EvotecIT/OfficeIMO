@@ -175,7 +175,7 @@ namespace OfficeIMO.Excel {
             document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
 
-            if (theme != null) document.SetWorkbookThemeXml(CreateWorkbookThemeXml(theme));
+            if (theme != null) document.ApplyTheme(theme);
             if (firstSheetName != null) document.AddSheet(firstSheetName);
             return document;
         }

@@ -7,8 +7,5 @@ New-OfficeExcel -Path $workbook {
     }
 }
 
-Import-OfficeExcelDelimitedText `
-    -Path $workbook `
-    -SourcePath $csv `
-    -Delimiter ';' `
-    -SheetName 'Sales'
+Import-OfficeCsv -Path $csv -Delimiter ';' |
+    Export-OfficeExcel -Path $workbook -Sheet Sales -Append

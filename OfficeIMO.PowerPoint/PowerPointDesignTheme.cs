@@ -10,31 +10,31 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointDesignTheme ModernBlue => new() {
             Name = "OfficeIMO Modern Blue",
-            BackgroundColor = "FFFFFF",
-            SurfaceColor = "F7FAFC",
-            PanelColor = "FFFFFF",
-            PanelBorderColor = "D8E1E8",
-            PrimaryTextColor = "30343B",
-            SecondaryTextColor = "65717D",
-            MutedTextColor = "8A949E",
-            AccentColor = "0098C8",
-            AccentDarkColor = "006AA1",
-            AccentLightColor = "D9F4FA",
-            AccentContrastColor = "FFFFFF",
-            Accent2Color = "00B7C9",
-            Accent3Color = "6F6AA6",
-            WarningColor = "F4A100",
+            BackgroundColor = OfficeColor.ParseHex("FFFFFF"),
+            SurfaceColor = OfficeColor.ParseHex("F7FAFC"),
+            PanelColor = OfficeColor.ParseHex("FFFFFF"),
+            PanelBorderColor = OfficeColor.ParseHex("D8E1E8"),
+            PrimaryTextColor = OfficeColor.ParseHex("30343B"),
+            SecondaryTextColor = OfficeColor.ParseHex("65717D"),
+            MutedTextColor = OfficeColor.ParseHex("8A949E"),
+            AccentColor = OfficeColor.ParseHex("0098C8"),
+            AccentDarkColor = OfficeColor.ParseHex("006AA1"),
+            AccentLightColor = OfficeColor.ParseHex("D9F4FA"),
+            AccentContrastColor = OfficeColor.ParseHex("FFFFFF"),
+            Accent2Color = OfficeColor.ParseHex("00B7C9"),
+            Accent3Color = OfficeColor.ParseHex("6F6AA6"),
+            WarningColor = OfficeColor.ParseHex("F4A100"),
             PaletteStyle = PowerPointPaletteStyle.Auto,
-            HeadingFontName = "Poppins",
-            BodyFontName = "Lato"
+            HeadingFontFamily = "Poppins",
+            BodyFontFamily = "Lato"
         };
 
         /// <summary>
-        ///     Creates a theme from a primary brand accent while keeping readable defaults.
+        ///     Parses a six-digit RGB brand accent, optionally prefixed with '#', and creates readable defaults.
         /// </summary>
         public static PowerPointDesignTheme FromBrand(string accentColor, string? name = null,
-            string headingFontName = "Poppins", string bodyFontName = "Lato") {
-            string accent = NormalizeHex(accentColor, nameof(accentColor));
+            string headingFontFamily = "Poppins", string bodyFontFamily = "Lato") {
+            OfficeColor accent = OfficeColor.ParseHex(NormalizeHex(accentColor, nameof(accentColor)));
             return new PowerPointDesignTheme {
                 Name = name ?? "OfficeIMO Brand Theme",
                 AccentColor = accent,
@@ -42,10 +42,10 @@ namespace OfficeIMO.PowerPoint {
                 AccentLightColor = Shade(accent, 0.82),
                 Accent2Color = Shade(accent, 0.18),
                 Accent3Color = Shade(RotateAccent(accent), 0.1),
-                WarningColor = "F4A100",
+                WarningColor = OfficeColor.ParseHex("F4A100"),
                 PaletteStyle = PowerPointPaletteStyle.Auto,
-                HeadingFontName = headingFontName,
-                BodyFontName = bodyFontName
+                HeadingFontFamily = headingFontFamily,
+                BodyFontFamily = bodyFontFamily
             };
         }
 
@@ -71,13 +71,13 @@ namespace OfficeIMO.PowerPoint {
                 WarningColor = WarningColor,
                 PaletteStyle = PaletteStyle,
                 TypographyStyle = TypographyStyle,
-                HeadingFontName = HeadingFontName,
-                BodyFontName = BodyFontName
+                HeadingFontFamily = HeadingFontFamily,
+                BodyFontFamily = BodyFontFamily
             };
         }
 
         /// <summary>
-        ///     Creates a deterministic palette variation that keeps the primary brand accent but changes supporting colors.
+        ///     Creates a deterministic palette variation from literal accents, keeping the primary brand accent but changing supporting colors.
         /// </summary>
         public PowerPointDesignTheme WithVariation(string seed) {
             if (string.IsNullOrWhiteSpace(seed)) {
@@ -135,14 +135,14 @@ namespace OfficeIMO.PowerPoint {
 
             switch (mood) {
                 case PowerPointDesignMood.Editorial:
-                    clone.BackgroundColor = "FFFFFF";
+                    clone.BackgroundColor = OfficeColor.ParseHex("FFFFFF");
                     clone.SurfaceColor = Shade(clone.Accent3Color, 0.91);
-                    clone.PanelColor = "FFFFFF";
+                    clone.PanelColor = OfficeColor.ParseHex("FFFFFF");
                     clone.PanelBorderColor = Shade(clone.Accent3Color, 0.68);
                     clone.PaletteStyle = PowerPointPaletteStyle.Auto;
                     clone.TypographyStyle = PowerPointTypographyStyle.ModernSans;
-                    clone.HeadingFontName = "Aptos Display";
-                    clone.BodyFontName = "Aptos";
+                    clone.HeadingFontFamily = "Aptos Display";
+                    clone.BodyFontFamily = "Aptos";
                     break;
                 case PowerPointDesignMood.Energetic:
                     clone.SurfaceColor = Shade(clone.WarningColor, 0.88);
@@ -150,19 +150,19 @@ namespace OfficeIMO.PowerPoint {
                     clone.AccentLightColor = Shade(clone.AccentColor, 0.70);
                     clone.PaletteStyle = PowerPointPaletteStyle.Auto;
                     clone.TypographyStyle = PowerPointTypographyStyle.FriendlySans;
-                    clone.HeadingFontName = "Poppins";
-                    clone.BodyFontName = "Lato";
+                    clone.HeadingFontFamily = "Poppins";
+                    clone.BodyFontFamily = "Lato";
                     break;
                 case PowerPointDesignMood.Minimal:
-                    clone.SurfaceColor = "F5F7F9";
-                    clone.PanelBorderColor = "DDE4EA";
+                    clone.SurfaceColor = OfficeColor.ParseHex("F5F7F9");
+                    clone.PanelBorderColor = OfficeColor.ParseHex("DDE4EA");
                     clone.Accent2Color = Shade(clone.AccentColor, 0.34);
                     clone.Accent3Color = Shade(clone.AccentDarkColor, 0.50);
                     clone.WarningColor = clone.Accent2Color;
                     clone.PaletteStyle = PowerPointPaletteStyle.Auto;
                     clone.TypographyStyle = PowerPointTypographyStyle.ModernSans;
-                    clone.HeadingFontName = "Aptos Display";
-                    clone.BodyFontName = "Aptos";
+                    clone.HeadingFontFamily = "Aptos Display";
+                    clone.BodyFontFamily = "Aptos";
                     break;
                 default:
                     break;
@@ -180,72 +180,72 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Main slide background color.
         /// </summary>
-        public string BackgroundColor { get; set; } = "FFFFFF";
+        public OfficeColor BackgroundColor { get; set; } = OfficeColor.ParseHex("FFFFFF");
 
         /// <summary>
         ///     Alternate surface color for subtle bands and washes.
         /// </summary>
-        public string SurfaceColor { get; set; } = "F7FAFC";
+        public OfficeColor SurfaceColor { get; set; } = OfficeColor.ParseHex("F7FAFC");
 
         /// <summary>
         ///     Card and panel fill color.
         /// </summary>
-        public string PanelColor { get; set; } = "FFFFFF";
+        public OfficeColor PanelColor { get; set; } = OfficeColor.ParseHex("FFFFFF");
 
         /// <summary>
         ///     Card and panel outline color.
         /// </summary>
-        public string PanelBorderColor { get; set; } = "D8E1E8";
+        public OfficeColor PanelBorderColor { get; set; } = OfficeColor.ParseHex("D8E1E8");
 
         /// <summary>
         ///     Primary text color.
         /// </summary>
-        public string PrimaryTextColor { get; set; } = "30343B";
+        public OfficeColor PrimaryTextColor { get; set; } = OfficeColor.ParseHex("30343B");
 
         /// <summary>
         ///     Secondary text color.
         /// </summary>
-        public string SecondaryTextColor { get; set; } = "65717D";
+        public OfficeColor SecondaryTextColor { get; set; } = OfficeColor.ParseHex("65717D");
 
         /// <summary>
         ///     Muted caption and chrome text color.
         /// </summary>
-        public string MutedTextColor { get; set; } = "8A949E";
+        public OfficeColor MutedTextColor { get; set; } = OfficeColor.ParseHex("8A949E");
 
         /// <summary>
         ///     Main accent color.
         /// </summary>
-        public string AccentColor { get; set; } = "0098C8";
+        public OfficeColor AccentColor { get; set; } = OfficeColor.ParseHex("0098C8");
 
         /// <summary>
         ///     Dark accent color for section slides and strong bands.
         /// </summary>
-        public string AccentDarkColor { get; set; } = "006AA1";
+        public OfficeColor AccentDarkColor { get; set; } = OfficeColor.ParseHex("006AA1");
 
         /// <summary>
         ///     Light accent color for soft backgrounds and dividers.
         /// </summary>
-        public string AccentLightColor { get; set; } = "D9F4FA";
+        public OfficeColor AccentLightColor { get; set; } = OfficeColor.ParseHex("D9F4FA");
 
         /// <summary>
         ///     Text color used on top of accent fills.
         /// </summary>
-        public string AccentContrastColor { get; set; } = "FFFFFF";
+        public OfficeColor AccentContrastColor { get; set; } = OfficeColor.ParseHex("FFFFFF");
 
         /// <summary>
         ///     Secondary accent color.
         /// </summary>
-        public string Accent2Color { get; set; } = "00B7C9";
+        public OfficeColor Accent2Color { get; set; } = OfficeColor.ParseHex("00B7C9");
 
         /// <summary>
         ///     Tertiary accent color.
         /// </summary>
-        public string Accent3Color { get; set; } = "6F6AA6";
+        public OfficeColor Accent3Color { get; set; } = OfficeColor.ParseHex("6F6AA6");
 
         /// <summary>
         ///     Warm accent used for markers and direction motifs.
         /// </summary>
-        public string WarningColor { get; set; } = "F4A100";
+        public OfficeColor WarningColor { get; set; } = OfficeColor.ParseHex("F4A100");
 
         /// <summary>
         ///     Supporting palette strategy used to generate secondary accents and surfaces.
@@ -260,34 +260,20 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Font used for headings.
         /// </summary>
-        public string HeadingFontName { get; set; } = "Poppins";
+        public string HeadingFontFamily { get; set; } = "Poppins";
 
         /// <summary>
         ///     Font used for body text.
         /// </summary>
-        public string BodyFontName { get; set; } = "Lato";
+        public string BodyFontFamily { get; set; } = "Lato";
 
         internal void Validate() {
-            ValidateHex(BackgroundColor, nameof(BackgroundColor));
-            ValidateHex(SurfaceColor, nameof(SurfaceColor));
-            ValidateHex(PanelColor, nameof(PanelColor));
-            ValidateHex(PanelBorderColor, nameof(PanelBorderColor));
-            ValidateHex(PrimaryTextColor, nameof(PrimaryTextColor));
-            ValidateHex(SecondaryTextColor, nameof(SecondaryTextColor));
-            ValidateHex(MutedTextColor, nameof(MutedTextColor));
-            ValidateHex(AccentColor, nameof(AccentColor));
-            ValidateHex(AccentDarkColor, nameof(AccentDarkColor));
-            ValidateHex(AccentLightColor, nameof(AccentLightColor));
-            ValidateHex(AccentContrastColor, nameof(AccentContrastColor));
-            ValidateHex(Accent2Color, nameof(Accent2Color));
-            ValidateHex(Accent3Color, nameof(Accent3Color));
-            ValidateHex(WarningColor, nameof(WarningColor));
 
-            if (string.IsNullOrWhiteSpace(HeadingFontName)) {
-                throw new ArgumentException("Heading font cannot be null or empty.", nameof(HeadingFontName));
+            if (string.IsNullOrWhiteSpace(HeadingFontFamily)) {
+                throw new ArgumentException("Heading font cannot be null or empty.", nameof(HeadingFontFamily));
             }
-            if (string.IsNullOrWhiteSpace(BodyFontName)) {
-                throw new ArgumentException("Body font cannot be null or empty.", nameof(BodyFontName));
+            if (string.IsNullOrWhiteSpace(BodyFontFamily)) {
+                throw new ArgumentException("Body font cannot be null or empty.", nameof(BodyFontFamily));
             }
         }
 
@@ -339,15 +325,15 @@ namespace OfficeIMO.PowerPoint {
                     Accent2Color = WarmAccent(pick);
                     Accent3Color = ShiftHue(AccentColor, -38d, saturationScale: 0.62, lightnessShift: 0.03);
                     WarningColor = WarmAccent(pick + 3);
-                    SurfaceColor = "F8F5F0";
-                    PanelBorderColor = "E4DDD2";
+                    SurfaceColor = OfficeColor.ParseHex("F8F5F0");
+                    PanelBorderColor = OfficeColor.ParseHex("E4DDD2");
                     break;
                 case PowerPointPaletteStyle.CoolNeutral:
                     Accent2Color = ShiftHue(AccentColor, -32d, saturationScale: 0.60, lightnessShift: 0.06);
                     Accent3Color = ShiftHue(AccentColor, 68d, saturationScale: 0.48, lightnessShift: 0.05);
                     WarningColor = WarmAccent(pick + 4);
-                    SurfaceColor = "F4F7FA";
-                    PanelBorderColor = "D9E2EA";
+                    SurfaceColor = OfficeColor.ParseHex("F4F7FA");
+                    PanelBorderColor = OfficeColor.ParseHex("D9E2EA");
                     break;
                 default:
                     break;
@@ -366,24 +352,24 @@ namespace OfficeIMO.PowerPoint {
 
             switch (resolvedStyle) {
                 case PowerPointTypographyStyle.FriendlySans:
-                    HeadingFontName = "Poppins";
-                    BodyFontName = "Lato";
+                    HeadingFontFamily = "Poppins";
+                    BodyFontFamily = "Lato";
                     break;
                 case PowerPointTypographyStyle.ModernSans:
-                    HeadingFontName = "Aptos Display";
-                    BodyFontName = "Aptos";
+                    HeadingFontFamily = "Aptos Display";
+                    BodyFontFamily = "Aptos";
                     break;
                 case PowerPointTypographyStyle.ExecutiveSans:
-                    HeadingFontName = "Segoe UI Semibold";
-                    BodyFontName = "Segoe UI";
+                    HeadingFontFamily = "Segoe UI Semibold";
+                    BodyFontFamily = "Segoe UI";
                     break;
                 case PowerPointTypographyStyle.EditorialSerif:
-                    HeadingFontName = "Georgia";
-                    BodyFontName = "Aptos";
+                    HeadingFontFamily = "Georgia";
+                    BodyFontFamily = "Aptos";
                     break;
                 case PowerPointTypographyStyle.TechnicalSans:
-                    HeadingFontName = "Bahnschrift";
-                    BodyFontName = "Aptos";
+                    HeadingFontFamily = "Bahnschrift";
+                    BodyFontFamily = "Aptos";
                     break;
                 default:
                     break;
@@ -393,7 +379,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void SyncTypographyStyleToFonts() {
-            TypographyStyle = InferTypographyStyle(HeadingFontName, BodyFontName);
+            TypographyStyle = InferTypographyStyle(HeadingFontFamily, BodyFontFamily);
         }
 
         private static string NormalizeHex(string value, string name) {
@@ -407,14 +393,14 @@ namespace OfficeIMO.PowerPoint {
             return value.ToUpperInvariant();
         }
 
-        private static string Shade(string value, double amount) {
-            int r = Convert.ToInt32(value.Substring(0, 2), 16);
-            int g = Convert.ToInt32(value.Substring(2, 2), 16);
-            int b = Convert.ToInt32(value.Substring(4, 2), 16);
+        private static OfficeColor Shade(OfficeColor value, double amount) {
+            int r = value.R;
+            int g = value.G;
+            int b = value.B;
             r = ShadeChannel(r, amount);
             g = ShadeChannel(g, amount);
             b = ShadeChannel(b, amount);
-            return r.ToString("X2") + g.ToString("X2") + b.ToString("X2");
+            return OfficeColor.FromRgba((byte)r, (byte)g, (byte)b, value.A);
         }
 
         private static int ShadeChannel(int value, double amount) {
@@ -422,11 +408,11 @@ namespace OfficeIMO.PowerPoint {
             return (int)Math.Round(value + (target - value) * Math.Abs(amount));
         }
 
-        private static string RotateAccent(string value) {
-            return value.Substring(2, 2) + value.Substring(4, 2) + value.Substring(0, 2);
+        private static OfficeColor RotateAccent(OfficeColor value) {
+            return OfficeColor.FromRgba(value.G, value.B, value.R, value.A);
         }
 
-        private static string WarmAccent(int index) {
+        private static OfficeColor WarmAccent(int index) {
             string[] colors = {
                 "F4A100",
                 "F59E0B",
@@ -436,7 +422,7 @@ namespace OfficeIMO.PowerPoint {
                 "F97316",
                 "EF4444"
             };
-            return colors[Math.Abs(index) % colors.Length];
+            return OfficeColor.ParseHex(colors[Math.Abs(index) % colors.Length]);
         }
 
         private static int StablePick(string value, int choices) {
@@ -482,36 +468,36 @@ namespace OfficeIMO.PowerPoint {
             return styles[StablePick(seed + "/typography", styles.Length)];
         }
 
-        private static PowerPointTypographyStyle InferTypographyStyle(string headingFontName, string bodyFontName) {
-            if (MatchesTypographyPair(headingFontName, bodyFontName, "Poppins", "Lato")) {
+        private static PowerPointTypographyStyle InferTypographyStyle(string headingFontFamily, string bodyFontFamily) {
+            if (MatchesTypographyPair(headingFontFamily, bodyFontFamily, "Poppins", "Lato")) {
                 return PowerPointTypographyStyle.FriendlySans;
             }
-            if (MatchesTypographyPair(headingFontName, bodyFontName, "Aptos Display", "Aptos")) {
+            if (MatchesTypographyPair(headingFontFamily, bodyFontFamily, "Aptos Display", "Aptos")) {
                 return PowerPointTypographyStyle.ModernSans;
             }
-            if (MatchesTypographyPair(headingFontName, bodyFontName, "Segoe UI Semibold", "Segoe UI")) {
+            if (MatchesTypographyPair(headingFontFamily, bodyFontFamily, "Segoe UI Semibold", "Segoe UI")) {
                 return PowerPointTypographyStyle.ExecutiveSans;
             }
-            if (MatchesTypographyPair(headingFontName, bodyFontName, "Georgia", "Aptos")) {
+            if (MatchesTypographyPair(headingFontFamily, bodyFontFamily, "Georgia", "Aptos")) {
                 return PowerPointTypographyStyle.EditorialSerif;
             }
-            if (MatchesTypographyPair(headingFontName, bodyFontName, "Bahnschrift", "Aptos")) {
+            if (MatchesTypographyPair(headingFontFamily, bodyFontFamily, "Bahnschrift", "Aptos")) {
                 return PowerPointTypographyStyle.TechnicalSans;
             }
 
             return PowerPointTypographyStyle.Auto;
         }
 
-        private static bool MatchesTypographyPair(string headingFontName, string bodyFontName,
-            string expectedHeadingFontName, string expectedBodyFontName) {
-            return string.Equals(headingFontName, expectedHeadingFontName, StringComparison.OrdinalIgnoreCase) &&
-                   string.Equals(bodyFontName, expectedBodyFontName, StringComparison.OrdinalIgnoreCase);
+        private static bool MatchesTypographyPair(string headingFontFamily, string bodyFontFamily,
+            string expectedHeadingFontFamily, string expectedBodyFontFamily) {
+            return string.Equals(headingFontFamily, expectedHeadingFontFamily, StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(bodyFontFamily, expectedBodyFontFamily, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string ShiftHue(string value, double degrees, double saturationScale, double lightnessShift) {
-            int r = Convert.ToInt32(value.Substring(0, 2), 16);
-            int g = Convert.ToInt32(value.Substring(2, 2), 16);
-            int b = Convert.ToInt32(value.Substring(4, 2), 16);
+        private static OfficeColor ShiftHue(OfficeColor value, double degrees, double saturationScale, double lightnessShift) {
+            int r = value.R;
+            int g = value.G;
+            int b = value.B;
             RgbToHsl(r, g, b, out double hue, out double saturation, out double lightness);
             hue = (hue + degrees) % 360;
             if (hue < 0) {
@@ -520,7 +506,7 @@ namespace OfficeIMO.PowerPoint {
             saturation = Clamp(saturation * saturationScale, 0.28, 0.9);
             lightness = Clamp(lightness + lightnessShift, 0.26, 0.62);
             HslToRgb(hue, saturation, lightness, out r, out g, out b);
-            return r.ToString("X2") + g.ToString("X2") + b.ToString("X2");
+            return OfficeColor.FromRgba((byte)r, (byte)g, (byte)b, value.A);
         }
 
         private static void RgbToHsl(int r, int g, int b, out double hue, out double saturation, out double lightness) {

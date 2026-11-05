@@ -12,8 +12,8 @@ New-OfficeWord -Path $docPath {
     }
 }
 
-ConvertTo-OfficeWordHtml -Path $docPath -OutputPath $htmlPath
-ConvertFrom-OfficeWordHtml -Path $htmlPath -OutputPath $roundtripPath
+Convert-OfficeDocument -To Html -Path $docPath -OutputPath $htmlPath
+Convert-OfficeDocument -To Word -Path $htmlPath -OutputPath $roundtripPath
 
 Write-Host "HTML saved to $htmlPath"
 Write-Host "Round-trip document saved to $roundtripPath"

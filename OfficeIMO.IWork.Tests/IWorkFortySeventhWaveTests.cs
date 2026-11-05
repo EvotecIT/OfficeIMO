@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Tile fields", 1, 1, 1d, unexpectedTileFieldCount: unexpectedFields)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Mixed row", 1, 1, 1d, mixedRowIndexWire: true)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Repeated_pages_header_storage_disables_editable_reconstruction() {
         using MemoryStream package = CreatePagesPackageWithRepeatedHeaderStorage();
 
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(package,
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Pages).ReadPages();
 
         Assert.False(projection.HasEditableContent);

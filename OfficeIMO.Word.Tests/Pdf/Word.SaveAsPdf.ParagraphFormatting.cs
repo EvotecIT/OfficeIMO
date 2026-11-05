@@ -26,19 +26,19 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Before native baseline formatting");
                 WordParagraph superscript = document.AddParagraph("Native paragraph superscript");
                 superscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
-                superscript.SetSuperScript();
+                superscript.SetSuperscript();
                 WordParagraph subscript = document.AddParagraph("Native paragraph subscript");
                 subscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
-                subscript.SetSubScript();
+                subscript.SetSubscript();
                 WordParagraph mixed = document.AddParagraph();
                 mixed.AddText("Native mixed baseline ");
                 WordParagraph runSuperscript = mixed.AddText("run superscript");
                 runSuperscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
-                runSuperscript.SetSuperScript();
+                runSuperscript.SetSuperscript();
                 mixed.AddText(" ");
                 WordParagraph runSubscript = mixed.AddText("run subscript");
                 runSubscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
-                runSubscript.SetSubScript();
+                runSubscript.SetSubscript();
                 document.AddParagraph("After native baseline formatting");
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

@@ -8,7 +8,7 @@ namespace PSWriteOffice.Cmdlets.Latex;
 /// <example>
 ///   <summary>Load and save a canonical LaTeX document.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$document = Get-OfficeLatex -Path .\Article.tex
+///   <code>$document = Open-OfficeLatex -Path .\Article.tex
 /// $document | Save-OfficeLatex -Path .\Article-normalized.tex -Mode Canonical</code>
 /// </example>
 [Cmdlet(VerbsData.Save, "OfficeLatex", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
@@ -16,16 +16,12 @@ namespace PSWriteOffice.Cmdlets.Latex;
 public sealed class SaveOfficeLatexCommand : PSCmdlet
 {
     /// <summary>LaTeX document to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public LatexDocument Document { get; set; } = null!;
 
     /// <summary>Destination path.</summary>
-    [Parameter(Mandatory = true, Position = 1)]
+    [Parameter(Mandatory = true, Position = 0)]
     public string Path { get; set; } = string.Empty;
-
-    /// <summary>Optional writer settings.</summary>
-    [Parameter]
-    public LatexWriterOptions? Options { get; set; }
 
     /// <summary>Writer mode. Preserve retains unchanged source; Canonical normalizes output.</summary>
     [Parameter]
@@ -51,8 +47,8 @@ public sealed class SaveOfficeLatexCommand : PSCmdlet
 
     private LatexWriterOptions BuildOptions() {
         var options = new LatexWriterOptions {
-            Mode = Options?.Mode ?? LatexWriterMode.Preserve,
-            LineEnding = Options?.LineEnding
+            Mode = LatexWriterMode.Preserve,
+            LineEnding = null
         };
         if (Mode.HasValue) options.Mode = Mode.Value;
         if (LineEnding.HasValue) options.LineEnding = OfficeLineEndingUtilities.ToText(LineEnding.Value);

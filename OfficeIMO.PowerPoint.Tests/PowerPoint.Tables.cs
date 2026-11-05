@@ -135,8 +135,8 @@ namespace OfficeIMO.Tests {
                 options => options.MaxCells = 2,
                 includeHeaders: false);
 
-            Assert.Equal(1, table.Rows);
-            Assert.Equal(2, table.Columns);
+            Assert.Equal(1, table.RowCount);
+            Assert.Equal(2, table.ColumnCount);
             Assert.False(table.HeaderRow);
         }
 
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
                 options.MaxColumns = 2;
             });
 
-            Assert.Equal(2, table.Columns);
+            Assert.Equal(2, table.ColumnCount);
             Assert.Equal("Name", table.GetCell(0, 0).Text);
             Assert.Equal("Missing", table.GetCell(0, 1).Text);
             Assert.Equal("Alice", table.GetCell(1, 0).Text);
@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests {
                 options.MaxColumns = 1;
             });
 
-            Assert.Equal(1, table.Columns);
+            Assert.Equal(1, table.ColumnCount);
             Assert.Equal("Name", table.GetCell(0, 0).Text);
             Assert.Equal("Alice", table.GetCell(1, 0).Text);
         }
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
 
                 cell.Text = "Test";
 
-                cell.FillColor = "FF0000";
+                cell.FillColor = OfficeColor.Parse("FF0000");
 
                 cell.Merge = (1, 2);
 
@@ -273,9 +273,9 @@ namespace OfficeIMO.Tests {
 
                 PowerPointTable table = presentation.Slides[0].Tables.First();
 
-                Assert.Equal(2, table.Rows);
+                Assert.Equal(2, table.RowCount);
 
-                Assert.Equal(2, table.Columns);
+                Assert.Equal(2, table.ColumnCount);
 
                 PowerPointTableCell cell = table.GetCell(0, 0);
 
@@ -466,7 +466,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTable table = presentation.Slides[0].Tables.First();
                 long sum = 0;
-                for (int i = 0; i < table.Columns; i++) {
+                for (int i = 0; i < table.ColumnCount; i++) {
                     long width = (table.GetColumnWidth(i)).ToEmus();
                     Assert.True(width > 0);
                     sum += width;
@@ -527,14 +527,14 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(1,2);
 
-                table.AddColumn(table.Columns);
+                table.AddColumn(table.ColumnCount);
                 table.GetCell(0, 2).Text = "Appended";
                 presentation.Save();
             }
 
             using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTable table = presentation.Slides.Single().Tables.First();
-                Assert.Equal(3, table.Columns);
+                Assert.Equal(3, table.ColumnCount);
                 Assert.Equal("Appended", table.GetCell(0, 2).Text);
             }
 
@@ -567,11 +567,11 @@ namespace OfficeIMO.Tests {
                     table.SetRowHeightsByRatio(1, 1, 1);
                     table.SetCellPadding(global::OfficeIMO.OfficeLength.Centimeters(0.15), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.15), global::OfficeIMO.OfficeLength.Centimeters(0.1));
                     table.SetCellAlignment(PowerPointTextAlignment.Center, PowerPointTextVerticalAlignment.Center);
-                    table.SetCellBorders(PowerPointTableCellBorders.All, "4472C4", width: global::OfficeIMO.OfficeLength.Points(0.75), dash: PowerPointLineDashStyle.Dash);
+                    table.SetCellBorders(PowerPointTableCellBorders.All, OfficeColor.Parse("4472C4"), width: global::OfficeIMO.OfficeLength.Points(0.75), dash: PowerPointLineDashStyle.Dash);
 
                     PowerPointTableCell header = table.GetCell(0, 0);
                     header.Text = "Header";
-                    header.FillColor = "1F4E79";
+                    header.FillColor = OfficeColor.Parse("1F4E79");
                     header.Color = OfficeColor.Parse("FFFFFF");
                     header.Bold = true;
                     header.FontSize = global::OfficeIMO.OfficeLength.Points(12);
@@ -581,8 +581,8 @@ namespace OfficeIMO.Tests {
 
                     table.AddRowFromTemplate(0, index: 1);
                     table.AddColumnFromTemplate(0, index: 1);
-                    table.RemoveRow(table.Rows - 1);
-                    table.RemoveColumn(table.Columns - 1);
+                    table.RemoveRow(table.RowCount - 1);
+                    table.RemoveColumn(table.ColumnCount - 1);
                     table.Bind(data, columns, includeHeaders: true, startRow: 1, startColumn: 1);
                     table.MergeCells(0, 0, 1, 1);
 

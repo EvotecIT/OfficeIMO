@@ -20,12 +20,12 @@ internal static class NativePagesDecimalMarkerSmoke {
 
     private static void Check(IWorkDecimalListMarkerStyle style, string name,
         string createdHash, string originalHash, string preservedHash, string nativeHash) {
-        byte[] created = NativePagesNineLevelSmoke.Example(style).SaveBytes();
+        byte[] created = NativePagesNineLevelSmoke.Example(style).ToBytes();
         Require(created.Length == 22332 && Hash(created) == createdHash
-            && created.SequenceEqual(NativePagesNineLevelSmoke.Example(style).SaveBytes()), "Decimal marker creation changed.");
-        CheckWord(IWorkSourceDocument.Open(created), style);
+            && created.SequenceEqual(NativePagesNineLevelSmoke.Example(style).ToBytes()), "Decimal marker creation changed.");
+        CheckWord(IWorkSourceDocument.Load(created), style);
         byte[] original = Read(name, "original"); Require(Hash(original) == originalHash, "Apple marker input changed.");
-        var source = IWorkSourceDocument.Open(original); var body = source.ReadPages().Body;
+        var source = IWorkSourceDocument.Load(original); var body = source.ReadPages().Body;
         CheckWord(source, style);
         var edit = source.BeginEdit();
         foreach (string text in NativePagesNineLevelSmoke.LevelNames) {
@@ -33,16 +33,16 @@ internal static class NativePagesDecimalMarkerSmoke {
             edit.SetPagesBodyParagraphText(body.SourceIdentity!, number, text.ToUpperInvariant());
         }
         var options = new IWorkNativeSaveOptions { AllowUnassessedVisualCaches = true };
-        var output = edit.SaveBytesResult(options); byte[] pending = output.GetPackageBytes();
-        Require(Hash(pending) == preservedHash && output.Report.UpdatedRecords.Count == 1
-            && output.Report.UpdatedEntryPaths.Count == 1 && body.Paragraphs[1].Text == "Root seven",
+        byte[] pending = edit.ToBytes(out var report, options);
+        Require(Hash(pending) == preservedHash && report.UpdatedRecords.Count == 1
+            && report.UpdatedEntryPaths.Count == 1 && body.Paragraphs[1].Text == "Root seven",
             "Decimal marker text patch differs from independent/native evidence or mutates input.");
-        var preserved = IWorkSourceDocument.Open(pending);
+        var preserved = IWorkSourceDocument.Load(pending);
         Require(preserved.ReadPages().Body.Paragraphs.Skip(1).Take(9).Select(p => p.Text)
             .SequenceEqual(NativePagesNineLevelSmoke.LevelNames.Select(text => text.ToUpperInvariant())), "A marker item lost its edit.");
         CheckWord(preserved, style);
         byte[] native = Read(name, "edited"); Require(Hash(native) == nativeHash, "Apple marker edit changed.");
-        var nativeSource = IWorkSourceDocument.Open(native); var nativeBody = nativeSource.ReadPages().Body;
+        var nativeSource = IWorkSourceDocument.Load(native); var nativeBody = nativeSource.ReadPages().Body;
         Require(nativeBody.Paragraphs[1].Text == "Root novel" && nativeBody.Paragraphs[9].Text == "Level EIGHT"
             && nativeBody.Paragraphs.Any(p => p.Text == "Native deep two" && p.ListLevel == 8 && p.ListNumber == 2),
             "Native marker edit/insertion did not survive reopen.");
@@ -50,15 +50,15 @@ internal static class NativePagesDecimalMarkerSmoke {
         int deepest = body.Paragraphs.ToList().FindIndex(p => p.Text == "Level eight") + 1;
         using var cancel = new CancellationTokenSource(); cancel.Cancel();
         try { edit.SetPagesBodyParagraphText(body.SourceIdentity!, deepest, "Level eight", cancel.Token); throw new Exception("Marker edit ignored cancellation."); }
-        catch (OperationCanceledException) { Require(pending.SequenceEqual(edit.SaveBytes(options)), "Cancellation changed marker edits."); }
+        catch (OperationCanceledException) { Require(pending.SequenceEqual(edit.ToBytes(options)), "Cancellation changed marker edits."); }
         try { edit.SetPagesBodyParagraphText(body.SourceIdentity!, deepest, "short"); throw new Exception("Marker edit accepted a length change."); }
-        catch (NotSupportedException) { Require(pending.SequenceEqual(edit.SaveBytes(options)), "Rejection changed marker edits."); }
+        catch (NotSupportedException) { Require(pending.SequenceEqual(edit.ToBytes(options)), "Rejection changed marker edits."); }
         foreach (string text in NativePagesNineLevelSmoke.LevelNames) {
             int number = body.Paragraphs.ToList().FindIndex(p => p.Text == text) + 1;
             edit.SetPagesBodyParagraphText(body.SourceIdentity!, number, text);
         }
-        var restored = edit.SaveBytesResult();
-        Require(restored.Report.UpdatedRecords.Count == 0 && restored.Report.OutputPackageContentHash == source.ComputePackageContentHash(),
+        _ = edit.ToBytes(out var restoredReport);
+        Require(restoredReport.UpdatedRecords.Count == 0 && restoredReport.OutputPackageContentHash == source.ComputePackageContentHash(),
             "Restoring marker text did not restore the original bytes.");
     }
 

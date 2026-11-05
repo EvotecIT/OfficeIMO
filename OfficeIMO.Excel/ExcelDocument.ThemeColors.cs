@@ -1,7 +1,16 @@
 using OfficeIMO.Excel.Utilities;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        /// <summary>Resolves native theme slots against this workbook and status roles against its creation palette.</summary>
+        internal OfficeColor? ResolveColor(OfficeColor color) {
+            uint? index = OfficeOpenXmlThemeColorResolver.GetSpreadsheetThemeColorIndex(color.ThemeSlot);
+            return index.HasValue
+                ? ExcelColor.FromSpreadsheetColor(null, ResolveThemeColorArgb(index.Value))
+                : ExcelColor.FromSpreadsheetColor(null, ExcelColor.ToSpreadsheetColor(color, ColorTheme).Rgb?.Value);
+        }
+
         /// <summary>
         /// Resolves a SpreadsheetML theme color to an ARGB hexadecimal value.
         /// </summary>

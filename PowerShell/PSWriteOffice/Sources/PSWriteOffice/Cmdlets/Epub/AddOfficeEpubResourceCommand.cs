@@ -15,11 +15,11 @@ namespace PSWriteOffice.Cmdlets.Epub;
 ///   <code>$book | Add-OfficeEpubResource -Path ./cover.png -Id cover -MediaType image/png</code>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeEpubResource", DefaultParameterSetName = "Default")]
-[Alias("EpubResource")]
 [OutputType(typeof(EpubManifestItem))]
+[Alias("EpubResource") ]
 public sealed class AddOfficeEpubResourceCommand : OfficeDocumentCmdlet<EpubPublication> {
     /// <summary>Literal payload path.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Default")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Unique manifest identifier.</summary>

@@ -15,6 +15,7 @@ public sealed class PdfImageStampOptions : IPdfOperationCancellation {
     private global::OfficeIMO.OfficeLength? _width;
     private global::OfficeIMO.OfficeLength? _height;
     private double _rotationDegrees;
+    private double _opacity = 1D;
 
     /// <summary>Maximum encoded image bytes accepted for a stamp or watermark. Defaults to 128 MiB.</summary>
     public long MaximumEncodedImageBytes { get; set; } = PdfImageInput.DefaultMaximumEncodedBytes;
@@ -97,6 +98,17 @@ public sealed class PdfImageStampOptions : IPdfOperationCancellation {
         set {
             ValidateFinite(value, nameof(RotationDegrees), "Image stamp rotation must be finite.");
             _rotationDegrees = value;
+        }
+    }
+
+    /// <summary>Image opacity from 0 through 1, multiplied by any intrinsic image alpha. Defaults to 1.</summary>
+    public double Opacity {
+        get => _opacity;
+        set {
+            if (value < 0D || value > 1D || double.IsNaN(value) || double.IsInfinity(value)) {
+                throw new System.ArgumentOutOfRangeException(nameof(Opacity), value, "Stamp opacity must be finite and between 0 and 1.");
+            }
+            _opacity = value;
         }
     }
 

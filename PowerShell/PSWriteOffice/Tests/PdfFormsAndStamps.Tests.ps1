@@ -15,8 +15,8 @@ Describe 'PDF forms and stamps' {
             PdfParagraph 'Customer name'
             PdfFormField -Name 'CustomerName' -Type Text
             PdfParagraph 'Plan'
-            PdfFormField -Name 'Plan' -Type Choice -Options 'Standard', 'Premium' -Value 'Standard'
-            PdfFormField -Name 'Regions' -Type MultiSelectChoice -Options 'EU', 'US', 'APAC' -Values 'EU', 'US'
+            PdfFormField -Name 'Plan' -Type Choice -Option 'Standard', 'Premium' -Value 'Standard'
+            PdfFormField -Name 'Regions' -Type MultiSelectChoice -Option 'EU', 'US', 'APAC' -Value 'EU', 'US'
         } | Out-Null
 
         $fields = Get-OfficePdfFormField -Path $formPath
@@ -24,16 +24,29 @@ Describe 'PDF forms and stamps' {
         $fields.Name | Should -Contain 'Plan'
         $fields.Name | Should -Contain 'Regions'
 
+        $live = Open-OfficePdf -LiteralPath $formPath
+        try {
+            $preview = @($live | Set-OfficePdfFormField -Value @{ CustomerName = 'Preview' } -PassThru -WhatIf)
+            try { $preview.Count | Should -Be 0 }
+            finally { foreach ($result in $preview) { if (-not [object]::ReferenceEquals($result, $live)) { $result.Dispose() } } }
+        } finally { $live.Dispose() }
+
+        $contextPath = Join-Path $TestDrive 'context-filled.pdf'
+        Open-OfficePdf -LiteralPath $formPath -OutputPath $contextPath {
+            Set-OfficePdfFormField -Value @{ CustomerName = 'After' }
+        } | Out-Null
+        (Get-OfficePdfFormField -LiteralPath $contextPath -Name CustomerName).Value | Should -Be 'After'
+
         $filledPath = Join-Path $TestDrive 'filled.pdf'
-        Set-OfficePdfForm -Path $formPath -OutputPath $filledPath -Field @{
+        Set-OfficePdfFormField -Path $formPath -OutputPath $filledPath -Value @{
             CustomerName = 'Alice Example'
             Plan = 'Premium'
             Regions = 'EU'
         } -Flatten -PassThru | Should -BeOfType System.IO.FileInfo
 
-        $preflight = Get-OfficePdfPreflight -Path $filledPath
+        $preflight = Get-OfficePdfDiagnostic -Type Preflight -Path $filledPath
         $preflight.CanRead | Should -BeTrue
-        (Get-OfficePdfInfo -Path $filledPath).FormFieldCount | Should -Be 0
+        ((Get-OfficeDocumentInfo -Detailed -Path $filledPath).Details).FormFieldCount | Should -Be 0
     }
 
     It 'creates the output directory when filling PDF forms' {
@@ -44,12 +57,12 @@ Describe 'PDF forms and stamps' {
         } | Out-Null
 
         $filledPath = Join-Path $TestDrive 'nested\filled.pdf'
-        Set-OfficePdfForm -Path $formPath -OutputPath $filledPath -Field @{
+        Set-OfficePdfFormField -Path $formPath -OutputPath $filledPath -Value @{
             CustomerName = 'Alice Example'
         } -PassThru | Should -BeOfType System.IO.FileInfo
 
         Test-Path $filledPath | Should -BeTrue
-        (Get-OfficePdfPreflight -Path $filledPath).CanRead | Should -BeTrue
+        (Get-OfficePdfDiagnostic -Type Preflight -Path $filledPath).CanRead | Should -BeTrue
     }
 
     It 'writes deterministic form appearances without requiring viewer regeneration' {
@@ -60,11 +73,11 @@ Describe 'PDF forms and stamps' {
         } | Out-Null
 
         $filledPath = Join-Path $TestDrive 'appearance-filled.pdf'
-        Set-OfficePdfForm -Path $formPath -OutputPath $filledPath -Field @{
+        Set-OfficePdfFormField -Path $formPath -OutputPath $filledPath -Value @{
             CustomerName = 'Alice Example'
         } -PassThru | Should -BeOfType System.IO.FileInfo
 
-        $info = Get-OfficePdfInfo -Path $filledPath
+        $info = (Get-OfficeDocumentInfo -Detailed -Path $filledPath).Details
         $raw = [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes($filledPath))
 
         $info.AcroFormNeedAppearances | Should -BeFalse
@@ -79,11 +92,11 @@ Describe 'PDF forms and stamps' {
         } | Out-Null
 
         $filledPath = Join-Path $TestDrive 'legacy-appearance-filled.pdf'
-        Set-OfficePdfForm -Path $formPath -OutputPath $filledPath -Field @{
+        Set-OfficePdfFormField -Path $formPath -OutputPath $filledPath -Value @{
             CustomerName = 'Alice Example'
         } -KeepNeedAppearances -PassThru | Should -BeOfType System.IO.FileInfo
 
-        (Get-OfficePdfInfo -Path $filledPath).AcroFormNeedAppearances | Should -BeTrue
+        ((Get-OfficeDocumentInfo -Detailed -Path $filledPath).Details).AcroFormNeedAppearances | Should -BeTrue
     }
 
     It 'updates existing PDF metadata and adds extractable text stamps' {
@@ -97,15 +110,15 @@ Describe 'PDF forms and stamps' {
         Set-OfficePdfMetadata -Path $sourcePath -OutputPath $metadataPath -Title 'Stamped Invoice' -Author 'PSWriteOffice' -PassThru |
             Should -BeOfType System.IO.FileInfo
 
-        $metadata = (Get-OfficePdfInfo -Path $metadataPath).Metadata
+        $metadata = ((Get-OfficeDocumentInfo -Detailed -Path $metadataPath).Details).Metadata
         $metadata.Title | Should -Be 'Stamped Invoice'
         $metadata.Author | Should -Be 'PSWriteOffice'
 
         $stampedPath = Join-Path $TestDrive 'stamped.pdf'
-        Add-OfficePdfStamp -Path $metadataPath -OutputPath $stampedPath -Text 'APPROVED' -X 72 -Y 72 -FontSize 18 -Color '#008000' -PassThru |
+        Add-OfficePdfStamp -Path $metadataPath -OutputPath $stampedPath -Text 'APPROVED' -X 72 -Y 72 -Size 18 -Color '#008000' -PassThru |
             Should -BeOfType System.IO.FileInfo
 
-        $text = Get-OfficePdfText -Path $stampedPath
+        $text = Read-OfficeDocument -As Text -Path $stampedPath
         $text | Should -Match 'Invoice'
         $text | Should -Match 'APPROVED'
     }
@@ -127,8 +140,8 @@ Describe 'PDF forms and stamps' {
 
         Test-Path $metadataPath | Should -BeTrue
         Test-Path $stampedPath | Should -BeTrue
-        (Get-OfficePdfInfo -Path $metadataPath).Metadata.Title | Should -Be 'Nested Metadata'
-        Get-OfficePdfText -Path $stampedPath | Should -Match 'APPROVED'
+        ((Get-OfficeDocumentInfo -Detailed -Path $metadataPath).Details).Metadata.Title | Should -Be 'Nested Metadata'
+        Read-OfficeDocument -As Text -Path $stampedPath | Should -Match 'APPROVED'
     }
 
     It 'converts PDF forms to flat PDFs with an approved verb' {
@@ -139,10 +152,10 @@ Describe 'PDF forms and stamps' {
         } | Out-Null
 
         $flatPath = Join-Path $TestDrive 'flat.pdf'
-        ConvertTo-OfficePdfFlatForm -Path $formPath -OutputPath $flatPath | Should -BeOfType System.IO.FileInfo
+        Update-OfficePdf -FlattenForm -Path $formPath -OutputPath $flatPath | Should -BeOfType System.IO.FileInfo
 
-        (Get-OfficePdfInfo -Path $flatPath).FormFieldCount | Should -Be 0
-        (Get-OfficePdfPreflight -Path $flatPath).CanRead | Should -BeTrue
+        ((Get-OfficeDocumentInfo -Detailed -Path $flatPath).Details).FormFieldCount | Should -Be 0
+        (Get-OfficePdfDiagnostic -Type Preflight -Path $flatPath).CanRead | Should -BeTrue
     }
 
     It 'creates the output directory when converting forms to flat PDFs' {
@@ -153,9 +166,9 @@ Describe 'PDF forms and stamps' {
         } | Out-Null
 
         $flatPath = Join-Path $TestDrive 'flat\nested.pdf'
-        ConvertTo-OfficePdfFlatForm -Path $formPath -OutputPath $flatPath | Should -BeOfType System.IO.FileInfo
+        Update-OfficePdf -FlattenForm -Path $formPath -OutputPath $flatPath | Should -BeOfType System.IO.FileInfo
 
         Test-Path $flatPath | Should -BeTrue
-        (Get-OfficePdfInfo -Path $flatPath).FormFieldCount | Should -Be 0
+        ((Get-OfficeDocumentInfo -Detailed -Path $flatPath).Details).FormFieldCount | Should -Be 0
     }
 }

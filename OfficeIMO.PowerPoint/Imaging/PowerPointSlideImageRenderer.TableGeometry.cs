@@ -21,7 +21,7 @@ internal static partial class PowerPointSlideImageRenderer {
             return;
         }
 
-        if (table.Rows == 0 || table.Columns == 0) {
+        if (table.RowCount == 0 || table.ColumnCount == 0) {
             AddUnsupportedShapeDiagnostic(diagnostics, table, "Skipped an empty PowerPoint table.");
             return;
         }
@@ -31,10 +31,10 @@ internal static partial class PowerPointSlideImageRenderer {
         double[] columnLefts = CreateOffsets(columnWidths);
         double[] rowTops = CreateOffsets(rowHeights);
         A.TableStyleEntry? tableStyle = ResolveTableStyle(table);
-        bool[,] coveredCells = new bool[table.Rows, table.Columns];
+        bool[,] coveredCells = new bool[table.RowCount, table.ColumnCount];
 
-        for (int row = 0; row < table.Rows; row++) {
-            for (int column = 0; column < table.Columns; column++) {
+        for (int row = 0; row < table.RowCount; row++) {
+            for (int column = 0; column < table.ColumnCount; column++) {
                 if (coveredCells[row, column]) {
                     continue;
                 }
@@ -62,11 +62,11 @@ internal static partial class PowerPointSlideImageRenderer {
 
     private static bool TryValidateTableRasterLimits(
         PowerPointTable table, out string? reason) {
-        long cellCount = checked((long)table.Rows * table.Columns);
-        if (table.Rows > MaximumTableRasterRows
-            || table.Columns > MaximumTableRasterColumns
+        long cellCount = checked((long)table.RowCount * table.ColumnCount);
+        if (table.RowCount > MaximumTableRasterRows
+            || table.ColumnCount > MaximumTableRasterColumns
             || cellCount > MaximumTableRasterCells) {
-            reason = $"The table rasterization request ({table.Rows} rows, {table.Columns} columns, {cellCount} cells) exceeds the safe limit of {MaximumTableRasterRows} rows, {MaximumTableRasterColumns} columns, or {MaximumTableRasterCells} cells.";
+            reason = $"The table rasterization request ({table.RowCount} rows, {table.ColumnCount} columns, {cellCount} cells) exceeds the safe limit of {MaximumTableRasterRows} rows, {MaximumTableRasterColumns} columns, or {MaximumTableRasterCells} cells.";
             return false;
         }
         reason = null;
@@ -112,8 +112,8 @@ internal static partial class PowerPointSlideImageRenderer {
     }
 
     private static double[] CreateTableColumnWidths(PowerPointTable table, double tableWidth) {
-        double[] widths = new double[table.Columns];
-        double fallback = table.Columns > 0 ? tableWidth / table.Columns : tableWidth;
+        double[] widths = new double[table.ColumnCount];
+        double fallback = table.ColumnCount > 0 ? tableWidth / table.ColumnCount : tableWidth;
         for (int column = 0; column < widths.Length; column++) {
             double width = (table.GetColumnWidth(column)).ToPoints();
             widths[column] = width > 0D ? width : fallback;
@@ -124,8 +124,8 @@ internal static partial class PowerPointSlideImageRenderer {
     }
 
     private static double[] CreateTableRowHeights(PowerPointTable table, double tableHeight) {
-        double[] heights = new double[table.Rows];
-        double fallback = table.Rows > 0 ? tableHeight / table.Rows : tableHeight;
+        double[] heights = new double[table.RowCount];
+        double fallback = table.RowCount > 0 ? tableHeight / table.RowCount : tableHeight;
         for (int row = 0; row < heights.Length; row++) {
             double height = (table.GetRowHeight(row)).ToPoints();
             heights[row] = height > 0D ? height : fallback;

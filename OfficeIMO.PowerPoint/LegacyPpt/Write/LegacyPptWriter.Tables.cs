@@ -14,28 +14,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             ArgumentNullException.ThrowIfNull(table);
             ArgumentNullException.ThrowIfNull(fonts);
             ArgumentNullException.ThrowIfNull(pictureBullets);
-            if (table.Rows <= 0 || table.Columns <= 0
+            if (table.RowCount <= 0 || table.ColumnCount <= 0
                 || table.Width.ToEmus() <= 0L || table.Height.ToEmus() <= 0L) {
                 reason = "A native binary table requires positive bounds, rows, and columns.";
                 return false;
             }
             if (!TryReadShapeFormatting(table, out _, out reason)) return false;
-            foreach (PowerPointTableColumn column in table.ColumnItems) {
+            foreach (PowerPointTableColumn column in table.Columns) {
                 if (!column.Width.HasValue || column.Width.Value.ToEmus() <= 0L
                     || ToMasterUnits(column.Width.Value.ToEmus()) <= 0) {
                     reason = "Every native binary table column requires a positive representable width.";
                     return false;
                 }
             }
-            foreach (PowerPointTableRow row in table.RowItems) {
+            foreach (PowerPointTableRow row in table.Rows) {
                 if (!row.Height.HasValue || row.Height.Value.ToEmus() <= 0L
                     || ToMasterUnits(row.Height.Value.ToEmus()) <= 0) {
                     reason = "Every native binary table row requires a positive representable height.";
                     return false;
                 }
             }
-            for (int row = 0; row < table.Rows; row++) {
-                for (int column = 0; column < table.Columns; column++) {
+            for (int row = 0; row < table.RowCount; row++) {
+                for (int column = 0; column < table.ColumnCount; column++) {
                     PowerPointTableCell cell = table.GetCell(row, column);
                     if (cell.IsMergedCell || cell.Merge is not (1, 1)) {
                         reason = "Merged DrawingML table cells do not yet have a lossless native binary table mapping.";
@@ -43,16 +43,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     if (!TryBuildTableCellContent(cell, fonts,
                             pictureBullets, out _, out reason)) {
-                        return false;
-                    }
-                    if (cell.FillColor != null
-                        && !OfficeColor.TryParse(cell.FillColor, out _)) {
-                        reason = "A table cell fill must be an explicit RGB color for binary PowerPoint.";
-                        return false;
-                    }
-                    if (cell.BorderColor != null
-                        && !OfficeColor.TryParse(cell.BorderColor, out _)) {
-                        reason = "A table cell border must be an explicit RGB color for binary PowerPoint.";
                         return false;
                     }
                     OfficeBorderBox borders = PowerPointSlideImageRenderer
@@ -69,9 +59,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                 }
             }
-            for (int rowBoundary = 1; rowBoundary < table.Rows;
+            for (int rowBoundary = 1; rowBoundary < table.RowCount;
                  rowBoundary++) {
-                for (int column = 0; column < table.Columns; column++) {
+                for (int column = 0; column < table.ColumnCount; column++) {
                     OfficeBorderSide? upper = PowerPointSlideImageRenderer
                         .ResolveTableCellBordersForBinary(table,
                             rowBoundary - 1, column).Bottom;
@@ -85,8 +75,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
             }
             for (int columnBoundary = 1;
-                 columnBoundary < table.Columns; columnBoundary++) {
-                for (int row = 0; row < table.Rows; row++) {
+                 columnBoundary < table.ColumnCount; columnBoundary++) {
+                for (int row = 0; row < table.RowCount; row++) {
                     OfficeBorderSide? left = PowerPointSlideImageRenderer
                         .ResolveTableCellBordersForBinary(table, row,
                             columnBoundary - 1).Right;
@@ -104,9 +94,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static int CountTableDrawingShapes(PowerPointTable table) =>
-            checked(1 + table.Rows * table.Columns
-                + (table.Rows + 1) * table.Columns
-                + (table.Columns + 1) * table.Rows);
+            checked(1 + table.RowCount * table.ColumnCount
+                + (table.RowCount + 1) * table.ColumnCount
+                + (table.ColumnCount + 1) * table.RowCount);
 
         private static byte[] BuildTableRecord(PowerPointTable table,
             ref uint nextShapeId,
@@ -121,9 +111,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? reason)) {
                 throw new NotSupportedException(reason);
             }
-            int[] columnWidths = table.ColumnItems.Select(column =>
+            int[] columnWidths = table.Columns.Select(column =>
                 ToMasterUnits(column.Width!.Value.ToEmus())).ToArray();
-            int[] rowHeights = table.RowItems.Select(row =>
+            int[] rowHeights = table.Rows.Select(row =>
                 ToMasterUnits(row.Height!.Value.ToEmus())).ToArray();
             int tableWidth = checked(columnWidths.Sum());
             int tableHeight = checked(rowHeights.Sum());
@@ -149,9 +139,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     descriptorChildren)
             };
             int top = 0;
-            for (int row = 0; row < table.Rows; row++) {
+            for (int row = 0; row < table.RowCount; row++) {
                 int left = 0;
-                for (int column = 0; column < table.Columns; column++) {
+                for (int column = 0; column < table.ColumnCount; column++) {
                     PowerPointTableCell cell = table.GetCell(row, column);
                     children.Add(BuildTableCellRecord(cell,
                         nextShapeId++, row, column, table, left, top,

@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithColor(0f, alpha: 0.999f,
             includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         IWorkTextRun run = Assert.Single(Assert.Single(result.Projection.Body.Paragraphs).Runs);
@@ -94,7 +94,7 @@ public sealed partial class IWorkBoundaryTests {
             includeWidth ? FloatField(1, 100f) : Array.Empty<byte>(),
             includeHeight ? FloatField(2, 50f) : Array.Empty<byte>());
         IWorkWireMessage drawable = IWorkProtobuf.Parse(
-            Message(BytesField(1, Message(BytesField(2, size)))), new IWorkReadOptions());
+            Message(BytesField(1, Message(BytesField(2, size)))), new IWorkLoadOptions());
 
         IWorkGeometry? geometry = IWorkDrawingReader.ReadGeometry(drawable,
             out bool complete, requirePositiveSize: true);
@@ -104,7 +104,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static IWorkFormulaResult RenderFunction(int functionIndex, int argumentCount) {
-        IWorkWireMessage formula = IWorkProtobuf.Parse(FunctionPayload(functionIndex, argumentCount), new IWorkReadOptions());
+        IWorkWireMessage formula = IWorkProtobuf.Parse(FunctionPayload(functionIndex, argumentCount), new IWorkLoadOptions());
         return IWorkFormulaReader.Render(formula, 0, 0, 512, 4096);
     }
 }

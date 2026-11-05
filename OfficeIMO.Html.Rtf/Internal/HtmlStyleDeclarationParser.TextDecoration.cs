@@ -7,8 +7,8 @@ internal static partial class HtmlStyleDeclarationParser {
             declaration.Underline = false;
             declaration.UnderlineStyle = RtfUnderlineStyle.None;
             declaration.UnderlineColor = null;
-            declaration.Strike = false;
-            declaration.DoubleStrike = false;
+            declaration.Strikethrough = false;
+            declaration.DoubleStrikethrough = false;
             return;
         }
 
@@ -17,7 +17,7 @@ internal static partial class HtmlStyleDeclarationParser {
         }
 
         if (ContainsWord(normalized, "line through")) {
-            declaration.Strike = true;
+            declaration.Strikethrough = true;
         }
 
         foreach (string part in SplitTextDecorationParts(value)) {
@@ -25,7 +25,7 @@ internal static partial class HtmlStyleDeclarationParser {
             if (style.HasValue) {
                 declaration.UnderlineStyle = style;
                 if (style.Value == RtfUnderlineStyle.Double) {
-                    declaration.DoubleStrike = true;
+                    declaration.DoubleStrikethrough = true;
                 }
 
                 continue;
@@ -59,7 +59,7 @@ internal static partial class HtmlStyleDeclarationParser {
 
         declaration.UnderlineStyle = style;
         if (style.Value == RtfUnderlineStyle.Double) {
-            declaration.DoubleStrike = true;
+            declaration.DoubleStrikethrough = true;
         }
     }
 

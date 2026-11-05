@@ -120,7 +120,7 @@ public sealed class RevisionMaterializationTests {
             new MemoryStream(),
             list,
             0,
-            new OneNoteReaderOptions());
+            new OneNoteLoadOptions());
 
         Assert.Empty(result.Revisions);
         Assert.Empty(result.Objects);

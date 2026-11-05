@@ -9,7 +9,7 @@ using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Ocr;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
-using PSWriteOffice.Cmdlets.Ocr;
+using PSWriteOffice.Cmdlets.Conversion;
 using PSWriteOffice.Services.Ocr;
 
 namespace PSWriteOffice.Tests;
@@ -125,22 +125,22 @@ public sealed class ImageConversionTests
         {
             var review = await Source().PrepareSearchableOcrAsync(new DelegateOcrEngine("table", (_, _) => Task.FromResult(TableResult())));
             using var runspace = RunspaceFactory.CreateRunspace(InitialSessionState.CreateDefault());
-            runspace.InitialSessionState.Commands.Add(new SessionStateCmdletEntry("ConvertFrom-OfficeImage", typeof(ConvertFromOfficeImageCommand), null));
+            runspace.InitialSessionState.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
             runspace.Open();
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
             var options = new PdfExcelExportOptions();
-            shell.AddCommand("ConvertFrom-OfficeImage").AddParameter("InputObject", review)
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("Document", review)
                 .AddParameter("OutputPath", Path.Combine(directory, "preview.xlsx"))
-                .AddParameter("ExcelOptions", options).AddParameter("FirstRowIsHeader").AddParameter("WhatIf");
+                .AddParameter("Options", new object[] { options, new System.Collections.Hashtable { ["UseFirstRowAsHeader"] = true } }).AddParameter("WhatIf");
             shell.Invoke();
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             Assert.Empty(Directory.GetFiles(directory));
             Assert.False(options.UseFirstRowAsHeader);
             shell.Commands.Clear();
-            shell.AddCommand("ConvertFrom-OfficeImage").AddParameter("InputObject", review)
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("Document", review)
                 .AddParameter("OutputPath", Path.Combine(directory, "actual.xlsx"))
-                .AddParameter("ExcelOptions", options).AddParameter("FirstRowIsHeader").AddParameter("PassThru");
+                .AddParameter("Options", new object[] { options, new System.Collections.Hashtable { ["UseFirstRowAsHeader"] = true } });
             var result = Assert.IsType<OfficeImageConversionResult>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             Assert.True(result.File.Exists);

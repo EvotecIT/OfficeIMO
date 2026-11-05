@@ -12,8 +12,8 @@ public sealed class ExcelCustomIndexedColorTests {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Palette");
         sheet.Cell(1, 1).SetValue("Custom palette");
-        sheet.Cell(1, 1).SetFontColor("112233").SetFillColor("445566")
-            .SetBorder(ExcelCellBorders.Bottom, ExcelBorderStyle.Thin, "778899");
+        sheet.Cell(1, 1).SetColor(global::OfficeIMO.OfficeColor.Parse("112233")).SetFillColor(global::OfficeIMO.OfficeColor.Parse("445566"))
+            .SetBorder(ExcelCellBorders.Bottom, ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("778899"));
         var workbook = document.OpenXmlDocument.WorkbookPart!;
         var styles = workbook.WorkbookStylesPart!.Stylesheet!;
         var cell = workbook.WorksheetParts.Single().Worksheet.Descendants<Cell>().Single();
@@ -37,7 +37,7 @@ public sealed class ExcelCustomIndexedColorTests {
     [Fact]
     public void Custom_palette_resolution_applies_tint_and_observes_palette_edits_without_changing_default_colors() {
         using var document = ExcelDocument.Create();
-        document.AddSheet("Palette").Cell(1, 1).SetFontColor("112233");
+        document.AddSheet("Palette").Cell(1, 1).SetColor(global::OfficeIMO.OfficeColor.Parse("112233"));
         var workbook = document.OpenXmlDocument.WorkbookPart!;
         var styles = workbook.WorkbookStylesPart!.Stylesheet!;
         var entry = new RgbColor { Rgb = "FF112233" };
@@ -56,7 +56,7 @@ public sealed class ExcelCustomIndexedColorTests {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Palette");
         sheet.Cell(1, 1).SetValue("Concealed text");
-        sheet.Cell(1, 1).SetFontColor("112233");
+        sheet.Cell(1, 1).SetColor(global::OfficeIMO.OfficeColor.Parse("112233"));
         var workbook = document.OpenXmlDocument.WorkbookPart!;
         var styles = workbook.WorkbookStylesPart!.Stylesheet!;
         Cell cell = workbook.WorksheetParts.Single().Worksheet.Descendants<Cell>().Single();

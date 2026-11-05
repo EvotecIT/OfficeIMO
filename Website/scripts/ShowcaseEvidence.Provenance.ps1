@@ -64,13 +64,24 @@ function Test-ShowcaseGenerationReceipt {
         }
         if (-not $files.Contains('PSWriteOffice.psd1')) { return $false }
         $pdfs = @($Generation.outputs | Where-Object { $_.path.EndsWith('.pdf', [StringComparison]::Ordinal) })
-        if ($pdfs.Count -ne 1 -or @($Generation.conversions).Count -ne 1) { return $false }
+        $docxs = @($Generation.outputs | Where-Object { $_.path.EndsWith('.docx', [StringComparison]::Ordinal) })
+        if ($pdfs.Count -ne 1 -or $docxs.Count -ne 1 -or @($Generation.conversions).Count -ne 1) { return $false }
         $conversion = $Generation.conversions[0]
         if ($conversion.outputPath -cne $pdfs[0].path -or $conversion.outputSha256 -cne $pdfs[0].sha256 -or
-            $conversion.routeId -cne 'docx-pdf' -or $conversion.command -cne 'Export-OfficeDocumentPdf' -or
-            -not $conversion.routeEvidence -or -not $conversion.report -or
+            $conversion.inputPath -cne $docxs[0].path -or $conversion.inputSha256 -cne $docxs[0].sha256 -or
+            $conversion.routeId -cne 'docx-pdf' -or $conversion.command -cne 'Convert-OfficeDocument' -or
+            $conversion.routeEvidence -cne 'recipe-explicit-Route-docx-pdf-with-public-conversion-report' -or
+            -not $conversion.report -or $conversion.report.Target -cne 'Pdf' -or
             -not ($conversion.report.Diagnostics -is [array]) -or -not ($conversion.warnings -is [array]) -or
             $pdfs[0].diagnostics.pageCount -lt 1 -or -not ($pdfs[0].diagnostics.fonts -is [array])) { return $false }
+        $inputArtifact = @($Catalog.artifacts | Where-Object { $_.sourceRoot -ceq 'documents' -and ('/downloads/showcase/' + $_.destination) -ceq $conversion.inputPath })
+        $outputArtifact = @($Catalog.artifacts | Where-Object { $_.sourceRoot -ceq 'documents' -and ('/downloads/showcase/' + $_.destination) -ceq $conversion.outputPath })
+        if ($inputArtifact.Count -ne 1 -or $outputArtifact.Count -ne 1) { return $false }
+        $reportSource = ([string] $conversion.report.Source).Replace('\', '/')
+        $reportOutput = ([string] $conversion.report.OutputPath).Replace('\', '/')
+        if (-not $reportSource.EndsWith('/' + $inputArtifact[0].source, [StringComparison]::Ordinal) -or
+            -not $reportOutput.EndsWith('/' + $outputArtifact[0].source, [StringComparison]::Ordinal) -or
+            [IO.Path]::GetDirectoryName($reportSource) -cne [IO.Path]::GetDirectoryName($reportOutput)) { return $false }
         $urls = @($Card.previews.url)
         $previewArtifacts = @($Catalog.artifacts | Where-Object { $_.previewSource -and ('/downloads/showcase/' + $_.destination) -cin $urls })
         if ($urls.Count -lt 1 -or @($Generation.previews).Count -ne $urls.Count -or $previewArtifacts.Count -ne $urls.Count) { return $false }

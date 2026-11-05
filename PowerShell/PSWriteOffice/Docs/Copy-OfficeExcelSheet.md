@@ -11,17 +11,17 @@ Copies selected worksheets within a workbook or from another workbook.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Copy-OfficeExcelSheet [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector[]>] [-Name <string>] [-NamePrefix <string>] [-Source <Object>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Copy-OfficeExcelSheet [[-Sheet] <OfficeSheetSelector[]>] [[-Name] <string>] [-Document <ExcelDocument>] [-NamePrefix <string>] [-Source <Object>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Copy-OfficeExcelSheet [-Path] <string[]> [-Sheet <OfficeSheetSelector[]>] [-Name <string>] [-NamePrefix <string>] [-Source <Object>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Copy-OfficeExcelSheet [-Path] <string[]> [[-Sheet] <OfficeSheetSelector[]>] [[-Name] <string>] [-NamePrefix <string>] [-Source <Object>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Copy-OfficeExcelSheet -LiteralPath <string[]> [-Sheet <OfficeSheetSelector[]>] [-Name <string>] [-NamePrefix <string>] [-Source <Object>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Copy-OfficeExcelSheet [[-Sheet] <OfficeSheetSelector[]>] [[-Name] <string>] -LiteralPath <string[]> [-NamePrefix <string>] [-Source <Object>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -46,6 +46,24 @@ Copy-OfficeExcelSheet -Document $book -Sheet Template -Name October
 Copy-OfficeExcelSheet -LiteralPath ./Combined.xlsx -Source ./Region.xlsx -Sheet 'Sales*' -NamePrefix 'Region '
 ```
 
+
+### EXAMPLE 3
+```powershell
+Copy-OfficeExcelSheet -Path .\Reports\Timesheets.xlsx -Sheet October -Name November
+```
+
+Copies the October sheet in the same workbook as a starting point for November.
+
+### EXAMPLE 4
+```powershell
+$pack = Open-OfficeExcel -Path .\Reports\Board-Pack.xlsx
+foreach ($file in Get-ChildItem -Path .\Regions -Filter *.xlsx) {
+    Copy-OfficeExcelSheet -Document $pack -Source $file.FullName -Sheet Summary -Name "$($file.BaseName) summary"
+}
+Save-OfficeExcel -Document $pack -PassThru | Close-OfficeExcel
+```
+
+Copies the Summary sheet of each regional workbook into the board pack, prefixed with the region name.
 
 ## PARAMETERS
 
@@ -107,7 +125,7 @@ Aliases: None
 Possible values:
 
 Required: False
-Position: named
+Position: 2
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -171,7 +189,7 @@ Aliases: None
 Possible values:
 
 Required: False
-Position: named
+Position: 1
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: True

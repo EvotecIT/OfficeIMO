@@ -21,7 +21,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(new[] { "First", "Second" },
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
             includeBody: true, textBox: "Shape", includePreview: true,
             textBoxDrawable: Message(BytesField(1, geometry)));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

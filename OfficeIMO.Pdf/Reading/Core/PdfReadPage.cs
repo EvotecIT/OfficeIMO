@@ -315,10 +315,8 @@ public sealed partial class PdfReadPage {
             var action = ResolveDictionary(annotation.Items.TryGetValue("A", out var actionObject) ? actionObject : null);
             TryGetString(annotation.Items.TryGetValue("Contents", out var contentsObject) ? contentsObject : null, out string? contents);
 
-            if (action != null &&
-                action.Get<PdfName>("S")?.Name == "URI" &&
-                TryGetString(action.Items.TryGetValue("URI", out var uriObject) ? uriObject : null, out string? uri) &&
-                Guard.IsUriAction(uri, cancellationToken)) {
+            string? uri = ReadAnnotationUri(action, cancellationToken);
+            if (uri != null) {
                 result.Add(new PdfLinkAnnotation(uri!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
                 continue;
             }
@@ -399,6 +397,7 @@ public sealed partial class PdfReadPage {
             annotation.Items.TryGetValue("A", out var actionObject);
             annotation.Items.TryGetValue("AA", out var additionalActionsObject);
             string? actionType = TryReadActionType(actionObject);
+            string? uri = ReadAnnotationUri(ResolveDictionary(actionObject), cancellationToken);
             IReadOnlyList<PdfAnnotationAdditionalAction> additionalActions = ReadAdditionalActions(additionalActionsObject, cancellationToken);
             IReadOnlyList<PdfAnnotationChainedAction> chainedActions = ReadAnnotationChainedActions(actionObject, additionalActionsObject, cancellationToken);
             int? flags = TryReadInteger(annotation.Items.TryGetValue("F", out var flagsObject) ? flagsObject : null);
@@ -444,7 +443,7 @@ public sealed partial class PdfReadPage {
                 cancellationToken);
             PdfAnnotationReviewInfo? review = ReadAnnotationReviewInfo(annotation);
             string? appearanceState = annotation.Get<PdfName>("AS")?.Name;
-            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList, review, normalAppearanceObject, appearanceState, annotation, hasReadableRectangle));
+            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList, review, normalAppearanceObject, appearanceState, annotation, hasReadableRectangle, uri));
         }
 
         return result.Count == 0 ? Array.Empty<PdfAnnotation>() : result.AsReadOnly();

@@ -77,8 +77,8 @@
       "kind": "method",
       "action": "rename",
       "category": "authoring",
-      "reason": "Fluent authoring forwards preparation and defaults to the corresponding model operation.",
-      "replacement": "Use the model argument order for stencils and connectors; configure callbacks remain optional fluent composition.",
+      "reason": "Native page and connector objects own authoring and configuration.",
+      "replacement": "Use the native model argument order for stencils and connectors; callbacks receive native objects and Add methods return the created objects. Retain page and document variables for sibling additions and saving.",
       "applied": true
     },
     {
@@ -109,6 +109,120 @@
       "replacement": "document.Properties.Title = \"...\"",
       "category": "naming",
       "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.Fluent.VisioFluentDocumentExtensions.AsFluent(VisioDocument document)",
+      "new": "OfficeIMO.Visio.VisioDocument",
+      "action": "remove",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Visio has one native authoring model.",
+      "replacement": "Call native AddPage/GetPage/GetOrAddPage, retaining the returned page. Native page Add methods return the created shape/connector/layer. Keep the page variable for sibling additions. Configuration callbacks receive native objects and validate live shape identifiers.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.Fluent.VisioFluentDocument",
+      "new": "OfficeIMO.Visio.VisioDocument",
+      "action": "remove",
+      "kind": "type",
+      "category": "authoring",
+      "reason": "Configuration uses the existing native model.",
+      "replacement": "Use writable native properties and Set methods on the same object. Use ConfigureProperties for metadata, native ConfigureShapes/ConfigureConnectors callbacks for selections, and native identifier-based layout/container/duplication operations. End/EndPage are removed; retain document/page variables.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.Fluent.VisioFluentPage",
+      "new": "OfficeIMO.Visio.VisioPage",
+      "action": "remove",
+      "kind": "type",
+      "category": "authoring",
+      "reason": "Configuration uses the existing native model.",
+      "replacement": "Use writable native properties and Set methods on the same object. Use ConfigureProperties for metadata, native ConfigureShapes/ConfigureConnectors callbacks for selections, and native identifier-based layout/container/duplication operations. End/EndPage are removed; retain document/page variables.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.Fluent.VisioFluentShape",
+      "new": "OfficeIMO.Visio.VisioShape",
+      "action": "remove",
+      "kind": "type",
+      "category": "authoring",
+      "reason": "Configuration uses the existing native model.",
+      "replacement": "Use writable native properties and Set methods on the same object. Use ConfigureProperties for metadata, native ConfigureShapes/ConfigureConnectors callbacks for selections, and native identifier-based layout/container/duplication operations. End/EndPage are removed; retain document/page variables.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.Fluent.VisioFluentConnector",
+      "new": "OfficeIMO.Visio.VisioConnector",
+      "action": "remove",
+      "kind": "type",
+      "category": "authoring",
+      "reason": "Configuration uses the existing native model.",
+      "replacement": "Use writable native properties and Set methods on the same object. Use ConfigureProperties for metadata, native ConfigureShapes/ConfigureConnectors callbacks for selections, and native identifier-based layout/container/duplication operations. End/EndPage are removed; retain document/page variables.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.Fluent.InfoBuilder",
+      "new": "OfficeIMO.Visio.VisioDocumentProperties",
+      "action": "remove",
+      "kind": "type",
+      "category": "authoring",
+      "reason": "Configuration uses the existing native model.",
+      "replacement": "Use writable native properties and Set methods on the same object. Use ConfigureProperties for metadata, native ConfigureShapes/ConfigureConnectors callbacks for selections, and native identifier-based layout/container/duplication operations. End/EndPage are removed; retain document/page variables.",
+      "applied": true
+    },
+    {
+      "old": "VisioDocument/VisioPage.ToPng",
+      "kind": "method",
+      "action": "merge",
+      "new": "VisioDocument/VisioPage.ToImage(options[, out OfficeConversionReport], ct)",
+      "replacement": "Set Format = OfficeImageExportFormat.Png. PNG migration maps PixelsPerInch to TargetDpi, PageIndex unchanged, null BackgroundColor to OfficeColor.Transparent, and copies RenderText, LayerMode, FontFilePath, FontFaceName, FontCollectionIndex, Fonts, TextShapingProvider/Language, RenderStencilArtwork, RenderConnectorLabels, ResolveConnectorLabelOverlaps, Supersampling, MaximumRasterPixels, MaximumTotalEncodedBytes and RasterOverflowBehavior. Move options.CancellationToken to the method token (link tokens if both exist). Other codecs retain their existing VisioImageExportOptions fields.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "VisioDocument/VisioPage.ToJpeg",
+      "kind": "method",
+      "action": "merge",
+      "new": "VisioDocument/VisioPage.ToImage(options[, out OfficeConversionReport], ct)",
+      "replacement": "Set Format = OfficeImageExportFormat.Jpeg. PNG migration maps PixelsPerInch to TargetDpi, PageIndex unchanged, null BackgroundColor to OfficeColor.Transparent, and copies RenderText, LayerMode, FontFilePath, FontFaceName, FontCollectionIndex, Fonts, TextShapingProvider/Language, RenderStencilArtwork, RenderConnectorLabels, ResolveConnectorLabelOverlaps, Supersampling, MaximumRasterPixels, MaximumTotalEncodedBytes and RasterOverflowBehavior. Move options.CancellationToken to the method token (link tokens if both exist). Other codecs retain their existing VisioImageExportOptions fields.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "VisioDocument/VisioPage.ToTiff",
+      "kind": "method",
+      "action": "merge",
+      "new": "VisioDocument/VisioPage.ToImage(options[, out OfficeConversionReport], ct)",
+      "replacement": "Set Format = OfficeImageExportFormat.Tiff. PNG migration maps PixelsPerInch to TargetDpi, PageIndex unchanged, null BackgroundColor to OfficeColor.Transparent, and copies RenderText, LayerMode, FontFilePath, FontFaceName, FontCollectionIndex, Fonts, TextShapingProvider/Language, RenderStencilArtwork, RenderConnectorLabels, ResolveConnectorLabelOverlaps, Supersampling, MaximumRasterPixels, MaximumTotalEncodedBytes and RasterOverflowBehavior. Move options.CancellationToken to the method token (link tokens if both exist). Other codecs retain their existing VisioImageExportOptions fields.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "VisioDocument/VisioPage.ToWebp",
+      "kind": "method",
+      "action": "merge",
+      "new": "VisioDocument/VisioPage.ToImage(options[, out OfficeConversionReport], ct)",
+      "replacement": "Set Format = OfficeImageExportFormat.Webp. PNG migration maps PixelsPerInch to TargetDpi, PageIndex unchanged, null BackgroundColor to OfficeColor.Transparent, and copies RenderText, LayerMode, FontFilePath, FontFaceName, FontCollectionIndex, Fonts, TextShapingProvider/Language, RenderStencilArtwork, RenderConnectorLabels, ResolveConnectorLabelOverlaps, Supersampling, MaximumRasterPixels, MaximumTotalEncodedBytes and RasterOverflowBehavior. Move options.CancellationToken to the method token (link tokens if both exist). Other codecs retain their existing VisioImageExportOptions fields.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "VisioDocument/VisioPage.SaveAsPng / SaveAsPngAsync / SaveAsSvg / SaveAsSvgAsync",
+      "kind": "method",
+      "action": "merge",
+      "new": "VisioDocument/VisioPage.SaveAsImage / SaveAsImageAsync",
+      "replacement": "Select Format in VisioImageExportOptions. PNG fields map as for ToImage; SVG maps PixelsPerInch to Scale = PixelsPerInch / 96, IncludeXmlDeclaration to IncludeSvgXmlDeclaration, PageIndex unchanged, null background to Transparent, and copies Fonts, RenderText, LayerMode and stencil/connector settings. Saves return OfficeConversionReport. Preserve dimensions/DPI/bytes workflows with ExportImage(...).Save(...). Native semantic-preview PngOptions/SvgOptions remain distinct inputs.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "VisioDocument/VisioPage.ToSvg(options) : string",
+      "kind": "method",
+      "action": "change",
+      "new": "VisioDocument/VisioPage.ToSvg(options[, out OfficeConversionReport], ct) : string",
+      "replacement": "The decoded SVG text contract and specialized VisioSvgSaveOptions remain. ToSvgAsync returns OfficeConversionResult<string>. This is separate from encoded ToImage bytes and streaming page collections.",
+      "category": "conversion",
       "applied": true
     }
   ],

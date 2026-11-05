@@ -123,9 +123,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Creates a chart ready for combining bar and line series.
-        /// Use <see cref="WordChart.AddChartAxisX"/> to supply category labels
-        /// and then call <see cref="WordChart.AddBar(string,int,OfficeIMO.OfficeColor)"/> or
-        /// <see cref="WordChart.AddLine"/> to add data. <c>AddChartAxisX</c> must be called before adding any
+        /// Use <see cref="WordChart.AddCategories"/> to supply category labels
+        /// and then call <see cref="WordChart.AddBar{T}(string,IEnumerable{T},OfficeIMO.OfficeColor)"/> or
+        /// <see cref="WordChart.AddLine"/> to add data. <c>AddCategories</c> must be called before adding any
         /// series so that both chart types share the same axes.
         /// </summary>
         public WordChart AddComboChart(string title = "", bool roundedCorners = false, OfficeLength? width = null, OfficeLength? height = null) {

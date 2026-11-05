@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(package);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.BackgroundColor = "123456";
+            slide.BackgroundColor = OfficeColor.Parse("123456");
             var options = new PowerPointImageExportOptions {
                 IncludeSlideContent = false,
                 MaximumTotalEncodedBytes = 8L
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(package);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.BackgroundColor = "123456";
+            slide.BackgroundColor = OfficeColor.Parse("123456");
 
             OfficeImageExportResult result = slide.ExportImage(format, new PowerPointImageExportOptions {
                 IncludeSlideContent = false
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             using var package = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(package);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
-            presentation.AddSlide().BackgroundColor = "123456";
+            presentation.AddSlide().BackgroundColor = OfficeColor.Parse("123456");
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + System.Guid.NewGuid().ToString("N"));
             try {
                 presentation.SaveAsImages(folder, new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Webp });
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(80));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.BackgroundColor = "000000";
+            slide.BackgroundColor = OfficeColor.Parse("000000");
             slide.AddImage(
                 new MemoryStream(CreateSinglePixelGif()),
                 OfficeImageFormat.Gif,

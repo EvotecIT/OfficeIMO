@@ -3,7 +3,7 @@ namespace OfficeIMO.OneNote;
 /// <summary>Reads the validated physical revision-store graph of desktop <c>.one</c> and <c>.onetoc2</c> files.</summary>
 public static class OneNoteRevisionStoreReader {
     /// <summary>Reads the root revision-store structures from a file path.</summary>
-    public static OneNoteRevisionStore Read(string path, OneNoteReaderOptions? options = null) {
+    public static OneNoteRevisionStore Read(string path, OneNoteLoadOptions? options = null) {
         ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
         var file = new FileInfo(path);
@@ -17,11 +17,11 @@ public static class OneNoteRevisionStoreReader {
     /// Reads the root revision-store structures from a caller-owned seekable stream and restores
     /// its original position.
     /// </summary>
-    public static OneNoteRevisionStore Read(Stream stream, OneNoteReaderOptions? options = null) {
+    public static OneNoteRevisionStore Read(Stream stream, OneNoteLoadOptions? options = null) {
         ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         if (!stream.CanSeek) throw new ArgumentException("Revision-store reading currently requires a seekable stream.", nameof(stream));
-        var effectiveOptions = options ?? new OneNoteReaderOptions();
+        var effectiveOptions = options ?? new OneNoteLoadOptions();
         effectiveOptions.Validate();
         if (effectiveOptions.MaxInputBytes.HasValue && stream.Length > effectiveOptions.MaxInputBytes.Value) {
             throw new IOException("OneNote input exceeds MaxInputBytes.");
@@ -80,7 +80,7 @@ public static class OneNoteRevisionStoreReader {
         ulong rootOffset,
         ulong declaredFileLength,
         IReadOnlyDictionary<uint, int> committedNodeCounts,
-        OneNoteReaderOptions options) {
+        OneNoteLoadOptions options) {
         var lists = new List<OneNoteFileNodeList> { root };
         var byOffset = new Dictionary<ulong, OneNoteFileNodeList> { [rootOffset] = root };
         var queue = new Queue<OneNoteFileNodeList>();

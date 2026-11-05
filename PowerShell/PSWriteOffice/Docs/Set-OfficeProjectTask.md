@@ -11,7 +11,7 @@ Updates selected task fields without implicitly recalculating its schedule.
 ## SYNTAX
 ### Task (Default)
 ```powershell
-Set-OfficeProjectTask -Task <ProjectTask> [-Name <string>] [-DurationDays <Decimal>] [-Start <DateTime>] [-Finish <DateTime>] [-PercentComplete <Int32>] [-Manual <Boolean>] [-PassThru] [<CommonParameters>]
+Set-OfficeProjectTask -Task <ProjectTask> [-Name <string>] [-DurationDays <Decimal>] [-Start <DateTime>] [-Finish <DateTime>] [-PercentComplete <Int32>] [-Manual] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -63,7 +63,7 @@ Accept wildcard characters: False
 Explicit manual scheduling choice.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Task
 Aliases: None
 Possible values:

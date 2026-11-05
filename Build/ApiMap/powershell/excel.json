@@ -29,7 +29,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -108,7 +108,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -1169,7 +1169,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -1369,7 +1369,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -1569,7 +1569,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -1726,7 +1726,7 @@
           ]
         }
       ],
-      "notes": "Defaults on: theme table style, frozen header row, fitted columns, number formats inferred from the data (dates, integers, decimals, currency-looking values); -NoTableStyle, -NoFreeze, -NoAutoFit turn each off and -NoTable writes a plain range. Creating a file uses the streaming writer with bounded memory; -Append and -ReplaceSheet open the existing workbook with the object model. A DataSet input writes one sheet per DataTable (sheet and table names from the DataTable). With -Append, -Table names an existing table to extend (replaces -AppendToTable); otherwise rows go after the used range. -ColumnFormat maps headers to presets (Text, Number, Integer, Percent, Currency, Date, DateTime) or format codes, with optional per-entry Decimals and IncludeHeader keys; it replaces the seven -*Column array parameters. -Address is the top-left cell (replaces -StartRow/-StartColumn). -FlattenOptions carries the nested-value settings (DictionaryEntrySeparator, DictionaryKeyValueSeparator, MaxCollectionItems, MaxNestingDepth, IncludeUnreadableProperties, PropertyConversionErrorAction). Default behavior replaces an existing file; -NoClobber refuses. Also absorbs Import-OfficeExcelDelimitedText through Import-OfficeCsv | Export-OfficeExcel.",
+      "notes": "Defaults on: theme table style, frozen header row, fitted columns, number formats inferred from the data (dates, integers, decimals, currency-looking values); -NoTableStyle, -NoFreeze, -NoAutoFit turn each off and -NoTable writes a plain range. Creating a file normalizes each pipeline row immediately and uses the native bounded disk spool with a final union of column names. Validation, formula evaluation and encryption use the native save finalization under its resource limits; -Append and -ReplaceSheet open the existing workbook with the object model. A DataSet input writes one sheet per DataTable (sheet and table names from the DataTable). With -Append, -TableName names an existing table to extend (replaces -AppendToTable); otherwise rows go after the used range. -ColumnFormat maps headers to presets (Text, Number, Integer, Percent, Currency, Date, DateTime) or format codes, with optional per-entry Decimals and IncludeHeader keys; it replaces the seven -*Column array parameters. -Address is the top-left cell (replaces -StartRow/-StartColumn). -FlattenOptions carries the nested-value settings (DictionaryEntrySeparator, DictionaryKeyValueSeparator, MaxCollectionItems, MaxNestingDepth, IncludeUnreadableProperties, PropertyConversionErrorAction). Default behavior replaces an existing file; -NoClobber refuses. Also absorbs Import-OfficeExcelDelimitedText through Import-OfficeCsv | Export-OfficeExcel.",
       "examples": [
         {
           "title": "Export objects in one line",
@@ -1736,7 +1736,7 @@
         {
           "title": "Export a titled sales sheet",
           "description": "Exports the Q3 orders as a named table under a title; dates and amounts are formatted from the data, and only the margin column is set explicitly as a percentage.",
-          "code": "$export = @{\n    Path         = '.\\Reports\\Q3-Sales.xlsx'\n    Sheet        = 'Orders'\n    Table        = 'Orders'\n    Title        = 'Q3 orders'\n    ColumnFormat = @{ Margin = 'Percent' }\n}\nImport-OfficeCsv -Path .\\Data\\Q3-Orders.csv |\n    Select-Object OrderId, Customer, Region, OrderDate, Amount, Margin |\n    Export-OfficeExcel @export"
+          "code": "$export = @{\n    Path         = '.\\Reports\\Q3-Sales.xlsx'\n    Sheet        = 'Orders'\n    TableName    = 'Orders'\n    Title        = 'Q3 orders'\n    ColumnFormat = @{ Margin = 'Percent' }\n}\nImport-OfficeCsv -Path .\\Data\\Q3-Orders.csv |\n    Select-Object OrderId, Customer, Region, OrderDate, Amount, Margin |\n    Export-OfficeExcel @export"
         },
         {
           "title": "Append a daily snapshot to a history table",
@@ -1755,7 +1755,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Runs a script block against each editable row of a range and writes the changes back.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelRowEdit",
+      "outputType": "PSWriteOffice.Services.Excel.ExcelPowerShellRowEdit",
       "shouldProcess": true,
       "parameterSets": [
         {
@@ -2650,13 +2650,13 @@
             },
             {
               "name": "Zoom",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "ZoomNormal",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2995,7 +2995,7 @@
             },
             {
               "name": "Underline",
-              "type": "OfficeUnderlineStyle",
+              "type": "OfficeIMO.Excel.ExcelUnderlineStyle",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3361,7 +3361,7 @@
             },
             {
               "name": "Style",
-              "type": "ExcelColumnStylePreset",
+              "type": "PSWriteOffice.Cmdlets.Excel.OfficeExcelColumnStylePreset",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3403,7 +3403,7 @@
             },
             {
               "name": "Alignment",
-              "type": "ExcelColumnAlignment",
+              "type": "PSWriteOffice.Cmdlets.Excel.OfficeExcelColumnAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3523,7 +3523,7 @@
             },
             {
               "name": "Style",
-              "type": "ExcelColumnStylePreset",
+              "type": "PSWriteOffice.Cmdlets.Excel.OfficeExcelColumnStylePreset",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3565,7 +3565,7 @@
             },
             {
               "name": "Alignment",
-              "type": "ExcelColumnAlignment",
+              "type": "PSWriteOffice.Cmdlets.Excel.OfficeExcelColumnAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4189,7 +4189,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Finds cells whose values match a pattern in a workbook, sheet or range.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelCellMatch",
+      "outputType": "System.Management.Automation.PSObject",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -4485,7 +4485,7 @@
       "alias": "ExcelTable",
       "status": "existing",
       "synopsis": "Writes objects as a styled Excel table on the current sheet.",
-      "outputType": "OfficeIMO.Excel.ExcelTable",
+      "outputType": "OfficeIMO.Excel.ExcelTable, OfficeIMO.Excel.ExcelRange, OfficeIMO.Excel.ExcelDataSetImportResult",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -4628,7 +4628,7 @@
           ]
         }
       ],
-      "notes": "Same defaults as Export-OfficeExcel: theme table style, frozen header, fitted columns, inferred number formats. A DataSet at workbook scope writes one sheet per DataTable (absorbs Add-OfficeExcelDataSet). -PassThru returns the ExcelTable, not a range string.",
+      "notes": "Same defaults as Export-OfficeExcel: theme table style, frozen header, fitted columns, inferred number formats. A DataSet at workbook scope writes one sheet per DataTable (absorbs Add-OfficeExcelDataSet). -PassThru returns the ExcelTable, not a range string. With -NoTable, PassThru emits a native ExcelRange. Empty DataSet tables with no occupied range emit the native ExcelDataSetImportResult. Dataset names and placements come from its DataTables; Sheet, Name, Address and View are single-table options.",
       "examples": [
         {
           "title": "Write objects as a table",
@@ -4707,7 +4707,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Lists the tables defined in a workbook.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelTableInfo",
+      "outputType": "OfficeIMO.Excel.ExcelTableInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -4788,9 +4788,40 @@
               "pipeline": "none"
             }
           ]
+        },
+        {
+          "name": "Uri",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Uri",
+              "type": "uri",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowHttp",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
         }
       ],
-      "notes": "Rows of a table are read with Import-OfficeExcel -Table.",
+      "notes": "Rows of a table are read with Import-OfficeExcel -Table. Preserves the existing remote workbook query through -Uri and explicit -AllowHttp admission.",
       "examples": [
         {
           "title": "List the tables in a workbook",
@@ -4809,7 +4840,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Lists built-in table styles and their compatibility recommendations.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelTableStyleInfo",
+      "outputType": "OfficeIMO.Excel.ExcelTableStyleCompatibilityInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -5122,7 +5153,7 @@
             },
             {
               "name": "Preset",
-              "type": "ExcelChartPreset",
+              "type": "OfficeIMO.Excel.ExcelDashboardChartPreset",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5220,7 +5251,7 @@
             },
             {
               "name": "Preset",
-              "type": "ExcelChartPreset",
+              "type": "OfficeIMO.Excel.ExcelDashboardChartPreset",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5316,7 +5347,7 @@
             },
             {
               "name": "Preset",
-              "type": "ExcelChartPreset",
+              "type": "OfficeIMO.Excel.ExcelDashboardChartPreset",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5853,7 +5884,7 @@
             },
             {
               "name": "Point",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5877,7 +5908,7 @@
             },
             {
               "name": "MarkerStyle",
-              "type": "OfficeChartMarkerStyle",
+              "type": "OfficeIMO.Drawing.OfficeChartMarkerShape",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5938,7 +5969,7 @@
             },
             {
               "name": "Point",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5962,7 +5993,7 @@
             },
             {
               "name": "MarkerStyle",
-              "type": "OfficeChartMarkerStyle",
+              "type": "OfficeIMO.Drawing.OfficeChartMarkerShape",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7704,7 +7735,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Lists pivot tables in a workbook.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelPivotTableInfo",
+      "outputType": "OfficeIMO.Excel.ExcelPivotTableInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -7805,7 +7836,7 @@
       "alias": "ExcelSlicer",
       "status": "existing",
       "synopsis": "Adds slicer or timeline binding metadata for a pivot table or table.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelPackagePartInfo",
+      "outputType": "OfficeIMO.Excel.ExcelPackagePartInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -8007,7 +8038,7 @@
       "alias": "ExcelConnection",
       "status": "new",
       "synopsis": "Adds Power Query or connection metadata that Excel can own and refresh.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelPackagePartInfo",
+      "outputType": "OfficeIMO.Excel.ExcelPackagePartInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -8120,7 +8151,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Reports connection, query-table, data-model and external-link parts in a workbook.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelDataModelInfo",
+      "outputType": "OfficeIMO.Excel.ExcelDataModelReport",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -8185,7 +8216,7 @@
       "alias": "ExcelRefreshOnOpen",
       "status": "existing",
       "synopsis": "Turns refresh-on-open on or off for pivot caches and connections.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelRefreshOnOpenResult",
+      "outputType": "OfficeIMO.Excel.ExcelRefreshOnOpenResult",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -9182,7 +9213,7 @@
             },
             {
               "name": "Rule",
-              "type": "ExcelConditionalRuleType",
+              "type": "PSWriteOffice.Cmdlets.Excel.OfficeExcelConditionalRuleType",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9214,7 +9245,7 @@
             },
             {
               "name": "Rank",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9232,7 +9263,7 @@
             },
             {
               "name": "StandardDeviation",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9310,7 +9341,7 @@
             },
             {
               "name": "Rule",
-              "type": "ExcelConditionalRuleType",
+              "type": "PSWriteOffice.Cmdlets.Excel.OfficeExcelConditionalRuleType",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9342,7 +9373,7 @@
             },
             {
               "name": "Rank",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9360,7 +9391,7 @@
             },
             {
               "name": "StandardDeviation",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9426,7 +9457,7 @@
             },
             {
               "name": "Rule",
-              "type": "ExcelConditionalRuleType",
+              "type": "PSWriteOffice.Cmdlets.Excel.OfficeExcelConditionalRuleType",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9458,7 +9489,7 @@
             },
             {
               "name": "Rank",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9476,7 +9507,7 @@
             },
             {
               "name": "StandardDeviation",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -10633,7 +10664,7 @@
       "alias": "ExcelComment",
       "status": "existing",
       "synopsis": "Adds a note or a threaded comment (or reply) to a cell.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelCommentInfo",
+      "outputType": "OfficeIMO.Excel.ExcelCommentInfo, OfficeIMO.Excel.ExcelThreadedCommentResult",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -10780,7 +10811,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Gets notes and threaded comments that match a filter.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelCommentInfo",
+      "outputType": "OfficeIMO.Excel.ExcelCommentInfo, OfficeIMO.Excel.ExcelThreadedCommentInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -11170,7 +11201,7 @@
       "alias": "ExcelNamedRange",
       "status": "existing",
       "synopsis": "Creates or updates a defined name.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelNamedRangeInfo",
+      "outputType": "OfficeIMO.Excel.ExcelNamedRangeInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -11249,7 +11280,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Gets defined names from a workbook.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelNamedRangeInfo",
+      "outputType": "OfficeIMO.Excel.ExcelNamedRangeInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -11330,6 +11361,37 @@
               "pipeline": "none"
             }
           ]
+        },
+        {
+          "name": "Uri",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Uri",
+              "type": "uri",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowHttp",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
         }
       ],
       "examples": [
@@ -11343,7 +11405,8 @@
           "description": "Lists the defined names that refer to #REF! after sheets were deleted, so they can be repaired or removed.",
           "code": "Get-OfficeExcelNamedRange -Path .\\Finance\\Budget-2027.xlsx |\n    Where-Object Reference -like '*#REF!*' |\n    Select-Object Name, SheetName, Reference"
         }
-      ]
+      ],
+      "notes": " Preserves the existing remote workbook query through -Uri and explicit -AllowHttp admission."
     },
     {
       "name": "Remove-OfficeExcelNamedRange",
@@ -11679,19 +11742,19 @@
             },
             {
               "name": "FitToWidth",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "FitToHeight",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "Scale",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -12731,12 +12794,12 @@
       "alias": "ExcelTheme",
       "status": "existing",
       "synopsis": "Applies an OfficeTheme or theme XML to a workbook.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelThemeInfo",
+      "outputType": "OfficeIMO.Excel.ExcelWorkbookThemeInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
           "name": "Theme",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Document",
@@ -12746,7 +12809,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": true,
               "position": 0,
               "pipeline": "none"
@@ -12824,9 +12887,33 @@
               "pipeline": "none"
             }
           ]
+        },
+        {
+          "name": "Name",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ExcelDocument",
+              "mandatory": false,
+              "pipeline": "value"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
         }
       ],
-      "notes": "-Theme takes a built-in name, an OfficeTheme or a template path and restyles cell styles, table styles and chart formats (ApplyTheme). -Theme Modern replaces -Default.",
+      "notes": "-Theme takes a built-in name, an OfficeTheme or a template path and restyles cell styles, table styles and chart formats (ApplyTheme). -Theme Modern replaces -Default. A native Name parameter set preserves renaming theme metadata without replacing the palette or fonts.",
       "examples": [
         {
           "title": "Apply a built-in theme",
@@ -13217,7 +13304,7 @@
             },
             {
               "name": "Sheet",
-              "type": "OfficeSheetSelector",
+              "type": "OfficeSheetSelector[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -13327,7 +13414,7 @@
             },
             {
               "name": "Sheet",
-              "type": "OfficeSheetSelector",
+              "type": "OfficeSheetSelector[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -13406,7 +13493,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Lists template markers and, with -Value, which are bound.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelTemplateMarkerInfo",
+      "outputType": "System.Management.Automation.PSObject",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -13528,7 +13615,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Tests whether supplied values bind every template marker.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelTemplateBindingReport, System.Boolean",
+      "outputType": "OfficeIMO.Excel.ExcelTemplateBindingReport, System.Boolean",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -14222,7 +14309,7 @@
             },
             {
               "name": "Preset",
-              "type": "ExcelChartPreset",
+              "type": "OfficeIMO.Excel.ExcelDashboardChartPreset",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -14284,7 +14371,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Compares two worksheets or ranges cell by cell.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelRangeDifferenceInfo",
+      "outputType": "OfficeIMO.Excel.ExcelRangeDifference",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -14580,7 +14667,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Lists number format presets and their format codes.",
-      "outputType": "PSWriteOffice.Models.Excel.ExcelNumberFormatPresetInfo",
+      "outputType": "System.Management.Automation.PSObject",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -14620,7 +14707,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Creates Excel-to-PDF settings for Convert-OfficeDocument -To Pdf.",
-      "outputType": "OfficeIMO.Excel.Pdf.ExcelToPdfOptions",
+      "outputType": "OfficeIMO.Excel.Pdf.ExcelPdfExportOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -14629,7 +14716,7 @@
           "parameters": [
             {
               "name": "PdfOptions",
-              "type": "PdfOptions",
+              "type": "OfficeIMO.Pdf.PdfCreateOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -14641,7 +14728,7 @@
             },
             {
               "name": "PageSize",
-              "type": "PageSize",
+              "type": "OfficeIMO.Pdf.PdfPageSize",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -14680,7 +14767,8 @@
               "type": "OfficeSheetSelector[]",
               "mandatory": false,
               "pipeline": "none",
-              "wildcards": true
+              "wildcards": true,
+              "notes": "Names and patterns remain literal selectors; numbers are one-based positions. A live worksheet is captured by name, so reusable/saved file options resolve against the conversion workbook rather than the original live document."
             },
             {
               "name": "RespectWorkbookSheetVisibility",
@@ -14829,7 +14917,7 @@
           ]
         }
       ],
-      "notes": "Margins take lengths (were PDF points). -Sheet replaces -SheetName.",
+      "notes": "Margins take lengths (were PDF points). -Sheet replaces -SheetName. -Sheet persists only native selector Name/Position: live worksheet inputs are captured by name for reusable saved/file conversions. Direct native ExcelPdfExportOptions.Sheets may retain live identity against its own workbook.",
       "examples": [
         {
           "title": "Convert chosen sheets to PDF",
@@ -15018,7 +15106,7 @@
           "parameters": [
             {
               "name": "LossPolicy",
-              "type": "OfficeLossPolicy",
+              "type": "OdfConversionLossPolicy",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -15030,7 +15118,7 @@
             },
             {
               "name": "MaximumExpandedCells",
-              "type": "int",
+              "type": "long",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -15067,7 +15155,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates Excel checks for Test-OfficeDocument: capability preflight and package validation.",
-      "outputType": "OfficeIMO.Excel.ExcelTestOptions",
+      "outputType": "PSWriteOffice.Cmdlets.Excel.ExcelTestOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -15136,7 +15224,7 @@
           ]
         }
       ],
-      "notes": "-Area DefinedNames | Tables | SheetViews | PrintSettings | Drawings | Calculation (default all) replaces the six -Skip* switches of Repair-OfficeExcelWorkbook.",
+      "notes": "-Area DefinedNames | Tables | SheetViews | PrintSettings | Drawings | Calculation (default all) replaces the six -Skip* switches of Repair-OfficeExcelWorkbook. Native repair also supports Protection, AutoFilters, LinksAndComments and WorkbookArtifacts; -Area selects these without changing save ownership.",
       "examples": [
         {
           "title": "Repair defined names and tables",
@@ -15217,7 +15305,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },

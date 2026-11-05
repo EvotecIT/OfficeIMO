@@ -12,7 +12,8 @@ public sealed class PublisherSaveOptions {
     /// <summary>Returns a validated independent settings snapshot.</summary>
     internal PublisherSaveOptions Clone() {
         if (!Enum.IsDefined(typeof(OfficeConversionFileConflictPolicy), FileConflictPolicy)) throw new ArgumentOutOfRangeException(nameof(FileConflictPolicy));
-        if (MaxOutputBytes < 1 || MaxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxOutputBytes, 1L);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(MaxOutputBytes, (long)int.MaxValue);
         return new PublisherSaveOptions { AllowLoss = AllowLoss, FileConflictPolicy = FileConflictPolicy, MaxOutputBytes = MaxOutputBytes };
     }
 }

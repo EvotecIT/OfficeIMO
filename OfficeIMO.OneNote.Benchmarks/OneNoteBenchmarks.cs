@@ -16,7 +16,7 @@ public class OneNoteReadWriteBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _section = OneNoteBenchmarkCorpus.CreateSection(PageCount);
-        _desktopBytes = OneNoteSectionWriter.Write(_section);
+        _desktopBytes = _section.ToBytes();
         _desktopStream = new MemoryStream(_desktopBytes, writable: false);
     }
 
@@ -26,16 +26,15 @@ public class OneNoteReadWriteBenchmarks {
     [Benchmark]
     public OneNoteSection ReadDesktopSection() {
         _desktopStream.Position = 0;
-        return OneNoteSectionReader.Read(_desktopStream);
+        return OneNoteSection.Load(_desktopStream);
     }
 
     [Benchmark]
-    public byte[] WriteDesktopSection() => OneNoteSectionWriter.Write(_section);
+    public byte[] WriteDesktopSection() => _section.ToBytes();
 
     [Benchmark]
-    public byte[] WriteDesktopSectionWithoutRoundTripValidation() => OneNoteSectionWriter.Write(
-        _section,
-        new OneNoteWriterOptions { ValidateRoundTrip = false });
+    public byte[] WriteDesktopSectionWithoutRoundTripValidation() => _section.ToBytes(
+        new OneNoteSaveOptions { ValidateRoundTrip = false });
 
     [Benchmark]
     public long ProjectMarkdown() {

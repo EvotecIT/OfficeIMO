@@ -9,13 +9,13 @@ $rows = @(
 
 New-OfficeExcel -Path $path {
     Add-OfficeExcelSheet -Name 'Summary' -Content {
-        Add-OfficeExcelTable -Data $rows -Name 'SummaryTable' -AutoFit
+        Add-OfficeExcelTable -InputObject $rows -Name 'SummaryTable'
         Set-OfficeExcelCell -Address 'D1' -Value 'Sheet'
         Set-OfficeExcelCell -Address 'D2' -Value 'Alpha'
         Set-OfficeExcelCell -Address 'D3' -Value 'Beta'
 
-        Set-OfficeExcelInternalLinks -Range 'D2:D3'
-        Set-OfficeExcelInternalLinksByHeader -Header 'Sheet' -TableName 'SummaryTable' -DisplayScript { param($text) "Open $text" }
+        Set-OfficeExcelHyperlink -Internal -Range 'D2:D3'
+        Set-OfficeExcelHyperlink -Internal -Header 'Sheet' -Table 'SummaryTable' -DisplayScript { param($text) "Open $text" }
     }
     Add-OfficeExcelSheet -Name 'Alpha' -Content {
         Set-OfficeExcelCell -Address 'A1' -Value 'Alpha Home'

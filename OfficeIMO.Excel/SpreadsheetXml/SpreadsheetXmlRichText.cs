@@ -35,14 +35,14 @@ internal static class SpreadsheetXmlRichText {
                         if (attribute.IsNamespaceDeclaration) continue;
                         if (attribute.Name.Namespace != Html && attribute.Name.Namespace != XNamespace.None) { context.Omitted("rich-text font attribute " + attribute.Name); continue; }
                         switch (attribute.Name.LocalName) {
-                            case "Face": run.FontName = attribute.Value; break;
+                            case "Face": run.FontFamily = attribute.Value; break;
                             case "Size":
                                 if (!double.TryParse(attribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double size) || double.IsNaN(size) || double.IsInfinity(size) || size <= 0 || size > 409) throw new InvalidDataException("Invalid rich-text font size.");
                                 run.FontSize = OfficeLength.Points(size); break;
                             case "Color":
                                 string color = attribute.Value;
                                 if (color.Length != 7 || color[0] != '#' || !uint.TryParse(color.Substring(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)) throw new InvalidDataException("Invalid rich-text font color.");
-                                run.FontColor = color.Substring(1); break;
+                                run.Color = OfficeColor.ParseHex(color.Substring(1)); break;
                             default: context.Omitted("rich-text font attribute " + attribute.Name); break;
                         }
                     }
@@ -62,11 +62,14 @@ internal static class SpreadsheetXmlRichText {
             var value = ExcelRichTextRun.FromOpenXml(string.Concat(run.Elements<Text>().Select(text => text.Text)), properties,
                 Utilities.ExcelThemeColorResolver.Resolve(properties?.GetFirstChild<Color>(), workbook));
             int wrappers = 0;
-            if (value.FontName != null || value.FontSize.HasValue || value.FontColor != null) {
+            if (value.FontFamily != null || value.FontSize.HasValue || value.Color.HasValue) {
                 writer.WriteStartElement("html", "Font", Html.NamespaceName); wrappers++;
-                if (value.FontName != null) writer.WriteAttributeString("html", "Face", Html.NamespaceName, value.FontName);
+                if (value.FontFamily != null) writer.WriteAttributeString("html", "Face", Html.NamespaceName, value.FontFamily);
                 if (value.FontSize.HasValue) writer.WriteAttributeString("html", "Size", Html.NamespaceName, value.FontSize.Value.ToPoints().ToString("R", CultureInfo.InvariantCulture));
-                if (value.FontColor is string rgb) writer.WriteAttributeString("html", "Color", Html.NamespaceName, "#" + rgb.Substring(rgb.Length - 6));
+                if (value.Color.HasValue) {
+                    string? argb = Utilities.ExcelThemeColorResolver.Resolve(ExcelColor.ToSpreadsheetColor(value.Color.Value), workbook);
+                    if (argb != null) writer.WriteAttributeString("html", "Color", Html.NamespaceName, "#" + argb.Substring(argb.Length - 6));
+                }
             }
             Add(value.Bold, "B"); Add(value.Italic, "I"); Add(value.Underline, "U"); Add(value.Strikethrough, "S");
             if (value.VerticalTextAlignment == ExcelVerticalTextAlignment.Subscript) Add(true, "Sub");

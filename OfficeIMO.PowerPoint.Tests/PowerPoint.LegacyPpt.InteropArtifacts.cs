@@ -96,8 +96,8 @@ namespace OfficeIMO.Tests {
             first.AddTextBox("OfficeIMO generated " + marker,                global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1700000),global::OfficeIMO.OfficeLength.Emus(4200000),global::OfficeIMO.OfficeLength.Emus(700000));
             first.AddRectangle(OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(2800000), OfficeIMO.OfficeLength.Emus(2200000), OfficeIMO.OfficeLength.Emus(900000),
                     "Interop rectangle")
-                .Fill("D9EAF7")
-                .Stroke("2563EB", global::OfficeIMO.OfficeLength.Points(1.5D));
+                .Fill(OfficeColor.Parse("D9EAF7"))
+                .Stroke(OfficeColor.Parse("2563EB"), global::OfficeIMO.OfficeLength.Points(1.5D));
             using (var stream = new MemoryStream(image, writable: false)) {
                 PowerPointImage picture = first.AddImage(stream, OfficeImageFormat.Png,
                     new PowerPointLayoutBox(OfficeLength.Points(280), OfficeLength.Points(210), OfficeLength.Points(240), OfficeLength.Points(90)));
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
             table.GetCell(0, 1).Text = "Revenue";
             table.GetCell(1, 0).Text = marker;
             table.GetCell(1, 1).Text = "120";
-            table.SetCellBorders(PowerPointTableCellBorders.All, "2563EB",
+            table.SetCellBorders(PowerPointTableCellBorders.All, OfficeColor.Parse("2563EB"),
                 width: global::OfficeIMO.OfficeLength.Points(1.25D));
             presentation.Save();
         }
@@ -147,8 +147,8 @@ namespace OfficeIMO.Tests {
             Assert.InRange(picture.Height.ToPoints(), 89.9, 90.1);
             PowerPointAutoShape rectangle = Assert.Single(
                 presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>());
-            Assert.Equal("D9EAF7", rectangle.FillColor, ignoreCase: true);
-            Assert.Equal("2563EB", rectangle.OutlineColor, ignoreCase: true);
+            Assert.Equal(OfficeColor.Parse("D9EAF7"), rectangle.FillColor);
+            Assert.Equal(OfficeColor.Parse("2563EB"), rectangle.OutlineColor);
             Assert.Equal(PowerPointSlideTransition.Fade,
                 presentation.Slides[0].Transition);
             var errors = presentation.ValidateDocument();

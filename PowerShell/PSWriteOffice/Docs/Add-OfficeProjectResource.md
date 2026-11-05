@@ -11,7 +11,7 @@ Adds a work resource with an optional standard rate.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Add-OfficeProjectResource [-Name] <string> -Document <ProjectDocument> [-StandardRate <Decimal>] [-PassThru] [<CommonParameters>]
+Add-OfficeProjectResource [-Name] <string> [-Document <ProjectDocument>] [-StandardRate <Decimal>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -36,7 +36,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)

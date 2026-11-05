@@ -5,8 +5,9 @@ internal static class MarkdownToAsciiDocConverter {
     /// <summary>Converts the OfficeIMO Markdown semantic model to dependency-free AsciiDoc.</summary>
     internal static MarkdownToAsciiDocResult Convert(
         MarkdownDocument document,
-        MarkdownAsciiDocExportOptions? options = null) {
+        MarkdownAsciiDocExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(document);
+        cancellationToken.ThrowIfCancellationRequested();
         options ??= new MarkdownAsciiDocExportOptions();
         ValidateOptions(options);
 
@@ -19,6 +20,7 @@ internal static class MarkdownToAsciiDocConverter {
 
         bool documentTitleWritten = false;
         for (int index = 0; index < document.Blocks.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             IMarkdownBlock block = document.Blocks[index];
             string converted = ConvertBlock(block, options, diagnostics, ref documentTitleWritten);
             if (converted.Length > 0) blocks.Add(converted);
@@ -26,6 +28,7 @@ internal static class MarkdownToAsciiDocConverter {
 
         string source = string.Join(options.LineEnding + options.LineEnding, blocks);
         if (source.Length > 0) source += options.LineEnding;
+        cancellationToken.ThrowIfCancellationRequested();
         AsciiDocDocument parsed = AsciiDocDocument.ParseResult(source).Document;
         return new MarkdownToAsciiDocResult(source, parsed, diagnostics);
     }

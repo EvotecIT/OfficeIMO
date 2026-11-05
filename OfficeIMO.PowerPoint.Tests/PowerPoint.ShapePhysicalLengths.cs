@@ -16,15 +16,15 @@ public sealed class PowerPointShapePhysicalLengthTests {
             var slide = document.AddSlide();
             var shape = slide.AddRectangle(OfficeLength.Emus(100), OfficeLength.Emus(200),
                 OfficeLength.Emus(300), OfficeLength.Emus(400), "Original");
-            shape.SetShadow("000000", blur: OfficeLength.Emus(1), distance: OfficeLength.Emus(7));
-            shape.SetGlow("445566", radius: OfficeLength.Emus(11));
+            shape.SetShadow(OfficeColor.Parse("000000"), blur: OfficeLength.Emus(1), distance: OfficeLength.Emus(7));
+            shape.SetGlow(OfficeColor.Parse("445566"), radius: OfficeLength.Emus(11));
             shape.SetBlur(OfficeLength.Emus(13));
             shape.SetSoftEdges(OfficeLength.Emus(17));
             shape.SetReflection(blur: OfficeLength.Emus(19), distance: OfficeLength.Emus(23));
             var copy = shape.Duplicate(OfficeLength.Emus(-1), OfficeLength.Emus(1));
             Assert.Equal(OfficeLength.Emus(99), copy.Left);
             Assert.Equal(OfficeLength.Emus(201), copy.Top);
-            Assert.Throws<System.ArgumentOutOfRangeException>(() => shape.SetGlow("445566", OfficeLength.Emus(-1)));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => shape.SetGlow(OfficeColor.Parse("445566"), OfficeLength.Emus(-1)));
             document.Save(output);
         }
         output.Position = 0;

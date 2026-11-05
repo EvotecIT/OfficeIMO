@@ -82,7 +82,7 @@ public sealed class OpenDocumentOdgDrawingTextTests {
         var shape = page.Shapes.AddRectangle(OdfRect.FromCentimeters(1, 1, 12, 8), "Formatting");
         var parent = document.Styles.CreateNamed("Parent", OdfStyleFamily.Paragraph); parent.FontSize = OdfLength.Points(12);
         var named = document.Styles.CreateNamed("Native", OdfStyleFamily.Paragraph); named.ParentStyleName = parent.Name;
-        named.Underline = true; named.StrikeThrough = true;
+        named.Underline = true; named.Strikethrough = true;
         named.SetProperty(OdfNamespaces.Style + "text-properties", OdfNamespaces.Style + property, value);
         shape.AddParagraph("One two").StyleName = named.Name;
         var result = page.ToDrawing();
@@ -111,12 +111,12 @@ public sealed class OpenDocumentOdgDrawingTextTests {
         var document = OdgDocument.Create(); var page = document.AddPage();
         var shape = page.Shapes.AddRectangle(OdfRect.FromCentimeters(1, 1, 12, 8));
         var parent = document.Styles.CreateNamed("Native", OdfStyleFamily.Paragraph); parent.FontSize = OdfLength.Points(12);
-        parent.Underline = true; parent.StrikeThrough = true;
+        parent.Underline = true; parent.Strikethrough = true;
         foreach (var declaration in new[] { ("font-size-rel", "+6pt"), ("text-underline-mode", "skip-white-space"),
             ("text-line-through-mode", "skip-white-space"), ("text-underline-color", "#FF0000"), ("text-line-through-width", "bold") })
             parent.SetProperty(OdfNamespaces.Style + "text-properties", OdfNamespaces.Style + declaration.Item1, declaration.Item2);
         var p = shape.AddParagraph("Override"); p.StyleName = parent.Name;
-        p.FontSize = OdfLength.Points(9); p.StrikeThrough = false;
+        p.FontSize = OdfLength.Points(9); p.Strikethrough = false;
         var child = p.EnsureStyle();
         child.SetProperty(OdfNamespaces.Style + "text-properties", OdfNamespaces.Style + "text-underline-mode", "continuous");
         child.SetProperty(OdfNamespaces.Style + "text-properties", OdfNamespaces.Style + "text-underline-color", "font-color");

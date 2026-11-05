@@ -1,4 +1,6 @@
 using System.Management.Automation;
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using OfficeIMO.Markdown;
 using PSWriteOffice.Services.Markdown;
 
@@ -10,13 +12,13 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>New-OfficeMarkdown -Path .\Report.md {
 ///     Add-OfficeMarkdownHeading -Level 2 -Text 'Architecture'
-///     Add-OfficeMarkdownImage -Path '.\Assets\architecture.png' -Alt 'Architecture diagram' -Title 'Current architecture' -Width 640
+///     Add-OfficeMarkdownImage -Path '.\Assets\architecture.png' -Alt 'Architecture diagram' -Title 'Current architecture' -Width 640px
 /// }</code>
 ///   <para>Appends an image block with accessibility text and optional presentation metadata.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownImage", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownImage")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownImage") ]
 public sealed class AddOfficeMarkdownImageCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -38,13 +40,13 @@ public sealed class AddOfficeMarkdownImageCommand : PSCmdlet
     [Parameter]
     public string? Title { get; set; }
 
-    /// <summary>Optional width in pixels.</summary>
-    [Parameter]
-    public double? Width { get; set; }
+    /// <summary>Optional image width; numbers mean points and unit suffixes are accepted.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Width { get; set; }
 
-    /// <summary>Optional height in pixels.</summary>
-    [Parameter]
-    public double? Height { get; set; }
+    /// <summary>Optional image height; numbers mean points and unit suffixes are accepted.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Height { get; set; }
 
     /// <summary>Emit the Markdown document after appending the image.</summary>
     [Parameter]
@@ -54,9 +56,7 @@ public sealed class AddOfficeMarkdownImageCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var doc = ResolveDocument();
-        doc.Image(Path, Alt, Title,
-            Width.HasValue ? OfficeIMO.OfficeLength.Pixels(Width.Value) : null,
-            Height.HasValue ? OfficeIMO.OfficeLength.Pixels(Height.Value) : null);
+        doc.Image(Path, Alt, Title, Width, Height);
 
         if (PassThru.IsPresent)
         {

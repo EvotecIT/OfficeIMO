@@ -9,9 +9,14 @@ schema: 2.0.0
 Exports preview artwork from a Visio stencil package into a browsable HTML gallery.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Export-OfficeVisioStencilPreviewGallery [-Path] <string> [-OutputDirectory] <string> [-Title <string>] [-MasterName <string[]>] [-IncludeUnsupportedMasters] [-NoLearnMasterDimensions] [-PreviewDirectoryName <string>] [-IndexFileName <string>] [-NoIndex] [-NoThumbnails] [-ThumbnailDirectoryName <string>] [-ThumbnailWidth <int>] [-ThumbnailHeight <int>] [-DefaultWidth <double>] [-DefaultHeight <double>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeVisioStencilPreviewGallery [-Path] <string> [-OutputDirectory] <string> [-Title <string>] [-MasterName <string[]>] [-IncludeUnsupportedMasters] [-NoLearnMasterDimensions] [-PreviewDirectoryName <string>] [-IndexFileName <string>] [-NoIndex] [-NoThumbnails] [-ThumbnailDirectoryName <string>] [-ThumbnailWidth <int>] [-ThumbnailHeight <int>] [-DefaultWidth <OfficeLength>] [-DefaultHeight <OfficeLength>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Export-OfficeVisioStencilPreviewGallery [-OutputDirectory] <string> -LiteralPath <string> [-Title <string>] [-MasterName <string[]>] [-IncludeUnsupportedMasters] [-NoLearnMasterDimensions] [-PreviewDirectoryName <string>] [-IndexFileName <string>] [-NoIndex] [-NoThumbnails] [-ThumbnailDirectoryName <string>] [-ThumbnailWidth <int>] [-ThumbnailHeight <int>] [-DefaultWidth <OfficeLength>] [-DefaultHeight <OfficeLength>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,8 +38,8 @@ Extracts preview artwork from package-backed masters and writes preview files pl
 Default height for package-backed stencils when dimensions cannot be learned.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -49,8 +54,8 @@ Accept wildcard characters: False
 Default width for package-backed stencils when dimensions cannot be learned.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -66,7 +71,7 @@ Include unsupported package masters when looking for preview artwork.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -82,7 +87,7 @@ Generated HTML index file name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -93,12 +98,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -LiteralPath
+Literal Visio package path.
+
+```yaml
+Type: String
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
 ### -MasterName
 Optional master filters for package-backed catalogs.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -114,7 +135,7 @@ Do not write an HTML index file.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -130,7 +151,7 @@ Skip reading master dimensions from package master parts.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -146,7 +167,7 @@ Do not write browser-renderable thumbnail wrappers.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -162,7 +183,7 @@ Directory that receives preview payloads, thumbnails, and the HTML index.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -178,7 +199,7 @@ Emit the structured gallery result after the files are written.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -194,8 +215,8 @@ Visio package path, such as .vsdx, .vssx, or .vstx.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath, LiteralPath
+Parameter Sets: Path
+Aliases: FilePath
 Possible values:
 
 Required: True
@@ -210,7 +231,7 @@ Subdirectory that receives extracted preview payload files.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -226,7 +247,7 @@ Subdirectory that receives generated thumbnail wrappers.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -242,7 +263,7 @@ Generated thumbnail height in pixels.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -258,7 +279,7 @@ Generated thumbnail width in pixels.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -274,7 +295,7 @@ Gallery title. When omitted, a title is derived from the package name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -290,7 +311,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `System.String`
 
 ## OUTPUTS
 

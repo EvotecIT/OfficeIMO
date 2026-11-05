@@ -26,33 +26,41 @@ public sealed class PublishOfficeConfluencePageCommand : AsyncPSCmdlet
 {
     private const string ParameterSetCreate = "Create";
     private const string ParameterSetUpdate = "Update";
+    private const string ParameterSetCreatePlan = "CreatePlan";
+    private const string ParameterSetUpdatePlan = "UpdatePlan";
     private readonly List<string> _contentRecords = new();
 
     /// <summary>Configured session required for live create or update operations.</summary>
-    [Parameter]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetCreate)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetUpdate)]
     public ConfluenceSession? Session { get; set; }
 
     /// <summary>Space identifier for a new page.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetCreate)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetCreatePlan)]
     [ValidateNotNullOrEmpty]
     public string SpaceId { get; set; } = string.Empty;
 
     /// <summary>Optional parent page identifier for a new page.</summary>
     [Parameter(ParameterSetName = ParameterSetCreate)]
+    [Parameter(ParameterSetName = ParameterSetCreatePlan)]
     public string? ParentId { get; set; }
 
     /// <summary>Page identifier for an update.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetUpdate)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetUpdatePlan)]
     [ValidateNotNullOrEmpty]
     public string PageId { get; set; } = string.Empty;
 
     /// <summary>Next positive page version number for an update.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetUpdate)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetUpdatePlan)]
     [ValidateRange(1, int.MaxValue)]
     public int VersionNumber { get; set; }
 
     /// <summary>Optional version message for an update.</summary>
     [Parameter(ParameterSetName = ParameterSetUpdate)]
+    [Parameter(ParameterSetName = ParameterSetUpdatePlan)]
     public string? VersionMessage { get; set; }
 
     /// <summary>Page title.</summary>
@@ -74,7 +82,8 @@ public sealed class PublishOfficeConfluencePageCommand : AsyncPSCmdlet
     public ConfluenceBodyFormat BodyFormat { get; set; } = ConfluenceBodyFormat.AtlasDocFormat;
 
     /// <summary>Return the exact write plan without contacting Confluence.</summary>
-    [Parameter]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetCreatePlan)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetUpdatePlan)]
     public SwitchParameter PlanOnly { get; set; }
 
     /// <summary>Throw when conversion reports reduced fidelity.</summary>
@@ -98,7 +107,7 @@ public sealed class PublishOfficeConfluencePageCommand : AsyncPSCmdlet
             throw new InvalidOperationException("Confluence page conversion reported one or more fidelity losses.");
         }
 
-        if (ParameterSetName == ParameterSetCreate)
+        if (ParameterSetName is ParameterSetCreate or ParameterSetCreatePlan)
         {
             var request = new ConfluencePageCreateRequest
             {

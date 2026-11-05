@@ -184,18 +184,18 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets data label text style for all chart labels.
         /// </summary>
         public PowerPointChart SetDataLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
-            string? color = null, string? fontName = null) {
-            ValidateTextStyle(fontSize, color, fontName);
+            OfficeColor? color = null, string? fontFamily = null) {
+            ValidateTextStyle(fontSize, color, fontFamily);
 
             return ApplyToAllDataLabels(labels => {
-                ApplyDataLabelTextStyle(labels, fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(labels, fontSize, bold, italic, color, fontFamily);
             });
         }
 
         /// <summary>
         ///     Sets data label shape styling for all chart labels.
         /// </summary>
-        public PowerPointChart SetDataLabelShapeStyle(string? fillColor = null, string? lineColor = null,
+        public PowerPointChart SetDataLabelShapeStyle(OfficeColor? fillColor = null, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
@@ -207,7 +207,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Configures data label leader lines for all chart labels.
         /// </summary>
-        public PowerPointChart SetDataLabelLeaderLines(bool showLeaderLines = true, string? lineColor = null,
+        public PowerPointChart SetDataLabelLeaderLines(bool showLeaderLines = true, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null) {
             ValidateDataLabelLeaderLines(lineColor, lineWidth);
 
@@ -244,7 +244,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Enables callout-style labels by positioning labels outside with leader lines.
         /// </summary>
         public PowerPointChart SetDataLabelCallouts(bool enabled = true, OfficeChartDataLabelPosition? position = null,
-            string? lineColor = null, OfficeLength? lineWidth = null) {
+            OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
             OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             SetDataLabels(showValue: enabled, showCategoryName: false, showSeriesName: false, showLegendKey: false,
                 showPercent: false);

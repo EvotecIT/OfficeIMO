@@ -11,12 +11,7 @@ Adds a decorative generated PDF page background shape or band.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfBackgroundShape [-Shape] <OfficePdfBackgroundShapeType> [-X <double>] [-Y <double>] [-Width <Double>] [-Height <Double>] [-CornerRadius <double>] [-InsetX <double>] [-InsetY <double>] [-OffsetY <double>] [-OffsetX <double>] [-FillColor <string>] [-StrokeColor <string>] [-StrokeWidth <double>] [-FillOpacity <Double>] [-StrokeOpacity <Double>] [-PassThru] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Add-OfficePdfBackgroundShape [-Shape] <OfficePdfBackgroundShapeType> -Document <PdfDocument> [-X <double>] [-Y <double>] [-Width <Double>] [-Height <Double>] [-CornerRadius <double>] [-InsetX <double>] [-InsetY <double>] [-OffsetY <double>] [-OffsetX <double>] [-FillColor <string>] [-StrokeColor <string>] [-StrokeWidth <double>] [-FillOpacity <Double>] [-StrokeOpacity <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfBackgroundShape [-Shape] <OfficePdfBackgroundShapeType> [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-CornerRadius <OfficeLength>] [-InsetX <OfficeLength>] [-InsetY <OfficeLength>] [-OffsetY <OfficeLength>] [-OffsetX <OfficeLength>] [-FillColor <OfficeColor>] [-StrokeColor <OfficeColor>] [-StrokeWidth <OfficeLength>] [-FillOpacity <Double>] [-StrokeOpacity <Double>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,8 +37,8 @@ Creates a polished generated page background without hand-drawing PDF primitives
 Rounded rectangle or band corner radius in PDF points.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -54,28 +49,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Document
-Compatibility parameter. Page composition is supported only inside New-OfficePdf.
-
-```yaml
-Type: PdfDocument
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -FillColor
 Fill color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -91,7 +70,7 @@ Fill opacity from 0 to 1.
 
 ```yaml
 Type: Double
-Parameter Sets: Context, Document
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -106,8 +85,8 @@ Accept wildcard characters: False
 Shape height in PDF points, or band height for top/bottom bands.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -122,8 +101,8 @@ Accept wildcard characters: False
 Horizontal inset for top/bottom bands in PDF points.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -138,8 +117,8 @@ Accept wildcard characters: False
 Vertical inset for left/right bands in PDF points.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -154,8 +133,8 @@ Accept wildcard characters: False
 Horizontal offset for left/right bands in PDF points.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -170,24 +149,8 @@ Accept wildcard characters: False
 Vertical offset for top/bottom bands in PDF points.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PassThru
-Emit the updated document.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -203,7 +166,7 @@ Shape type to add.
 
 ```yaml
 Type: OfficePdfBackgroundShapeType
-Parameter Sets: Context, Document
+Parameter Sets: Context
 Aliases: None
 Possible values: Rectangle, RoundedRectangle, Ellipse, TopBand, BottomBand, LeftBand, RightBand
 
@@ -218,8 +181,8 @@ Accept wildcard characters: False
 Stroke color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -235,7 +198,7 @@ Stroke opacity from 0 to 1.
 
 ```yaml
 Type: Double
-Parameter Sets: Context, Document
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -250,8 +213,8 @@ Accept wildcard characters: False
 Stroke width in PDF points.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -266,8 +229,8 @@ Accept wildcard characters: False
 Shape width in PDF points, or band width for left/right bands.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -282,8 +245,8 @@ Accept wildcard characters: False
 Shape left coordinate in PDF points for explicit shapes.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -298,8 +261,8 @@ Accept wildcard characters: False
 Shape bottom coordinate in PDF points for explicit shapes.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -315,11 +278,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## RELATED LINKS
 

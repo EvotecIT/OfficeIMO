@@ -6,70 +6,60 @@ schema: 2.0.0
 ---
 # Set-OfficeWordTableCell
 ## SYNOPSIS
-Updates OfficeIMO Word table-cell content, layout, and merge settings.
+Updates native Word cell text, physical geometry and layout flags.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-Set-OfficeWordTableCell [-Cell] <WordTableCell> [-Text <string>] [-MarginTopCentimeters <Double>] [-MarginBottomCentimeters <Double>] [-MarginLeftCentimeters <Double>] [-MarginRightCentimeters <Double>] [-ShadingFillColor <string>] [-ShadingPattern <WordShadingPattern>] [-Width <Int32>] [-WidthType <WordTableWidthUnit>] [-TextDirection <WordTextDirection>] [-WrapText <Boolean>] [-FitText <Boolean>] [-MergeRight <Int32>] [-MergeDown <Int32>] [-SplitHorizontal <Int32>] [-SplitVertical <Int32>] [-CopyParagraphs] [-PassThru] [<CommonParameters>]
+Set-OfficeWordTableCell [-Cell] <WordTableCell> [-Text <string>] [-MarginTop <OfficeLength>] [-MarginBottom <OfficeLength>] [-MarginLeft <OfficeLength>] [-MarginRight <OfficeLength>] [-BackgroundColor <OfficeColor>] [-ShadingPattern <WordShadingPattern>] [-Width <OfficeLength>] [-TextDirection <WordTextDirection>] [-NoWrap] [-FitText] [-MergeRight <Int32>] [-MergeDown <Int32>] [-SplitHorizontal <Int32>] [-SplitVertical <Int32>] [-CopyParagraphs] [-PassThru] [<CommonParameters>]
+```
+
+### WidthPercent
+```powershell
+Set-OfficeWordTableCell [-Cell] <WordTableCell> -WidthPercent <Double> [-Text <string>] [-MarginTop <OfficeLength>] [-MarginBottom <OfficeLength>] [-MarginLeft <OfficeLength>] [-MarginRight <OfficeLength>] [-BackgroundColor <OfficeColor>] [-ShadingPattern <WordShadingPattern>] [-TextDirection <WordTextDirection>] [-NoWrap] [-FitText] [-MergeRight <Int32>] [-MergeDown <Int32>] [-SplitHorizontal <Int32>] [-SplitVertical <Int32>] [-CopyParagraphs] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Updates OfficeIMO Word table-cell content, layout, and merge settings.
+Updates native Word cell text, physical geometry and layout flags.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Open-OfficeWord -Path .\Handover.docx
-$table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
-$table |
-    Get-OfficeWordTableCell -Row 2 -Column 2 |
-    Set-OfficeWordTableCell -Text 'Investigating' -ShadingFillColor '#fff2cc' -ShadingPattern Clear
-$doc | Close-OfficeWord -Save
+Set-OfficeWordTableCell -Cell 'Value'
 ```
 
-Finds an existing table by text, replaces a target cell value, applies shading, and saves the document.
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = Open-OfficeWord -Path .\Report.docx
-$table = $doc | Get-OfficeWordTable | Select-Object -First 1
-$table |
-    Get-OfficeWordTableCell -Column 2 |
-    Set-OfficeWordTableCell -ShadingFillColor '#fff1f0' -ShadingPattern Clear -Width 2400 -WidthType Dxa
-$doc | Save-OfficeWord -Path .\Report-StatusCells.docx
+Set-OfficeWordTableCell -Cell 'Value' -WidthPercent 1
 ```
 
-Reads cells from an OfficeIMO table object, applies cell shading and width, and saves the updated document.
-
-### EXAMPLE 3
-```powershell
-PS> $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
-```
-
-Sets independent cell margins in centimeters. Omitted margins retain their values; pass null to remove an explicit margin.
-
-### EXAMPLE 4
-```powershell
-PS> $doc = Open-OfficeWord -Path .\Report.docx
-$table = $doc | Get-OfficeWordTable | Select-Object -First 1
-$table |
-    Get-OfficeWordTableCell -Row 0 -Column 0 |
-    Set-OfficeWordTableCell -MergeRight 2 -CopyParagraphs
-$doc | Save-OfficeWord -Path .\Report-MergedHeader.docx
-```
-
-Uses the OfficeIMO merge operation exposed by the thin table-cell wrapper.
 
 ## PARAMETERS
 
+### -BackgroundColor
+BackgroundColor for the native cell.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Default, WidthPercent
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Cell
-Table cell to update.
+Cell for the native cell.
 
 ```yaml
 Type: WordTableCell
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -81,11 +71,11 @@ Accept wildcard characters: False
 ```
 
 ### -CopyParagraphs
-Copy paragraphs while merging cells.
+CopyParagraphs for the native cell.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -97,11 +87,11 @@ Accept wildcard characters: False
 ```
 
 ### -FitText
-Whether text should fit within the cell.
+FitText for the native cell.
 
 ```yaml
-Type: Boolean
-Parameter Sets: __AllParameterSets
+Type: SwitchParameter
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -112,12 +102,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MarginBottomCentimeters
-Bottom cell padding in centimeters. Pass null to remove the explicit margin.
+### -MarginBottom
+MarginBottom for the native cell.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -128,12 +118,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MarginLeftCentimeters
-Left cell padding in centimeters. Pass null to remove the explicit margin.
+### -MarginLeft
+MarginLeft for the native cell.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -144,12 +134,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MarginRightCentimeters
-Right cell padding in centimeters. Pass null to remove the explicit margin.
+### -MarginRight
+MarginRight for the native cell.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -160,12 +150,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MarginTopCentimeters
-Top cell padding in centimeters. Pass null to remove the explicit margin.
+### -MarginTop
+MarginTop for the native cell.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -177,11 +167,11 @@ Accept wildcard characters: False
 ```
 
 ### -MergeDown
-Number of cells to merge downward.
+MergeDown for the native cell.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -193,11 +183,27 @@ Accept wildcard characters: False
 ```
 
 ### -MergeRight
-Number of cells to merge to the right.
+MergeRight for the native cell.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default, WidthPercent
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoWrap
+NoWrap for the native cell.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -209,27 +215,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the updated table cell.
+PassThru for the native cell.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ShadingFillColor
-Cell shading fill color. Named colors and hexadecimal values are accepted.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -241,11 +231,11 @@ Accept wildcard characters: False
 ```
 
 ### -ShadingPattern
-Cell shading pattern.
+ShadingPattern for the native cell.
 
 ```yaml
 Type: WordShadingPattern
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values: Nil, Clear, Solid, HorizontalStripe, VerticalStripe, ReverseDiagonalStripe, DiagonalStripe, HorizontalCross, DiagonalCross, ThinHorizontalStripe, ThinVerticalStripe, ThinReverseDiagonalStripe, ThinDiagonalStripe, ThinHorizontalCross, ThinDiagonalCross, Percent5, Percent10, Percent12, Percent15, Percent20, Percent25, Percent30, Percent35, Percent37, Percent40, Percent45, Percent50, Percent55, Percent60, Percent62, Percent65, Percent70, Percent75, Percent80, Percent85, Percent87, Percent90, Percent95
 
@@ -257,11 +247,11 @@ Accept wildcard characters: False
 ```
 
 ### -SplitHorizontal
-Number of columns to split the cell into.
+SplitHorizontal for the native cell.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -273,11 +263,11 @@ Accept wildcard characters: False
 ```
 
 ### -SplitVertical
-Number of rows to split the cell into.
+SplitVertical for the native cell.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -289,11 +279,11 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Replace the visible cell text.
+Text for the native cell.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values:
 
@@ -305,11 +295,11 @@ Accept wildcard characters: False
 ```
 
 ### -TextDirection
-Cell text direction.
+TextDirection for the native cell.
 
 ```yaml
 Type: WordTextDirection
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default, WidthPercent
 Aliases: None
 Possible values: LeftToRightTopToBottom, LeftToRightTopToBottom2010, TopToBottomRightToLeft, TopToBottomRightToLeft2010, BottomToTopLeftToRight, BottomToTopLeftToRight2010, LeftToRightTopToBottomRotated, LeftToRightTopToBottomRotated2010, TopToBottomRightToLeftRotated, TopToBottomRightToLeftRotated2010, TopToBottomLeftToRightRotated, TopToBottomLeftToRightRotated2010
 
@@ -321,11 +311,11 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Native cell preference: twips for Dxa or fiftieths of a percent for Pct. Null removes the preference.
+Width for the native cell.
 
 ```yaml
-Type: Int32
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -336,32 +326,16 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -WidthType
-Cell width unit type.
+### -WidthPercent
+WidthPercent for the native cell.
 
 ```yaml
-Type: WordTableWidthUnit
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values: Nil, Pct, Dxa, Auto
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -WrapText
-Whether text wraps in the cell.
-
-```yaml
-Type: Boolean
-Parameter Sets: __AllParameterSets
+Type: Double
+Parameter Sets: WidthPercent
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False

@@ -67,13 +67,13 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Spill");
 
             sheet.Cell(1, 1).SetValue("Excel Text Spill");
-            sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:E1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(2, 1).SetValue("Plain text spills through blanks");
             sheet.Cell(2, 4).SetValue("Stop");
             sheet.Cell(2, 5).SetValue("occupied cell blocks");
             sheet.Cell(3, 1).SetRichText(
-                new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
-                new ExcelRichTextRun(" spill keeps runs") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+                new ExcelRichTextRun("Rich") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun(" spill keeps runs") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
             sheet.Cell(3, 4).SetValue("Stop");
             sheet.Cell(3, 5).SetValue("rich text path");
             sheet.Cell(4, 1).SetValue("Wrapped\ncell text");
@@ -94,14 +94,14 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
 
             for (int row = 2; row <= 5; row++) {
-                sheet.Cell(row, 1).SetFillColor("F8FAFC");
-                sheet.Cell(row, 4).SetFillColor("E2E8F0").SetBold();
-                sheet.Cell(row, 5).SetFontColor("475569");
+                sheet.Cell(row, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC"));
+                sheet.Cell(row, 4).SetFillColor(global::OfficeIMO.OfficeColor.Parse("E2E8F0")).SetBold();
+                sheet.Cell(row, 5).SetColor(global::OfficeIMO.OfficeColor.Parse("475569"));
             }
 
             for (int row = 1; row <= 5; row++) {
                 for (int column = 1; column <= 5; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                 }
             }
 

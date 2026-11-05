@@ -119,14 +119,14 @@ public sealed class PublisherCustomPathTests {
         Assert.NotNull(shape.FillGradient);
         Assert.Equal(0.5D, shape.FillGradient!.StartX);
         Assert.Equal(1D, shape.FillGradient.StartY);
-        var svg = publication.ToSvgResult();
-        Assert.Contains(svg.Report.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
+        string svg = publication.ToSvg(0, null, out OfficeConversionReport svgReport);
+        Assert.Contains(svgReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
             && item.Location == "Contents/object/293");
-        Assert.Contains("linearGradient", svg.Value);
+        Assert.Contains("linearGradient", svg);
         var pdf = publication.ToPdf(null, out OfficeConversionReport pdfReport);
         Assert.All(publication.ReadReport.Diagnostics, source => Assert.Contains(pdfReport.Diagnostics, item => item.Code == source.Code));
         Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
-        Assert.Throws<OfficeConversionException>(() => svg.ThrowIfLoss());
+        Assert.Throws<OfficeConversionException>(() => svgReport.ThrowIfLoss());
     }
 
     [Theory]

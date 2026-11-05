@@ -377,8 +377,8 @@ public partial class MarkdownDocument : MarkdownObject {
     /// <summary>Adds a paragraph with plain text. Shortcut for <see cref="AddParagraph(string)"/>.</summary>
     public MarkdownDocument P(string text) { AddParagraph(text); return this; }
 
-    /// <summary>Adds a paragraph composed with the paragraph builder. Shortcut for <see cref="AddParagraph(Action{MarkdownParagraphBuilder})"/>.</summary>
-    public MarkdownDocument P(Action<MarkdownParagraphBuilder> build) { AddParagraph(build); return this; }
+    /// <summary>Adds a paragraph composed with the inline model. Shortcut for <see cref="AddParagraph(Action{InlineSequence})"/>.</summary>
+    public MarkdownDocument P(Action<InlineSequence> build) { AddParagraph(build); return this; }
 
     /// <summary>Adds a simple block quote with a single line of text.</summary>
     public MarkdownDocument Quote(string text) => Append(new QuoteBlock(new[] { text ?? string.Empty }));

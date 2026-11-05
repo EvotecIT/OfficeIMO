@@ -35,6 +35,39 @@ Export-OfficeExcelGoogleSpreadsheet -Path .\Report.xlsx -Mode Plan
 ```
 
 
+### EXAMPLE 2
+```powershell
+Export-OfficeExcelGoogleSpreadsheet -Path .\Reports\Q3-Sales.xlsx -Mode Plan
+```
+
+Returns the translation plan, including anything Google Sheets cannot represent, without contacting Google.
+
+### EXAMPLE 3
+```powershell
+$googleSession = New-OfficeGoogleWorkspaceSession -KeyPath .\Secrets\reporting-sa.json -Scope Spreadsheets, DriveFile
+Export-OfficeExcelGoogleSpreadsheet -Path .\Reports\Q3-Sales.xlsx -Session $googleSession -FailOnLoss
+```
+
+Uploads the sales workbook through an authenticated Google Workspace session and stops if any content would be lost.
+
+### EXAMPLE 4
+```powershell
+$book = Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx -ReadOnly
+$batch = Export-OfficeExcelGoogleSpreadsheet -Document $book -Mode Batch
+Close-OfficeExcel -Document $book
+```
+
+Returns the provider-neutral request batch for an open workbook, for an integration that sends the requests itself.
+
+### EXAMPLE 5
+```powershell
+$googleSession = New-OfficeGoogleWorkspaceSession -KeyPath .\Secrets\reporting-sa.json -Scope Spreadsheets, DriveFile
+$google = New-OfficeExcelGoogleSheetsOptions -Title 'Q3 sales' -FolderId $folderId -SpreadsheetId $spreadsheetId -UnsupportedFormula UseCachedValue
+Export-OfficeExcelGoogleSpreadsheet -Path .\Reports\Q3-Sales.xlsx -Session $googleSession -Options $google
+```
+
+Exports the workbook over an existing Google spreadsheet with a fixed title and preserved unsupported formulas.
+
 ## PARAMETERS
 
 ### -Document

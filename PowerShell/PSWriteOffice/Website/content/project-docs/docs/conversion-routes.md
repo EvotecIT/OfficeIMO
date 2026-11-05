@@ -4,49 +4,45 @@ description: "Use PSWriteOffice to inspect supported format pairs, conversion fi
 layout: docs
 ---
 
-Use `Get-OfficeConversionRoute` to inspect the conversion contracts shipped with the installed OfficeIMO engine. A route describes a source and destination pair, its owning package and API, expected fidelity, support evidence, text formatting, and known limitations.
+Use `Get-OfficeDocumentCapability -Conversion` to inspect the conversion contracts shipped with the installed OfficeIMO engine. A route describes a source and destination pair, its owning package and API, expected fidelity, support evidence, text formatting, and known limitations.
 
 ```powershell
-Get-OfficeConversionRoute -SourceExtension docx -TargetExtension pdf |
+Get-OfficeDocumentCapability -Conversion -From docx -To pdf |
     Format-List Id, PackageId, Api, Fidelity, SupportLevel,
-        SupportEvidence, TextFormattingContract, KnownLimitations,
-        PdfBatchSupported, PdfBatchCommand
+        SupportEvidence, TextFormattingContract, KnownLimitations
 ```
 
 Extension filters accept `docx` or `.docx` and compare without regard to case. Combine them with `-Id` to select an exact route. Unknown identifiers return no rows.
 
 ## Choose the PowerShell operation
 
-`PdfBatchSupported` reports whether a route belongs to `Export-OfficeDocumentPdf` batch export in the current host. Batch export requires PowerShell 7.4 or newer. Windows PowerShell 5.1 can inspect the catalog and use supported single-file commands.
+Use `-Executable` to select routes registered by the conversion runner in the current host. Windows PowerShell 5.1 can inspect the catalog; general conversion jobs require PowerShell 7.4 or newer.
 
 ```powershell
-Get-OfficeConversionRoute -PdfBatch |
+Get-OfficeDocumentCapability -Conversion -Executable -To Pdf |
     Select-Object Id, SourceExtensions, PackageId, Fidelity, KnownLimitations
-```
 
-A false value can mean that the conversion uses a format-specific cmdlet or a .NET API, or that the current host does not expose batch export. A reverse route such as `pdf-docx` does not imply PDF export support. Check the owning `Api` and the command reference for the operation you need.
-
-For example, inspect Word-to-PDF limits, then export one document:
-
-```powershell
-$route = Get-OfficeConversionRoute -Id docx-pdf
+$route = Get-OfficeDocumentCapability -Conversion -Id docx-pdf
 $route.KnownLimitations
-Export-OfficeDocumentPdf -InputPath ./Review.docx -Path ./Review.pdf
+$report = Convert-OfficeDocument -Path ./Review.docx -To Pdf -OutputPath ./Review.pdf
+$report.Diagnostics
 ```
+
+Catalog support and current-host execution are separate. A listed route does not establish that an optional provider, password, or individual input meets its requirements.
 
 ## Run a general conversion job
 
-`Get-OfficeConversionRoute -Executable` filters to routes registered by the shared runner in this host. `ConvertTo-OfficeDocument` uses that runner for a single destination or a selected-file/directory batch. These jobs require PowerShell 7.4 or newer and include registered first-party iWork routes.
+`Get-OfficeDocumentCapability -Conversion -Executable` filters to routes registered by the shared runner in this host. `Convert-OfficeDocument` uses that runner for one destination or a selected-file/directory batch, including registered first-party iWork routes.
 
 ```powershell
-Get-OfficeConversionRoute -Executable -SourceExtension pdf |
+Get-OfficeDocumentCapability -Conversion -Executable -From pdf |
     Select-Object Id, TargetExtension, Fidelity, KnownLimitations
-ConvertTo-OfficeDocument -InputPath ./Review.pdf -OutputPath ./Review.docx
+Convert-OfficeDocument -Path ./Review.pdf -To Word -OutputPath ./Review.docx
 Get-ChildItem ./reviews -Filter *.pdf |
-    ConvertTo-OfficeDocument -OutputDirectory ./editable -TargetExtension docx -ItemResults
+    Convert-OfficeDocument -OutputDirectory ./editable -To Word
 ```
 
-Existing destinations are preserved by default. Set `-ConflictPolicy Rename` or `Replace` explicitly when appropriate. Use `New-OfficeConversionOptions` for renderer settings, `-ThrowIfLoss` to reject reported reductions, and `-CheckpointDirectory` with directory jobs that need resumable state. Route registration does not guarantee that an individual file, optional provider or credential will satisfy the operation.
+Each completed file emits its report. Existing output is replaced by default; use `-NoClobber` to preserve destinations or `-AutoRename` to select another filename. Pass native format options through `-Options`, use `-FailOnLoss` to reject reported reductions, and combine `-CheckpointPath` with `-Resume` for resumable directory jobs.
 
 ## Check the result
 

@@ -93,7 +93,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             OdtHyperlink link = target.AddHyperlink(text, run.HyperlinkUri ?? "#" + run.HyperlinkAnchor);
             ApplyWordRunFormatting(run, link);
             hyperlinks++;
-        } else ApplyWordRunFormatting(run, target.AddSpan(text));
+        } else ApplyWordRunFormatting(run, target.AddRun(text));
         wrote = true;
     }
 }

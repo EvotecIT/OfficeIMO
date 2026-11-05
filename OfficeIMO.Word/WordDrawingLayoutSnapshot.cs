@@ -171,17 +171,17 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        internal static void SetExtent(WordDrawing drawing, long widthEmu, long? heightEmu) {
+        internal static void SetExtent(WordDrawing drawing, long? widthEmu, long? heightEmu) {
             if (drawing.Inline?.Extent != null) {
-                drawing.Inline.Extent.Cx = widthEmu;
+                if (widthEmu.HasValue) drawing.Inline.Extent.Cx = widthEmu.Value;
                 if (heightEmu.HasValue) drawing.Inline.Extent.Cy = heightEmu.Value;
                 return;
             }
 
             if (drawing.Anchor?.Extent != null) {
-                drawing.Anchor.Extent.Cx = widthEmu;
+                if (widthEmu.HasValue) drawing.Anchor.Extent.Cx = widthEmu.Value;
                 if (heightEmu.HasValue) drawing.Anchor.Extent.Cy = heightEmu.Value;
-                drawing.Anchor.GetFirstChild<WP14.RelativeWidth>()?.Remove();
+                if (widthEmu.HasValue) drawing.Anchor.GetFirstChild<WP14.RelativeWidth>()?.Remove();
                 if (heightEmu.HasValue) drawing.Anchor.GetFirstChild<WP14.RelativeHeight>()?.Remove();
             }
         }

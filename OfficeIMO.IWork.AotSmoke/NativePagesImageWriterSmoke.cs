@@ -16,10 +16,10 @@ internal static class NativePagesImageWriterSmoke {
         document.AddTable(IWorkTableData.Create(2, 2).SetText(1, 1, "Grid").SetNumber(2, 2, 42), "Values", 100, 28);
         document.AddImage(Image("created-jpeg.jpg"), 160, 80, "Four-color JPEG, stretched frame");
         document.AddParagraph("After");
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         Require(bytes.Length == 15_102 && Convert.ToHexString(SHA256.HashData(bytes)) == AcceptedHash,
             "NativeAOT Pages images differ from the independently decoded Apple-accepted package.");
-        Require(bytes.SequenceEqual(document.SaveBytes()), "Native Pages image creation is nondeterministic.");
+        Require(bytes.SequenceEqual(document.ToBytes()), "Native Pages image creation is nondeterministic.");
         VerifySavedWord(bytes, 180);
         using var unchanged = new MemoryStream(); unchanged.WriteByte(9);
         try {
@@ -29,7 +29,7 @@ internal static class NativePagesImageWriterSmoke {
         Require(unchanged.CanWrite && unchanged.ToArray().SequenceEqual(new byte[] { 9 }),
             "Pages image-budget rejection changed or closed the caller stream.");
         var only = IWorkPagesDocument.Create(); only.AddImage(Image("created-alpha.png"), 120, 80, "Image only");
-        using var imageOnly = IWorkSourceDocument.Open(only.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var imageOnly = IWorkSourceDocument.Load(only.ToBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         imageOnly.RequireCompleteEditableReconstruction();
         Require(imageOnly.Value.Images.Count == 1 && only.Paragraphs.Count == 0, "Image-only Pages body was not editable.");
         Console.WriteLine($"PASS | native Pages inline PNG/JPEG creation | {AcceptedHash} | deterministic bytes, PNG alpha/JPEG, body/table order, point-sized strict DOCX save/reopen, image-only body and image bounds");
@@ -40,7 +40,7 @@ internal static class NativePagesImageWriterSmoke {
     }
 
     private static void VerifySavedWord(byte[] bytes, double firstWidth) {
-        var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadPages();
+        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
         Require(projection.Images.Count == 3 && projection.Tables.Count == 1 && projection.Diagnostics.Count == 0
             && projection.SourceDeclarationIssues.Count == 0 && projection.SourceReferenceIssues.Count == 0,
             "Pages image projection lost content or native graph declarations.");

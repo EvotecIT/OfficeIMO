@@ -9,12 +9,13 @@ PDF transformation should begin with evidence. Read document information, extrac
 ## Inspect the source
 
 ```powershell
-$info = Get-OfficePdfInfo -Path '.\Input.pdf'
-$preflight = Get-OfficePdfPreflight -Path '.\Input.pdf'
-$pages = Get-OfficePdfText -Path '.\Input.pdf' -ByPage
+$info = Get-OfficeDocumentInfo -Path '.\Input.pdf' -Detailed
+$info.Details
+$preflight = Get-OfficePdfDiagnostic -Path '.\Input.pdf' -Type Preflight
+$pages = Read-OfficeDocument -Path '.\Input.pdf' -As Text -ByPage
 ```
 
-Use `-AsTextBlock` when coordinates are needed for redaction or layout work. The read family also exposes images, fonts, attachments, form fields, annotations, signatures, interactions, optimization information, compliance, diagnostics, and rewrite-preservation evidence.
+Use `Get-OfficePdfDiagnostic -Type LayoutOverlay` when coordinates are needed for layout review and `Get-OfficePdfRedactionPlan -Text` to locate redaction targets. The read family also exposes images, fonts, attachments, form fields, annotations, signatures, interactions, optimization information, compliance, diagnostics, and rewrite-preservation evidence.
 
 The [inspect-and-preflight recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-InspectAndPreflight.ps1) creates a two-page PDF, reads its metadata and text page by page, and runs the PDF preflight command.
 

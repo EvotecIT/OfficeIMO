@@ -184,7 +184,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         DataValidationRule = BuildCellValidationRule(workbookSnapshot, worksheet, cell.Row, cell.Column, report, ref cellValidationNoticeAdded),
                         Hyperlink = BuildHyperlink(cell.Hyperlink),
                         Comment = BuildComment(cell.Comment),
-                        TextFormatRuns = BuildTextFormatRuns(cell.RichTextRuns),
+                        TextFormatRuns = BuildTextFormatRuns(document, cell.RichTextRuns),
                     });
                 }
 

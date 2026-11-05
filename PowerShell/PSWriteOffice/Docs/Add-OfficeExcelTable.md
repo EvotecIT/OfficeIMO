@@ -11,7 +11,7 @@ Writes tabular data to the current worksheet and formats it as an Excel table.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeExcelTable [-InputObject] <Object> [-Worksheet <ExcelSheet>] [-Document <ExcelDocument>] [-Sheet <string>] [-SheetIndex <Int32>] [-StartRow <int>] [-StartColumn <int>] [-NoHeader] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-Name <string>] [-ColumnFormat <hashtable>] [-Culture <cultureinfo>] [-TableStyle <ExcelTableStyle>] [-ShowFirstColumn] [-ShowLastColumn] [-NoRowStripes] [-ShowColumnStripes] [-NoAutoFilter] [-AutoFit] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelTable [-InputObject] <Object> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Name <string>] [-Address <string>] [-TableStyle <ExcelTableStyle>] [-NoTable] [-NoTableStyle] [-NoHeader] [-NoAutoFilter] [-NoAutoFit] [-NoFreeze] [-ShowFirstColumn] [-ShowLastColumn] [-ShowColumnStripes] [-NoRowStripes] [-ColumnFormat <hashtable>] [-Culture <cultureinfo>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-FlattenOptions <OfficeObjectFlattenOptions>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,26 +21,36 @@ Accepts objects, dictionaries, DataTable/DataView/IDataReader inputs, or DataRow
 
 ### EXAMPLE 1
 ```powershell
-PS> $data = @([pscustomobject]@{ Region='NA'; Revenue=100 }, [pscustomobject]@{ Region='EMEA'; Revenue=150 })
-ExcelSheet 'Data' { Add-OfficeExcelTable -InputObject $data -Name 'Sales' }
+New-OfficeExcel -Path .\Services.xlsx {
+    ExcelSheet 'Services' {
+        ExcelTable (Get-Service)
+    }
+}
 ```
 
-Writes two rows and formats them as a styled Excel table.
+Writes the services as a themed table with a frozen header, filters and fitted columns.
 
 ### EXAMPLE 2
 ```powershell
-PS> Add-OfficeExcelTable -Worksheet $sheet -InputObject $rows -Name 'Sales' -AutoFit
+$targets = Import-OfficeCsv -Path .\Data\Q3-Targets.csv
+$actuals = Import-OfficeCsv -Path .\Data\Q3-Actuals.csv
+New-OfficeExcel -Path .\Reports\Q3-Performance.xlsx {
+    ExcelSheet 'Performance' {
+        ExcelTable $targets -Name Targets -Address A1
+        ExcelTable $actuals -Name Actuals -Address G1 -ColumnFormat @{ Attainment = 'Percent' }
+    }
+}
 ```
 
-Writes the rows into a live workbook without requiring an active DSL scope.
+Writes this quarter's targets and actuals side by side as named tables, so charts, formulas and later imports can refer to them by name.
 
 ## PARAMETERS
 
-### -AutoFit
-Auto-fit the table columns after insertion.
+### -Address
+A1 address of the target cell.
 
 ```yaml
-Type: SwitchParameter
+Type: String
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -53,7 +63,7 @@ Accept wildcard characters: False
 ```
 
 ### -CollectionSeparator
-Text used between items when a cell contains a collection.
+Text inserted between collection values flattened into one cell.
 
 ```yaml
 Type: String
@@ -69,7 +79,7 @@ Accept wildcard characters: False
 ```
 
 ### -ColumnFormat
-Header-to-format mapping, using presets such as Percent or custom Excel number formats.
+Maps column headers to number-format presets, format codes or per-column option hashtables.
 
 ```yaml
 Type: Hashtable
@@ -85,7 +95,7 @@ Accept wildcard characters: False
 ```
 
 ### -Culture
-Culture used by number-format presets.
+Culture used for value conversion and number-format presets.
 
 ```yaml
 Type: CultureInfo
@@ -100,43 +110,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -DictionaryEntrySeparator
-Text used between entries when a cell contains a dictionary.
-
-```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DictionaryKeyValueSeparator
-Text used between a dictionary key and value.
-
-```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Document
-Workbook that will receive the table outside a DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -FlattenOptions
+Nested-value projection policy; accepts a native options object or hashtable.
+
+```yaml
+Type: OfficeObjectFlattenOptions
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -149,50 +143,18 @@ Accept wildcard characters: False
 ```
 
 ### -InputObject
-Source objects, dictionaries, DataTable/DataView/IDataReader inputs, or DataRow sequences to convert into table rows.
+Objects, dictionaries or native tabular data supplied directly or through the pipeline.
 
 ```yaml
 Type: Object
 Parameter Sets: Default
-Aliases: Data, DataTable
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -MaxCollectionItems
-Maximum number of items allowed in one nested collection or dictionary cell. Defaults to 1,048,575; increase explicitly for trusted larger values.
-
-```yaml
-Type: Int32
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MaxNestingDepth
-Maximum nesting depth allowed while normalizing one cell value. Defaults to 64; increase explicitly for trusted deeper values.
-
-```yaml
-Type: Int32
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -213,7 +175,39 @@ Accept wildcard characters: False
 ```
 
 ### -NoAutoFilter
-Disable AutoFilter dropdowns.
+Omits table filter buttons.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoAutoFit
+Retains native column widths without fitting them to the data.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoFreeze
+Keeps the header row scrollable.
 
 ```yaml
 Type: SwitchParameter
@@ -229,7 +223,7 @@ Accept wildcard characters: False
 ```
 
 ### -NoHeader
-Skip writing headers.
+Writes data without a header row.
 
 ```yaml
 Type: SwitchParameter
@@ -245,7 +239,39 @@ Accept wildcard characters: False
 ```
 
 ### -NoRowStripes
-Disable alternating row stripes for the created table.
+Disables alternating row bands. An explicit false value enables them.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoTable
+Writes plain cells without creating a native Excel table.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoTableStyle
+Creates the table without a named visual style.
 
 ```yaml
 Type: SwitchParameter
@@ -261,7 +287,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Return the created range string.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
@@ -277,26 +303,10 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name when using Document.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) when using Document.
-
-```yaml
-Type: Int32
+Type: OfficeSheetSelector
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -309,7 +319,7 @@ Accept wildcard characters: False
 ```
 
 ### -ShowColumnStripes
-Enable alternating column stripes for the created table.
+Enables alternating column bands; explicit false clears them.
 
 ```yaml
 Type: SwitchParameter
@@ -325,7 +335,7 @@ Accept wildcard characters: False
 ```
 
 ### -ShowFirstColumn
-Emphasize the first table column when the selected style supports it.
+Emphasizes the first table column; explicit false removes the emphasis.
 
 ```yaml
 Type: SwitchParameter
@@ -341,42 +351,10 @@ Accept wildcard characters: False
 ```
 
 ### -ShowLastColumn
-Emphasize the last table column when the selected style supports it.
+Emphasizes the last table column; explicit false removes the emphasis.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -StartColumn
-Starting column for the data (1-based).
-
-```yaml
-Type: Int32
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -StartRow
-Starting row for the data (1-based).
-
-```yaml
-Type: Int32
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -395,7 +373,7 @@ Built-in table style to apply.
 Type: ExcelTableStyle
 Parameter Sets: Default
 Aliases: None
-Possible values: TableStyleLight1, TableStyleLight2, TableStyleLight3, TableStyleLight4, TableStyleLight5, TableStyleLight6, TableStyleLight7, TableStyleLight8, TableStyleLight9, TableStyleLight10, TableStyleLight11, TableStyleLight12, TableStyleLight13, TableStyleLight14, TableStyleLight15, TableStyleLight16, TableStyleLight17, TableStyleLight18, TableStyleLight19, TableStyleLight20, TableStyleLight21, TableStyleMedium1, TableStyleMedium2, TableStyleMedium3, TableStyleMedium4, TableStyleMedium5, TableStyleMedium6, TableStyleMedium7, TableStyleMedium8, TableStyleMedium9, TableStyleMedium10, TableStyleMedium11, TableStyleMedium12, TableStyleMedium13, TableStyleMedium14, TableStyleMedium15, TableStyleMedium16, TableStyleMedium17, TableStyleMedium18, TableStyleMedium19, TableStyleMedium20, TableStyleMedium21, TableStyleMedium22, TableStyleMedium23, TableStyleMedium24, TableStyleMedium25, TableStyleMedium26, TableStyleMedium27, TableStyleMedium28, TableStyleDark1, TableStyleDark2, TableStyleDark3, TableStyleDark4, TableStyleDark5, TableStyleDark6, TableStyleDark7, TableStyleDark8, TableStyleDark9, TableStyleDark10, TableStyleDark11
+Possible values: TableStyleLight1, TableStyleLight2, TableStyleLight3, TableStyleLight4, TableStyleLight5, TableStyleLight6, TableStyleLight7, TableStyleLight8, TableStyleLight9, TableStyleLight10, TableStyleLight11, TableStyleLight12, TableStyleLight13, TableStyleLight14, TableStyleLight15, TableStyleLight16, TableStyleLight17, TableStyleLight18, TableStyleLight19, TableStyleLight20, TableStyleLight21, TableStyleMedium1, TableStyleMedium2, TableStyleMedium3, TableStyleMedium4, TableStyleMedium5, TableStyleMedium6, TableStyleMedium7, TableStyleMedium8, TableStyleMedium9, TableStyleMedium10, TableStyleMedium11, TableStyleMedium12, TableStyleMedium13, TableStyleMedium14, TableStyleMedium15, TableStyleMedium16, TableStyleMedium17, TableStyleMedium18, TableStyleMedium19, TableStyleMedium20, TableStyleMedium21, TableStyleMedium22, TableStyleMedium23, TableStyleMedium24, TableStyleMedium25, TableStyleMedium26, TableStyleMedium27, TableStyleMedium28, TableStyleDark1, TableStyleDark2, TableStyleDark3, TableStyleDark4, TableStyleDark5, TableStyleDark6, TableStyleDark7, TableStyleDark8, TableStyleDark9, TableStyleDark10, TableStyleDark11, None
 
 Required: False
 Position: named
@@ -420,27 +398,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Worksheet
-Worksheet that will receive the table outside a DSL context.
-
-```yaml
-Type: ExcelSheet
-Parameter Sets: Default
-Aliases: SheetObject
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
+- `OfficeIMO.Excel.ExcelDocument`
 - `System.Object`
 
 ## OUTPUTS

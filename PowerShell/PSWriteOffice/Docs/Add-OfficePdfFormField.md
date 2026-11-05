@@ -11,12 +11,12 @@ Adds a simple AcroForm field to a generated PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfFormField [-Name] <string> [-Type <OfficePdfFormFieldType>] [-Value <string>] [-Values <string[]>] [-Options <string[]>] [-Checked] [-Width <double>] [-Height <double>] [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfFormField [-Name] <string> [-Type <OfficePdfFormFieldType>] [-Value <string[]>] [-CheckedValue <string>] [-Option <string[]>] [-ListBox] [-Checked] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Size <OfficeLength>] [-Alignment <OfficeAlignment>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfFormField [-Name] <string> -Document <PdfDocument> [-Type <OfficePdfFormFieldType>] [-Value <string>] [-Values <string[]>] [-Options <string[]>] [-Checked] [-Width <double>] [-Height <double>] [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfFormField [-Name] <string> -Document <PdfDocument> [-Type <OfficePdfFormFieldType>] [-Value <string[]>] [-CheckedValue <string>] [-Option <string[]>] [-ListBox] [-Checked] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Size <OfficeLength>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -31,7 +31,7 @@ PS> New-OfficePdf -Path .\Examples\Documents\PdfForm.pdf {
   Add-OfficePdfParagraph -Text 'Requester'
   Add-OfficePdfFormField -Name 'Requester' -Type Text -Width 240
   Add-OfficePdfParagraph -Text 'Priority'
-  Add-OfficePdfFormField -Name 'Priority' -Type Choice -Options 'Low','Normal','High' -Value 'Normal'
+  Add-OfficePdfFormField -Name 'Priority' -Type Choice -Option 'Low','Normal','High' -Value 'Normal'
   Add-OfficePdfFormField -Name 'Approved' -Type CheckBox
 }
 ```
@@ -40,7 +40,7 @@ Adds text, choice, and checkbox form fields to a generated PDF.
 
 ## PARAMETERS
 
-### -Align
+### -Alignment
 Field alignment.
 
 ```yaml
@@ -72,6 +72,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -CheckedValue
+Export name of the checked state for a check box.
+
+```yaml
+Type: String
+Parameter Sets: Context, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Document
 PDF document to update outside the DSL context.
 
@@ -92,7 +108,23 @@ Accept wildcard characters: False
 Rendered field height in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
+Parameter Sets: Context, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ListBox
+Render scalar choices as a list box rather than a combo box.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -120,7 +152,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Options
+### -Option
 Choice or radio options.
 
 ```yaml
@@ -141,6 +173,22 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Size
+Native field text size or check-box size.
+
+```yaml
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -169,23 +217,7 @@ Accept wildcard characters: False
 ```
 
 ### -Value
-Initial text, selected choice, or selected radio value.
-
-```yaml
-Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Values
-Initial selected values for multi-select choice fields.
+Initial value; MultiSelectChoice accepts multiple selected values, other fields accept at most one.
 
 ```yaml
 Type: String[]
@@ -204,7 +236,7 @@ Accept wildcard characters: False
 Rendered field width in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:

@@ -68,7 +68,7 @@ public sealed partial class RtfLegacyNumbering {
     public RtfUnderlineStyle? UnderlineStyle { get; set; }
 
     /// <summary>Whether generated number text is struck through, represented by <c>\pnstrike</c>.</summary>
-    public bool? Strike { get; set; }
+    public bool? Strikethrough { get; set; }
 
     /// <summary>Text preceding the generated number, represented by the <c>\pntxtb</c> destination.</summary>
     public string? TextBefore { get; set; }
@@ -99,7 +99,7 @@ public sealed partial class RtfLegacyNumbering {
         AllCaps.HasValue ||
         SmallCaps.HasValue ||
         UnderlineStyle.HasValue ||
-        Strike.HasValue ||
+        Strikethrough.HasValue ||
         TextBefore != null ||
         TextAfter != null;
 
@@ -127,7 +127,7 @@ public sealed partial class RtfLegacyNumbering {
         AllCaps = source.AllCaps;
         SmallCaps = source.SmallCaps;
         UnderlineStyle = source.UnderlineStyle;
-        Strike = source.Strike;
+        Strikethrough = source.Strikethrough;
         TextBefore = source.TextBefore;
         TextAfter = source.TextAfter;
     }
@@ -155,7 +155,7 @@ public sealed partial class RtfLegacyNumbering {
         AllCaps = null;
         SmallCaps = null;
         UnderlineStyle = null;
-        Strike = null;
+        Strikethrough = null;
         TextBefore = null;
         TextAfter = null;
     }

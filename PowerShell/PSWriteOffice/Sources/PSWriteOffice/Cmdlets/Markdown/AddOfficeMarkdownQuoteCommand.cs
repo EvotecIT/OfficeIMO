@@ -16,8 +16,8 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Appends a quote block to the current Markdown document.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownQuote", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownQuote")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownQuote") ]
 public sealed class AddOfficeMarkdownQuoteCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";

@@ -17,7 +17,7 @@ public class HtmlMultiFormatReport {
         HtmlConversionDocument report = HtmlConversionDocument.Load(sourcePath);
         string originalHtml = report.SourceHtml;
 
-        byte[] pdfBytes = (report.ToPdf()).ToBytes();
+        byte[] pdfBytes = report.ToPdf().ToBytes();
         using (var pdf = UglyToad.PdfPig.PdfDocument.Open(pdfBytes)) {
             Assert.Equal(1, pdf.NumberOfPages);
             string text = string.Join(" ", pdf.GetPages().SelectMany(page => page.GetWords()).Select(word => word.Text));

@@ -21,9 +21,9 @@ public sealed class WorkflowContractCmdletTests {
                 $tasks = @($project | Get-OfficeProjectTask)
                 if ($tasks[0].Uid -ne 7 -or $tasks[1].Uid -ne 8) { throw 'Identities changed' }
                 $rejected = $false
-                try { $project | Export-OfficeProjectTable -ErrorAction Stop } catch { $rejected = $true }
+                try { $project | Get-OfficeProjectTable -ErrorAction Stop } catch { $rejected = $true }
                 if (-not $rejected) { throw 'Projection loss was accepted implicitly' }
-                $project | Export-OfficeProjectTable -AllowLossyProjection
+                $project | Get-OfficeProjectTable -AllowLoss
             } finally { $project | Close-OfficeProject }
             """);
         var output = shell.Invoke();
@@ -101,9 +101,15 @@ public sealed class WorkflowContractCmdletTests {
                     $rejected = $false
                     try { Open-OfficeEpub -Path 'Env:/PATH' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
                     if (-not $rejected) { throw 'Non-filesystem provider was accepted' }
-                    foreach ($command in 'Get-OfficeCsv', 'Import-OfficeCsv', 'Read-OfficeDocument') {
+                    foreach ($call in @(
+                        @{ Command = 'Import-OfficeCsv'; Arguments = @{ As = 'Document' } }
+                        @{ Command = 'Import-OfficeCsv'; Arguments = @{ As = 'Object' } }
+                        @{ Command = 'Read-OfficeDocument'; Arguments = @{} }
+                    )) {
+                        $command = $call.Command
+                        $arguments = $call.Arguments
                         $rejected = $false
-                        try { & $command -Path 'Env:/*' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
+                        try { & $command @arguments -Path 'Env:/*' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
                         if (-not $rejected) { throw "$command accepted a non-filesystem discovery provider" }
                     }
                 } finally { Remove-PSDrive AuditFiles }

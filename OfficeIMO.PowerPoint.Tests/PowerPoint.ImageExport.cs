@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.BackgroundColor = "112233";
+            slide.BackgroundColor = OfficeColor.Parse("112233");
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 2D, IncludeSlideContent = false });
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false, Scale = 2D });
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.BackgroundColor = "112233";
+            slide.BackgroundColor = OfficeColor.Parse("112233");
             slide.AddTextBox("Hidden by content option",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(24));
 
             using var output = new MemoryStream();
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.BackgroundColor = "112233";
+            slide.BackgroundColor = OfficeColor.Parse("112233");
 
             byte[] png = slide.ToImage(new PowerPointImageExportOptions { IncludeSlideContent = false });
             string svg = Encoding.UTF8.GetString(slide.ToImage(new PowerPointImageExportOptions {
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.BackgroundColor = "112233";
+            slide.BackgroundColor = OfficeColor.Parse("112233");
 
             byte[] png = slide.ToImage(new PowerPointImageExportOptions {
                 Scale = 4D, MaximumOutputWidth = 300, MaximumOutputHeight = 300,
@@ -164,11 +164,11 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(100));
 
             PowerPointSlide visible = presentation.AddSlide();
-            visible.BackgroundColor = "112233";
+            visible.BackgroundColor = OfficeColor.Parse("112233");
 
             PowerPointSlide hidden = presentation.AddSlide();
             hidden.Hidden = true;
-            hidden.BackgroundColor = "445566";
+            hidden.BackgroundColor = OfficeColor.Parse("445566");
 
             string folder = Path.Combine(Path.GetTempPath(), "officeimo-ppt-images-" + Guid.NewGuid().ToString("N"));
             try {
@@ -205,16 +205,16 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(100));
 
             PowerPointSlide first = presentation.AddSlide();
-            first.BackgroundColor = "112233";
+            first.BackgroundColor = OfficeColor.Parse("112233");
             first.AddTextBox("First selected",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(24));
 
             PowerPointSlide hidden = presentation.AddSlide();
             hidden.Hidden = true;
-            hidden.BackgroundColor = "445566";
+            hidden.BackgroundColor = OfficeColor.Parse("445566");
             hidden.AddTextBox("Hidden selected",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(24));
 
             PowerPointSlide third = presentation.AddSlide();
-            third.BackgroundColor = "778899";
+            third.BackgroundColor = OfficeColor.Parse("778899");
             third.AddTextBox("Third selected",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(24));
 
             string folder = Path.Combine(Path.GetTempPath(), "officeimo-ppt-filtered-images-" + Guid.NewGuid().ToString("N"));
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(80));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.SetBackgroundGradient("112233", "445566", 45D);
+            slide.SetBackgroundGradient(OfficeColor.Parse("112233"), OfficeColor.Parse("445566"), 45D);
 
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false });
             string svgText = Encoding.UTF8.GetString(result.Bytes);
@@ -284,8 +284,8 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape rectangle = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
-            rectangle.FillColor = "22AA66";
-            rectangle.OutlineColor = "114433";
+            rectangle.FillColor = OfficeColor.Parse("22AA66");
+            rectangle.OutlineColor = OfficeColor.Parse("114433");
             rectangle.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1D);
 
             PowerPointTextBox textBox = slide.AddTextBox("Shared renderer",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(54),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(36));
@@ -475,8 +475,8 @@ namespace OfficeIMO.Tests {
 
             PowerPointTableCell header = table.GetCell(0, 0);
             header.Text = "Region";
-            header.FillColor = "22AA66";
-            header.BorderColor = "114433";
+            header.FillColor = OfficeColor.Parse("22AA66");
+            header.BorderColor = OfficeColor.Parse("114433");
             header.Color = OfficeColor.Parse("FFFFFF");
             header.Bold = true;
             header.FontSize = global::OfficeIMO.OfficeLength.Points(11);
@@ -485,8 +485,8 @@ namespace OfficeIMO.Tests {
 
             PowerPointTableCell merged = table.GetCell(1, 0);
             merged.Text = "Shared table renderer";
-            merged.FillColor = "EAF7F0";
-            merged.BorderColor = "114433";
+            merged.FillColor = OfficeColor.Parse("EAF7F0");
+            merged.BorderColor = OfficeColor.Parse("114433");
             merged.Merge = (1, 2);
             table.GetCell(1, 1).Text = string.Empty;
 
@@ -689,7 +689,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddImage(imagePath);
             PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Points(12), OfficeIMO.OfficeLength.Points(12), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20), "Filtered shape");
-            shape.FillColor = "ABCDEF";
+            shape.FillColor = OfficeColor.Parse("ABCDEF");
             slide.AddTextBox("FILTERED TEXT",global::OfficeIMO.OfficeLength.Points(48),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(24));
             PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(44),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(30));
             table.GetCell(0, 0).Text = "FILTERED TABLE";

@@ -10,7 +10,7 @@ dotnet add package OfficeIMO.Excel.IWork
 using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
-IWorkSourceDocument source = IWorkSourceDocument.Open("source.numbers");
+IWorkSourceDocument source = IWorkSourceDocument.Load("source.numbers");
 using NumbersToExcelResult result = source.ToExcelResult(
     new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
@@ -19,7 +19,7 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("converted.xlsx");
 ```
 
-`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToExcel(options, out report)` and `SaveAsExcel` return the workbook with the common `OfficeConversionReport`; `FailOnLoss` rejects reported loss. `ToExcelResult` is the evidence operation: it also exposes the typed Numbers projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result.
+`IWorkSourceDocument.Load` reads and bounds the source independently of destination policy. `ToExcel(options, out report)` returns the workbook with the common `OfficeConversionReport`. `SaveAsExcel` writes the workbook and returns that report. `FailOnLoss` rejects reported loss. `ToExcelResult` is the evidence operation: it also exposes the typed Numbers projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result.
 
 Supported formula functions use qualified native identifiers and argument counts; see the [function subset](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md#formula-functions). Nested `OR`, `POWER`, qualified `TEXTJOIN`, `MINA`, `MAXA`, `AVERAGEA`, `OFFSET`, `PROB` and `RANDBETWEEN` retain editable expressions and typed caches. Native Numbers 14.5 exports qualify `OFFSET`, `PROB` and `RANDBETWEEN`. `GCD` and `LCM` calls retain numeric literals and bounded scalar-numeric references within the [qualified fifteen-digit and conservative product bounds](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md#formula-functions), including `GCD(B2,C2,D2)` and `LCM($B$2,$C$2:$D$2,1)`. Blank/mixed-type, formula-dependent, whole-axis, coercion and larger-operand cases retain caches with incomplete-expression diagnostics. Local recalculation supports bounded rectangular `OFFSET` range arguments and single-cell results, finite numeric `PROB` vectors, and nonempty integer intersections of finite `RANDBETWEEN` bounds through ±(2^53−1), including qualified fractional bounds. Empty integer intervals retain their source caches because native Numbers and Excel produce different results for these cases. See the shared [Excel calculation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.excel-guide.md#formula-inspection-and-calculation-policy) for limits.
 
@@ -55,7 +55,7 @@ var options = new IWorkConversionOptions {
 };
 ```
 
-This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. `AllowPartialEditableReconstruction` defaults to `false`; `RequireCompleteVisualCoverage` defaults to `true`. To accept an incomplete preview, use the result API with `RequireCompleteVisualCoverage = false` and inspect its coverage and fidelity report. Value-only APIs reject partial and preview output even when these options permit it. `result.RequireCompleteEditableReconstruction()` returns the destination after checking assessed content completeness and disposes rejected output; it does not establish identical appearance or field-level fidelity. `Report.ThrowIfLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
+This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. `AllowPartialEditableReconstruction` defaults to `false`; `RequireCompleteVisualCoverage` defaults to `true`. To accept an incomplete preview, use the result API with `RequireCompleteVisualCoverage = false` and inspect its coverage and fidelity report. `ToExcel` can return permitted partial or preview output; retain the common report when using that path. `result.RequireCompleteEditableReconstruction()` returns the destination after checking assessed content completeness and disposes rejected output; it does not establish identical appearance or field-level fidelity. `Report.ThrowIfLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
 
 Table-region defaults and selected text styles preserve fonts, emphasis, foreground colors and horizontal alignment in XLSX without changing numeric values or formula caches. Unsupported paragraph layout, highlights and transparency produce `IWORK_NUMBERS_TABLE_TEXT_STYLE_PARTIAL`. Applying defaults to empty cells is bounded to 100,000 cells per table and 1,000,000 per conversion; source tables remain sparse.
 
@@ -73,11 +73,11 @@ foreach (NumbersWorksheetMapping mapping in normalized.WorksheetMappings) {
 }
 ```
 
-Opening and converting both accept cancellation:
+Loading and converting both accept cancellation:
 
 ```csharp
 using var cancellation = new CancellationTokenSource();
-IWorkSourceDocument cancellableSource = IWorkSourceDocument.Open(
+IWorkSourceDocument cancellableSource = IWorkSourceDocument.Load(
     "source.numbers", IWorkDocumentKind.Numbers, null, cancellation.Token);
 using NumbersToExcelResult cancellable = cancellableSource.ToExcelResult(options, cancellation.Token);
 ```

@@ -1,77 +1,96 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
 using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
+using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Configures legend visibility and styling for an Excel chart.</summary>
+/// <summary>Shows, hides, positions and styles the chart legend.</summary>
 /// <example>
-///   <summary>Move the legend to the right.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$chart | Set-OfficeExcelChartLegend -Position Right</code>
-///   <para>Shows the legend on the right side of the chart and returns the chart for chaining.</para>
+/// <summary>Move the legend to the bottom</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Helpdesk-Trend.xlsx {
+///     ExcelSheet 'Trend' {
+///         ExcelChart -InputObject (Import-OfficeCsv -Path .\Data\Ticket-Trend.csv) -Category Week -Value Opened, Closed -Type Line -Address A1 -PassThru | ExcelChartLegend -Position Bottom
+///     }
+/// }</code>
+/// <para>Places the legend of a line chart under the plot area.</para>
+/// </example>
+/// <example>
+/// <summary>Hide the legend of a single-series chart</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Availability.xlsx {
+///     ExcelSheet 'Uptime' {
+///         $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\Data\Site-Uptime.csv) -Category Site -Value Uptime -Address A1 -Type Column -Title 'Uptime by site' -PassThru
+///         ExcelChartLegend -Chart $chart -Hidden
+///     }
+/// }</code>
+/// <para>Removes the legend where the chart title already names the only series.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelChartLegend", DefaultParameterSetName = "Default")]
-[OutputType(typeof(ExcelChart))]
-public sealed class SetOfficeExcelChartLegendCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
+[Alias("ExcelChartLegend")]
+public sealed class SetOfficeExcelChartLegendCommand : PSCmdlet {
     /// <summary>Chart to update.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0, ValueFromPipeline = true)]
     public ExcelChart Chart { get; set; } = null!;
 
     /// <summary>Legend position.</summary>
-    [Parameter]
-    public OfficeChartLegendPosition Position { get; set; } = OfficeChartLegendPosition.Right;
+    [Parameter(ParameterSetName = "Default")]
+    public OfficeChartLegendPosition? Position { get; set; }
+
+    /// <summary>Hide or show the column.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter Hidden { get; set; }
 
     /// <summary>Overlay the legend on the chart area.</summary>
-    [Parameter]
-    public bool Overlay { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter Overlay { get; set; }
 
-    /// <summary>Hide the legend instead of positioning it.</summary>
-    [Parameter]
-    public SwitchParameter Hide { get; set; }
+    /// <summary>Font family name.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public string? Font { get; set; }
 
-    /// <summary>Optional legend font size in points.</summary>
-    [Parameter]
-    public double? FontSizePoints { get; set; }
+    /// <summary>Font size, interpreted as points for numbers; explicit physical units are accepted.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeLengthTransformation]
+    public OfficeLength? Size { get; set; }
 
-    /// <summary>Optional bold setting for legend text.</summary>
-    [Parameter]
-    public bool? Bold { get; set; }
+    /// <summary>Text or rule colour expressed as a literal OfficeColor or theme role.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? Color { get; set; }
 
-    /// <summary>Optional italic setting for legend text.</summary>
-    [Parameter]
-    public bool? Italic { get; set; }
+    /// <summary>Applies bold text. An explicit false value clears bold; omission preserves the native value.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter Bold { get; set; }
 
-    /// <summary>Optional legend text color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? Color { get; set; }
+    /// <summary>Applies italic text. An explicit false value clears italic; omission preserves the native value.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter Italic { get; set; }
 
-    /// <summary>Optional legend font name.</summary>
-    [Parameter]
-    public string? FontName { get; set; }
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        try {
-            if (Hide.IsPresent) {
-                Chart.HideLegend();
-            } else {
-                Chart.SetLegend(Position, Overlay);
-            }
-
-            if (FontSizePoints.HasValue || Bold.HasValue || Italic.HasValue ||
-                !string.IsNullOrWhiteSpace(Color) || !string.IsNullOrWhiteSpace(FontName)) {
-                Chart.SetLegendTextStyle(FontSizePoints.HasValue ? OfficeLength.Points(FontSizePoints.Value) : (OfficeLength?)null, Bold, Italic, Color != null ? OfficeColor.Parse(Color) : (OfficeColor?)null, FontName);
-            }
-
-            WritePassThru(Chart);
-        } catch (Exception ex) {
-            WriteError(new ErrorRecord(ex, "ExcelChartLegendFailed", ErrorCategory.InvalidOperation, Chart));
-        }
+        bool? hidden = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Hidden));
+        if (hidden == true) Chart.HideLegend();
+        else if (Position.HasValue || MyInvocation.BoundParameters.ContainsKey(nameof(Overlay)) || hidden == false)
+            Chart.SetLegend(Position, OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Overlay)));
+        if (Size.HasValue || Color.HasValue || Font != null || MyInvocation.BoundParameters.ContainsKey(nameof(Bold)) || MyInvocation.BoundParameters.ContainsKey(nameof(Italic)))
+            Chart.SetLegendTextStyle(Size, OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Bold)), OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Italic)), Color, Font);
+        if (PassThru) WriteObject(Chart);
     }
 
 }

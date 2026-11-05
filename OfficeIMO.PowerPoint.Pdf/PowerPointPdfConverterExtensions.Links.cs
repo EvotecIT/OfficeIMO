@@ -57,7 +57,7 @@ public static partial class PowerPointPdfConverterExtensions {
             // extent rounds to zero in PDF annotations. Include the visible stroke
             // while retaining the original rotation/flip center.
             double stroke = Math.Max(0.002D, shape.OutlineWidth?.ToPoints()
-                ?? (ParseOfficeColor(shape.OutlineColor).HasValue ? 1D : 0D));
+                ?? (shape.ResolveOutlineColorForExport().HasValue ? 1D : 0D));
             x -= stroke / 2D; y -= stroke / 2D;
             width += stroke; height += stroke;
         }

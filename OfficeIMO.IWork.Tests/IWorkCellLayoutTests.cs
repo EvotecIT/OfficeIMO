@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using var package = CellFillPackage(new[] { CellLayoutStyle(30, child, 31),
             CellLayoutStyle(31, Message(VarintField(8, 1), BytesField(9, CellPadding(4)))) });
-        var projection = IWorkSourceDocument.Open(package).ReadPages();
+        var projection = IWorkSourceDocument.Load(package).ReadPages();
         IWorkTable table = Assert.Single(projection.Tables);
         Assert.Equal(2, table.Cells.Count);
         Assert.All(table.Cells, cell => {
@@ -28,8 +28,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkCellKind.Empty, table.GetCell(1, 2)!.Kind);
         Assert.DoesNotContain(projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_LAYOUT_UNSUPPORTED");
         package.Position = 0;
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadPages());
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxMaterializedCells = 1 }).ReadPages());
     }
 
     [Theory]
@@ -57,7 +57,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => BytesField(9, CellPadding(float.PositiveInfinity))
         };
         using var package = CellFillPackage(new[] { CellLayoutStyle(30, Message(BytesField(1, FillColor(1, 0, 0)), properties)) });
-        using var result = IWorkSourceDocument.Open(package).ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package).ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         var cell = Assert.Single(result.Projection.Tables).GetCell(1, 1)!;
         Assert.Equal(42d, cell.Value);
@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Unsupported_fill_does_not_discard_qualified_cell_layout() {
         using var package = CellFillPackage(new[] { CellLayoutStyle(30, Message(BytesField(1, FillColor(float.NaN, 0, 0)),
             VarintField(8, 2), BytesField(9, CellPadding(4)))) });
-        var projection = IWorkSourceDocument.Open(package).ReadPages();
+        var projection = IWorkSourceDocument.Load(package).ReadPages();
         var cell = Assert.Single(projection.Tables).GetCell(1, 1)!;
         Assert.Null(cell.Fill);
         Assert.Equal(4, cell.Padding!.LeftPoints);
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Cell_layout_survives_supported_saved_destinations_and_reports_XLSX_padding_loss(IWorkDocumentKind kind) {
         using var package = CellFillPackage(new[] { CellLayoutStyle(30, Message(VarintField(8, 1), BytesField(9, CellPadding(4)))) }, kind: kind);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
@@ -142,7 +142,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Numbers_destination_padding_omission_requires_explicit_partial_policy(IWorkConversionMode mode) {
         using var package = CellFillPackage(new[] { CellLayoutStyle(30, BytesField(9, CellPadding(4))) },
             kind: IWorkDocumentKind.Numbers);
-        var source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
+        var source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers);
         Assert.True(source.ReadNumbers().HasEditableContent);
         var policy = new IWorkConversionOptions { Mode = mode };
         if (mode == IWorkConversionMode.EditableOnly) {
@@ -160,7 +160,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote, 200000)]
     public void Destination_cell_padding_overflow_uses_fallback_without_losing_source_points(IWorkDocumentKind kind, float padding) {
         using var package = CellFillPackage(new[] { CellLayoutStyle(30, BytesField(9, CellPadding(padding))) }, kind: kind);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordResult(IWorkTestPolicy.ForIncompletePreview(policy));
@@ -181,7 +181,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Cell_padding_rounding_requires_partial_policy_and_keeps_exact_source_points(IWorkDocumentKind kind, bool partial) {
         const float native = .125f;
         using var package = CellFillPackage(new[] { CellLayoutStyle(30, BytesField(9, CellPadding(native))) }, kind: kind);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = partial };
         if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordResult(IWorkTestPolicy.ForIncompletePreview(policy));

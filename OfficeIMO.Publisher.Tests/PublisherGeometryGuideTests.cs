@@ -148,10 +148,10 @@ public sealed class PublisherGeometryGuideTests {
         Assert.Equal(new OfficePoint(shape.Width / 4, shape.Height / 4), shape.PathCommands[0].Point);
         Assert.Equal(new OfficePoint(shape.Width * 3 / 4, shape.Height / 4), shape.PathCommands[1].Point);
         Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code.StartsWith("PUB_CUSTOM_PATH_GUIDE"));
-        var svg = publication.ToSvgResult();
-        Assert.Contains(svg.Report.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
+        string svg = publication.ToSvg(0, null, out OfficeConversionReport svgReport);
+        Assert.Contains(svgReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
             && item.Message.Contains("producer rounding") && item.Location == "Contents/object/293");
-        Assert.Throws<OfficeConversionException>(() => svg.ThrowIfLoss());
+        Assert.Throws<OfficeConversionException>(() => svgReport.ThrowIfLoss());
         var pdf = publication.ToPdf(null, out OfficeConversionReport pdfReport);
         Assert.All(publication.ReadReport.Diagnostics, source => Assert.Contains(pdfReport.Diagnostics, item => item.Code == source.Code));
         Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);

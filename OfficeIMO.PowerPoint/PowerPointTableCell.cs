@@ -117,9 +117,9 @@ namespace OfficeIMO.PowerPoint {
 
 
         /// <summary>
-        ///     Gets or sets the border color (all sides) in hex format.        
+        ///     Gets or sets the local border color (all sides), retaining native theme slots and opacity.
         /// </summary>
-        public string? BorderColor {
+        public OfficeColor? BorderColor {
             get {
                 var line = Cell.TableCellProperties?.LeftBorderLineProperties;
                 return GetLineColor(line);
@@ -130,7 +130,7 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                SetBorders(PowerPointTableCellBorders.All, value);
+                SetBorders(PowerPointTableCellBorders.All, value.Value);
             }
         }
 
@@ -220,8 +220,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the text color. Alpha below 255 is written as native DrawingML opacity.
         /// </summary>
         public global::OfficeIMO.OfficeColor? Color {
-            get => PowerPointTextPropertyFormatting.ReadColor(GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex);
-            set => FormatRuns(props => PowerPointTextPropertyFormatting.SetColor(props, value));
+            get => PowerPointDrawingColor.Read(GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>());
+            set {
+                OfficeTheme theme = PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart);
+                FormatRuns(props => PowerPointTextPropertyFormatting.SetColor(props, value, theme));
+            }
         }
 
         /// <summary>
@@ -371,7 +374,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies border styling, retaining the existing width or dash when omitted.
         /// </summary>
-        public void SetBorders(PowerPointTableCellBorders borders, string color, OfficeLength? width = null, PowerPointLineDashStyle? dash = null) {
+        public void SetBorders(PowerPointTableCellBorders borders, OfficeColor color, OfficeLength? width = null, PowerPointLineDashStyle? dash = null) {
             ValidateBorderStyle(borders, color, width);
             if (dash.HasValue) _ = dash.Value.ToOpenXml();
             double? widthPoints = width?.ToPoints();
@@ -430,14 +433,14 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyLine(LinePropertiesType line, string color, double? widthPoints) {
-            SetBorderLineFill(line, new SolidFill(new RgbColorModelHex { Val = color }));
+        private void ApplyLine(LinePropertiesType line, OfficeColor color, double? widthPoints) {
+            SetBorderLineFill(line, PowerPointDrawingColor.Fill(color, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart)));
             if (widthPoints != null) {
                 line.Width = PowerPointShape.ToDrawingLineWidth(widthPoints.Value, nameof(widthPoints));
             }
         }
 
-        private static void ApplyLine(LinePropertiesType line, string color, double? widthPoints, PowerPointLineDashStyle? dash) {
+        private void ApplyLine(LinePropertiesType line, OfficeColor color, double? widthPoints, PowerPointLineDashStyle? dash) {
             ApplyLine(line, color, widthPoints);
             if (dash.HasValue) {
                 line.RemoveAllChildren<A.PresetDash>();
@@ -445,8 +448,8 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static string? GetLineColor(LinePropertiesType? line) {
-            return line?.GetFirstChild<SolidFill>()?.RgbColorModelHex?.Val;
+        private static OfficeColor? GetLineColor(LinePropertiesType? line) {
+            return PowerPointDrawingColor.Read(line?.GetFirstChild<SolidFill>());
         }
 
         private static int? ToEmus(double? value, double emusPerUnit) {

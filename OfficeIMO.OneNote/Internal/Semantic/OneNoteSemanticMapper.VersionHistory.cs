@@ -11,7 +11,7 @@ internal static partial class OneNoteSemanticMapper {
         OneNoteObjectSpaceMaterializer materializer,
         OneNoteExtendedGuid objectSpaceId,
         OneNoteRevisionStoreObject manifest,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         PageMappingState pageMapping) {
         foreach (OneNoteExtendedGuid historyContextId in GetReferences(manifest, VersionHistoryGraphSpaceContextNodes)) {
             string historyKey = OneNoteObjectSpaceMaterializer.GetSpaceKey(objectSpaceId, historyContextId);

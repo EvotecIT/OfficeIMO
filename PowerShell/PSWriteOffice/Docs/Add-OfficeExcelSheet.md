@@ -9,14 +9,9 @@ schema: 2.0.0
 Adds or reuses a worksheet within the current Excel DSL scope.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Add-OfficeExcelSheet [[-Name] <string>] [[-Content] <scriptblock>] [-ValidationMode <ExcelSheetNameValidationMode>] [-PassThru] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Add-OfficeExcelSheet [[-Name] <string>] [[-Content] <scriptblock>] -Document <ExcelDocument> [-ValidationMode <ExcelSheetNameValidationMode>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelSheet [[-Name] <string>] [[-Content] <scriptblock>] [-Document <ExcelDocument>] [-ValidationMode <ExcelSheetNameValidationMode>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -26,18 +21,28 @@ Creates the sheet when missing, pushes it onto the DSL stack, and executes the n
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeExcel -Path .\report.xlsx { Add-OfficeExcelSheet -Name 'Data' { ExcelCell -Address 'A1' -Value 'Region' } }
+New-OfficeExcel -Path .\Inventory.xlsx {
+    ExcelSheet 'Servers' {
+        ExcelTable (Import-OfficeCsv -Path .\Data\Servers.csv)
+    }
+}
 ```
 
-Creates a workbook with a worksheet named Data and writes the header “Region”.
+Adds an Inventory sheet and writes a table of servers into it.
 
 ### EXAMPLE 2
 ```powershell
-PS> $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
-$sheet | Set-OfficeExcelCell -Address A1 -Value 'Region'
+$staff = Import-OfficeCsv -Path .\HR\Headcount-2026-10.csv
+New-OfficeExcel -Path .\Reports\Headcount.xlsx {
+    foreach ($group in $staff | Group-Object Department) {
+        ExcelSheet $group.Name -ValidationMode Sanitize {
+            ExcelTable ($group.Group | Select-Object Name, Title, Location, StartDate)
+        }
+    }
+}
 ```
 
-Returns the worksheet so subsequent commands can target it directly.
+Groups the headcount export by department and writes each group to its own sheet, with a cleaned-up name when a department name has characters Excel does not allow.
 
 ## PARAMETERS
 
@@ -46,7 +51,7 @@ Code to execute inside the worksheet context.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -62,11 +67,11 @@ Workbook that will receive the worksheet.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -78,7 +83,7 @@ Name of the worksheet to create or reuse. When omitted the last sheet is reused 
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -94,7 +99,7 @@ Emit the ExcelSheet object after execution.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -110,7 +115,7 @@ Controls how invalid sheet names are handled.
 
 ```yaml
 Type: ExcelSheetNameValidationMode
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values: None, Sanitize, Strict
 

@@ -42,7 +42,7 @@ public class HtmlPowerPointHeaderHyperlinkColorTests {
             Assert.True(table.GetCell(0, 1).Runs.Single().HyperlinkUsesTextColor));
         Assert.Equal(Enumerable.Range(1, paginate ? 30 : 1).Select(index => "Row " + index),
             reopened.Slides.SelectMany(slide => slide.Tables).SelectMany(table =>
-                Enumerable.Range(1, table.Rows - 1).Select(row => table.GetCell(row, 0).Text)));
+                Enumerable.Range(1, table.RowCount - 1).Select(row => table.GetCell(row, 0).Text)));
     }
     [Theory]
     [InlineData(false)]

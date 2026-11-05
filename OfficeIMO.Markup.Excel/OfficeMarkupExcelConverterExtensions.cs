@@ -1,76 +1,77 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Core.Internal;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Markup.Excel;
 
-/// <summary>Typed OfficeIMO Markup to Excel conversion helpers.</summary>
+/// <summary>Converts typed OfficeIMO Markup into editable Excel documents.</summary>
 public static class OfficeMarkupExcelConverterExtensions {
-    /// <summary>Converts workbook-profile markup to an editable detached Excel document.</summary>
-    public static ExcelDocument ToExcelDocument(this OfficeMarkupDocument document, MarkupExcelExportOptions? options = null) {
-        OfficeMarkupConversionResult<ExcelDocument> result = document.ToExcelDocumentResult(options);
-        if (result.Succeeded) return result.Value;
-        result.Value.Dispose();
-        return result.RequireValue();
-    }
+    /// <summary>Converts markup into a detached document owned by the caller.</summary>
+    public static ExcelDocument ToExcel(this OfficeMarkupDocument document, MarkupExcelExportOptions? options = null,
+        CancellationToken cancellationToken = default) => document.ToExcel(options, out _, cancellationToken);
 
-    /// <summary>Converts workbook-profile markup and returns the Excel document with structured diagnostics.</summary>
-    public static OfficeMarkupConversionResult<ExcelDocument> ToExcelDocumentResult(
-        this OfficeMarkupDocument document,
-        MarkupExcelExportOptions? options = null) {
+    /// <summary>Converts markup and retains mapping and native validation evidence.</summary>
+    public static ExcelDocument ToExcel(this OfficeMarkupDocument document, MarkupExcelExportOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(document);
+        cancellationToken.ThrowIfCancellationRequested();
         MarkupExcelExportOptions resolved = options ?? new MarkupExcelExportOptions();
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics = CollectDiagnostics(document, resolved);
         ExcelDocument value = new OfficeMarkupExcelExporter().Convert(document, resolved);
-        return new OfficeMarkupConversionResult<ExcelDocument>(value, diagnostics);
+        var result = new OfficeMarkupConversionResult<ExcelDocument>(value, diagnostics);
+        report = result.Report;
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!result.Succeeded) throw new OfficeConversionException("Markup conversion failed validation.", report);
+            if (resolved.FailOnLoss) report.ThrowIfLoss();
+            return result.Value;
+        } catch { result.Value.Dispose(); throw; }
     }
 
-    /// <summary>Converts workbook-profile markup and saves it as an Excel workbook.</summary>
-    public static OfficeMarkupConversionReport SaveAsExcel(
-        this OfficeMarkupDocument document,
-        string path,
-        MarkupExcelExportOptions? options = null,
-        ExcelSaveOptions? saveOptions = null) {
-        OfficeMarkupConversionResult<ExcelDocument> result = document.ToExcelDocumentResult(options);
-        using (result.Value) result.RequireValue().Save(path, saveOptions ?? CreateDefaultSaveOptions());
-        return result.Report;
-    }
+    /// <summary>Converts markup asynchronously and returns the document with its completed report.</summary>
+    public static Task<OfficeConversionResult<ExcelDocument>> ToExcelAsync(this OfficeMarkupDocument document,
+        MarkupExcelExportOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeConversionOutput.RunAsync(() => (document.ToExcel(options, out OfficeConversionReport report, cancellationToken), report), cancellationToken);
 
-    /// <summary>Converts workbook-profile markup and writes it to a caller-owned stream.</summary>
-    public static OfficeMarkupConversionReport SaveAsExcel(
-        this OfficeMarkupDocument document,
-        Stream stream,
-        MarkupExcelExportOptions? options = null,
-        ExcelSaveOptions? saveOptions = null) {
-        OfficeMarkupConversionResult<ExcelDocument> result = document.ToExcelDocumentResult(options);
-        using (result.Value) result.RequireValue().Save(stream, saveOptions ?? CreateDefaultSaveOptions());
-        return result.Report;
-    }
-
-    /// <summary>Converts workbook-profile markup and asynchronously saves it as an Excel workbook.</summary>
-    public static async Task<OfficeMarkupConversionReport> SaveAsExcelAsync(
-        this OfficeMarkupDocument document,
-        string path,
-        MarkupExcelExportOptions? options = null,
-        ExcelSaveOptions? saveOptions = null,
+    /// <summary>Writes converted Excel output and returns its report.</summary>
+    public static OfficeConversionReport SaveAsExcel(
+        this OfficeMarkupDocument document, string path, MarkupExcelExportOptions? options = null, ExcelSaveOptions? saveOptions = null,
         CancellationToken cancellationToken = default) {
+        using ExcelDocument value = document.ToExcel(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeMarkupConversionResult<ExcelDocument> result = document.ToExcelDocumentResult(options);
-        using (result.Value) await result.RequireValue().SaveAsync(path, saveOptions ?? CreateDefaultSaveOptions(), cancellationToken).ConfigureAwait(false);
-        return result.Report;
+        OfficeConversionFailures.Run(report, () => value.Save(path, saveOptions ?? CreateDefaultSaveOptions()));
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
     }
 
-    /// <summary>Converts workbook-profile markup and asynchronously writes it to a caller-owned stream.</summary>
-    public static async Task<OfficeMarkupConversionReport> SaveAsExcelAsync(
-        this OfficeMarkupDocument document,
-        Stream stream,
-        MarkupExcelExportOptions? options = null,
-        ExcelSaveOptions? saveOptions = null,
+    /// <summary>Writes converted Excel output and returns its report.</summary>
+    public static OfficeConversionReport SaveAsExcel(
+        this OfficeMarkupDocument document, Stream stream, MarkupExcelExportOptions? options = null, ExcelSaveOptions? saveOptions = null,
         CancellationToken cancellationToken = default) {
+        using ExcelDocument value = document.ToExcel(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeMarkupConversionResult<ExcelDocument> result = document.ToExcelDocumentResult(options);
-        using (result.Value) await result.RequireValue().SaveAsync(stream, saveOptions ?? CreateDefaultSaveOptions(), cancellationToken).ConfigureAwait(false);
-        return result.Report;
+        OfficeConversionFailures.Run(report, () => value.Save(stream, saveOptions ?? CreateDefaultSaveOptions()));
+        return report;
+    }
+
+    /// <summary>Asynchronously writes converted Excel output and returns its report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsExcelAsync(
+        this OfficeMarkupDocument document, string path, MarkupExcelExportOptions? options = null, ExcelSaveOptions? saveOptions = null,
+        CancellationToken cancellationToken = default) {
+        using ExcelDocument value = document.ToExcel(options, out OfficeConversionReport report, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        await OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(path, saveOptions ?? CreateDefaultSaveOptions(), cancellationToken)).ConfigureAwait(false);
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
+    }
+
+    /// <summary>Asynchronously writes converted Excel output and returns its report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsExcelAsync(
+        this OfficeMarkupDocument document, Stream stream, MarkupExcelExportOptions? options = null, ExcelSaveOptions? saveOptions = null,
+        CancellationToken cancellationToken = default) {
+        using ExcelDocument value = document.ToExcel(options, out OfficeConversionReport report, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        await OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(stream, saveOptions ?? CreateDefaultSaveOptions(), cancellationToken)).ConfigureAwait(false);
+        return report;
     }
 
     private static ExcelSaveOptions CreateDefaultSaveOptions() => new ExcelSaveOptions {

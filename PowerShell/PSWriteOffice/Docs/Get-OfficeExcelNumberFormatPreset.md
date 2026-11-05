@@ -11,7 +11,7 @@ Lists OfficeIMO Excel number format presets and their format codes.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Get-OfficeExcelNumberFormatPreset [-Decimals <int>] [-CultureName <string>] [<CommonParameters>]
+Get-OfficeExcelNumberFormatPreset [-Decimals <int>] [-Culture <cultureinfo>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,19 +21,25 @@ Lists OfficeIMO Excel number format presets and their format codes.
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficeExcelNumberFormatPreset -CultureName en-US -Decimals 2 |
-                Where-Object Name -eq Currency
+Get-OfficeExcelNumberFormatPreset
 ```
 
-Returns the preset name and the Excel number format code that PSWriteOffice cmdlets can apply to cells or columns.
+Shows the preset names usable with -ColumnFormat and -Style and the format codes they produce.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeExcelNumberFormatPreset -Decimals 1 -Culture de-DE
+```
+
+Shows the presets with one decimal place as they are written for German workbooks.
 
 ## PARAMETERS
 
-### -CultureName
+### -Culture
 Culture name used for currency symbols, such as en-US or pl-PL.
 
 ```yaml
-Type: String
+Type: CultureInfo
 Parameter Sets: Default
 Aliases: None
 Possible values:

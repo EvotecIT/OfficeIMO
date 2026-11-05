@@ -40,8 +40,8 @@ public enum WordHeadingLevel {
 /// <example><summary>Add a rich heading to a live document.</summary>
 /// <code>Add-OfficeWordHeading -Document $document -Level 2 { WordText 'Open incidents '; WordText '(3)' -Bold }</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordHeading", DefaultParameterSetName = "Text")]
-[Alias("WordHeading")]
 [OutputType(typeof(WordParagraph))]
+[Alias("WordHeading") ]
 public sealed class AddOfficeWordHeadingCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Heading text.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text")]

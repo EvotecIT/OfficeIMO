@@ -8,10 +8,10 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Groups typed content into one column of a designed slide.</summary>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointColumn", DefaultParameterSetName = "Content")]
-[Alias("PowerPointColumn")]
+[Alias("PowerPointColumn") ]
 public sealed class AddOfficePowerPointColumnCommand : OfficeCmdlet {
     /// <summary>Gets or sets the column's content block.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Content")]
     public ScriptBlock Content { get; set; } = null!;
     /// <summary>Gets or sets the column title.</summary>
     [Parameter]

@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape frame = slide.AddShape(
                     OfficePresetShapeType.Rectangle,
                     OfficeIMO.OfficeLength.Emus(952500), OfficeIMO.OfficeLength.Emus(317500), OfficeIMO.OfficeLength.Emus(635000), OfficeIMO.OfficeLength.Emus(476250));
-                frame.Fill("ED7D31");
+                frame.Fill(OfficeColor.Parse("ED7D31"));
                 slide.GroupShapes(new PowerPointShape[] { picture, frame },
                     "Picture group");
 
@@ -193,9 +193,9 @@ namespace OfficeIMO.Tests {
                 fifth.TransparentColor = OfficeColor.CornflowerBlue;
                 fifth.Rotation = 15D;
                 fifth.HorizontalFlip = true;
-                fifth.OutlineColor = "203864";
+                fifth.OutlineColor = OfficeColor.Parse("203864");
                 fifth.OutlineWidth = global::OfficeIMO.OfficeLength.Points(2D);
-                fifth.SetShadow("222222", blur: OfficeIMO.OfficeLength.Points(2D),
+                fifth.SetShadow(OfficeColor.Parse("222222"), blur: OfficeIMO.OfficeLength.Points(2D),
                     distance: OfficeIMO.OfficeLength.Points(2D), angleDegrees: 90D,
                     transparencyPercent: 40);
                 PowerPointImage sixth = AddImage(slide, image, 3500000);
@@ -273,7 +273,7 @@ namespace OfficeIMO.Tests {
             projectedPictureModels[4].Rotation = 33D;
             projectedPictureModels[4].HorizontalFlip = false;
             projectedPictureModels[4].VerticalFlip = true;
-            projectedPictureModels[4].OutlineColor = "A5A5A5";
+            projectedPictureModels[4].OutlineColor = OfficeColor.Parse("A5A5A5");
             projectedPictureModels[4].ClearShadow();
             projectedPictureModels[5].RecolorColor = OfficeColor.Red;
             LegacyPptWritePreflightReport editPreflight = projected

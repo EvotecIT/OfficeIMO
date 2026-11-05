@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <para>
 /// Adds a new row to a <see cref="WordTable"/> that was already created or found in an existing
 /// document. The command accepts scalar values, arrays, dictionaries, ordered dictionaries, and
-/// PowerShell objects. Values are expanded from left to right across cells; missing values become empty
+/// PowerShell objects. InputObject are expanded from left to right across cells; missing values become empty
 /// cells. This keeps existing-document editing simple without forcing callers back into the Word DSL.
 /// </para>
 /// <example>
@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $doc | Get-OfficeWordTable | Select-Object -First 1 |
-///     Add-OfficeWordTableRow -Values 'Service', 'Ready', 'Low'</code>
+///     Add-OfficeWordTableRow -InputObject 'Service', 'Ready', 'Low'</code>
 ///   <para>Adds one table row and writes the supplied values into its cells.</para>
 /// </example>
 /// <example>
@@ -27,7 +27,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
-/// $table | Add-OfficeWordTableRow -Values ([ordered]@{
+/// $table | Add-OfficeWordTableRow -InputObject ([ordered]@{
 ///     Item  = 'Mitigation plan'
 ///     Owner = 'Service Desk'
 ///     State = 'Ready'
@@ -40,14 +40,13 @@ namespace PSWriteOffice.Cmdlets.Word;
 public sealed class AddOfficeWordTableRowCommand : PSCmdlet
 {
     /// <summary>Existing Word table to append to, usually from <c>Get-OfficeWordTable</c> or <c>Find-OfficeWordTable</c>.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0, ParameterSetName = "Default")]
     public WordTable Table { get; set; } = null!;
 
-    /// <summary>Values to write into the new row. Arrays, dictionaries, ordered dictionaries, and objects are expanded across cells.</summary>
+    /// <summary>InputObject to write into the new row. Arrays, dictionaries, ordered dictionaries, and objects are expanded across cells.</summary>
     [Parameter(Position = 1)]
-    [Alias("Data", "InputObject")]
     [AllowNull]
-    public object? Values { get; set; }
+    public object? InputObject { get; set; }
 
     /// <summary>Emit the created row for additional OfficeIMO-level edits.</summary>
     [Parameter]
@@ -61,8 +60,8 @@ public sealed class AddOfficeWordTableRowCommand : PSCmdlet
             return;
         }
 
-        var values = ExpandValues(Values);
-        var existingColumnCount = Table.RowsCount > 0
+        var values = ExpandValues(InputObject);
+        var existingColumnCount = Table.RowCount > 0
             ? Table.Rows.Max(row => row.CellsCount)
             : 0;
         var cellCount = Math.Max(existingColumnCount, values.Count);

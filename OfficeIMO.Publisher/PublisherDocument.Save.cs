@@ -19,8 +19,14 @@ public sealed partial class PublisherDocument {
         return bytes;
     }
 
+    /// <summary>Atomically saves to the associated native path, replacing that file by default. Explicit settings retain their selected conflict policy.</summary>
+    /// <remarks>A successful path load or native path save establishes the destination. Source-free publications still refuse native saving. The original source baseline remains unchanged.</remarks>
+    public PublisherSaveReport Save(PublisherSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        Save(FilePath ?? throw new InvalidOperationException("The publication has no associated native path. Use Save(string) or Save(Stream)."),
+            options ?? new PublisherSaveOptions { FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace }, cancellationToken);
+
     /// <summary>Prepares a complete native PUB and atomically publishes it to an explicit .pub path.</summary>
-    /// <remarks>Preparation, policy and pre-publication cancellation failures preserve an existing destination. Atomic replacement must be supported when Replace is selected. Saving does not rebind the document's source or destination.</remarks>
+    /// <remarks>Preparation, policy and pre-publication cancellation failures preserve an existing destination and the associated path. Atomic replacement must be supported when Replace is selected. Success associates the destination without changing the original source baseline.</remarks>
     public PublisherSaveReport Save(string path, PublisherSaveOptions? options = null, CancellationToken cancellationToken = default) {
         string target = NativeSavePath(path);
         var timer = Stopwatch.StartNew();
@@ -28,6 +34,7 @@ public sealed partial class PublisherDocument {
         byte[] bytes = PrepareSave(settings, timer, cancellationToken, out var prepared);
         OfficeFileCommit.WriteAtomically(target, destination => destination.Write(bytes, 0, bytes.Length),
             cancellationToken, FileConflict(settings));
+        FilePath = target;
         return new PublisherSaveReport(SourceReadReport, prepared, timer.Elapsed, itemsWritten: 1, outputPath: target);
     }
 
@@ -42,8 +49,14 @@ public sealed partial class PublisherDocument {
         return new PublisherSaveReport(SourceReadReport, prepared, timer.Elapsed, itemsWritten: 1);
     }
 
+    /// <summary>Asynchronously stages and atomically saves to the associated native path, replacing that file by default. Explicit settings retain their selected conflict policy.</summary>
+    /// <remarks>The destination must come from a successful path load or save. Native source and loss-policy requirements remain unchanged.</remarks>
+    public Task<PublisherSaveReport> SaveAsync(PublisherSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        SaveAsync(FilePath ?? throw new InvalidOperationException("The publication has no associated native path. Use SaveAsync(string) or SaveAsync(Stream)."),
+            options ?? new PublisherSaveOptions { FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace }, cancellationToken);
+
     /// <summary>Asynchronously stages and atomically publishes a complete native PUB to an explicit .pub path.</summary>
-    /// <remarks>Preparation is performed in process before asynchronous I/O. Existing destinations survive pre-publication failures. Saving does not rebind the document's original source baseline.</remarks>
+    /// <remarks>Preparation is performed in process before asynchronous I/O. Existing destinations and the associated path survive pre-publication failures. Success associates the destination without changing the original source baseline.</remarks>
     public async Task<PublisherSaveReport> SaveAsync(string path, PublisherSaveOptions? options = null, CancellationToken cancellationToken = default) {
         string target = NativeSavePath(path);
         var timer = Stopwatch.StartNew();
@@ -51,6 +64,7 @@ public sealed partial class PublisherDocument {
         byte[] bytes = PrepareSave(settings, timer, cancellationToken, out var prepared);
         await OfficeFileCommit.WriteAtomicallyAsync(target, (destination, token) => destination.WriteAsync(bytes, 0, bytes.Length, token),
             cancellationToken, FileConflict(settings)).ConfigureAwait(false);
+        FilePath = target;
         return new PublisherSaveReport(SourceReadReport, prepared, timer.Elapsed, itemsWritten: 1, outputPath: target);
     }
 

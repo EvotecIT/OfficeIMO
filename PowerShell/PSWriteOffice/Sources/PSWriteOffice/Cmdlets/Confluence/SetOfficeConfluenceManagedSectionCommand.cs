@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Confluence;
 public sealed class SetOfficeConfluenceManagedSectionCommand : PSCmdlet
 {
     /// <summary>Existing Confluence storage body.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "ExistingBody")]
     [AllowEmptyString]
     public string ExistingBody { get; set; } = string.Empty;
 

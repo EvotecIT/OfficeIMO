@@ -41,6 +41,22 @@ Get-ChildItem -LiteralPath .\Models -Filter *.xlsx | Get-OfficeExcelFormula -Ext
 ```
 
 
+### EXAMPLE 3
+```powershell
+Get-OfficeExcelFormula -Path .\Finance\Budget-2027.xlsx
+```
+
+Shows every formula with its references and functions.
+
+### EXAMPLE 4
+```powershell
+Get-ChildItem -Path .\Finance -Filter *.xlsx |
+                Get-OfficeExcelFormula -External |
+                Select-Object SheetName, Address, Formula
+```
+
+Finds formulas that refer to other workbooks across the finance folder before the folder is moved.
+
 ## PARAMETERS
 
 ### -Document

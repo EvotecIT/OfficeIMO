@@ -144,7 +144,7 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
         Assert.DoesNotContain(document.Slides[0].TextBoxes, box => box.Text.Contains("Private talking points", StringComparison.Ordinal));
         runspace.SessionStateProxy.SetVariable("deck", document);
         foreach (string selection in new[] {
-            "Set-OfficePowerPointNotes -Document $deck -Slide 1",
+            "Get-OfficePowerPointSlide -Document $deck -Slide 1 | Set-OfficePowerPointNotes",
             "Set-OfficePowerPointNotes -Slide $deck.Slides[0]",
             "$deck.Slides[0] | Set-OfficePowerPointNotes"
         }) {
@@ -186,9 +186,9 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
         Assert.Equal(3, document.Slides.Count);
         var values = new List<string>();
         foreach (var table in document.Slides.SelectMany(slide => slide.Tables)) {
-            Assert.Equal(2, table.Columns);
+            Assert.Equal(2, table.ColumnCount);
             if (!noHeader) Assert.Equal("Service", table.GetCell(0, 0).Text);
-            for (int row = noHeader ? 0 : 1; row < table.Rows; row++) values.Add(table.GetCell(row, 0).Text);
+            for (int row = noHeader ? 0 : 1; row < table.RowCount; row++) values.Add(table.GetCell(row, 0).Text);
         }
         Assert.Equal(Enumerable.Range(1, 7).Select(index => "Service " + index), values);
         Assert.Empty(document.ValidateDocument());

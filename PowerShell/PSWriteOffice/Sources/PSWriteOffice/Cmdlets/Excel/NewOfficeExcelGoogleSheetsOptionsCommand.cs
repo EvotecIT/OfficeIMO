@@ -11,53 +11,73 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example><summary>Review a workbook with explicit formula and chart policies before uploading it.</summary>
 /// <code>$options = New-OfficeExcelGoogleSheetsOptions -Title 'Quarterly forecast' -UnsupportedFormula PreserveWithWarning
 /// Export-OfficeExcelGoogleSpreadsheet -Document $workbook -Options $options -Mode Plan</code></example>
+/// <example>
+/// <summary>Name the exported spreadsheet</summary>
+/// <code>$googleSession = New-OfficeGoogleWorkspaceSession -KeyPath .\Secrets\reporting-sa.json -Scope Spreadsheets, DriveFile
+/// Export-OfficeExcelGoogleSpreadsheet -Path .\Reports\Q3-Sales.xlsx -Session $googleSession -Options (New-OfficeExcelGoogleSheetsOptions -Title 'Q3 sales' -FolderId $folderId)</code>
+/// <para>Exports a workbook to a Drive folder under a fixed title.</para>
+/// </example>
+/// <example>
+/// <summary>Keep charts out of a strict export</summary>
+/// <code>$google = New-OfficeExcelGoogleSheetsOptions -Charts WarnAndSkip -PivotTables WarnAndSkip -FunctionMapping @{ 'XLOOKUP' = 'XLOOKUP'; 'CONCAT' = 'CONCATENATE' } -Locale 'en_GB' -TimeZone 'Europe/London'
+/// $plan = Export-OfficeExcelGoogleSpreadsheet -Path .\Finance\Budget-2027.xlsx -Options $google -Mode Plan
+/// $plan | Format-List</code>
+/// <para>Plans an export that skips charts and pivot tables with a warning and maps a custom function name.</para>
+/// </example>
 [Cmdlet(VerbsCommon.New, "OfficeExcelGoogleSheetsOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(GoogleSheetsSaveOptions))]
 public sealed class NewOfficeExcelGoogleSheetsOptionsCommand : OfficeCmdlet {
     /// <summary>Title of a new spreadsheet. Omission retains the native default.</summary>
-    [Parameter(ParameterSetName = "Default"), ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateNotNullOrEmpty]
     public string? Title { get; set; }
     /// <summary>Drive destination folder identifier. Omission retains the native default.</summary>
-    [Parameter, ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateNotNullOrEmpty]
     public string? FolderId { get; set; }
     /// <summary>Shared-drive identifier. Omission retains the native default.</summary>
-    [Parameter, ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateNotNullOrEmpty]
     public string? DriveId { get; set; }
     /// <summary>Existing spreadsheet identifier for replacement. Omission retains the native default.</summary>
-    [Parameter, ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateNotNullOrEmpty]
     public string? SpreadsheetId { get; set; }
     /// <summary>Drive version observed before replacement; the native exporter checks for changes. Omission retains the native default.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public long? ExpectedDriveVersion { get; set; }
     /// <summary>Policy for formulas that cannot be translated. Omission retains the native default.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public GoogleSheetsUnsupportedFormulaMode UnsupportedFormula { get; set; }
     /// <summary>Policy for charts without a reliable native equivalent. Omission retains the native default.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public UnsupportedFeatureMode Charts { get; set; }
     /// <summary>Policy for unsupported pivot tables. Omission retains the native default.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public UnsupportedFeatureMode PivotTables { get; set; }
     /// <summary>Policy for print layout without an equivalent. Omission retains the native default.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public UnsupportedFeatureMode PrintLayout { get; set; }
     /// <summary>Target spreadsheet locale. Omission retains the native default.</summary>
-    [Parameter, ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateNotNullOrEmpty]
     public string? Locale { get; set; }
     /// <summary>Target spreadsheet time zone. Omission retains the native default.</summary>
-    [Parameter, ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateNotNullOrEmpty]
     public string? TimeZone { get; set; }
     /// <summary>When the target recalculates formulas. Omission retains the native default.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public GoogleSheetsRecalculationInterval RecalculationInterval { get; set; }
     /// <summary>Function-name replacements; keys and values are native formula function names.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public Hashtable? FunctionMapping { get; set; }
     /// <summary>Editor email addresses for translated protected ranges.</summary>
-    [Parameter, ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateNotNullOrEmpty]
     public string[]? Editor { get; set; }
     /// <summary>Whether domain users may edit protected content. Omission preserves the native policy.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter DomainUsersCanEdit { get; set; }
 
     /// <inheritdoc />

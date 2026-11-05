@@ -25,13 +25,19 @@ namespace OfficeIMO.Word.Markdown {
 
             options ??= new MarkdownWordExportOptions();
 
-            var document = WordDocument.Create();
-            options.ApplyDefaults(document);
-            ApplyThemeHeadingStyles(document, OfficeTheme.Default);
-            var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
-
-            RenderDocument(markdown, document, options, pageContentWidthPixels, cancellationToken);
-            return document;
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeTheme theme = options.ThemeSnapshot?.SourceTheme ?? OfficeTheme.Default;
+            var document = WordDocument.Create(new WordCreateOptions { Theme = theme });
+            try {
+                options.ApplyDefaults(document);
+                ApplyThemeHeadingStyles(document, theme);
+                var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
+                RenderDocument(markdown, document, options, pageContentWidthPixels, cancellationToken);
+                return document;
+            } catch {
+                document.Dispose();
+                throw;
+            }
         }
 
         private void RenderDocument(Omd.MarkdownDocument markdown, WordDocument document, MarkdownWordExportOptions options, double pageContentWidthPixels, CancellationToken cancellationToken) {
@@ -127,7 +133,7 @@ namespace OfficeIMO.Word.Markdown {
                 theme.TypeScale.Heading4, theme.TypeScale.Heading5, theme.TypeScale.Heading6
             };
             string font = theme.Fonts.Heading.Family;
-            string color = theme.Palette.Text.ToRgbHex();
+            string color = WordThemeDefaults.PageText(theme).ToRgbHex();
             for (int level = 1; level <= sizes.Length; level++) {
                 string styleId = "Heading" + level.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 Style? style = styles.Elements<Style>().FirstOrDefault(item => string.Equals(item.StyleId?.Value, styleId, StringComparison.Ordinal));

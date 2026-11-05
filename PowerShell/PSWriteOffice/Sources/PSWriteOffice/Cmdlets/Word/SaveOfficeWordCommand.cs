@@ -20,12 +20,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 [OutputType(typeof(FileInfo))]
 public sealed class SaveOfficeWordCommand : OfficeCmdlet {
     /// <summary>Live Word document to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0, ParameterSetName = "Document")]
     [ValidateNotNull]
     public WordDocument Document { get; set; } = null!;
 
     /// <summary>Optional new destination; omission uses the associated path.</summary>
-    [Parameter]
+    [Parameter(Position = 1)]
     [ValidateNotNullOrEmpty]
     public string? Path { get; set; }
 

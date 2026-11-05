@@ -5,9 +5,9 @@ public static class OneNoteNotebookWriter {
     /// <summary>
     /// Writes a complete notebook to a new or empty directory. Existing files are never overwritten.
     /// </summary>
-    public static void Write(OneNoteNotebook notebook, string directoryPath, OneNoteWriterOptions? options = null) {
+    public static void Write(OneNoteNotebook notebook, string directoryPath, OneNoteSaveOptions? options = null) {
         ArgumentNullException.ThrowIfNull(directoryPath);
-        OneNoteWriterOptions effective = options ?? new OneNoteWriterOptions();
+        OneNoteSaveOptions effective = options ?? new OneNoteSaveOptions();
         OneNoteNotebookSerializationPlan plan = OneNoteNotebookSerializationPlan.Create(notebook, effective);
         string root = Path.GetFullPath(directoryPath);
         if (Directory.Exists(root) && Directory.EnumerateFileSystemEntries(root).Any()) {

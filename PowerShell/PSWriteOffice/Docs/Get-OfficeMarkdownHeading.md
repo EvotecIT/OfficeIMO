@@ -9,19 +9,24 @@ schema: 2.0.0
 Gets heading metadata from a Markdown document.
 
 ## SYNTAX
-### Document
+### Document (Default)
 ```powershell
-Get-OfficeMarkdownHeading -Document <MarkdownDocument> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
+Get-OfficeMarkdownHeading [-Document <MarkdownDocument>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Get-OfficeMarkdownHeading [-Path] <string> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
+Get-OfficeMarkdownHeading [-Path] <string> [-Options <Object[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeMarkdownHeading -LiteralPath <string> [-Options <Object[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-Get-OfficeMarkdownHeading -Text <string> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
+Get-OfficeMarkdownHeading -Text <string> [-Options <Object[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -45,92 +50,12 @@ Returns headings from an existing Markdown document object.
 
 ## PARAMETERS
 
-### -AllowDataUrls
-Allow data URLs while parsing Markdown links and images.
-
-```yaml
-Type: Boolean
-Parameter Sets: Document, Path, Text
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AllowedUrlScheme
-Allowed URL schemes when URL scheme restriction is enabled.
-
-```yaml
-Type: String[]
-Parameter Sets: Document, Path, Text
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AllowMailtoUrls
-Allow mailto URLs while parsing Markdown links.
-
-```yaml
-Type: Boolean
-Parameter Sets: Document, Path, Text
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AllowProtocolRelativeUrls
-Allow protocol-relative URLs while parsing Markdown links and images.
-
-```yaml
-Type: Boolean
-Parameter Sets: Document, Path, Text
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Anchor
 Optional wildcard pattern matched against resolved heading anchors.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path, Text
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -BaseUri
-Base URI used to resolve and restrict relative Markdown links and images.
-
-```yaml
-Type: String
-Parameter Sets: Document, Path, Text
+Parameter Sets: Document, Path, LiteralPath, Text
 Aliases: None
 Possible values:
 
@@ -146,23 +71,7 @@ Use case-sensitive matching for text and anchor filters.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Document, Path, Text
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DisallowFileUrls
-Block file URLs while parsing Markdown links and images.
-
-```yaml
-Type: Boolean
-Parameter Sets: Document, Path, Text
+Parameter Sets: Document, Path, LiteralPath, Text
 Aliases: None
 Possible values:
 
@@ -174,7 +83,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Markdown document to inspect.
+Caller-owned document; omission uses the enclosing Markdown document.
 
 ```yaml
 Type: MarkdownDocument
@@ -182,7 +91,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -194,7 +103,7 @@ Optional wildcard pattern matched against heading text.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path, Text
+Parameter Sets: Document, Path, LiteralPath, Text
 Aliases: None
 Possible values:
 
@@ -205,19 +114,19 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxInputCharacters
-Maximum Markdown input length accepted by the reader.
+### -LiteralPath
+Literal input file, including a FileInfo pipeline.
 
 ```yaml
-Type: Int32
-Parameter Sets: Document, Path, Text
-Aliases: None
+Type: String
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -226,7 +135,7 @@ Maximum heading level to return.
 
 ```yaml
 Type: Int32
-Parameter Sets: Document, Path, Text
+Parameter Sets: Document, Path, LiteralPath, Text
 Aliases: None
 Possible values:
 
@@ -242,7 +151,7 @@ Minimum heading level to return.
 
 ```yaml
 Type: Int32
-Parameter Sets: Document, Path, Text
+Parameter Sets: Document, Path, LiteralPath, Text
 Aliases: None
 Possible values:
 
@@ -253,29 +162,13 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -NormalizeInput
-Applies a built-in Markdown input normalization preset before parsing.
-
-```yaml
-Type: MarkdownInputNormalizationPreset
-Parameter Sets: Document, Path, Text
-Aliases: None
-Possible values: None, IntelligenceXTranscript, IntelligenceXTranscriptStrict, DocsLoose
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Options
-Optional reader options used when parsing path or text input.
+Native reader options and optional native-property hashtable overrides.
 
 ```yaml
-Type: MarkdownLoadOptions
-Parameter Sets: Document, Path, Text
-Aliases: ReaderOptions
+Type: Object[]
+Parameter Sets: Path, LiteralPath, Text
+Aliases: None
 Possible values:
 
 Required: False
@@ -286,55 +179,23 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the Markdown file.
+Input file with FileSystem wildcard expansion.
 
 ```yaml
 Type: String
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -Profile
-Named reader profile used when Options is not supplied.
-
-```yaml
-Type: MarkdownDialectProfile
-Parameter Sets: Document, Path, Text
-Aliases: None
-Possible values: OfficeIMO, CommonMark, GitHubFlavoredMarkdown, Portable
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -RestrictUrlSchemes
-Restrict parsed URL schemes to the allow-list.
-
-```yaml
-Type: Boolean
-Parameter Sets: Document, Path, Text
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### -Text
-Markdown text to parse.
+Markdown source text.
 
 ```yaml
 Type: String

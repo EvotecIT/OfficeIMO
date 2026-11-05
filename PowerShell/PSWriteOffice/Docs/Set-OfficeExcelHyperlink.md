@@ -6,77 +6,96 @@ schema: 2.0.0
 ---
 # Set-OfficeExcelHyperlink
 ## SYNOPSIS
-Sets a hyperlink on a worksheet cell.
+Links a cell, or every cell of a range or header column, to a URL or a place in the workbook.
 
 ## SYNTAX
-### ContextExternal (Default)
+### Url (Default)
 ```powershell
-Set-OfficeExcelHyperlink -Url <string> [-Row <Int32>] [-Column <Int32>] [-Address <string>] [-Display <string>] [-NoStyle] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelHyperlink [-Address] <string> [-Url] <string> [-Display <string>] [-DisplayMode <ExcelHyperlinkDisplay>] [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-NoStyle] [-PassThru] [<CommonParameters>]
 ```
 
-### DocumentExternal
+### Internal
 ```powershell
-Set-OfficeExcelHyperlink -Document <ExcelDocument> -Url <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Row <Int32>] [-Column <Int32>] [-Address <string>] [-Display <string>] [-NoStyle] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelHyperlink [-Address] <string> -TargetAddress <string> [-Display <string>] [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-NoStyle] [-PassThru] [-TargetSheet <OfficeSheetSelector>] [<CommonParameters>]
 ```
 
-### DocumentInternal
+### InternalRange
 ```powershell
-Set-OfficeExcelHyperlink -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-Row <Int32>] [-Column <Int32>] [-Address <string>] [-Location <string>] [-TargetSheet <string>] [-TargetAddress <string>] [-Display <string>] [-NoStyle] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelHyperlink [-Range] <string> -Internal [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-NoStyle] [-PassThru] [-TargetAddress <string>] [-DisplayScript <scriptblock>] [-TargetSheetScript <scriptblock>] [<CommonParameters>]
 ```
 
-### ContextInternal
+### InternalHeader
 ```powershell
-Set-OfficeExcelHyperlink [-Row <Int32>] [-Column <Int32>] [-Address <string>] [-Location <string>] [-TargetSheet <string>] [-TargetAddress <string>] [-Display <string>] [-NoStyle] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelHyperlink [-Header] <string> -Internal [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-NoStyle] [-PassThru] [-TargetAddress <string>] [-Range <string>] [-DisplayScript <scriptblock>] [-Table <string>] [-TargetSheetScript <scriptblock>] [<CommonParameters>]
+```
+
+### UrlRange
+```powershell
+Set-OfficeExcelHyperlink [-Range] <string> -UrlScript <scriptblock> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-NoStyle] [-PassThru] [-DisplayScript <scriptblock>] [<CommonParameters>]
+```
+
+### UrlHeader
+```powershell
+Set-OfficeExcelHyperlink [-Header] <string> -UrlScript <scriptblock> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-NoStyle] [-PassThru] [-Range <string>] [-DisplayScript <scriptblock>] [-Table <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets a hyperlink on a worksheet cell.
+Links a cell, or every cell of a range or header column, to a URL or a place in the workbook.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Address 'A1' -Url 'https://example.org' -Display 'Example' }
+Open-OfficeExcel -Path .\Reports\Status.xlsx {
+    ExcelSheet 'Summary' {
+        ExcelHyperlink A2 'https://status.example.com' -Display 'Service status'
+    }
+}
 ```
 
-Creates a styled hyperlink in ExcelA1.
+Turns A2 into a link to the status page with readable text.
 
 ### EXAMPLE 2
 ```powershell
-PS> ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Row 2 -Column 1 -TargetSheet 'Summary' -TargetAddress 'A1' -Display 'Go to Summary' }
+Open-OfficeExcel -Path .\Reports\Helpdesk.xlsx {
+    ExcelSheet 'Tickets' {
+        ExcelHyperlink -Header Ticket -Table Tickets -UrlScript { param($text) "https://helpdesk.example.com/tickets/$text" }
+    }
+}
 ```
 
-Links A2 to Summary!ExcelA1.
+Links each value in the Ticket column of the Tickets table to its page in the helpdesk system.
+
+### EXAMPLE 3
+```powershell
+$servers = 'SQL01', 'SQL02', 'WEB01'
+Open-OfficeExcel -Path .\Reports\Disk-Capacity.xlsx {
+    ExcelSheet 'Summary' {
+        ExcelHyperlink -Header Server -Internal
+    }
+    foreach ($server in $servers) {
+        ExcelSheet $server {
+            ExcelHyperlink H1 -TargetSheet Summary -TargetAddress A1 -Display 'Back to summary'
+        }
+    }
+}
+```
+
+Links each server name in the Summary sheet to the sheet of the same name, and adds a link back to the summary on every server sheet.
 
 ## PARAMETERS
 
 ### -Address
-A1-style cell address (e.g., A1, C5).
+A1 address of the target cell.
 
 ```yaml
 Type: String
-Parameter Sets: ContextExternal, DocumentExternal, DocumentInternal, ContextInternal
+Parameter Sets: Url, Internal
 Aliases: None
 Possible values:
 
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Column
-1-based column index.
-
-```yaml
-Type: Int32
-Parameter Sets: ContextExternal, DocumentExternal, DocumentInternal, ContextInternal
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -87,7 +106,39 @@ Optional display text.
 
 ```yaml
 Type: String
-Parameter Sets: ContextExternal, DocumentExternal, DocumentInternal, ContextInternal
+Parameter Sets: Url, Internal
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -DisplayMode
+Selects original text, full URL, host name or smart hyperlink display.
+
+```yaml
+Type: ExcelHyperlinkDisplay
+Parameter Sets: Url
+Aliases: None
+Possible values: Text, Url, Host, Smart
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -DisplayScript
+Optional mapping from cell text to display text.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: InternalRange, InternalHeader, UrlRange, UrlHeader
 Aliases: None
 Possible values:
 
@@ -99,31 +150,47 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to operate on outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: DocumentExternal, DocumentInternal
+Parameter Sets: Url, Internal, InternalRange, InternalHeader, UrlRange, UrlHeader
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Location
-Internal location to link to (e.g., "'Summary'!A1").
+### -Header
+Header text identifying the target column.
 
 ```yaml
 Type: String
-Parameter Sets: DocumentInternal, ContextInternal
+Parameter Sets: InternalHeader, UrlHeader
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Internal
+Uses worksheet destinations instead of external URLs for header-based links.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: InternalRange, InternalHeader
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -135,7 +202,7 @@ Skip hyperlink styling (blue + underline).
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: ContextExternal, DocumentExternal, DocumentInternal, ContextInternal
+Parameter Sets: Url, Internal, InternalRange, InternalHeader, UrlRange, UrlHeader
 Aliases: None
 Possible values:
 
@@ -147,11 +214,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the worksheet after setting the link.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: ContextExternal, DocumentExternal, DocumentInternal, ContextInternal
+Parameter Sets: Url, Internal, InternalRange, InternalHeader, UrlRange, UrlHeader
 Aliases: None
 Possible values:
 
@@ -162,28 +229,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Row
-1-based row index.
+### -Range
+A1 cell range on the selected worksheet.
 
 ```yaml
-Type: Int32
-Parameter Sets: ContextExternal, DocumentExternal, DocumentInternal, ContextInternal
+Type: String
+Parameter Sets: InternalRange, InternalHeader, UrlRange, UrlHeader
 Aliases: None
 Possible values:
 
 Required: False
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name when using Document.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: DocumentExternal, DocumentInternal
+Type: OfficeSheetSelector
+Parameter Sets: Url, Internal, InternalRange, InternalHeader, UrlRange, UrlHeader
 Aliases: None
 Possible values:
 
@@ -194,12 +261,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SheetIndex
-Worksheet index (0-based) when using Document.
+### -Table
+Native Excel table used to resolve the source range or header.
 
 ```yaml
-Type: Int32
-Parameter Sets: DocumentExternal, DocumentInternal
+Type: String
+Parameter Sets: InternalHeader, UrlHeader
 Aliases: None
 Possible values:
 
@@ -215,7 +282,7 @@ Target A1 address for internal links.
 
 ```yaml
 Type: String
-Parameter Sets: DocumentInternal, ContextInternal
+Parameter Sets: Internal, InternalRange, InternalHeader
 Aliases: None
 Possible values:
 
@@ -230,8 +297,24 @@ Accept wildcard characters: False
 Target worksheet name for internal links.
 
 ```yaml
-Type: String
-Parameter Sets: DocumentInternal, ContextInternal
+Type: OfficeSheetSelector
+Parameter Sets: Internal
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TargetSheetScript
+Script that maps each source cell text to a destination worksheet name.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: InternalRange, InternalHeader
 Aliases: None
 Possible values:
 
@@ -247,7 +330,23 @@ External URL to link to.
 
 ```yaml
 Type: String
-Parameter Sets: ContextExternal, DocumentExternal
+Parameter Sets: Url
+Aliases: None
+Possible values:
+
+Required: True
+Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -UrlScript
+Maps the cell text to a URL.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: UrlRange, UrlHeader
 Aliases: None
 Possible values:
 

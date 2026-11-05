@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using System;
 using System.IO;
@@ -22,77 +23,34 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <code>Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'</code>
 ///   <para>Returns matching nodes from an existing Markdown document.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeMarkdownNode")]
+[Cmdlet(VerbsCommon.Get, "OfficeMarkdownNode", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PSObject), typeof(MarkdownObject))]
-public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
-    , IMarkdownReaderOptionSource {
+public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetPath = "Path";
     private const string ParameterSetText = "Text";
 
-    /// <summary>Markdown document to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDocument Document { get; set; } = null!;
-
-    /// <summary>Path to the Markdown file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
+    /// <summary>Caller-owned document; omission uses the enclosing Markdown document.</summary>
+    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetDocument), ValidateNotNull]
+    public MarkdownDocument? Document { get; set; }
+    /// <summary>Input file with FileSystem wildcard expansion.</summary>
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetPath)]
+    [SupportsWildcards, ValidateNotNullOrEmpty]
     public string Path { get; set; } = string.Empty;
-
-    /// <summary>Markdown text to parse.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetText)]
+    /// <summary>Literal input file, including a FileInfo pipeline.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("FullName", "PSPath"), ValidateNotNullOrEmpty]
+    public string LiteralPath { get; set; } = string.Empty;
+    /// <summary>Markdown source text.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetText), AllowEmptyString]
     public string Text { get; set; } = string.Empty;
-
-    /// <summary>Optional reader options used when parsing path or text input.</summary>
-    [Parameter]
-    [Alias("ReaderOptions")]
-    public MarkdownLoadOptions? Options { get; set; }
-
-    /// <summary>Named reader profile used when <see cref="Options"/> is not supplied.</summary>
-    [Parameter]
-    public MarkdownLoadOptions.MarkdownDialectProfile? Profile { get; set; }
-
-    /// <summary>Base URI used to resolve and restrict relative Markdown links and images.</summary>
-    [Parameter]
-    public string? BaseUri { get; set; }
-
-    /// <summary>Maximum Markdown input length accepted by the reader.</summary>
-    [Parameter]
-    public int? MaxInputCharacters { get; set; }
-
-    /// <summary>Applies a built-in Markdown input normalization preset before parsing.</summary>
-    [Parameter]
-    public MarkdownInputNormalizationPreset? NormalizeInput { get; set; }
-
-    /// <summary>Block file URLs while parsing Markdown links and images.</summary>
-    [Parameter]
-    public bool? DisallowFileUrls { get; set; }
-
-    /// <summary>Allow data URLs while parsing Markdown links and images.</summary>
-    [Parameter]
-    public bool? AllowDataUrls { get; set; }
-
-    /// <summary>Allow mailto URLs while parsing Markdown links.</summary>
-    [Parameter]
-    public bool? AllowMailtoUrls { get; set; }
-
-    /// <summary>Allow protocol-relative URLs while parsing Markdown links and images.</summary>
-    [Parameter]
-    public bool? AllowProtocolRelativeUrls { get; set; }
-
-    /// <summary>Restrict parsed URL schemes to the allow-list.</summary>
-    [Parameter]
-    public bool? RestrictUrlSchemes { get; set; }
-
-    /// <summary>Allowed URL schemes when URL scheme restriction is enabled.</summary>
-    [Parameter]
-    public string[]? AllowedUrlScheme { get; set; }
+    /// <summary>Native reader options and optional native-property hashtable overrides.</summary>
+    [Parameter(ParameterSetName = ParameterSetPath), Parameter(ParameterSetName = "LiteralPath"), Parameter(ParameterSetName = ParameterSetText)]
+    public object[]? Options { get; set; }
 
     /// <summary>Optional wildcard pattern matched against node type names.</summary>
     [Parameter]
     public string? NodeType { get; set; }
-
-    MarkdownLoadOptions? IMarkdownReaderOptionSource.ReaderOptions => Options;
 
     /// <summary>Maximum traversal depth. Zero returns only the document root.</summary>
     [Parameter]
@@ -120,28 +78,8 @@ public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
         WriteNode(document, depth: 0, path: "Document", nodeTypePattern);
     }
 
-    private MarkdownDocument ResolveDocument() {
-        if (ParameterSetName == ParameterSetDocument) {
-            return Document ?? throw new PSArgumentException("Provide a Markdown document.");
-        }
-
-        var options = MarkdownOptionUtilities.BuildReaderOptions(this) ?? new MarkdownLoadOptions();
-
-        string markdown;
-        if (ParameterSetName == ParameterSetPath) {
-            var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-            if (!File.Exists(resolvedPath)) {
-                throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
-            }
-
-            markdown = File.ReadAllText(resolvedPath, Encoding.UTF8);
-        } else {
-            markdown = Text ?? string.Empty;
-        }
-
-        options.CaptureSyntaxTree = true;
-        return MarkdownDocument.Parse(markdown, options);
-    }
+    private MarkdownDocument ResolveDocument() =>
+        MarkdownDocumentResolver.Resolve(this, ParameterSetName, Document, Path, LiteralPath, Text, Options, captureSyntax: true);
 
     private void WriteNode(MarkdownObject node, int depth, string path, WildcardPattern? nodeTypePattern) {
         if (depth > MaxDepth) {

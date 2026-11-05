@@ -45,7 +45,7 @@ public sealed class NotebookWriterTests {
     public void TableOfContentsRoundTripsRootHierarchy(OneNoteStorageFormat storageFormat) {
         OneNoteNotebook original = CreateNotebook();
 
-        byte[] data = OneNoteTableOfContentsWriter.Write(original, new OneNoteWriterOptions {
+        byte[] data = OneNoteTableOfContentsWriter.Write(original, new OneNoteSaveOptions {
             StorageFormat = storageFormat
         });
         OneNoteNotebook result = OneNoteNotebookReader.Read(new MemoryStream(data));
@@ -62,7 +62,7 @@ public sealed class NotebookWriterTests {
 
     [Fact]
     public void LoadedFssHttpTableOfContentsPreservesItsStorageFormatByDefault() {
-        byte[] source = OneNoteTableOfContentsWriter.Write(CreateNotebook(), new OneNoteWriterOptions {
+        byte[] source = OneNoteTableOfContentsWriter.Write(CreateNotebook(), new OneNoteSaveOptions {
             StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage
         });
         OneNoteNotebook loaded = OneNoteNotebookReader.Read(new MemoryStream(source));
@@ -164,7 +164,7 @@ public sealed class NotebookWriterTests {
         notebook.SectionGroups.Add(group);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNotePackageWriter.Write(notebook, new OneNoteWriterOptions { ValidateRoundTrip = false }));
+            OneNotePackageWriter.Write(notebook, new OneNoteSaveOptions { ValidateRoundTrip = false }));
 
         Assert.Equal("ONENOTE_WRITE_GROUP_CYCLE", exception.Code);
     }
@@ -177,7 +177,7 @@ public sealed class NotebookWriterTests {
         notebook.SectionGroups.Add(group);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNotePackageWriter.Write(notebook, new OneNoteWriterOptions { ValidateRoundTrip = false }));
+            OneNotePackageWriter.Write(notebook, new OneNoteSaveOptions { ValidateRoundTrip = false }));
 
         Assert.Equal("ONENOTE_WRITE_SHARED_GROUP", exception.Code);
     }
@@ -187,7 +187,7 @@ public sealed class NotebookWriterTests {
         OneNoteNotebook notebook = CreateGroupChain(4);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNotePackageWriter.Write(notebook, new OneNoteWriterOptions {
+            OneNotePackageWriter.Write(notebook, new OneNoteSaveOptions {
                 MaxSectionGroupDepth = 3,
                 ValidateRoundTrip = false
             }));
@@ -199,7 +199,7 @@ public sealed class NotebookWriterTests {
     public void PackageWriterRoundTripUsesTheConfiguredSectionGroupDepth() {
         int depth = OneNoteNotebookReaderOptions.DefaultMaxSectionGroupDepth + 1;
 
-        byte[] package = OneNotePackageWriter.Write(CreateGroupChain(depth), new OneNoteWriterOptions {
+        byte[] package = OneNotePackageWriter.Write(CreateGroupChain(depth), new OneNoteSaveOptions {
             MaxSectionGroupDepth = depth
         });
 
@@ -238,7 +238,7 @@ public sealed class NotebookWriterTests {
     [Fact]
     public void PackageWriterRejectsKnownLazyPayloadAgainstRemainingAggregateBudgetWithoutOpeningIt() {
         OneNoteSection first = CreateSection("First", "First page");
-        long firstSectionBytes = OneNoteSectionWriter.Write(first, new OneNoteWriterOptions {
+        long firstSectionBytes = first.ToBytes(new OneNoteSaveOptions {
             ValidateRoundTrip = false
         }).LongLength;
         bool opened = false;
@@ -254,7 +254,7 @@ public sealed class NotebookWriterTests {
         notebook.Sections.Add(first);
         notebook.Sections.Add(second);
 
-        IOException exception = Assert.Throws<IOException>(() => OneNotePackageWriter.Write(notebook, new OneNoteWriterOptions {
+        IOException exception = Assert.Throws<IOException>(() => OneNotePackageWriter.Write(notebook, new OneNoteSaveOptions {
             MaxOutputBytes = firstSectionBytes + 32,
             ValidateRoundTrip = false
         }));
@@ -329,7 +329,7 @@ public sealed class NotebookWriterTests {
             OneNoteNotebookWriter.Write(CreateNotebook(), root);
             Directory.CreateDirectory(outside);
             string outsideSection = Path.Combine(outside, "Private.one");
-            File.WriteAllBytes(outsideSection, OneNoteSectionWriter.Write(CreateSection("Private", "External content")));
+            File.WriteAllBytes(outsideSection, (CreateSection("Private", "External content")).ToBytes());
             string outsideGroup = Path.Combine(outside, "PrivateGroup");
             var outsideNotebook = new OneNoteNotebook { Name = "Private group" };
             outsideNotebook.Sections.Add(CreateSection("Private nested", "External nested content"));

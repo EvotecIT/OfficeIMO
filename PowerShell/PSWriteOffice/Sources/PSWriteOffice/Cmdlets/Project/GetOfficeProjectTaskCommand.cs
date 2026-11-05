@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.IO;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 [OutputType(typeof(ProjectTask))]
 public sealed class GetOfficeProjectTaskCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
     public ProjectDocument Document { get; set; } = null!;
 
     /// <summary>Optional stable task UIDs.</summary>
@@ -26,6 +27,7 @@ public sealed class GetOfficeProjectTaskCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        Document ??= OfficeDocumentContext.Find<ProjectDocument>() ?? throw new PSInvalidOperationException("Provide -Document or use a Project content block.");
         var tasks = Document.AllTasks;
         if (Uid != null) tasks = tasks.Where(task => Uid.Contains(task.Uid));
         WriteObject(tasks, enumerateCollection: true);

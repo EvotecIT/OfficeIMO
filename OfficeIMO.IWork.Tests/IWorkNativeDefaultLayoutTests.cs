@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
                     BytesField(12, Message(BytesField(13, Message()), BytesField(25, Message()))))),
                 ArchiveRecord(20, 2022, BytesField(12, Message(BytesField(13, FloatField(2, 2)),
                     BytesField(25, BytesField(1, FloatField(1, 18))))))));
-        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells).RichText!;
+        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells).RichText!;
         Assert.True(text.IsFormattingComplete);
         var paragraph = Assert.Single(text.Paragraphs);
         Assert.Equal(1, paragraph.Style.LineSpacingMultiplier);
@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(19, 2022, Message(BytesField(1, ReferenceField(3, 20)),
                     BytesField(12, Message(BytesField(13, Message()), BytesField(25, Message()))))),
                 ArchiveRecord(20, 2022, BytesField(12, BytesField(13, Message(VarintField(1, 2), FloatField(2, 12)))))));
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         Assert.False(Assert.Single(ReadSelectedRichTable(source, IWorkDocumentKind.Numbers).Item1.Cells).RichText!.IsFormattingComplete);
         package.Position = 0;
         var issue = Assert.Single(ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false).SourceDeclarationIssues);

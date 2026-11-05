@@ -25,12 +25,12 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1)
                 .SetValue("StyledCell")
-                .SetFontName("Consolas")
+                .SetFontFamily("Consolas")
                 .SetBold()
                 .SetItalic()
                 .SetUnderline()
-                .SetFontColor("112233")
-                .SetFillColor("DDEEFF");
+                .SetColor(global::OfficeIMO.OfficeColor.Parse("112233"))
+                .SetFillColor(global::OfficeIMO.OfficeColor.Parse("DDEEFF"));
             sheet.Cell(1, 2).SetValue("PlainCell");
 
             ExcelCellStyleInfo style = sheet.Cell(1, 1).GetStyle();
@@ -88,7 +88,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1).SetValue("ArialCell").SetFontName("Arial");
+            sheet.Cell(1, 1).SetValue("ArialCell").SetFontFamily("Arial");
             sheet.Cell(1, 2).SetValue("PlainCell");
             document.Save();
 
@@ -117,8 +117,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1).SetValue("FirstSerif").SetFontName("Times New Roman");
-            sheet.Cell(1, 2).SetValue("SecondSerif").SetFontName("Georgia");
+            sheet.Cell(1, 1).SetValue("FirstSerif").SetFontFamily("Times New Roman");
+            sheet.Cell(1, 2).SetValue("SecondSerif").SetFontFamily("Georgia");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -149,7 +149,7 @@ public partial class Excel {
             document.Sheets[0]
                 .Cell(1, 1)
                 .SetValue("Unavailable font marker")
-                .SetFontName(unavailableFamily);
+                .SetFontFamily(unavailableFamily);
             document.Save();
 
             result = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
@@ -175,7 +175,7 @@ public partial class Excel {
             document.Sheets[0]
                 .Cell(1, 1)
                 .SetValue("Portable font marker")
-                .SetFontName("Arial");
+                .SetFontFamily("Arial");
             document.Save();
 
             result = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
@@ -244,7 +244,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1).SetValue("StyledSerif").SetFontName("Georgia");
+            sheet.Cell(1, 1).SetValue("StyledSerif").SetFontFamily("Georgia");
             sheet.Cell(1, 2).SetValue("DefaultSerif");
             document.Save();
 
@@ -284,7 +284,7 @@ public partial class Excel {
             sheet.Cell(2, 1).SetValue(0);
             sheet.Cell(3, 1).SetValue(50);
             sheet.Cell(4, 1).SetValue(100);
-            sheet.Range("A2:A4").ConditionalFormat().ColorScale("FFFF0000", "FF00FF00");
+            sheet.Range("A2:A4").ConditionalFormat().ColorScale(global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF), global::OfficeIMO.OfficeColor.FromRgba(0x00, 0xFF, 0x00, 0xFF));
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
             Assert.Equal("ColorScale", rule.Type);
@@ -335,7 +335,7 @@ public partial class Excel {
             sheet.Cell(2, 1).SetValue(0);
             sheet.Cell(3, 1).SetValue(50);
             sheet.Cell(4, 1).SetValue(100);
-            sheet.Range("A2:A4").ConditionalFormat().DataBar("FF5B9BD5");
+            sheet.Range("A2:A4").ConditionalFormat().DataBar(global::OfficeIMO.OfficeColor.FromRgba(0x5B, 0x9B, 0xD5, 0xFF));
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
             Assert.Equal("DataBar", rule.Type);
@@ -374,7 +374,7 @@ public partial class Excel {
             sheet.Cell(2, 1).SetValue(-100);
             sheet.Cell(3, 1).SetValue(0);
             sheet.Cell(4, 1).SetValue(100);
-            sheet.Range("A2:A4").ConditionalFormat().DataBar("FF5B9BD5");
+            sheet.Range("A2:A4").ConditionalFormat().DataBar(global::OfficeIMO.OfficeColor.FromRgba(0x5B, 0x9B, 0xD5, 0xFF));
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -459,7 +459,7 @@ public partial class Excel {
             sheet.Cell(2, 2).SetValue("LeftInColumn");
             sheet.Cell(1, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
             sheet.Cell(1, 2).SetVerticalAlignment(ExcelVerticalAlignment.Bottom);
-            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Medium, "445566");
+            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Medium, global::OfficeIMO.OfficeColor.Parse("445566"));
 
             ExcelCellStyleInfo style = sheet.Cell(1, 2).GetStyle();
             Assert.Equal("right", style.HorizontalAlignment);
@@ -503,9 +503,9 @@ public partial class Excel {
             sheet.Cell(1, 1).SetValue("Dashed");
             sheet.Cell(1, 2).SetValue("Dotted");
             sheet.Cell(1, 3).SetValue("DashDot");
-            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Dashed, "123456");
-            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Dotted, "654321");
-            sheet.Cell(1, 3).SetBorder(ExcelBorderStyle.MediumDashDot, "445566");
+            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Dashed, global::OfficeIMO.OfficeColor.Parse("123456"));
+            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Dotted, global::OfficeIMO.OfficeColor.Parse("654321"));
+            sheet.Cell(1, 3).SetBorder(ExcelBorderStyle.MediumDashDot, global::OfficeIMO.OfficeColor.Parse("445566"));
 
             Assert.Equal("dashed", sheet.Cell(1, 1).GetStyle().Border!.Left!.Style);
             Assert.Equal("dotted", sheet.Cell(1, 2).GetStyle().Border!.Left!.Style);
@@ -544,8 +544,8 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1).SetValue("Double");
             sheet.Cell(1, 2).SetValue("Diagonal");
-            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Double, "123456");
-            sheet.Cell(1, 2).SetDiagonalBorder(ExcelBorderStyle.Double, "654321", diagonalUp: true, diagonalDown: true);
+            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Double, global::OfficeIMO.OfficeColor.Parse("123456"));
+            sheet.Cell(1, 2).SetDiagonalBorder(ExcelBorderStyle.Double, global::OfficeIMO.OfficeColor.Parse("654321"), diagonalUp: true, diagonalDown: true);
 
             ExcelCellStyleInfo doubleStyle = sheet.Cell(1, 1).GetStyle();
             Assert.Equal("double", doubleStyle.Border!.Top!.Style);

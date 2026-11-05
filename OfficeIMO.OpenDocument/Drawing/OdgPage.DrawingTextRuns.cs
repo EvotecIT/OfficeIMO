@@ -89,7 +89,7 @@ public sealed partial class OdgPage {
                 if (attribute.Name == OdfNamespaces.Style + "text-scale" && attribute.Value != "100%") losses.Add("text-scale");
                 if (attribute.Name == OdfNamespaces.Style + "text-line-through-text" && attribute.Value.Length > 0) losses.Add("line-through-glyph");
                 if (underline != OfficeTextDecorationStyle.None) ReportDecoration("underline");
-                if (source.StrikeThrough == true) ReportDecoration("line-through");
+                if (source.Strikethrough == true) ReportDecoration("line-through");
                 if ((attribute.Name.LocalName.EndsWith("-complex", StringComparison.Ordinal) && text.Any(c => c >= '\u0590' && c <= '\u0DFF')) ||
                     (attribute.Name.LocalName.EndsWith("-asian", StringComparison.Ordinal) && text.Any(c => c >= '\u2E80' && c <= '\uA4FF'))) losses.Add("script-specific-formatting");
 
@@ -106,8 +106,8 @@ public sealed partial class OdgPage {
         }
         var result = new OfficeRichTextRun(text, size, DrawingTextColor(source, losses),
             source.Bold ?? false, source.Italic ?? false, underline != OfficeTextDecorationStyle.None,
-            source.FontFamily ?? "Arial", source.StrikeThrough ?? false, ToColor(source.BackgroundColor), underlineStyle: underline,
-            strikethroughStyle: source.StrikeThrough == true ? strikeStyle : OfficeTextDecorationStyle.None,
+            source.FontFamily ?? "Arial", source.Strikethrough ?? false, ToColor(source.BackgroundColor), underlineStyle: underline,
+            strikethroughStyle: source.Strikethrough == true ? strikeStyle : OfficeTextDecorationStyle.None,
             baseline: source.TextPosition switch { OdfTextPosition.Superscript => OfficeTextBaseline.Superscript,
                 OdfTextPosition.Subscript => OfficeTextBaseline.Subscript, _ => OfficeTextBaseline.Normal });
         return result.WithTextCase(textCase, CultureInfo.InvariantCulture);

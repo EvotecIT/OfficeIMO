@@ -51,10 +51,12 @@ internal sealed partial class AgentSourceRegistry {
     private static string ComputeIWorkSourceHash(string path, bool directoryPackage, long? maximumPackageBytes, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         long maximum = maximumPackageBytes ?? ReaderToolArguments.DefaultMaxInputBytes;
-        if (directoryPackage)
-            return IWorkSourceDocument.Open(path, new IWorkReadOptions {
+        if (directoryPackage) {
+            using var source = IWorkSourceDocument.Load(path, new IWorkLoadOptions {
                 MaxPackageBytes = maximum, PreserveSourceRecords = false
-            }, token).ComputePackageContentHash();
+            }, token);
+            return source.ComputePackageContentHash();
+        }
         using var input = IWorkContainerReader.OpenPackageFileForRead(path);
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         var buffer = new byte[64 * 1024]; long total = 0;

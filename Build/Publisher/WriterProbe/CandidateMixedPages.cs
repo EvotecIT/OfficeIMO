@@ -8,7 +8,7 @@ internal static class CandidateMixedPages {
     internal static PublisherNativeCreationPlan Create(byte[] image) => PublisherNativeCreationProjection.SingleMasterContent(Author(image));
 
     internal static PublisherDocument Author(byte[] image) {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         PublisherPage master = document.AddMasterPage("Master Page A");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         document.AddPage(master.Id);
@@ -26,20 +26,20 @@ internal static class CandidateMixedPages {
         void Shape(int pageIndex, double x, double y, double width, double height, OfficeColor color) {
             var paint = OfficeShape.Rectangle(width, height);
             paint.FillColor = color; paint.StrokeColor = null;
-            document.AddShape(document.Pages[pageIndex].Id, paint, x, y);
+            document.AddShape(document.Pages[pageIndex].Id, paint, OfficeLength.Points(x), OfficeLength.Points(y));
         }
         PublisherPicture Picture(int pageIndex, double x, int? imageId) {
             uint pageId = document.Pages[pageIndex].Id;
             PublisherPicture picture = imageId.HasValue
-                ? document.AddImage(pageId, imageId.Value, x, 144, 96, 96)
-                : document.AddImage(pageId, image, x, 144, 96, 96);
+                ? document.AddImage(pageId, imageId.Value, OfficeLength.Points(x), OfficeLength.Points(144), OfficeLength.Points(96), OfficeLength.Points(96))
+                : document.AddImage(pageId, image, OfficeLength.Points(x), OfficeLength.Points(144), OfficeLength.Points(96), OfficeLength.Points(96));
             return picture;
         }
         void Text(int pageIndex, string text) {
             var paragraph = new OfficeRichTextParagraph(new[] {
                 new OfficeRichTextRun(text, 18, OfficeColor.Black, fontFamily: "Arial")
             });
-            document.AddTextFrame(document.Pages[pageIndex].Id, 72, 144, 288, 108,
+            document.AddTextFrame(document.Pages[pageIndex].Id, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(288), OfficeLength.Points(108),
                 new[] { paragraph });
         }
     }

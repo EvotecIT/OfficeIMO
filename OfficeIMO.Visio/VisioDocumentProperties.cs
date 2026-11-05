@@ -1,6 +1,6 @@
 namespace OfficeIMO.Visio {
     /// <summary>Standard document properties of a Visio package.</summary>
-    public sealed class VisioDocumentProperties {
+    public sealed partial class VisioDocumentProperties {
         /// <summary>Gets or sets the document title.</summary>
         public string? Title { get; set; }
 

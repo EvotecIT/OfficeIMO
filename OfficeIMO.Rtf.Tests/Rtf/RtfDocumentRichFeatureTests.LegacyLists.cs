@@ -43,7 +43,7 @@ public partial class RtfDocumentRichFeatureTests {
             numbering.AllCaps = true;
             numbering.SmallCaps = false;
             numbering.UnderlineStyle = RtfUnderlineStyle.Double;
-            numbering.Strike = true;
+            numbering.Strikethrough = true;
             numbering.ForegroundColorIndex = 2;
             numbering.TextBefore = "(";
             numbering.TextAfter = ")";
@@ -74,7 +74,7 @@ public partial class RtfDocumentRichFeatureTests {
         Assert.True(roundTrip.LegacyNumbering.AllCaps);
         Assert.False(roundTrip.LegacyNumbering.SmallCaps);
         Assert.Equal(RtfUnderlineStyle.Double, roundTrip.LegacyNumbering.UnderlineStyle);
-        Assert.True(roundTrip.LegacyNumbering.Strike);
+        Assert.True(roundTrip.LegacyNumbering.Strikethrough);
         Assert.Equal(2, roundTrip.LegacyNumbering.ForegroundColorIndex);
         Assert.Equal("(", roundTrip.LegacyNumbering.TextBefore);
         Assert.Equal(")", roundTrip.LegacyNumbering.TextAfter);

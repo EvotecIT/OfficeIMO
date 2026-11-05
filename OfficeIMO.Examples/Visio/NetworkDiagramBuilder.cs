@@ -9,8 +9,8 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Network diagram builder");
             string filePath = Path.Combine(folderPath, "Network Diagram Builder.vsdx");
 
-            VisioDocument.Create(filePath)
-                .NetworkDiagram("Branch Network", network => network
+            using var nativeDocument1 = VisioDocument.Create(filePath);
+            nativeDocument1.NetworkDiagram("Branch Network", network => network
                     .Theme(VisioStyleTheme.Technical())
                     .Zone("perimeter", "Perimeter", 0, 0, 3, 1)
                     .Zone("servers", "Server Zone", 3, 0, 3, 1)
@@ -34,8 +34,8 @@ namespace OfficeIMO.Examples.Visio {
                     .Ethernet("core", "pc2")
                     .Ethernet("pc1", "pc2")
                     .Ethernet("pc2", "printer")
-                    .WirelessLink("printer", "wifi", "wireless"))
-                .Save();
+                    .WirelessLink("printer", "wifi", "wireless"));
+            nativeDocument1.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

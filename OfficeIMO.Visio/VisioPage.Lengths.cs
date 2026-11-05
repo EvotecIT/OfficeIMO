@@ -27,10 +27,10 @@ public partial class VisioPage {
     public VisioShape AddRectangle(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) => AddRectangleInches(x.ToInches(), y.ToInches(), width.ToInches(), height.ToInches(), text, VisioMeasurementUnit.Inches);
 
     /// <summary>Applies physical lengths to the native Visio geometry.</summary>
-    public VisioShape AddTextBox(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) => AddTextBoxInches(x.ToInches(), y.ToInches(), width.ToInches(), height.ToInches(), text, VisioMeasurementUnit.Inches);
+    public VisioShape AddTextBox(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null, Action<VisioShape>? configure = null) { var shape = AddTextBoxInches(x.ToInches(), y.ToInches(), width.ToInches(), height.ToInches(), text, VisioMeasurementUnit.Inches); configure?.Invoke(shape); return shape; }
 
     /// <summary>Applies physical lengths to the native Visio geometry.</summary>
-    public VisioShape AddTextBox(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) => AddTextBoxInches(id, x.ToInches(), y.ToInches(), width.ToInches(), height.ToInches(), text, VisioMeasurementUnit.Inches);
+    public VisioShape AddTextBox(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null, Action<VisioShape>? configure = null) { var shape = AddTextBoxInches(id, x.ToInches(), y.ToInches(), width.ToInches(), height.ToInches(), text, VisioMeasurementUnit.Inches); configure?.Invoke(shape); return shape; }
 
     /// <summary>Applies physical lengths to the native Visio geometry.</summary>
     public VisioShape AddProcess(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) => AddProcessInches(x.ToInches(), y.ToInches(), width.ToInches(), height.ToInches(), text, VisioMeasurementUnit.Inches);

@@ -6,44 +6,28 @@ schema: 2.0.0
 ---
 # New-OfficeMarkdownPdfOptions
 ## SYNOPSIS
-Creates discoverable Markdown-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates native Markdown-to-PDF conversion options for Convert-OfficeDocument.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeMarkdownPdfOptions [-Options <MarkdownPdfExportOptions>] [-PdfOptions <PdfCreateOptions>] [-Theme <OfficeVisualThemeKind>] [-FontFamily <string>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-BaseDirectory <string>] [-ApplyWordLikeTheme] [-IncludeLocalImages] [-IncludeDataUriImages] [-RestrictLocalImagesToBaseDirectory] [-MaximumDataUriImageBytes <Int32>] [-DefaultImageWidth <Double>] [-DefaultImageHeight <Double>] [-FrontMatterRenderMode <MarkdownPdfFrontMatterRenderMode>] [-UseFrontMatterVisualTheme] [-UseFrontMatterMetadata] [-UseFirstHeadingAsTitle] [-CreateOutlineFromHeadings] [<CommonParameters>]
+New-OfficeMarkdownPdfOptions [-BaseOptions <MarkdownPdfExportOptions>] [-PdfOptions <PdfCreateOptions>] [-Theme <OfficeThemeInput>] [-Font <string>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-BaseDirectory <string>] [-NoDefaultTheme] [-IncludeLocalImages] [-IncludeDataUriImages] [-NoLocalImageRestriction] [-MaximumDataUriImageBytes <Int32>] [-DefaultImageWidth <OfficeLength>] [-DefaultImageHeight <OfficeLength>] [-FrontMatterRenderMode <MarkdownPdfFrontMatterRenderMode>] [-NoFrontMatterTheme] [-NoFrontMatterMetadata] [-NoFirstHeadingTitle] [-NoOutline] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates discoverable Markdown-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates native Markdown-to-PDF conversion options for Convert-OfficeDocument.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
 PS> $options = New-OfficeMarkdownPdfOptions -Title 'Service report' -Author 'Evotec' -IncludeLocalImages -BaseDirectory .\Assets
-Export-OfficeDocumentPdf -InputPath .\Report.md -Path .\Report.pdf -MarkdownOptions $options
+Convert-OfficeDocument -Path .\Report.md -OutputPath .\Report.pdf -Options $options
 ```
 
 Builds a typed options object through ordinary PowerShell parameters; no hashtable or .NET construction is required.
 
 ## PARAMETERS
-
-### -ApplyWordLikeTheme
-Apply the built-in Word-like Markdown PDF baseline theme.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -Author
 PDF author metadata.
@@ -77,11 +61,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -CreateOutlineFromHeadings
-Create PDF outlines from Markdown headings.
+### -BaseOptions
+Existing Markdown PDF options to clone and override.
 
 ```yaml
-Type: SwitchParameter
+Type: MarkdownPdfExportOptions
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -89,7 +73,7 @@ Possible values:
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -97,7 +81,7 @@ Accept wildcard characters: False
 Fallback image height in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -113,7 +97,7 @@ Accept wildcard characters: False
 Fallback image width in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -125,7 +109,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontFamily
+### -Font
 Default font family.
 
 ```yaml
@@ -221,27 +205,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Options
-Existing Markdown PDF options to clone and override.
+### -NoDefaultTheme
+Skip the native default Markdown PDF theme.
 
 ```yaml
-Type: MarkdownPdfExportOptions
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -PdfOptions
-Underlying low-level OfficeIMO PDF options.
-
-```yaml
-Type: PdfCreateOptions
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -253,11 +221,91 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -RestrictLocalImagesToBaseDirectory
+### -NoFirstHeadingTitle
+Use the first Markdown heading as the PDF title when no title is supplied.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoFrontMatterMetadata
+Use front matter values as PDF metadata.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoFrontMatterTheme
+Use front matter values to select a visual theme.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoLocalImageRestriction
 Require local images to resolve under BaseDirectory.
 
 ```yaml
 Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoOutline
+Create PDF outlines from Markdown headings.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PdfOptions
+Underlying low-level OfficeIMO PDF options.
+
+```yaml
+Type: PdfCreateOptions
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -286,13 +334,13 @@ Accept wildcard characters: False
 ```
 
 ### -Theme
-Built-in visual theme.
+Built-in theme name, shared theme or theme package.
 
 ```yaml
-Type: OfficeVisualThemeKind
+Type: OfficeThemeInput
 Parameter Sets: Default
 Aliases: None
-Possible values: Plain, WordLike, TechnicalDocument, GitHubLike, Compact, Report
+Possible values:
 
 Required: False
 Position: named
@@ -306,54 +354,6 @@ PDF title metadata.
 
 ```yaml
 Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -UseFirstHeadingAsTitle
-Use the first Markdown heading as the PDF title when no title is supplied.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -UseFrontMatterMetadata
-Use front matter values as PDF metadata.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -UseFrontMatterVisualTheme
-Use front matter values to select a visual theme.
-
-```yaml
-Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:

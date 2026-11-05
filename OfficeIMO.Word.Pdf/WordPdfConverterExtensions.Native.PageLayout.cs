@@ -19,11 +19,15 @@ namespace OfficeIMO.Word.Pdf {
                 // The stored physical dimensions already describe the page, even when
                 // the optional orientation flag is absent. Only an export override
                 // should normalize these dimensions into another orientation.
-                if (options?.Orientation == null && options?.DefaultOrientation == null) return size;
-            } else if (section.PageSetup.Size.PageSize.HasValue) {
-                size = MapNativePageSize(section.PageSetup.Size.PageSize.Value);
-            } else if (options?.DefaultPageSize.HasValue == true) {
-                size = MapNativePageSize(options.DefaultPageSize.Value);
+                if (options?.Orientation == null && options?.FallbackOrientation == null) return size;
+            } else if (WordPageSizes.GetDefinition(section.PageSetup.Size.PageSize.GetValueOrDefault()) is { } definition) {
+                size = new PdfCore.PdfPageSize(definition.Width, definition.Height);
+            } else if (options?.FallbackPageSize.HasValue == true) {
+                size = options.FallbackPageSize.Value;
+                // Physical fallback dimensions already carry their orientation. An absent
+                // source flag must not manufacture a portrait override.
+                if (options.Orientation == null && options.FallbackOrientation == null &&
+                    section._sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()?.Orient == null) return size;
             } else {
                 size = PdfCore.PdfPageSizes.A4;
             }
@@ -33,19 +37,14 @@ namespace OfficeIMO.Word.Pdf {
                 orientation = options.Orientation.Value;
             } else if (section.PageSetup.Size.Orientation == OfficePageOrientation.Landscape) {
                 orientation = OfficePageOrientation.Landscape;
-            } else if (options?.DefaultOrientation != null) {
-                orientation = options.DefaultOrientation == OfficePageOrientation.Landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
+            } else if (options?.FallbackOrientation != null) {
+                orientation = options.FallbackOrientation == OfficePageOrientation.Landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
             } else {
                 orientation = OfficePageOrientation.Portrait;
             }
 
             return orientation == OfficePageOrientation.Landscape ? size.Landscape() : size.Portrait();
         }
-
-        private static PdfCore.PdfPageSize MapNativePageSize(WordPageSize pageSize) =>
-            WordPageSizes.GetDefinition(pageSize) is { } definition
-                ? new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(checked((uint)(definition.Width.ToTwips())) / 20D),OfficeIMO.OfficeLength.Points(checked((uint)(definition.Height.ToTwips())) / 20D))
-                : PdfCore.PdfPageSizes.A4;
 
         private static PdfCore.PdfPageMargins GetNativeMargins(WordSection section, WordPdfExportOptions? options) {
             return GetNativeMargins(section, options, GetNativeHeaderFooterMarginExpansion(section, options));

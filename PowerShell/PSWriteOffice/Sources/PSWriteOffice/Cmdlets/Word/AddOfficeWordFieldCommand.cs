@@ -14,13 +14,23 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordField -Type Page }</code>
 ///   <para>Inserts a PAGE field into the paragraph.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordField")]
-[Alias("WordField")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordField", DefaultParameterSetName = "Type")]
+[Alias("WordField") ]
 public sealed class AddOfficeWordFieldCommand : PSCmdlet
 {
     /// <summary>Field type to insert.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Type")]
     public WordFieldType Type { get; set; }
+
+    /// <summary>Mail-merge field name.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "MergeField"), ValidateNotNullOrEmpty]
+    public string? MergeField { get; set; }
+    /// <summary>Built-in or custom document property to display.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "DocumentProperty"), ValidateNotNullOrEmpty]
+    public string? DocumentProperty { get; set; }
+    /// <summary>Bookmark to reference.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "Bookmark"), ValidateNotNullOrEmpty]
+    public string? Bookmark { get; set; }
 
     /// <summary>Optional field format switch.</summary>
     [Parameter]
@@ -31,11 +41,11 @@ public sealed class AddOfficeWordFieldCommand : PSCmdlet
     public string? CustomFormat { get; set; }
 
     /// <summary>Use advanced field representation.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Type")]
     public SwitchParameter Advanced { get; set; }
 
     /// <summary>Additional field parameters.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Type")]
     public string[]? Parameters { get; set; }
 
     /// <summary>Explicit paragraph to receive the field.</summary>
@@ -62,7 +72,13 @@ public sealed class AddOfficeWordFieldCommand : PSCmdlet
             parameters = new List<string>(Parameters);
         }
 
-        paragraph.AddField(Type, Format, CustomFormat, Advanced.IsPresent, parameters);
+        if (ParameterSetName == "Type") paragraph.AddField(Type, Format, CustomFormat, Advanced.IsPresent, parameters);
+        else {
+            var fieldType = ParameterSetName == "MergeField" ? WordFieldType.MergeField :
+                ParameterSetName == "DocumentProperty" ? WordFieldType.DocProperty : WordFieldType.Ref;
+            var field = new WordFieldBuilder(fieldType).AddInstruction(MergeField ?? DocumentProperty ?? Bookmark!, quoted: true);
+            paragraph.AddField(field, Format, CustomFormat);
+        }
 
         if (PassThru.IsPresent)
         {

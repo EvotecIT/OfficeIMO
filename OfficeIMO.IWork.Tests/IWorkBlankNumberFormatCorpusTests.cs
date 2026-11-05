@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
             string path = Path.Combine(root, package.GetProperty("source").GetString()!);
             Assert.Equal(package.GetProperty("sourceSha256").GetString(),
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-            IWorkNumbersProjection projection = IWorkSourceDocument.Open(path).ReadNumbers();
+            IWorkNumbersProjection projection = IWorkSourceDocument.Load(path).ReadNumbers();
             foreach (JsonElement expected in cells) {
                 var sheet = Assert.Single(projection.Sheets, sheet => sheet.Name == expected.GetProperty("sheet").GetString());
                 var table = Assert.Single(sheet.Tables, table => table.Name == expected.GetProperty("table").GetString());
@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
             string path = Path.Combine(root, explicitlySelected
                 ? "native-exports/numbers-blank-explicit-percentage-v14.5.numbers"
                 : "numbers-parser/cross-table-formulas.numbers");
-            using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+            using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                     AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
             var table = result.Projection.Sheets.Single(s => s.Name == "Main Sheet").Tables.Single(t => t.Name == "Extra Headers");
             var cell = table.GetCell(8, 1)!;
@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Explicit_blank_text_formats_match_native_xlsx_after_save_and_reopen() {
         string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus");
-        using var result = IWorkSourceDocument.Open(Path.Combine(root, "numbers-parser", "cross-table-formulas.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+        using var result = IWorkSourceDocument.Load(Path.Combine(root, "numbers-parser", "cross-table-formulas.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         var mapping = result.WorksheetMappings.Single(m => m.SourceSheetName == "Main Sheet" && m.SourceTableName == "Extra Headers");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -108,7 +108,7 @@ public sealed partial class IWorkBoundaryTests {
         string path = Path.Combine(root, snapshot.GetProperty("source").GetString()!);
         Assert.Equal(snapshot.GetProperty("sha256").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        var projection = IWorkSourceDocument.Open(path).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(path).ReadNumbers();
         var cell = projection.Sheets.Single(s => s.Name == "Main Sheet").Tables.Single(t => t.Name == "Extra Headers").GetCell(8, 1)!;
         Assert.Equal(IWorkCellKind.Empty, cell.Kind);
         Assert.Null(cell.Value);
@@ -120,7 +120,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Independent_blank_number_formats_survive_saved_xlsx() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser", "issue-102-v15.1.numbers");
-        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback);
         var mapping = Assert.Single(result.WorksheetMappings, mapping => mapping.SourceSheetName == "Cats" && mapping.SourceTableName == "Cats");
         var table = Assert.Single(Assert.Single(result.Projection.Sheets, sheet => sheet.Name == "Cats").Tables, table => table.Name == "Cats");

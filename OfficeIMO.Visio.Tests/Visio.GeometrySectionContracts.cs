@@ -171,9 +171,9 @@ public sealed class VisioGeometrySectionContractTests {
         control.Pages[0].Connectors[0].EndArrow = EndArrow.Triangle;
         double expectedY = control.Inspect().Pages[0].Connectors[0].LabelResolvedPinY!.Value;
         VisioSvgSaveOptions svgOptions = new() { PixelsPerInch = 48, RenderStencilArtwork = false, ResolveConnectorLabelOverlaps = false };
-        VisioPngSaveOptions pngOptions = new() { PixelsPerInch = 48, Supersampling = 1, RenderStencilArtwork = false, ResolveConnectorLabelOverlaps = false };
+        VisioImageExportOptions pngOptions = new() { TargetDpi = 48, Supersampling = 1, RenderStencilArtwork = false, ResolveConnectorLabelOverlaps = false };
         string[] expectedPaths = SvgPaths(control.Pages[0]);
-        byte[] expectedPng = control.Pages[0].ToPng(pngOptions);
+        byte[] expectedPng = control.Pages[0].ToImage(pngOptions);
         XDocument xml = XDocument.Parse(ConnectorXml("control"));
         XElement auxiliary = XElement.Parse("<Geom xmlns='" + Legacy + "' IX='1'><NoFill>1</NoFill><NoLine>" + (flag == "NoLine" ? "1" : "0") + "</NoLine><NoShow>" + (flag == "NoShow" ? "1" : "0") + "</NoShow>" +
             "<MoveTo IX='2'><X>0</X><Y>1</Y></MoveTo><LineTo IX='4'><X>3</X><Y>1</Y></LineTo></Geom>");
@@ -188,7 +188,7 @@ public sealed class VisioGeometrySectionContractTests {
                 Assert.Equal(expectedY, Assert.Single(page.Connectors).LabelResolvedPinY!.Value, 8);
             foreach (VisioPage page in document.Pages) {
                 Assert.Equal(expectedPaths, SvgPaths(page));
-                Assert.Equal(expectedPng, page.ToPng(pngOptions));
+                Assert.Equal(expectedPng, page.ToImage(pngOptions));
             }
             Assert.Equal(before, document.ToLegacyXmlResult().Value);
         }
@@ -242,7 +242,7 @@ public sealed class VisioGeometrySectionContractTests {
     }
 
     private static (int Red, int Blue) CountPixels(VisioPage page, bool labels) {
-        byte[] png = page.ToPng(new VisioPngSaveOptions { PixelsPerInch = 48, Supersampling = 1, RenderText = labels, RenderConnectorLabels = labels, RenderStencilArtwork = false, ResolveConnectorLabelOverlaps = false });
+        byte[] png = page.ToImage(new VisioImageExportOptions { TargetDpi = 48, Supersampling = 1, RenderText = labels, RenderConnectorLabels = labels, RenderStencilArtwork = false, ResolveConnectorLabelOverlaps = false });
         Assert.True(OfficeRasterImageDecoder.TryDecode(png, out OfficeRasterImage? image));
         Assert.NotNull(image);
         Assert.Equal(192, image!.Width);

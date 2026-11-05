@@ -11,7 +11,7 @@ Adds a named bookmark at the current generated PDF flow position.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfBookmark [-Name] <string> [-PassThru] [<CommonParameters>]
+Add-OfficePdfBookmark [-Name] <string> [<CommonParameters>]
 ```
 
 ### Document
@@ -77,7 +77,7 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

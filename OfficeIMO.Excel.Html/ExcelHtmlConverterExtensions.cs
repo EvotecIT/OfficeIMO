@@ -250,7 +250,7 @@ public static partial class ExcelHtmlConverterExtensions {
                 if (richTextRuns.Count > 0) {
                     foreach (ExcelRichTextRun run in richTextRuns) {
                         body.Append("<span");
-                        bool splitRunDecorations = AppendExcelTextStyleAttributes(body, run, cellStyle);
+                        bool splitRunDecorations = AppendExcelTextStyleAttributes(body, run, cellStyle, sheet.Document);
                         body.Append('>');
                         if (splitRunDecorations) AppendIndependentExcelStrike(body, run.Text);
                         else body.Append(OfficeHtmlText.Escape(run.Text));

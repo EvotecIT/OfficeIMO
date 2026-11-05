@@ -1,3 +1,5 @@
+using PSWriteOffice.Services.Project;
+using PSWriteOffice.Foundation;
 using System;
 using System.IO;
 using System.Linq;
@@ -15,9 +17,10 @@ namespace PSWriteOffice.Cmdlets.Project;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeProjectTask", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectTask))]
+[Alias("ProjectTask") ]
 public sealed class AddOfficeProjectTaskCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
     public ProjectDocument Document { get; set; } = null!;
 
     /// <summary>Task name.</summary>
@@ -31,7 +34,8 @@ public sealed class AddOfficeProjectTaskCommand : PSCmdlet {
 
     /// <summary>Parent summary UID; omission adds a root task.</summary>
     [Parameter]
-    public int? ParentUid { get; set; }
+    [OfficeProjectTaskTransformation]
+    public OfficeProjectTaskSelector? Parent { get; set; }
 
     /// <summary>Create a summary task.</summary>
     [Parameter]
@@ -47,7 +51,8 @@ public sealed class AddOfficeProjectTaskCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var collection = ParentUid.HasValue ? Document.Tasks.GetByUid(ParentUid.Value).Children : Document.Tasks;
+        Document ??= OfficeDocumentContext.Find<ProjectDocument>() ?? throw new PSInvalidOperationException("Provide -Document or use a Project content block.");
+        var collection = Parent != null ? Parent.Resolve(Document).Children : Document.Tasks;
         var task = Summary.IsPresent ? collection.AddSummary(Name) : collection.Add(Name);
         task.IsManual = Manual.IsPresent;
         task.IsActive = true;

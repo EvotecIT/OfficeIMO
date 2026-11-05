@@ -1,77 +1,78 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Removes a comment (note) from a worksheet cell.</summary>
+/// <summary>Removes notes from a cell or all notes that match a filter.</summary>
 /// <example>
-///   <summary>Remove a comment from B2.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Remove-OfficeExcelComment -Address 'B2' }</code>
-///   <para>Clears the comment from cell B2.</para>
+/// <summary>Remove the note from a cell</summary>
+/// <code>Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+///     Remove-OfficeExcelComment B4 -Sheet Assumptions
+/// }</code>
+/// <para>Deletes the note on B4 of the Assumptions sheet.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Remove, "OfficeExcelComment", DefaultParameterSetName = ParameterSetContext)]
-[Alias("ExcelCommentRemove")]
-public sealed class RemoveOfficeExcelCommentCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
+/// <example>
+/// <summary>Strip review notes before publishing</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+///     $removed = Remove-OfficeExcelComment -Author 'Review Bot' -PassThru
+///     Write-Verbose "Removed $removed review notes"
+/// }</code>
+/// <para>Removes every note left by the review bot across all sheets and reports how many were removed.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Remove, "OfficeExcelComment", DefaultParameterSetName = "Default")]
+public sealed class RemoveOfficeExcelCommentCommand : PSCmdlet {
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Workbook to operate on outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector[]? Sheet { get; set; }
 
-    /// <summary>Worksheet name when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public string? Sheet { get; set; }
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter(ParameterSetName = "Default", Position = 0)]
+    public string? Range { get; set; }
 
-    /// <summary>Worksheet index (0-based) when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public int? SheetIndex { get; set; }
+    /// <summary>Comment author to match, ignoring case.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public string? Author { get; set; }
 
-    /// <summary>1-based row index.</summary>
-    [Parameter]
-    public int? Row { get; set; }
+    /// <summary>Text fragment to match, ignoring case.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public string? TextContains { get; set; }
 
-    /// <summary>1-based column index.</summary>
-    [Parameter]
-    public int? Column { get; set; }
+    /// <summary>Explicitly selects every item when no filter is supplied.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter All { get; set; }
 
-    /// <summary>A1-style cell address (e.g., A1, C5).</summary>
-    [Parameter]
-    public string? Address { get; set; }
-
-    /// <summary>Emit the worksheet after removing the comment.</summary>
-    [Parameter]
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var sheet = ResolveSheet();
-        var (row, column) = ExcelHostExtensions.ResolveCellAddress(Row, Column, Address);
-        sheet.ClearComment(row, column);
+    protected override void ProcessRecord() {
+        if (Range == null && Author == null && TextContains == null && !All) throw new PSArgumentException("Provide a comment filter or -All.");
+        var document = ExcelCommandTargets.Document(Document);
+        var filter = new ExcelCommentFilter { A1Range = Range, Author = Author, TextContains = TextContains };
+        int count = 0;
 
-        if (PassThru.IsPresent)
-        {
-            WriteObject(sheet);
+        foreach (var sheet in ExcelSheetResolver.ResolveMany(document, Sheet, Document == null ? ExcelDslContext.Current?.CurrentSheet : null)) {
+            count += sheet.ClearComments(filter);
         }
+        if (PassThru) WriteObject(count);
     }
 
-    private ExcelSheet ResolveSheet()
-    {
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            if (Document == null)
-            {
-                throw new PSArgumentException("Provide an Excel document.");
-            }
-
-            return ExcelSheetResolver.Resolve(Document, Sheet, SheetIndex);
-        }
-
-        var context = ExcelDslContext.Require(this);
-        return context.RequireSheet();
-    }
 }

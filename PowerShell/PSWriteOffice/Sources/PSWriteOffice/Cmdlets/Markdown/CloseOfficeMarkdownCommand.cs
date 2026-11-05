@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 [Cmdlet(VerbsCommon.Close, "OfficeMarkdown", DefaultParameterSetName = "Document")]
 public sealed class CloseOfficeMarkdownCommand : PSCmdlet {
     /// <summary>Markdown document to close.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true), ValidateNotNull]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document"), ValidateNotNull]
     public MarkdownDocument Document { get; set; } = null!;
     /// <inheritdoc />
     protected override void ProcessRecord() => Document.Dispose();

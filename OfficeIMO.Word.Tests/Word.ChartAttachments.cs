@@ -22,7 +22,7 @@ public sealed class WordChartAttachmentTests {
                 new OfficeSeries("Secondary", new[] { 1d, 2d }, null, null, null, true,
                     renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
             }));
-        chart.AddChartAxisX(new() { "A", "B" });
+        chart.AddCategories(new[] { "A", "B" });
         var added = chart.AddLine("Added", new System.Collections.Generic.List<int> { 3, 4 }, OfficeColor.Blue);
         Assert.Equal(OfficeChartAxisGroup.Secondary, added.ToOfficeSeries().AxisGroup);
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
@@ -31,12 +31,8 @@ public sealed class WordChartAttachmentTests {
 
     [Theory]
     [InlineData("bar")]
-    [InlineData("bar-array")]
-    [InlineData("bar-list")]
     [InlineData("line")]
-    [InlineData("line-array")]
     [InlineData("area")]
-    [InlineData("area-array")]
     [InlineData("scatter")]
     [InlineData("radar")]
     [InlineData("bar3d")]
@@ -45,16 +41,12 @@ public sealed class WordChartAttachmentTests {
     public void AddedSeriesRetainsItsNativeIdentityAndSupportsRenameAndRemoval(string family) {
         using var document = WordDocument.Create();
         var chart = document.AddChart("Series");
-        var axis = chart.AddCategories(new() { "One", "Two" });
+        var axis = chart.AddCategories(new[] { "One", "Two" });
         Assert.Same(chart, axis.Chart);
         var series = family switch {
-            "bar" => chart.AddBar("Original", 2, OfficeColor.Blue),
-            "bar-array" => chart.AddBar("Original", new[] { 2, 3 }, OfficeColor.Blue),
-            "bar-list" => chart.AddBar("Original", new System.Collections.Generic.List<int> { 2, 3 }, OfficeColor.Blue),
+            "bar" => chart.AddBar("Original", new[] { 2, 3 }, OfficeColor.Blue),
             "line" => chart.AddLine("Original", new System.Collections.Generic.List<int> { 2, 3 }, OfficeColor.Blue),
-            "line-array" => chart.AddChartLine<int>("Original", new[] { 2, 3 }, OfficeColor.Blue),
             "area" => chart.AddArea("Original", new System.Collections.Generic.List<int> { 2, 3 }, OfficeColor.Blue),
-            "area-array" => chart.AddArea<int>("Original", new[] { 2, 3 }, OfficeColor.Blue),
             "scatter" => chart.AddScatter("Original", new() { 1, 2 }, new() { 2, 3 }, OfficeColor.Blue),
             "radar" => chart.AddRadar("Original", new System.Collections.Generic.List<int> { 2, 3 }, OfficeColor.Blue),
             "bar3d" => chart.AddBar3D("Original", new System.Collections.Generic.List<int> { 2, 3 }, OfficeColor.Blue),
@@ -80,10 +72,10 @@ public sealed class WordChartAttachmentTests {
     public void CategorySettingsApplyToSubsequentSeriesAndLegendReplacementKeepsOneNativeLegend() {
         using var document = WordDocument.Create();
         var chart = document.AddChart("Categories");
-        var axis = chart.AddChartAxisX(new() { "Before" });
-        chart.AddBar("First", 1, OfficeColor.Blue);
+        var axis = chart.AddCategories(new[] { "Before" });
+        chart.AddBar("First", new[] { 1 }, OfficeColor.Blue);
         axis.Categories = new[] { "After" };
-        chart.AddBar("Second", 2, OfficeColor.Red);
+        chart.AddBar("Second", new[] { 2 }, OfficeColor.Red);
         var original = chart.AddLegend(OfficeChartLegendPosition.Right);
         var current = chart.AddLegend(OfficeChartLegendPosition.Bottom);
         current.Overlay = true;

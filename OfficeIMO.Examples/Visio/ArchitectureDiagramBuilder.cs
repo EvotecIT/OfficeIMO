@@ -9,8 +9,8 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Architecture diagram builder");
             string filePath = Path.Combine(folderPath, "Architecture Diagram Builder.vsdx");
 
-            VisioDocument.Create(filePath)
-                .ArchitectureDiagram("Jenkins on Azure", diagram => diagram
+            using var nativeDocument1 = VisioDocument.Create(filePath);
+            nativeDocument1.ArchitectureDiagram("Jenkins on Azure", diagram => diagram
                     .Theme(VisioStyleTheme.Technical())
                     .PageSize(14, 8.5)
                     .Region("vnet", "Virtual Network", 1, 0, 4, 3)
@@ -27,8 +27,8 @@ namespace OfficeIMO.Examples.Visio {
                     .ControlFlow("jenkins", "agent", "scale")
                     .Dependency("jenkins", "data", "state")
                     .Dependency("jenkins", "vault", "secrets")
-                    .DataFlow("agent", "artifacts", "publish"))
-                .Save();
+                    .DataFlow("agent", "artifacts", "publish"));
+            nativeDocument1.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

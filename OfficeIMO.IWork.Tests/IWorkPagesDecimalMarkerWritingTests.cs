@@ -13,17 +13,17 @@ public sealed class IWorkPagesDecimalMarkerWritingTests {
         var identifiers = new List<string>();
         foreach (var style in Enum.GetValues<IWorkDecimalListMarkerStyle>()) {
             var document = Create(style);
-            byte[] bytes = document.SaveBytes();
-            Assert.Equal(bytes, Create(style).SaveBytes());
+            byte[] bytes = document.ToBytes();
+            Assert.Equal(bytes, Create(style).ToBytes());
             using var package = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
             using var identifier = new StreamReader(package.GetEntry("Metadata/DocumentIdentifier")!.Open());
             identifiers.Add(identifier.ReadToEnd());
             document.CreateNumberedList(style == IWorkDecimalListMarkerStyle.Period
                 ? IWorkDecimalListMarkerStyle.Parentheses : IWorkDecimalListMarkerStyle.Period);
-            Assert.Equal(bytes, document.SaveBytes());
+            Assert.Equal(bytes, document.ToBytes());
             string label = style == IWorkDecimalListMarkerStyle.Period ? "1."
                 : style == IWorkDecimalListMarkerStyle.Parentheses ? "(1)" : "1)";
-            Assert.Equal(label, IWorkSourceDocument.Open(bytes).ReadPages().Body.Paragraphs[0].ListLabel);
+            Assert.Equal(label, IWorkSourceDocument.Load(bytes).ReadPages().Body.Paragraphs[0].ListLabel);
         }
         Assert.Equal(3, identifiers.Distinct(StringComparer.Ordinal).Count());
 
@@ -47,18 +47,18 @@ public sealed class IWorkPagesDecimalMarkerWritingTests {
         var model = IWorkPagesNineLevelWritingTests.Example(style);
         Assert.Equal(style, model.NumberedLists[0].MarkerStyle);
         Assert.Equal(IWorkDecimalListMarkerStyle.Period, model.NumberedLists[1].MarkerStyle);
-        byte[] bytes = model.SaveBytes(); Assert.Equal(bytes, model.SaveBytes());
-        var source = IWorkSourceDocument.Open(bytes);
+        byte[] bytes = model.ToBytes(); Assert.Equal(bytes, model.ToBytes());
+        var source = IWorkSourceDocument.Load(bytes);
         Check(source, bytes);
         var body = source.ReadPages().Body;
         var edit = source.BeginEdit();
         edit.SetPagesBodyParagraphText(body.SourceIdentity!, 2, "ROOT SEVEN");
-        byte[] changed = edit.SaveBytes(new() { AllowUnassessedVisualCaches = true });
-        Check(IWorkSourceDocument.Open(changed), changed);
+        byte[] changed = edit.ToBytes(new() { AllowUnassessedVisualCaches = true });
+        Check(IWorkSourceDocument.Load(changed), changed);
         Assert.Equal("Root seven", body.Paragraphs[1].Text);
-        Assert.Equal("ROOT SEVEN", IWorkSourceDocument.Open(changed).ReadPages().Body.Paragraphs[1].Text);
+        Assert.Equal("ROOT SEVEN", IWorkSourceDocument.Load(changed).ReadPages().Body.Paragraphs[1].Text);
         edit.SetPagesBodyParagraphText(body.SourceIdentity!, 2, "Root seven");
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport1), Report: nativeReport1).Report.OutputPackageContentHash);
 
         void Check(IWorkSourceDocument input, byte[] packageBytes) {
             var projection = input.ReadPages();
@@ -89,10 +89,10 @@ public sealed class IWorkPagesDecimalMarkerWritingTests {
     [Fact]
     public void Unsupported_decimal_marker_styles_do_not_mutate_the_creation_model() {
         var model = IWorkPagesDocument.Create(); model.AddParagraph("Keep this body");
-        byte[] original = model.SaveBytes();
+        byte[] original = model.ToBytes();
         foreach (var style in new[] { (IWorkDecimalListMarkerStyle)(-1), (IWorkDecimalListMarkerStyle)3 })
             Assert.Throws<ArgumentOutOfRangeException>(() => model.CreateNumberedList(style));
-        Assert.Empty(model.NumberedLists); Assert.Equal(original, model.SaveBytes());
+        Assert.Empty(model.NumberedLists); Assert.Equal(original, model.ToBytes());
         Assert.Equal(IWorkDecimalListMarkerStyle.Period, model.CreateNumberedList().MarkerStyle);
     }
 
@@ -103,7 +103,7 @@ public sealed class IWorkPagesDecimalMarkerWritingTests {
         string name, string sample, bool parentheses) {
         foreach (bool edited in new[] { false, true }) {
             string suffix = edited ? "edited" : "saved";
-            var source = IWorkSourceDocument.Open(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
+            var source = IWorkSourceDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
                 "native-exports", "pages-decimal-" + name + "-" + suffix + "-v15.4.pages"));
             var projection = source.ReadPages(); var items = projection.Body.Paragraphs.Where(p => p.ListNumber.HasValue).ToArray();
             Assert.True(projection.Body.IsFormattingComplete); Assert.Empty(projection.Diagnostics);

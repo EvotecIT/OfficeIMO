@@ -6,38 +6,51 @@ schema: 2.0.0
 ---
 # Get-OfficeWordSection
 ## SYNOPSIS
-Gets sections from a Word document.
+Gets sections of a document.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeWordSection [-Path] <string> [-Index <int[]>] [<CommonParameters>]
+Get-OfficeWordSection [-Index <int[]>] [-Document <WordDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordSection -Document <WordDocument> [-Index <int[]>] [<CommonParameters>]
+Get-OfficeWordSection [-Path] <string[]> [-Index <int[]>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordSection -LiteralPath <string[]> [-Index <int[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets sections from a Word document.
+Gets sections of a document.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $section = Get-OfficeWordSection -Path .\Report.docx -Index 0
-$section |
-    Get-OfficeWordParagraph |
-    Select-Object -First 5 -Property Text
+Get-OfficeWordSection -Document 'Value'
 ```
 
-Gets a specific section by zero-based index and pipes it to another thin Word reader.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordSection -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordSection -Path @('C:\Path')
+```
+
 
 ## PARAMETERS
 
 ### -Document
-Document to inspect.
+Document for this inspection.
 
 ```yaml
 Type: WordDocument
@@ -45,7 +58,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -53,11 +66,11 @@ Accept wildcard characters: False
 ```
 
 ### -Index
-Optional 0-based section index filter.
+Index for this inspection.
 
 ```yaml
 Type: Int32[]
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -68,20 +81,36 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-Path to the document.
+### -LiteralPath
+LiteralPath for this inspection.
 
 ```yaml
-Type: String
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Path
+Path for this inspection.
+
+```yaml
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -89,7 +118,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS

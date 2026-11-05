@@ -73,13 +73,13 @@ New-OfficeExcel -Path $path {
         ExcelCell -Address 'G4' -Value 'Risk Services'
         ExcelCell -Address 'H4' -Formula 'COUNTIF(Services!F2:F9,"Risk")' -NumberFormat '0'
 
-        ExcelTable -Data $legend -Name 'StatusLegend' -StartRow 7 -StartColumn 1 -TableStyle 'TableStyleMedium4' -AutoFit
-        ExcelTable -Data $statusMix -Name 'StatusMix' -StartRow 7 -StartColumn 6 -TableStyle 'TableStyleMedium4' -AutoFit
+        ExcelTable -InputObject $legend -Name 'StatusLegend' -Address A7 -TableStyle 'TableStyleMedium4'
+        ExcelTable -InputObject $statusMix -Name 'StatusMix' -Address F7 -TableStyle 'TableStyleMedium4'
         ExcelColumn -Column 4 -AutoFit
         ExcelChart -Range 'F7:G10' -Address I7 -Type Doughnut -Title 'Status Mix' -Width 440px -Height 260px -PassThru |
             Set-OfficeExcelChartLegend -Position Right -PassThru |
-            Set-OfficeExcelChartDataLabels -ShowValue $true -ShowCategoryName $true -Position OutsideEnd -PassThru |
-            Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
+            Set-OfficeExcelChartDataLabel -ShowValue -ShowCategoryName -Position OutsideEnd -PassThru |
+            Set-OfficeExcelChart -Style 251 -ColorStyle 10
 
         if (Test-Path $logoPath) {
             ExcelImage -Path $logoPath -Address 'J1' -Width 140px -Height 52px -AltText 'PSWriteOffice operational dashboard logo'
@@ -87,30 +87,30 @@ New-OfficeExcel -Path $path {
 
         ExcelHeader -Center 'PSWriteOffice operational dashboard'
         ExcelFooter -Right 'Page &P of &N'
-        ExcelOrientation -Orientation Landscape
-        ExcelMargins -Left 0.4 -Right 0.4 -Top 0.7 -Bottom 0.7
+        ExcelPageSetup -Orientation Landscape
+        ExcelPageSetup -MarginLeft 0.4in -MarginRight 0.4in -MarginTop 0.7in -MarginBottom 0.7in
         ExcelPageSetup -FitToWidth 1 -FitToHeight 0
     }
 
     ExcelSheet 'Services' {
-        ExcelTable -Data $serviceRows -Name 'ServiceHealth' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
+        ExcelTable -InputObject $serviceRows -Name 'ServiceHealth' -Address A1 -TableStyle 'TableStyleMedium9'
         ExcelSheetView -FreezeRows 1
-        ExcelValidationList -Range 'F2:F50' -Values 'Healthy','Watch','Risk'
-        ExcelConditionalColorScale -Range 'B2:B9' -StartColor '#F8696B' -EndColor '#63BE7B'
-        ExcelConditionalDataBar -Range 'C2:C9' -Color '#5B9BD5'
-        ExcelConditionalIconSet -Range 'B2:B9' -IconSet ThreeTrafficLights1
-        ExcelUrlLinksByHeader -Header 'Evidence' -TableName 'ServiceHealth' -UrlScript { param($text) "https://evotec.xyz/docs/$text" } -TitleScript { param($text) "Open $text" }
-        ExcelPivotTable -SourceRange 'A1:F9' -DestinationCell 'J1' -Name 'ServiceStatusPivot' -RowField Status -DataField Incidents -DataDisplayName 'Total Incidents' -PivotStyle PivotStyleMedium9 -RefreshOnOpen
+        ExcelValidation -Type List -Range 'F2:F50' -Values 'Healthy','Watch','Risk'
+        ExcelConditionalFormat -Range 'B2:B9' -StartColor '#F8696B' -EndColor '#63BE7B'
+        ExcelConditionalFormat -DataBar -Range 'C2:C9' -Color '#5B9BD5'
+        ExcelConditionalFormat -Range 'B2:B9' -IconSet ThreeTrafficLights1
+        ExcelHyperlink -Header 'Evidence' -Table 'ServiceHealth' -UrlScript { param($text) "https://evotec.xyz/docs/$text" } -DisplayScript { param($text) "Open $text" }
+        ExcelPivotTable -Range 'A1:F9' -Address 'J1' -Name 'ServiceStatusPivot' -RowField Status -DataField Incidents -DataDisplayName 'Total Incidents' -Style PivotStyleMedium9 -RefreshOnOpen
         ExcelChart -Range 'A1:B9' -Address A12 -Type BarClustered -Title 'Service health score (0-100)' -Width 760px -Height 340px -PassThru |
             Set-OfficeExcelChartLegend -Position Bottom -PassThru |
-            Set-OfficeExcelChartDataLabels -ShowValue $true -Position OutsideEnd -PassThru |
-            Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
+            Set-OfficeExcelChartDataLabel -ShowValue -Position OutsideEnd -PassThru |
+            Set-OfficeExcelChart -Style 251 -ColorStyle 10
         ExcelHeader -Center 'Service details'
         ExcelFooter -Right 'Page &P of &N'
     }
 
     ExcelSheet 'Trend' {
-        ExcelTable -Data $trend -Name 'TrendData' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium2' -AutoFit
+        ExcelTable -InputObject $trend -Name 'TrendData' -Address A1 -TableStyle 'TableStyleMedium2'
         ExcelSheetView -FreezeRows 1
         ExcelCell -Address 'F1' -Value 'Six-month trends'
         ExcelCell -Address 'F2' -Value 'Availability (%)'
@@ -119,19 +119,19 @@ New-OfficeExcel -Path $path {
         ExcelSparkline -DataRange 'C2:C7' -LocationRange 'G3'
         ExcelCell -Address 'F4' -Value 'Automation (%)'
         ExcelSparkline -DataRange 'D2:D7' -LocationRange 'G4'
-        ExcelTable -Data ($trend | Select-Object Month, Incidents) -Name 'IncidentTrend' -StartRow 1 -StartColumn 10 -TableStyle 'TableStyleMedium2' -AutoFit
+        ExcelTable -InputObject ($trend | Select-Object Month, Incidents) -Name 'IncidentTrend' -Address J1 -TableStyle 'TableStyleMedium2'
         ExcelChart -Range 'J1:K7' -Address A10 -Type Line -Title 'Recorded incidents by month' -Width 780px -Height 340px -PassThru |
             Set-OfficeExcelChartLegend -Position Bottom -PassThru |
-            Set-OfficeExcelChartDataLabels -ShowValue $true -Position Top -PassThru |
-            Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
+            Set-OfficeExcelChartDataLabel -ShowValue -Position Top -PassThru |
+            Set-OfficeExcelChart -Style 251 -ColorStyle 10
         ExcelHeader -Center 'Trend and automation'
         ExcelFooter -Right 'Page &P of &N'
     }
 
     ExcelSheet 'Owner Summary' {
-        ExcelTable -Data $ownerSummary -Name 'OwnerSummary' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium5' -AutoFit
-        ExcelConditionalDataBar -Range 'D2:D20' -Color '#ED7D31'
-        ExcelConditionalIconSet -Range 'C2:C20' -IconSet ThreeTrafficLights1
+        ExcelTable -InputObject $ownerSummary -Name 'OwnerSummary' -Address A1 -TableStyle 'TableStyleMedium5'
+        ExcelConditionalFormat -DataBar -Range 'D2:D20' -Color '#ED7D31'
+        ExcelConditionalFormat -Range 'C2:C20' -IconSet ThreeTrafficLights1
         ExcelHeader -Center 'Owner summary'
         ExcelFooter -Right 'Page &P of &N'
     }
@@ -146,28 +146,30 @@ New-OfficeExcel -Path $path {
         Set-OfficeExcelSheet -Visibility Hidden
     }
 
-    ExcelTableOfContents -SheetName 'Index' -IncludeNamedRanges -AddBackLinks -BackLinkText 'Back to Index'
+    ExcelTableOfContents -Name 'Index' -IncludeNamedRanges -BackLink -BackLinkText 'Back to Index'
 } -Show:$Show -SaveOptions (New-OfficeExcelSaveOptions -EvaluateFormulas)
 
-$threaded = Add-OfficeExcelThreadedComment -Path $path -Sheet Summary -Address A2 -Text 'Review dashboard posture before sending to service owners.' -Author 'Automation Reviewer' -PassThru
-Add-OfficeExcelThreadedComment -Path $path -Sheet Summary -Address A2 -Text 'Ready for owner review.' -Author 'Report Owner' -ParentId $threaded.Id -Done
+Open-OfficeExcel -Path $path {
+    $threaded = Add-OfficeExcelComment -Sheet Summary -Address A2 -Text 'Review dashboard posture before sending to service owners.' -Author 'Automation Reviewer' -Threaded -PassThru
+    Add-OfficeExcelComment -Sheet Summary -Address A2 -Text 'Ready for owner review.' -Author 'Report Owner' -Threaded -ParentId $threaded.Id -Done
 
-Add-OfficeExcelPowerQueryMetadata -Path $path `
-    -Name 'OperationalDashboardQuery' `
-    -WorksheetName 'Services' `
-    -QueryTableName 'OperationalDashboardQueryTable' `
-    -CommandText 'let Source = Excel.CurrentWorkbook(){[Name="ServiceHealth"]}[Content] in Source' `
-    -Description 'Refresh metadata for Excel-compatible applications; PSWriteOffice does not execute Power Query.' `
-    -RefreshOnOpen
+    Add-OfficeExcelConnection -Name 'OperationalDashboardQuery' `
+        -Sheet 'Services' -QueryTable 'OperationalDashboardQueryTable' `
+        -CommandText 'let Source = Excel.CurrentWorkbook(){[Name="ServiceHealth"]}[Content] in Source' `
+        -Description 'Refresh metadata for Excel-compatible applications; PSWriteOffice does not execute Power Query.' `
+        -RefreshOnOpen
+}
 
-$doctor = Test-OfficeExcelWorkbook -Path $path
-$accessibility = Test-OfficeExcelAccessibility -Path $path
-$streaming = Get-OfficeExcelStreamingContract -Path $path
-$commentAudit = Get-OfficeExcelCommentAudit -Path $path -IncludeComments
+$checks = Test-OfficeDocument -Path $path
+$accessibility = Test-OfficeDocument -Path $path -Check Accessibility
+$comments = @(Get-OfficeExcelComment -Path $path -Kind All)
+$threadedComments = @(Get-OfficeExcelComment -Path $path -Kind Threaded)
 $dataModel = Get-OfficeExcelDataModel -Path $path
-$repair = Repair-OfficeExcelWorkbook -Path $path -PassThru
-$summary = Get-OfficeExcelSummary -Path $path
+$repair = Repair-OfficeDocument -Path $path -PassThru
+$info = Get-OfficeDocumentInfo -Path $path -Detailed
+$native = $info.Details
 
 Write-Host "Workbook saved to $path"
-Write-Host "Workbook summary: $($summary.SheetCount) sheets, $($summary.TableCount) tables, $($summary.ChartCount) charts, $($summary.HyperlinkCount) links"
-Write-Host "Workbook checks: doctor=$($doctor.Passed), accessibility=$($accessibility.Passed), streamingSheets=$($streaming.WorksheetCount), comments=$($commentAudit.CommentCount)/threaded=$($commentAudit.ThreadedCommentCount), queries=$($dataModel.HasDataModelOrQueries), repairActions=$($repair.ActionCount)"
+Write-Host "Workbook summary: $($info.SheetCount) sheets, $($native.ChartPartCount) chart parts, $($native.ConnectionPartCount) connection parts"
+Write-Host "Workbook checks: valid=$($checks.IsValid), accessible=$($accessibility.IsValid), comments=$($comments.Count), threaded=$($threadedComments.Count), queries=$($dataModel.HasDataModelOrQueries), repairActions=$($repair.ActionCount)"
+$checks.NativeReports

@@ -35,6 +35,28 @@ ExcelSheet 'Data' { ExcelHeader -Center 'Quarterly review' }
 ```
 
 
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    ExcelSheet 'Orders' {
+        ExcelHeader -Center 'Q3 orders' -Right '&D'
+    }
+}
+```
+
+Prints the report name in the centre and the print date on the right of every page.
+
+### EXAMPLE 3
+```powershell
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    ExcelSheet 'Summary' {
+        ExcelHeader -ImagePath .\Assets\Logo.png -ImagePosition Left -ImageHeight 1cm -Right '&A'
+    }
+}
+```
+
+Prints the company logo at the left of the header and the sheet name on the right.
+
 ## PARAMETERS
 
 ### -Center

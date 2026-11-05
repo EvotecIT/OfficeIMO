@@ -18,7 +18,7 @@ $excelPath = Join-Path $outputDirectory 'HtmlTables.xlsx'
 '@ | Set-Content -LiteralPath $htmlPath -Encoding UTF8
 
 ConvertFrom-HtmlTable -Path $htmlPath -TableId 'results' -AsDataTable -IncludeLinkUrls |
-    Export-OfficeExcel -Path $excelPath -WorksheetName 'Results' -TableName 'Results' -AutoFit -FreezeTopRow -BoldTopRow
+    Export-OfficeExcel -Path $excelPath -Sheet 'Results' -TableName 'Results'
 
 $allTables = ConvertFrom-HtmlTable -Path $htmlPath -AsDataSet -IncludeLinkUrls
-$allTables | Export-OfficeExcel -Path $excelPath -Append -AutoFit
+$allTables | Export-OfficeExcel -Path $excelPath -Append

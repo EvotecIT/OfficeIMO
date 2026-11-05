@@ -124,11 +124,11 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTable(3, 3, OfficeLength.Points(40), OfficeLength.Points(40), OfficeLength.Points(875), OfficeLength.Points(390));
             table.SetColumnWidths(OfficeLength.Points(200), OfficeLength.Points(180), OfficeLength.Points(180));
-            for (int r = 0; r < table.Rows; r++) table.SetRowHeight(r, OfficeLength.Points(30));
+            for (int r = 0; r < table.RowCount; r++) table.SetRowHeight(r, OfficeLength.Points(30));
             Assert.Equal(560, (table.Width).ToPoints(), 1);
             Assert.Equal(90, (table.Height).ToPoints(), 1);
             table.AddRow();
-            Assert.Equal(Enumerable.Range(0, table.Rows).Sum(r => table.GetRowHeight(r).ToEmus()), table.Height.ToEmus());
+            Assert.Equal(Enumerable.Range(0, table.RowCount).Sum(r => table.GetRowHeight(r).ToEmus()), table.Height.ToEmus());
         }
 
         [Fact]
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
 
             Assert.InRange(slides.Count, 2, 3);
             List<PowerPointTable> tables = slides.Select(s => s.Tables.Single()).ToList();
-            int[] dataRows = tables.Select(t => t.Rows - 1).ToArray();
+            int[] dataRows = tables.Select(t => t.RowCount - 1).ToArray();
             Assert.Equal(17, dataRows.Sum());
             Assert.True(dataRows.Max() - dataRows.Min() <= 1, "Parts are not balanced: " + string.Join(" + ", dataRows));
             Assert.All(tables, t => Assert.Equal("Column 1", t.GetCell(0, 0).Text)); // header repeated
@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests {
                 Assert.True((table.Top + table.Height).ToPoints() <= grid.LiveBottom + 0.5, "The table runs into the footer.");
                 // Continuation rows keep the table's own row height.
                 Assert.Equal(tables[0].GetRowHeight(1), table.GetRowHeight(1));
-                A.RunProperties run = table.TableElement.Descendants<A.RunProperties>().Skip(table.Columns).First();
+                A.RunProperties run = table.TableElement.Descendants<A.RunProperties>().Skip(table.ColumnCount).First();
                 Assert.Equal((int)(presentation.LayoutTheme[PowerPointTextRole.TableBody].Size * 100), run.FontSize!.Value);
             }
         }

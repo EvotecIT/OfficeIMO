@@ -18,7 +18,8 @@ public sealed class PublisherPictureEffectTests {
             Assert.Equal(originals[entry.index], entry.image.GetBytes()));
         Assert.Equal(OfficeColor.FromRgb(expected, expected, expected), ProjectedRaster(document, 362).GetPixel(0, 0));
         Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_PICTURE_EFFECT_APPROXIMATED" && item.Location == "Contents/object/362");
-        Assert.Contains(document.ToSvgResult(PicturePageIndex(document, 362)).Report.Diagnostics,
+        document.ToSvg(PicturePageIndex(document, 362), null, out OfficeConversionReport svgReport);
+        Assert.Contains(svgReport.Diagnostics,
             item => item.Code == "PUB_PICTURE_EFFECT_APPROXIMATED");
         var pdf = document.ToPdf(null, out OfficeConversionReport pdfReport);
         Assert.All(document.ReadReport.Diagnostics, source => Assert.Contains(pdfReport.Diagnostics, item => item.Code == source.Code));

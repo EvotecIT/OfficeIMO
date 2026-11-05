@@ -6,35 +6,73 @@ schema: 2.0.0
 ---
 # Edit-OfficeExcelRow
 ## SYNOPSIS
-Runs a script block against editable worksheet rows.
+Runs a script block against each editable row of a range and writes the changes back.
 
 ## SYNTAX
-### Path (Default)
+### Document (Default)
 ```powershell
-Edit-OfficeExcelRow [-Path] <string> [-ScriptBlock] <scriptblock> [-Sheet <string>] [-SheetIndex <Int32>] [-Range <string>] [-NumericAsDecimal] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Edit-OfficeExcelRow [-ScriptBlock] <scriptblock> [-Sheet <OfficeSheetSelector>] [-Range <string>] [-NumericAsDecimal] [-PassThru] [-Document <ExcelDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Edit-OfficeExcelRow [-ScriptBlock] <scriptblock> -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-Range <string>] [-NumericAsDecimal] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Edit-OfficeExcelRow [-Path] <string[]> [-ScriptBlock] <scriptblock> [-Sheet <OfficeSheetSelector>] [-Range <string>] [-NumericAsDecimal] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Edit-OfficeExcelRow [-ScriptBlock] <scriptblock> -LiteralPath <string[]> [-Sheet <OfficeSheetSelector>] [-Range <string>] [-NumericAsDecimal] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Runs a script block against editable worksheet rows.
+Runs a script block against each editable row of a range and writes the changes back.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Edit-OfficeExcelRow -Path .\Report.xlsx -Sheet Data -ScriptBlock { param($row) if ($row.Get[string]('Status') -eq 'Draft') { $row.Set('Status', 'Ready') } }
+Edit-OfficeExcelRow -Path .\Reports\Releases.xlsx -Sheet Releases -ScriptBlock {
+    param($row)
+    if ($row['Status'].Value -eq 'Draft') { $row.Set('Status', 'Ready') }
+}
 ```
 
-Loads editable row handles, lets the script update cells, and saves the workbook.
+Marks every draft row on the Releases sheet as ready and saves the workbook.
+
+### EXAMPLE 2
+```powershell
+$book = Open-OfficeExcel -Path .\Contracts\Licences.xlsx
+Edit-OfficeExcelRow -Document $book -Sheet Licences -Range A1:F400 -ScriptBlock {
+    param($row)
+    if ($row['State'].Value -eq 'Active') {
+        $row.Set('RenewalDate', $row.Get[datetime]('StartDate').AddYears(1))
+    }
+}
+Save-OfficeExcel -Document $book -PassThru | Close-OfficeExcel
+```
+
+Sets the renewal date of each active licence to one year after its start date in a live workbook, which the script then saves.
+
+### EXAMPLE 3
+```powershell
+$tickets = Import-OfficeCsv -Path .\Data\Tickets.csv
+New-OfficeExcel -Path .\Reports\Tickets.xlsx {
+    ExcelSheet 'Tickets' {
+        ExcelTable $tickets -Name Tickets
+    }
+    Edit-OfficeExcelRow -Sheet Tickets -ScriptBlock {
+        param($row)
+        if (-not $row['Owner'].Value) { $row.Set('Owner', 'Unassigned') }
+    }
+}
+```
+
+Writes imported rows and then fixes up their status inside the same block, without a -Document variable.
 
 ## PARAMETERS
 
 ### -Document
-Workbook to update outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
@@ -42,10 +80,26 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal workbook paths, including FileInfo.FullName and provider PSPath.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -54,7 +108,7 @@ Prefer decimals instead of doubles for numeric values.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -66,11 +120,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit each editable row after the script block runs.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -82,27 +136,27 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Workbook path to update.
+Workbook paths resolved with filesystem wildcard support.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -Range
-A1 range to expose as editable rows. Defaults to the worksheet used range.
+A1 cell range on the selected worksheet.
 
 ```yaml
 Type: String
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -118,7 +172,7 @@ Script block to run once per editable row. The row is passed as the first argume
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -130,27 +184,11 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name. Defaults to the current sheet inside an ExcelSheet block.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Path, Document
-Aliases: WorksheetName
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index when using a workbook object or path.
-
-```yaml
-Type: Int32
-Parameter Sets: Path, Document
+Type: OfficeSheetSelector
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -166,11 +204,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 
-- `PSWriteOffice.Services.Excel.ExcelPowerShellRowEdit`: Header-aware editable worksheet row used by Edit-OfficeExcelRow.
+- `None`
 
 ## RELATED LINKS
 

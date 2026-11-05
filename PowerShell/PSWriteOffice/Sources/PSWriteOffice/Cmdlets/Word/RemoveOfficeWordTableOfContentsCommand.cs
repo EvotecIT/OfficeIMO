@@ -18,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 public sealed class RemoveOfficeWordTableOfContentsCommand : PSCmdlet
 {
     /// <summary>Document to modify when provided explicitly.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public WordDocument? Document { get; set; }
 
     /// <summary>Emit the document after removal.</summary>

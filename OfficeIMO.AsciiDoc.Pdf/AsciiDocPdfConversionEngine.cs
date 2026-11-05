@@ -13,10 +13,10 @@ internal static class AsciiDocPdfConversionEngine {
         ArgumentNullException.ThrowIfNull(document);
 
         AsciiDocPdfExportOptions operation = (options ?? new AsciiDocPdfExportOptions()).CloneForConversion();
-        AsciiDocToMarkdownResult projection = document.ToMarkdownDocumentResult(operation.ProjectionOptions);
-        PdfCore.PdfDocumentConversionResult result = projection.Value.ConvertToPdfWithEvidence(operation.MarkdownOptions, cancellationToken);
+        var projection = document.ToMarkdown(operation.ProjectionOptions, out OfficeConversionReport projectionReport, cancellationToken);
+        PdfCore.PdfDocumentConversionResult result = projection.ConvertToPdfWithEvidence(operation.MarkdownOptions, cancellationToken);
         return result
-            .WithSourceConversionReport(projection.Report)
+            .WithSourceConversionReport(projectionReport)
             .WithAdditionalWarnings(ToPdfWarnings(document));
     }
 

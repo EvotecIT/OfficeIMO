@@ -13,14 +13,14 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///   <para>Adds a decision diamond to the active Visio page.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeVisioDiamond", DefaultParameterSetName = "Page")]
-[Alias("VisioDiamond")]
 [OutputType(typeof(VisioShape))]
+[Alias("VisioDiamond") ]
 public sealed class AddOfficeVisioDiamondCommand : OfficeVisioShapeCmdlet {
     /// <summary>Retains the native diamond dimensions.</summary>
     public AddOfficeVisioDiamondCommand() { Width = OfficeIMO.OfficeLength.Inches(1); }
 
     /// <summary>Text placed inside the shape.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(Position = 0, ParameterSetName = "Page")]
     public string? Text { get; set; }
 
     /// <inheritdoc />

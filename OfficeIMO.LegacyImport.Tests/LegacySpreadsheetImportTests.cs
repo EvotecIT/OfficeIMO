@@ -571,7 +571,7 @@ public sealed class LegacySpreadsheetImportTests {
         imported.Value.Save(xlsx);
         Assert.True(xlsx.Length > 100);
         Assert.Contains("Name", imported.Value.ToHtml());
-        Assert.Contains("Name", imported.Value.Sheets[0].ToCsv());
+        Assert.Contains("Name", imported.Value.Sheets[0].ToCsv().ToString());
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString((imported.Value.ToPdf()).ToBytes(), 0, 4));
         using var ods = new MemoryStream();
         imported.Value.ToOpenDocument().Save(ods);

@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 [OutputType(typeof(ProjectTask))]
 public sealed class SetOfficeProjectTaskCommand : PSCmdlet {
     /// <summary>Editable task returned by Get-OfficeProjectTask.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Task")]
     public ProjectTask Task { get; set; } = null!;
 
     /// <summary>New task name.</summary>
@@ -40,7 +40,7 @@ public sealed class SetOfficeProjectTaskCommand : PSCmdlet {
 
     /// <summary>Explicit manual scheduling choice.</summary>
     [Parameter]
-    public bool? Manual { get; set; }
+    public SwitchParameter Manual { get; set; }
 
     /// <summary>Return the changed task.</summary>
     [Parameter]
@@ -56,7 +56,7 @@ public sealed class SetOfficeProjectTaskCommand : PSCmdlet {
         if (Start.HasValue) Task.Start = Start;
         if (Finish.HasValue) Task.Finish = Finish;
         if (PercentComplete.HasValue) Task.PercentComplete = PercentComplete;
-        if (Manual.HasValue) Task.IsManual = Manual;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Manual))) Task.IsManual = Manual.IsPresent;
         if (PassThru.IsPresent) WriteObject(Task);
     }
 }

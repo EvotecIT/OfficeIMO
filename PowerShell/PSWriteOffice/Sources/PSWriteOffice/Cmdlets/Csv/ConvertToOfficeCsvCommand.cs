@@ -36,9 +36,9 @@ namespace PSWriteOffice.Cmdlets.Csv;
 [OutputType(typeof(string))]
 public sealed class ConvertToOfficeCsvCommand : PSCmdlet
 {
-    private const string ParameterSetInputObjectDelimiter = "InputObjectDelimiter";
+    private const string ParameterSetInputObjectDelimiter = "InputObject";
     private const string ParameterSetInputObjectCulture = "InputObjectCulture";
-    private const string ParameterSetDocumentDelimiter = "DocumentDelimiter";
+    private const string ParameterSetDocumentDelimiter = "Document";
     private const string ParameterSetDocumentCulture = "DocumentCulture";
     private readonly CsvPowerShellObjectProjector _objectProjector = new();
     private CsvPowerShellLineWriter? _lineWriter;
@@ -50,19 +50,15 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     public CsvDocument Document { get; set; } = null!;
 
     /// <summary>Objects to convert into CSV rows.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectDelimiter)]
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectCulture)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectDelimiter)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectCulture)]
+    [AllowNull, AllowEmptyString, AllowEmptyCollection]
     public object? InputObject { get; set; }
 
-    /// <summary>Field delimiter character.</summary>
+    /// <summary>Field delimiter text, including multi-character separators.</summary>
     [Parameter(ParameterSetName = ParameterSetInputObjectDelimiter)]
     [Parameter(ParameterSetName = ParameterSetDocumentDelimiter)]
-    public char Delimiter { get; set; } = ',';
-
-    /// <summary>Field delimiter text for multi-character delimiters such as || or ::.</summary>
-    [Parameter(ParameterSetName = ParameterSetInputObjectDelimiter)]
-    [Parameter(ParameterSetName = ParameterSetDocumentDelimiter)]
-    public string? DelimiterText { get; set; }
+    public string Delimiter { get; set; } = ",";
 
     /// <summary>Use the list separator from the selected or current culture as the delimiter.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetInputObjectCulture)]
@@ -170,7 +166,7 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
             throw new PSArgumentException("The selected culture must provide a single-character list separator.");
         }
 
-        Delimiter = separator[0];
+        Delimiter = separator;
     }
 
     private void EmitCsv(CsvDocument document)
@@ -313,8 +309,8 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     {
         var options = new CsvSaveOptions
         {
-            Delimiter = Delimiter,
-            DelimiterText = DelimiterText,
+            Delimiter = Delimiter.Length == 1 ? Delimiter[0] : ',',
+            DelimiterText = Delimiter,
             IncludeHeader = !NoHeader.IsPresent,
             Culture = Culture ?? CultureInfo.InvariantCulture,
             FormulaInjectionPolicy = FormulaInjectionPolicy,

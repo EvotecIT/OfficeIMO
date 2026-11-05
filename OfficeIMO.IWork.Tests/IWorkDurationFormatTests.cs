@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Qualified_duration_only_empty_cells_preserve_semantic_and_saved_xlsx_formats(IWorkDocumentKind kind) {
         using var package = EmptyDurationFormatPackage(kind);
-        var source = IWorkSourceDocument.Open(package, kind);
+        var source = IWorkSourceDocument.Load(package, kind);
         var cell = Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells);
         Assert.Equal(IWorkCellKind.Empty, cell.Kind);
         Assert.Null(cell.Value);
@@ -29,8 +29,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Qualified_duration_only_empty_cells_consume_the_materialization_budget() {
         using var package = EmptyDurationFormatPackage(IWorkDocumentKind.Numbers, columns: 2);
-        Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
+        Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     [Theory]
@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Qualified_duration_format_retains_source_seconds_and_shared_display(IWorkDocumentKind kind) {
         using var package = DurationFormatPackage(kind, 8640);
-        var source = IWorkSourceDocument.Open(package, kind);
+        var source = IWorkSourceDocument.Load(package, kind);
         var cell = Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells);
         Assert.Equal(8640d, cell.Value);
         Assert.Equal("8640s", cell.CachedDisplayText);
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(129600d, "36h 0m")]
     public void Qualified_duration_format_survives_saved_xlsx(double seconds, string expected) {
         using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, seconds);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED");
@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Qualified_duration_format_reaches_saved_text_tables(IWorkDocumentKind kind) {
         using var package = DurationFormatPackage(kind, -8640);
-        var source = IWorkSourceDocument.Open(package, kind);
+        var source = IWorkSourceDocument.Load(package, kind);
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }); Assert.False(result.IsVisualFallback);
@@ -107,7 +107,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(-922337203685.4776)]
     public void Duration_outside_the_shared_display_range_preserves_raw_text_and_reports_omission(double seconds) {
         using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, seconds);
-        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
+        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.False(cell.TryGetFormattedNumber(out string raw, out _));
         Assert.Equal(cell.CachedDisplayText, raw);
         package.Position = 0;
@@ -119,7 +119,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Reader_duration_formatting_and_diagnostics_respect_projected_header_and_cell_limits() {
         using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, 8640);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var format = source.ReadNumbers().Sheets[0].Tables[0].Cells[0].NumberFormat;
         var table = new IWorkTable("Limited", 3, 2, new[] {
             new IWorkTableCell(1, 1, IWorkCellKind.Duration, 8640d, numberFormat: format),
@@ -159,7 +159,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => Message(VarintField(1, 268), VarintField(7, 1), VarintField(15, 4), VarintField(16, 8))
         };
         using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, 8640, format);
-        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
+        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Equal(8640d, cell.Value); Assert.Null(cell.NumberFormat);
         Assert.Equal(IWorkCellUnsupportedFeatures.DurationFormat, cell.UnsupportedFeatures);
         package.Position = 0;

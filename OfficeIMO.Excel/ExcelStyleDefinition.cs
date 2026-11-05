@@ -13,11 +13,11 @@ namespace OfficeIMO.Excel {
         /// <summary>Optional underline treatment.</summary>
         public ExcelUnderlineStyle? Underline { get; set; }
         /// <summary>Optional font family; null keeps the Normal font.</summary>
-        public string? FontName { get; set; }
+        public string? FontFamily { get; set; }
         /// <summary>Optional positive physical font size; null keeps the Normal font size.</summary>
         public OfficeLength? FontSize { get; set; }
         /// <summary>Optional font color.</summary>
-        public OfficeColor? FontColor { get; set; }
+        public OfficeColor? Color { get; set; }
         /// <summary>Optional solid background color.</summary>
         public OfficeColor? BackgroundColor { get; set; }
         /// <summary>Wraps text within the cell.</summary>
@@ -39,11 +39,11 @@ namespace OfficeIMO.Excel {
             if (FontSize.HasValue && FontSize.Value <= OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(FontSize), "Font size must be positive.");
             }
-            ValidateText(FontName, nameof(FontName));
+            ValidateText(FontFamily, nameof(FontFamily));
             ValidateText(NumberFormat, nameof(NumberFormat));
             return new ExcelStyleDefinition {
-                Bold = Bold, Italic = Italic, Underline = Underline, FontName = FontName?.Trim(),
-                FontSize = FontSize, FontColor = FontColor, BackgroundColor = BackgroundColor,
+                Bold = Bold, Italic = Italic, Underline = Underline, FontFamily = FontFamily?.Trim(),
+                FontSize = FontSize, Color = Color, BackgroundColor = BackgroundColor,
                 WrapText = WrapText, HorizontalAlignment = HorizontalAlignment,
                 VerticalAlignment = VerticalAlignment, NumberFormat = NumberFormat
             };

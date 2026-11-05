@@ -16,10 +16,10 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape shadow = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ShadowRect");
-                    shadow.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(6), distance: OfficeIMO.OfficeLength.Points(5), angleDegrees: 270, transparencyPercent: 40);
+                    shadow.SetShadow(OfficeColor.Parse("000000"), blur: OfficeIMO.OfficeLength.Points(6), distance: OfficeIMO.OfficeLength.Points(5), angleDegrees: 270, transparencyPercent: 40);
 
                     PowerPointAutoShape clear = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ClearRect");
-                    clear.SetShadow("FF0000", blur: OfficeIMO.OfficeLength.Points(4), distance: OfficeIMO.OfficeLength.Points(3), angleDegrees: 45, transparencyPercent: 20);
+                    clear.SetShadow(OfficeColor.Parse("FF0000"), blur: OfficeIMO.OfficeLength.Points(4), distance: OfficeIMO.OfficeLength.Points(3), angleDegrees: 45, transparencyPercent: 20);
                     clear.ClearShadow();
 
                     presentation.Save();
@@ -63,11 +63,11 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape glowShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "GlowRect");
-                    glowShape.SetGlow("FF00FF", radius: OfficeIMO.OfficeLength.Points(5), transparencyPercent: 25);
+                    glowShape.SetGlow(OfficeColor.Parse("FF00FF"), radius: OfficeIMO.OfficeLength.Points(5), transparencyPercent: 25);
                     glowShape.SetSoftEdges(OfficeIMO.OfficeLength.Points(3));
 
                     PowerPointAutoShape clearShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ClearEffectsRect");
-                    clearShape.SetGlow("00FF00", radius: OfficeIMO.OfficeLength.Points(4), transparencyPercent: 10);
+                    clearShape.SetGlow(OfficeColor.Parse("00FF00"), radius: OfficeIMO.OfficeLength.Points(4), transparencyPercent: 10);
                     clearShape.SetSoftEdges(OfficeIMO.OfficeLength.Points(2));
                     clearShape.ClearGlow();
                     clearShape.ClearSoftEdges();
@@ -171,11 +171,11 @@ namespace OfficeIMO.Tests {
 
                     shape.SetSoftEdges(OfficeIMO.OfficeLength.Points(2));
                     shape.SetReflection(blur: OfficeIMO.OfficeLength.Points(2), distance: OfficeIMO.OfficeLength.Points(1), startOpacityPercent: 20);
-                    shape.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(6), distance: OfficeIMO.OfficeLength.Points(3), transparencyPercent: 55);
-                    shape.SetGlow("F26A3D", radius: OfficeIMO.OfficeLength.Points(3), transparencyPercent: 30);
-                    shape.FillColor = "EFE8DA";
+                    shape.SetShadow(OfficeColor.Parse("000000"), blur: OfficeIMO.OfficeLength.Points(6), distance: OfficeIMO.OfficeLength.Points(3), transparencyPercent: 55);
+                    shape.SetGlow(OfficeColor.Parse("F26A3D"), radius: OfficeIMO.OfficeLength.Points(3), transparencyPercent: 30);
+                    shape.FillColor = OfficeColor.Parse("EFE8DA");
                     shape.FillTransparency = 8;
-                    shape.OutlineColor = "6B6EA8";
+                    shape.OutlineColor = OfficeColor.Parse("6B6EA8");
                     shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2);
 
                     presentation.Save();

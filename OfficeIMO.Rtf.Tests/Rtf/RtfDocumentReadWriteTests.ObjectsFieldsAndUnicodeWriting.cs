@@ -81,7 +81,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Write_And_Read_Double_Strike_And_Caps_Effects_Without_Leaking() {
         RtfDocument document = RtfDocument.Create();
         RtfParagraph paragraph = document.AddParagraph();
-        paragraph.AddText("Double").SetDoubleStrike();
+        paragraph.AddText("Double").SetDoubleStrikethrough();
         paragraph.AddText(" Caps").SetCapsStyle(RtfCapsStyle.Caps);
         paragraph.AddText(" Small").SetCapsStyle(RtfCapsStyle.SmallCaps);
         paragraph.AddText(" plain");
@@ -97,11 +97,11 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Contains(@"\scaps0", rtf, StringComparison.Ordinal);
 
         RtfParagraph readParagraph = Assert.Single(result.Document.Paragraphs);
-        Assert.Contains(readParagraph.Runs, run => run.Text == "Double" && run.DoubleStrike);
+        Assert.Contains(readParagraph.Runs, run => run.Text == "Double" && run.DoubleStrikethrough);
         Assert.Contains(readParagraph.Runs, run => run.Text == " Caps" && run.CapsStyle == RtfCapsStyle.Caps);
         Assert.Contains(readParagraph.Runs, run => run.Text == " Small" && run.CapsStyle == RtfCapsStyle.SmallCaps);
         RtfRun plain = readParagraph.Runs.Single(run => run.Text == " plain");
-        Assert.False(plain.DoubleStrike);
+        Assert.False(plain.DoubleStrikethrough);
         Assert.Equal(RtfCapsStyle.None, plain.CapsStyle);
     }
 

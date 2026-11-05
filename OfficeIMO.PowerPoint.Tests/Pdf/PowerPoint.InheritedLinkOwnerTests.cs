@@ -63,8 +63,8 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         string expected = kind == "external" ? "https://example.com/correct-owner" : "#slide-2";
         PowerPointTable inherited = Assert.Single(reopened.Slides[0].GetInheritedShapesForExport().OfType<PowerPointTable>());
         Assert.Equal(expected, inherited.GetCell(0, 0).Paragraphs[0].Runs.Single(r => r.Text == "Inherited link").Hyperlink?.OriginalString);
-        Assert.Equal(expected, inherited.RowItems[0].Cells[0].Runs.Single(r => r.Text == "Inherited link").Hyperlink?.OriginalString);
-        Assert.Equal(expected, inherited.ColumnItems[0].GetCell(0).Runs.Single(r => r.Text == "Inherited link").Hyperlink?.OriginalString);
+        Assert.Equal(expected, inherited.Rows[0].Cells[0].Runs.Single(r => r.Text == "Inherited link").Hyperlink?.OriginalString);
+        Assert.Equal(expected, inherited.Columns[0].GetCell(0).Runs.Single(r => r.Text == "Inherited link").Hyperlink?.OriginalString);
         var conversion = reopened.ConvertToPdfWithEvidence();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(conversion.ToBytes());
         Assert.Equal(kind == "next" ? 1 : 2, pdf.LinkAnnotations.Count);

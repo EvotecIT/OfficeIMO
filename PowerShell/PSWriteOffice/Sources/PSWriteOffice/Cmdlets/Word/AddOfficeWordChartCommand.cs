@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,19 +12,6 @@ using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
-
-/// <summary>Chart types supported by Add-OfficeWordChart.</summary>
-public enum WordChartType
-{
-    /// <summary>Pie chart.</summary>
-    Pie,
-    /// <summary>Bar chart.</summary>
-    Bar,
-    /// <summary>Line chart.</summary>
-    Line,
-    /// <summary>Area chart.</summary>
-    Area
-}
 
 /// <summary>Adds a chart to a Word document.</summary>
 /// <para>Creates a Word chart from object data using one category property and one or more numeric series properties.</para>
@@ -56,13 +44,15 @@ public enum WordChartType
 ///   <para>Creates a multi-series line chart on the document and shows a legend.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordChart", DefaultParameterSetName = ParameterSetContext)]
-[Alias("WordChart")]
 [OutputType(typeof(WordChart))]
+[Alias("WordChart") ]
 public sealed class AddOfficeWordChartCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetParagraph = "Paragraph";
+
+    private readonly List<object> _input = new();
 
     private static readonly string[] DefaultSeriesPalette =
     {
@@ -75,19 +65,19 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
     };
 
     /// <summary>Target document that will receive the chart.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocument)]
     public WordDocument? Document { get; set; }
 
     /// <summary>Target paragraph used as the chart anchor.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetParagraph)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetParagraph)]
     public WordParagraph? Paragraph { get; set; }
 
     /// <summary>Chart type to create.</summary>
     [Parameter]
-    public WordChartType Type { get; set; } = WordChartType.Pie;
+    public OfficeChartType Type { get; set; } = OfficeChartType.Pie;
 
     /// <summary>Source objects used to build chart data.</summary>
-    [Parameter(Mandatory = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true)]
     [Alias("Data")]
     public object[] InputObject { get; set; } = Array.Empty<object>();
 
@@ -99,13 +89,15 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
     [Parameter(Mandatory = true)]
     public string[] Value { get; set; } = Array.Empty<string>();
 
-    /// <summary>Chart width in pixels.</summary>
+    /// <summary>Chart width; numbers mean points.</summary>
     [Parameter]
-    public int WidthPixels { get; set; } = 600;
+    [OfficeLengthTransformation]
+    public OfficeIMO.OfficeLength Width { get; set; } = OfficeIMO.OfficeLength.Pixels(600);
 
-    /// <summary>Chart height in pixels.</summary>
+    /// <summary>Chart height; numbers mean points.</summary>
     [Parameter]
-    public int HeightPixels { get; set; } = 360;
+    [OfficeLengthTransformation]
+    public OfficeIMO.OfficeLength Height { get; set; } = OfficeIMO.OfficeLength.Pixels(360);
 
     /// <summary>Optional chart title.</summary>
     [Parameter]
@@ -113,9 +105,9 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
 
     /// <summary>Color values applied to the series in order.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string[] SeriesColor { get; set; } = Array.Empty<string>();
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor[] SeriesColor { get; set; } = Array.Empty<OfficeColor>();
 
     /// <summary>Add a legend to the chart.</summary>
     [Parameter]
@@ -148,6 +140,13 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
+        if (InputObject != null) _input.AddRange(InputObject);
+    }
+
+    /// <inheritdoc />
+    protected override void EndProcessing()
+    {
+        InputObject = _input.ToArray();
         if (InputObject == null || InputObject.Length == 0)
         {
             throw new PSArgumentException("Provide at least one data item.", nameof(InputObject));
@@ -158,19 +157,19 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
             throw new PSArgumentException("Provide at least one -Value.", nameof(Value));
         }
 
-        if (Type == WordChartType.Pie && Value.Length > 1)
+        if (Type == OfficeChartType.Pie && Value.Length > 1)
         {
             throw new PSArgumentException("Pie charts support only one series property.", nameof(Value));
         }
 
-        if (WidthPixels <= 0)
+        if (Width <= OfficeIMO.OfficeLength.Zero)
         {
-            throw new ArgumentOutOfRangeException(nameof(WidthPixels), "WidthPixels must be greater than 0.");
+            throw new ArgumentOutOfRangeException(nameof(Width), "Width must be greater than 0.");
         }
 
-        if (HeightPixels <= 0)
+        if (Height <= OfficeIMO.OfficeLength.Zero)
         {
-            throw new ArgumentOutOfRangeException(nameof(HeightPixels), "HeightPixels must be greater than 0.");
+            throw new ArgumentOutOfRangeException(nameof(Height), "Height must be greater than 0.");
         }
 
         if (FitToPageWidth.IsPresent && (WidthFraction <= 0 || WidthFraction > 1))
@@ -200,71 +199,41 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
 
         if (Paragraph != null)
         {
-            return Paragraph.AddChart(title,width: OfficeIMO.OfficeLength.Pixels(WidthPixels),height: OfficeIMO.OfficeLength.Pixels(HeightPixels));
+            return Paragraph.AddChart(title,width: Width,height: Height);
         }
 
         if (Document != null)
         {
-            return Document.AddChart(title,width: OfficeIMO.OfficeLength.Pixels(WidthPixels),height: OfficeIMO.OfficeLength.Pixels(HeightPixels));
+            return Document.AddChart(title,width: Width,height: Height);
         }
 
         var context = WordDslContext.Require(this);
         if (context.CurrentParagraph != null)
         {
-            return context.CurrentParagraph.AddChart(title,width: OfficeIMO.OfficeLength.Pixels(WidthPixels),height: OfficeIMO.OfficeLength.Pixels(HeightPixels));
+            return context.CurrentParagraph.AddChart(title,width: Width,height: Height);
         }
 
         var paragraph = context.RequireParagraphHost().AddParagraph();
-        return paragraph.AddChart(title,width: OfficeIMO.OfficeLength.Pixels(WidthPixels),height: OfficeIMO.OfficeLength.Pixels(HeightPixels));
+        return paragraph.AddChart(title,width: Width,height: Height);
     }
 
     private void PopulateChart(WordChart chart, IReadOnlyList<object> items)
     {
-        if (Type == WordChartType.Pie)
-        {
-            var seriesName = Value[0];
-            foreach (var item in items)
-            {
-                var category = ConvertToString(GetPropertyValue(item, Category), Category);
-                var value = ConvertToDouble(GetPropertyValue(item, seriesName), seriesName);
-                chart.AddPie(category, value);
-            }
-
-            return;
-        }
-
-        var categories = items.Select(item => ConvertToString(GetPropertyValue(item, Category), Category)).ToList();
-        chart.AddChartAxisX(categories);
-
-        for (var index = 0; index < Value.Length; index++)
-        {
-            var seriesName = Value[index];
-            var values = items.Select(item => ConvertToDouble(GetPropertyValue(item, seriesName), seriesName)).ToList();
-            var color = ResolveSeriesColor(index);
-
-            switch (Type)
-            {
-                case WordChartType.Line:
-                    chart.AddLine(seriesName, values, color);
-                    break;
-                case WordChartType.Area:
-                    chart.AddArea(seriesName, values, color);
-                    break;
-                default:
-                    chart.AddBar(seriesName, values, color);
-                    break;
-            }
-        }
+        OfficeChartData source = PSWriteOffice.Services.OfficeChartDataBuilder.Build(items.ToArray(), Category, Value, Type);
+        WordDocument document = Paragraph?._document ?? Document ?? WordDslContext.Require(this).Document;
+        var series = source.Series.Select((item, index) => new OfficeSeries(item.Name, item.Values, item.XValues,
+            OfficeColor.ParseHex(WordRunColor.Create(ResolveSeriesColor(index), document).Val!.Value!))).ToArray();
+        chart.SetData(Type, new OfficeChartData(source.Categories, series));
     }
 
     private void ApplyFormatting(WordChart chart)
     {
         if (FitToPageWidth.IsPresent)
         {
-            chart.SetWidthToPageContent(WidthFraction,OfficeIMO.OfficeLength.Pixels(HeightPixels));
+            chart.SetWidthToPageContent(WidthFraction,Height);
         }
 
-        if (Type != WordChartType.Pie)
+        if (Type != OfficeChartType.Pie)
         {
             if (!string.IsNullOrWhiteSpace(XAxisTitle))
             {
@@ -283,72 +252,6 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
         }
     }
 
-    private OfficeColor ResolveSeriesColor(int index)
-    {
-        var colorValue = index < SeriesColor.Length && !string.IsNullOrWhiteSpace(SeriesColor[index])
-            ? SeriesColor[index]
-            : DefaultSeriesPalette[index % DefaultSeriesPalette.Length];
-
-        return OfficeColor.Parse(colorValue);
-    }
-
-    private static object? GetPropertyValue(object item, string propertyName)
-    {
-        if (string.IsNullOrWhiteSpace(propertyName))
-        {
-            throw new PSArgumentException("Property name cannot be empty.", nameof(propertyName));
-        }
-
-        if (item is IDictionary dictionary)
-        {
-            foreach (DictionaryEntry entry in dictionary)
-            {
-                if (entry.Key is string key && string.Equals(key, propertyName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return entry.Value;
-                }
-            }
-        }
-
-        var property = PSObject.AsPSObject(item).Properties[propertyName];
-        if (property == null)
-        {
-            throw new PSArgumentException($"Property '{propertyName}' was not found on chart data item.");
-        }
-
-        return property.Value;
-    }
-
-    private static string ConvertToString(object? value, string propertyName)
-    {
-        if (value == null)
-        {
-            throw new PSArgumentException($"Property '{propertyName}' cannot be null.");
-        }
-
-        var text = Convert.ToString(value, CultureInfo.InvariantCulture);
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            throw new PSArgumentException($"Property '{propertyName}' cannot be empty.");
-        }
-
-        return text;
-    }
-
-    private static double ConvertToDouble(object? value, string propertyName)
-    {
-        if (value == null)
-        {
-            throw new PSArgumentException($"Property '{propertyName}' cannot be null.");
-        }
-
-        try
-        {
-            return Convert.ToDouble(value, CultureInfo.InvariantCulture);
-        }
-        catch (Exception)
-        {
-            throw new PSArgumentException($"Property '{propertyName}' must be numeric.", propertyName);
-        }
-    }
+    private OfficeColor ResolveSeriesColor(int index) => index < SeriesColor.Length
+        ? SeriesColor[index] : OfficeColor.Parse(DefaultSeriesPalette[index % DefaultSeriesPalette.Length]);
 }

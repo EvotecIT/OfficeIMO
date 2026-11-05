@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Excel;
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 using PSWriteOffice.Services.Table;
@@ -14,129 +16,120 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Writes tabular data to the current worksheet and formats it as an Excel table.</summary>
 /// <para>Accepts objects, dictionaries, DataTable/DataView/IDataReader inputs, or DataRow sequences and writes them into an Excel table with optional styling.</para>
 /// <example>
-///   <summary>Insert a table starting at ExcelA1.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$data = @([pscustomobject]@{ Region='NA'; Revenue=100 }, [pscustomobject]@{ Region='EMEA'; Revenue=150 })
-///   ExcelSheet 'Data' { Add-OfficeExcelTable -InputObject $data -Name 'Sales' }</code>
-///   <para>Writes two rows and formats them as a styled Excel table.</para>
+/// <summary>Write objects as a table</summary>
+/// <code>New-OfficeExcel -Path .\Services.xlsx {
+///     ExcelSheet 'Services' {
+///         ExcelTable (Get-Service)
+///     }
+/// }</code>
+/// <para>Writes the services as a themed table with a frozen header, filters and fitted columns.</para>
 /// </example>
 /// <example>
-///   <summary>Add a table to an explicit worksheet.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Add-OfficeExcelTable -Worksheet $sheet -InputObject $rows -Name 'Sales' -AutoFit</code>
-///   <para>Writes the rows into a live workbook without requiring an active DSL scope.</para>
+/// <summary>Place two named tables on a sheet</summary>
+/// <code>$targets = Import-OfficeCsv -Path .\Data\Q3-Targets.csv
+/// $actuals = Import-OfficeCsv -Path .\Data\Q3-Actuals.csv
+/// New-OfficeExcel -Path .\Reports\Q3-Performance.xlsx {
+///     ExcelSheet 'Performance' {
+///         ExcelTable $targets -Name Targets -Address A1
+///         ExcelTable $actuals -Name Actuals -Address G1 -ColumnFormat @{ Attainment = 'Percent' }
+///     }
+/// }</code>
+/// <para>Writes this quarter's targets and actuals side by side as named tables, so charts, formulas and later imports can refer to them by name.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeExcelTable", DefaultParameterSetName = "Default")]
 [Alias("ExcelTable")]
 public sealed class AddOfficeExcelTableCommand : PSCmdlet
 {
     private readonly List<object?> _items = new();
-
-    /// <summary>Worksheet that will receive the table outside a DSL context.</summary>
-    [Parameter]
-    [Alias("SheetObject")]
-    public ExcelSheet? Worksheet { get; set; }
-
-    /// <summary>Workbook that will receive the table outside a DSL context.</summary>
-    [Parameter]
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
     public ExcelDocument? Document { get; set; }
 
-    /// <summary>Worksheet name when using <see cref="Document"/>.</summary>
-    [Parameter]
-    public string? Sheet { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
-    /// <summary>Worksheet index (0-based) when using <see cref="Document"/>.</summary>
-    [Parameter]
-    public int? SheetIndex { get; set; }
+    /// <summary>Objects, dictionaries or native tabular data supplied directly or through the pipeline.</summary>
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    public object InputObject { get; set; } = null!;
 
-    /// <summary>Source objects, dictionaries, DataTable/DataView/IDataReader inputs, or DataRow sequences to convert into table rows.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("Data", "DataTable")]
-    public object? InputObject { get; set; }
+    /// <summary>Name to assign to the table.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public string? Name { get; set; }
 
-    /// <summary>Starting row for the data (1-based).</summary>
-    [Parameter]
-    public int StartRow { get; set; } = 1;
+    /// <summary>A1 address of the target cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public string? Address { get; set; }
 
-    /// <summary>Starting column for the data (1-based).</summary>
-    [Parameter]
-    public int StartColumn { get; set; } = 1;
+    /// <summary>Built-in table style to apply.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public ExcelTableStyle TableStyle { get; set; } = ExcelTableStyle.TableStyleMedium9;
 
-    /// <summary>Skip writing headers.</summary>
-    [Parameter]
+    /// <summary>Writes plain cells without creating a native Excel table.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter NoTable { get; set; }
+
+    /// <summary>Creates the table without a named visual style.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter NoTableStyle { get; set; }
+
+    /// <summary>Writes data without a header row.</summary>
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter NoHeader { get; set; }
 
+    /// <summary>Omits table filter buttons.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter NoAutoFilter { get; set; }
+
+    /// <summary>Retains native column widths without fitting them to the data.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter NoAutoFit { get; set; }
+
+    /// <summary>Keeps the header row scrollable.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter NoFreeze { get; set; }
+
+    /// <summary>Emphasizes the first table column; explicit false removes the emphasis.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter ShowFirstColumn { get; set; }
+
+    /// <summary>Emphasizes the last table column; explicit false removes the emphasis.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter ShowLastColumn { get; set; }
+
+    /// <summary>Enables alternating column bands; explicit false clears them.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter ShowColumnStripes { get; set; }
+
+    /// <summary>Disables alternating row bands. An explicit false value enables them.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter NoRowStripes { get; set; }
+
+    /// <summary>Maps column headers to number-format presets, format codes or per-column option hashtables.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public Hashtable? ColumnFormat { get; set; }
+
+    /// <summary>Culture used for value conversion and number-format presets.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public CultureInfo Culture { get; set; } = CultureInfo.CurrentCulture;
+
     /// <summary>Projection to apply before writing the table.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public OfficeTableView View { get; set; } = OfficeTableView.Normal;
 
-    /// <summary>Text used between items when a cell contains a collection.</summary>
-    [Parameter]
+    /// <summary>Text inserted between collection values flattened into one cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
     [AllowEmptyString]
     public string CollectionSeparator { get; set; } = ", ";
 
-    /// <summary>Text used between entries when a cell contains a dictionary.</summary>
-    [Parameter]
-    [AllowEmptyString]
-    public string DictionaryEntrySeparator { get; set; } = "; ";
+    /// <summary>Nested-value projection policy; accepts a native options object or hashtable.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeOptionsTransformation(typeof(OfficeObjectFlattenOptions))]
+    public OfficeObjectFlattenOptions? FlattenOptions { get; set; }
 
-    /// <summary>Text used between a dictionary key and value.</summary>
-    [Parameter]
-    [AllowEmptyString]
-    public string DictionaryKeyValueSeparator { get; set; } = ": ";
-
-    /// <summary>Maximum number of items allowed in one nested collection or dictionary cell. Defaults to 1,048,575; increase explicitly for trusted larger values.</summary>
-    [Parameter]
-    [ValidateRange(1, int.MaxValue)]
-    public int MaxCollectionItems { get; set; } = PowerShellObjectNormalizerOptions.DefaultMaxCollectionItems;
-
-    /// <summary>Maximum nesting depth allowed while normalizing one cell value. Defaults to 64; increase explicitly for trusted deeper values.</summary>
-    [Parameter]
-    [ValidateRange(1, int.MaxValue)]
-    public int MaxNestingDepth { get; set; } = PowerShellObjectNormalizerOptions.DefaultMaxNestingDepth;
-
-    /// <summary>Name to assign to the table.</summary>
-    [Parameter]
-    public string? Name { get; set; }
-
-    /// <summary>Header-to-format mapping, using presets such as Percent or custom Excel number formats.</summary>
-    [Parameter]
-    public Hashtable? ColumnFormat { get; set; }
-
-    /// <summary>Culture used by number-format presets.</summary>
-    [Parameter]
-    public CultureInfo Culture { get; set; } = CultureInfo.CurrentCulture;
-
-    /// <summary>Built-in table style to apply.</summary>
-    [Parameter]
-    public ExcelTableStyle TableStyle { get; set; } = ExcelTableStyle.TableStyleMedium9;
-
-    /// <summary>Emphasize the first table column when the selected style supports it.</summary>
-    [Parameter]
-    public SwitchParameter ShowFirstColumn { get; set; }
-
-    /// <summary>Emphasize the last table column when the selected style supports it.</summary>
-    [Parameter]
-    public SwitchParameter ShowLastColumn { get; set; }
-
-    /// <summary>Disable alternating row stripes for the created table.</summary>
-    [Parameter]
-    public SwitchParameter NoRowStripes { get; set; }
-
-    /// <summary>Enable alternating column stripes for the created table.</summary>
-    [Parameter]
-    public SwitchParameter ShowColumnStripes { get; set; }
-
-    /// <summary>Disable AutoFilter dropdowns.</summary>
-    [Parameter]
-    public SwitchParameter NoAutoFilter { get; set; }
-
-    /// <summary>Auto-fit the table columns after insertion.</summary>
-    [Parameter]
-    public SwitchParameter AutoFit { get; set; }
-
-    /// <summary>Return the created range string.</summary>
-    [Parameter]
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
@@ -148,16 +141,38 @@ public sealed class AddOfficeExcelTableCommand : PSCmdlet
     /// <inheritdoc />
     protected override void EndProcessing()
     {
+        var dataSet = ExcelTabularInputService.TryGetSingleDataSet(_items);
+        if (dataSet != null) {
+            if (Sheet != null || Address != null || Name != null || View != OfficeTableView.Normal)
+                throw new PSArgumentException("A DataSet creates one worksheet per DataTable. Sheet, Address, Name and View apply to single-table input.");
+            var plan = ExcelColumnFormatPlanService.Build(ColumnFormat, null, null, null, null, null, null, null, 2, Culture.Name);
+            if (plan != null) {
+                if (NoHeader) throw new PSArgumentException("Column formats require a header row.");
+                var headers = new HashSet<string>(dataSet.Tables.Cast<System.Data.DataTable>().SelectMany(table => table.Columns.Cast<System.Data.DataColumn>().Select(column => column.ColumnName)), StringComparer.OrdinalIgnoreCase);
+                foreach (var rule in plan.Rules) if (!headers.Contains(rule.Header)) throw new PSArgumentException($"Column '{rule.Header}' was not found in any DataSet table.");
+            }
+            var document = ExcelCommandTargets.Document(Document);
+            var style = NoTableStyle ? ExcelTableStyle.None : TableStyle;
+            foreach (var result in document.InsertDataSet(dataSet, createTables: !NoTable, tableStyle: style, includeHeaders: !NoHeader, includeAutoFilter: !NoAutoFilter, autoFit: !NoAutoFit)) {
+                var target = document[result.SheetName];
+                if (plan != null) target.ApplyColumnFormatPlan(plan, headerRow: 1);
+                if (!NoTable && result.TableName != null)
+                    ExcelTableStyleOptionService.Apply(target, result.TableName, style,
+                        ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(ShowFirstColumn), ShowFirstColumn),
+                        ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(ShowLastColumn), ShowLastColumn),
+                        ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(NoRowStripes), NoRowStripes),
+                        ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(ShowColumnStripes), ShowColumnStripes));
+                if (!NoFreeze && !NoHeader) target.View.Freeze(1);
+                if (PassThru) WriteObject(string.IsNullOrEmpty(result.Range) ? (object)result : NoTable ? (object)target.Range(result.Range) : result.TableName == null ? result : target.Table(result.TableName));
+            }
+            return;
+        }
         var sheet = ResolveSheet();
+        var (StartRow, StartColumn) = ExcelHostExtensions.ResolveCellAddress(null, null, Address ?? "A1");
 
         var rows = TableInputCollector.RequireRows(_items, nameof(InputObject));
         var projectedRows = TableViewProjection.Project(rows, View);
-        var normalizerOptions = PowerShellObjectNormalizerOptions.ForTable(
-            CollectionSeparator,
-            DictionaryEntrySeparator,
-            DictionaryKeyValueSeparator,
-            MaxCollectionItems,
-            MaxNestingDepth);
+        var normalizerOptions = ExcelFlattenOptionsService.Create(FlattenOptions, CollectionSeparator, Culture, (name, error) => WriteWarning($"Skipping property '{name}' because it could not be read: {error.Message}"));
         var table = ExcelTabularInputService.ToDataTable(
             projectedRows,
             Name,
@@ -180,11 +195,14 @@ public sealed class AddOfficeExcelTableCommand : PSCmdlet
             }
         }
         var resolvedName = ResolveName(table);
-        var range = sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { AutoFit = false, UseDefaultHeaderlessColumnNames = true, IncludeHeaders = !NoHeader.IsPresent, Name = resolvedName, Style = TableStyle, IncludeAutoFilter = !NoAutoFilter.IsPresent }, row: StartRow, column: StartColumn).Range!;
-        ExcelTableStyleOptionService.Apply(
+        ExcelTable? created = null;
+        string range;
+        if (NoTable) { sheet.WriteData(table, StartRow, StartColumn, includeHeaders: !NoHeader); range = ExcelA1.CellReference(StartRow, StartColumn) + ":" + ExcelA1.CellReference(StartRow + Math.Max(1, table.Rows.Count + (NoHeader ? 0 : 1)) - 1, StartColumn + table.Columns.Count - 1); }
+        else { created = sheet.AddTable(table, new ExcelTableOptions { AutoFit = false, UseDefaultHeaderlessColumnNames = true, IncludeHeaders = !NoHeader, Name = resolvedName, Style = NoTableStyle ? ExcelTableStyle.None : TableStyle, IncludeAutoFilter = !NoAutoFilter }, row: StartRow, column: StartColumn); range = created.Range!; }
+        if (created != null) ExcelTableStyleOptionService.Apply(
             sheet,
             range,
-            TableStyle,
+            NoTableStyle ? ExcelTableStyle.None : TableStyle,
             ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(ShowFirstColumn), ShowFirstColumn),
             ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(ShowLastColumn), ShowLastColumn),
             ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(NoRowStripes), NoRowStripes),
@@ -203,15 +221,17 @@ public sealed class AddOfficeExcelTableCommand : PSCmdlet
             }
         }
 
-        if (AutoFit.IsPresent)
+        if (!NoAutoFit.IsPresent)
         {
             var columnIndexes = Enumerable.Range(StartColumn, table.Columns.Count);
             sheet.AutoFitColumnsFor(columnIndexes);
         }
 
+        if (!NoFreeze && !NoHeader) sheet.View.Freeze(StartRow);
+
         if (PassThru.IsPresent)
         {
-            WriteObject(range);
+            WriteObject(created != null ? (object)created : sheet.Range(range));
         }
     }
 
@@ -225,23 +245,5 @@ public sealed class AddOfficeExcelTableCommand : PSCmdlet
         return string.IsNullOrWhiteSpace(table.TableName) ? null : table.TableName;
     }
 
-    private ExcelSheet ResolveSheet()
-    {
-        if (Worksheet != null && Document != null)
-        {
-            throw new PSArgumentException("Use either -Worksheet or -Document, not both.");
-        }
-
-        if (Worksheet != null)
-        {
-            return Worksheet;
-        }
-
-        if (Document != null)
-        {
-            return ExcelSheetResolver.Resolve(Document, Sheet, SheetIndex);
-        }
-
-        return ExcelDslContext.Require(this).RequireSheet();
-    }
+    private ExcelSheet ResolveSheet() => ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
 }

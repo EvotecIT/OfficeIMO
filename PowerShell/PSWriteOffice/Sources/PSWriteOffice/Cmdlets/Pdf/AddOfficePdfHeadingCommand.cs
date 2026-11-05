@@ -1,3 +1,5 @@
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Services.Pdf;
@@ -16,8 +18,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <para>Adds report headings before body content.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePdfHeading", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfHeading")]
 [OutputType(typeof(PdfDocument))]
+[Alias("PdfHeading") ]
 public sealed class AddOfficePdfHeadingCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -38,34 +40,38 @@ public sealed class AddOfficePdfHeadingCommand : PSCmdlet
 
     /// <summary>Heading alignment.</summary>
     [Parameter]
-    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
+    public OfficeAlignment Alignment { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Optional heading color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? Color { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? Color { get; set; }
+
+    /// <summary>Bookmark destination attached to the heading.</summary>
+    [Parameter]
+    public string? Bookmark { get; set; }
 
     /// <summary>Emit the updated document.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetDocument)]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var color = PdfCommandUtilities.ParseColor(Color);
+        var color = Color;
         var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument, content =>
         {
             switch (Level)
             {
                 case 1:
-                    content.H1(Text, Align, color);
+                    content.H1(Text, Alignment, color, linkDestinationName: Bookmark);
                     break;
                 case 2:
-                    content.H2(Text, Align, color);
+                    content.H2(Text, Alignment, color, linkDestinationName: Bookmark);
                     break;
                 default:
-                    content.H3(Text, Align, color);
+                    content.H3(Text, Alignment, color, linkDestinationName: Bookmark);
                     break;
             }
         });

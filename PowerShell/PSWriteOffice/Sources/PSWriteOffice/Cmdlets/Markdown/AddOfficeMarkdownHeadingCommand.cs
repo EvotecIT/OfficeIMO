@@ -18,8 +18,8 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Appends headings that can be included in a generated table of contents.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownHeading", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownHeading")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownHeading") ]
 public sealed class AddOfficeMarkdownHeadingCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -30,11 +30,11 @@ public sealed class AddOfficeMarkdownHeadingCommand : PSCmdlet
     public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Heading level (1-6).</summary>
-    [Parameter(Position = 0)]
+    [Parameter]
     public int Level { get; set; } = 1;
 
     /// <summary>Heading text.</summary>
-    [Parameter(Mandatory = true, Position = 1)]
+    [Parameter(Mandatory = true, Position = 0)]
     public string Text { get; set; } = string.Empty;
 
     /// <summary>Emit the Markdown document after appending the heading.</summary>

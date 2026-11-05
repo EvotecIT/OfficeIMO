@@ -118,7 +118,7 @@ public sealed class PdfProofOptionsWorkflowTests {
                 """);
             var output = shell.Invoke();
             Assert.Equal(before, File.ReadAllBytes(source));
-            Assert.Contains("different", Assert.IsType<string>(Assert.Single(output).BaseObject), StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("paths must differ", Assert.IsType<string>(Assert.Single(output).BaseObject), StringComparison.OrdinalIgnoreCase);
         } finally { Directory.Delete(root, true); }
     }
 

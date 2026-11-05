@@ -61,8 +61,8 @@ public sealed class HtmlFontFamilyInheritanceTests {
             case "onenote": {
                 OneNoteSection section = source.ConvertToOneNoteSectionWithEvidence().RequireValue();
                 string? imported = OneNoteFont(section);
-                using var artifact = new MemoryStream(OneNoteSectionWriter.Write(section));
-                OneNoteSection reopened = OneNoteSectionReader.Read(artifact);
+                using var artifact = new MemoryStream(section.ToBytes());
+                OneNoteSection reopened = OneNoteSection.Load(artifact);
                 return (new[] { imported }, new[] { OneNoteFont(reopened) });
             }
             default:
@@ -77,7 +77,7 @@ public sealed class HtmlFontFamilyInheritanceTests {
         var runs = sheet.Cell(row, 1).GetRichText();
         string? cellFont = sheet.Cell(row, 1).GetStyle().FontName;
         return runs.Count == 0 ? cellFont
-            : Assert.Single(runs, run => run.Text == Marker).FontName ?? cellFont;
+            : Assert.Single(runs, run => run.Text == Marker).FontFamily ?? cellFont;
     }
 
     private static string? OneNoteFont(OneNoteSection section) {

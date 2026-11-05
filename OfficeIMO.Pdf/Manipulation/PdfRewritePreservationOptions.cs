@@ -4,12 +4,26 @@ namespace OfficeIMO.Pdf;
 /// Configures the generic preservation checks used after PDF rewrite and manipulation operations.
 /// </summary>
 public sealed class PdfRewritePreservationOptions {
-    private readonly List<string> _requiredTextMarkers = new List<string>();
-    private readonly HashSet<string> _allowedMetadataChanges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _preservedActionTypes = new HashSet<string>(StringComparer.Ordinal);
-    private readonly HashSet<string> _excludedAnnotationSubtypes = new HashSet<string>(StringComparer.Ordinal);
-    private readonly HashSet<string> _excludedLinkAnnotationUris = new HashSet<string>(StringComparer.Ordinal);
-    private readonly HashSet<string> _excludedActionUris = new HashSet<string>(StringComparer.Ordinal);
+    private List<string> _requiredTextMarkers = new List<string>();
+    private HashSet<string> _allowedMetadataChanges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _preservedActionTypes = new HashSet<string>(StringComparer.Ordinal);
+    private HashSet<string> _excludedAnnotationSubtypes = new HashSet<string>(StringComparer.Ordinal);
+    private HashSet<string> _excludedLinkAnnotationUris = new HashSet<string>(StringComparer.Ordinal);
+    private HashSet<string> _excludedActionUris = new HashSet<string>(StringComparer.Ordinal);
+
+    /// <summary>Copies these settings with independent collections and original/rewritten read policies.</summary>
+    public PdfRewritePreservationOptions Clone() {
+        var clone = (PdfRewritePreservationOptions)MemberwiseClone();
+        clone._requiredTextMarkers = new List<string>(_requiredTextMarkers);
+        clone._allowedMetadataChanges = new HashSet<string>(_allowedMetadataChanges, _allowedMetadataChanges.Comparer);
+        clone._preservedActionTypes = new HashSet<string>(_preservedActionTypes, _preservedActionTypes.Comparer);
+        clone._excludedAnnotationSubtypes = new HashSet<string>(_excludedAnnotationSubtypes, _excludedAnnotationSubtypes.Comparer);
+        clone._excludedLinkAnnotationUris = new HashSet<string>(_excludedLinkAnnotationUris, _excludedLinkAnnotationUris.Comparer);
+        clone._excludedActionUris = new HashSet<string>(_excludedActionUris, _excludedActionUris.Comparer);
+        clone.OriginalReadOptions = OriginalReadOptions?.Clone();
+        clone.RewrittenReadOptions = RewrittenReadOptions?.Clone();
+        return clone;
+    }
 
     /// <summary>Read options used to inspect the original document, including its password when encrypted.</summary>
     public PdfLoadOptions? OriginalReadOptions { get; set; }

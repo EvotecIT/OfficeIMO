@@ -35,6 +35,22 @@ Get-ChildItem .\Reports -Filter *.xlsx | Get-OfficeExcelSheetView -Sheet Summary
 ```
 
 
+### EXAMPLE 2
+```powershell
+Get-OfficeExcelSheetView -Path .\Reports\Q3-Sales.xlsx
+```
+
+Lists frozen panes, gridlines, zoom and view mode for each worksheet.
+
+### EXAMPLE 3
+```powershell
+Get-ChildItem -Path .\Reports -Filter *.xlsx |
+                Get-OfficeExcelSheetView -Sheet Summary |
+                Format-Table
+```
+
+Reads the Summary sheet view of each report in a folder to spot workbooks saved in page-break preview.
+
 ## PARAMETERS
 
 ### -Document

@@ -11,7 +11,7 @@ Explicitly calculates a schedule and optionally applies its dates.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Invoke-OfficeProjectSchedule -Document <ProjectDocument> [-CalculateAssignments] [-Apply] [-WhatIf] [-Confirm] [<CommonParameters>]
+Invoke-OfficeProjectSchedule [-Document <ProjectDocument>] [-CalculateAssignments] [-Apply] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -68,7 +68,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)

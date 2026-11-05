@@ -5,7 +5,7 @@ namespace OfficeIMO.IWork.Internal;
 /// <summary>Patches same-length payloads while retaining complete native ArchiveInfo/MessageInfo envelopes and siblings.</summary>
 internal static class IWorkPreservingArchiveEdit {
     internal static byte[] Rewrite(byte[] raw, string path, IReadOnlyDictionary<IWorkArchiveRecord, byte[]> changes,
-        IWorkReadOptions limits, CancellationToken token) {
+        IWorkLoadOptions limits, CancellationToken token) {
         var selected = changes.Where(pair => pair.Key.EntryPath == path).ToDictionary(pair => pair.Key.Identifier);
         var found = new HashSet<ulong>(); int offset = 0;
         while (offset < raw.Length) {

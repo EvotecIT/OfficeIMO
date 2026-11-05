@@ -228,7 +228,7 @@ internal static partial class RtfPdfConverter {
             underline: run.Underline,
             color: foreground,
             italic: run.Italic,
-            strike: run.Strike || run.DoubleStrike,
+            strike: run.Strikethrough || run.DoubleStrikethrough,
             fontSize: ((double?)(run.FontSize) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null),
             standardFont: font,
             fontFamily: state.ResolveFontFamily(run.FontId),
@@ -250,7 +250,7 @@ internal static partial class RtfPdfConverter {
         if (run.Hidden && options.IncludeHiddenText) features.Add("hidden-visibility");
         if ((run.UnderlineStyle != RtfUnderlineStyle.None && run.UnderlineStyle != RtfUnderlineStyle.Single)
             || run.UnderlineColorIndex.HasValue) features.Add("underline-style-or-color");
-        if (run.DoubleStrike) features.Add("double-strike");
+        if (run.DoubleStrikethrough) features.Add("double-strike");
         if (run.Outline || run.Shadow || run.Emboss || run.Imprint || run.CapsStyle != RtfCapsStyle.None) {
             features.Add("text-effects");
         }

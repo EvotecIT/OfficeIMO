@@ -14,12 +14,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Writes both lines in the same paragraph separated by a soft break.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordBreak", DefaultParameterSetName = "Default")]
-[Alias("WordBreak")]
 [OutputType(typeof(WordParagraph))]
+[Alias("WordBreak") ]
 public sealed class AddOfficeWordBreakCommand : PSCmdlet
 {
     /// <summary>Target paragraph. When omitted, the current DSL paragraph is used or created.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public WordParagraph? Paragraph { get; set; }
 
     /// <summary>Optional break type, for example Page or Column.</summary>

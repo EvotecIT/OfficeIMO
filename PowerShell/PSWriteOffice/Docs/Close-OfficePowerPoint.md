@@ -11,7 +11,7 @@ Closes a live presentation without saving it.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Close-OfficePowerPoint [-Document <PowerPointDocument>] [<CommonParameters>]
+Close-OfficePowerPoint [-Document] <PowerPointDocument> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -30,7 +30,7 @@ Close-OfficePowerPoint -Document $deck
 ## PARAMETERS
 
 ### -Document
-Gets or sets an explicit live document; omission uses the enclosing content block.
+Live presentation to close.
 
 ```yaml
 Type: PowerPointDocument
@@ -38,8 +38,8 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: False
-Position: named
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False

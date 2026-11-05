@@ -45,19 +45,19 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Enables or disables single strikethrough on the text.
         /// </summary>
-        /// <param name="isStrike">Whether the text should be struck through.</param>
+        /// <param name="strikethrough">Whether the text should be struck through.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetStrike(bool isStrike = true) {
-            this.Strike = isStrike;
+        public WordParagraph SetStrikethrough(bool strikethrough = true) {
+            this.Strikethrough = strikethrough;
             return this;
         }
         /// <summary>
         /// Enables or disables double strikethrough on the text.
         /// </summary>
-        /// <param name="isDoubleStrike">Whether the text should be double struck.</param>
+        /// <param name="doubleStrikethrough">Whether the text should be double struck.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetDoubleStrike(bool isDoubleStrike = true) {
-            this.DoubleStrike = isDoubleStrike;
+        public WordParagraph SetDoubleStrikethrough(bool doubleStrikethrough = true) {
+            this.DoubleStrikethrough = doubleStrikethrough;
             return this;
         }
 
@@ -309,7 +309,7 @@ namespace OfficeIMO.Word {
         /// Set the text as subscript
         /// </summary>
         /// <returns></returns>
-        public WordParagraph SetSubScript() {
+        public WordParagraph SetSubscript() {
             VerticalTextAlignment = WordVerticalTextPosition.Subscript;
             return this;
         }
@@ -318,7 +318,7 @@ namespace OfficeIMO.Word {
         /// Set the text as superscript
         /// </summary>
         /// <returns></returns>
-        public WordParagraph SetSuperScript() {
+        public WordParagraph SetSuperscript() {
             VerticalTextAlignment = WordVerticalTextPosition.Superscript;
             return this;
         }

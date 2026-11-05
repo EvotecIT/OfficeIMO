@@ -33,6 +33,7 @@ public sealed class SetOfficePowerPointSlideCommand : OfficeCmdlet {
     public int Master { get; set; } = 1;
     /// <summary>Gets or sets the background color, including theme roles and transparent literals.</summary>
     [Parameter(ParameterSetName = "Default"), OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor Background { get; set; }
     /// <summary>Gets or sets a literal local background image path.</summary>
     [Parameter(Mandatory = true, ParameterSetName = "BackgroundImage"), ValidateNotNullOrEmpty]

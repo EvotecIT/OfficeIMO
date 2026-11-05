@@ -9,8 +9,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_slide_names_are_charged_to_the_source_wide_text_budget() {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Title", slideName: "Named");
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 5 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 5 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
 
@@ -22,8 +22,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("T", 1, 1, 42d)
         });
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 5 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 5 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 
@@ -34,8 +34,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Projected_text_metadata_shares_the_source_wide_character_budget() {
         using MemoryStream package = CreatePagesPackage(includeBody: false, textBox: "X",
             includePreview: false, textBoxDrawable: Message(StringField(4, "https://example.test")));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 
@@ -46,8 +46,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Inline_breaks_are_charged_before_owner_node_materialization() {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
             bodyText: "A\u2028B\u2028C");
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxProjectedTextItems = 3 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxProjectedTextItems = 3 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 
@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             wrongWireSkippedFlag: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] reference = Message(VarintField(1, 36),
             columnOnly ? BytesField(26, coordinate) : BytesField(27, coordinate));
         IWorkWireMessage formula = IWorkProtobuf.Parse(Message(BytesField(1,
-            Message(BytesField(1, reference)))), new IWorkReadOptions());
+            Message(BytesField(1, reference)))), new IWorkLoadOptions());
 
         IWorkFormulaResult result = IWorkFormulaReader.Render(formula, 0, 0, 32, 128);
 
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Formula_renderer_rejects_wrong_wire_coordinate_messages() {
         byte[] reference = Message(VarintField(1, 36), VarintField(26, 0));
         IWorkWireMessage formula = IWorkProtobuf.Parse(Message(BytesField(1,
-            Message(BytesField(1, reference)))), new IWorkReadOptions());
+            Message(BytesField(1, reference)))), new IWorkLoadOptions());
 
         IWorkFormulaResult result = IWorkFormulaReader.Render(formula, 0, 0, 32, 128);
 

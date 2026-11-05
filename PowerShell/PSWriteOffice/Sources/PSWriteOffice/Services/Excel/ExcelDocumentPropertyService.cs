@@ -120,31 +120,6 @@ internal static class ExcelDocumentPropertyService
         throw new PSArgumentException($"'{name}' is not a supported Excel document property.");
     }
 
-    public static void ApplyCommonProperties(
-        ExcelDocument document,
-        string? title,
-        string? author,
-        string? subject,
-        string? keywords,
-        string? description,
-        string? category,
-        string? company,
-        string? manager,
-        string? applicationName,
-        string? lastModifiedBy)
-    {
-        if (title != null) SetProperty(document, "Title", title);
-        if (author != null) SetProperty(document, "Creator", author);
-        if (subject != null) SetProperty(document, "Subject", subject);
-        if (keywords != null) SetProperty(document, "Keywords", keywords);
-        if (description != null) SetProperty(document, "Description", description);
-        if (category != null) SetProperty(document, "Category", category);
-        if (company != null) SetProperty(document, "Company", company);
-        if (manager != null) SetProperty(document, "Manager", manager);
-        if (applicationName != null) SetProperty(document, "ApplicationName", applicationName);
-        if (lastModifiedBy != null) SetProperty(document, "LastModifiedBy", lastModifiedBy);
-    }
-
     private static object? UnwrapValue(object? value)
     {
         return value is PSObject psObject ? psObject.BaseObject : value;

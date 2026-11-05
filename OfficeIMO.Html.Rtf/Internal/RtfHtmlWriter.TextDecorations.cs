@@ -7,7 +7,7 @@ internal static partial class RtfHtmlWriter {
         run.Underline &&
         (run.UnderlineStyle != RtfUnderlineStyle.Single || run.UnderlineColorIndex.HasValue);
 
-    private static bool HasRichStrike(RtfRun run) => run.DoubleStrike;
+    private static bool HasRichStrike(RtfRun run) => run.DoubleStrikethrough;
 
     private static void AppendTextDecorationStyle(StringBuilder builder, RtfRun run, RtfDocument document) {
         bool richUnderline = HasRichUnderline(run);

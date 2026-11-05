@@ -13,11 +13,11 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///   <para>Adds an ellipse to the active Visio page.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeVisioEllipse", DefaultParameterSetName = "Page")]
-[Alias("VisioEllipse")]
 [OutputType(typeof(VisioShape))]
+[Alias("VisioEllipse") ]
 public sealed class AddOfficeVisioEllipseCommand : OfficeVisioShapeCmdlet {
     /// <summary>Text placed inside the shape.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(Position = 0, ParameterSetName = "Page")]
     public string? Text { get; set; }
 
     /// <inheritdoc />

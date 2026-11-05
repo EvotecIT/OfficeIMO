@@ -11,9 +11,9 @@ New-OfficeExcel -Path $template {
 }
 
 Copy-Item -Path $template -Destination $invoice
-Invoke-OfficeExcelTemplate -Path $invoice -Value @{
+Open-OfficeExcel -Path $invoice { Invoke-OfficeExcelTemplate  -Value @{
     Number = '1042'
     Customer = 'Northwind Traders'
     Amount = 1840.50
     Due = [datetime]'2026-09-15'
-}
+} }

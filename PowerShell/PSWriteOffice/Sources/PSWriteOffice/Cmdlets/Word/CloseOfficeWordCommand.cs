@@ -111,6 +111,7 @@ public sealed class CloseOfficeWordCommand : OfficeCmdlet {
             return;
         }
 
+        if (!ShouldProcess(WordDocumentService.GetAssociatedPath(document) ?? "Unsaved Word document", "Close Word document without saving")) return;
         WordDocumentService.CloseDocument(document);
     }
 }

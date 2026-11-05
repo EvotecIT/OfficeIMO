@@ -11,7 +11,7 @@ Creates an OfficeIMO-authored Visio-native container around existing shapes.
 ## SYNTAX
 ### Page (Default)
 ```powershell
-Add-OfficeVisioContainer [[-InputObject] <Object>] -Id <string> [-Page <VisioPage>] [-ShapeId <string[]>] [-Text <string>] [-Margin <Double>] [-HeadingHeight <Double>] [-FillColor <string>] [-LineColor <string>] [-LineWeight <Double>] [-ContainerStyle <Int32>] [-HeadingStyle <Int32>] [-Locked] [-NoAutoResize] [-NoHighlight] [-NoRibbon] [-PassThru] [<CommonParameters>]
+Add-OfficeVisioContainer [[-InputObject] <Object>] -Key <string> [-Page <VisioPage>] [-ShapeId <string[]>] [-Text <string>] [-Margin <OfficeLength>] [-HeadingHeight <OfficeLength>] [-FillColor <OfficeColor>] [-LineColor <OfficeColor>] [-LineWeight <OfficeLength>] [-ContainerStyle <Int32>] [-HeadingStyle <Int32>] [-Locked] [-NoAutoResize] [-NoHighlight] [-NoRibbon] [-Bold] [-Italic] [-Strikethrough] [-Underline <OfficeTextDecorationStyle>] [-Font <string>] [-Size <OfficeLength>] [-Color <OfficeColor>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -24,13 +24,61 @@ Creates an OfficeIMO-authored Visio-native container around existing shapes.
 PS> OfficeVisio -Path .\Architecture.vsdx {
     VisioRectangle -Key api -Text 'API' -X 2 -Y 4
     VisioRectangle -Key worker -Text 'Worker' -X 4 -Y 4
-    VisioContainer -Id app -Text 'Application tier' -ShapeId api,worker -FillColor '#F8FAFC'
+    VisioContainer -Key app -Text 'Application tier' -ShapeId api,worker -FillColor '#F8FAFC'
 }
 ```
 
 Creates a native Visio container around previously keyed shapes.
 
 ## PARAMETERS
+
+### -Alignment
+Whole-shape horizontal text alignment.
+
+```yaml
+Type: OfficeAlignment
+Parameter Sets: Page
+Aliases: None
+Possible values: Left, Center, Right, Justify, Start, End
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Bold
+Apply bold text; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Color
+Text color, including CSS names and theme roles.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -ContainerStyle
 Native Visio container gallery identifier. Zero selects the default/no explicit gallery style.
@@ -52,6 +100,22 @@ Accept wildcard characters: False
 Container fill color.
 
 ```yaml
+Type: OfficeColor
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Font
+Font family for the shape's text.
+
+```yaml
 Type: String
 Parameter Sets: Page
 Aliases: None
@@ -65,10 +129,10 @@ Accept wildcard characters: False
 ```
 
 ### -HeadingHeight
-Additional heading height in page units.
+Additional heading height as a physical length; a number means points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Page
 Aliases: None
 Possible values:
@@ -96,22 +160,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Id
-Container shape identifier.
-
-```yaml
-Type: String
-Parameter Sets: Page
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -InputObject
 Shapes, shape selections, or shape keys/ids to include in the container.
 
@@ -128,11 +176,43 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
+### -Italic
+Apply italic text; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Key
+Container shape identifier.
+
+```yaml
+Type: String
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -LineColor
 Container line color.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Page
 Aliases: None
 Possible values:
@@ -145,10 +225,10 @@ Accept wildcard characters: False
 ```
 
 ### -LineWeight
-Container line weight in inches.
+Container line weight as a physical length; a number means points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Page
 Aliases: None
 Possible values:
@@ -177,10 +257,10 @@ Accept wildcard characters: False
 ```
 
 ### -Margin
-Outer margin around member shapes in page units.
+Outer margin around member shapes as a physical length; a number means points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Page
 Aliases: None
 Possible values:
@@ -288,6 +368,38 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Size
+Font size; a number means points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Strikethrough
+Apply one strikethrough line; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Text
 Container heading text.
 
@@ -296,6 +408,22 @@ Type: String
 Parameter Sets: Page
 Aliases: None
 Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Underline
+Native Visio underline variant.
+
+```yaml
+Type: OfficeTextDecorationStyle
+Parameter Sets: Page
+Aliases: None
+Possible values: None, Single, Double
 
 Required: False
 Position: named

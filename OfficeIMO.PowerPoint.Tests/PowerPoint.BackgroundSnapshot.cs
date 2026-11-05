@@ -11,12 +11,12 @@ public class PowerPointBackgroundSnapshotTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         PowerPointSlide slide = presentation.AddSlide();
 
-        slide.BackgroundColor = "112233";
+        slide.BackgroundColor = OfficeColor.Parse("112233");
         PowerPointSlideBackground solid = slide.GetBackground();
         Assert.Equal(PowerPointSlideBackgroundKind.SolidColor, solid.Kind);
         Assert.Equal("112233", solid.Color);
 
-        slide.SetBackgroundGradient("112233", "445566", 45D);
+        slide.SetBackgroundGradient(OfficeColor.Parse("112233"), OfficeColor.Parse("445566"), 45D);
         PowerPointSlideBackground gradient = slide.GetBackground();
         Assert.Equal(PowerPointSlideBackgroundKind.LinearGradient, gradient.Kind);
         Assert.Equal("112233", gradient.GradientStartColor);
@@ -45,7 +45,7 @@ public class PowerPointBackgroundSnapshotTests {
             new DocumentFormat.OpenXml.Presentation.Background(
                 new DocumentFormat.OpenXml.Presentation.BackgroundProperties(
                     new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" })));
-        slide.SetBackgroundGradient("112233", "445566");
+        slide.SetBackgroundGradient(OfficeColor.Parse("112233"), OfficeColor.Parse("445566"));
         slide.SetBackgroundNoFill();
         Assert.Equal(PowerPointSlideBackgroundKind.None, slide.GetBackground().Kind);
         Assert.Empty(presentation.ValidateDocument());

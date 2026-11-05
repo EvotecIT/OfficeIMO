@@ -102,8 +102,8 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue("Name");
             sheet.Cell(2, 2).SetValue("Reviewed");
             sheet.SetCommentRichText("B2", new[] {
-                new ExcelRichTextRun("Needs ") { FontColor = "C00000", Bold = true },
-                new ExcelRichTextRun("design review") { Italic = true, Underline = true, FontColor = "2563EB" },
+                new ExcelRichTextRun("Needs ") { Color = global::OfficeIMO.OfficeColor.Parse("C00000"), Bold = true },
+                new ExcelRichTextRun("design review") { Italic = true, Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB") },
                 new ExcelRichTextRun(" before this range is sent to leadership.")
             }, "Reviewer");
 

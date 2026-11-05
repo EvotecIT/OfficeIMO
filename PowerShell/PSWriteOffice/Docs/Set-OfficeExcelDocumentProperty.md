@@ -21,13 +21,23 @@ Sets a built-in or application document property on an Excel workbook.
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeExcel -Path .\Report.xlsx {
-    Set-OfficeExcelDocumentProperty -Name Title -Value 'Operational dashboard'
-    Set-OfficeExcelDocumentProperty -Name Department -Value 'Operations' -Custom
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    Set-OfficeExcelDocumentProperty Title 'Q3 sales'
 }
 ```
 
-Updates built-in or custom workbook properties through the current Excel DSL context.
+Sets the built-in Title property.
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    Set-OfficeExcelDocumentProperty -Name Owner -Value 'Sales Operations' -Custom
+    Set-OfficeExcelDocumentProperty -Name Classification -Value 'Internal' -Custom
+    Set-OfficeExcelDocumentProperty -Name ReviewDate -Value (Get-Date).AddMonths(6) -Custom
+}
+```
+
+Adds owner, classification and review-date custom properties that document management can search.
 
 ## PARAMETERS
 

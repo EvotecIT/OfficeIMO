@@ -17,11 +17,11 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// }</code>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointSlide", DefaultParameterSetName = "Content")]
-[Alias("PowerPointSlide")]
 [OutputType(typeof(PowerPointSlide))]
+[Alias("PowerPointSlide") ]
 public sealed class AddOfficePowerPointSlideCommand : OfficeDocumentCmdlet<PowerPointDocument> {
     /// <summary>Gets or sets the slide's typed content block.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(Position = 0, ParameterSetName = "Content")]
     public ScriptBlock? Content { get; set; }
     /// <summary>Gets or sets the slide title.</summary>
     [Parameter]
@@ -54,7 +54,7 @@ public sealed class AddOfficePowerPointSlideCommand : OfficeDocumentCmdlet<Power
     [Parameter]
     public SwitchParameter NoSlideNumber { get; set; }
     /// <summary>Gets or sets the background color for this slide and its continuations, including theme roles.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor Background { get; set; }
     /// <summary>Gets or sets a literal local background image path for this slide and its continuations.</summary>
     [Parameter, ValidateNotNullOrEmpty]

@@ -11,42 +11,132 @@ Renders native pages, slides, sheets, ranges or charts and saves each image atom
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Export-OfficeDocumentImage [-Path] <string[]> [-OutputDirectory] <string> [-NoClobber] [-Format <OfficeImageFormat>] [-Page <OfficePageRange>] [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-Chart <string>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentImage [-Path] <string[]> [-OutputDirectory] <string> [-NoClobber] [-Page <OfficePageRange>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathSheet
+```powershell
+Export-OfficeDocumentImage [-Path] <string[]> [-OutputDirectory] <string> -Sheet <OfficeSheetSelector[]> [-NoClobber] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathRange
+```powershell
+Export-OfficeDocumentImage [-Path] <string[]> [-OutputDirectory] <string> -Range <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathChart
+```powershell
+Export-OfficeDocumentImage [-Path] <string[]> [-OutputDirectory] <string> -Chart <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PathFile
 ```powershell
-Export-OfficeDocumentImage [-Path] <string[]> [-OutputPath] <string> [-NoClobber] [-Format <OfficeImageFormat>] [-Page <OfficePageRange>] [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-Chart <string>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentImage [-Path] <string[]> [-OutputPath] <string> [-NoClobber] [-Page <OfficePageRange>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathFileSheet
+```powershell
+Export-OfficeDocumentImage [-Path] <string[]> [-OutputPath] <string> -Sheet <OfficeSheetSelector[]> [-NoClobber] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathFileRange
+```powershell
+Export-OfficeDocumentImage [-Path] <string[]> [-OutputPath] <string> -Range <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathFileChart
+```powershell
+Export-OfficeDocumentImage [-Path] <string[]> [-OutputPath] <string> -Chart <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Export-OfficeDocumentImage [-OutputDirectory] <string> -LiteralPath <string[]> [-NoClobber] [-Format <OfficeImageFormat>] [-Page <OfficePageRange>] [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-Chart <string>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentImage [-OutputDirectory] <string> -LiteralPath <string[]> [-NoClobber] [-Page <OfficePageRange>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathSheet
+```powershell
+Export-OfficeDocumentImage [-OutputDirectory] <string> -LiteralPath <string[]> -Sheet <OfficeSheetSelector[]> [-NoClobber] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathRange
+```powershell
+Export-OfficeDocumentImage [-OutputDirectory] <string> -LiteralPath <string[]> -Range <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathChart
+```powershell
+Export-OfficeDocumentImage [-OutputDirectory] <string> -LiteralPath <string[]> -Chart <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPathFile
 ```powershell
-Export-OfficeDocumentImage [-OutputPath] <string> -LiteralPath <string[]> [-NoClobber] [-Format <OfficeImageFormat>] [-Page <OfficePageRange>] [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-Chart <string>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentImage [-OutputPath] <string> -LiteralPath <string[]> [-NoClobber] [-Page <OfficePageRange>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathFileSheet
+```powershell
+Export-OfficeDocumentImage [-OutputPath] <string> -LiteralPath <string[]> -Sheet <OfficeSheetSelector[]> [-NoClobber] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathFileRange
+```powershell
+Export-OfficeDocumentImage [-OutputPath] <string> -LiteralPath <string[]> -Range <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathFileChart
+```powershell
+Export-OfficeDocumentImage [-OutputPath] <string> -LiteralPath <string[]> -Chart <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Export-OfficeDocumentImage [-Document] <Object> [-OutputDirectory] <string> [-NoClobber] [-Format <OfficeImageFormat>] [-Page <OfficePageRange>] [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-Chart <string>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentImage [-Document] <Object> [-OutputDirectory] <string> [-NoClobber] [-Page <OfficePageRange>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### DocumentSheet
+```powershell
+Export-OfficeDocumentImage [-Document] <Object> [-OutputDirectory] <string> -Sheet <OfficeSheetSelector[]> [-NoClobber] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### DocumentRange
+```powershell
+Export-OfficeDocumentImage [-Document] <Object> [-OutputDirectory] <string> -Range <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### DocumentChart
+```powershell
+Export-OfficeDocumentImage [-Document] <Object> [-OutputDirectory] <string> -Chart <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### DocumentFile
 ```powershell
-Export-OfficeDocumentImage [-Document] <Object> [-OutputPath] <string> [-NoClobber] [-Format <OfficeImageFormat>] [-Page <OfficePageRange>] [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-Chart <string>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentImage [-Document] <Object> [-OutputPath] <string> [-NoClobber] [-Page <OfficePageRange>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### DocumentFileSheet
+```powershell
+Export-OfficeDocumentImage [-Document] <Object> [-OutputPath] <string> -Sheet <OfficeSheetSelector[]> [-NoClobber] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### DocumentFileRange
+```powershell
+Export-OfficeDocumentImage [-Document] <Object> [-OutputPath] <string> -Range <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### DocumentFileChart
+```powershell
+Export-OfficeDocumentImage [-Document] <Object> [-OutputPath] <string> -Chart <string> [-NoClobber] [-Sheet <OfficeSheetSelector[]>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-Export-OfficeDocumentImage [-Text] <string> [-OutputDirectory] <string> -From <string> [-NoClobber] [-Format <OfficeImageFormat>] [-Page <OfficePageRange>] [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-Chart <string>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentImage [-Text] <string> [-OutputDirectory] <string> -From <string> [-NoClobber] [-Page <OfficePageRange>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### TextFile
 ```powershell
-Export-OfficeDocumentImage [-Text] <string> [-OutputPath] <string> -From <string> [-NoClobber] [-Format <OfficeImageFormat>] [-Page <OfficePageRange>] [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-Chart <string>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentImage [-Text] <string> [-OutputPath] <string> -From <string> [-NoClobber] [-Page <OfficePageRange>] [-Format <OfficeImageExportFormat>] [-Dpi <double>] [-Scale <double>] [-BackgroundColor <OfficeColor>] [-Options <Object[]>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -73,7 +163,7 @@ Image background, including Transparent.
 
 ```yaml
 Type: OfficeColor
-Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
+Parameter Sets: Path, PathSheet, PathRange, PathChart, PathFile, PathFileSheet, PathFileRange, PathFileChart, LiteralPath, LiteralPathSheet, LiteralPathRange, LiteralPathChart, LiteralPathFile, LiteralPathFileSheet, LiteralPathFileRange, LiteralPathFileChart, Document, DocumentSheet, DocumentRange, DocumentChart, DocumentFile, DocumentFileSheet, DocumentFileRange, DocumentFileChart, Text, TextFile
 Aliases: None
 Possible values:
 
@@ -85,15 +175,15 @@ Accept wildcard characters: False
 ```
 
 ### -Chart
-Chart name within the selected Excel sheets. Cannot be combined with Range.
+A chart name in the selected Excel sheets; excludes Range and Page.
 
 ```yaml
 Type: String
-Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
+Parameter Sets: PathChart, PathFileChart, LiteralPathChart, LiteralPathFileChart, DocumentChart, DocumentFileChart
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -105,7 +195,7 @@ Caller-owned native document, including current unsaved content.
 
 ```yaml
 Type: Object
-Parameter Sets: Document, DocumentFile
+Parameter Sets: Document, DocumentSheet, DocumentRange, DocumentChart, DocumentFile, DocumentFileSheet, DocumentFileRange, DocumentFileChart
 Aliases: None
 Possible values:
 
@@ -121,7 +211,7 @@ Target image resolution in dots per inch; omitted values retain native options.
 
 ```yaml
 Type: Double
-Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
+Parameter Sets: Path, PathSheet, PathRange, PathChart, PathFile, PathFileSheet, PathFileRange, PathFileChart, LiteralPath, LiteralPathSheet, LiteralPathRange, LiteralPathChart, LiteralPathFile, LiteralPathFileSheet, LiteralPathFileRange, LiteralPathFileChart, Document, DocumentSheet, DocumentRange, DocumentChart, DocumentFile, DocumentFileSheet, DocumentFileRange, DocumentFileChart, Text, TextFile
 Aliases: None
 Possible values:
 
@@ -136,10 +226,10 @@ Accept wildcard characters: False
 Output image encoding. File destinations infer it when omitted.
 
 ```yaml
-Type: OfficeImageFormat
-Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
+Type: OfficeImageExportFormat
+Parameter Sets: Path, PathSheet, PathRange, PathChart, PathFile, PathFileSheet, PathFileRange, PathFileChart, LiteralPath, LiteralPathSheet, LiteralPathRange, LiteralPathChart, LiteralPathFile, LiteralPathFileSheet, LiteralPathFileRange, LiteralPathFileChart, Document, DocumentSheet, DocumentRange, DocumentChart, DocumentFile, DocumentFileSheet, DocumentFileRange, DocumentFileChart, Text, TextFile
 Aliases: None
-Possible values: Unknown, Png, Jpeg, Gif, Bmp, Tiff, Svg, Emf, Wmf, Icon, Pcx, Webp, Jpeg2000, Jpeg2000Codestream, Avif, JpegXr, PortableMap, Tga, Heic
+Possible values: Png, Svg, Jpeg, Tiff, Webp, Bmp, Pbm, Tga, Icon
 
 Required: False
 Position: named
@@ -169,7 +259,7 @@ Literal paths; accepts FileInfo, PSPath and FullName properties.
 
 ```yaml
 Type: String[]
-Parameter Sets: LiteralPath, LiteralPathFile
+Parameter Sets: LiteralPath, LiteralPathSheet, LiteralPathRange, LiteralPathChart, LiteralPathFile, LiteralPathFileSheet, LiteralPathFileRange, LiteralPathFileChart
 Aliases: PSPath, FullName
 Possible values:
 
@@ -185,7 +275,7 @@ Refuse to replace an existing destination image.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
+Parameter Sets: Path, PathSheet, PathRange, PathChart, PathFile, PathFileSheet, PathFileRange, PathFileChart, LiteralPath, LiteralPathSheet, LiteralPathRange, LiteralPathChart, LiteralPathFile, LiteralPathFileSheet, LiteralPathFileRange, LiteralPathFileChart, Document, DocumentSheet, DocumentRange, DocumentChart, DocumentFile, DocumentFileSheet, DocumentFileRange, DocumentFileChart, Text, TextFile
 Aliases: None
 Possible values:
 
@@ -201,7 +291,7 @@ Native image/load options or hashtables, routed to the selected source formats.
 
 ```yaml
 Type: Object[]
-Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
+Parameter Sets: Path, PathSheet, PathRange, PathChart, PathFile, PathFileSheet, PathFileRange, PathFileChart, LiteralPath, LiteralPathSheet, LiteralPathRange, LiteralPathChart, LiteralPathFile, LiteralPathFileSheet, LiteralPathFileRange, LiteralPathFileChart, Document, DocumentSheet, DocumentRange, DocumentChart, DocumentFile, DocumentFileSheet, DocumentFileRange, DocumentFileChart, Text, TextFile
 Aliases: None
 Possible values:
 
@@ -217,7 +307,7 @@ Destination folder for the selected image batch.
 
 ```yaml
 Type: String
-Parameter Sets: Path, LiteralPath, Document, Text
+Parameter Sets: Path, PathSheet, PathRange, PathChart, LiteralPath, LiteralPathSheet, LiteralPathRange, LiteralPathChart, Document, DocumentSheet, DocumentRange, DocumentChart, Text
 Aliases: None
 Possible values:
 
@@ -233,7 +323,7 @@ Exact single-image destination; its extension selects the default encoding.
 
 ```yaml
 Type: String
-Parameter Sets: PathFile, LiteralPathFile, DocumentFile, TextFile
+Parameter Sets: PathFile, PathFileSheet, PathFileRange, PathFileChart, LiteralPathFile, LiteralPathFileSheet, LiteralPathFileRange, LiteralPathFileChart, DocumentFile, DocumentFileSheet, DocumentFileRange, DocumentFileChart, TextFile
 Aliases: None
 Possible values:
 
@@ -245,7 +335,7 @@ Accept wildcard characters: False
 ```
 
 ### -Page
-One-based caller-ordered pages, slides or diagram pages; defaults to all.
+One-based pages, slides or diagram pages. Cannot be combined with Excel selectors.
 
 ```yaml
 Type: OfficePageRange
@@ -265,7 +355,7 @@ Password used only when opening encrypted source files.
 
 ```yaml
 Type: SecureString
-Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
+Parameter Sets: Path, PathSheet, PathRange, PathChart, PathFile, PathFileSheet, PathFileRange, PathFileChart, LiteralPath, LiteralPathSheet, LiteralPathRange, LiteralPathChart, LiteralPathFile, LiteralPathFileSheet, LiteralPathFileRange, LiteralPathFileChart, Document, DocumentSheet, DocumentRange, DocumentChart, DocumentFile, DocumentFileSheet, DocumentFileRange, DocumentFileChart, Text, TextFile
 Aliases: None
 Possible values:
 
@@ -281,7 +371,7 @@ Input paths, with FileSystem wildcard expansion.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, PathFile
+Parameter Sets: Path, PathSheet, PathRange, PathChart, PathFile, PathFileSheet, PathFileRange, PathFileChart
 Aliases: None
 Possible values:
 
@@ -293,15 +383,15 @@ Accept wildcard characters: True
 ```
 
 ### -Range
-A1 range within the selected Excel sheets.
+An A1 range in the selected Excel sheets; excludes Chart and Page.
 
 ```yaml
 Type: String
-Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
+Parameter Sets: PathRange, PathFileRange, LiteralPathRange, LiteralPathFileRange, DocumentRange, DocumentFileRange
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -313,7 +403,7 @@ Image scale; omitted values retain native options.
 
 ```yaml
 Type: Double
-Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
+Parameter Sets: Path, PathSheet, PathRange, PathChart, PathFile, PathFileSheet, PathFileRange, PathFileChart, LiteralPath, LiteralPathSheet, LiteralPathRange, LiteralPathChart, LiteralPathFile, LiteralPathFileSheet, LiteralPathFileRange, LiteralPathFileChart, Document, DocumentSheet, DocumentRange, DocumentChart, DocumentFile, DocumentFileSheet, DocumentFileRange, DocumentFileChart, Text, TextFile
 Aliases: None
 Possible values:
 
@@ -325,11 +415,11 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Excel worksheets selected by name, one-based position or native sheet object.
+Excel worksheets by name, one-based position or native sheet object.
 
 ```yaml
 Type: OfficeSheetSelector[]
-Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
+Parameter Sets: PathSheet, PathRange, PathChart, PathFileSheet, PathFileRange, PathFileChart, LiteralPathSheet, LiteralPathRange, LiteralPathChart, LiteralPathFileSheet, LiteralPathFileRange, LiteralPathFileChart, DocumentSheet, DocumentRange, DocumentChart, DocumentFileSheet, DocumentFileRange, DocumentFileChart
 Aliases: None
 Possible values:
 
@@ -361,7 +451,7 @@ Maximum number of input files processed concurrently.
 
 ```yaml
 Type: Int32
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, PathSheet, PathRange, PathChart, LiteralPath, LiteralPathSheet, LiteralPathRange, LiteralPathChart
 Aliases: None
 Possible values:
 

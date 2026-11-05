@@ -11,7 +11,7 @@ Streams native or modeled table rows as PowerShell objects.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Get-OfficeAccessRow [-TableName] <string> -Document <AccessDocument> [-MaxRows <long>] [<CommonParameters>]
+Get-OfficeAccessRow [-Table] <string> -Document <AccessDocument> [-MaxRows <long>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Streams native or modeled table rows as PowerShell objects.
 
 ### EXAMPLE 1
 ```powershell
-$database | Get-OfficeAccessRow -TableName Contacts | Export-Csv ./contacts.csv -NoTypeInformation
+$database | Get-OfficeAccessRow -Table Contacts | Export-Csv ./contacts.csv -NoTypeInformation
 ```
 
 
@@ -59,7 +59,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TableName
+### -Table
 Table name.
 
 ```yaml

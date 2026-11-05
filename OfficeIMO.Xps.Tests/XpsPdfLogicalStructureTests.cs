@@ -124,7 +124,7 @@ public sealed class XpsPdfLogicalStructureTests {
     [InlineData(false)]
     [InlineData(true)]
     public void NestedGraphicsCannotHaveConflictingSemanticOwners(bool effect) {
-        var doc = XpsDocument.Create(); var page = doc.AddPage(100, 100).AddPath("M10,10H50V40H10Z", "#FF336699");
+        var doc = XpsDocument.Create(); var page = doc.AddPage(100, 100).AddPath("M10,10H50V40H10Z", "#FF336699").Page;
         var xml = page.GetMarkup(); var path = xml.Elements().Single(); path.SetAttributeValue("Name", "Child"); path.Remove();
         xml.Add(new XElement(xml.Name.Namespace + "Canvas", new XAttribute("Name", "Parent"), effect ? new XAttribute("Opacity", ".5") : null, path));
         page.ReplaceMarkup(xml); var ns = doc.StructureNamespace;
@@ -171,7 +171,7 @@ public sealed class XpsPdfLogicalStructureTests {
     [InlineData("Header", "Content")]
     [InlineData("Header", "Footer")]
     public void ArtifactGraphicsParticipateInSemanticOwnershipValidation(string firstKind, string secondKind) {
-        var doc = XpsDocument.Create(); var page = doc.AddPage(100, 100).AddPath("M10,10H50V40H10Z", "#FF336699");
+        var doc = XpsDocument.Create(); var page = doc.AddPage(100, 100).AddPath("M10,10H50V40H10Z", "#FF336699").Page;
         var xml = page.GetMarkup(); xml.Elements().Single().SetAttributeValue("Name", "Graphic"); page.ReplaceMarkup(xml); var ns = doc.StructureNamespace;
         XElement Fragment(string kind) => new(ns + "StoryFragment", new XAttribute("FragmentType", kind),
             new XElement(ns + "FigureStructure", new XElement(ns + "NamedElement", new XAttribute("NameReference", "Graphic"))));
@@ -183,7 +183,7 @@ public sealed class XpsPdfLogicalStructureTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ArtifactCanvasAndBodyPathCannotOwnOverlappingPaint(bool effect) {
-        var doc = XpsDocument.Create(); var page = doc.AddPage(100, 100).AddPath("M10,10H50V40H10Z", "#FF336699");
+        var doc = XpsDocument.Create(); var page = doc.AddPage(100, 100).AddPath("M10,10H50V40H10Z", "#FF336699").Page;
         var xml = page.GetMarkup(); var path = xml.Elements().Single(); path.SetAttributeValue("Name", "Child"); path.Remove();
         xml.Add(new XElement(xml.Name.Namespace + "Canvas", new XAttribute("Name", "Parent"), effect ? new XAttribute("Opacity", ".5") : null, path));
         page.ReplaceMarkup(xml); var ns = doc.StructureNamespace;

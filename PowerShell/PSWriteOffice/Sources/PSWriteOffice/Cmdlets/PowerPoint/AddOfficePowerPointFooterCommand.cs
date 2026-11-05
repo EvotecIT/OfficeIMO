@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///     PowerPointSlide -Title 'Service review'
 /// }</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointFooter", DefaultParameterSetName = "Text")]
-[Alias("PowerPointFooter")]
+[Alias("PowerPointFooter") ]
 public sealed class AddOfficePowerPointFooterCommand : OfficeCmdlet {
     /// <summary>Plain text for the footer slot.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]

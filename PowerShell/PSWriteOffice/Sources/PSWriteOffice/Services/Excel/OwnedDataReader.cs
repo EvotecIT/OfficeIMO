@@ -8,10 +8,12 @@ internal sealed class OwnedDataReader : IDataReader
 {
     private readonly IDataReader _reader;
     private bool _disposed;
+    private readonly IDisposable? _lifetime;
 
-    internal OwnedDataReader(IDataReader reader)
+    internal OwnedDataReader(IDataReader reader, IDisposable? lifetime = null)
     {
         _reader = reader ?? throw new ArgumentNullException(nameof(reader));
+        _lifetime = lifetime;
     }
 
     public object this[int i] => _reader[i];
@@ -30,11 +32,11 @@ internal sealed class OwnedDataReader : IDataReader
         }
 
         _disposed = true;
-        _reader.Dispose();
+        try { _reader.Dispose(); } finally { _lifetime?.Dispose(); }
     }
 
     public DataTable? GetSchemaTable() => _reader.GetSchemaTable();
-    public bool NextResult() => _reader.NextResult();
+    public bool NextResult() { Dispose(); return false; }
 
     public bool Read()
     {

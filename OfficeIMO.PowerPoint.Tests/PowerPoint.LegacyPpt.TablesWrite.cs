@@ -13,10 +13,10 @@ namespace OfficeIMO.Tests {
             using var source = PowerPointDocument.Create();
             source.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(100));
             var slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-            slide.BackgroundColor = "FFFF00";
+            slide.BackgroundColor = OfficeColor.Parse("FFFF00");
             var table = slide.AddTable(1,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(48));
             table.GetCell(0, 0).NoFill = true;
-            table.GetCell(0, 1).FillColor = "FF0000";
+            table.GetCell(0, 1).FillColor = OfficeColor.Parse("FF0000");
             Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
             byte[] bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             var legacy = LegacyPptDocument.Load(bytes);
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             using var reopened = PowerPointDocument.Load(input);
             var projected = Assert.Single(reopened.Slides[0].Tables);
             Assert.True(projected.GetCell(0, 0).NoFill);
-            Assert.Equal("FF0000", projected.GetCell(0, 1).FillColor);
+            Assert.Equal(OfficeColor.Parse("FF0000"), projected.GetCell(0, 1).FillColor);
             Assert.True(OfficePngReader.TryDecode(reopened.Slides[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
             Assert.Equal(OfficeColor.Yellow, image!.GetPixel(32, 32));
             Assert.Equal(OfficeColor.Red, image.GetPixel(92, 32));
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
                 sourceTable.GetCell(0, 2).Text = "Plan";
                 sourceTable.GetCell(1, 0).Text = "North";
                 sourceTable.GetCell(1, 1).Text = "120";
-                sourceTable.GetCell(1, 1).FillColor = "DBEAFE";
+                sourceTable.GetCell(1, 1).FillColor = OfficeColor.Parse("DBEAFE");
                 sourceTable.GetCell(1, 2).Text = "110";
                 sourceTable.GetCell(2, 0).Text = "Total";
                 sourceTable.GetCell(2, 1).Text = "230";
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
                 sourceTable.BandedRows = true;
                 sourceTable.BandedColumns = false;
                 sourceTable.SetCellBorders(PowerPointTableCellBorders.All,
-                    "C1121F", width: global::OfficeIMO.OfficeLength.Points(1.75D));
+                    OfficeColor.Parse("C1121F"), width: global::OfficeIMO.OfficeLength.Points(1.75D));
 
                 LegacyPptWritePreflightReport preflight = source
                     .AnalyzeLegacyPptWrite();
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
             PowerPointTable table = Assert.Single(projected.Slides[0].Tables);
             Assert.Equal("Region", table.GetCell(0, 0).Text);
             Assert.Equal("230", table.GetCell(2, 1).Text);
-            Assert.Equal("DBEAFE", table.GetCell(1, 1).FillColor);
+            Assert.Equal(OfficeColor.Parse("DBEAFE"), table.GetCell(1, 1).FillColor);
             Assert.Equal(new Uri("https://example.com/revenue"),
                 table.GetCell(0, 1).Paragraphs[0].Runs[0].Hyperlink);
             Assert.True(table.FirstRow);
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             Assert.False(table.BandedColumns);
             A.LeftBorderLineProperties? leftBorder = table.GetCell(1, 1)
                 .Cell.TableCellProperties?.LeftBorderLineProperties;
-            Assert.Equal("C1121F", table.GetCell(1, 1).BorderColor);
+            Assert.Equal(OfficeColor.Parse("C1121F"), table.GetCell(1, 1).BorderColor);
             Assert.Equal((int)Math.Round(1.75D * 12700D),
                 leftBorder?.Width?.Value);
             Assert.Empty(projected.Slides[0].Images);
@@ -145,9 +145,9 @@ namespace OfficeIMO.Tests {
                 .Create();
             PowerPointTable table = source.AddSlide().AddTable(1,2);
             table.GetCell(0, 0).SetBorders(PowerPointTableCellBorders.Right,
-                "C1121F", width: global::OfficeIMO.OfficeLength.Points(1.25D));
+                OfficeColor.Parse("C1121F"), width: global::OfficeIMO.OfficeLength.Points(1.25D));
             table.GetCell(0, 1).SetBorders(PowerPointTableCellBorders.Left,
-                "2563EB", width: global::OfficeIMO.OfficeLength.Points(2D));
+                OfficeColor.Parse("2563EB"), width: global::OfficeIMO.OfficeLength.Points(2D));
 
             LegacyPptWriteFinding finding = Assert.Single(
                 source.AnalyzeLegacyPptWrite().Findings,
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source =
                    PowerPointDocument.Create()) {
                 PowerPointTable table = source.AddSlide().AddTable(1,1);
-                table.SetCellBorders(PowerPointTableCellBorders.All, "2563EB", global::OfficeIMO.OfficeLength.Points(1.25D));
+                table.SetCellBorders(PowerPointTableCellBorders.All, OfficeColor.Parse("2563EB"), global::OfficeIMO.OfficeLength.Points(1.25D));
                 A.TableCellProperties properties = table.GetCell(0, 0)
                     .Cell.TableCellProperties!;
                 properties.LeftBorderLineProperties =

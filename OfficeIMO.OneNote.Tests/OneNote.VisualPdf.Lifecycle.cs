@@ -10,7 +10,7 @@ public sealed class OneNoteVisualPdfLifecycleTests {
     [InlineData(false)]
     [InlineData(true)]
     public async Task CancelledVisualOperationsStopBeforeInvalidRenderingConfiguration(bool notebookSource) {
-        object source = notebookSource ? new OneNoteNotebook() : new OneNoteSection();
+        object source = notebookSource ? new OneNoteNotebook() : OneNoteSection.Create();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         using var stream = new MemoryStream();
@@ -41,7 +41,7 @@ public sealed class OneNoteVisualPdfLifecycleTests {
     [InlineData(false)]
     [InlineData(true)]
     public async Task VisualSavesRejectInvalidRenderingSettingsAndRetainDestination(bool notebookSource) {
-        var section = new OneNoteSection();
+        var section = OneNoteSection.Create();
         var notebook = new OneNoteNotebook();
         var options = new OneNoteVisualPdfExportOptions { RasterScale = 0D };
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
@@ -69,7 +69,8 @@ public sealed class OneNoteVisualPdfLifecycleTests {
         var notebook = new OneNoteNotebook();
         notebook.Sections.Add(section);
         var options = new OneNoteVisualPdfExportOptions { RasterScale = 0.1D };
-        byte[] bytes = notebookSource ? notebook.ToVisualPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }) : section.ToVisualPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        using PdfDocument converted = notebookSource ? notebook.ToVisualPdf(options) : section.ToVisualPdf(options);
+        byte[] bytes = converted.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         using var stream = new MemoryStream(bytes);
         PdfDocument document = PdfDocument.Load(stream);

@@ -15,21 +15,19 @@ Import-Module PSWriteOffice
 
 $outputDirectory = (New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'Output') -Force).FullName
 $outputPath = Join-Path $outputDirectory 'ServiceBrief.pptx'
-$deck = New-OfficePowerPoint -Path $outputPath -NoSave {
-    PptSlide {
-        PptTitle -Title 'Service Brief'
-        PptTextBox -Text 'Generated with PSWriteOffice' -X 80 -Y 145 -Width 360 -Height 50
-        PptBullets -Bullets 'Current state', 'Risks', 'Next steps' -X 80 -Y 220 -Width 520 -Height 180
-        PptNotes -Text 'Use this slide as the spoken summary.'
-    }
+$deck = New-OfficePowerPoint -Path $outputPath
+try {
+    $slide = Add-OfficePowerPointSlide -Document $deck -Title 'Service Brief' -PassThru
+    Add-OfficePowerPointTextBox -Slide $slide -Text 'Generated with PSWriteOffice' -X 80pt -Y 145pt -Width 360pt -Height 50pt
+    Add-OfficePowerPointList -Slide $slide -Items 'Current state', 'Risks', 'Next steps' -X 80pt -Y 220pt -Width 520pt -Height 180pt
+    Set-OfficePowerPointNotes -Slide $slide -Text 'Use this slide as the spoken summary.'
+    Add-OfficePowerPointSection -Document $deck -Name 'Opening' -Slide 1
+    Set-OfficePowerPointSlide -Slide $slide -Transition Fade
+    Set-OfficePowerPointSlideSize -Document $deck -Preset Screen16x9
+    Save-OfficePowerPoint -Document $deck
+} finally {
+    Close-OfficePowerPoint -Document $deck
 }
-
-Add-OfficePowerPointSection -Presentation $deck -Name 'Opening' -StartSlideIndex 0
-Get-OfficePowerPointSlide -Presentation $deck -Index 0 |
-    Set-OfficePowerPointSlideTransition -Transition Fade
-
-Set-OfficePowerPointSlideSize -Presentation $deck -Preset Screen16x9
-Close-OfficePowerPoint -Presentation $deck -Save
 ```
 
 ## What this demonstrates

@@ -19,8 +19,8 @@ public sealed class PowerPointFinalGeometryLengthTests {
             var slide = document.AddSlide();
             var shape = slide.AddRectangle(OfficeLength.Points(10), OfficeLength.Points(10),
                 OfficeLength.Points(80), OfficeLength.Points(40), "Exact outline");
-            shape.Stroke("123456", OfficeLength.Emus(1));
-            shape.Stroke("654321");
+            shape.Stroke(OfficeColor.Parse("123456"), OfficeLength.Emus(1));
+            shape.Stroke(OfficeColor.Parse("654321"));
             Assert.Equal(OfficeLength.Emus(1), shape.OutlineWidth);
             var inherited = slide.AddRectangle(OfficeLength.Points(100), OfficeLength.Points(10),
                 OfficeLength.Points(80), OfficeLength.Points(40), "Inherited width");
@@ -29,28 +29,28 @@ public sealed class PowerPointFinalGeometryLengthTests {
             Assert.Null(inherited.OutlineWidth);
             var zero = slide.AddRectangle(OfficeLength.Points(190), OfficeLength.Points(10),
                 OfficeLength.Points(80), OfficeLength.Points(40), "Zero width");
-            zero.Stroke("ABCDEF", OfficeLength.Zero);
+            zero.Stroke(OfficeColor.Parse("ABCDEF"), OfficeLength.Zero);
             var connector = slide.AddConnectionShape(A.ShapeTypeValues.StraightConnector1, 1, 2, 3, 4);
-            connector.Stroke("123456", OfficeLength.Points(1584));
-            connector.Stroke("654321");
+            connector.Stroke(OfficeColor.Parse("123456"), OfficeLength.Points(1584));
+            connector.Stroke(OfficeColor.Parse("654321"));
             Assert.Equal(OfficeLength.Points(1584), connector.OutlineWidth);
             var table = slide.AddTable(1, 2);
-            table.SetCellBorders(PowerPointTableCellBorders.All, "123456", OfficeLength.Emus(1));
+            table.SetCellBorders(PowerPointTableCellBorders.All, OfficeColor.Parse("123456"), OfficeLength.Emus(1));
             var cell = table.GetCell(0, 0);
-            cell.SetBorders(PowerPointTableCellBorders.Left, "654321", OfficeLength.Points(1584));
-            cell.SetBorders(PowerPointTableCellBorders.Left, "ABCDEF");
-            cell.SetBorders(PowerPointTableCellBorders.Bottom, "654321", OfficeLength.Zero, PowerPointLineDashStyle.Dash);
+            cell.SetBorders(PowerPointTableCellBorders.Left, OfficeColor.Parse("654321"), OfficeLength.Points(1584));
+            cell.SetBorders(PowerPointTableCellBorders.Left, OfficeColor.Parse("ABCDEF"));
+            cell.SetBorders(PowerPointTableCellBorders.Bottom, OfficeColor.Parse("654321"), OfficeLength.Zero, PowerPointLineDashStyle.Dash);
 
             string before = slide.SlidePart.Slide.OuterXml;
-            Assert.Throws<ArgumentOutOfRangeException>(() => shape.Stroke("FFFFFF", OfficeLength.Emus(20116801)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => shape.Stroke(OfficeColor.Parse("FFFFFF"), OfficeLength.Emus(20116801)));
             Assert.Throws<ArgumentOutOfRangeException>(() => shape.OutlineWidth = OfficeLength.Emus(-1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => connector.Stroke("FFFFFF", OfficeLength.Emus(-1)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => connector.Stroke(OfficeColor.Parse("FFFFFF"), OfficeLength.Emus(-1)));
             Assert.Throws<ArgumentOutOfRangeException>(() => table.SetCellBorders(
-                PowerPointTableCellBorders.All, "FFFFFF", OfficeLength.Emus(20116801)));
+                PowerPointTableCellBorders.All, OfficeColor.Parse("FFFFFF"), OfficeLength.Emus(20116801)));
             Assert.Throws<ArgumentOutOfRangeException>(() => cell.SetBorders(
-                PowerPointTableCellBorders.All, "FFFFFF", OfficeLength.Emus(-1), PowerPointLineDashStyle.Dash));
+                PowerPointTableCellBorders.All, OfficeColor.Parse("FFFFFF"), OfficeLength.Emus(-1), PowerPointLineDashStyle.Dash));
             Assert.Throws<ArgumentOutOfRangeException>(() => table.SetCellBorders(
-                PowerPointTableCellBorders.All, "FFFFFF", OfficeLength.Points(1), (PowerPointLineDashStyle)int.MaxValue));
+                PowerPointTableCellBorders.All, OfficeColor.Parse("FFFFFF"), OfficeLength.Points(1), (PowerPointLineDashStyle)int.MaxValue));
             Assert.Equal(before, slide.SlidePart.Slide.OuterXml);
             document.Save(output);
         }
@@ -231,18 +231,18 @@ public sealed class PowerPointFinalGeometryLengthTests {
         using var output = new MemoryStream();
         using (var document = PowerPointDocument.Create()) {
             var slide = document.AddSlide();
-            slide.BackgroundColor = "FFFFFF";
+            slide.BackgroundColor = OfficeColor.Parse("FFFFFF");
             var regular = slide.AddTextBox("Regular threshold", OfficeLength.Points(10), OfficeLength.Points(10),
                 OfficeLength.Points(200), OfficeLength.Points(40));
             regular.FontSize = OfficeLength.Points(18);
             regular.Color = OfficeColor.Parse("888888");
-            regular.FillColor = "FFFFFF";
+            regular.FillColor = OfficeColor.Parse("FFFFFF");
             var bold = slide.AddTextBox("Bold threshold", OfficeLength.Points(10), OfficeLength.Points(70),
                 OfficeLength.Points(200), OfficeLength.Points(40));
             bold.FontSize = OfficeLength.Points(14);
             bold.Bold = true;
             bold.Color = OfficeColor.Parse("888888");
-            bold.FillColor = "FFFFFF";
+            bold.FillColor = OfficeColor.Parse("FFFFFF");
             document.Save(output);
         }
         output.Position = 0;

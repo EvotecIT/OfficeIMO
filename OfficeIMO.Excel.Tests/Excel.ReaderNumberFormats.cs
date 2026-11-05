@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                     var sheet = document.AddSheet("Data");
                     sheet.Cell(1, 1).SetValue("Value");
                     sheet.Cell(2, 1).SetValue(3d);
-                    sheet.ColumnStyleByHeader("Value").NumberFormat("0 \"days\"");
+                    sheet.ColumnStyleByHeader("Value").SetNumberFormat("0 \"days\"");
                     document.Save();
                 }
 
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                     var sheet = document.AddSheet("Data");
                     sheet.Cell(1, 1).SetValue("Duration");
                     sheet.Cell(2, 1).SetValue(1.5d);
-                    sheet.ColumnStyleByHeader("Duration").NumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("Duration").SetNumberFormat("[h]:mm");
                     document.Save();
                 }
 
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                     var sheet = document.AddSheet("Data");
                     sheet.Cell(1, 1).SetValue("Hours");
                     sheet.Cell(2, 1).SetValue(7d);
-                    sheet.ColumnStyleByHeader("Hours").NumberFormat("0\\h");
+                    sheet.ColumnStyleByHeader("Hours").SetNumberFormat("0\\h");
                     document.Save();
                 }
 

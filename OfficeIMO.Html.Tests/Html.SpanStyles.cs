@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             var runs = doc.Paragraphs;
 
             var strikeRun = runs.First(r => r.Text == "strike");
-            Assert.True(strikeRun.Strike);
+            Assert.True(strikeRun.Strikethrough);
 
             var underRun = runs.First(r => r.Text == "under");
             Assert.Equal(WordUnderlineStyle.Single, underRun.Underline);

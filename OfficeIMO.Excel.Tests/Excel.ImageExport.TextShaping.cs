@@ -12,7 +12,7 @@ public partial class ExcelImageExportTests {
         using ExcelDocument document = ExcelDocument.Create(filePath);
         ExcelSheet sheet = document.AddSheet("Shaping");
         sheet.Cell(1, 1).SetValue("A");
-        sheet.Cell(1, 1).SetFontName(ManagedTextShapingTestAssets.FamilyName);
+        sheet.Cell(1, 1).SetFontFamily(ManagedTextShapingTestAssets.FamilyName);
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new ExcelImageExportOptions {
             ShowGridlines = false,

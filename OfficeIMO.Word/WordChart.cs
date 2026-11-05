@@ -365,8 +365,7 @@ namespace OfficeIMO.Word {
             DocumentFormat.OpenXml.Drawing.DefaultRunProperties runProperties = new DocumentFormat.OpenXml.Drawing.DefaultRunProperties() {
                 FontSize = _axisTitleFontSize
             };
-            DocumentFormat.OpenXml.Drawing.SolidFill solidFill = new DocumentFormat.OpenXml.Drawing.SolidFill(
-                new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = _axisTitleColor.ToRgbHex() });
+            DocumentFormat.OpenXml.Drawing.SolidFill solidFill = CreateChartFill(_axisTitleColor);
             runProperties.Append(solidFill);
             runProperties.Append(new DocumentFormat.OpenXml.Drawing.LatinFont() { Typeface = _axisTitleFontName });
             paragraphProperties.Append(runProperties);
@@ -436,9 +435,9 @@ namespace OfficeIMO.Word {
             literal.Append(count); var index = 0;
             foreach (var data in dataList) {
                 // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
-                string valueText = data is double d ? d.ToString(System.Globalization.CultureInfo.InvariantCulture) :
-                                  data is float f ? f.ToString(System.Globalization.CultureInfo.InvariantCulture) :
-                                  data?.ToString() ?? "0";
+                string valueText = data is System.IFormattable numeric
+                    ? numeric.ToString(null, System.Globalization.CultureInfo.InvariantCulture)
+                    : data?.ToString() ?? "0";
                 var numericPoint = new NumericPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = valueText } };
 
                 literal.Append(numericPoint);

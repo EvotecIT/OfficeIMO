@@ -11,7 +11,8 @@ internal static partial class PdfStamper {
         PdfTextStampOptions options,
         bool watermarkDefaults,
         string? glyphHex = null,
-        double? textWidth = null) {
+        double? textWidth = null,
+        string? graphicsStateResourceName = null) {
         PdfPageGeometry geometry = page.GetGeometry();
         var size = PdfReadPage.GetPageSize(geometry);
         double userUnit = geometry.UserUnit ?? 1D;
@@ -36,9 +37,9 @@ internal static partial class PdfStamper {
         }
 
         var sb = new StringBuilder();
-        new ContentStreamBuilder(sb)
-            .SaveState()
-            .FillColor(options.Color)
+        var content = new ContentStreamBuilder(sb).SaveState();
+        if (graphicsStateResourceName != null) content.GraphicsState(graphicsStateResourceName);
+        content.FillColor(options.Color.Resolve(OfficeTheme.Default))
             .BeginText()
             .Font(fontResourceName, fontSize, preserveLogicalPrecision: true)
             .TextMatrix(cos, sin, -sin, cos, x, y, precisePosition: true)
@@ -56,7 +57,8 @@ internal static partial class PdfStamper {
         int pixelHeight,
         OfficeImageOrientation orientation,
         PdfImageStampOptions options,
-        bool watermarkDefaults) {
+        bool watermarkDefaults,
+        string? graphicsStateResourceName = null) {
         PdfPageGeometry geometry = page.GetGeometry();
         var size = PdfReadPage.GetPageSize(geometry);
         double userUnit = geometry.UserUnit ?? 1D;
@@ -80,9 +82,9 @@ internal static partial class PdfStamper {
             imageTransform = PdfWriter.GetImageOrientationTransform(orientation).Then(imageTransform);
         }
         var sb = new StringBuilder();
-        new ContentStreamBuilder(sb)
-            .SaveState()
-            .TransformMatrix(imageTransform.M11, imageTransform.M12, imageTransform.M21, imageTransform.M22, imageTransform.OffsetX, imageTransform.OffsetY, preciseCoordinates: true)
+        var content = new ContentStreamBuilder(sb).SaveState();
+        if (graphicsStateResourceName != null) content.GraphicsState(graphicsStateResourceName);
+        content.TransformMatrix(imageTransform.M11, imageTransform.M12, imageTransform.M21, imageTransform.M22, imageTransform.OffsetX, imageTransform.OffsetY, preciseCoordinates: true)
             .XObject(imageResourceName)
             .RestoreState();
 

@@ -16,7 +16,7 @@ public sealed class PublisherEditingTests {
             new OfficeRichTextRun("Edited publication", 18, OfficeColor.FromRgb(180, 20, 30), bold: true, fontFamily: "Arial")
         });
         document.ReplaceStoryParagraphs(oldStory.Id, new[] { edited });
-        document.SetTextFrameBounds(oldFrame.Id, 90, 108, 300, 96);
+        document.SetTextFrameBounds(oldFrame.Id, OfficeLength.Points(90), OfficeLength.Points(108), OfficeLength.Points(300), OfficeLength.Points(96));
 
         PublisherTextStory story = Assert.Single(document.TextStories);
         PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
@@ -47,7 +47,7 @@ public sealed class PublisherEditingTests {
         PublisherTextFrame[] before = Frames(document, storyId);
         Assert.True(before.Length >= 2);
         foreach (PublisherTextFrame frame in before)
-            document.SetTextFrameBounds(frame.Id, frame.X, frame.Y, 90, 32);
+            document.SetTextFrameBounds(frame.Id, OfficeLength.Points(frame.X), OfficeLength.Points(frame.Y), OfficeLength.Points(90), OfficeLength.Points(32));
         document.ReplaceStoryParagraphs(storyId, Paragraphs(string.Concat(Enumerable.Repeat("Continuation remains complete. ", 80))));
         PublisherTextFrame[] longer = Frames(document, storyId);
         Assert.Equal(before.Select(frame => (frame.Id, frame.StoryId, frame.PageId, frame.PreviousFrameId, frame.NextFrameId)),
@@ -82,15 +82,12 @@ public sealed class PublisherEditingTests {
     }
 
     [Theory]
-    [InlineData(double.NaN, 20, 30, 40)]
-    [InlineData(10, double.PositiveInfinity, 30, 40)]
     [InlineData(10, 20, 0, 40)]
     [InlineData(10, 20, 30, -1)]
-    [InlineData(double.MaxValue, 20, 30, 40)]
     public void Invalid_bounds_leave_the_publication_unchanged(double x, double y, double width, double height) {
         PublisherDocument document = Load("Text");
         var pages = document.Pages; var report = document.ReadReport; string before = document.ToSvg();
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetTextFrameBounds(pages[0].TextFrames[0].Id, x, y, width, height));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetTextFrameBounds(pages[0].TextFrames[0].Id, OfficeLength.Points(x), OfficeLength.Points(y), OfficeLength.Points(width), OfficeLength.Points(height)));
         Assert.Same(pages, document.Pages); Assert.Same(report, document.ReadReport); Assert.Equal(before, document.ToSvg());
     }
 
@@ -104,7 +101,7 @@ public sealed class PublisherEditingTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => document.ReplaceStoryParagraphs(uint.MaxValue, Paragraphs("missing")));
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
         Assert.Throws<OperationCanceledException>(() => document.ReplaceStoryParagraphs(storyId, Paragraphs("cancelled"), cancelled.Token));
-        Assert.Throws<OperationCanceledException>(() => document.SetTextFrameBounds(pages[0].TextFrames[0].Id, 10, 20, 30, 40, cancelled.Token));
+        Assert.Throws<OperationCanceledException>(() => document.SetTextFrameBounds(pages[0].TextFrames[0].Id, OfficeLength.Points(10), OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(40), cancelled.Token));
         Assert.Same(stories, document.TextStories); Assert.Same(pages, document.Pages);
     }
 
@@ -114,13 +111,13 @@ public sealed class PublisherEditingTests {
         PublisherTable table = Assert.Single(document.Pages[0].Tables);
         var stories = document.TextStories;
         Assert.Throws<NotSupportedException>(() => document.ReplaceStoryParagraphs(table.StoryId!.Value, Paragraphs("unsafe cell edit")));
-        Assert.Throws<NotSupportedException>(() => document.SetTextFrameBounds(table.Id, 10, 20, 30, 40));
-        Assert.Throws<NotSupportedException>(() => document.SetTextFrameBounds(uint.MaxValue, 10, 20, 30, 40));
+        Assert.Throws<NotSupportedException>(() => document.SetTextFrameBounds(table.Id, OfficeLength.Points(10), OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(40)));
+        Assert.Throws<NotSupportedException>(() => document.SetTextFrameBounds(uint.MaxValue, OfficeLength.Points(10), OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(40)));
         Assert.Same(stories, document.TextStories);
         PublisherDocument grouped = PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"));
         var groupedPages = grouped.Pages;
         Assert.Contains(groupedPages.SelectMany(page => page.TextFrames), frame => frame.Id == 345);
-        Assert.Throws<NotSupportedException>(() => grouped.SetTextFrameBounds(345, 10, 20, 30, 40));
+        Assert.Throws<NotSupportedException>(() => grouped.SetTextFrameBounds(345, OfficeLength.Points(10), OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(40)));
         Assert.Same(groupedPages, grouped.Pages);
     }
 
@@ -179,7 +176,7 @@ public sealed class PublisherEditingTests {
         // Unplaced labels still belong to the publication's retained content;
         // projection accounting cannot replace this source admission check.
         foreach (PublisherTextFrame frame in document.Pages.SelectMany(page => page.TextFrames).ToArray())
-            document.SetTextFrameBounds(frame.Id, frame.X, frame.Y, 1, 1);
+            document.SetTextFrameBounds(frame.Id, OfficeLength.Points(frame.X), OfficeLength.Points(frame.Y), OfficeLength.Points(1), OfficeLength.Points(1));
         var label = OfficeTextParagraphLabel.AtPosition(new OfficeRichTextRun(new string('x', 4000), 12, OfficeColor.Black), 0);
         var paragraph = new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Body", 12, OfficeColor.Black) }, label);
         var replacement = new[] { paragraph, paragraph };

@@ -30,20 +30,20 @@ namespace OfficeIMO.Examples.Excel
 
                 // Header styling via builder (background + bold)
                 s.ColumnStyleByHeader("Name", includeHeader: true)
-                 .Background(Color.Parse("#E6EEF8"))
-                 .Bold();
+                 .SetFillColor(Color.Parse("#E6EEF8"))
+                 .SetBold();
                 s.ColumnStyleByHeader("Value", includeHeader: true)
                  .Number(decimals: 2)
-                 .Background("#FFF3CD")
-                 .Bold();
+                 .SetFillColor(OfficeColor.Parse("#FFF3CD"))
+                 .SetBold();
                 s.ColumnStyleByHeader("Status", includeHeader: true)
-                 .Background(Color.Parse("#E7FFE7"))
-                 .Bold();
+                 .SetFillColor(Color.Parse("#E7FFE7"))
+                 .SetBold();
 
                 // Cell-level background using OfficeIMO color
                 s.Cell(2, 3).SetFillColor(Color.Parse("#FFFBE6"));
                 // Cell-level background using hex string
-                s.Cell(3, 3).SetFillColor("#FFE7E7");
+                s.Cell(3, 3).SetFillColor(OfficeColor.Parse("#FFE7E7"));
 
                 // Auto-fit for nice layout
                 s.AutoFitColumns();

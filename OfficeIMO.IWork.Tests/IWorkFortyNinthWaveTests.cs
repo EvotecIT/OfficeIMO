@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] formulaBytes = Message(BytesField(1, Message(
             BytesField(1, rangeNode), BytesField(1, trailingNode))));
         IWorkWireMessage formula = IWorkProtobuf.Parse(formulaBytes,
-            new IWorkReadOptions());
+            new IWorkLoadOptions());
 
         bool complete = IWorkFormulaReader.TryReadAbsoluteRange(formula, 10,
             out _, out _, out _, out _);
@@ -35,7 +35,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 29))),
             BytesField(1, trailingNode))));
         IWorkWireMessage alternateFormula = IWorkProtobuf.Parse(
-            alternateFormulaBytes, new IWorkReadOptions());
+            alternateFormulaBytes, new IWorkLoadOptions());
 
         Assert.False(IWorkFormulaReader.TryReadAbsoluteRange(alternateFormula,
             10, out _, out _, out _, out _));
@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)));
 
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(package,
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Pages).ReadPages();
 
         Assert.False(projection.HasEditableContent);
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
         });
 
         IWorkTableCell cell = Assert.Single(Assert.Single(
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers)
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers)
                 .ReadNumbers().Sheets).Tables[0].Cells);
 
         DateTime expected = new DateTime(2001, 1, 1, 0, 0, 0,
@@ -94,7 +94,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)));
 
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(package,
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Pages).ReadPages();
 
         Assert.False(projection.HasEditableContent);
@@ -126,7 +126,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)));
 
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(package,
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Keynote).ReadKeynote();
 
         Assert.False(projection.HasEditableContent);

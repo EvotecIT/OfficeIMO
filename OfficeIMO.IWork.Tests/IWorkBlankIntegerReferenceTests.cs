@@ -21,7 +21,7 @@ public sealed partial class IWorkBoundaryTests {
                 scalar ? IntegerTextSingleCell() : IntegerRectangle(0),
                 Message(VarintField(1, 17), DoubleField(4, 6)));
             var result = IWorkFormulaReader.Render(formula, 0, 0, 100, 1000, owningTable: own,
-                budget: new IWorkProjectionBudget(new IWorkReadOptions()));
+                budget: new IWorkProjectionBudget(new IWorkLoadOptions()));
             Assert.True(result.IsComplete);
             string reference = scalar ? "$A$1" : "$A$1:$A$1";
             Assert.Equal("=" + (function == 58 ? "GCD" : "LCM") + "(" + reference + ",6)", result.Text);
@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
                 var formula = IntegerReferenceFormula(function,
                     scalar ? IntegerTextSingleCell() : IntegerRectangle(0));
                 Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 100, 1000, owningTable: own,
-                    budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+                    budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
             }
         }
     }
@@ -73,7 +73,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(),
             includeTile: failure != "missingTile", tilePayload: tile);
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         if (failure == "invalidOffset") Assert.True(table.GetCell(1, 1)!.HasDecodeError);
         else Assert.Null(table.GetCell(1, 1));
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Inconsistent_tile_row_counts_retain_readable_siblings_without_establishing_blanks(ulong declaredRows) {
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), rows: 2,
             tilePayload: Message(VarintField(4, declaredRows), BytesField(5, TileTestRow(1))));
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var projection = source.ReadNumbers();
         var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.Equal(42d, Assert.Single(table.Cells).Value);
@@ -117,7 +117,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] tileStorage = Message(size, BytesField(1, Message(VarintField(1, 1), ReferenceField(2, 12))));
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, BytesField(3, tileStorage),
             includeTile: false, rows: 257, tilePayload: BytesField(5, TileTestRow(0)));
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.Empty(table.Cells);
         Assert.False(projection.HasEditableContent);
@@ -135,7 +135,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, BytesField(3, tileStorage),
             includeTile: false, rows: 257, tilePayload: Message(VarintField(3, 0), VarintField(4, 1),
                 BytesField(5, TileTestRow(0))));
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.Equal(257, Assert.Single(table.Cells).Row);
         Assert.Equal(42d, Assert.Single(table.Cells).Value);
@@ -153,7 +153,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] row = Message(VarintField(1, 0), VarintField(2, stored ? 1UL : 0UL), BytesField(6, empty),
             BytesField(7, stored ? new byte[] { 0, 0 } : new byte[] { 255, 255 }));
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), tilePayload: BytesField(5, row));
-        var table = Assert.Single(Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets).Tables);
+        var table = Assert.Single(Assert.Single(IWorkSourceDocument.Load(package).ReadNumbers().Sheets).Tables);
         Assert.Empty(table.Cells);
         Assert.True(RenderBlankInteger(table, scalar: true).IsComplete);
         Assert.True(RenderBlankInteger(table, scalar: false).IsComplete);
@@ -189,7 +189,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(1, 17), DoubleField(4, 2)));
         Assert.Equal(complete, IWorkFormulaReader.Render(formula, 0, 0, 100, 1000,
             owningTable: new IWorkFormulaTableBinding(table, string.Empty, false),
-            budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
     }
 
     private static IWorkFormulaResult RenderBlankInteger(IWorkTable table, bool scalar) =>
@@ -197,5 +197,5 @@ public sealed partial class IWorkBoundaryTests {
             scalar ? IntegerTextSingleCell() : IntegerRectangle(0),
             Message(VarintField(1, 17), DoubleField(4, 6))), 0, 0, 100, 1000,
             owningTable: new IWorkFormulaTableBinding(table, string.Empty, false),
-            budget: new IWorkProjectionBudget(new IWorkReadOptions()));
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions()));
 }

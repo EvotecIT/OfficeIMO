@@ -9,14 +9,24 @@ schema: 2.0.0
 Adds a Markdown list.
 
 ## SYNTAX
-### Context (Default)
+### Items (Default)
 ```powershell
-Add-OfficeMarkdownList [-Items] <string[]> [-Ordered] [-Start <int>] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownList [-Items] <string[]> [-Numbered] [-Start <int>] [-PassThru] [<CommonParameters>]
 ```
 
-### Document
+### DocumentItems
 ```powershell
-Add-OfficeMarkdownList [-Items] <string[]> -Document <MarkdownDocument> [-Ordered] [-Start <int>] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownList [-Items] <string[]> -Document <MarkdownDocument> [-Numbered] [-Start <int>] [-PassThru] [<CommonParameters>]
+```
+
+### DocumentContent
+```powershell
+Add-OfficeMarkdownList [-Content] <scriptblock> -Document <MarkdownDocument> [-Numbered] [-Start <int>] [-PassThru] [<CommonParameters>]
+```
+
+### Content
+```powershell
+Add-OfficeMarkdownList [-Content] <scriptblock> [-Numbered] [-Start <int>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -30,7 +40,7 @@ PS> New-OfficeMarkdown -Path .\Plan.md {
     Add-OfficeMarkdownHeading -Level 2 -Text 'Priorities'
     Add-OfficeMarkdownList -Items 'PDF examples', 'PowerPoint layout', 'Word report polish'
     Add-OfficeMarkdownHeading -Level 2 -Text 'Release order'
-    Add-OfficeMarkdownList -Items 'Validate artifacts', 'Generate docs', 'Publish release' -Ordered -Start 1
+    Add-OfficeMarkdownList -Items 'Validate artifacts', 'Generate docs', 'Publish release' -Numbered -Start 1
 }
 ```
 
@@ -38,12 +48,28 @@ Appends bullet and ordered lists to the current Markdown document.
 
 ## PARAMETERS
 
+### -Content
+List items composed with MarkdownListItem children.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: DocumentContent, Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Document
 Markdown document to update outside the DSL context.
 
 ```yaml
 Type: MarkdownDocument
-Parameter Sets: Document
+Parameter Sets: DocumentItems, DocumentContent
 Aliases: None
 Possible values:
 
@@ -59,7 +85,7 @@ List items to add.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Items, DocumentItems
 Aliases: None
 Possible values:
 
@@ -70,12 +96,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Ordered
+### -Numbered
 Use an ordered list instead of bullets.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Items, DocumentItems, DocumentContent, Content
 Aliases: None
 Possible values:
 
@@ -91,7 +117,7 @@ Emit the Markdown document after appending the list.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Items, DocumentItems, DocumentContent, Content
 Aliases: None
 Possible values:
 
@@ -107,7 +133,7 @@ Starting number for ordered lists.
 
 ```yaml
 Type: Int32
-Parameter Sets: Context, Document
+Parameter Sets: Items, DocumentItems, DocumentContent, Content
 Aliases: None
 Possible values:
 

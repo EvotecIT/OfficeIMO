@@ -116,22 +116,22 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Comments");
                 sheet.SetCommentRichText("A1", new[] {
-                    new ExcelRichTextRun("Important ") { Bold = true, FontColor = "#FF0000" },
-                    new ExcelRichTextRun("note") { Italic = true, Underline = true, Strikethrough = true, FontName = "Arial", FontSize = global::OfficeIMO.OfficeLength.Points(14D) }
+                    new ExcelRichTextRun("Important ") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("#FF0000") },
+                    new ExcelRichTextRun("note") { Italic = true, Underline = true, Strikethrough = true, FontFamily = "Arial", FontSize = global::OfficeIMO.OfficeLength.Points(14D) }
                 }, author: "Alice", initials: "AA");
 
                 var comment = Assert.Single(sheet.GetComments());
                 Assert.Equal("Important note", comment.Text);
                 Assert.Equal(2, comment.RichTextRuns.Count);
                 Assert.True(comment.RichTextRuns[0].Bold);
-                Assert.Equal("FFFF0000", comment.RichTextRuns[0].FontColor);
+                Assert.Equal("FFFF0000", comment.RichTextRuns[0].Color?.ToArgbHex());
                 Assert.True(comment.RichTextRuns[1].Strikethrough);
 
                 int updated = sheet.UpdateCommentsRichText(
                     new ExcelCommentFilter { Author = "Alice (AA)", TextContains = "note" },
                     new[] {
                         new ExcelRichTextRun("Reviewed") { Bold = true },
-                        new ExcelRichTextRun(" item") { Strikethrough = true, FontColor = "0563C1" }
+                        new ExcelRichTextRun(" item") { Strikethrough = true, Color = global::OfficeIMO.OfficeColor.Parse("0563C1") }
                     },
                     author: "Bob",
                     initials: "BB");
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests
                 Assert.Equal(2, comment.RichTextRuns.Count);
                 Assert.True(comment.RichTextRuns[0].Bold);
                 Assert.True(comment.RichTextRuns[1].Strikethrough);
-                Assert.Equal("FF0563C1", comment.RichTextRuns[1].FontColor);
+                Assert.Equal("FF0563C1", comment.RichTextRuns[1].Color?.ToArgbHex());
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -674,7 +674,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Colored");
                 sheet.Cell(1, 1).SetValue("Header");
-                sheet.SetTabColor("#336699");
+                sheet.SetTabColor(global::OfficeIMO.OfficeColor.Parse("#336699"));
                 document.Save();
             }
 

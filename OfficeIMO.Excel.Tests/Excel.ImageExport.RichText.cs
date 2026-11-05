@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Rich");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(26));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
-            sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Strong") { Bold = true, FontColor = "FF0000" }, new ExcelRichTextRun(" note") { Italic = true, Underline = true, FontColor = "0563C1", FontSize = global::OfficeIMO.OfficeLength.Points(13D) },new ExcelRichTextRun(" gone") { Strikethrough = true, FontColor = "6B7280", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+            sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Strong") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("FF0000") }, new ExcelRichTextRun(" note") { Italic = true, Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("0563C1"), FontSize = global::OfficeIMO.OfficeLength.Points(13D) },new ExcelRichTextRun(" gone") { Strikethrough = true, Color = global::OfficeIMO.OfficeColor.Parse("6B7280"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -158,8 +158,8 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.Cell(1, 1).SetRichText(
                 new ExcelRichTextRun("Missing run font") {
-                    FontName = "OfficeIMO Missing Rich Font",
-                    FontColor = "0F766E"
+                    FontFamily = "OfficeIMO Missing Rich Font",
+                    Color = global::OfficeIMO.OfficeColor.Parse("0F766E")
                 });
 
             OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
@@ -180,8 +180,8 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(44)));
             sheet.Cell(1, 1)
                 .SetRichText(
-                    new ExcelRichTextRun("Wrapped") { Bold = true, FontColor = "FF0000" },
-                    new ExcelRichTextRun("\ntext") { Italic = true, FontColor = "0563C1" });
+                    new ExcelRichTextRun("Wrapped") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("FF0000") },
+                    new ExcelRichTextRun("\ntext") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("0563C1") });
 
             ExcelRange range = sheet.Range("A1:A1");
             OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
@@ -208,8 +208,8 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1)
                 .SetShrinkToFit()
                 .SetRichText(
-                    new ExcelRichTextRun("Shrink") { Bold = true, FontColor = "FF0000" },
-                    new ExcelRichTextRun(" text") { Italic = true, FontColor = "0563C1", FontSize = global::OfficeIMO.OfficeLength.Points(18D) });
+                    new ExcelRichTextRun("Shrink") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("FF0000") },
+                    new ExcelRichTextRun(" text") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("0563C1"), FontSize = global::OfficeIMO.OfficeLength.Points(18D) });
 
             ExcelRange range = sheet.Range("A1:A1");
             OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
@@ -234,8 +234,8 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.Cell(1, 1).SetRichText(
-                new ExcelRichTextRun("Overflowing") { Bold = true, FontColor = "DC2626", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
-                new ExcelRichTextRun(" rich text SECRET-RICH-SUFFIX-MUST-NOT-LEAK") { Italic = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+                new ExcelRichTextRun("Overflowing") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("DC2626"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun(" rich text SECRET-RICH-SUFFIX-MUST-NOT-LEAK") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -262,8 +262,8 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
             sheet.Cell(1, 1).SetRichText(
-                new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
-                new ExcelRichTextRun(" text spills") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+                new ExcelRichTextRun("Rich") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun(" text spills") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
             sheet.Cell(1, 3).SetValue("Stop");
 
             ExcelRange range = sheet.Range("A1:C1");
@@ -297,7 +297,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
             sheet.Cell(1, 1)
                 .SetTextRotation(45)
-                .SetRichText(new ExcelRichTextRun("Tilt") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(14D) }, new ExcelRichTextRun(" rich") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(13D) },new ExcelRichTextRun(" text") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(13D) });
+                .SetRichText(new ExcelRichTextRun("Tilt") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(14D) }, new ExcelRichTextRun(" rich") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(13D) },new ExcelRichTextRun(" text") { Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB"), FontSize = global::OfficeIMO.OfficeLength.Points(13D) });
 
             ExcelRange range = sheet.Range("A1:A1");
             OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
@@ -329,7 +329,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(96)));
             sheet.Cell(1, 1)
                 .SetTextRotation(255)
-                .SetRichText(new ExcelRichTextRun("S") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(12D) }, new ExcelRichTextRun("V") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },new ExcelRichTextRun("G") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+                .SetRichText(new ExcelRichTextRun("S") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) }, new ExcelRichTextRun("V") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },new ExcelRichTextRun("G") { Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             ExcelRange range = sheet.Range("A1:A1");
             OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });

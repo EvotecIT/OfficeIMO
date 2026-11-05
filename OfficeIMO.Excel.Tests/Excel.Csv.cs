@@ -11,6 +11,95 @@ using Xunit;
 namespace OfficeIMO.Excel.Tests;
 
 public class ExcelCsvExtensionsTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CanonicalConversionsRetainValuesReportsAndCsvSavePolicies(bool asynchronous) {
+        using var workbook = ExcelDocument.Create();
+        ExcelSheet sheet = workbook.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(2, 1).SetValue("Alpha");
+        var options = new ExcelCsvExportOptions { Range = "A1:A2" };
+        OfficeConversionResult<CsvDocument> converted = await sheet.ToCsvAsync(options);
+        Assert.Equal("Alpha", Assert.Single(converted.Value.AsEnumerable())[0]);
+        Assert.Null(converted.Report.OutputPath);
+        Assert.Contains(converted.Report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
+        OfficeConversionResult<ExcelDocument> restored = await converted.Value.ToExcelAsync(new CsvExcelExportOptions {
+            ImportOptions = new ExcelCsvImportOptions { ReaderOptions = new CsvReaderOptions { InferSchema = false } }
+        });
+        using (restored.Value) {
+            Assert.False(restored.Report.HasLoss);
+            Assert.True(restored.Value["Import"].TryGetCellText(2, 1, out string? value));
+            Assert.Equal("Alpha", value);
+        }
+        using var output = new MemoryStream();
+        OfficeConversionException loss = await Assert.ThrowsAsync<OfficeConversionException>(() =>
+            sheet.SaveAsCsvAsync(output, new ExcelCsvExportOptions { FailOnLoss = true }));
+        Assert.True(loss.Report.HasLoss);
+        Assert.Equal(0, output.Length);
+        Assert.True(output.CanWrite);
+
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-csv-save-report-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string csvPath = Path.Combine(directory, "output.csv");
+            string csvDestination = Path.Combine(directory, ".", "output.csv");
+            OfficeConversionReport csvReport = asynchronous
+                ? await sheet.SaveAsCsvAsync(csvDestination, options)
+                : sheet.SaveAsCsv(csvDestination, options);
+            Assert.Equal(Path.GetFullPath(csvPath), csvReport.OutputPath);
+            Assert.Contains(csvReport.Diagnostics, diagnostic => diagnostic.Code == "EXCEL_CSV_VALUES_ONLY"
+                && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
+            Assert.Equal("Alpha", Assert.Single(CsvDocument.Load(csvPath).AsEnumerable())[0]);
+            using var csvStream = new MemoryStream();
+            OfficeConversionReport csvStreamReport = asynchronous
+                ? await sheet.SaveAsCsvAsync(csvStream, options)
+                : sheet.SaveAsCsv(csvStream, options);
+            Assert.Null(csvStreamReport.OutputPath);
+            Assert.True(csvStream.CanWrite);
+            Assert.Equal(csvReport.Diagnostics.Select(diagnostic => (diagnostic.Code, diagnostic.LossKind)),
+                csvStreamReport.Diagnostics.Select(diagnostic => (diagnostic.Code, diagnostic.LossKind)));
+            csvStream.Position = 0;
+            Assert.Equal("Alpha", Assert.Single(CsvDocument.Load(csvStream).AsEnumerable())[0]);
+
+            var excelOptions = new CsvExcelExportOptions {
+                ImportOptions = new ExcelCsvImportOptions { ReaderOptions = new CsvReaderOptions { InferSchema = false } }
+            };
+            string excelPath = Path.Combine(directory, "output.xlsx");
+            OfficeConversionReport excelReport = asynchronous
+                ? await converted.Value.SaveAsExcelAsync(Path.Combine(directory, ".", "output.xlsx"), excelOptions)
+                : converted.Value.SaveAsExcel(Path.Combine(directory, ".", "output.xlsx"), excelOptions);
+            Assert.Equal(Path.GetFullPath(excelPath), excelReport.OutputPath);
+            Assert.False(excelReport.HasLoss);
+            using ExcelDocument saved = ExcelDocument.Load(excelPath);
+            Assert.True(saved["Import"].TryGetCellText(2, 1, out string? savedValue));
+            Assert.Equal("Alpha", savedValue);
+            using var excelStream = new MemoryStream();
+            OfficeConversionReport excelStreamReport = asynchronous
+                ? await converted.Value.SaveAsExcelAsync(excelStream, excelOptions)
+                : converted.Value.SaveAsExcel(excelStream, excelOptions);
+            Assert.Null(excelStreamReport.OutputPath);
+            Assert.True(excelStream.CanWrite);
+            Assert.False(excelStreamReport.HasLoss);
+            excelStream.Position = 0;
+            using ExcelDocument streamed = ExcelDocument.Load(excelStream);
+            Assert.True(streamed["Import"].TryGetCellText(2, 1, out string? streamedValue));
+            Assert.Equal("Alpha", streamedValue);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".csv");
+        File.WriteAllText(path, "retained");
+        try {
+            OfficeConversionException conflict = Assert.Throws<OfficeConversionException>(() =>
+                sheet.SaveAsCsv(path, new ExcelCsvExportOptions { SaveOptions = new CsvSaveOptions { NoClobber = true } }));
+            Assert.IsAssignableFrom<IOException>(conflict.InnerException);
+            Assert.Contains(conflict.Report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Equal("retained", File.ReadAllText(path));
+        } finally { File.Delete(path); }
+    }
+
     [Fact]
     public void CsvImportChecksMethodCancellationBeforeCreatingReaders() {
         using var cancellation = new CancellationTokenSource();
@@ -118,7 +207,7 @@ public class ExcelCsvExtensionsTests {
 
         Assert.ThrowsAny<OperationCanceledException>(() => csv.SaveAsExcel(
             destination,
-            saveOptions: new ExcelSaveOptions { DisableFastPackageWriter = true },
+            new CsvExcelExportOptions { SaveOptions = new ExcelSaveOptions { DisableFastPackageWriter = true } },
             cancellationToken: cancellation.Token));
         Assert.Equal(0, destination.Length);
     }
@@ -136,7 +225,7 @@ public class ExcelCsvExtensionsTests {
         using var destination = new MemoryStream();
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            sheet.SaveAsCsv(destination, readOptions: readOptions));
+            sheet.SaveAsCsv(destination, new ExcelCsvExportOptions { ReadOptions = readOptions }));
         Assert.Equal(0, destination.Length);
     }
 
@@ -151,7 +240,7 @@ public class ExcelCsvExtensionsTests {
             ReaderOptions = new CsvReaderOptions { InferSchema = false }
         });
         using DataTable table = sheet.ToDataTable("A1:C3");
-        string exported = sheet.ToCsv("A1:C3");
+        string exported = sheet.ToCsv(new ExcelCsvExportOptions { Range = "A1:C3" }).ToString();
 
         Assert.Equal("A1:C3", imported.Range);
         Assert.Equal("Hello, \"world\"", table.Rows[0]["Note"]);
@@ -171,8 +260,8 @@ public class ExcelCsvExtensionsTests {
         sheet.Cell(2, 2).SetValue(20);
         var saveOptions = new CsvSaveOptions { IncludeHeader = true, NewLine = "\n" };
 
-        string exported = sheet.ToCsv("A1:B2", headersInFirstRow: false, csvOptions: saveOptions);
-        CsvDocument csv = sheet.ToCsvDocument("A1:B2", headersInFirstRow: false);
+        string exported = sheet.ToCsv(new ExcelCsvExportOptions { Range = "A1:B2", HeadersInFirstRow = false }).ToString(new CsvSaveOptions { IncludeHeader = false, NewLine = saveOptions.NewLine });
+        CsvDocument csv = sheet.ToCsv(new ExcelCsvExportOptions { Range = "A1:B2", HeadersInFirstRow = false });
         CsvRow[] rows = csv.AsEnumerable().ToArray();
 
         Assert.Equal("Alpha,10\nBeta,20\n", exported);
@@ -314,7 +403,7 @@ public class ExcelCsvExtensionsTests {
     public void DelimitedCompressedFileImportDetectsDelimiterAndReadsRows() {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.Reader.Csv." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Name", "Amount")
                 .AddRow("Alpha", 10.5m)
                 .AddRow("Beta", 11.75m)

@@ -63,10 +63,10 @@ namespace OfficeIMO.Tests {
                     summary.SetHyperlink(1, 1, "https://example.org", display: "Name");
                     summary.SetComment(2, 3, "Accent comment", author: "Tester", initials: "TT");
                     summary.Cell(2, 1).SetNumberFormat("0.00%");
-                    summary.Cell(2, 1).SetFillColor("#00FF00");
+                    summary.Cell(2, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#00FF00"));
                     summary.Cell(2, 1).SetBold(true);
                     summary.Cell(2, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
-                    summary.Cell(2, 3).SetFontColor("#112233");
+                    summary.Cell(2, 3).SetColor(global::OfficeIMO.OfficeColor.Parse("#112233"));
                     summary.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
                     // Row 3 stays free for the totals row that SetTableTotals adds below the table.
                     summary.Cell(4, 1).SetValue("First line\nSecond line");
@@ -215,19 +215,19 @@ namespace OfficeIMO.Tests {
                     var sheet = document.AddSheet("Summary");
 
                     sheet.Cell(2, 1).SetValue(12.34d);
-                    sheet.Cell(2, 1).SetFillColor("#D9EAD3");
-                    sheet.Cell(2, 1).SetFontColor("#112233");
+                    sheet.Cell(2, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#D9EAD3"));
+                    sheet.Cell(2, 1).SetColor(global::OfficeIMO.OfficeColor.Parse("#112233"));
                     sheet.Cell(2, 1).SetBold(true);
                     sheet.Cell(2, 1).SetItalic(true);
                     sheet.Cell(2, 1).SetUnderline(true);
                     sheet.Cell(2, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
                     sheet.Cell(2, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
-                    sheet.Cell(2, 1).SetBorder(ExcelBorderStyle.Thin, "#445566");
+                    sheet.Cell(2, 1).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("#445566"));
                     sheet.Cell(2, 1).SetNumberFormat("0.00%");
 
                     sheet.Cell(3, 1).SetValue("First line\nSecond line");
                     sheet.Range(3, 1, 3, 1).SetWrapText(); sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
-                    sheet.Cell(3, 1).SetFontColor("#445566");
+                    sheet.Cell(3, 1).SetColor(global::OfficeIMO.OfficeColor.Parse("#445566"));
                     sheet.Cell(3, 1).SetBold(true);
                     sheet.Cell(3, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Left);
 
@@ -288,10 +288,10 @@ namespace OfficeIMO.Tests {
                     summary.SetHyperlink(2, 1, "https://alpha.example/", display: "Alpha");
                     summary.SetComment(2, 6, "Accent comment", author: "Tester", initials: "TT");
                     summary.Cell(2, 2).SetNumberFormat("0.00%");
-                    summary.Cell(2, 2).SetFillColor("#00FF00");
+                    summary.Cell(2, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#00FF00"));
                     summary.Cell(2, 2).SetBold(true);
                     summary.Cell(2, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
-                    summary.Cell(2, 6).SetFontColor("#112233");
+                    summary.Cell(2, 6).SetColor(global::OfficeIMO.OfficeColor.Parse("#112233"));
                     summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
                     summary.Cell(3, 2).SetValue("Wrapped\nRow");
                     summary.Range(3, 2, 3, 2).SetWrapText(); summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
@@ -319,8 +319,8 @@ namespace OfficeIMO.Tests {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Count"] = ExcelTableTotalsFunction.Sum,
                     });
-                    summary.Cell(3, 1).SetFillColor("#D9EAD3");
-                    summary.Cell(3, 2).SetFillColor("#D9EAD3");
+                    summary.Cell(3, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#D9EAD3"));
+                    summary.Cell(3, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#D9EAD3"));
                     summary.Range("G1:J4").AutoFilter().Column(0).Equals(new[] { "Open" });
                     summary.Range("G1:J4").AutoFilter().Column("Region").Contains("or");
                     summary.Range("G1:J4").AutoFilter().Column("Score").GreaterThanOrEqual(15d);
@@ -602,14 +602,14 @@ namespace OfficeIMO.Tests {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Amount"] = ExcelTableTotalsFunction.Sum,
                     });
-                    summary.Cell(1, 1).SetFillColor("#B6D7A8");
-                    summary.Cell(1, 2).SetFillColor("#B6D7A8");
-                    summary.Cell(2, 1).SetFillColor("#E2F0D9");
-                    summary.Cell(2, 2).SetFillColor("#E2F0D9");
-                    summary.Cell(3, 1).SetFillColor("#FFF2CC");
-                    summary.Cell(3, 2).SetFillColor("#FFF2CC");
-                    summary.Cell(4, 1).SetFillColor("#D9EAD3");
-                    summary.Cell(4, 2).SetFillColor("#D9EAD3");
+                    summary.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#B6D7A8"));
+                    summary.Cell(1, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#B6D7A8"));
+                    summary.Cell(2, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#E2F0D9"));
+                    summary.Cell(2, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#E2F0D9"));
+                    summary.Cell(3, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#FFF2CC"));
+                    summary.Cell(3, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#FFF2CC"));
+                    summary.Cell(4, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#D9EAD3"));
+                    summary.Cell(4, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#D9EAD3"));
 
                     document.Save();
                 }
@@ -1252,7 +1252,7 @@ namespace OfficeIMO.Tests {
                     summary.SetHyperlink(2, 1, "https://alpha.example/", display: "Alpha");
                     summary.SetComment(2, 1, "External link note", author: "Tester", initials: "TT");
                     summary.Cell(2, 2).SetNumberFormat("0.00%");
-                    summary.Cell(2, 2).SetFillColor("#00FF00");
+                    summary.Cell(2, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#00FF00"));
                     summary.Cell(2, 2).SetBold(true);
                     summary.Cell(2, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
                     summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
@@ -1282,8 +1282,8 @@ namespace OfficeIMO.Tests {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Count"] = ExcelTableTotalsFunction.Sum,
                     });
-                    summary.Cell(3, 1).SetFillColor("#D9EAD3");
-                    summary.Cell(3, 2).SetFillColor("#D9EAD3");
+                    summary.Cell(3, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#D9EAD3"));
+                    summary.Cell(3, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#D9EAD3"));
                     summary.Range("G1:J4").AutoFilter().Column(0).Equals(new[] { "Open" });
                     summary.Range("G1:J4").AutoFilter().Column("Region").Contains("or");
                     summary.Range("G1:J4").AutoFilter().Column("Score").GreaterThanOrEqual(15d);

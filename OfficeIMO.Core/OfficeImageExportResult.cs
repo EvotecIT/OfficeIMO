@@ -58,7 +58,7 @@ public sealed class OfficeImageExportResult {
         OfficeImageInfo identified;
         if (validateAndClone) {
             if (!OfficeImageReader.TryValidateContent(bytes, format.GetFileExtension(), out identified) ||
-                identified.Format != ToImageFormat(format)) {
+                identified.Format != format.GetContainerFormat()) {
                 throw new System.ArgumentException(
                     "Encoded image bytes do not match the declared " + format + " export format.",
                     nameof(bytes));
@@ -70,7 +70,7 @@ public sealed class OfficeImageExportResult {
                     nameof(bytes));
             }
         } else {
-            identified = new OfficeImageInfo(ToImageFormat(format), width, height);
+            identified = new OfficeImageInfo(format.GetContainerFormat(), width, height);
         }
         Format = format;
         Width = width;
@@ -267,17 +267,4 @@ public sealed class OfficeImageExportResult {
             dpiY: DpiY,
             sequenceIndex: SequenceIndex,
             sequenceCount: SequenceCount);
-
-    private static OfficeImageFormat ToImageFormat(OfficeImageExportFormat format) => format switch {
-        OfficeImageExportFormat.Png => OfficeImageFormat.Png,
-        OfficeImageExportFormat.Svg => OfficeImageFormat.Svg,
-        OfficeImageExportFormat.Jpeg => OfficeImageFormat.Jpeg,
-        OfficeImageExportFormat.Tiff => OfficeImageFormat.Tiff,
-        OfficeImageExportFormat.Webp => OfficeImageFormat.Webp,
-        OfficeImageExportFormat.Bmp => OfficeImageFormat.Bmp,
-        OfficeImageExportFormat.Pbm => OfficeImageFormat.PortableMap,
-        OfficeImageExportFormat.Tga => OfficeImageFormat.Tga,
-        OfficeImageExportFormat.Icon => OfficeImageFormat.Icon,
-        _ => OfficeImageFormat.Unknown
-    };
 }

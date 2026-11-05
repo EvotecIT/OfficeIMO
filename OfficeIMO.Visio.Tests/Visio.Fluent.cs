@@ -4,37 +4,33 @@ using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Color = OfficeIMO.OfficeColor;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class VisioFluentDocumentTests {
+    public class VisioDocumentTests {
         [Fact]
-        public void CanBuildDocumentFluently() {
+        public void NativePageCreationReturnsTheCreatedPage() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
 
-            VisioDocument result = document.AsFluent()
-                .AddPage("Page1", OfficeLength.Inches(8.5), OfficeLength.Inches(11), VisioMeasurementUnit.Inches, configure: p => { })
-                .End();
+            VisioPage result = document
+                .AddPage("Page1", OfficeLength.Inches(8.5), OfficeLength.Inches(11), VisioMeasurementUnit.Inches, configure: p => { });
 
-            Assert.Same(document, result);
+            Assert.Same(document.Pages[0], result);
             Assert.Single(document.Pages);
             Assert.Equal("Page1", document.Pages[0].Name);
             document.Save();
         }
 
         [Fact]
-        public void FluentShapesUsePageUnitsAndPersistNumericShapeIds() {
+        public void NativeShapesUsePageUnitsAndPersistNumericShapeIds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
 
-            document.AsFluent()
-                .AddPage("Metric", OfficeLength.Centimeters(10), OfficeLength.Centimeters(10), VisioMeasurementUnit.Centimeters, configure: p => p
-                    .AddRectangle("box", OfficeLength.Centimeters(2.54), OfficeLength.Centimeters(2.54), OfficeLength.Centimeters(2.54), OfficeLength.Centimeters(2.54), "Box"))
-                .End();
+            document
+                .AddPage("Metric", OfficeLength.Centimeters(10), OfficeLength.Centimeters(10), VisioMeasurementUnit.Centimeters, configure: p => p.AddRectangle("box", OfficeLength.Centimeters(2.54), OfficeLength.Centimeters(2.54), OfficeLength.Centimeters(2.54), OfficeLength.Centimeters(2.54), "Box"));
             Assert.Equal("box", document.Pages[0].Shapes[0].Id);
             document.Save();
 
@@ -51,19 +47,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentConnectCanTargetSidesAndStyleLines() {
+        public void NativeConnectCanTargetSidesAndStyleLines() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
 
-            document.AsFluent()
-                .AddPage("Page1", p => p
-                    .AddRectangle("left", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Left")
-                    .AddRectangle("right", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Right")
-                    .AddConnector("left", "right", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: c => c
-                        .RightAngle()
-                        .LineColor(Color.DarkBlue)
-                        .ArrowEnd(EndArrow.Triangle)))
-                .End();
+            document
+                .AddPage("Page1", p => {
+                    p.AddRectangle("left", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Left");
+                    p.AddRectangle("right", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Right");
+                    p.AddConnector("left", "right", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: c => {
+                        c.SetKind(ConnectorKind.RightAngle);
+                        c.SetLineColor(Color.DarkBlue);
+                        c.SetArrowEnd(EndArrow.Triangle);
+                    });
+                });
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
@@ -76,15 +73,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentConnectUsesPageScopedConnectorIdsAcrossDocuments() {
+        public void NativeConnectUsesPageScopedConnectorIdsAcrossDocuments() {
             static VisioDocument CreateDocument(string filePath) {
                 VisioDocument document = VisioDocument.Create(filePath);
-                document.AsFluent()
-                    .AddPage("Page1", p => p
-                        .AddRectangle("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Left")
-                        .AddRectangle("2", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Right")
-                        .AddConnector("1", "2"))
-                    .End();
+                document
+                    .AddPage("Page1", p => {
+                        p.AddRectangle("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Left");
+                        p.AddRectangle("2", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Right");
+                        p.AddConnector("1", "2");
+                    });
                 return document;
             }
 
@@ -96,17 +93,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentPageCanResolveShapeOverlaps() {
+        public void NativePageCanResolveShapeOverlaps() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
 
-            document.AsFluent()
-                .AddPage("Page1", p => p
-                    .AddRectangle("first", OfficeLength.Inches(2), OfficeLength.Inches(3), OfficeLength.Inches(1.2), OfficeLength.Inches(0.8), "First")
-                    .AddRectangle("second", OfficeLength.Inches(2.2), OfficeLength.Inches(3), OfficeLength.Inches(1.2), OfficeLength.Inches(0.8), "Second")
-                    .AddRectangle("third", OfficeLength.Inches(2.4), OfficeLength.Inches(3), OfficeLength.Inches(1.2), OfficeLength.Inches(0.8), "Third")
-                    .ResolveShapeOverlaps(step: 0.25, maxAttempts: 12))
-                .End();
+            document
+                .AddPage("Page1", p => {
+                    p.AddRectangle("first", OfficeLength.Inches(2), OfficeLength.Inches(3), OfficeLength.Inches(1.2), OfficeLength.Inches(0.8), "First");
+                    p.AddRectangle("second", OfficeLength.Inches(2.2), OfficeLength.Inches(3), OfficeLength.Inches(1.2), OfficeLength.Inches(0.8), "Second");
+                    p.AddRectangle("third", OfficeLength.Inches(2.4), OfficeLength.Inches(3), OfficeLength.Inches(1.2), OfficeLength.Inches(0.8), "Third");
+                    p.ResolveShapeOverlaps(step: 0.25, maxAttempts: 12);
+                });
 
             VisioPage page = document.Pages[0];
             Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
@@ -120,17 +117,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentPageCanAddTitleAndTextBoxAdornments() {
+        public void NativePageCanAddTitleAndTextBoxAdornments() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
 
-            document.AsFluent()
-                .AddPage("Overview", p => p
-                    .AddTitle("System Overview")
-                    .AddTextBox("caption", OfficeLength.Inches(4.25), OfficeLength.Inches(9.8), OfficeLength.Inches(5.5), OfficeLength.Inches(0.35), "Generated by OfficeIMO", shape => shape
-                        .TextColor(Color.DarkBlue)
-                        .FontSize(11)))
-                .End();
+            document
+                .AddPage("Overview", p => {
+                    p.AddTitle("System Overview");
+                    p.AddTextBox("caption", OfficeLength.Inches(4.25), OfficeLength.Inches(9.8), OfficeLength.Inches(5.5), OfficeLength.Inches(0.35), "Generated by OfficeIMO", shape => {
+                        shape.SetTextColor(Color.DarkBlue);
+                        shape.SetFontSize(11);
+                    });
+                });
 
             VisioPage page = Assert.Single(document.Pages);
             VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
@@ -155,11 +153,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
 
-            document.AsFluent()
-                .AddPage("Page1", p => p
-                    .AddRectangle("left", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Left")
-                    .AddRectangle("right", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Right"))
-                .End();
+            document
+                .AddPage("Page1", p => {
+                    p.AddRectangle("left", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Left");
+                    p.AddRectangle("right", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Right");
+                });
 
             VisioShape left = document.Pages[0].Shapes[0];
             VisioShape right = document.Pages[0].Shapes[1];
@@ -174,38 +172,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentCanEditLoadedExistingPageWithoutAddingDuplicatePages() {
+        public void NativeCanEditLoadedExistingPageWithoutAddingDuplicatePages() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            document.AsFluent()
-                .AddPage("Operations", p => p
-                    .AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Legacy API")
-                    .AddRectangle("db", OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Database")
-                    .GetShape("api", shape => shape.ShapeData("Owner", "Ops"))
-                    .GetShape("db", shape => shape.ShapeData("Owner", "Data"))
-                    .AddConnector("api", "db", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.Label("SQL")))
-                .End()
-                .Save();
+            document.AddPage("Operations", p => {
+                p.AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Legacy API");
+                p.AddRectangle("db", OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Database");
+                p.GetShape("api", shape => shape.SetShapeData("Owner", "Ops"));
+                p.GetShape("db", shape => shape.SetShapeData("Owner", "Data"));
+                p.AddConnector("api", "db", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.SetLabel("SQL"));
+            });
+            document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            loaded.AsFluent()
-                .GetPage("Operations", page => page
-                    .ShapesWithData("Owner", "Ops", selection => selection
-                        .Fill(Color.LightBlue)
-                        .ShapeData("Reviewed", "Yes", "Reviewed", VisioShapeDataType.Boolean))
-                    .ShapesContainingText("Legacy", selection => selection.Text(shape => shape.Text!.Replace("Legacy", "Production")))
-                    .AddRectangle("monitor", OfficeLength.Inches(7), OfficeLength.Inches(4), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Monitor")
-                    .AddConnector("api", "monitor", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector
-                        .RightAngle()
-                        .ArrowEnd(EndArrow.Triangle)
-                        .Label("metrics"))
-                    .Connectors(selection => selection
-                        .LineColor(Color.DarkBlue)
-                        .LabelPosition()))
-                .End()
-                .Save(updatedPath);
+            loaded.GetPage("Operations", page => {
+                page.ShapesWithData("Owner", "Ops", selection => {
+                    selection.Fill(Color.LightBlue);
+                    selection.ShapeData("Reviewed", "Yes", "Reviewed", VisioShapeDataType.Boolean);
+                });
+                page.ShapesContainingText("Legacy", selection => selection.Text(shape => shape.Text!.Replace("Legacy", "Production")));
+                page.AddRectangle("monitor", OfficeLength.Inches(7), OfficeLength.Inches(4), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Monitor");
+                page.AddConnector("api", "monitor", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => {
+                    connector.SetKind(ConnectorKind.RightAngle);
+                    connector.SetArrowEnd(EndArrow.Triangle);
+                    connector.SetLabel("metrics");
+                });
+                page.ConfigureConnectors(selection => {
+                    selection.LineColor(Color.DarkBlue);
+                    selection.LabelPosition();
+                });
+            });
+            loaded.Save(updatedPath);
 
             VisioDocument updated = VisioDocument.Load(updatedPath);
             VisioPage page = Assert.Single(updated.Pages);
@@ -225,13 +224,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentPageOrAddIsIdempotentForCreateOrEditWorkflows() {
+        public void NativePageOrAddIsIdempotentForCreateOrEditWorkflows() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
-            document.AsFluent()
-                .GetOrAddPage("Inventory", page => page.AddRectangle("server", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), "Server"))
-                .GetOrAddPage("Inventory", page => page.GetShape("server", shape => shape.ShapeData("Owner", "Ops")))
-                .End();
+            document.GetOrAddPage("Inventory", page => page.AddRectangle("server", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), "Server"));
+            document.GetOrAddPage("Inventory", page => {
+                page.GetShape("server", shape => shape.SetShapeData("Owner", "Ops"));
+            });
 
             VisioPage page = Assert.Single(document.Pages);
             VisioShape server = Assert.Single(page.Shapes);
@@ -240,58 +239,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentAdvancedSelectionsEditLoadedGeometryPathsAndConnectors() {
+        public void NativeAdvancedSelectionsEditLoadedGeometryPathsAndConnectors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument.Create(filePath)
-                .AsFluent()
-                .AddPage("Network", page => page
-                    .AddRectangle("zone", OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(6), OfficeLength.Inches(4), "Runtime Zone")
-                    .AddRectangle("ingress", OfficeLength.Inches(2.5), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), "Ingress")
-                    .AddRectangle("api", OfficeLength.Inches(4.5), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), "API")
-                    .AddRectangle("db", OfficeLength.Inches(6.5), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), "Database")
-                    .AddRectangle("outside", OfficeLength.Inches(9.5), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), "Outside")
-                    .GetShape("api", shape => shape
-                        .UserCell("Tier", "App")
-                        .Hyperlink("https://example.org/api")
-                        .Protect(protection => protection.Position()))
-                    .GetShape("db", shape => shape.Layer("Data"))
-                    .AddConnector("ingress", "api", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector
-                        .RightAngle()
-                        .Layer("traffic")
-                        .Hyperlink("https://example.org/flow")
-                        .Label("https"))
-                    .AddConnector("api", "db", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector
-                        .RightAngle()
-                        .Layer("traffic")
-                        .Protect(protection => protection.Endpoints())
-                        .Label("sql")))
-                .End()
-                .Save();
+            using var nativeDocument6 = VisioDocument.Create(filePath);
+            nativeDocument6.AddPage("Network", page => {
+                page.AddRectangle("zone", OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(6), OfficeLength.Inches(4), "Runtime Zone");
+                page.AddRectangle("ingress", OfficeLength.Inches(2.5), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), "Ingress");
+                page.AddRectangle("api", OfficeLength.Inches(4.5), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), "API");
+                page.AddRectangle("db", OfficeLength.Inches(6.5), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), "Database");
+                page.AddRectangle("outside", OfficeLength.Inches(9.5), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), "Outside");
+                page.GetShape("api", shape => {
+                    shape.SetUserCell("Tier", "App");
+                    shape.AddHyperlink("https://example.org/api");
+                    shape.Protect(protection => protection.Position());
+                });
+                page.GetShape("db", shape => shape.SetLayer("Data"));
+                page.AddConnector("ingress", "api", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => {
+                    connector.SetKind(ConnectorKind.RightAngle);
+                    connector.SetLayer("traffic");
+                    connector.AddHyperlink("https://example.org/flow");
+                    connector.SetLabel("https");
+                });
+                page.AddConnector("api", "db", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => {
+                    connector.SetKind(ConnectorKind.RightAngle);
+                    connector.SetLayer("traffic");
+                    connector.Protect(protection => protection.Endpoints());
+                    connector.SetLabel("sql");
+                });
+            });
+            nativeDocument6.Save();
 
-            VisioDocument.Load(filePath)
-                .AsFluent()
-                .GetPage("Network", page => page
-                    .ShapesContainedIn("zone", selection => selection
-                        .ShapeData("Zone", "Core")
-                        .Fill(Color.LightGreen))
-                    .PathBetween("ingress", "db", selection => selection
-                        .ShapeData("CriticalPath", "Yes")
-                        .Stroke(Color.Red, 0.03))
-                    .ConnectedComponent("ingress", selection => selection.ShapeData("Component", "Runtime"))
-                    .ShapesWithUserCell("Tier", "App", selection => selection.ShapeData("TierReviewed", "Yes"))
-                    .ShapesWithHyperlink("https://example.org/api", selection => selection.Fill(Color.LightBlue))
-                    .ShapesWithProtection(protection => protection.LockMoveX == true, selection => selection.ShapeData("Locked", "Position"))
-                    .ConnectedConnectors("api", selection => selection
-                        .LineColor(Color.DarkBlue)
-                        .LabelPosition())
-                    .OutgoingConnectors("api", selection => selection.EndArrow(EndArrow.Triangle))
-                    .ConnectorsInLayer("traffic", selection => selection.LineWeight(0.04))
-                    .ConnectorsWithHyperlink("https://example.org/flow", selection => selection.Label("observed"))
-                    .ConnectorsWithProtection(protection => protection.LockBegin == true, selection => selection.LinePattern(2)))
-                .End()
-                .Save(updatedPath);
+            using var nativeDocument5 = VisioDocument.Load(filePath);
+            nativeDocument5.GetPage("Network", page => {
+                page.ShapesContainedIn("zone", selection => {
+                    selection.ShapeData("Zone", "Core");
+                    selection.Fill(Color.LightGreen);
+                });
+                page.PathBetween("ingress", "db", selection => {
+                    selection.ShapeData("CriticalPath", "Yes");
+                    selection.Stroke(Color.Red, 0.03);
+                });
+                page.ConnectedComponent("ingress", selection => selection.ShapeData("Component", "Runtime"));
+                page.ShapesWithUserCell("Tier", "App", selection => selection.ShapeData("TierReviewed", "Yes"));
+                page.ShapesWithHyperlink("https://example.org/api", selection => selection.Fill(Color.LightBlue));
+                page.ShapesWithProtection(protection => protection.LockMoveX == true, selection => selection.ShapeData("Locked", "Position"));
+                page.ConnectedConnectors("api", selection => {
+                    selection.LineColor(Color.DarkBlue);
+                    selection.LabelPosition();
+                });
+                page.OutgoingConnectors("api", selection => selection.EndArrow(EndArrow.Triangle));
+                page.ConnectorsInLayer("traffic", selection => selection.LineWeight(0.04));
+                page.ConnectorsWithHyperlink("https://example.org/flow", selection => selection.Label("observed"));
+                page.ConnectorsWithProtection(protection => protection.LockBegin == true, selection => selection.LinePattern(2));
+            });
+            nativeDocument5.Save(updatedPath);
 
             VisioDocument updated = VisioDocument.Load(updatedPath);
             VisioPage page = Assert.Single(updated.Pages);
@@ -327,35 +330,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentReplaceMasterStandardizesLoadedStencilShapes() {
+        public void NativeReplaceMasterStandardizesLoadedStencilShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument.Create(filePath)
-                .AsFluent()
-                .AddPage("Standardize", page => page
-                    .AddStencilShape(id: "source", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Source")
-                    .AddStencilShape(id: "task", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(5), y: OfficeLength.Inches(5), text: "Review")
-                    .AddStencilShape(id: "archive", stencil: VisioStencils.Flowchart.Get("data"), x: OfficeLength.Inches(8), y: OfficeLength.Inches(5), text: "Archive")
-                    .GetShape("task", shape => shape
-                        .Fill(Color.LightYellow)
-                        .Stroke(Color.Orange, 0.02)
-                        .Layer("Review")
-                        .ShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String, "Owning team")
-                        .UserCell("Stage", "Review", "STR")
-                        .Hyperlink("https://example.org/review", "Review docs"))
-                    .AddConnector("source", "task", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.Label("submit"))
-                    .AddConnector("task", "archive", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.Label("store")))
-                .End()
-                .Save();
+            using var nativeDocument4 = VisioDocument.Create(filePath);
+            nativeDocument4.AddPage("Standardize", page => {
+                page.AddStencilShape(id: "source", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Source");
+                page.AddStencilShape(id: "task", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(5), y: OfficeLength.Inches(5), text: "Review");
+                page.AddStencilShape(id: "archive", stencil: VisioStencils.Flowchart.Get("data"), x: OfficeLength.Inches(8), y: OfficeLength.Inches(5), text: "Archive");
+                page.GetShape("task", shape => {
+                    shape.SetFill(Color.LightYellow);
+                    shape.SetStroke(Color.Orange, 0.02);
+                    shape.SetLayer("Review");
+                    shape.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String, "Owning team");
+                    shape.SetUserCell("Stage", "Review", "STR");
+                    shape.AddHyperlink("https://example.org/review", "Review docs");
+                });
+                page.AddConnector("source", "task", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.SetLabel("submit"));
+                page.AddConnector("task", "archive", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.SetLabel("store"));
+            });
+            nativeDocument4.Save();
 
-            VisioDocument.Load(filePath)
-                .AsFluent()
-                .GetPage("Standardize", page => page
-                    .ReplaceMaster("task", VisioStencils.Flowchart.Get("decision"), resizeToMaster: true)
-                    .ReplaceMastersByMaster("Process", VisioStencils.Flowchart.Get("preparation"), resizeToMaster: true))
-                .End()
-                .Save(updatedPath);
+            using var nativeDocument3 = VisioDocument.Load(filePath);
+            nativeDocument3.GetPage("Standardize", page => {
+                page.ReplaceMaster("task", VisioStencils.Flowchart.Get("decision"), resizeToMaster: true);
+                page.ReplaceMastersByMaster("Process", VisioStencils.Flowchart.Get("preparation"), resizeToMaster: true);
+            });
+            nativeDocument3.Save(updatedPath);
 
             VisioDocument updated = VisioDocument.Load(updatedPath);
             VisioPage page = Assert.Single(updated.Pages);
@@ -389,39 +391,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentCanRelayoutLoadedContainerMembersAndPersistRoutedConnectors() {
+        public void NativeCanRelayoutLoadedContainerMembersAndPersistRoutedConnectors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument.Create(filePath)
-                .AsFluent()
-                .AddPage("Operations", page => page
-                    .AddRectangle("ingress", OfficeLength.Inches(7), OfficeLength.Inches(2), OfficeLength.Inches(1.2), OfficeLength.Inches(0.7), "Ingress")
-                    .AddRectangle("api", OfficeLength.Inches(3), OfficeLength.Inches(6), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "API")
-                    .AddRectangle("worker", OfficeLength.Inches(8), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Worker")
-                    .AddRectangle("audit", OfficeLength.Inches(6), OfficeLength.Inches(1), OfficeLength.Inches(1.2), OfficeLength.Inches(0.7), "Audit")
-                    .AddContainer("runtime", "Runtime", new[] { "ingress", "api", "worker" }, options => {
+            using var nativeDocument2 = VisioDocument.Create(filePath);
+            nativeDocument2.AddPage("Operations", page => {
+                page.AddRectangle("ingress", OfficeLength.Inches(7), OfficeLength.Inches(2), OfficeLength.Inches(1.2), OfficeLength.Inches(0.7), "Ingress");
+                page.AddRectangle("api", OfficeLength.Inches(3), OfficeLength.Inches(6), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "API");
+                page.AddRectangle("worker", OfficeLength.Inches(8), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Worker");
+                page.AddRectangle("audit", OfficeLength.Inches(6), OfficeLength.Inches(1), OfficeLength.Inches(1.2), OfficeLength.Inches(0.7), "Audit");
+                page.AddContainer("runtime", "Runtime", new[] {
+                    "ingress", "api", "worker"
+                }, options => {
                         options.Margin = 0.2D;
                         options.HeadingHeight = 0.3D;
-                    })
-                    .AddConnector("ingress", "api", fromSide: VisioSide.Top, toSide: VisioSide.Bottom, configure: connector => connector.Label("https"))
-                    .AddConnector("api", "worker", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.Label("queue"))
-                    .AddConnector("worker", "audit", fromSide: VisioSide.Bottom, toSide: VisioSide.Top, configure: connector => connector.Label("events")))
-                .End()
-                .Save();
+                    });
+                    page.AddConnector("ingress", "api", fromSide: VisioSide.Top, toSide: VisioSide.Bottom, configure: connector => connector.SetLabel("https"));
+                    page.AddConnector("api", "worker", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.SetLabel("queue"));
+                    page.AddConnector("worker", "audit", fromSide: VisioSide.Bottom, toSide: VisioSide.Top, configure: connector => connector.SetLabel("events"));
+                    });
+            nativeDocument2.Save();
 
-            VisioDocument.Load(filePath)
-                .AsFluent()
-                .GetPage("Operations", page => page
-                    .RelayoutContainerMembers("runtime", options => {
+            using var nativeDocument1 = VisioDocument.Load(filePath);
+            nativeDocument1.GetPage("Operations", page => { page.RelayoutContainerMembers("runtime", options => {
                         options.Columns = 1;
                         options.HorizontalSpacing = 0D;
                         options.VerticalSpacing = 0.25D;
                         options.Order = VisioSelectionLayoutOrder.TopLeftToBottomRight;
-                    })
-                    .AlignShapes(VisioHorizontalAlignment.Center, new[] { "ingress", "api", "worker" }))
-                .End()
-                .Save(updatedPath);
+                    }); page.AlignShapes(VisioHorizontalAlignment.Center, new[] { "ingress", "api", "worker" }); });
+            nativeDocument1.Save(updatedPath);
 
             VisioDocument updated = VisioDocument.Load(updatedPath);
             VisioPage page = Assert.Single(updated.Pages);

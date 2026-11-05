@@ -88,8 +88,8 @@ public sealed class PublisherTableMergingTests {
     }
 
     private static PublisherDocument Create() {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
-        document.AddTable(document.Pages[0].Id, 72, 144, new[] { 90D, 110D, 130D, 150D }, new[] { 42D, 54D, 66D });
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
+        document.AddTable(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(144), new OfficeLength[] { OfficeLength.Points(90D), OfficeLength.Points(110D), OfficeLength.Points(130D), OfficeLength.Points(150D) }, new OfficeLength[] { OfficeLength.Points(42D), OfficeLength.Points(54D), OfficeLength.Points(66D) });
         return document;
     }
     private static OfficeRichTextParagraph Paragraph(string text, double size = 12, bool bold = false) =>

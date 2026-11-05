@@ -50,7 +50,7 @@ public sealed partial class PowerPointSlideEditWorkflowTests {
     public void TemplateMetadataAndBackgroundClearingUseTheSelectedSlide() {
         using var document = Create();
         var layout = PowerPointTemplate.Inspect(document).Masters[0].Layouts.Last();
-        document.Slides[0].SetBackgroundGradient("112233", "445566");
+        document.Slides[0].SetBackgroundGradient(OfficeIMO.OfficeColor.Parse("112233"), OfficeIMO.OfficeColor.Parse("445566"));
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("deck", document); runspace.SessionStateProxy.SetVariable("layout", layout);
         using var shell = PowerShell.Create(); shell.Runspace = runspace;

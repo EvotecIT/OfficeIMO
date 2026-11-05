@@ -169,22 +169,22 @@ internal static class OneNoteEvidenceRunner {
         string? sourcePath) {
         if (string.Equals(operation, "CreateWrite", StringComparison.OrdinalIgnoreCase)) {
             OneNoteSection section = OneNoteBenchmarkCorpus.CreateSection(scale.PageCount);
-            byte[] bytes = OneNoteSectionWriter.Write(section, CreateEvidenceWriterOptions());
+            byte[] bytes = section.ToBytes(CreateEvidenceWriterOptions());
             return new OneNoteOperationResult(bytes, section);
         }
 
         using var input = new FileStream(sourcePath!, FileMode.Open, FileAccess.Read, FileShare.Read);
-        OneNoteSection loaded = OneNoteSectionReader.Read(input);
+        OneNoteSection loaded = OneNoteSection.Load(input);
         if (string.Equals(operation, "Read", StringComparison.OrdinalIgnoreCase)) {
             return new OneNoteOperationResult(null, loaded);
         }
 
         loaded.Pages.Add(OneNoteBenchmarkCorpus.CreateEditPage(loaded.Pages.Count));
-        byte[] edited = OneNoteSectionWriter.Write(loaded, CreateEvidenceWriterOptions());
+        byte[] edited = loaded.ToBytes(CreateEvidenceWriterOptions());
         return new OneNoteOperationResult(edited, loaded);
     }
 
-    private static OneNoteWriterOptions CreateEvidenceWriterOptions() => new() {
+    private static OneNoteSaveOptions CreateEvidenceWriterOptions() => new() {
         ValidateRoundTrip = false
     };
 
@@ -214,7 +214,7 @@ internal static class OneNoteEvidenceRunner {
         if (result.PackageBytes == null) return;
 
         using var stream = new MemoryStream(result.PackageBytes, writable: false);
-        OneNoteCorpusObservation reopened = OneNoteBenchmarkCorpus.Observe(OneNoteSectionReader.Read(stream));
+        OneNoteCorpusObservation reopened = OneNoteBenchmarkCorpus.Observe(OneNoteSection.Load(stream));
         if (reopened != expected) {
             throw new InvalidOperationException(operation + "/" + scale.Name + " failed exact semantic round-trip validation.");
         }
@@ -253,9 +253,8 @@ internal static class OneNoteEvidenceRunner {
 
     private static string CreateTemporarySource(OneNoteBenchmarkScale scale) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-OneNote-{scale.Name}-{Guid.NewGuid():N}.one");
-        File.WriteAllBytes(path, OneNoteSectionWriter.Write(
-            OneNoteBenchmarkCorpus.CreateSection(scale.PageCount),
-            CreateEvidenceWriterOptions()));
+        File.WriteAllBytes(path, OneNoteBenchmarkCorpus.CreateSection(scale.PageCount)
+            .ToBytes(CreateEvidenceWriterOptions()));
         return path;
     }
 

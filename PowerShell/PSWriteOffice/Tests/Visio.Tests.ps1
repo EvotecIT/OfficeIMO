@@ -19,14 +19,14 @@ Describe 'Visio cmdlets' {
 
         Test-Path $path | Should -BeTrue
 
-        $loaded = Get-OfficeVisio -Path $path
+        $loaded = Open-OfficeVisio -Path $path
         $loaded.Pages.Count | Should -Be 1
 
-        $info = Get-OfficeVisioInfo -Path $path
+        $info = (Get-OfficeDocumentInfo -Detailed -Path $path).Details
         $info.Title | Should -Be 'Visio smoke'
         $info.ShapeCount | Should -Be 1
 
-        $text = Get-OfficeVisioInfo -Path $path -AsText
+        $text = (Get-OfficeDocumentInfo -Detailed -Path $path).Details.ToText()
         $text | Should -Match 'document.shapeCount=1'
         $text | Should -Match 'Visio smoke'
     }
@@ -133,7 +133,7 @@ Describe 'Visio cmdlets' {
             }
         } | Out-Null
 
-        $info = Get-OfficeVisioInfo -Path $path
+        $info = (Get-OfficeDocumentInfo -Detailed -Path $path).Details
         $info.Pages.Count | Should -Be 2
         $info.ShapeCount | Should -Be 5
         $info.ConnectorCount | Should -Be 2
@@ -149,14 +149,14 @@ Describe 'Visio cmdlets' {
         $path = Join-Path $TestDrive 'nested-stencils.vsdx'
 
         New-OfficeVisio -Path $path -Title 'Nested stencil diagram' {
-            Import-OfficeVisioStencil -BuiltIn Flowchart -Name Flow -Default
+            Import-OfficeVisioStencilCatalog -BuiltIn Flowchart -Name Flow -Default
             VisioPage 'Nested' {
                 VisioStencil -Stencil process -Text 'First process' -X 2 -Y 3
                 VisioStencil -Stencil process -Text 'Second process' -X 5 -Y 3
             }
         } | Out-Null
 
-        $document = Get-OfficeVisio -Path $path
+        $document = Open-OfficeVisio -Path $path
         @($document.Pages).Count | Should -Be 2
         @($document.Pages[0].Shapes).Count | Should -Be 0
 
@@ -185,12 +185,12 @@ Describe 'Visio cmdlets' {
         $path = Join-Path $TestDrive 'stencil-dsl.vsdx'
         $svgPath = Join-Path $TestDrive 'stencil-dsl.svg'
 
-        $flow = Get-OfficeVisioStencilCatalog -BuiltIn Flowchart
+        $flow = Import-OfficeVisioStencilCatalog -BuiltIn Flowchart
         $flow.Name | Should -Be 'Flowchart'
         (Find-OfficeVisioStencil -Catalog $flow -Query process -First 1).Id | Should -Be 'flow.process'
 
         New-OfficeVisio -Path $path -Title 'Stencil DSL diagram' -UseMastersByDefault -RequestRecalcOnOpen {
-            Import-OfficeVisioStencil -BuiltIn Flowchart -Name Flow -Default
+            Import-OfficeVisioStencilCatalog -BuiltIn Flowchart -Name Flow -Default
             VisioStencil -Catalog Flow -Stencil process -Key intake -Text 'Intake' -X 1.5 -Y 4 -FillColor '#E0F2FE' -LineColor '#0369A1'
             VisioStencil -Catalog Flow -Stencil decision -Key review -Text 'Review?' -X 4 -Y 4 -Width 1.6 -Height 1.1 -FillColor '#FEF3C7' -LineColor '#B45309'
             VisioStencil -Catalog Flow -Stencil data -Key archive -Text 'Archive' -X 6.5 -Y 4 -FillColor '#DCFCE7' -LineColor '#15803D'
@@ -198,7 +198,7 @@ Describe 'Visio cmdlets' {
             VisioConnector -From review -To archive -Kind RightAngle -EndArrow Triangle -Label 'store'
         } | Out-Null
 
-        $info = Get-OfficeVisioInfo -Path $path
+        $info = (Get-OfficeDocumentInfo -Detailed -Path $path).Details
         $info.ShapeCount | Should -Be 3
         $info.ConnectorCount | Should -Be 2
 
@@ -225,7 +225,7 @@ Describe 'Visio cmdlets' {
         }
 
         $path = Join-Path $TestDrive 'package-stencil.vsdx'
-        $catalog = Get-OfficeVisioStencilCatalog -Path $templatePath -CatalogName 'OfficeIMO Template' -IncludeUnsupportedMasters
+        $catalog = Import-OfficeVisioStencilCatalog -Path $templatePath -CatalogName 'OfficeIMO Template' -IncludeUnsupportedMasters
         if ($catalog.Shapes.Count -eq 0) {
             Set-ItResult -Skipped -Because "OfficeIMO Visio template fixture did not expose package masters."
             return
@@ -233,11 +233,11 @@ Describe 'Visio cmdlets' {
 
         $stencil = Find-OfficeVisioStencil -Catalog $catalog -First 1
         New-OfficeVisio -Path $path -Title 'Package stencil DSL' -UseMastersByDefault {
-            Import-OfficeVisioStencil -Catalog $catalog -Name Template -Default
+            Import-OfficeVisioStencilCatalog -Catalog $catalog -Name Template -Default
             VisioStencil -Stencil $stencil.Id -Key imported -Text 'Imported stencil' -X 2.5 -Y 3
         } | Out-Null
 
-        $info = Get-OfficeVisioInfo -Path $path
+        $info = (Get-OfficeDocumentInfo -Detailed -Path $path).Details
         $info.ShapeCount | Should -Be 1
         $info.Title | Should -Be 'Package stencil DSL'
     }
@@ -309,13 +309,13 @@ Describe 'Visio cmdlets' {
         $catalog = [Activator]::CreateInstance($catalogType, [object[]]@('Metric', $stencils))
 
         New-OfficeVisio -Path $path -Title 'Metric stencil defaults' {
-            Import-OfficeVisioStencil -Catalog $catalog -Name Metric -Default | Out-Null
+            Import-OfficeVisioStencilCatalog -Catalog $catalog -Name Metric -Default | Out-Null
             VisioPage 'Metric Page' -Width 210mm -Height 297mm -DisplayUnit Millimeters {
-                VisioStencil -Catalog Metric -Stencil 'metric.process' -Key process -Text 'Metric' -X 50 -Y 50 -Width 30
+                VisioStencil -Catalog Metric -Stencil 'metric.process' -Key process -Text 'Metric' -X 50mm -Y 50mm -Width 30mm
             }
         } | Out-Null
 
-        $document = Get-OfficeVisio -Path $path
+        $document = Open-OfficeVisio -Path $path
         $shape = $document.Pages[1].Shapes[0]
         [Math]::Round($shape.Width.ToInches(), 3) | Should -Be ([Math]::Round(30 / 25.4, 3))
         [Math]::Round($shape.Height.ToInches(), 3) | Should -Be ([Math]::Round(20 / 25.4, 3))
@@ -364,7 +364,7 @@ Describe 'Visio cmdlets' {
         $shape3 = Add-OfficeVisioRectangle -Page $page -X 5in -Y 2in -Width 1in -Height 0.5in -Text 'Three' -PassThru
 
         @($shape1, $shape2, $shape3) |
-            Set-OfficeVisioShapeLayout -Page $page -AlignVertical Top -Layer 'Milestones' -PassThru |
+            Set-OfficeVisioShapeLayout -Page $page -VerticalAlignment Top -Layer 'Milestones' -PassThru |
             Should -HaveCount 3
 
         $shape1.PinY | Should -Be $shape2.PinY
@@ -372,19 +372,19 @@ Describe 'Visio cmdlets' {
         $page.Layers.Name | Should -Contain 'Milestones'
         $shape1.LayerNames | Should -Contain 'Milestones'
 
-        Set-OfficeVisioShapeLayout -Page $page -ShapeId $shape1.Id, $shape2.Id, $shape3.Id -Grid -Columns 3 -HorizontalSpacing 0.25 -NoRouteInternalConnectors
+        Set-OfficeVisioShapeLayout -Page $page -ShapeId $shape1.Id, $shape2.Id, $shape3.Id -Grid -Columns 3 -HorizontalSpacing 0.25in -NoRouteInternalConnectors
         $ordered = @($page.Shapes | Sort-Object { $_.PinX.ToInches() })
         $ordered[0].Text | Should -Be 'One'
         $ordered[1].PinX.ToInches() | Should -BeGreaterThan $ordered[0].PinX.ToInches()
         $ordered[2].PinX.ToInches() | Should -BeGreaterThan $ordered[1].PinX.ToInches()
 
-        $container = Add-OfficeVisioContainer -Page $page -ShapeId $shape1.Id, $shape2.Id, $shape3.Id -Id 'milestone-container' -Text 'Milestones' -Margin 0.2 -HeadingHeight 0.3 -FillColor '#E0F2FE' -LineColor '#0369A1' -PassThru
+        $container = Add-OfficeVisioContainer -Page $page -ShapeId $shape1.Id, $shape2.Id, $shape3.Id -Key 'milestone-container' -Text 'Milestones' -Margin 0.2in -HeadingHeight 0.3in -FillColor '#E0F2FE' -LineColor '#0369A1' -PassThru
         $container.IsContainer | Should -BeTrue
         $container.ContainerMemberIds | Should -Contain $shape1.Id
         $shape1.ContainerOwnerIds | Should -Contain 'milestone-container'
 
         $document | Save-OfficeVisio -Path $path | Out-Null
-        $loaded = Get-OfficeVisio -Path $path
+        $loaded = Open-OfficeVisio -Path $path
         $loaded.Pages[0].Layers.Name | Should -Contain 'Milestones'
         @($loaded.Pages[0].Shapes | Where-Object { $_.LayerNames -contains 'Milestones' }).Count | Should -Be 3
         $loadedContainer = $loaded.Pages[0].Shapes | Where-Object Id -EQ 'milestone-container' | Select-Object -First 1

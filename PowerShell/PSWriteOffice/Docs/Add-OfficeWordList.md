@@ -9,9 +9,14 @@ schema: 2.0.0
 Starts a list inside the current section or paragraph anchor.
 
 ## SYNTAX
-### __AllParameterSets
+### Content (Default)
 ```powershell
-Add-OfficeWordList [[-Content] <scriptblock>] [[-Style] <WordListStyle>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordList [[-Content] <scriptblock>] [-Style <WordListStyle>] [-Numbered] [-PassThru] [<CommonParameters>]
+```
+
+### Items
+```powershell
+Add-OfficeWordList [-Items] <string[]> [-Style <WordListStyle>] [-Numbered] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,7 +38,7 @@ Scriptblock executed within the list scope.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -44,12 +49,44 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Items
+Plain list items.
+
+```yaml
+Type: String[]
+Parameter Sets: Items
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Numbered
+Use the native numbered list style.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Content, Items
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -PassThru
 Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content, Items
 Aliases: None
 Possible values:
 
@@ -65,12 +102,12 @@ Built-in list style or custom numbering scheme.
 
 ```yaml
 Type: WordListStyle
-Parameter Sets: __AllParameterSets
-Aliases: Type
+Parameter Sets: Content, Items
+Aliases: None
 Possible values: Bulleted, ArticleSections, Headings111, HeadingIA1, Chapters, BulletedChars, Heading1ai, Headings111Shifted, LowerLetterWithBracket, LowerLetterWithDot, UpperLetterWithDot, UpperLetterWithBracket, Custom, Numbered
 
 Required: False
-Position: 1
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -85,7 +122,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.Word.WordList`
 
 ## RELATED LINKS
 

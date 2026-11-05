@@ -58,7 +58,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.FromRgb(0, 102, 204), fill.Shape.FillColor);
         Assert.Equal(OfficeColor.FromRgba(255, 128, 0, 128), border.Shape.StrokeColor);
         Assert.Contains("#0066cc", svg, StringComparison.OrdinalIgnoreCase);
-        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
+        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToImage(options));
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.FromRgb(64, 0, 191), fill.Shape.FillColor);
         Assert.Equal(OfficeColor.FromRgba(0, 255, 0, 128), border.Shape.StrokeColor);
         Assert.Contains("#4000bf", svg, StringComparison.OrdinalIgnoreCase);
-        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
+        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToImage(options));
     }
 
     [Fact]

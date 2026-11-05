@@ -11,7 +11,7 @@ Saves an OfficeIMO AsciiDoc document.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Save-OfficeAsciiDoc [-Document] <AsciiDocDocument> [-Path] <string> [-Options <AsciiDocWriterOptions>] [-Mode <AsciiDocWriterMode>] [-LineEnding <OfficeLineEnding>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeAsciiDoc [-Path] <string> -Document <AsciiDocDocument> [-Mode <AsciiDocWriterMode>] [-LineEnding <OfficeLineEnding>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Saves an OfficeIMO AsciiDoc document.
 
 ### EXAMPLE 1
 ```powershell
-PS> $document = Get-OfficeAsciiDoc -Path .\Guide.adoc
+PS> $document = Open-OfficeAsciiDoc -Path .\Guide.adoc
 $document | Save-OfficeAsciiDoc -Path .\Guide-normalized.adoc -Mode Canonical
 ```
 
@@ -38,7 +38,7 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: 0
+Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
@@ -76,22 +76,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Options
-Optional writer settings.
-
-```yaml
-Type: AsciiDocWriterOptions
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -PassThru
 Return the saved document.
 
@@ -118,7 +102,7 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: 1
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

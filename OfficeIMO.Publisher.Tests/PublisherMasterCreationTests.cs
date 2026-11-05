@@ -28,7 +28,7 @@ public sealed class PublisherMasterCreationTests {
         for (int iteration = 0; iteration < 2; iteration++) {
             var oldMasters = document.MasterPages;
             foreach (PublisherTextFrame frame in document.MasterPages.Concat(document.Pages).SelectMany(page => page.TextFrames).ToArray()) {
-                document.SetTextFrameBounds(frame.Id, frame.X + 6, frame.Y + 12, frame.Width, frame.Height);
+                document.SetTextFrameBounds(frame.Id, OfficeLength.Points(frame.X + 6), OfficeLength.Points(frame.Y + 12), OfficeLength.Points(frame.Width), OfficeLength.Points(frame.Height));
                 if (!masterFrames.Contains(frame.Id)) continue;
                 OfficeRichTextParagraph paragraph = document.TextStories.Single(story => story.Id == frame.StoryId).Paragraphs.Single();
                 OfficeRichTextRun run = paragraph.Runs.Single();

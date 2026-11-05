@@ -12,13 +12,12 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///     Select-Object Name, FilePath, IsClean</code>
 ///   <para>Creates polished, editable Visio samples for flowcharts, architecture, network, timeline, swimlane, org chart, and graph diagrams.</para>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeVisioGallery", DefaultParameterSetName = "OutputDirectory")]
-[Alias("New-VisioGallery")]
+[Cmdlet(VerbsCommon.New, "OfficeVisioGallery", DefaultParameterSetName = "OutputDirectory", SupportsShouldProcess = true)]
 [OutputType(typeof(VisioGalleryResult))]
 public sealed class NewOfficeVisioGalleryCommand : PSCmdlet
 {
     /// <summary>Directory that receives generated .vsdx gallery documents.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "OutputDirectory")]
     public string OutputDirectory { get; set; } = string.Empty;
 
     /// <summary>Skip structural package validation after gallery documents are generated.</summary>
@@ -33,6 +32,7 @@ public sealed class NewOfficeVisioGalleryCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var outputDirectory = VisioCommandUtilities.ResolvePath(this, OutputDirectory);
+        if (!ShouldProcess(outputDirectory, "Create Visio reference gallery")) return;
         var results = VisioGallery.Create(outputDirectory, new VisioGalleryOptions
         {
             ValidatePackage = !NoPackageValidation.IsPresent,

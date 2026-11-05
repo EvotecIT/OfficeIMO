@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Word;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Table;
@@ -22,7 +23,7 @@ public sealed class ExportOfficeWordCommand : OfficeCmdlet {
     private readonly List<object?> _input = new();
 
     /// <summary>Objects supplied as an array or through the pipeline.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Path")]
     public object[] InputObject { get; set; } = Array.Empty<object>();
 
     /// <summary>Destination DOCX file; the parent folder is created only when publishing.</summary>
@@ -44,6 +45,10 @@ public sealed class ExportOfficeWordCommand : OfficeCmdlet {
     /// <summary>Page orientation; omission chooses landscape when first-row words and padding cannot fit the portrait text area.</summary>
     [Parameter]
     public OfficeIMO.OfficePageOrientation? Orientation { get; set; }
+
+    /// <summary>Built-in theme, shared theme object or theme template.</summary>
+    [Parameter, OfficeThemeTransformation]
+    public OfficeThemeInput? Theme { get; set; }
 
     /// <summary>Native table style; Modern includes a repeating first-row header.</summary>
     [Parameter]
@@ -83,7 +88,7 @@ public sealed class ExportOfficeWordCommand : OfficeCmdlet {
 
             var rows = WordObjectExport.ProjectRows(_input, Property, ColumnFormat);
 
-            using WordDocument document = WordDocument.Create();
+            using WordDocument document = WordDocument.Create(new WordCreateOptions { Theme = Theme?.Resolve(OfficeTheme.FromDocument) });
             if (Title != null) {
                 document.AddParagraph(Title).Style = WordParagraphStyles.Title;
             }

@@ -10,7 +10,7 @@ $initialRows = @(
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Readiness' {
-        ExcelTable -Data $initialRows -Name 'ServiceReadiness' -AutoFit
+        ExcelTable -InputObject $initialRows -Name 'ServiceReadiness'
     }
     ExcelSheet 'Notes' {
         Set-OfficeExcelCell -Address A1 -Value 'This workbook is modified after it is created.'
@@ -21,7 +21,7 @@ New-OfficeExcel -Path $path {
 $workbook = Open-OfficeExcel -Path $path
 try {
     $workbook |
-        Add-OfficeExcelTableRow -Sheet Readiness -TableName ServiceReadiness -InputObject ([PSCustomObject]@{
+        Add-OfficeExcelTableRow -Sheet Readiness -Table ServiceReadiness -InputObject ([PSCustomObject]@{
             Service = 'File Services'
             Status  = 'Ready'
             Owner   = 'Storage'
@@ -33,7 +33,7 @@ try {
     )
 
     $workbook |
-        Add-OfficeExcelTableRow -Sheet Readiness -TableName ServiceReadiness -InputObject $moreRows
+        Add-OfficeExcelTableRow -Sheet Readiness -Table ServiceReadiness -InputObject $moreRows
 } finally {
     $workbook | Save-OfficeExcel
     Close-OfficeExcel -Document $workbook

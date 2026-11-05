@@ -13,27 +13,28 @@ public sealed class MarkdownToAsciiDocContractTests {
             "| Name | Value |\n| --- | --- |\n| A | B |\n";
         MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
-        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
+        var result = document.ToAsciiDoc(null, out OfficeIMO.OfficeConversionReport conversionReport1);
+        var resultReport = (MarkdownToAsciiDocReport)conversionReport1;
 
-        Assert.StartsWith(":product: OfficeIMO\n\n= Guide\n\n== Start\n", result.Source, StringComparison.Ordinal);
-        Assert.Contains("*bold*", result.Source, StringComparison.Ordinal);
-        Assert.Contains("_italic_", result.Source, StringComparison.Ordinal);
-        Assert.Contains("<<intro,intro>>", result.Source, StringComparison.Ordinal);
-        Assert.Contains("image:icon.svg[Icon]", result.Source, StringComparison.Ordinal);
-        Assert.Contains("[source,csharp]\n----", result.Source, StringComparison.Ordinal);
-        Assert.Contains("[cols=2*,%header]\n|===", result.Source, StringComparison.Ordinal);
-        Assert.Equal(result.Source, result.Value.ToAsciiDoc());
-        Assert.True(result.Value.SyntaxTree.IsLossless);
-        Assert.False(result.HasLoss);
+        Assert.StartsWith(":product: OfficeIMO\n\n= Guide\n\n== Start\n", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("*bold*", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("_italic_", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("<<intro,intro>>", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("image:icon.svg[Icon]", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("[source,csharp]\n----", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("[cols=2*,%header]\n|===", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Equal(resultReport.GeneratedSource, result.ToAsciiDoc());
+        Assert.True(result.SyntaxTree.IsLossless);
+        Assert.False(resultReport.HasLoss);
     }
 
     [Fact]
     public void StructuredTableSpans_SurviveAsciiDocMarkdownAsciiDocRoundTrip() {
         const string source = "[cols=2*,%header]\n|===\n|A |B\n2+|wide\n|===\n";
-        AsciiDocToMarkdownResult markdown = AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
+        var markdown = AsciiDocDocument.ParseResult(source).Document.ToMarkdown(null);
 
-        MarkdownToAsciiDocResult roundTrip = markdown.Value.ToAsciiDocDocumentResult();
-        AsciiDocTableBlock table = Assert.Single(roundTrip.Value.BlocksOfType<AsciiDocTableBlock>());
+        var roundTrip = markdown.ToAsciiDoc(null);
+        AsciiDocTableBlock table = Assert.Single(roundTrip.BlocksOfType<AsciiDocTableBlock>());
 
         Assert.Equal(2, table.Table.Cells[2].ColumnSpan);
         Assert.True(table.Table.Rows[0].IsHeader);
@@ -56,48 +57,52 @@ public sealed class MarkdownToAsciiDocContractTests {
         list.Items.Add(item);
         document.Add(list);
 
-        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
+        var result = document.ToAsciiDoc(null, out OfficeIMO.OfficeConversionReport conversionReport4);
+        var resultReport = (MarkdownToAsciiDocReport)conversionReport4;
 
-        Assert.Contains("Term:: Definition", result.Source, StringComparison.Ordinal);
-        Assert.Contains("WARNING: Be careful", result.Source, StringComparison.Ordinal);
-        Assert.Contains("* item\n+\n[source,text]", result.Source, StringComparison.Ordinal);
-        Assert.Single(result.Value.BlocksOfType<AsciiDocDescriptionListBlock>());
-        Assert.Single(result.Value.BlocksOfType<AsciiDocAdmonitionBlock>());
-        Assert.Single(result.Value.BlocksOfType<AsciiDocListContinuation>());
+        Assert.Contains("Term:: Definition", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("WARNING: Be careful", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("* item\n+\n[source,text]", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Single(result.BlocksOfType<AsciiDocDescriptionListBlock>());
+        Assert.Single(result.BlocksOfType<AsciiDocAdmonitionBlock>());
+        Assert.Single(result.BlocksOfType<AsciiDocListContinuation>());
     }
 
     [Fact]
     public void UnsupportedMarkdownBlock_IsVisibleAndDiagnosed() {
         MarkdownDocument document = MarkdownDocument.Create().Hr();
 
-        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
+        var result = document.ToAsciiDoc(null, out OfficeIMO.OfficeConversionReport conversionReport5);
+        var resultReport = (MarkdownToAsciiDocReport)conversionReport5;
 
-        Assert.Contains("[source,markdown]", result.Source, StringComparison.Ordinal);
-        Assert.Contains("---", result.Source, StringComparison.Ordinal);
-        Assert.Equal(AsciiDocMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Report.NativeDiagnostics).Outcome);
-        Assert.True(result.HasLoss);
+        Assert.Contains("[source,markdown]", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("---", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Equal(AsciiDocMarkdownConversionOutcome.SourceFallback, Assert.Single(resultReport.NativeDiagnostics).Outcome);
+        Assert.True(resultReport.HasLoss);
     }
 
     [Fact]
     public void RequestedLineEnding_IsUsedThroughoutGeneratedSource() {
         MarkdownDocument document = MarkdownDocument.Parse("# Title\n\nParagraph\n");
 
-        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult(new MarkdownAsciiDocExportOptions { LineEnding = "\r\n" });
+        var result = document.ToAsciiDoc(new MarkdownAsciiDocExportOptions { LineEnding = "\r\n" }, out OfficeIMO.OfficeConversionReport conversionReport6);
+        var resultReport = (MarkdownToAsciiDocReport)conversionReport6;
 
-        Assert.DoesNotContain("\n", result.Source.Replace("\r\n", string.Empty), StringComparison.Ordinal);
-        Assert.Equal(result.Source, result.Value.ToAsciiDoc());
+        Assert.DoesNotContain("\n", resultReport.GeneratedSource.Replace("\r\n", string.Empty), StringComparison.Ordinal);
+        Assert.Equal(resultReport.GeneratedSource, result.ToAsciiDoc());
     }
 
     [Fact]
     public void CodeContainingListingFence_UsesALongerDelimiterWithoutChangingContent() {
         MarkdownDocument document = MarkdownDocument.Create().Code("text", "before\n----\nafter");
 
-        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
+        var result = document.ToAsciiDoc(null, out OfficeIMO.OfficeConversionReport conversionReport7);
+        var resultReport = (MarkdownToAsciiDocReport)conversionReport7;
 
-        Assert.Contains("-----\nbefore\n----\nafter\n-----", result.Source, StringComparison.Ordinal);
-        AsciiDocDelimitedBlock block = Assert.Single(result.Value.BlocksOfType<AsciiDocDelimitedBlock>());
+        Assert.Contains("-----\nbefore\n----\nafter\n-----", resultReport.GeneratedSource, StringComparison.Ordinal);
+        AsciiDocDelimitedBlock block = Assert.Single(result.BlocksOfType<AsciiDocDelimitedBlock>());
         Assert.Equal("before\n----\nafter\n", block.Content);
-        Assert.DoesNotContain(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "code-delimiter");
+        Assert.DoesNotContain(resultReport.NativeDiagnostics, static diagnostic => diagnostic.Feature == "code-delimiter");
     }
 
     [Fact]
@@ -107,9 +112,10 @@ public sealed class MarkdownToAsciiDocContractTests {
 
         using var addedDocument = MarkdownDocument.Create();
         addedDocument.Add(table);
-        MarkdownToAsciiDocResult result = addedDocument.ToAsciiDocDocumentResult();
+        var result = addedDocument.ToAsciiDoc(null, out OfficeIMO.OfficeConversionReport conversionReport8);
+        var resultReport = (MarkdownToAsciiDocReport)conversionReport8;
 
-        Assert.Contains("[cols=2*", result.Source, StringComparison.Ordinal);
-        Assert.Equal(2, Assert.Single(result.Value.BlocksOfType<AsciiDocTableBlock>()).Table.ColumnCount);
+        Assert.Contains("[cols=2*", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Equal(2, Assert.Single(result.BlocksOfType<AsciiDocTableBlock>()).Table.ColumnCount);
     }
 }

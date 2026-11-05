@@ -12,8 +12,8 @@ internal static class NativePagesMarkerIdentitySmoke {
             ("mixed-size", "557D306CA88E514FF5A3F25BD17B666CAC01DF55382DB212FCDABFFD98D35C3C") }) {
             var identifiers = new List<string>();
             foreach (var style in Enum.GetValues<IWorkDecimalListMarkerStyle>()) {
-                var document = Example(mode, style); byte[] bytes = document.SaveBytes();
-                Require(bytes.SequenceEqual(Example(mode, style).SaveBytes()), "Marker identity is nondeterministic.");
+                var document = Example(mode, style); byte[] bytes = document.ToBytes();
+                Require(bytes.SequenceEqual(Example(mode, style).ToBytes()), "Marker identity is nondeterministic.");
                 if (style == IWorkDecimalListMarkerStyle.Period)
                     Require(Hash(bytes) == periodHash, "Original period-marker bytes changed.");
                 using var package = new ZipArchive(new MemoryStream(bytes));
@@ -21,7 +21,7 @@ internal static class NativePagesMarkerIdentitySmoke {
                 identifiers.Add(reader.ReadToEnd());
                 document.CreateNumberedList(style == IWorkDecimalListMarkerStyle.Period
                     ? IWorkDecimalListMarkerStyle.Parentheses : IWorkDecimalListMarkerStyle.Period);
-                Require(bytes.SequenceEqual(document.SaveBytes()), "An unused group changed document identity.");
+                Require(bytes.SequenceEqual(document.ToBytes()), "An unused group changed document identity.");
             }
             Require(identifiers.Distinct(StringComparer.Ordinal).Count() == 3, "Different marker punctuation shares document identity.");
         }
@@ -38,8 +38,8 @@ internal static class NativePagesMarkerIdentitySmoke {
                 "mixed-font" => NativePagesMixedFontListSmoke.Example(),
                 _ => NativePagesMixedSizeListSmoke.Example()
             };
-            var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadPages();
-            var before = IWorkSourceDocument.Open(original.SaveBytes()).ReadPages().Body.Paragraphs.Where(p => p.Text.Length > 0).ToArray();
+            var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
+            var before = IWorkSourceDocument.Load(original.ToBytes()).ReadPages().Body.Paragraphs.Where(p => p.Text.Length > 0).ToArray();
             var after = projection.Body.Paragraphs.Where(p => p.Text.Length > 0).ToArray();
             Require(projection.Body.IsFormattingComplete && projection.Diagnostics.Count == 0
                 && projection.SourceDeclarationIssues.Count == 0 && projection.SourceReferenceIssues.Count == 0

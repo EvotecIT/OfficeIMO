@@ -16,7 +16,7 @@ public static class OfficeDocumentReaderBuilderIWorkExtensions {
         ArgumentNullException.ThrowIfNull(builder);
         ReaderIWorkOptions registered = (options ?? new ReaderIWorkOptions()).Clone();
         long maximumInputBytes = registered.ReadOptions?.MaxPackageBytes
-            ?? new IWorkReadOptions().MaxPackageBytes;
+            ?? new IWorkLoadOptions().MaxPackageBytes;
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,

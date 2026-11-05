@@ -141,25 +141,26 @@ public sealed partial class IWorkPagesDocument {
 
     /// <summary>Encodes a deterministic native Pages package without a template or native application.</summary>
     /// <remarks>At least one body block is required. No font files are embedded; native fonts and pagination apply.</remarks>
-    public byte[] SaveBytes(IWorkPagesWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        IWorkPagesPackageWriter.Write(this, (options ?? new IWorkPagesWriteOptions()).Snapshot(), cancellationToken);
+    public byte[] ToBytes(IWorkPagesSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        IWorkPagesPackageWriter.Write(this, (options ?? new IWorkPagesSaveOptions()).Snapshot(), cancellationToken);
 
     /// <summary>Writes a completed package at the stream's current position and leaves the stream open.</summary>
     /// <remarks>Encoding finishes before writing; cancellation or I/O failure while copying can leave partial stream data.</remarks>
-    public void Save(Stream destination, IWorkPagesWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public void Save(Stream destination, IWorkPagesSaveOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
-        IWorkNativePackageWriter.Copy(SaveBytes(options, cancellationToken), destination, cancellationToken);
+        IWorkNativePackageWriter.Copy(ToBytes(options, cancellationToken), destination, cancellationToken);
     }
 
     /// <summary>Atomically saves a native package, rejecting an existing file unless overwrite is enabled.</summary>
     /// <remarks>Validation and encoding finish before staging. Cancellation or failed staging preserves the existing destination.</remarks>
-    public void Save(string path, bool overwrite = false, IWorkPagesWriteOptions? options = null,
+    public void Save(string path, bool overwrite = false, IWorkPagesSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(path);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
-        byte[] bytes = SaveBytes(options, cancellationToken);
+        byte[] bytes = ToBytes(options, cancellationToken);
         OfficeFileCommit.WriteAtomically(path, stream => IWorkNativePackageWriter.Copy(bytes, stream, cancellationToken),
             cancellationToken, overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
+        FilePath = Path.GetFullPath(path);
     }
 }

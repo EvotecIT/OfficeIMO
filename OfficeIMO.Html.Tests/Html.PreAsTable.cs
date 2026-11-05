@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(doc.Tables);
             var table = doc.Tables[0];
-            Assert.Equal(1, table.RowsCount);
+            Assert.Equal(1, table.RowCount);
             Assert.Equal(1, table.Rows[0].CellsCount);
             var cell = table.Rows[0].Cells[0];
             var paras = cell.Paragraphs.Where(p => p.StyleId == "HTMLPreformatted" && !string.IsNullOrEmpty(p.Text)).ToList();

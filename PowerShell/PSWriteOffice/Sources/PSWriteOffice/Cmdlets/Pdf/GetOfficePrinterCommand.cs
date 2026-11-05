@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Management.Automation;
 using System.Threading.Tasks;
 #if !FRAMEWORK
@@ -10,14 +11,22 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <summary>Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.</summary>
 /// <example><summary>Discover queues and trays.</summary><prefix>PS&gt; </prefix>
 /// <code>Get-OfficePrinter
-/// Get-OfficePrinter -PaperSources 'Office printer'</code></example>
-[Cmdlet(VerbsCommon.Get, "OfficePrinter")]
+/// Get-OfficePrinter -Name 'Office printer' -PaperSource</code></example>
+[Cmdlet(VerbsCommon.Get, "OfficePrinter", DefaultParameterSetName = "Printer")]
 #if !FRAMEWORK
 [OutputType(typeof(PdfPrinterInfo), typeof(PdfPaperSourceInfo))]
 #endif
 public sealed class GetOfficePrinterCommand : AsyncPSCmdlet {
-    /// <summary>Named printer whose paper sources should be listed.</summary>
-    [Parameter] public string? PaperSources { get; set; }
+    /// <summary>Printer name patterns; PaperSource requires one exact printer name.</summary>
+    [Parameter(Position = 0, ParameterSetName = "Printer")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "PaperSource")]
+    [SupportsWildcards]
+    [ValidateNotNullOrEmpty]
+    public string[] Name { get; set; } = Array.Empty<string>();
+
+    /// <summary>List paper sources of the single printer selected by Name.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "PaperSource")]
+    public SwitchParameter PaperSource { get; set; }
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
 #if FRAMEWORK
@@ -25,8 +34,15 @@ public sealed class GetOfficePrinterCommand : AsyncPSCmdlet {
         throw new PlatformNotSupportedException("Printer discovery requires PowerShell 7.4 or newer.");
 #else
         var service = new PdfPrinterService();
-        if (PaperSources == null) foreach (var printer in await service.GetPrintersAsync(CancelToken)) WriteObject(printer);
-        else foreach (var source in await service.GetPaperSourcesAsync(PaperSources, CancelToken)) WriteObject(source);
+        if (PaperSource) {
+            if (Name.Length != 1 || WildcardPattern.ContainsWildcardCharacters(Name[0]))
+                throw new PSArgumentException("PaperSource requires one exact printer name.", nameof(Name));
+            foreach (var source in await service.GetPaperSourcesAsync(Name[0], CancelToken)) WriteObject(source);
+        } else {
+            var patterns = Name.Select(name => new WildcardPattern(name, WildcardOptions.IgnoreCase)).ToArray();
+            foreach (var printer in await service.GetPrintersAsync(CancelToken))
+                if (patterns.Length == 0 || patterns.Any(pattern => pattern.IsMatch(printer.Name))) WriteObject(printer);
+        }
 #endif
     }
 }

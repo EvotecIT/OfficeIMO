@@ -1,95 +1,56 @@
 using System.Management.Automation;
-using OfficeIMO.Pdf;
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Sets PDF page size, orientation, and margins.</summary>
-/// <example>
-///   <summary>Set page size and margins for a generated report.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficePdf -Path .\Examples\Documents\PdfPageSetup.pdf {
-///     Set-OfficePdfPageSetup -PageSize A4 -Margin 42
-///     Add-OfficePdfHeading -Text 'A4 report'
-///     Add-OfficePdfParagraph -Text 'The report uses custom margins.'
-/// }</code>
-///   <para>Applies page setup before adding generated PDF content.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Set, "OfficePdfPageSetup", DefaultParameterSetName = ParameterSetContext)]
+/// <summary>Sets physical dimensions, orientation and margins in the enclosing PDF composition.</summary>
+[Cmdlet(VerbsCommon.Set, "OfficePdfPageSetup", DefaultParameterSetName = "Context")]
 [Alias("PdfPageSetup")]
-[OutputType(typeof(PdfDocument))]
-public sealed class SetOfficePdfPageSetupCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Compatibility parameter. Page composition is supported only inside New-OfficePdf.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public PdfDocument Document { get; set; } = null!;
-
-    /// <summary>Page size name: A4, A5, Letter, Legal, or Custom.</summary>
-    [Parameter]
+public sealed class SetOfficePdfPageSetupCommand : PSCmdlet {
+    /// <summary>Named paper size or physical page dimensions.</summary>
+    [Parameter(ParameterSetName = "Context"), OfficePageSizeTransformation(typeof(OfficePageSize))]
     [ArgumentCompleter(typeof(OfficePdfPageSizeArgumentCompleter))]
-    public string? PageSize { get; set; }
-
-    /// <summary>Custom page width in PDF points when -PageSize Custom is used.</summary>
+    public OfficePageSize? PageSize { get; set; }
+    /// <summary>Custom page width.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Width { get; set; }
+    /// <summary>Custom page height.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Height { get; set; }
+    /// <summary>Page orientation.</summary>
     [Parameter]
-    public double? Width { get; set; }
-
-    /// <summary>Custom page height in PDF points when -PageSize Custom is used.</summary>
-    [Parameter]
-    public double? Height { get; set; }
-
-    /// <summary>Use landscape orientation.</summary>
-    [Parameter]
-    public SwitchParameter Landscape { get; set; }
-
-    /// <summary>Uniform margin in PDF points.</summary>
-    [Parameter]
-    public double? Margin { get; set; }
-
-    /// <summary>Left margin in PDF points.</summary>
-    [Parameter]
-    public double? Left { get; set; }
-
-    /// <summary>Top margin in PDF points.</summary>
-    [Parameter]
-    public double? Top { get; set; }
-
-    /// <summary>Right margin in PDF points.</summary>
-    [Parameter]
-    public double? Right { get; set; }
-
-    /// <summary>Bottom margin in PDF points.</summary>
-    [Parameter]
-    public double? Bottom { get; set; }
-
-    /// <summary>Emit the updated document.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
+    public OfficePageOrientation Orientation { get; set; }
+    /// <summary>Uniform margin.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Margin { get; set; }
+    /// <summary>Left margin.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? MarginLeft { get; set; }
+    /// <summary>Top margin.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? MarginTop { get; set; }
+    /// <summary>Right margin.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? MarginRight { get; set; }
+    /// <summary>Bottom margin.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? MarginBottom { get; set; }
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var configureSize = MyInvocation.BoundParameters.ContainsKey(nameof(PageSize)) ||
-                            MyInvocation.BoundParameters.ContainsKey(nameof(Width)) ||
-                            MyInvocation.BoundParameters.ContainsKey(nameof(Height)) ||
-                            MyInvocation.BoundParameters.ContainsKey(nameof(Landscape));
-        var document = PdfCommandUtilities.ComposePage(this, Document, ParameterSetName, ParameterSetDocument, page =>
-        {
-            if (configureSize)
-            {
-                page.Size(PdfCommandUtilities.ResolvePageSize(PageSize, Width, Height, Landscape.IsPresent));
-            }
-
-            if (Margin.HasValue) page.Margin(global::OfficeIMO.OfficeLength.Points(Margin.Value));
-            else if (Left.HasValue || Top.HasValue || Right.HasValue || Bottom.HasValue)
-                page.Margin(global::OfficeIMO.OfficeLength.Points(Left ?? 72), global::OfficeIMO.OfficeLength.Points(Top ?? 72), global::OfficeIMO.OfficeLength.Points(Right ?? 72), global::OfficeIMO.OfficeLength.Points(Bottom ?? 72));
+    protected override void ProcessRecord() {
+        var orientationBound = MyInvocation.BoundParameters.ContainsKey(nameof(Orientation));
+        PdfDslContext.Require(this).ConfigurePage(page => {
+            if (PageSize.HasValue) page.Size(PageSize.Value.Width, PageSize.Value.Height);
+            if (Width.HasValue || Height.HasValue)
+                page.Size(Width ?? page.PageSetup.Size.Width, Height ?? page.PageSetup.Size.Height);
+            if (orientationBound) page.Orientation(Orientation);
+            if (Margin.HasValue) page.Margin(Margin.Value);
+            if (MarginLeft.HasValue) page.PageSetup.Margins.Left = MarginLeft.Value;
+            if (MarginTop.HasValue) page.PageSetup.Margins.Top = MarginTop.Value;
+            if (MarginRight.HasValue) page.PageSetup.Margins.Right = MarginRight.Value;
+            if (MarginBottom.HasValue) page.PageSetup.Margins.Bottom = MarginBottom.Value;
         });
-
-        if (PassThru.IsPresent && document != null)
-        {
-            WriteObject(document);
-        }
     }
 }

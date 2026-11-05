@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests
                 sheet.Cell(4, 3).SetValue(5);
                 var chart = sheet.AddChart(OfficeChartType.Radar, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Coverage", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "Mail", "DNS", "Identity", "Device" }, new[] { new ExcelChartSeries("Current", new[] { 4d, 3d, 5d, 2d }, OfficeChartType.Radar), new ExcelChartSeries("Target", new[] { 5d, 5d, 5d, 4d }, OfficeChartType.Radar) }));
-                chart.SetSeriesLineColor("Current", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarker("Target", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12"));
+                chart.SetSeriesLineColor("Current", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarkerByName("Target", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12"));
                 document.Save();
             }
 
@@ -712,7 +712,7 @@ namespace OfficeIMO.Tests
                 sheet.Cell(4, 3).SetValue(23);
                 var stackedChart = sheet.AddChart(OfficeChartType.LineStacked, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Stacked Line", IncludeCachedData = true, HasHeaders = true });
                 stackedChart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 16d, 22d, 27d }, OfficeChartType.LineStacked), new ExcelChartSeries("Plan", new[] { 12d, 18d, 24d, 29d }, OfficeChartType.LineStacked) }));
-                stackedChart.SetSeriesLineColor("Actual", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarker("Plan", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12")).SetDataLabels(showValue: true);
+                stackedChart.SetSeriesLineColor("Actual", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarkerByName("Plan", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12")).SetDataLabels(showValue: true);
                 sheet.AddChart(OfficeChartType.LineStacked100, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "100% Stacked Line", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
@@ -799,7 +799,7 @@ namespace OfficeIMO.Tests
                 sheet.Cell(4, 3).SetValue(23);
                 var chart = sheet.AddChart(OfficeChartType.Line3D, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D Line", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 16d, 22d, 27d }, OfficeChartType.Line3D), new ExcelChartSeries("Plan", new[] { 12d, 18d, 24d, 29d }, OfficeChartType.Line3D) }));
-                chart.SetSeriesLineColor("Actual", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarker("Plan", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12")).SetDataLabels(showValue: true);
+                chart.SetSeriesLineColor("Actual", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarkerByName("Plan", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12")).SetDataLabels(showValue: true);
                 document.Save();
             }
 
@@ -1708,7 +1708,7 @@ namespace OfficeIMO.Tests
 
                 var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Labels" });
                 chart.SetSeriesDataLabels(0, showValue: true)
-                     .SetSeriesDataLabelTextStyle(0, fontSize: OfficeLength.Points(12), bold: true, color: OfficeColor.Parse("FF0000"), fontName: "Calibri");
+                     .SetSeriesDataLabelTextStyle(0, fontSize: OfficeLength.Points(12), bold: true, color: OfficeColor.Parse("FF0000"), fontFamily: "Calibri");
                 document.Save();
             }
 
@@ -1808,7 +1808,7 @@ namespace OfficeIMO.Tests
                 var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Styled" });
                 chart.SetLegend(OfficeChartLegendPosition.Right)
                      .SetTitleTextStyle(fontSize: OfficeLength.Points(14), bold: true, color: OfficeColor.Parse("1F4E79"))
-                     .SetLegendTextStyle(fontSize: OfficeLength.Points(9), italic: true, color: OfficeColor.Parse("404040"), fontName: "Calibri");
+                     .SetLegendTextStyle(fontSize: OfficeLength.Points(9), italic: true, color: OfficeColor.Parse("404040"), fontFamily: "Calibri");
                 document.Save();
             }
 
@@ -1861,7 +1861,7 @@ namespace OfficeIMO.Tests
                      .SetCategoryAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: OfficeColor.Parse("006100"))
                      .SetValueAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: OfficeColor.Parse("006100"))
                      .SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("404040"))
-                     .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(9), italic: true, fontName: "Calibri");
+                     .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(9), italic: true, fontFamily: "Calibri");
                 document.Save();
             }
 

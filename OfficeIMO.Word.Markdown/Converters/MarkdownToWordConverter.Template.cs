@@ -5,27 +5,29 @@ using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
-        public WordDocument ConvertIntoTemplate(string markdown, WordDocument document, MarkdownWordExportOptions options) {
+        public WordDocument ConvertIntoTemplate(string markdown, WordDocument document, MarkdownWordExportOptions options, CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(markdown);
 
             options ??= new MarkdownWordExportOptions();
+            cancellationToken.ThrowIfCancellationRequested();
             var readerOptions = CreateEffectiveReaderOptions(options);
-            var markdownDocument = Omd.MarkdownDocument.Parse(markdown, readerOptions);
-            return ConvertIntoTemplate(markdownDocument, document, options);
+            using var markdownDocument = Omd.MarkdownDocument.Parse(markdown, readerOptions);
+            return ConvertIntoTemplate(markdownDocument, document, options, cancellationToken);
         }
 
-        public WordDocument ConvertIntoTemplate(Omd.MarkdownDocument markdown, WordDocument document, MarkdownWordExportOptions options) {
+        public WordDocument ConvertIntoTemplate(Omd.MarkdownDocument markdown, WordDocument document, MarkdownWordExportOptions options, CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(markdown);
 
             ArgumentNullException.ThrowIfNull(document);
 
+            cancellationToken.ThrowIfCancellationRequested();
             options ??= new MarkdownWordExportOptions();
             options.ApplyDefaults(document);
 
             var insertion = ResolveTemplateInsertion(document, options);
             var host = new BodyInsertionPointWordBlockRenderHost(document, insertion.Anchor);
             var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
-            RenderMarkdownDocument(markdown, host, document, options, pageContentWidthPixels, CancellationToken.None);
+            RenderMarkdownDocument(markdown, host, document, options, pageContentWidthPixels, cancellationToken);
 
             if (insertion.RemoveAfterRender && insertion.Anchor.Parent != null) {
                 insertion.Anchor.Remove();

@@ -4,7 +4,6 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -21,12 +20,12 @@ namespace OfficeIMO.Tests {
             VisioConnector pageConnector = page.AddConnector(left, right);
 
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            document.AsFluent()
-                .AddPage("Page1", p => p
-                    .AddRectangle("left", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Left")
-                    .AddRectangle("right", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Right")
-                    .AddConnector("left", "right"))
-                .End();
+            document
+                .AddPage("Page1", p => {
+                    p.AddRectangle("left", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Left");
+                    p.AddRectangle("right", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Right");
+                    p.AddConnector("left", "right");
+                });
 
             VisioConnector fluentConnector = Assert.Single(document.Pages[0].Connectors);
 
@@ -59,15 +58,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentDuplicateShapeIdsThrowHelpfulError() {
+        public void NativeDuplicateShapeIdsThrowHelpfulError() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                document.AsFluent()
-                    .AddPage("Page1", p => p
-                        .AddRectangle("dup", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Left")
-                        .AddCircle("dup", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(1), "Right"))
-                    .End());
+                document
+                    .AddPage("Page1", p => {
+                        p.AddRectangle("dup", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Left");
+                        p.AddCircle("dup", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(1), "Right");
+                    })
+                    );
 
             Assert.Contains("dup", exception.Message);
             Assert.Single(document.GetPage(0).Shapes);

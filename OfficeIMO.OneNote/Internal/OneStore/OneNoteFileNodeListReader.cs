@@ -11,7 +11,7 @@ internal static class OneNoteFileNodeListReader {
         OneNoteFileChunkReference firstFragment,
         ulong declaredFileLength,
         IReadOnlyDictionary<uint, int> committedNodeCounts,
-        OneNoteReaderOptions options) {
+        OneNoteLoadOptions options) {
         var fragments = new List<OneNoteFileNodeListFragment>();
         var nodes = new List<OneNoteFileNode>();
         int retainedNodes = 0;
@@ -105,7 +105,7 @@ internal static class OneNoteFileNodeListReader {
         int limit,
         ulong fragmentOffset,
         ulong declaredFileLength,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         int priorNodeCount,
         int maximumNodes) {
         var nodes = new List<OneNoteFileNode>();

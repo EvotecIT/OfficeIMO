@@ -19,7 +19,7 @@ public sealed class IWorkPagesThirdLevelNativeExportTests {
             Assert.Equal(artifact.Value.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
         }
         Assert.Equal(File.ReadAllBytes(Corpus("pages-third-level-created.pages")),
-            IWorkPagesThirdLevelWritingTests.Example().SaveBytes());
+            IWorkPagesThirdLevelWritingTests.Example().ToBytes());
     }
 
     [Theory]
@@ -29,7 +29,7 @@ public sealed class IWorkPagesThirdLevelNativeExportTests {
     public void Generated_saved_and_Apple_edited_third_levels_retain_saved_Word_counters_and_indents(int caseIndex) {
         using var manifest = Manifest();
         JsonElement scenario = manifest.RootElement.GetProperty("cases")[caseIndex];
-        var source = IWorkSourceDocument.Open(Corpus(scenario.GetProperty("source").GetString()!));
+        var source = IWorkSourceDocument.Load(Corpus(scenario.GetProperty("source").GetString()!));
         var projection = source.ReadPages();
         Assert.True(projection.Body.IsFormattingComplete); Assert.Empty(projection.Diagnostics);
         Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);

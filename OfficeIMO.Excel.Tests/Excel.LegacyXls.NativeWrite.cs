@@ -1201,8 +1201,8 @@ namespace OfficeIMO.Tests {
                         .SetBold()
                         .SetItalic()
                         .SetUnderline()
-                        .SetFontName("Consolas")
-                        .SetFontColor("#123456");
+                        .SetFontFamily("Consolas")
+                        .SetColor(global::OfficeIMO.OfficeColor.Parse("#123456"));
 
                     document.Save(xlsOutputPath);
                 }
@@ -1248,7 +1248,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("FontBytes");
                     sheet.Cell(1, 1).SetValue("Font bytes");
-                    sheet.Cell(1, 1).SetFontName("Arial");
+                    sheet.Cell(1, 1).SetFontFamily("Arial");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1301,7 +1301,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("FontEscapement");
                     sheet.Cell(1, 1).SetValue("Superscript");
-                    sheet.Cell(1, 1).SetFontName("Arial");
+                    sheet.Cell(1, 1).SetFontFamily("Arial");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1356,7 +1356,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("FontOptionFlags");
                     sheet.Cell(1, 1).SetValue("Option flags");
-                    sheet.Cell(1, 1).SetFontName("Arial");
+                    sheet.Cell(1, 1).SetFontFamily("Arial");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1420,7 +1420,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("UnderlineStyle");
                     sheet.Cell(1, 1).SetValue("Double underline");
-                    sheet.Cell(1, 1).SetFontName("Arial");
+                    sheet.Cell(1, 1).SetFontFamily("Arial");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1475,7 +1475,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Fills");
                     sheet.Cell(1, 1).SetValue("Filled");
-                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                     document.Save(xlsOutputPath);
                 }
@@ -1512,7 +1512,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("PatternFills");
                     sheet.Cell(1, 1).SetValue("Patterned");
-                    sheet.Cell(1, 1).SetFillColor("#EEEEEE");
+                    sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#EEEEEE"));
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1687,9 +1687,9 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddSheet("Borders");
                     sheet.Cell(1, 1).SetValue("Bordered");
                     sheet.Cell(1, 1)
-                        .SetFillColor("#ABCDEF")
-                        .SetBorder(ExcelBorderStyle.Thin, "#654321")
-                        .SetDiagonalBorder(ExcelBorderStyle.Dotted, "#123456", diagonalUp: true, diagonalDown: true);
+                        .SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"))
+                        .SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("#654321"))
+                        .SetDiagonalBorder(ExcelBorderStyle.Dotted, global::OfficeIMO.OfficeColor.Parse("#123456"), diagonalUp: true, diagonalDown: true);
 
                     document.Save(xlsOutputPath);
                 }
@@ -1794,7 +1794,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Protection");
                     sheet.Cell(1, 1).SetValue("Unlocked hidden formula");
-                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1850,7 +1850,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("QuotePrefix");
                     sheet.Cell(1, 1).SetValue("00123");
-                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1893,7 +1893,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksGradientFillBeforeWriting() {
             AssertNativeXlsSaveNotSupported("gradient fills", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Gradient");
-                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                 DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1927,7 +1927,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ThemeColor");
                     sheet.Cell(1, 1).SetValue("Theme color");
-                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1982,7 +1982,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksStyleExtensionPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell-format style extension payloads", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Style extension");
-                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                 DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -3552,14 +3552,14 @@ namespace OfficeIMO.Tests {
                         new[] {
                             new ExcelRichTextRun("Important ") {
                                 Bold = true,
-                                FontColor = "#123456",
-                                FontName = "Consolas",
+                                Color = global::OfficeIMO.OfficeColor.Parse("#123456"),
+                                FontFamily = "Consolas",
                                 FontSize = global::OfficeIMO.OfficeLength.Points(13D)
                             },
                             new ExcelRichTextRun("note") {
                                 Italic = true,
                                 Underline = true,
-                                FontName = "Arial",
+                                FontFamily = "Arial",
                                 FontSize = global::OfficeIMO.OfficeLength.Points(11D)
                             }
                         },
@@ -3588,8 +3588,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Important ", firstRun.Text);
                 Assert.True(firstRun.Bold);
                 Assert.False(firstRun.Italic);
-                Assert.Equal("FF123456", firstRun.FontColor);
-                Assert.Equal("Consolas", firstRun.FontName);
+                Assert.Equal("FF123456", firstRun.Color?.ToArgbHex());
+                Assert.Equal("Consolas", firstRun.FontFamily);
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(13D), firstRun.FontSize);
 
                 ExcelRichTextRun secondRun = projectedComment.RichTextRuns[1];
@@ -3597,7 +3597,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(secondRun.Bold);
                 Assert.True(secondRun.Italic);
                 Assert.True(secondRun.Underline);
-                Assert.Equal("Arial", secondRun.FontName);
+                Assert.Equal("Arial", secondRun.FontFamily);
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(11D), secondRun.FontSize);
             } finally {
                 TryDelete(openXmlPath);
@@ -4103,7 +4103,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(1, 1).SetValue(1d);
                 sheet.Cell(2, 1).SetValue(2d);
                 sheet.Cell(3, 1).SetValue(3d);
-                sheet.Range("A1:A3").ConditionalFormat().ColorScale("FFFF0000", "FF00FF00");
+                sheet.Range("A1:A3").ConditionalFormat().ColorScale(global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF), global::OfficeIMO.OfficeColor.FromRgba(0x00, 0xFF, 0x00, 0xFF));
             });
 
             AssertNativeXlsSaveNotSupported("unsupported external hyperlink targets", (document, sheet) => {

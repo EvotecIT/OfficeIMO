@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(
                 ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(DurationFormat(largest: 2, smallest: 2))))),
                 ArchiveRecord(14, 6201, Message(VarintField(1, 3), BytesField(3, Message(VarintField(1, 0), BytesField(5, FormulaConstant(1.75d))))))));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.Equal(151200d, result.Projection.Sheets[0].Tables[0].Cells[0].Value);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -35,7 +35,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(-151200d, "-2d")]
     public void Day_duration_preserves_numeric_values_and_shared_saved_display(double seconds, string expected) {
         using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, seconds, DurationFormat(largest: 2, smallest: 2));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         var cell = Assert.Single(result.Projection.Sheets[0].Tables[0].Cells);
         Assert.Equal(seconds, cell.Value);
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Day_duration_is_editable_text_in_saved_document_tables(IWorkDocumentKind kind) {
         using var package = DurationFormatPackage(kind, -31017600d, DurationFormat(largest: 2, smallest: 2));
-        var source = IWorkSourceDocument.Open(package, kind);
+        var source = IWorkSourceDocument.Load(package, kind);
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
@@ -84,7 +84,7 @@ public sealed partial class IWorkBoundaryTests {
         foreach (var package in manifest.RootElement.GetProperty("packages").EnumerateArray()) {
             string path = Path.Combine(root, package.GetProperty("source").GetString()!);
             Assert.Equal(package.GetProperty("sourceSha256").GetString(), Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-            var projection = IWorkSourceDocument.Open(path).ReadNumbers();
+            var projection = IWorkSourceDocument.Load(path).ReadNumbers();
             foreach (var expected in package.GetProperty("cells").EnumerateArray()) {
                 var table = projection.Sheets.Single(s => s.Name == expected.GetProperty("sheet").GetString())
                     .Tables.Single(t => t.Name == expected.GetProperty("table").GetString());

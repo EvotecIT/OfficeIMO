@@ -17,31 +17,55 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// }</code></example>
 /// <example><summary>Clear a live worksheet's tab color.</summary>
 /// <code>$book | Set-OfficeExcelSheet -Sheet 2 -NoTabColor -PassThru</code></example>
+/// <example>
+/// <summary>Colour a sheet tab</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+///     Set-OfficeExcelSheet -Sheet Summary -TabColor Accent1
+/// }</code>
+/// <para>Gives the Summary tab the first accent colour of the workbook theme.</para>
+/// </example>
+/// <example>
+/// <summary>Hide a lookup sheet and open on the summary</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Pricing.xlsx {
+///     ExcelSheet 'Summary' {
+///         ExcelTable (Import-OfficeCsv -Path .\Data\Price-List.csv)
+///     }
+///     ExcelSheet 'Lookups' {
+///         ExcelTable (Import-OfficeCsv -Path .\Data\Currency-Rates.csv) -Name Rates
+///         Set-OfficeExcelSheet -Visibility Hidden
+///     }
+///     Set-OfficeExcelSheet -Sheet Summary -Active
+/// }</code>
+/// <para>Hides the lookup data that formulas depend on and makes Summary the sheet Excel shows first.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelSheet", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ExcelSheet))]
 public sealed class SetOfficeExcelSheetCommand : OfficeDocumentCmdlet<ExcelDocument> {
     /// <summary>Gets or sets a worksheet name, one-based position or native worksheet belonging to the workbook.</summary>
-    [Parameter, OfficeSheetTransformation]
+    [Parameter()]
+    [OfficeSheetTransformation]
     public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>Gets or sets Visible, Hidden or VeryHidden; omission preserves visibility.</summary>
-    [Parameter]
+    [Parameter()]
     public ExcelSheetVisibility? Visibility { get; set; }
 
     /// <summary>Gets or sets the literal or theme-based tab color.</summary>
-    [Parameter(ParameterSetName = "Default"), OfficeColorTransformation]
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? TabColor { get; set; }
 
     /// <summary>Gets or sets whether to remove the tab color; exclusive with TabColor.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = "NoTabColor")]
+    [Parameter(ParameterSetName = "NoTabColor", Mandatory = true)]
     public SwitchParameter NoTabColor { get; set; }
 
     /// <summary>Gets or sets whether this visible worksheet opens as the workbook's active worksheet.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter Active { get; set; }
 
     /// <summary>Gets or sets whether to emit the edited native worksheet.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />

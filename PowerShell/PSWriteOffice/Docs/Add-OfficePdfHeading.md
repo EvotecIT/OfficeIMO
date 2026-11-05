@@ -11,12 +11,12 @@ Adds a heading to a PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfHeading [-Text] <string> [-Level <int>] [-Align <OfficeAlignment>] [-Color <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfHeading [-Text] <string> [-Level <int>] [-Alignment <OfficeAlignment>] [-Color <OfficeColor>] [-Bookmark <string>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfHeading [-Text] <string> -Document <PdfDocument> [-Level <int>] [-Align <OfficeAlignment>] [-Color <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfHeading [-Text] <string> -Document <PdfDocument> [-Level <int>] [-Alignment <OfficeAlignment>] [-Color <OfficeColor>] [-Bookmark <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,7 +37,7 @@ Adds report headings before body content.
 
 ## PARAMETERS
 
-### -Align
+### -Alignment
 Heading alignment.
 
 ```yaml
@@ -53,11 +53,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Bookmark
+Bookmark destination attached to the heading.
+
+```yaml
+Type: String
+Parameter Sets: Context, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Color
 Optional heading color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -106,7 +122,7 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

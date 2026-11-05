@@ -1,83 +1,40 @@
-using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Gets bookmarks from a Word document.</summary>
-/// <para>Returns <see cref="WordBookmark"/> objects, optionally filtered by name.</para>
-/// <example>
-///   <summary>List report bookmarks by name pattern.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$bookmarks = Get-OfficeWordBookmark -Path .\Report.docx -Name 'Appendix*', 'ExecutiveSummary'
-/// $bookmarks |
-///     Select-Object -Property Name |
-///     Format-Table -AutoSize</code>
-///   <para>Loads the document read-only, filters bookmark names with wildcards, and displays the matching navigation targets.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordBookmark")]
+/// <summary>Gets bookmarks, optionally by name (wildcards).</summary>
+[Cmdlet(VerbsCommon.Get, "OfficeWordBookmark", DefaultParameterSetName = "Document")]
 [OutputType(typeof(WordBookmark))]
 public sealed class GetOfficeWordBookmarkCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Path to the .docx file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Word document to read.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public WordDocument Document { get; set; } = null!;
-
-    /// <summary>Bookmark name filter (wildcards supported).</summary>
-    [Parameter]
+    /// <summary>Path for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
     [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Name for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public string[]? Name { get; set; }
+    /// <summary>LiteralPath for this inspection.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Document for this inspection.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public WordDocument? Document { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WordDocument? document = null;
-        var dispose = false;
+        WordQuerySource.Visit(this, ParameterSetName, Path, LiteralPath, Document, Inspect);
+    }
 
-        try {
-            if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-                document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
-                dispose = true;
-            } else {
-                document = Document;
-            }
-
-            if (document == null) {
-                throw new InvalidOperationException("Word document was not provided.");
-            }
-
-            var bookmarks = document.Bookmarks;
-            IEnumerable<WordBookmark> results = bookmarks;
-            if (Name != null && Name.Length > 0) {
-                var patterns = new List<WildcardPattern>();
-                foreach (var pattern in Name) {
-                    if (!string.IsNullOrWhiteSpace(pattern)) {
-                        patterns.Add(new WildcardPattern(pattern, WildcardOptions.IgnoreCase));
-                    }
-                }
-
-                if (patterns.Count > 0) {
-                    results = bookmarks.FindAll(b =>
-                        b.Name != null && patterns.Exists(p => p.IsMatch(b.Name)));
-                }
-            }
-
-            WriteObject(results, enumerateCollection: true);
-        } finally {
-            if (dispose) {
-                document?.Dispose();
-            }
-        }
+    private void Inspect(WordDocument document) {
+        var names = WordFilterHelpers.BuildPatterns(Name);
+        WriteObject(document.Bookmarks.Where(item => WordFilterHelpers.Matches(item.Name, names)), true);
     }
 }

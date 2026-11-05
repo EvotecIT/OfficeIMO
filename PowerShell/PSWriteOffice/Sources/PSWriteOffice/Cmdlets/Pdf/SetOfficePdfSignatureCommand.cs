@@ -1,69 +1,44 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Management.Automation;
-using System.Security;
+using System.Threading;
+using OfficeIMO;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Injects externally produced CMS, CAdES, or timestamp signature bytes into a prepared PDF signature placeholder.</summary>
-/// <example>
-///   <summary>Inject a detached CMS signature into a prepared PDF.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Set-OfficePdfSignature -Path .\Prepared.pdf -SignaturePath .\signature.der -OutputPath .\Signed.pdf
-/// Get-OfficePdfSignature -Path .\Signed.pdf</code>
-///   <para>Writes a PDF with the reserved /Contents hex slot patched in place.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Set, "OfficePdfSignature", SupportsShouldProcess = true)]
+/// <summary>Complete external PDF signature using native byte-range and signature-placeholder operations.</summary>
+/// <para>Confirmation precedes loading, native mutation and output creation. This command does not obtain certificates or private keys.</para>
+[Cmdlet(VerbsCommon.Set, "OfficePdfSignature", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(FileInfo), typeof(PdfSignatureValidationReport))]
-public sealed class SetOfficePdfSignatureCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    /// <summary>Prepared PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>DER/CMS/CAdES/TSA response bytes to inject into the reserved /Contents slot.</summary>
-    [Parameter(Mandatory = true, Position = 1)]
-    public string SignaturePath { get; set; } = string.Empty;
-
-    /// <summary>Output signed PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 2)]
-    public string OutputPath { get; set; } = string.Empty;
-
-    /// <summary>Password used to authenticate an encrypted prepared PDF.</summary>
-    [Parameter]
-    [OfficePasswordTransformation]
-    public SecureString? Password { get; set; }
-
-    /// <summary>After successful password authentication, explicitly ignore owner-imposed signature restrictions.</summary>
-    [Parameter]
-    public SwitchParameter IgnorePermissionRestrictions { get; set; }
-
-    /// <summary>Return a signature validation report for the written PDF instead of only the output file.</summary>
-    [Parameter]
-    public SwitchParameter PassThruReport { get; set; }
-
+public sealed partial class SetOfficePdfSignatureCommand : PSCmdlet, IDisposable {
+    private readonly List<string> _inputs = new();
+    private readonly CancellationTokenSource _stop = new();
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var inputPath = PdfCommandUtilities.ResolvePath(this, Path);
-        var signaturePath = PdfCommandUtilities.ResolvePath(this, SignaturePath);
-        var outputPath = PdfCommandUtilities.ResolvePath(this, OutputPath);
-        if (!PdfCommandUtilities.ShouldWrite(this, outputPath, "Write signed PDF")) {
-            return;
-        }
-
-        PdfCommandUtilities.EnsureDirectory(outputPath);
-
-        var document = PdfDocument
-            .Load(inputPath, PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
-            .Security.CompleteExternalSignature(File.ReadAllBytes(signaturePath));
-        document.Save(outputPath);
-        if (PassThruReport.IsPresent) {
-            WriteObject(document.Security.ValidateSignatures());
-            return;
-        }
-
-        WritePassThru(new FileInfo(outputPath));
+        bool literal = ParameterSetName.StartsWith("LiteralPath", StringComparison.Ordinal);
+        _inputs.AddRange(OfficePath.ResolveInputs(this, literal ? LiteralPath : Path, literal));
     }
+    /// <inheritdoc />
+    protected override void EndProcessing() {
+        var read = PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions.IsPresent);
+        if (OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(IgnorePermissionRestrictions)) is bool ignore)
+            read = (read ?? new PdfLoadOptions()).Snapshot(null, null, ignore ? PdfPermissionPolicy.IgnoreRestrictions : PdfPermissionPolicy.Enforce);
+        foreach (var item in PdfFileCommandInputs.Resolve(this, null, _inputs.ToArray(), OutputPath, OutputDirectory, false)) {
+            if (!ShouldProcess(item.Output, "Complete external PDF signature")) continue;
+            using var document = PdfDocument.Load(item.Input, read, _stop.Token);
+            byte[] signature = File.ReadAllBytes(OfficePath.ResolveOutput(SessionState, SignaturePath!, false));
+            using var completed = document.Security.CompleteExternalSignature(signature);
+            completed.Save(item.Output, new PdfSaveOptions { ConflictPolicy = OfficeConversionFileConflictPolicy.Replace }, _stop.Token);
+            WriteObject(PassThru ? completed.Security.ValidateSignatures() : new FileInfo(item.Output));
+        }
+    }
+    /// <inheritdoc />
+    protected override void StopProcessing() => _stop.Cancel();
+    /// <summary>Releases the command-owned cancellation source.</summary>
+    public void Dispose() => _stop.Dispose();
 }

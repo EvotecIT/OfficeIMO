@@ -41,7 +41,7 @@ internal static partial class HtmlStyleDeclarationParser {
                 declaration.UnderlineStyle = ParseRtfUnderlineStyle(value);
                 break;
             case "--officeimo-rtf-strike-style":
-                declaration.DoubleStrike = ParseRtfStrikeStyle(value);
+                declaration.DoubleStrikethrough = ParseRtfStrikeStyle(value);
                 break;
             case "text-transform":
                 declaration.CapsStyle = ParseTextTransform(value);

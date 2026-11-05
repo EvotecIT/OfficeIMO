@@ -364,30 +364,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets the anchor location of the image.
-        /// </summary>
-        public (int X, int Y) Location {
-            get {
-                if (_Image.Anchor != null) {
-                    var hPos = _Image.Anchor.HorizontalPosition;
-                    var vPos = _Image.Anchor.VerticalPosition;
-                    int x = 0;
-                    int y = 0;
-                    var hOffset = hPos?.PositionOffset;
-                    if (hOffset?.Text != null) {
-                        int.TryParse(hOffset.Text, out x);
-                    }
-                    var vOffset = vPos?.PositionOffset;
-                    if (vOffset?.Text != null) {
-                        int.TryParse(vOffset.Text, out y);
-                    }
-                    return (x, y);
-                }
 
-                return (0, 0);
-            }
-        }
 
         /// <summary>
         /// Indicates whether resizing should be relative to the original size.

@@ -173,7 +173,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         private static void ApplySheetProperties(ExcelSheet sheet, GoogleSheetsNativeSheetProperties properties) {
             if (properties.Hidden) sheet.SetHidden(true);
             if (properties.RightToLeft) sheet.View.RightToLeft = true;
-            if (properties.TabColor != null) sheet.SetTabColor(ToHex(properties.TabColor));
+            if (properties.TabColor != null) sheet.SetTabColor(OfficeColor.ParseHex(ToHex(properties.TabColor)));
             if (properties.GridProperties != null) {
                 if (properties.GridProperties.FrozenRowCount > 0 || properties.GridProperties.FrozenColumnCount > 0) {
                     sheet.View.Freeze(properties.GridProperties.FrozenRowCount, properties.GridProperties.FrozenColumnCount);
@@ -353,16 +353,16 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleSheetsNativeCellFormat? format) {
             if (format == null) return;
             if (!string.IsNullOrWhiteSpace(format.NumberFormat?.Pattern)) sheet.Cell(row, column).SetNumberFormat(format.NumberFormat!.Pattern!);
-            if (format.BackgroundColor != null) sheet.Cell(row, column).SetFillColor(ToHex(format.BackgroundColor));
+            if (format.BackgroundColor != null) sheet.Cell(row, column).SetFillColor(OfficeColor.ParseHex(ToHex(format.BackgroundColor)));
             if (format.TextFormat != null) {
                 GoogleSheetsNativeTextFormat text = format.TextFormat;
                 if (text.Bold == true) sheet.Cell(row, column).SetBold();
                 if (text.Italic == true) sheet.Cell(row, column).SetItalic();
                 if (text.Underline == true) sheet.Cell(row, column).SetUnderline();
                 if (text.Strikethrough == true) sheet.Cell(row, column).SetStrikethrough();
-                if (!string.IsNullOrWhiteSpace(text.FontFamily)) sheet.Cell(row, column).SetFontName(text.FontFamily!);
+                if (!string.IsNullOrWhiteSpace(text.FontFamily)) sheet.Cell(row, column).SetFontFamily(text.FontFamily!);
                 if (text.FontSize is int fontSize && fontSize > 0) sheet.Cell(row, column).SetFontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
-                if (text.ForegroundColor != null) sheet.Cell(row, column).SetFontColor(ToHex(text.ForegroundColor));
+                if (text.ForegroundColor != null) sheet.Cell(row, column).SetColor(OfficeColor.ParseHex(ToHex(text.ForegroundColor)));
             }
 
             switch (format.HorizontalAlignment) {
@@ -440,9 +440,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 Italic = runFormat?.Italic ?? baseFormat?.Italic ?? false,
                 Underline = runFormat?.Underline ?? baseFormat?.Underline ?? false,
                 Strikethrough = runFormat?.Strikethrough ?? baseFormat?.Strikethrough ?? false,
-                FontName = runFormat?.FontFamily ?? baseFormat?.FontFamily,
+                FontFamily = runFormat?.FontFamily ?? baseFormat?.FontFamily,
                 FontSize = (runFormat?.FontSize ?? baseFormat?.FontSize) is int points ? global::OfficeIMO.OfficeLength.Points(points) : (global::OfficeIMO.OfficeLength?)null,
-                FontColor = color == null ? null : ToHex(color),
+                Color = color == null ? null : OfficeColor.ParseHex(ToHex(color)),
             };
         }
 

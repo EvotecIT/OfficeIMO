@@ -678,7 +678,7 @@ public class CsvMappingTests
     [Fact]
     public void Maps_To_Typed_Record()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Id", "Name", "Age", "City")
             .AddRow(1, "Przemek", 36, "Mikołów")
             .AddRow(2, "Dominika", 30, "Mikołów");
@@ -711,7 +711,7 @@ public class CsvMappingTests
     [Fact]
     public void Factory_Maps_Positional_Record_From_Document_And_DataReader()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Id", "Name")
             .AddRow(42, "Ada");
 

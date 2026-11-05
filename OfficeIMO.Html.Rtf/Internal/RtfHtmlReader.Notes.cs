@@ -158,8 +158,8 @@ internal static partial class RtfHtmlReader {
             target.DirectBold = source.DirectBold;
             target.DirectItalic = source.DirectItalic;
             target.DirectUnderlineStyle = source.DirectUnderlineStyle;
-            target.Strike = source.Strike;
-            target.DoubleStrike = source.DoubleStrike;
+            target.Strikethrough = source.Strikethrough;
+            target.DoubleStrikethrough = source.DoubleStrikethrough;
             target.DirectHidden = source.DirectHidden;
             target.Outline = source.Outline;
             target.Shadow = source.Shadow;

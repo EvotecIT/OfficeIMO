@@ -14,7 +14,7 @@ public sealed class IWorkFractionFormatCorpusTests {
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
         Assert.Equal(manifest.RootElement.GetProperty("sourceSha256").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Fixture("numbers")))).ToLowerInvariant());
-        IWorkTable table = Assert.Single(Assert.Single(IWorkSourceDocument.Open(Fixture("numbers")).ReadNumbers().Sheets).Tables);
+        IWorkTable table = Assert.Single(Assert.Single(IWorkSourceDocument.Load(Fixture("numbers")).ReadNumbers().Sheets).Tables);
         Assert.Equal(manifest.RootElement.GetProperty("cases").GetArrayLength(), table.RowCount);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
@@ -39,7 +39,7 @@ public sealed class IWorkFractionFormatCorpusTests {
     [Fact]
     public void Saved_fraction_output_preserves_numeric_types_and_reports_display_approximation() {
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
-        using var result = IWorkSourceDocument.Open(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");

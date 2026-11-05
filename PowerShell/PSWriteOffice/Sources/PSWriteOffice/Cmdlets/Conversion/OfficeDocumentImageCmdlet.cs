@@ -7,6 +7,7 @@ using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO;
+using OfficeIMO.Excel;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
@@ -39,21 +40,15 @@ public abstract class OfficeDocumentImageCmdlet : AsyncPSCmdlet {
 
     /// <summary>Output image encoding. File destinations infer it when omitted.</summary>
     [Parameter]
-    public OfficeImageFormat Format { get; set; } = OfficeImageFormat.Png;
+    public OfficeImageExportFormat Format { get; set; } = OfficeImageExportFormat.Png;
     /// <summary>One-based caller-ordered pages, slides or diagram pages; defaults to all.</summary>
-    [Parameter]
-    [OfficePageRangeTransformation]
-    public OfficePageRange? Page { get; set; }
+    public abstract OfficePageRange? Page { get; set; }
     /// <summary>Excel worksheets selected by name, one-based position or native sheet object.</summary>
-    [Parameter]
-    [OfficeSheetTransformation]
-    public OfficeSheetSelector[]? Sheet { get; set; }
+    public abstract OfficeSheetSelector[]? Sheet { get; set; }
     /// <summary>A1 range within the selected Excel sheets.</summary>
-    [Parameter]
-    public string? Range { get; set; }
+    public abstract string? Range { get; set; }
     /// <summary>Chart name within the selected Excel sheets. Cannot be combined with Range.</summary>
-    [Parameter]
-    public string? Chart { get; set; }
+    public abstract string? Chart { get; set; }
     /// <summary>Target image resolution in dots per inch; omitted values retain native options.</summary>
     [Parameter]
     public double Dpi { get; set; }
@@ -73,7 +68,13 @@ public abstract class OfficeDocumentImageCmdlet : AsyncPSCmdlet {
     public SecureString? Password { get; set; }
     /// <summary>Maximum number of input files processed concurrently.</summary>
     [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "PathSheet")]
+    [Parameter(ParameterSetName = "PathRange")]
+    [Parameter(ParameterSetName = "PathChart")]
     [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathSheet")]
+    [Parameter(ParameterSetName = "LiteralPathRange")]
+    [Parameter(ParameterSetName = "LiteralPathChart")]
     [ValidateRange(1, 32)]
     public int ThrottleLimit { get; set; } = 4;
 
@@ -115,7 +116,6 @@ public abstract class OfficeDocumentImageCmdlet : AsyncPSCmdlet {
         if (_sources.Count == 0) return;
         bool single = ImageOutputPath != null;
         if (single && _sources.Count != 1) throw new PSArgumentException("OutputPath requires exactly one input and one image; use OutputDirectory for a batch.");
-        if (Range != null && Chart != null) throw new PSArgumentException("Range and Chart cannot be combined.");
         var formats = _sources.Select(source => source.Format).Distinct().ToArray();
         if ((Sheet != null || Range != null || Chart != null) && formats.Any(format => format != OfficeDocumentFormat.Excel))
             throw new PSArgumentException("Sheet, Range and Chart require Excel sources.");
@@ -170,11 +170,11 @@ public abstract class OfficeDocumentImageCmdlet : AsyncPSCmdlet {
         OfficeImageExportFormat? inferred = outputPath == null ? null
             : supported.Where(format => format.HasFileExtension(System.IO.Path.GetExtension(outputPath))).Select(format => (OfficeImageExportFormat?)format).SingleOrDefault();
         if (outputPath != null && !string.IsNullOrEmpty(System.IO.Path.GetExtension(outputPath)) && inferred == null) throw new PSArgumentException("OutputPath must have a supported image extension.");
-        OfficeImageExportFormat? selected = supported.Where(format => format.GetContainerFormat() == Format).Select(format => (OfficeImageExportFormat?)format).SingleOrDefault();
-        if (selected == null) throw new PSArgumentException("The selected image format has no native encoder.");
-        if (inferred.HasValue && MyInvocation.BoundParameters.ContainsKey(nameof(Format)) && inferred != selected)
+        if (!Enum.IsDefined(typeof(OfficeImageExportFormat), Format))
+            throw new PSArgumentException("The selected image encoding is not supported.");
+        if (inferred.HasValue && MyInvocation.BoundParameters.ContainsKey(nameof(Format)) && inferred != Format)
             throw new PSArgumentException("Format and OutputPath extension must match.");
-        return inferred ?? selected.Value;
+        return inferred ?? Format;
     }
 
     private async Task RenderAsync(Source source, OfficeDocumentImageOptions options, RenderRequest request, CancellationToken token) {

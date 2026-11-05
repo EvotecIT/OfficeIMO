@@ -5,8 +5,9 @@ internal static class MarkdownToLatexConverter {
     /// <summary>Converts a Markdown semantic document and reparses generated LaTeX losslessly.</summary>
     internal static MarkdownToLatexResult Convert(
         MarkdownDocument document,
-        MarkdownLatexExportOptions? options = null) {
+        MarkdownLatexExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(document);
+        cancellationToken.ThrowIfCancellationRequested();
         options ??= new MarkdownLatexExportOptions();
         Validate(options);
         var diagnostics = new List<LatexMarkdownConversionDiagnostic>();
@@ -30,6 +31,7 @@ internal static class MarkdownToLatexConverter {
 
         var body = new List<string>();
         for (int index = 0; index < document.Blocks.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             IMarkdownBlock block = document.Blocks[index];
             if (title != null && !state.TitleConsumed && ReferenceEquals(block, titleHeading)) {
                 state.TitleConsumed = true;
@@ -58,6 +60,7 @@ internal static class MarkdownToLatexConverter {
         source.Append("\\end{document}").Append(options.LineEnding);
 
         string value = source.ToString();
+        cancellationToken.ThrowIfCancellationRequested();
         LatexDocument parsed = LatexDocument.ParseResult(value).Document;
         return new MarkdownToLatexResult(value, parsed, diagnostics);
     }
@@ -381,14 +384,4 @@ internal static class MarkdownToLatexConverter {
             throw new ArgumentException("DocumentClass must be a simple alphabetic class name.");
         }
     }
-}
-
-public static partial class LatexMarkdownConverterExtensions {
-    /// <summary>Converts Markdown to canonical bounded-profile LaTeX.</summary>
-    public static MarkdownToLatexResult ToLatexDocumentResult(this MarkdownDocument document, MarkdownLatexExportOptions? options = null) =>
-        MarkdownToLatexConverter.Convert(document, options);
-
-    /// <summary>Converts a Markdown document to a parsed canonical LaTeX document.</summary>
-    public static LatexDocument ToLatexDocument(this MarkdownDocument document, MarkdownLatexExportOptions? options = null) =>
-        document.ToLatexDocumentResult(options).Value;
 }

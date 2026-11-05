@@ -17,12 +17,12 @@ namespace PSWriteOffice.Cmdlets.Project;
 [OutputType(typeof(ProjectDocument))]
 public sealed class SaveOfficeProjectCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public ProjectDocument Document { get; set; } = null!;
 
     /// <summary>Destination filename; its extension selects the format.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    public string Path { get; set; } = string.Empty;
+    [Parameter(Position = 0)]
+    public string? Path { get; set; }
 
     /// <summary>Explicit generation or exchange format.</summary>
     [Parameter]
@@ -46,17 +46,17 @@ public sealed class SaveOfficeProjectCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var path = OfficeFileCommandUtilities.ResolvePath(this, Path);
-        if (!ShouldProcess(path, "Save project")) return;
+        var path = Path == null ? null : OfficeFileCommandUtilities.ResolvePath(this, Path);
+        if (!ShouldProcess(path ?? "Associated Project destination", "Save project")) return;
         var options = new ProjectSaveOptions {
             Format = Format,
             AllowLoss = AllowLoss.IsPresent,
             FileConflictPolicy = Force.IsPresent ? OfficeConversionFileConflictPolicy.Replace : OfficeConversionFileConflictPolicy.FailIfExists
         };
-        var report = Document.AssessSave(path, options);
+        var report = path == null ? Document.AssessSave(options) : Document.AssessSave(path, options);
         if (!string.IsNullOrWhiteSpace(ReportVariable)) SessionState.PSVariable.Set(ReportVariable, report);
         report.ThrowIfErrors();
-        Document.Save(path, options);
+        if (path == null) Document.Save(options); else Document.Save(path, options);
         if (PassThru.IsPresent) WriteObject(Document);
     }
 }

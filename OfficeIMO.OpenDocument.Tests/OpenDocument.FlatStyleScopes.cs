@@ -161,7 +161,7 @@ public sealed class OpenDocumentFlatStyleScopeTests {
         body.Bold = true;
         OdtParagraph header = source.PageLayout.Header.AddParagraph("Header ");
         header.Italic = true;
-        OdtSpan span = header.AddSpan("Span");
+        OdtSpan span = header.AddRun("Span");
         span.Bold = true;
         foreach (var pair in new[] {
             (OdfStyleFamily.Paragraph, body.StyleName!, "content.xml"),

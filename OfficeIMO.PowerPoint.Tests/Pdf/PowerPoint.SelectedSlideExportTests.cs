@@ -16,8 +16,8 @@ public sealed class PowerPointSelectedSlideExportTests {
             global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(10)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(10)),
             global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)));
         var background = deck.AddSlide();
-        if (gradient) background.SetBackgroundGradient("123456", "123456", 0);
-        else background.BackgroundColor = "123456";
+        if (gradient) background.SetBackgroundGradient(OfficeColor.Parse("123456"), OfficeColor.Parse("123456"), 0);
+        else background.BackgroundColor = OfficeColor.Parse("123456");
         deck.AddSlide().SetBackgroundImage(new MemoryStream(picture), OfficeImageFormat.Png);
 
         var images = deck.ExportImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {

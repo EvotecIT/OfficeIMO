@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
     public void SparseSourceBordersDoNotInheritDestinationGridOrFill(IWorkDocumentKind kind) {
         using var package = DimensionPackage(kind, tableStyleReference: ReferenceField(3, 40),
             styleRecords: [ArchiveRecord(40, 6003, BytesField(11, BytesField(61, BorderStroke(1))))]);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {

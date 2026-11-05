@@ -18,12 +18,12 @@ public sealed partial class IWorkBoundaryTests {
                 columnFields: route == "column" ? ReferenceField(8, 30) : Message()),
                 modelFields: route == "model" ? ReferenceField(38, 30) : Message(),
                 records: ArchiveRecord(30, 2021, VarintField(2, 0)));
-        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         Assert.Equal(42d, Assert.Single(table.Cells).Value);
         Assert.Empty(table.HiddenRows);
         Assert.Empty(table.HiddenColumns);
         package.Position = 0;
-        var report = ConvertUnitReport(package, kind, readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+        var report = ConvertUnitReport(package, kind, readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Empty(report.PreservedRecords);
         Assert.Contains(report.SourceDeclarationIssues, item => item.Owner.RecordIdentifier == 30 && item.FieldPath == "$"
             && item.Kind == IWorkSourceDeclarationIssueKind.RejectedMessageSet);
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Shared_wrong_type_position_map_retains_one_physical_reference_across_axes_and_models() {
         using var package = MappedHiddenPackage(IWorkDocumentKind.Numbers, mapType: 2021, repeatModel: true);
-        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceReferenceIssues = 1 }).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxSourceReferenceIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Equal("46", Assert.Single(projection.SourceReferenceIssues).FieldPath);
     }
@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: ReferenceField(8, 30), columnFields: ReferenceField(8, 30)),
             modelFields: ReferenceField(38, 30), records: ArchiveRecord(30, 2021, Message()), repeatModel: true);
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceReferenceIssues = limit });
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxSourceReferenceIssues = limit });
         if (limit == 2) {
             Assert.Contains("reference issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
             return;
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Inactive_position_map_stays_outside_visibility_reference_inventory() {
         using var package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             modelFields: ReferenceField(46, 30), records: ArchiveRecord(30, 2021, Message()));
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.True(projection.HasEditableContent);
         Assert.Empty(projection.SourceReferenceIssues);
         Assert.Empty(projection.SourceDeclarationIssues);

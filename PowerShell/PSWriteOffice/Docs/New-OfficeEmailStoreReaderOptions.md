@@ -11,7 +11,7 @@ Creates bounded email-store reader settings without requiring .NET constructor s
 ## SYNTAX
 ### Options (Default)
 ```powershell
-New-OfficeEmailStoreReaderOptions [-MaxInputBytes <long>] [-MaxNodeCount <int>] [-MaxBTreeDepth <int>] [-MaxCachedBTreePages <int>] [-MaxFolderCount <int>] [-MaxItemCount <int>] [-MaxPropertiesPerItem <int>] [-MaxDecodedPropertyBytesPerItem <long>] [-MaxAttachmentsPerItem <int>] [-MaxAttachmentBytes <long>] [-MaxTotalAttachmentBytes <long>] [-ExcludeAttachmentContent] [-PstPassword <securestring>] [-PstPasswordEncoding <string>] [-IncludeAssociatedItems] [-IncludeOrphanedItems] [-MaxNestedMessageDepth <int>] [-MaxArchiveEntries <int>] [-MaxArchiveEntryBytes <long>] [-MaxArchiveDecodedBytes <long>] [-MaxXmlCharactersPerItem <long>] [-MaxMessageBytes <long>] [-MaxDirectoryDepth <int>] [-MaxDirectoryFileCount <int>] [-MaxDecodedTableBytes <long>] [<CommonParameters>]
+New-OfficeEmailStoreReaderOptions [-MaxInputBytes <long>] [-MaxNodeCount <int>] [-MaxBTreeDepth <int>] [-MaxCachedBTreePages <int>] [-MaxFolderCount <int>] [-MaxItemCount <int>] [-MaxPropertiesPerItem <int>] [-MaxDecodedPropertyBytesPerItem <long>] [-MaxAttachmentsPerItem <int>] [-MaxAttachmentBytes <long>] [-MaxTotalAttachmentBytes <long>] [-NoAttachmentContent] [-Password <securestring>] [-PasswordEncoding <string>] [-IncludeAssociatedItems] [-IncludeOrphanedItems] [-MaxNestedMessageDepth <int>] [-MaxArchiveEntries <int>] [-MaxArchiveEntryBytes <long>] [-MaxArchiveDecodedBytes <long>] [-MaxXmlCharactersPerItem <long>] [-MaxMessageBytes <long>] [-MaxDirectoryDepth <int>] [-MaxDirectoryFileCount <int>] [-MaxDecodedTableBytes <long>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,28 +21,12 @@ Creates bounded email-store reader settings without requiring .NET constructor s
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeEmailStoreReaderOptions -ExcludeAttachmentContent -MaxAttachmentsPerItem 100
+PS> $options = New-OfficeEmailStoreReaderOptions -NoAttachmentContent -MaxAttachmentsPerItem 100
 Get-OfficeEmail -Path .\Message.emlx -StoreOptions $options -AsResult
 ```
 
 
 ## PARAMETERS
-
-### -ExcludeAttachmentContent
-Do not retain decoded attachment payloads in memory.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Options
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -IncludeAssociatedItems
 Materialize folder-associated information items.
@@ -396,7 +380,23 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PstPassword
+### -NoAttachmentContent
+Do not retain decoded attachment payloads in memory.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Options
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Password
 Password used to validate legacy protected PST files.
 
 ```yaml
@@ -412,7 +412,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PstPasswordEncoding
+### -PasswordEncoding
 Encoding name used for the legacy PST password checksum.
 
 ```yaml

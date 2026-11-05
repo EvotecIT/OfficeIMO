@@ -11,7 +11,7 @@ Creates Word/OpenDocument conversion settings.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeWordOpenDocumentOptions [-LossPolicy <OdfConversionLossPolicy>] [-IncludeImages] [-IncludeHeadersAndFooters] [<CommonParameters>]
+New-OfficeWordOpenDocumentOptions [-LossPolicy <OdfConversionLossPolicy>] [-NoImages] [-NoHeadersAndFooters] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,14 +21,30 @@ Creates Word/OpenDocument conversion settings.
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeWordOpenDocumentOptions -IncludeImages -IncludeHeadersAndFooters
-ConvertTo-OfficeOpenDocument -Path .\Report.docx -OutputPath .\Report.odt -WordOptions $options
+PS> $options = New-OfficeWordOpenDocumentOptions -NoImages -NoHeadersAndFooters
+Convert-OfficeDocument -Path .\Report.docx -To OpenDocument -OutputPath .\Report.odt -Options $options
 ```
 
 
 ## PARAMETERS
 
-### -IncludeHeadersAndFooters
+### -LossPolicy
+Whether conversion loss is reported or rejected.
+
+```yaml
+Type: OdfConversionLossPolicy
+Parameter Sets: Default
+Aliases: None
+Possible values: ReportOnly, ThrowOnSkippedOrUnsupported, ThrowOnAnyLoss
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoHeadersAndFooters
 Copy default headers and footers.
 
 ```yaml
@@ -44,7 +60,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IncludeImages
+### -NoImages
 Copy supported inline images.
 
 ```yaml
@@ -52,22 +68,6 @@ Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -LossPolicy
-Whether conversion loss is reported or rejected.
-
-```yaml
-Type: OdfConversionLossPolicy
-Parameter Sets: Default
-Aliases: None
-Possible values: ReportOnly, ThrowOnSkippedOrUnsupported, ThrowOnAnyLoss
 
 Required: False
 Position: named

@@ -65,8 +65,8 @@ $pdf = Join-Path $OutputDirectory 'BudgetForecastReview.pdf'
 New-OfficeExcel -Path $xlsx -SaveOptions @{ EvaluateFormulas = $true } {
     ExcelSheet 'Review' {
         ExcelSheetView -NoGridlines
-        ExcelColumn -ColumnName A -Width 44
-        ExcelColumn -ColumnName B -Width 24
+        ExcelColumn -Column A -Width 44
+        ExcelColumn -Column B -Width 24
         ExcelCell -Address A1 -Value 'Annual forecast review'
         ExcelRow -Row 1 -Bold $true -Height 32
         ExcelCell -Address A2 -Value "Snapshot: $($AsOfDate.ToString('yyyy-MM-dd')) | USD"
@@ -81,27 +81,22 @@ New-OfficeExcel -Path $xlsx -SaveOptions @{ EvaluateFormulas = $true } {
         ExcelRow -Row 6 -Bold $true -BackgroundColor '#EFF6FF' -FirstColumn 1 -LastColumn 2
         ExcelCell -Address A8 -Value 'Positive variance is overspend. Review each exception with its owner.'
         ExcelRow -Row 8 -WrapText $true -Height 34
-        ExcelOrientation -Orientation Landscape
-        ExcelPageSetup -FitToWidth 1 -FitToHeight 0
-        ExcelPrintArea -Range 'A1:B8'
+        ExcelPageSetup -Orientation Landscape -FitToWidth 1 -FitToHeight 0 -PrintArea 'A1:B8'
     }
     ExcelSheet 'Detail' {
-        ExcelTable -Data $rows -Name 'BudgetForecast' -TableStyle TableStyleMedium4
+        ExcelTable -InputObject $rows -Name 'BudgetForecast' -TableStyle TableStyleMedium4
         ExcelSheetView -FreezeRows 1
-        ExcelColumn -ColumnName A -Width 36
-        ExcelColumn -ColumnName B -Width 24
-        foreach ($column in 'C','D','E','F') { ExcelColumn -ColumnName $column -Width 20 }
-        ExcelColumn -ColumnName G -Width 62
-        foreach ($header in 'Budget','Actual','Forecast','Variance') { ExcelColumnStyleByHeader -Header $header -NumberFormat '$#,##0.00' }
+        ExcelColumn -Column A -Width 36
+        ExcelColumn -Column B -Width 24
+        foreach ($column in 'C','D','E','F') { ExcelColumn -Column $column -Width 20 }
+        ExcelColumn -Column G -Width 62
+        foreach ($header in 'Budget','Actual','Forecast','Variance') { ExcelColumn -Header $header -NumberFormat '$#,##0.00' }
         for ($row = 2; $row -le $lastRow; $row++) {
             ExcelCell -Address "F$row" -Formula "E$row-C$row" -NumberFormat '[Red]$#,##0.00;[Green]-$#,##0.00;$0.00'
             ExcelRow -Row $row -WrapText $true
         }
-        ExcelValidationDecimal -Range "C2:E$lastRow" -Operator GreaterThanOrEqual -Formula1 0 -AllowBlank:$false -ErrorTitle 'Non-negative USD amount' -ErrorMessage 'Enter zero or a positive amount.'
-        ExcelOrientation -Orientation Landscape
-        ExcelPageSetup -FitToWidth 1 -FitToHeight 0
-        ExcelPrintTitles -FirstRow 1 -LastRow 1
-        ExcelPrintArea -Range "A1:G$lastRow"
+        ExcelValidation -Type Decimal -Range "C2:E$lastRow" -Operator GreaterThanOrEqual -Value 0 -NoBlank -ErrorTitle 'Non-negative USD amount' -ErrorMessage 'Enter zero or a positive amount.'
+        ExcelPageSetup -Orientation Landscape -FitToWidth 1 -FitToHeight 0 -RepeatRows '1:1' -PrintArea "A1:G$lastRow"
     }
 }
 
@@ -116,7 +111,7 @@ New-OfficeWord -Path $docx {
     WordParagraph -Text "Forecast $($totalForecast.ToString('C2',$money)) against budget $($totalBudget.ToString('C2',$money)); actual spend $($totalActual.ToString('C2',$money))."
     WordParagraph -Text "$(if ($variance -eq 0) {'The forecast matches the approved budget.'} else { "The forecast is $([math]::Abs($variance).ToString('C2',$money)) $(if ($variance -gt 0) {'above'} else {'below'}) budget." }) $($exceptions.Count) department(s) need an overspend decision."
     WordParagraph -Text 'Positive variance is overspend; negative is favorable. The workbook retains detail, formulas and input validation. Regenerate this dated review after changing the CSV.'
-    WordParagraph -Text 'Owner decisions' -Style Heading1 { Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
+    WordParagraph -Style Heading1 { WordText 'Owner decisions'; Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
     WordList -Style Bulleted {
         foreach ($item in $exceptions) {
             $decision = WordListItem -Text "$($item.Department) | $($item.Owner): $($item.Action). Forecast overspend $($item.Variance.ToString('C2',$money))." -PassThru
@@ -124,7 +119,7 @@ New-OfficeWord -Path $docx {
         }
         if (-not $exceptions.Count) { WordListItem -Text 'No overspend exceptions. Confirm the remaining forecast assumptions with department owners.' }
     }
-    WordParagraph -Text 'Department view' -Style Heading1 { Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
+    WordParagraph -Style Heading1 { WordText 'Department view'; Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
     $table.RepeatHeaderRowAtTheTopOfEachPage = $true
     foreach ($tableRow in $table.Rows) { $tableRow.AllowRowToBreakAcrossPages = $false }
@@ -134,6 +129,6 @@ New-OfficeWord -Path $docx {
     }
 
 }
-Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
+Convert-OfficeDocument -LiteralPath $docx -OutputPath $pdf -Route docx-pdf
 #endregion
 Get-Item -LiteralPath $xlsx,$docx,$pdf | Select-Object Name,Length

@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
         string target = nextAction ? "?slide=next" : NativeSecondSlideLink;
         using MemoryStream package = CreateNativeSlideLinkPackage(target,
             missingPredecessor: missingPredecessor);
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(package,
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Keynote).ReadKeynote();
         IWorkKeynoteSlide sourceSlide = projection.Slides[0];
         Assert.Equal(missingPredecessor ? 2 : 1, sourceSlide.Index);
@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(target, Assert.Single(Assert.Single(sourceSlide.PresenterNoteContent.Paragraphs).Runs).Hyperlink);
 
         package.Position = 0;
-        using var conversion = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
+        using var conversion = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = missingPredecessor
             });
@@ -48,14 +48,14 @@ public sealed partial class IWorkBoundaryTests {
             ? "?slide=next" : defect == "unknown"
                 ? "?slideid=11111111-2222-3333-4444-555555555555" : NativeSecondSlideLink;
         using MemoryStream package = CreateNativeSlideLinkPackage(target, defect: defect);
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(package,
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Keynote).ReadKeynote();
         Assert.Equal(target, projection.Slides[0].TitleBox!.Hyperlink);
         if (defect == "malformed") Assert.Contains(projection.SourceDeclarationIssues,
             issue => issue.Kind == IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
         package.Position = 0;
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
                     Mode = IWorkConversionMode.EditableOnly,
                     AllowPartialEditableReconstruction = true
                 }));
@@ -65,8 +65,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Native_uuid_catalog_obeys_the_source_wide_projection_limit() {
         using MemoryStream package = CreateNativeSlideLinkPackage(NativeSecondSlideLink, mapCount: 70);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            IWorkDocumentKind.Keynote, new IWorkReadOptions {
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
+            IWorkDocumentKind.Keynote, new IWorkLoadOptions {
                 MaxProjectedTables = 1, MaxProjectedImages = 1,
                 MaxProjectedTextItems = 64
             });

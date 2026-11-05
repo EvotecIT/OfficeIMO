@@ -9,11 +9,11 @@ public sealed partial class IWorkBoundaryTests {
     public void Failed_semantic_image_decodes_consume_the_shared_budget() {
         using MemoryStream package = CreatePagesImagePackage(duplicateMetadata: false,
             imageCount: 1, imageBytes: CreateInvalidAdlerPng(20, 20));
-        var options = new IWorkReadOptions {
+        var options = new IWorkLoadOptions {
             MaxPackageBytes = 2_000,
             MaxDecodedImageBytes = 2_000
         };
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages, options);
         IWorkArchiveRecord image = Assert.Single(source.Records,
             record => record.MessageType == 3005);
@@ -42,7 +42,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
@@ -92,7 +92,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(record)));
 
         Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers));
     }
 
     private static byte[] CreateInvalidAdlerPng(int width, int height,

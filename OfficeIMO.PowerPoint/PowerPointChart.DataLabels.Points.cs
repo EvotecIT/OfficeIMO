@@ -150,16 +150,18 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets data label text style for a specific point by series index.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public PowerPointChart SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex,
             OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
-            string? color = null, string? fontName = null) {
+            OfficeColor? color = null, string? fontFamily = null) {
+#pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
-            ValidateTextStyle(fontSize, color, fontName);
+            ValidateTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.DataLabel label = EnsureDataLabel(series, pointIndex);
-                ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontFamily);
             });
 
             if (!applied) {
@@ -173,16 +175,18 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets data label text style for a specific point by series name.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public PowerPointChart SetSeriesDataLabelTextStyleForPoint(string seriesName, int pointIndex,
             OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
-            string? color = null, string? fontName = null, bool ignoreCase = true) {
+            OfficeColor? color = null, string? fontFamily = null, bool ignoreCase = true) {
+#pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
             ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
-            ValidateTextStyle(fontSize, color, fontName);
+            ValidateTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.DataLabel label = EnsureDataLabel(series, pointIndex);
-                ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontFamily);
             });
 
             if (!applied) {
@@ -196,9 +200,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets data label shape styling for a specific point by series index.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public PowerPointChart SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex,
-            string? fillColor = null, string? lineColor = null, OfficeLength? lineWidth = null,
+            OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null,
             bool noFill = false, bool noLine = false) {
+#pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
@@ -219,9 +225,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets data label shape styling for a specific point by series name.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public PowerPointChart SetSeriesDataLabelShapeStyleForPoint(string seriesName, int pointIndex,
-            string? fillColor = null, string? lineColor = null, OfficeLength? lineWidth = null,
+            OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null,
             bool noFill = false, bool noLine = false, bool ignoreCase = true) {
+#pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
             ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);

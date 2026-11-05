@@ -25,38 +25,20 @@ Adds chapter content, reading order and a navigation entry.
 ### [Add-OfficeEpubResource](Add-OfficeEpubResource.md)
 Adds an image, font, stylesheet or media payload without executing it.
 
-### [Add-OfficeExcelAutoFilter](Add-OfficeExcelAutoFilter.md)
-Adds an AutoFilter to the current worksheet.
-
 ### [Add-OfficeExcelChart](Add-OfficeExcelChart.md)
 Adds a native Excel chart from a range, named table or input rows.
 
 ### [Add-OfficeExcelComment](Add-OfficeExcelComment.md)
-Adds or replaces a comment (note) on a worksheet cell.
+Adds a note or a threaded comment (or reply) to a cell.
 
-### [Add-OfficeExcelConditionalColorScale](Add-OfficeExcelConditionalColorScale.md)
-Adds a two-color scale conditional format to a range.
+### [Add-OfficeExcelConditionalFormat](Add-OfficeExcelConditionalFormat.md)
+Adds a conditional format: a rule, color scale, data bar or icon set.
 
-### [Add-OfficeExcelConditionalDataBar](Add-OfficeExcelConditionalDataBar.md)
-Adds a data bar conditional format to a range.
-
-### [Add-OfficeExcelConditionalIconSet](Add-OfficeExcelConditionalIconSet.md)
-Adds an icon set conditional format to a range.
-
-### [Add-OfficeExcelConditionalRule](Add-OfficeExcelConditionalRule.md)
-Adds a conditional formatting rule to the current worksheet.
-
-### [Add-OfficeExcelDashboardChart](Add-OfficeExcelDashboardChart.md)
-Adds a dashboard-ready chart using an OfficeIMO chart preset.
-
-### [Add-OfficeExcelDataSet](Add-OfficeExcelDataSet.md)
-Writes every table in a DataSet to separate Excel worksheets.
+### [Add-OfficeExcelConnection](Add-OfficeExcelConnection.md)
+Adds Power Query or connection metadata that Excel can own and refresh.
 
 ### [Add-OfficeExcelImage](Add-OfficeExcelImage.md)
 Embeds a file, HTTP image or reusable visual at a worksheet cell or range.
-
-### [Add-OfficeExcelPackageMetadata](Add-OfficeExcelPackageMetadata.md)
-Adds explicit workbook package metadata such as connection or query-table XML.
 
 ### [Add-OfficeExcelPageBreak](Add-OfficeExcelPageBreak.md)
 Adds manual print page breaks to an open worksheet.
@@ -64,83 +46,62 @@ Adds manual print page breaks to an open worksheet.
 ### [Add-OfficeExcelPivotTable](Add-OfficeExcelPivotTable.md)
 Adds a pivot table to a worksheet.
 
-### [Add-OfficeExcelPowerQueryMetadata](Add-OfficeExcelPowerQueryMetadata.md)
-Adds safe Power Query/connection metadata for Excel-compatible applications to own and refresh.
-
 ### [Add-OfficeExcelReportCallout](Add-OfficeExcelReportCallout.md)
-Adds a colored callout block to the current Excel report sheet.
+Adds a highlighted info, success, warning or error callout.
 
-### [Add-OfficeExcelReportKpiRow](Add-OfficeExcelReportKpiRow.md)
-Adds a KPI row to the current Excel report sheet.
+### [Add-OfficeExcelReportChart](Add-OfficeExcelReportChart.md)
+Adds a chart of a report table, using a dashboard preset or chart type.
+
+### [Add-OfficeExcelReportHeading](Add-OfficeExcelReportHeading.md)
+Adds a section heading to the report.
+
+### [Add-OfficeExcelReportKpi](Add-OfficeExcelReportKpi.md)
+Adds a row of KPI cards.
 
 ### [Add-OfficeExcelReportLegend](Add-OfficeExcelReportLegend.md)
-Adds a legend table to the current Excel report sheet.
+Adds a legend table that explains values or colors.
 
 ### [Add-OfficeExcelReportParagraph](Add-OfficeExcelReportParagraph.md)
-Adds a paragraph line to the current Excel report sheet.
-
-### [Add-OfficeExcelReportSection](Add-OfficeExcelReportSection.md)
-Adds a section heading to the current Excel report sheet.
+Adds a paragraph of text to the report.
 
 ### [Add-OfficeExcelReportSheet](Add-OfficeExcelReportSheet.md)
-Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.
+Creates a report worksheet and lays out report blocks inside it.
 
 ### [Add-OfficeExcelReportSpacer](Add-OfficeExcelReportSpacer.md)
-Adds vertical spacing to the current Excel report sheet.
+Adds vertical space to the report.
 
 ### [Add-OfficeExcelReportTable](Add-OfficeExcelReportTable.md)
-Adds an object table to the current Excel report sheet using the OfficeIMO sheet composer.
+Adds a titled, styled table to the report.
 
 ### [Add-OfficeExcelReportTitle](Add-OfficeExcelReportTitle.md)
-Adds a title block to the current Excel report sheet.
+Adds the report title and subtitle.
 
 ### [Add-OfficeExcelSheet](Add-OfficeExcelSheet.md)
 Adds or reuses a worksheet within the current Excel DSL scope.
 
 ### [Add-OfficeExcelSlicer](Add-OfficeExcelSlicer.md)
-Adds OfficeIMO-owned workbook slicer binding metadata.
+Adds slicer or timeline binding metadata for a pivot table or table.
 
 ### [Add-OfficeExcelSparkline](Add-OfficeExcelSparkline.md)
 Adds sparklines to a worksheet.
 
-### [Add-OfficeExcelSubtotalSummary](Add-OfficeExcelSubtotalSummary.md)
+### [Add-OfficeExcelSubtotal](Add-OfficeExcelSubtotal.md)
 Adds grouped subtotal summary rows for a worksheet data range.
 
 ### [Add-OfficeExcelTable](Add-OfficeExcelTable.md)
 Writes tabular data to the current worksheet and formats it as an Excel table.
 
 ### [Add-OfficeExcelTableOfContents](Add-OfficeExcelTableOfContents.md)
-Adds or refreshes a workbook table of contents sheet.
+Adds or refreshes a table-of-contents sheet with links to every sheet.
 
 ### [Add-OfficeExcelTableRow](Add-OfficeExcelTableRow.md)
-Appends one or more data rows to an existing Excel table.
+Appends rows to an existing Excel table.
 
-### [Add-OfficeExcelThreadedComment](Add-OfficeExcelThreadedComment.md)
-Adds a threaded comment or reply to an Excel worksheet.
+### [Add-OfficeExcelText](Add-OfficeExcelText.md)
+Adds a styled rich-text run to the enclosing cell or comment.
 
-### [Add-OfficeExcelTimeline](Add-OfficeExcelTimeline.md)
-Adds OfficeIMO-owned workbook timeline binding metadata.
-
-### [Add-OfficeExcelValidationCustomFormula](Add-OfficeExcelValidationCustomFormula.md)
-Adds a custom-formula data validation rule to a worksheet range.
-
-### [Add-OfficeExcelValidationDate](Add-OfficeExcelValidationDate.md)
-Adds a date data validation rule to a worksheet range.
-
-### [Add-OfficeExcelValidationDecimal](Add-OfficeExcelValidationDecimal.md)
-Adds a decimal-number data validation rule to a worksheet range.
-
-### [Add-OfficeExcelValidationList](Add-OfficeExcelValidationList.md)
-Adds a list-based data validation to a worksheet range.
-
-### [Add-OfficeExcelValidationTextLength](Add-OfficeExcelValidationTextLength.md)
-Adds a text-length data validation rule to a worksheet range.
-
-### [Add-OfficeExcelValidationTime](Add-OfficeExcelValidationTime.md)
-Adds a time data validation rule to a worksheet range.
-
-### [Add-OfficeExcelValidationWholeNumber](Add-OfficeExcelValidationWholeNumber.md)
-Adds a whole-number data validation rule to a worksheet range.
+### [Add-OfficeExcelValidation](Add-OfficeExcelValidation.md)
+Adds a data validation rule to a range or a header column.
 
 ### [Add-OfficeMarkdownCallout](Add-OfficeMarkdownCallout.md)
 Adds a Markdown callout block.
@@ -169,6 +130,9 @@ Adds a Markdown image.
 ### [Add-OfficeMarkdownList](Add-OfficeMarkdownList.md)
 Adds a Markdown list.
 
+### [Add-OfficeMarkdownListItem](Add-OfficeMarkdownListItem.md)
+Adds a plain or rich item to a MarkdownList block.
+
 ### [Add-OfficeMarkdownParagraph](Add-OfficeMarkdownParagraph.md)
 Adds a Markdown paragraph.
 
@@ -183,6 +147,9 @@ Adds a Markdown table of contents placeholder.
 
 ### [Add-OfficeMarkdownTaskList](Add-OfficeMarkdownTaskList.md)
 Adds a Markdown task list.
+
+### [Add-OfficeMarkdownText](Add-OfficeMarkdownText.md)
+Adds styled Markdown text to a paragraph or list item content block.
 
 ### [Add-OfficeOpenDocumentHeading](Add-OfficeOpenDocumentHeading.md)
 Adds a heading to an OpenDocument text document.
@@ -208,11 +175,14 @@ Adds a decorative generated PDF page background shape or band.
 ### [Add-OfficePdfBookmark](Add-OfficePdfBookmark.md)
 Adds a named bookmark at the current generated PDF flow position.
 
-### [Add-OfficePdfCanvas](Add-OfficePdfCanvas.md)
-Draws arbitrary visual canvas content on existing PDF pages.
-
 ### [Add-OfficePdfCanvasText](Add-OfficePdfCanvasText.md)
-Adds PowerShell-friendly text or rich text runs to the active fixed-position PDF canvas.
+Adds plain or rich native text to the active PDF canvas.
+
+### [Add-OfficePdfChart](Add-OfficePdfChart.md)
+Adds a themed chart from data.
+
+### [Add-OfficePdfColumn](Add-OfficePdfColumn.md)
+Defines one column of a PdfRow and its content.
 
 ### [Add-OfficePdfFormField](Add-OfficePdfFormField.md)
 Adds a simple AcroForm field to a generated PDF document.
@@ -224,40 +194,40 @@ Adds a heading to a PDF document.
 Adds a horizontal rule divider to a generated PDF document.
 
 ### [Add-OfficePdfImage](Add-OfficePdfImage.md)
-Adds an image to a PDF document.
+Adds a raster image or reusable native visual to PDF content.
 
 ### [Add-OfficePdfList](Add-OfficePdfList.md)
-Adds a bullet or numbered list to a PDF document.
+Adds a bulleted or numbered list built from PdfListItem children.
+
+### [Add-OfficePdfListItem](Add-OfficePdfListItem.md)
+Adds one list item, from -Text or from PdfText runs.
 
 ### [Add-OfficePdfPageBreak](Add-OfficePdfPageBreak.md)
 Adds a page break to a PDF document.
 
-### [Add-OfficePdfPageOverlay](Add-OfficePdfPageOverlay.md)
-Overlays or underlays one source PDF page on selected pages of another PDF.
+### [Add-OfficePdfPageNumber](Add-OfficePdfPageNumber.md)
+Inserts a live page number (optionally 'of total') inside PdfHeader or PdfFooter.
 
 ### [Add-OfficePdfPanel](Add-OfficePdfPanel.md)
 Adds a visually separated panel paragraph to a PDF document.
 
 ### [Add-OfficePdfParagraph](Add-OfficePdfParagraph.md)
-Adds a paragraph to a PDF document.
+Adds a plain or rich PDF paragraph using PdfText children.
 
 ### [Add-OfficePdfRow](Add-OfficePdfRow.md)
-Adds a semantic row with percentage-based columns to a generated PDF document.
+Adds a row of side-by-side PdfColumn blocks.
 
 ### [Add-OfficePdfSpacer](Add-OfficePdfSpacer.md)
 Adds invisible vertical spacing to a generated PDF document.
 
 ### [Add-OfficePdfStamp](Add-OfficePdfStamp.md)
-Adds a text or image stamp to an existing PDF.
+Stamps text, images, native canvas content or a PDF page onto existing PDFs.
 
 ### [Add-OfficePdfTable](Add-OfficePdfTable.md)
 Adds a table to a PDF document.
 
 ### [Add-OfficePdfText](Add-OfficePdfText.md)
-Adds a rich inline-text paragraph to a generated PDF document.
-
-### [Add-OfficePdfVisual](Add-OfficePdfVisual.md)
-Adds a ChartForgeX artifact, portable SVG, or converted Office visual to PDF flow content.
+Adds one styled run inside a PDF paragraph or running header/footer, or a standalone paragraph.
 
 ### [Add-OfficePdfWatermark](Add-OfficePdfWatermark.md)
 Adds a generated-document text watermark.
@@ -333,6 +303,9 @@ Adds a work resource with an optional standard rate.
 
 ### [Add-OfficeProjectTask](Add-OfficeProjectTask.md)
 Adds a task or summary with a duration expressed in working days.
+
+### [Add-OfficeRtfParagraph](Add-OfficeRtfParagraph.md)
+Adds a paragraph to an RTF document.
 
 ### [Add-OfficeVisioConnector](Add-OfficeVisioConnector.md)
 Adds a connector between two Visio shapes.
@@ -463,23 +436,8 @@ Adds a watermark to the current section or header.
 ### [Clear-OfficeExcelAutoFilter](Clear-OfficeExcelAutoFilter.md)
 Clears any AutoFilter on the current worksheet.
 
-### [Clear-OfficeExcelComment](Clear-OfficeExcelComment.md)
-Clears legacy worksheet comments (notes) that match a filter.
-
-### [Clear-OfficeExcelConditionalFormatting](Clear-OfficeExcelConditionalFormatting.md)
-Clears conditional formatting rules from one or more Excel worksheets.
-
-### [Clear-OfficeExcelDataValidation](Clear-OfficeExcelDataValidation.md)
-Clears data validation rules from one or more Excel worksheets.
-
 ### [Clear-OfficeExcelRange](Clear-OfficeExcelRange.md)
-Clears values, formulas, styles, and range metadata from an Excel worksheet range.
-
-### [Clear-OfficeExcelWriteReservation](Clear-OfficeExcelWriteReservation.md)
-Clears workbook write-reservation metadata.
-
-### [Clear-OfficePdfBackgroundShape](Clear-OfficePdfBackgroundShape.md)
-Clears generated PDF page background shapes.
+Clears values, formulas, styles and range metadata from a range, a header column or whole sheets.
 
 ### [Close-OfficeAccess](Close-OfficeAccess.md)
 Closes a native database without implicitly saving it.
@@ -493,6 +451,9 @@ Closes a live Excel workbook without saving pending changes.
 ### [Close-OfficeMarkdown](Close-OfficeMarkdown.md)
 Completes a live Markdown document's lifetime without saving.
 
+### [Close-OfficeOpenDocument](Close-OfficeOpenDocument.md)
+Releases a live OpenDocument document without saving.
+
 ### [Close-OfficePdf](Close-OfficePdf.md)
 Completes a live PDF document's lifetime without saving.
 
@@ -502,128 +463,35 @@ Closes a live presentation without saving it.
 ### [Close-OfficeProject](Close-OfficeProject.md)
 Closes a project without implicitly saving it.
 
+### [Close-OfficeRtf](Close-OfficeRtf.md)
+Releases an RtfDocument without saving.
+
+### [Close-OfficeVisio](Close-OfficeVisio.md)
+Releases a live Visio document without saving.
+
 ### [Close-OfficeWord](Close-OfficeWord.md)
 Closes one or more tracked Word documents, optionally saving them.
 
+### [Compare-OfficeDocument](Compare-OfficeDocument.md)
+Compares native document content or rendered pages and optionally publishes a review artifact.
+
 ### [Compare-OfficeExcelRange](Compare-OfficeExcelRange.md)
-Compares two Excel worksheets or ranges and returns cell-level differences.
-
-### [Compare-OfficeExcelWorkbook](Compare-OfficeExcelWorkbook.md)
-Compares two workbooks by sheets, cells, formulas, styles, tables, comments, names, and worksheet metadata.
-
-### [Compare-OfficePdfVisual](Compare-OfficePdfVisual.md)
-Compares rendered PDF pages and returns pixel-level review artifacts.
-
-### [Compare-OfficeWordDocument](Compare-OfficeWordDocument.md)
-Compares two Word documents and optionally writes a tracked-change redline.
+Compares two worksheets or ranges cell by cell.
 
 ### [Convert-OfficeDocument](Convert-OfficeDocument.md)
 Converts files through OfficeIMO's native routes and portable batch engine.
 
-### [ConvertFrom-OfficeAsciiDocMarkdown](ConvertFrom-OfficeAsciiDocMarkdown.md)
-Converts Markdown to native AsciiDoc with fidelity diagnostics.
-
-### [ConvertFrom-OfficeCsv](ConvertFrom-OfficeCsv.md)
-Converts CSV text to PSCustomObjects or dictionaries.
-
-### [ConvertFrom-OfficeImage](ConvertFrom-OfficeImage.md)
-Exports a recognized image as editable Excel, Word, text, Markdown, HTML, JSON, CSV or searchable PDF.
-
-### [ConvertFrom-OfficeIWork](ConvertFrom-OfficeIWork.md)
-Converts Pages, Numbers, or Keynote into the matching editable Microsoft Office format.
-
-### [ConvertFrom-OfficeLatexMarkdown](ConvertFrom-OfficeLatexMarkdown.md)
-Converts Markdown to native LaTeX with fidelity diagnostics.
-
-### [ConvertFrom-OfficeOneNote](ConvertFrom-OfficeOneNote.md)
-Converts an offline OneNote section or notebook to semantic Markdown, HTML, or PDF.
-
-### [ConvertFrom-OfficeOpenDocument](ConvertFrom-OfficeOpenDocument.md)
-Converts native ODT, ODS, or ODP content to Word, Excel, or PowerPoint with fidelity evidence.
-
-### [ConvertFrom-OfficePdfHtml](ConvertFrom-OfficePdfHtml.md)
-Converts HTML content to a PDF through the first-party OfficeIMO HTML/PDF adapter.
-
-### [ConvertFrom-OfficeRtf](ConvertFrom-OfficeRtf.md)
-Converts RTF input to Word, HTML, PDF, or Markdown output.
-
-### [ConvertFrom-OfficeWordHtml](ConvertFrom-OfficeWordHtml.md)
-Creates a Word document from HTML.
-
-### [ConvertFrom-OfficeWordMarkdown](ConvertFrom-OfficeWordMarkdown.md)
-Creates a Word document from Markdown.
-
-### [ConvertTo-OfficeAsciiDocMarkdown](ConvertTo-OfficeAsciiDocMarkdown.md)
-Converts AsciiDoc to Markdown with fidelity diagnostics.
-
 ### [ConvertTo-OfficeCsv](ConvertTo-OfficeCsv.md)
 Converts objects or a CSV document into CSV text.
-
-### [ConvertTo-OfficeDocument](ConvertTo-OfficeDocument.md)
-Converts a file or file batch through the canonical OfficeIMO workflow runner.
 
 ### [ConvertTo-OfficeDocumentImage](ConvertTo-OfficeDocumentImage.md)
 Renders native pages, slides, sheets, ranges or charts to image results without writing files.
 
-### [ConvertTo-OfficeExcelHtml](ConvertTo-OfficeExcelHtml.md)
-Converts an Excel workbook to an HTML review document.
-
-### [ConvertTo-OfficeExcelWorkbook](ConvertTo-OfficeExcelWorkbook.md)
-Converts Excel workbooks between supported .xls and .xlsx formats.
-
-### [ConvertTo-OfficeLatexMarkdown](ConvertTo-OfficeLatexMarkdown.md)
-Converts LaTeX to Markdown with fidelity diagnostics.
-
 ### [ConvertTo-OfficeMarkdown](ConvertTo-OfficeMarkdown.md)
 Converts objects into a Markdown table.
 
-### [ConvertTo-OfficeMarkdownHtml](ConvertTo-OfficeMarkdownHtml.md)
-Converts Markdown content to HTML.
-
-### [ConvertTo-OfficeOpenDocument](ConvertTo-OfficeOpenDocument.md)
-Converts Word, Excel, or PowerPoint content to native OpenDocument with fidelity evidence.
-
-### [ConvertTo-OfficePdfExcel](ConvertTo-OfficePdfExcel.md)
-Extracts detected PDF tables into an editable Excel workbook.
-
-### [ConvertTo-OfficePdfFlatAnnotation](ConvertTo-OfficePdfFlatAnnotation.md)
-Flattens supported visual PDF annotations into static page content.
-
-### [ConvertTo-OfficePdfFlatForm](ConvertTo-OfficePdfFlatForm.md)
-Converts a PDF with simple AcroForm fields into a flat PDF.
-
-### [ConvertTo-OfficePdfHtml](ConvertTo-OfficePdfHtml.md)
-Converts a PDF file to HTML through the first-party OfficeIMO HTML/PDF adapter.
-
-### [ConvertTo-OfficePdfMarkdown](ConvertTo-OfficePdfMarkdown.md)
-Converts PDF logical text readback to Markdown.
-
-### [ConvertTo-OfficePdfOptimized](ConvertTo-OfficePdfOptimized.md)
-Applies lossless PDF optimization actions and writes a new PDF.
-
-### [ConvertTo-OfficePdfPowerPoint](ConvertTo-OfficePdfPowerPoint.md)
-Reconstructs a PowerPoint presentation from a PDF.
-
-### [ConvertTo-OfficePdfRedacted](ConvertTo-OfficePdfRedacted.md)
-Applies explicit or text-matched PDF redactions and writes a new PDF.
-
-### [ConvertTo-OfficePdfSanitized](ConvertTo-OfficePdfSanitized.md)
-Removes or quarantines active PDF content and embedded payloads with post-save proof.
-
-### [ConvertTo-OfficePdfSearchable](ConvertTo-OfficePdfSearchable.md)
-Creates a searchable PDF by adding invisible text from a discovered local OCR runtime.
-
-### [ConvertTo-OfficePdfTextRun](ConvertTo-OfficePdfTextRun.md)
-Converts reusable Office text run specifications to native PDF text runs.
-
-### [ConvertTo-OfficePdfWord](ConvertTo-OfficePdfWord.md)
-Reconstructs editable Word content from a PDF.
-
 ### [ConvertTo-OfficeProjectTable](ConvertTo-OfficeProjectTable.md)
 Maps PowerShell rows to a bounded project entity table.
-
-### [ConvertTo-OfficeRtf](ConvertTo-OfficeRtf.md)
-Converts Word, HTML, PDF, or Markdown input to RTF.
 
 ### [ConvertTo-OfficeVisioVisual](ConvertTo-OfficeVisioVisual.md)
 Converts CFX semantic visual-artifact input into a native editable OfficeIMO.Visio document.
@@ -631,32 +499,17 @@ Converts CFX semantic visual-artifact input into a native editable OfficeIMO.Vis
 ### [ConvertTo-OfficeVisual](ConvertTo-OfficeVisual.md)
 Converts a ChartForgeX visual artifact into a reusable OfficeIMO representation.
 
-### [ConvertTo-OfficeWordDocument](ConvertTo-OfficeWordDocument.md)
-Converts Word documents between supported .doc and .docx formats.
-
-### [ConvertTo-OfficeWordHtml](ConvertTo-OfficeWordHtml.md)
-Converts a Word document to HTML.
-
-### [ConvertTo-OfficeWordMarkdown](ConvertTo-OfficeWordMarkdown.md)
-Converts a Word document to Markdown.
-
 ### [Copy-OfficeExcelSheet](Copy-OfficeExcelSheet.md)
 Copies selected worksheets within a workbook or from another workbook.
 
-### [Copy-OfficeExcelWorkbook](Copy-OfficeExcelWorkbook.md)
-Copies a workbook package while preserving package parts.
-
 ### [Copy-OfficePdfPage](Copy-OfficePdfPage.md)
-Copies selected PDF pages into a new PDF.
+Copy PDF pages through the native PDF engine.
 
 ### [Copy-OfficePowerPointSlide](Copy-OfficePowerPointSlide.md)
 Copies a native slide within its document, preserving its content and relationships.
 
 ### [Edit-OfficeExcelRow](Edit-OfficeExcelRow.md)
-Runs a script block against editable worksheet rows.
-
-### [Export-OfficeConversionJob](Export-OfficeConversionJob.md)
-Saves a portable conversion job for Studio, the command-line tool and PowerShell.
+Runs a script block against each editable row of a range and writes the changes back.
 
 ### [Export-OfficeCsv](Export-OfficeCsv.md)
 Exports objects or a CSV document to a CSV file.
@@ -667,9 +520,6 @@ Writes document media, tables or visuals using the native Reader materializers.
 ### [Export-OfficeDocumentImage](Export-OfficeDocumentImage.md)
 Renders native pages, slides, sheets, ranges or charts and saves each image atomically.
 
-### [Export-OfficeDocumentPdf](Export-OfficeDocumentPdf.md)
-Exports Word, Excel, PowerPoint, HTML, Markdown, RTF, and literal text documents to PDF.
-
 ### [Export-OfficeExcel](Export-OfficeExcel.md)
 Exports PowerShell objects to an Excel workbook using an operator-friendly surface.
 
@@ -677,19 +527,16 @@ Exports PowerShell objects to an Excel workbook using an operator-friendly surfa
 Plans, compiles or exports Excel workbooks to Google Sheets.
 
 ### [Export-OfficePdfLayoutOverlay](Export-OfficePdfLayoutOverlay.md)
-Exports PDF word, line, region, and reading-order diagnostics as PNG or SVG.
+Exports native PDF word, line, region and reading-order diagnostics as PNG or SVG.
 
 ### [Export-OfficePdfXfdf](Export-OfficePdfXfdf.md)
-Exports readable PDF form field values as XFDF.
+Exports native PDF form values as XFDF XML or atomically published XFDF files.
 
 ### [Export-OfficePowerPoint](Export-OfficePowerPoint.md)
 Exports objects as a designed presentation with editable tables and optional charts.
 
 ### [Export-OfficeProjectReport](Export-OfficeProjectReport.md)
 Exports a captured Project report through the shared PDF, HTML, Word, Excel or PowerPoint adapters.
-
-### [Export-OfficeProjectTable](Export-OfficeProjectTable.md)
-Returns mapped project tables and explicit projection-loss notices.
 
 ### [Export-OfficeVisioStencilPreviewGallery](Export-OfficeVisioStencilPreviewGallery.md)
 Exports preview artwork from a Visio stencil package into a browsable HTML gallery.
@@ -704,22 +551,10 @@ Exports PowerShell objects to a Word document containing an editable table.
 Plans, compiles or exports Word documents to Google Docs.
 
 ### [Find-OfficeExcel](Find-OfficeExcel.md)
-Finds text in worksheet values.
+Finds cells whose values match a pattern in a workbook, sheet or range.
 
 ### [Find-OfficeVisioStencil](Find-OfficeVisioStencil.md)
 Searches OfficeIMO Visio stencil catalogs.
-
-### [Find-OfficeWord](Find-OfficeWord.md)
-Finds text matches inside a Word document.
-
-### [Find-OfficeWordList](Find-OfficeWordList.md)
-Finds Word lists containing matching list-item text.
-
-### [Find-OfficeWordTable](Find-OfficeWordTable.md)
-Finds Word tables containing matching cell text.
-
-### [Get-OfficeAccess](Get-OfficeAccess.md)
-Reads a native database without running queries, macros, or linked connections.
 
 ### [Get-OfficeAccessRow](Get-OfficeAccessRow.md)
 Streams native or modeled table rows as PowerShell objects.
@@ -727,17 +562,11 @@ Streams native or modeled table rows as PowerShell objects.
 ### [Get-OfficeAccessTable](Get-OfficeAccessTable.md)
 Lists native table definitions and schema without executing their content.
 
-### [Get-OfficeAsciiDoc](Get-OfficeAsciiDoc.md)
-Parses an AsciiDoc file or source string into OfficeIMO's native document model.
-
 ### [Get-OfficeConfluenceAttachment](Get-OfficeConfluenceAttachment.md)
 Lists or downloads Confluence page attachments.
 
 ### [Get-OfficeConfluencePage](Get-OfficeConfluencePage.md)
 Reads one page or streams a filtered Confluence Cloud page listing.
-
-### [Get-OfficeCsv](Get-OfficeCsv.md)
-Loads a CSV document from disk or parses CSV text.
 
 ### [Get-OfficeDocumentCapability](Get-OfficeDocumentCapability.md)
 Lists installed reading, conversion and protection capabilities from their canonical catalogs.
@@ -748,38 +577,26 @@ Inspects format, native counts and encryption without changing a source or reope
 ### [Get-OfficeDocumentProvenance](Get-OfficeDocumentProvenance.md)
 Collects structural, text-integrity, and optional provider verification evidence for a file.
 
-### [Get-OfficeEmail](Get-OfficeEmail.md)
-Reads a native EML, EMLX, MSG, or TNEF artifact with bounded diagnostics.
-
-### [Get-OfficeEmailMailbox](Get-OfficeEmailMailbox.md)
-Reads a native mbox mailbox with bounded per-message diagnostics.
-
 ### [Get-OfficeEpubChapter](Get-OfficeEpubChapter.md)
 Projects chapters to searchable PowerShell objects.
 
 ### [Get-OfficeExcelComment](Get-OfficeExcelComment.md)
-Gets legacy worksheet comments (notes) from one or more worksheets.
-
-### [Get-OfficeExcelCommentAudit](Get-OfficeExcelCommentAudit.md)
-Audits legacy notes and threaded comments preserved in an Excel workbook.
+Gets notes and threaded comments that match a filter.
 
 ### [Get-OfficeExcelConditionalFormat](Get-OfficeExcelConditionalFormat.md)
 Gets native conditional formatting snapshots, with worksheet and source-path metadata.
 
-### [Get-OfficeExcelData](Get-OfficeExcelData.md)
-Reads worksheet data as dictionaries or PSCustomObjects.
-
 ### [Get-OfficeExcelDataModel](Get-OfficeExcelDataModel.md)
-Inspects workbook data model, query, connection, and external-link package parts.
+Reports connection, query-table, data-model and external-link parts in a workbook.
 
 ### [Get-OfficeExcelDocumentProperty](Get-OfficeExcelDocumentProperty.md)
-Gets built-in and application document properties from an Excel workbook.
+Gets built-in, application and custom document properties.
 
 ### [Get-OfficeExcelFormula](Get-OfficeExcelFormula.md)
 Lists native formula records, optionally filtered by worksheet, volatile functions or external references.
 
 ### [Get-OfficeExcelNamedRange](Get-OfficeExcelNamedRange.md)
-Gets defined names (named ranges) from an Excel workbook.
+Gets defined names from a workbook.
 
 ### [Get-OfficeExcelNumberFormatPreset](Get-OfficeExcelNumberFormatPreset.md)
 Lists OfficeIMO Excel number format presets and their format codes.
@@ -788,58 +605,25 @@ Lists OfficeIMO Excel number format presets and their format codes.
 Lists manual print page breaks without changing a workbook.
 
 ### [Get-OfficeExcelPivotTable](Get-OfficeExcelPivotTable.md)
-Gets pivot tables defined in a workbook.
-
-### [Get-OfficeExcelPreflight](Get-OfficeExcelPreflight.md)
-Runs OfficeIMO Excel feature and workflow preflight checks.
-
-### [Get-OfficeExcelRange](Get-OfficeExcelRange.md)
-Reads an explicit A1 range from an Excel workbook.
+Lists pivot tables in a workbook.
 
 ### [Get-OfficeExcelRichText](Get-OfficeExcelRichText.md)
-Gets mixed-format rich text runs from an Excel cell.
-
-### [Get-OfficeExcelRuntimePreflight](Get-OfficeExcelRuntimePreflight.md)
-Inspects the current process for runtime settings that affect Excel workflows.
+Gets the rich-text runs of a cell.
 
 ### [Get-OfficeExcelSheetView](Get-OfficeExcelSheetView.md)
 Gets frozen panes, gridlines, direction, zoom and view mode for worksheets.
 
-### [Get-OfficeExcelStreamingContract](Get-OfficeExcelStreamingContract.md)
-Reports large-workbook streaming and direct-writer suitability.
-
-### [Get-OfficeExcelSummary](Get-OfficeExcelSummary.md)
-Gets a compact structural summary of an Excel workbook.
-
 ### [Get-OfficeExcelTable](Get-OfficeExcelTable.md)
-Gets Excel tables defined in a workbook.
+Lists the tables defined in a workbook.
 
 ### [Get-OfficeExcelTableStyle](Get-OfficeExcelTableStyle.md)
 Lists built-in Excel table styles and compatibility recommendations.
 
 ### [Get-OfficeExcelTemplateMarker](Get-OfficeExcelTemplateMarker.md)
-Lists Excel template markers such as {{Name}} and optionally shows whether supplied values bind to them.
-
-### [Get-OfficeExcelUsedRange](Get-OfficeExcelUsedRange.md)
-Reads the used range from an Excel workbook.
+Lists template markers and, with -Value, which are bound.
 
 ### [Get-OfficeExcelValidation](Get-OfficeExcelValidation.md)
 Gets native data validation snapshots, with worksheet and source-path metadata.
-
-### [Get-OfficeExcelWriteReservation](Get-OfficeExcelWriteReservation.md)
-Gets workbook write-reservation metadata.
-
-### [Get-OfficeImageDocument](Get-OfficeImageDocument.md)
-Recognizes an image as editable text, reading order and detected tables, with review evidence.
-
-### [Get-OfficeImageText](Get-OfficeImageText.md)
-Recognizes text in an image with automatic local OCR runtime discovery.
-
-### [Get-OfficeIWork](Get-OfficeIWork.md)
-Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.
-
-### [Get-OfficeLatex](Get-OfficeLatex.md)
-Parses a LaTeX file or source string into OfficeIMO's native document model.
 
 ### [Get-OfficeMarkdownFrontMatter](Get-OfficeMarkdownFrontMatter.md)
 Gets YAML front matter entries from a Markdown document.
@@ -853,62 +637,35 @@ Gets the OfficeIMO.Markdown object tree from Markdown content.
 ### [Get-OfficeMarkdownTable](Get-OfficeMarkdownTable.md)
 Gets Markdown tables from a Markdown document.
 
-### [Get-OfficeOneNote](Get-OfficeOneNote.md)
-Reads an offline OneNote section, notebook hierarchy, or packaged notebook.
-
-### [Get-OfficeOpenDocument](Get-OfficeOpenDocument.md)
-Loads a native ODT, ODS, ODP, or ODG document.
-
-### [Get-OfficePackageSecurity](Get-OfficePackageSecurity.md)
-Inspects an Open XML or compound Office package without opening active content.
-
 ### [Get-OfficePdfAnnotation](Get-OfficePdfAnnotation.md)
 Gets page annotations and action evidence from a PDF.
 
-### [Get-OfficePdfAppendOnlyMutation](Get-OfficePdfAppendOnlyMutation.md)
-Gets append-only PDF mutation support and blockers for an existing PDF.
-
 ### [Get-OfficePdfAttachment](Get-OfficePdfAttachment.md)
-Gets or extracts embedded file attachments from a PDF.
+Lists embedded files, or extracts them with -OutputDirectory.
 
 ### [Get-OfficePdfCompliance](Get-OfficePdfCompliance.md)
 Gets a generated PDF document compliance readiness report.
 
 ### [Get-OfficePdfDiagnostic](Get-OfficePdfDiagnostic.md)
-Gets PDF diagnostics, stream statistics, feature markers, and read/rewrite blockers.
+Returns native PDF structure, preflight, incremental, optimization or generated-text diagnostics.
 
 ### [Get-OfficePdfFont](Get-OfficePdfFont.md)
-Gets PDF font diagnostics for embedding and ToUnicode repair-readiness workflows.
+Lists fonts with embedding and ToUnicode diagnostics.
 
 ### [Get-OfficePdfFormField](Get-OfficePdfFormField.md)
 Gets simple AcroForm fields from a PDF.
 
 ### [Get-OfficePdfImage](Get-OfficePdfImage.md)
-Gets or extracts image resources from a PDF.
-
-### [Get-OfficePdfInfo](Get-OfficePdfInfo.md)
-Gets PDF metadata, page information, forms, links, and structural flags.
+Lists image resources, or extracts them with -OutputDirectory.
 
 ### [Get-OfficePdfInteractionMap](Get-OfficePdfInteractionMap.md)
-Builds text-selection and interactive hit regions for one PDF page.
-
-### [Get-OfficePdfOptimization](Get-OfficePdfOptimization.md)
-Gets lossless PDF optimization opportunities without modifying the file.
-
-### [Get-OfficePdfPreflight](Get-OfficePdfPreflight.md)
-Reports whether OfficeIMO.Pdf can read or rewrite a PDF safely.
+Builds text-selection and interactive hit regions for one page.
 
 ### [Get-OfficePdfRedactionPlan](Get-OfficePdfRedactionPlan.md)
-Previews explicit or text-matched PDF redaction areas before content is removed.
+Previews explicit, literal-text or bounded regular-expression redaction selections without changing PDF content.
 
 ### [Get-OfficePdfSignature](Get-OfficePdfSignature.md)
-Gets lightweight PDF signature structure and preservation validation.
-
-### [Get-OfficePdfText](Get-OfficePdfText.md)
-Extracts text or Markdown from a PDF.
-
-### [Get-OfficePdfTextDiagnostic](Get-OfficePdfTextDiagnostic.md)
-Gets PDF text encoding and advanced-layout diagnostics for generated text before rendering.
+Reports signature fields, byte ranges, DocMDP, DSS/LTV evidence and preservation markers.
 
 ### [Get-OfficePowerPointLayout](Get-OfficePowerPointLayout.md)
 Lists template layouts from all masters, or one selected master.
@@ -937,9 +694,6 @@ Reads the selected slide master's theme, colors and fonts.
 ### [Get-OfficePrinter](Get-OfficePrinter.md)
 Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.
 
-### [Get-OfficeProject](Get-OfficeProject.md)
-Loads a project without calculating or executing its content.
-
 ### [Get-OfficeProjectAssignment](Get-OfficeProjectAssignment.md)
 Returns project assignments.
 
@@ -949,95 +703,65 @@ Returns project dependencies.
 ### [Get-OfficeProjectResource](Get-OfficeProjectResource.md)
 Returns project resources.
 
+### [Get-OfficeProjectTable](Get-OfficeProjectTable.md)
+Returns mapped project tables and explicit projection-loss notices.
+
 ### [Get-OfficeProjectTask](Get-OfficeProjectTask.md)
 Returns project tasks as pipeline objects.
 
 ### [Get-OfficeProjectView](Get-OfficeProjectView.md)
 Captures a portable report from a current calculated schedule.
 
-### [Get-OfficeRtf](Get-OfficeRtf.md)
-Reads RTF into OfficeIMO's semantic and lossless syntax models.
-
-### [Get-OfficeVisio](Get-OfficeVisio.md)
-Loads an existing .vsdx file as an OfficeIMO.Visio document.
-
-### [Get-OfficeVisioInfo](Get-OfficeVisioInfo.md)
-Creates a deterministic inspection snapshot for a Visio document.
-
-### [Get-OfficeVisioStencilCatalog](Get-OfficeVisioStencilCatalog.md)
-Gets built-in or package-backed OfficeIMO Visio stencil catalogs.
-
 ### [Get-OfficeWordBookmark](Get-OfficeWordBookmark.md)
-Gets bookmarks from a Word document.
-
-### [Get-OfficeWordCheckBox](Get-OfficeWordCheckBox.md)
-Gets checkbox content controls from a Word document.
-
-### [Get-OfficeWordComboBox](Get-OfficeWordComboBox.md)
-Gets combo box content controls from a Word document.
+Gets bookmarks, optionally by name (wildcards).
 
 ### [Get-OfficeWordContentControl](Get-OfficeWordContentControl.md)
-Gets structured content controls from a Word document.
-
-### [Get-OfficeWordDatePicker](Get-OfficeWordDatePicker.md)
-Gets date picker content controls from a Word document.
+Gets typed native content controls filtered by family, alias, tag, rendered text or checkbox state.
 
 ### [Get-OfficeWordDocumentProperty](Get-OfficeWordDocumentProperty.md)
-Gets built-in and custom document properties from a Word document.
-
-### [Get-OfficeWordDropDownList](Get-OfficeWordDropDownList.md)
-Gets dropdown list content controls from a Word document.
+Gets built-in and custom document properties.
 
 ### [Get-OfficeWordEndnote](Get-OfficeWordEndnote.md)
-Gets endnotes from a Word document or section.
+Gets endnotes of a document or section.
 
 ### [Get-OfficeWordField](Get-OfficeWordField.md)
-Gets fields from a Word document.
+Gets fields, filtered by type or field code text.
 
 ### [Get-OfficeWordFootnote](Get-OfficeWordFootnote.md)
-Gets footnotes from a Word document or section.
+Gets footnotes of a document or section.
 
 ### [Get-OfficeWordHyperlink](Get-OfficeWordHyperlink.md)
-Gets hyperlinks from a Word document.
+Gets hyperlinks, filtered by text, URL or bookmark anchor.
 
 ### [Get-OfficeWordImage](Get-OfficeWordImage.md)
-Gets images from a Word document, section, or paragraph.
+Gets images from a document, section or paragraph.
 
 ### [Get-OfficeWordList](Get-OfficeWordList.md)
-Gets lists from a Word document or section.
+Gets lists, optionally only those with an item matching a pattern.
 
 ### [Get-OfficeWordParagraph](Get-OfficeWordParagraph.md)
-Gets paragraphs from a Word document or section.
-
-### [Get-OfficeWordPictureControl](Get-OfficeWordPictureControl.md)
-Gets picture content controls from a Word document.
-
-### [Get-OfficeWordRepeatingSection](Get-OfficeWordRepeatingSection.md)
-Gets repeating section content controls from a Word document.
+Gets paragraphs from a document or section, optionally only those matching a pattern.
 
 ### [Get-OfficeWordReview](Get-OfficeWordReview.md)
-Inspects Word comments, threads, tracked revisions, and unsupported review metadata.
+Reports comments, threads, tracked revisions and unsupported review metadata.
 
 ### [Get-OfficeWordSection](Get-OfficeWordSection.md)
-Gets sections from a Word document.
+Gets sections of a document.
 
 ### [Get-OfficeWordShape](Get-OfficeWordShape.md)
-Gets shapes from a Word document, section, or paragraph.
-
-### [Get-OfficeWordStatistics](Get-OfficeWordStatistics.md)
-Gets document statistics from a Word document.
+Gets shapes from a document, section or paragraph.
 
 ### [Get-OfficeWordTable](Get-OfficeWordTable.md)
-Gets tables from a Word document or section.
+Gets tables, optionally only those with a cell matching a pattern.
 
 ### [Get-OfficeWordTableCell](Get-OfficeWordTableCell.md)
 Gets cells from an OfficeIMO Word table.
 
 ### [Get-OfficeWordTableOfContents](Get-OfficeWordTableOfContents.md)
-Gets the table of contents from a Word document.
+Gets the table of contents of a document.
 
 ### [Get-OfficeWordText](Get-OfficeWordText.md)
-Gets text segments from Word paragraphs.
+Gets the text runs of paragraphs, sections or documents.
 
 ### [Import-OfficeConversionReport](Import-OfficeConversionReport.md)
 Reads saved conversion run reports without executing jobs or changing outputs.
@@ -1046,13 +770,10 @@ Reads saved conversion run reports without executing jobs or changing outputs.
 Imports CSV rows as PSCustomObjects, dictionaries, or a DataTable.
 
 ### [Import-OfficeExcel](Import-OfficeExcel.md)
-Imports rows from an Excel workbook as PowerShell objects.
-
-### [Import-OfficeExcelDelimitedText](Import-OfficeExcelDelimitedText.md)
-Imports normalized CSV/TSV text into an Excel workbook through OfficeIMO.
+Reads rows from a worksheet, range or table as objects.
 
 ### [Import-OfficePdfXfdf](Import-OfficePdfXfdf.md)
-Imports bounded DTD-free XFDF through the validated PDF form filler.
+Imports bounded DTD-free XFDF into native PDF forms, with atomic file output or a caller-owned live result.
 
 ### [Import-OfficePowerPointSlide](Import-OfficePowerPointSlide.md)
 Imports selected slides from a file or live document, preserving native relationships.
@@ -1060,44 +781,23 @@ Imports selected slides from a file or live document, preserving native relation
 ### [Import-OfficeProjectTable](Import-OfficeProjectTable.md)
 Imports explicitly mapped tables into a new project without changing existing documents.
 
-### [Import-OfficeVisioStencil](Import-OfficeVisioStencil.md)
-Registers a stencil catalog with the active Visio DSL scope.
-
-### [Invoke-OfficeConversionJob](Invoke-OfficeConversionJob.md)
-Plans or runs a saved conversion job through the same runner as Studio and the CLI.
+### [Import-OfficeVisioStencilCatalog](Import-OfficeVisioStencilCatalog.md)
+Loads a stencil catalog (built-in, from .vssx/.vsdx packages or installed Visio); inside a diagram block it also registers it.
 
 ### [Invoke-OfficeExcelAutoFit](Invoke-OfficeExcelAutoFit.md)
-Automatically fits Excel row heights and/or column widths.
+Fits column widths and row heights to their content.
 
 ### [Invoke-OfficeExcelSort](Invoke-OfficeExcelSort.md)
 Sorts the used range on the current worksheet.
 
 ### [Invoke-OfficeExcelTemplate](Invoke-OfficeExcelTemplate.md)
-Applies Excel template markers such as {{Name}} to one or more worksheets.
-
-### [Invoke-OfficeExcelTemplateOptionalRow](Invoke-OfficeExcelTemplateOptionalRow.md)
-Includes or removes an optional Excel template row block.
-
-### [Invoke-OfficeExcelTemplateRow](Invoke-OfficeExcelTemplateRow.md)
-Repeats an Excel template row for pipeline data and replaces markers in each inserted row.
-
-### [Invoke-OfficeExcelTemplateSheet](Invoke-OfficeExcelTemplateSheet.md)
-Repeats an Excel template worksheet for pipeline data and applies markers in each generated sheet.
-
-### [Invoke-OfficePdfOcrMerge](Invoke-OfficePdfOcrMerge.md)
-Runs an external OCR provider and merges recognized words with native PDF text.
+Fills {{Marker}} placeholders, repeats template rows or sheets, and keeps or removes optional rows.
 
 ### [Invoke-OfficeProjectSchedule](Invoke-OfficeProjectSchedule.md)
 Explicitly calculates a schedule and optionally applies its dates.
 
 ### [Invoke-OfficeWordMailMerge](Invoke-OfficeWordMailMerge.md)
 Executes a simple mail merge against MERGEFIELD values in a Word document.
-
-### [Join-OfficePdf](Join-OfficePdf.md)
-Joins multiple PDF files into a single PDF.
-
-### [Join-OfficeWordDocument](Join-OfficeWordDocument.md)
-Appends one or more Word documents into a base Word document.
 
 ### [Merge-OfficeDocument](Merge-OfficeDocument.md)
 Combines documents of the same native format in input order.
@@ -1109,16 +809,16 @@ Appends worksheet rows or merges a source range into a target worksheet.
 Moves a worksheet to a one-based workbook position.
 
 ### [Move-OfficePdfPage](Move-OfficePdfPage.md)
-Moves selected pages before another page and writes a new PDF.
+Move PDF pages through the native PDF engine.
 
 ### [New-OfficeAccess](New-OfficeAccess.md)
-Creates a native Access database model without a provider, seed file, or execution.
+Creates a native Access database without a provider, seed file or execution.
+
+### [New-OfficeAsciiDocReadOptions](New-OfficeAsciiDocReadOptions.md)
+Creates native AsciiDocParseOptions settings for document operations.
 
 ### [New-OfficeConfluenceSession](New-OfficeConfluenceSession.md)
 Creates an in-memory Confluence Cloud session.
-
-### [New-OfficeConversionOptions](New-OfficeConversionOptions.md)
-Creates discoverable renderer and reconstruction settings for general conversion jobs.
 
 ### [New-OfficeDocumentHierarchyOptions](New-OfficeDocumentHierarchyOptions.md)
 Creates discoverable token and hierarchy settings for Read-OfficeDocument -As Hierarchy.
@@ -1153,14 +853,17 @@ Creates a live EPUB publication or saves a completed chapter/resource block.
 ### [New-OfficeExcel](New-OfficeExcel.md)
 Creates a themed Excel workbook, returning a live workbook or saving a completed content block.
 
-### [New-OfficeExcelDashboard](New-OfficeExcelDashboard.md)
-Builds a worksheet dashboard from tabular data using OfficeIMO dashboard defaults.
+### [New-OfficeExcelCompareOptions](New-OfficeExcelCompareOptions.md)
+Creates workbook comparison settings for Compare-OfficeDocument.
 
 ### [New-OfficeExcelGoogleSheetsOptions](New-OfficeExcelGoogleSheetsOptions.md)
 Creates native Excel-to-Google-Sheets planning and export settings without contacting Google.
 
+### [New-OfficeExcelHtmlOptions](New-OfficeExcelHtmlOptions.md)
+Creates Excel-to-HTML settings for Convert-OfficeDocument -To Html.
+
 ### [New-OfficeExcelImageOptions](New-OfficeExcelImageOptions.md)
-Creates discoverable rendering settings for Excel range and chart image export.
+Creates Excel rendering settings for Export-OfficeDocumentImage and ConvertTo-OfficeDocumentImage.
 
 ### [New-OfficeExcelMergeOptions](New-OfficeExcelMergeOptions.md)
 Creates native import policies and typed worksheet selections for Merge-OfficeDocument.
@@ -1169,16 +872,22 @@ Creates native import policies and typed worksheet selections for Merge-OfficeDo
 Creates Excel/OpenDocument conversion settings.
 
 ### [New-OfficeExcelPdfOptions](New-OfficeExcelPdfOptions.md)
-Creates discoverable Excel-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates discoverable Excel-to-PDF conversion options for Convert-OfficeDocument -To Pdf.
 
 ### [New-OfficeExcelProtectionOptions](New-OfficeExcelProtectionOptions.md)
 Creates Excel-specific hash and reservation settings for Protect-OfficeDocument.
 
+### [New-OfficeExcelRepairOptions](New-OfficeExcelRepairOptions.md)
+Creates Excel repair settings for Repair-OfficeDocument.
+
 ### [New-OfficeExcelSaveOptions](New-OfficeExcelSaveOptions.md)
 Creates native workbook save settings.
 
-### [New-OfficeExcelWorkbookImageOptions](New-OfficeExcelWorkbookImageOptions.md)
-Creates discoverable sheet selection and rendering settings for Export-OfficeExcelImage.
+### [New-OfficeExcelTestOptions](New-OfficeExcelTestOptions.md)
+Creates Excel checks for Test-OfficeDocument: capability preflight and package validation.
+
+### [New-OfficeGoogleWorkspaceSession](New-OfficeGoogleWorkspaceSession.md)
+Creates a native Google Workspace session from a service-account key.
 
 ### [New-OfficeHtmlConversionOptions](New-OfficeHtmlConversionOptions.md)
 Creates discoverable parsing, trust, and document settings for HTML conversion.
@@ -1187,31 +896,64 @@ Creates discoverable parsing, trust, and document settings for HTML conversion.
 Creates native HTML-to-Markdown import and writer settings without converting or writing files.
 
 ### [New-OfficeHtmlPdfOptions](New-OfficeHtmlPdfOptions.md)
-Creates typed HTML rendering options for Export-OfficeDocumentPdf.
+Creates HTML-to-PDF options for Convert-OfficeDocument -To Pdf.
 
 ### [New-OfficeHtmlRenderOptions](New-OfficeHtmlRenderOptions.md)
 Creates discoverable layout, resource-limit, and rendering settings for HTML image export.
 
+### [New-OfficeHtmlRtfOptions](New-OfficeHtmlRtfOptions.md)
+Creates native HTML/CSS import settings for the HTML-to-Word-to-RTF route.
+
 ### [New-OfficeHtmlWordOptions](New-OfficeHtmlWordOptions.md)
 Creates native HTML-to-Word options for Convert-OfficeDocument.
+
+### [New-OfficeIWorkReadOptions](New-OfficeIWorkReadOptions.md)
+Creates native IWorkLoadOptions settings for document operations.
+
+### [New-OfficeLatexReadOptions](New-OfficeLatexReadOptions.md)
+Creates native LatexParseOptions settings for document operations.
 
 ### [New-OfficeMarkdown](New-OfficeMarkdown.md)
 Creates a live Markdown document, or atomically publishes a completed content block.
 
+### [New-OfficeMarkdownHtmlOptions](New-OfficeMarkdownHtmlOptions.md)
+Creates native Markdown HTML document, styling and resource-link settings.
+
 ### [New-OfficeMarkdownPdfOptions](New-OfficeMarkdownPdfOptions.md)
-Creates discoverable Markdown-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates native Markdown-to-PDF conversion options for Convert-OfficeDocument.
+
+### [New-OfficeMarkdownPowerPointOptions](New-OfficeMarkdownPowerPointOptions.md)
+Creates native Markdown slide boundaries, speaker-note, front-matter and image policies.
 
 ### [New-OfficeMarkdownReaderOptions](New-OfficeMarkdownReaderOptions.md)
 Creates native Markdown dialect, normalization, URL and input-limit settings.
 
+### [New-OfficeMarkdownRtfOptions](New-OfficeMarkdownRtfOptions.md)
+Creates native MarkdownRtfExportOptions settings for document operations.
+
+### [New-OfficeMarkdownWordOptions](New-OfficeMarkdownWordOptions.md)
+Creates native Markdown-to-Word settings, including an engine-owned template path.
+
 ### [New-OfficeOcrOptions](New-OfficeOcrOptions.md)
 Creates OCR settings without starting a provider or downloading language data.
+
+### [New-OfficeOneNoteNotebookOptions](New-OfficeOneNoteNotebookOptions.md)
+Creates native OneNoteNotebookReaderOptions settings for document operations.
+
+### [New-OfficeOneNoteReadOptions](New-OfficeOneNoteReadOptions.md)
+Creates native OneNoteLoadOptions settings for document operations.
 
 ### [New-OfficeOpenDocument](New-OfficeOpenDocument.md)
 Creates an ODT, ODS, ODP or ODG model, returning it live or saving a completed content block.
 
+### [New-OfficeOpenDocumentSaveOptions](New-OfficeOpenDocumentSaveOptions.md)
+Creates native OdfSaveOptions settings for document operations.
+
 ### [New-OfficePdf](New-OfficePdf.md)
 Creates a live PDF document or atomically saves a completed composition block.
+
+### [New-OfficePdfEncryptionOptions](New-OfficePdfEncryptionOptions.md)
+Creates PDF encryption settings; Protect-OfficeDocument supplies the actual passwords.
 
 ### [New-OfficePdfExcelOptions](New-OfficePdfExcelOptions.md)
 Creates discoverable PDF-table-to-Excel reconstruction settings.
@@ -1231,32 +973,29 @@ Creates native region limits and invisible-text policy for Get-OfficePdfInteract
 ### [New-OfficePdfLayoutOverlayOptions](New-OfficePdfLayoutOverlayOptions.md)
 Creates native PDF layout-overlay layers, colors and resource limits.
 
+### [New-OfficePdfMergeOptions](New-OfficePdfMergeOptions.md)
+Creates native PDF annotation-flattening and page-normalization settings.
+
 ### [New-OfficePdfPowerPointOptions](New-OfficePdfPowerPointOptions.md)
 Creates discoverable PDF-to-PowerPoint reconstruction settings.
 
 ### [New-OfficePdfReadOptions](New-OfficePdfReadOptions.md)
 Creates a detached native PDF read policy and optional OCR-review settings.
 
+### [New-OfficePdfRedactionArea](New-OfficePdfRedactionArea.md)
+Creates a redaction area for Remove-OfficePdfContent and Get-OfficePdfRedactionPlan -Area.
+
 ### [New-OfficePdfRewriteOptions](New-OfficePdfRewriteOptions.md)
 Creates native PDF rewrite preservation checks for Test-OfficePdfRewrite.
 
 ### [New-OfficePdfSignature](New-OfficePdfSignature.md)
-Prepares an existing PDF for external digital signing by appending a signature field, /ByteRange, and reserved /Contents placeholder.
+Prepare external PDF signature using native byte-range and signature-placeholder operations.
 
 ### [New-OfficePdfTableCell](New-OfficePdfTableCell.md)
-Creates a reusable PDF table cell definition for explicit table rows.
-
-### [New-OfficePdfTableCellCheckBox](New-OfficePdfTableCellCheckBox.md)
-Creates a typed check box for a PDF table cell.
-
-### [New-OfficePdfTableCellField](New-OfficePdfTableCellField.md)
-Creates a typed text or choice field for a PDF table cell.
-
-### [New-OfficePdfTableCellImage](New-OfficePdfTableCellImage.md)
-Creates a typed image for a PDF table cell.
+Creates a native PDF cell containing text, images or form fields.
 
 ### [New-OfficePdfVisualComparisonOptions](New-OfficePdfVisualComparisonOptions.md)
-Creates discoverable rendering and tolerance settings for Compare-OfficePdfVisual.
+Creates native PDF comparison settings and independent bounded policies for both inputs.
 
 ### [New-OfficePdfWordOptions](New-OfficePdfWordOptions.md)
 Creates discoverable PDF-to-Word reconstruction settings.
@@ -1282,17 +1021,23 @@ Creates native PowerPoint-to-PDF options for Convert-OfficeDocument.
 ### [New-OfficeProject](New-OfficeProject.md)
 Creates a live project with an optional standard working calendar.
 
+### [New-OfficeProjectViewOptions](New-OfficeProjectViewOptions.md)
+Creates selection, timescale and page settings for Get-OfficeProjectView -Options.
+
 ### [New-OfficeRtf](New-OfficeRtf.md)
-Creates an RTF document with plain paragraph content.
+Creates an RTF document, optionally with paragraphs from -Text or the pipeline.
+
+### [New-OfficeRtfHtmlOptions](New-OfficeRtfHtmlOptions.md)
+Creates native WordHtmlExportOptions settings for document operations.
+
+### [New-OfficeRtfMarkdownOptions](New-OfficeRtfMarkdownOptions.md)
+Creates native RtfMarkdownExportOptions settings for document operations.
 
 ### [New-OfficeRtfPdfOptions](New-OfficeRtfPdfOptions.md)
 Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
 
 ### [New-OfficeTextPdfOptions](New-OfficeTextPdfOptions.md)
 Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.
-
-### [New-OfficeTextRun](New-OfficeTextRun.md)
-Creates a reusable rich text run specification for Word, Excel, PowerPoint, and PDF commands.
 
 ### [New-OfficeVisio](New-OfficeVisio.md)
 Creates a Visio document with an initial page, returning it live or saving a completed content block.
@@ -1307,7 +1052,7 @@ Creates discoverable page and rendering settings for Export-OfficeVisioImage.
 Creates a themed Word document, returning a live document or saving a completed content block.
 
 ### [New-OfficeWordComparisonOptions](New-OfficeWordComparisonOptions.md)
-Creates discoverable structural comparison settings for Compare-OfficeWordDocument.
+Creates discoverable structural comparison settings for Compare-OfficeDocument.
 
 ### [New-OfficeWordGoogleDocsOptions](New-OfficeWordGoogleDocsOptions.md)
 Creates native Word-to-Google-Docs planning and export settings without contacting Google.
@@ -1325,13 +1070,25 @@ Creates native Word-to-Markdown options for Convert-OfficeDocument.
 Creates Word/OpenDocument conversion settings.
 
 ### [New-OfficeWordPdfOptions](New-OfficeWordPdfOptions.md)
-Creates discoverable Word-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates discoverable Word-to-PDF conversion options for Convert-OfficeDocument.
 
 ### [New-OfficeWordRevisionFilter](New-OfficeWordRevisionFilter.md)
 Creates a discoverable Word revision filter for Resolve-OfficeWordRevision.
 
 ### [New-OfficeWordTableCell](New-OfficeWordTableCell.md)
-Creates a reusable Word table cell definition for explicit table rows.
+Creates a plain or recorded rich Word cell for explicit table rows.
+
+### [Open-OfficeAccess](Open-OfficeAccess.md)
+Reads a native database without running queries, macros, or linked connections.
+
+### [Open-OfficeAsciiDoc](Open-OfficeAsciiDoc.md)
+Parses an AsciiDoc file or source string into OfficeIMO's native document model.
+
+### [Open-OfficeEmail](Open-OfficeEmail.md)
+Reads a native EML, EMLX, MSG, or TNEF artifact with bounded diagnostics.
+
+### [Open-OfficeEmailMailbox](Open-OfficeEmailMailbox.md)
+Reads a native mbox mailbox with bounded per-message diagnostics.
 
 ### [Open-OfficeEpub](Open-OfficeEpub.md)
 Opens an EPUB publication, optionally saving an editing block atomically.
@@ -1339,8 +1096,20 @@ Opens an EPUB publication, optionally saving an editing block atomically.
 ### [Open-OfficeExcel](Open-OfficeExcel.md)
 Opens a workbook for explicit editing, or atomically saves a completed content block.
 
+### [Open-OfficeIWork](Open-OfficeIWork.md)
+Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.
+
+### [Open-OfficeLatex](Open-OfficeLatex.md)
+Parses a LaTeX file or source string into OfficeIMO's native document model.
+
 ### [Open-OfficeMarkdown](Open-OfficeMarkdown.md)
 Opens native Markdown from a file or parses text; a file content block saves atomically.
+
+### [Open-OfficeOneNote](Open-OfficeOneNote.md)
+Reads an offline OneNote section, notebook hierarchy, or packaged notebook.
+
+### [Open-OfficeOpenDocument](Open-OfficeOpenDocument.md)
+Loads a native ODT, ODS, ODP, or ODG document.
 
 ### [Open-OfficePdf](Open-OfficePdf.md)
 Opens native PDF documents or atomically saves a completed editing block.
@@ -1348,20 +1117,26 @@ Opens native PDF documents or atomically saves a completed editing block.
 ### [Open-OfficePowerPoint](Open-OfficePowerPoint.md)
 Opens a presentation for explicit editing, or atomically saves a completed content block.
 
+### [Open-OfficeProject](Open-OfficeProject.md)
+Loads a project without calculating or executing its content.
+
+### [Open-OfficeRtf](Open-OfficeRtf.md)
+Reads an RTF file or RTF text into a read result with the document, embedded payloads and diagnostics.
+
+### [Open-OfficeVisio](Open-OfficeVisio.md)
+Loads an existing .vsdx file as an OfficeIMO.Visio document.
+
 ### [Open-OfficeWord](Open-OfficeWord.md)
 Opens a Word document for explicit editing, or saves and closes a completed content block.
+
+### [Optimize-OfficePdf](Optimize-OfficePdf.md)
+Writes a smaller or sanitized copy of a PDF.
 
 ### [Protect-OfficeDocument](Protect-OfficeDocument.md)
 Adds native password encryption or editing restrictions to a document.
 
 ### [Protect-OfficeExcelSheet](Protect-OfficeExcelSheet.md)
-Protects the current worksheet.
-
-### [Protect-OfficeExcelWorkbook](Protect-OfficeExcelWorkbook.md)
-Protects workbook structure or windows metadata. This is not file encryption.
-
-### [Protect-OfficeWordDocument](Protect-OfficeWordDocument.md)
-Protects a Word document with a password.
+Protects a worksheet and chooses what users may still do.
 
 ### [Publish-OfficeConfluencePage](Publish-OfficeConfluencePage.md)
 Plans, creates, or updates a Confluence Cloud page.
@@ -1369,23 +1144,23 @@ Plans, creates, or updates a Confluence Cloud page.
 ### [Read-OfficeDocument](Read-OfficeDocument.md)
 Reads supported documents once and projects text, structure or ingestion views.
 
-### [Read-OfficePdf](Read-OfficePdf.md)
-Reads a PDF into OfficeIMO.Pdf's canonical structured document model.
-
 ### [Remove-OfficeConfluencePage](Remove-OfficeConfluencePage.md)
 Plans or deletes a Confluence Cloud page.
 
 ### [Remove-OfficeExcelComment](Remove-OfficeExcelComment.md)
-Removes a comment (note) from a worksheet cell.
+Removes notes from a cell or all notes that match a filter.
 
 ### [Remove-OfficeExcelNamedRange](Remove-OfficeExcelNamedRange.md)
-Removes a workbook or sheet-scoped Excel named range.
+Removes a defined name.
 
 ### [Remove-OfficeExcelPageBreak](Remove-OfficeExcelPageBreak.md)
 Removes manual print page breaks from selected open worksheets.
 
 ### [Remove-OfficePdfAnnotation](Remove-OfficePdfAnnotation.md)
-Removes PDF annotations matching friendly filters.
+Removes native annotations selected by identity, page and subtype.
+
+### [Remove-OfficePdfContent](Remove-OfficePdfContent.md)
+Permanently removes (redacts) text, pattern matches or areas from a PDF and writes a new PDF.
 
 ### [Remove-OfficePdfPage](Remove-OfficePdfPage.md)
 Removes selected pages from a live PDF or writes edited file copies.
@@ -1397,13 +1172,13 @@ Removes selected native slides or one-based slide positions.
 Removes the table of contents from a Word document.
 
 ### [Rename-OfficeExcelNamedRange](Rename-OfficeExcelNamedRange.md)
-Renames a workbook or sheet-scoped Excel named range.
+Renames a defined name.
 
 ### [Rename-OfficePowerPointSection](Rename-OfficePowerPointSection.md)
 Renames the first section matching the supplied name.
 
-### [Repair-OfficeExcelWorkbook](Repair-OfficeExcelWorkbook.md)
-Runs OfficeIMO safe workbook repairs for common package, table, view, print, drawing, and calculation artifacts.
+### [Repair-OfficeDocument](Repair-OfficeDocument.md)
+Runs native workbook repairs in place, into a copy, or on a caller-owned model.
 
 ### [Resolve-OfficeWordRevision](Resolve-OfficeWordRevision.md)
 Accepts or rejects filtered Word revisions and returns an operation report.
@@ -1444,6 +1219,9 @@ Saves a live presentation without closing it.
 ### [Save-OfficeProject](Save-OfficeProject.md)
 Saves a project through the qualified native codec with loss protection.
 
+### [Save-OfficeRtf](Save-OfficeRtf.md)
+Saves an RtfDocument to its original path or to a new path.
+
 ### [Save-OfficeVisio](Save-OfficeVisio.md)
 Saves an OfficeIMO.Visio document.
 
@@ -1466,106 +1244,64 @@ Safely replaces one marker-delimited section in a Confluence storage body.
 Updates the primary title, language or creator through the package model.
 
 ### [Set-OfficeExcelAutoFilter](Set-OfficeExcelAutoFilter.md)
-Applies a friendly AutoFilter condition by header name.
+Adds an AutoFilter to a range and applies filter conditions.
 
 ### [Set-OfficeExcelCell](Set-OfficeExcelCell.md)
-Sets a cell value, formula, number format, or fill.
+Sets a cell value, formula, rich text, number format or fill.
+
+### [Set-OfficeExcelChart](Set-OfficeExcelChart.md)
+Applies a built-in style and color preset to a chart.
 
 ### [Set-OfficeExcelChartAxis](Set-OfficeExcelChartAxis.md)
 Configures common Excel chart axis titles, formats, scale, and gridlines.
 
-### [Set-OfficeExcelChartDataLabels](Set-OfficeExcelChartDataLabels.md)
-Configures data labels and optional styling for an Excel chart.
+### [Set-OfficeExcelChartDataLabel](Set-OfficeExcelChartDataLabel.md)
+Shows and styles chart data labels.
 
 ### [Set-OfficeExcelChartLegend](Set-OfficeExcelChartLegend.md)
-Configures legend visibility and styling for an Excel chart.
-
-### [Set-OfficeExcelChartPoint](Set-OfficeExcelChartPoint.md)
-Configures fill and line styling for a single Excel chart data point.
+Shows, hides, positions and styles the chart legend.
 
 ### [Set-OfficeExcelChartSeries](Set-OfficeExcelChartSeries.md)
-Configures Excel chart series colors, line style, and markers.
-
-### [Set-OfficeExcelChartStyle](Set-OfficeExcelChartStyle.md)
-Applies a built-in style and color preset to an Excel chart.
+Styles a chart series or one of its data points.
 
 ### [Set-OfficeExcelChartTrendline](Set-OfficeExcelChartTrendline.md)
-Adds or replaces an Excel chart series trendline.
+Adds or replaces a series trendline.
 
 ### [Set-OfficeExcelColumn](Set-OfficeExcelColumn.md)
-Writes values or applies column layout to a worksheet in a DSL block or through the pipeline.
+Writes values down a column and sets its width, visibility, number format and style, by position or header.
 
 ### [Set-OfficeExcelColumnGroup](Set-OfficeExcelColumnGroup.md)
-Configures collapsible Excel outline grouping for worksheet columns.
-
-### [Set-OfficeExcelColumnStyleByHeader](Set-OfficeExcelColumnStyleByHeader.md)
-Applies common number, fill, font, and status styles to a worksheet column resolved by header text.
-
-### [Set-OfficeExcelDataValidationMessage](Set-OfficeExcelDataValidationMessage.md)
-Sets prompt and error messages on existing Excel data validation rules.
+Groups columns into a collapsible outline, or clears grouping.
 
 ### [Set-OfficeExcelDateSystem](Set-OfficeExcelDateSystem.md)
-Sets the workbook date system used for numeric date serials.
+Sets the workbook date system (1900 or 1904).
 
 ### [Set-OfficeExcelDocumentProperty](Set-OfficeExcelDocumentProperty.md)
 Sets a built-in or application document property on an Excel workbook.
 
-### [Set-OfficeExcelExecutionPolicy](Set-OfficeExcelExecutionPolicy.md)
-Configures OfficeIMO Excel execution and validation behavior for a workbook.
-
 ### [Set-OfficeExcelFooter](Set-OfficeExcelFooter.md)
 Updates worksheet footer text, print flags or an image while retaining the header.
-
-### [Set-OfficeExcelFormula](Set-OfficeExcelFormula.md)
-Sets a formula in a worksheet cell.
 
 ### [Set-OfficeExcelHeader](Set-OfficeExcelHeader.md)
 Updates worksheet header text, print flags or an image while retaining the footer.
 
-### [Set-OfficeExcelHostHyperlink](Set-OfficeExcelHostHyperlink.md)
-Sets an external hyperlink that displays only the URL host.
-
 ### [Set-OfficeExcelHyperlink](Set-OfficeExcelHyperlink.md)
-Sets a hyperlink on a worksheet cell.
-
-### [Set-OfficeExcelInternalLinks](Set-OfficeExcelInternalLinks.md)
-Converts cells in a range into internal workbook links.
-
-### [Set-OfficeExcelInternalLinksByHeader](Set-OfficeExcelInternalLinksByHeader.md)
-Converts cells under a header into internal workbook links.
-
-### [Set-OfficeExcelMargins](Set-OfficeExcelMargins.md)
-Sets page margins on a worksheet.
+Links a cell, or every cell of a range or header column, to a URL or a place in the workbook.
 
 ### [Set-OfficeExcelNamedRange](Set-OfficeExcelNamedRange.md)
-Creates or updates a named range.
-
-### [Set-OfficeExcelOrientation](Set-OfficeExcelOrientation.md)
-Sets the page orientation on a worksheet.
+Creates or updates a defined name.
 
 ### [Set-OfficeExcelPageSetup](Set-OfficeExcelPageSetup.md)
-Configures page setup options on a worksheet.
-
-### [Set-OfficeExcelPrintArea](Set-OfficeExcelPrintArea.md)
-Sets the print area for a worksheet.
-
-### [Set-OfficeExcelPrintLayout](Set-OfficeExcelPrintLayout.md)
-Applies a reusable worksheet print layout preset.
-
-### [Set-OfficeExcelPrintTitles](Set-OfficeExcelPrintTitles.md)
-Sets or clears repeating print title rows and columns for a worksheet.
+Sets orientation, margins, scaling, print area and print titles, alone or from a print preset.
 
 ### [Set-OfficeExcelRefreshOnOpen](Set-OfficeExcelRefreshOnOpen.md)
-Configures workbook data refresh metadata for Excel-compatible applications to run when the file opens.
-
-### [Set-OfficeExcelRichText](Set-OfficeExcelRichText.md)
-Sets mixed-format rich text runs in an Excel cell.
+Turns refresh-on-open on or off for pivot caches and connections.
 
 ### [Set-OfficeExcelRow](Set-OfficeExcelRow.md)
 Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.
 
 ### [Set-OfficeExcelRowGroup](Set-OfficeExcelRowGroup.md)
-Configures collapsible Excel outline grouping for worksheet rows.
+Groups rows into a collapsible outline, or clears grouping.
 
 ### [Set-OfficeExcelSheet](Set-OfficeExcelSheet.md)
 Sets worksheet visibility, tab color and the active worksheet.
@@ -1573,62 +1309,47 @@ Sets worksheet visibility, tab color and the active worksheet.
 ### [Set-OfficeExcelSheetView](Set-OfficeExcelSheetView.md)
 Sets frozen panes, gridlines, direction, zoom and view mode for a worksheet.
 
-### [Set-OfficeExcelSmartHyperlink](Set-OfficeExcelSmartHyperlink.md)
-Sets an external hyperlink using a smart display strategy.
-
 ### [Set-OfficeExcelTheme](Set-OfficeExcelTheme.md)
-Sets or resets the workbook theme package part for an Excel workbook.
+Applies an OfficeTheme or theme XML to a workbook.
 
-### [Set-OfficeExcelUrlLinks](Set-OfficeExcelUrlLinks.md)
-Converts cells in a range into external URL hyperlinks.
-
-### [Set-OfficeExcelUrlLinksByHeader](Set-OfficeExcelUrlLinksByHeader.md)
-Converts cells under a header into external URL hyperlinks.
-
-### [Set-OfficeExcelWriteReservation](Set-OfficeExcelWriteReservation.md)
-Sets workbook write-reservation metadata.
+### [Set-OfficeExcelValidation](Set-OfficeExcelValidation.md)
+Sets prompt and error messages on existing validation rules.
 
 ### [Set-OfficeOpenDocumentCell](Set-OfficeOpenDocumentCell.md)
 Sets a typed zero-based cell value in an OpenDocument spreadsheet.
 
 ### [Set-OfficePdfAnnotation](Set-OfficePdfAnnotation.md)
-Updates a single indirect PDF annotation.
+Updates native annotation contents, styling and actions by identity or target URI.
 
 ### [Set-OfficePdfBackground](Set-OfficePdfBackground.md)
-Sets or clears the generated PDF page background color.
-
-### [Set-OfficePdfBackgroundImage](Set-OfficePdfBackgroundImage.md)
-Sets or clears a generated PDF page background image.
+Sets or clears color, image and shape backgrounds in the enclosing PDF composition.
 
 ### [Set-OfficePdfCompliance](Set-OfficePdfCompliance.md)
 Sets generated PDF compliance profile and readiness groundwork.
 
 ### [Set-OfficePdfFooter](Set-OfficePdfFooter.md)
-Sets a simple or fully composed running PDF footer.
+Composes running PDF Footer text, child runs or the native builder inside New-OfficePdf.
 
-### [Set-OfficePdfForm](Set-OfficePdfForm.md)
-Fills and optionally flattens simple AcroForm fields in an existing PDF.
+### [Set-OfficePdfFormField](Set-OfficePdfFormField.md)
+Fills existing AcroForm fields from a hashtable, optionally flattening the result.
 
 ### [Set-OfficePdfHeader](Set-OfficePdfHeader.md)
-Sets a simple or fully composed running PDF header.
+Composes running PDF Header text, child runs or the native builder inside New-OfficePdf.
 
 ### [Set-OfficePdfMetadata](Set-OfficePdfMetadata.md)
 Updates metadata on a generated PDF, an open editing block, or file copies.
 
 ### [Set-OfficePdfPage](Set-OfficePdfPage.md)
-Sets page-level PDF properties and writes a new PDF.
+Rotates pages, sets boundary boxes or resizes pages through the native PDF engine.
 
 ### [Set-OfficePdfPageBorder](Set-OfficePdfPageBorder.md)
 Sets or clears the generated PDF page border decoration.
 
 ### [Set-OfficePdfPageSetup](Set-OfficePdfPageSetup.md)
-Sets PDF page size, orientation, and margins.
+Sets physical dimensions, orientation and margins in the enclosing PDF composition.
 
 ### [Set-OfficePdfSignature](Set-OfficePdfSignature.md)
-Injects externally produced CMS, CAdES, or timestamp signature bytes into a prepared PDF signature placeholder.
-
-### [Set-OfficePdfTheme](Set-OfficePdfTheme.md)
-Applies an OfficeIMO.Pdf theme preset to a generated PDF document.
+Complete external PDF signature using native byte-range and signature-placeholder operations.
 
 ### [Set-OfficePowerPointLayoutPlaceholder](Set-OfficePowerPointLayoutPlaceholder.md)
 Updates a template layout placeholder's geometry, text margins and text style.
@@ -1682,7 +1403,7 @@ Updates paragraph style, spacing, indentation, and pagination hints.
 Updates OfficeIMO Word shape metadata, sizing, and colors.
 
 ### [Set-OfficeWordTableCell](Set-OfficeWordTableCell.md)
-Updates OfficeIMO Word table-cell content, layout, and merge settings.
+Updates native Word cell text, physical geometry and layout flags.
 
 ### [Set-OfficeWordTableOfContents](Set-OfficeWordTableOfContents.md)
 Sets properties on a table of contents in a Word document.
@@ -1693,14 +1414,11 @@ Updates styling on Word text.
 ### [Split-OfficeDocument](Split-OfficeDocument.md)
 Splits PDF files into consecutive groups, selected ranges or top-level bookmarked chapters.
 
-### [Test-OfficeExcelAccessibility](Test-OfficeExcelAccessibility.md)
-Checks workbook accessibility and compliance signals.
+### [Test-OfficeDocument](Test-OfficeDocument.md)
+Validates native document structure, schema, security, accessibility or compliance without changing the input.
 
-### [Test-OfficeExcelTemplateBinding](Test-OfficeExcelTemplateBinding.md)
-Validates Excel template markers against supplied bindings before applying a template.
-
-### [Test-OfficeExcelWorkbook](Test-OfficeExcelWorkbook.md)
-Runs OfficeIMO workbook diagnostics and optional safe repairs.
+### [Test-OfficeExcelTemplate](Test-OfficeExcelTemplate.md)
+Tests whether supplied values bind every template marker.
 
 ### [Test-OfficePdfRewrite](Test-OfficePdfRewrite.md)
 Creates a proof report for user-visible signals preserved by a PDF rewrite.
@@ -1708,17 +1426,20 @@ Creates a proof report for user-visible signals preserved by a PDF rewrite.
 ### [Test-OfficePowerPoint](Test-OfficePowerPoint.md)
 Inspects a live or saved presentation without changing or reopening a supplied document.
 
+### [Unprotect-OfficeDocument](Unprotect-OfficeDocument.md)
+Removes native package encryption or selected editing restrictions.
+
 ### [Unprotect-OfficeExcelSheet](Unprotect-OfficeExcelSheet.md)
 Removes worksheet protection.
 
-### [Unprotect-OfficeExcelWorkbook](Unprotect-OfficeExcelWorkbook.md)
-Removes workbook structure/window protection metadata.
-
 ### [Update-OfficeExcelComment](Update-OfficeExcelComment.md)
-Updates legacy worksheet comments (notes) that match a filter.
+Replaces the text or author of notes that match a filter.
 
 ### [Update-OfficeExcelText](Update-OfficeExcelText.md)
-Replaces text in worksheet values.
+Replaces text in cell values across a workbook, sheet or range.
+
+### [Update-OfficePdf](Update-OfficePdf.md)
+Flattens forms or annotations, or adds a searchable OCR text layer, writing a new PDF.
 
 ### [Update-OfficePowerPointText](Update-OfficePowerPointText.md)
 Replaces text in the selected slide or document, including tables by default.

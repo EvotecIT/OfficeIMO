@@ -6,36 +6,135 @@ schema: 2.0.0
 ---
 # Get-OfficePdfDiagnostic
 ## SYNOPSIS
-Gets PDF diagnostics, stream statistics, feature markers, and read/rewrite blockers.
+Returns native PDF structure, preflight, incremental, optimization or generated-text diagnostics.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Get-OfficePdfDiagnostic [-Path] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfDiagnostic [-Path] <string[]> [-Type <OfficePdfDiagnosticType>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficePdfDiagnostic -LiteralPath <string[]> [-Type <OfficePdfDiagnosticType>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [<CommonParameters>]
+```
+
+### Text
+```powershell
+Get-OfficePdfDiagnostic -Text <string> [-Source <string>] [-FontPath <string>] [-Encoding] [-AdvancedLayout] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets PDF diagnostics, stream statistics, feature markers, and read/rewrite blockers.
+Returns native PDF structure, preflight, incremental, optimization or generated-text diagnostics.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $diagnostic = Get-OfficePdfDiagnostic -Path .\Report.pdf
-$diagnostic.StreamTypeCounts
-$diagnostic.Findings
+Get-OfficePdfDiagnostic -Path @('C:\Path')
 ```
 
-Returns an OfficeIMO.Pdf diagnostic report for migration and troubleshooting workflows.
+
+### EXAMPLE 2
+```powershell
+Get-OfficePdfDiagnostic -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficePdfDiagnostic -Text 'Value'
+```
+
 
 ## PARAMETERS
 
-### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed usage restrictions.
+### -AdvancedLayout
+Return script, direction, mark positioning and line-breaking findings.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Encoding
+Return encoding and glyph coverage findings.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -FontPath
+Literal font file for glyph coverage and shaping diagnostics.
+
+```yaml
+Type: String
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IgnorePermissionRestrictions
+After authentication, explicitly ignore owner-imposed restrictions.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal input files.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+Native source loading policy.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -47,11 +146,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to analyze a Standard password-encrypted PDF.
+Source password.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -63,18 +162,66 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-PDF file path.
+Input PDF files with wildcard expansion.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath, FullName, LiteralPath
+Type: String[]
+Parameter Sets: Path
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: False
+Accept wildcard characters: True
+```
+
+### -Source
+Source label included in text findings.
+
+```yaml
+Type: String
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Text
+Generated text to diagnose before rendering.
+
+```yaml
+Type: String
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Type
+Native report to return for each PDF.
+
+```yaml
+Type: OfficePdfDiagnosticType
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values: Structure, Preflight, Incremental, Optimization
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -83,11 +230,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
+- `System.String[]`
 - `System.String`
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfDiagnosticReport`
+- `None`
 
 ## RELATED LINKS
 

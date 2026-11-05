@@ -21,9 +21,9 @@ foreach (var (name, kind, sha256) in fixtures) {
     string path = Path.Combine(AppContext.BaseDirectory, name);
     byte[] bytes = File.ReadAllBytes(path);
     Require(Convert.ToHexString(SHA256.HashData(bytes)) == sha256, name + " fixture bytes changed.");
-    IWorkSourceDocument fromPath = IWorkSourceDocument.Open(path);
+    using IWorkSourceDocument fromPath = IWorkSourceDocument.Load(path);
     using var sourceStream = new MemoryStream(bytes, writable: false);
-    IWorkSourceDocument fromStream = IWorkSourceDocument.Open(sourceStream, kind);
+    using IWorkSourceDocument fromStream = IWorkSourceDocument.Load(sourceStream, kind);
     Require(sourceStream.CanRead && fromPath.Kind == kind && fromStream.Kind == kind,
         name + " source kind or caller-owned stream contract failed.");
     Require(fromPath.Records.Count > 0 && fromPath.Records.Count == fromStream.Records.Count
@@ -62,10 +62,10 @@ foreach (var (name, kind, sha256) in fixtures) {
         name + " Reader transport changed during JSON round-trip.");
     if (name == "comments.numbers") VerifyComments(roundTrip);
 
-    Reject<OperationCanceledException>(() => IWorkSourceDocument.Open(path, options: null,
+    Reject<OperationCanceledException>(() => IWorkSourceDocument.Load(path, options: null,
         new CancellationToken(canceled: true)), name + " pre-cancellation");
-    Reject<InvalidDataException>(() => IWorkSourceDocument.Open(path,
-        new IWorkReadOptions { MaxPackageBytes = 1 }), name + " package byte limit");
+    Reject<InvalidDataException>(() => IWorkSourceDocument.Load(path,
+        new IWorkLoadOptions { MaxPackageBytes = 1 }), name + " package byte limit");
     Reject<OperationCanceledException>(() => reader.ReadDocument(path,
         cancellationToken: new CancellationToken(canceled: true)), name + " Reader pre-cancellation");
     Reject<IOException>(() => reader.ReadDocument(path,

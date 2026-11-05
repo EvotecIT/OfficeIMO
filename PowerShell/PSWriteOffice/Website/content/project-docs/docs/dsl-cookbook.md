@@ -56,51 +56,46 @@ New-OfficeWord -Path '.\Formatting.docx' {
 }
 ```
 
-Use `-Run` when formatting changes within the line. The compact columnar form keeps the text and its formatting arrays together:
+Use a paragraph content block when formatting changes within the line:
 
 ```powershell
-WordParagraph -Run @{
-    Text      = @(
-        'Owner: ', $finding.Owner
-        '    Due: ', $finding.Due
-        '    Severity: ', $finding.Severity
-    )
-    Bold      = $true, $false, $true, $false, $true, $false
-    Underline = 'Single', 'None', $null, $null, $null, $null
-    Color     = $null, $null, $null, $null, $null, 'Crimson'
+WordParagraph {
+    WordText 'Owner: ' -Bold
+    WordText $finding.Owner
+    WordText '    Due: ' -Bold
+    WordText $finding.Due
+    WordText '    Severity: ' -Bold
+    WordText $finding.Severity -Color Crimson
 }
 ```
 
-The equivalent PDF line uses the same run shape:
+The equivalent PDF line uses its own scoped text commands:
 
 ```powershell
-PdfText -Run @{
-    Text = @(
-        'Owner: ', $finding.Owner
-        '    Due: ', $finding.Due
-    )
-    Bold = $true, $false, $true, $false
+PdfParagraph {
+    PdfText 'Owner: ' -Bold
+    PdfText $finding.Owner
+    PdfText '    Due: ' -Bold
+    PdfText $finding.Due
 }
 ```
 
-A scalar formatting value applies to every text segment. An array must contain either one value or the same number of values as `Text`, otherwise the command stops with a count error. There is no implicit `-ContinueFormatting`: use a scalar to broadcast intentionally, or put an explicit value or `$null` at each position.
-
-For longer or generated content, `-Run` also accepts one hashtable per segment or objects created with `WordTextRun`, `PdfTextRun`, or the shared `TextRun` helper. Runs support bold, italic, underline and underline style, strike, foreground and background colors, font name and size, superscript or subscript baseline, and links.
+Each text command applies formatting to the run it adds. Use the same pattern with `ExcelCell { ExcelText ... }` or `PowerPointParagraph { PowerPointText ... }`. Runs support bold, italic, underline, strike, foreground color, font, and size; the command reference documents each format's remaining style and link options.
 
 ## Flowing versus positioned PDF text
 
 A `PdfText` run is inline content in the normal document flow. It does not have its own starting coordinate. Use the page-level positioning surface when text must begin at a fixed `X/Y` location:
 
 ```powershell
-Add-OfficePdfCanvas -Path '.\Report.pdf' -OutputPath '.\Positioned.pdf' -Content {
-    PdfCanvasText -Run @(
-        TextRun 'Owner: ' -Bold
-        TextRun 'Platform' -Color '#0F766E'
-    ) -X 36 -Y 24
+Add-OfficePdfStamp -Path '.\Report.pdf' -OutputPath '.\Positioned.pdf' -Content {
+    PdfCanvasText -Content {
+        PdfText 'Owner: ' -Bold
+        PdfText 'Platform' -Color '#0F766E'
+    } -X 36 -Y 24
 }
 ```
 
-Canvas coordinates use PDF points from the visual top-left. `Add-OfficePdfStamp -X -Y` is the shorter choice for one text or image stamp. `Add-OfficePdfPageOverlay` positions a complete imported PDF page. See [Position text and graphics on PDF pages](/docs/pswriteoffice/pdf-positioned-content/) for the full decision guide and runnable recipe.
+Canvas coordinates use PDF points from the visual top-left. `Add-OfficePdfStamp -X -Y` is the shorter choice for one text or image stamp. `Add-OfficePdfStamp -OverlayPath` positions a complete imported PDF page. See [Position text and graphics on PDF pages](/docs/pswriteoffice/pdf-positioned-content/) for the full decision guide and runnable recipe.
 
 ## Control pipeline output
 

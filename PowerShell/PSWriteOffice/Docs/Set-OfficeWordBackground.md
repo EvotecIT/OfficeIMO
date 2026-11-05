@@ -11,12 +11,12 @@ Sets the background for a Word document.
 ## SYNTAX
 ### Color (Default)
 ```powershell
-Set-OfficeWordBackground [-Color] <string> [-Document <WordDocument>] [-PassThru] [<CommonParameters>]
+Set-OfficeWordBackground [-Color] <OfficeColor> [-Document <WordDocument>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Image
 ```powershell
-Set-OfficeWordBackground [-ImagePath] <string> [-Document <WordDocument>] [-Width <Double>] [-Height <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficeWordBackground [-ImagePath] <string> [-Document <WordDocument>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,7 +37,7 @@ Sets the document background to the provided hex color and continues normal docu
 ### EXAMPLE 2
 ```powershell
 PS> $doc = Open-OfficeWord -Path .\Draft.docx
-$doc | Set-OfficeWordBackground -ImagePath .\Assets\Background.png -Width 600 -Height 800 -PassThru |
+$doc | Set-OfficeWordBackground -ImagePath .\Assets\Background.png -Width 600px -Height 800px -PassThru |
     Save-OfficeWord -Path .\Draft-Branded.docx
 ```
 
@@ -49,7 +49,7 @@ Uses OfficeIMO.Word background image support and saves the updated document thro
 Background color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Color
 Aliases: None
 Possible values:
@@ -78,10 +78,10 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Optional background image height in pixels.
+Optional background image height; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Image
 Aliases: None
 Possible values:
@@ -126,10 +126,10 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Optional background image width in pixels.
+Optional background image width; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Image
 Aliases: None
 Possible values:

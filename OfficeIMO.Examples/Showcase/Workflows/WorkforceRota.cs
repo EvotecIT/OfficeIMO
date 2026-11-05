@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(9));
             sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(12));
             sheet.Range("A1:G1").Merge(); sheet.Cell(1, 1).SetValue("Weekly support rota");
-            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetFontColor("17365D");
+            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetColor(OfficeColor.Parse("17365D"));
             sheet.Range("A2:G2").Merge(); sheet.Cell(2, 1).SetValue("One assigned shift per day / D = desk / R = remote / - = off");
             string[] headers = { "Team member", "Mon", "Tue", "Wed", "Thu", "Fri", "Desk days" };
             for (int column = 1; column <= 7; column++) sheet.Cell(4, column).SetValue(headers[column - 1]);
@@ -28,9 +28,9 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             sheet.AddTable("A4:G8", true, "SupportRota", ExcelTableStyle.TableStyleMedium2);
             // Rules follow edited shifts in Excel and in the native range preview.
             sheet.Range("B5:F8").Validation().List(new[] { "D", "R", "-" }, allowBlank: false);
-            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "D", "DCFCE7");
-            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "R", "DBEAFE");
-            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "-", "F1F5F9");
+            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "D", OfficeColor.Parse("DCFCE7"));
+            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "R", OfficeColor.Parse("DBEAFE"));
+            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "-", OfficeColor.Parse("F1F5F9"));
             sheet.Cell(10, 1).SetValue("Desk coverage");
             for (int column = 2; column <= 6; column++) {
                 string letter = ((char)('A' + column - 1)).ToString();
@@ -47,9 +47,9 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             }
             sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             for (int column = 1; column <= 7; column++) {
-                sheet.Cell(4, column).SetFontColor("FFFFFF");
+                sheet.Cell(4, column).SetColor(OfficeColor.Parse("FFFFFF"));
                 sheet.Cell(4, column).SetBold(true);
-                sheet.Cell(4, column).SetFillColor("17365D");
+                sheet.Cell(4, column).SetFillColor(OfficeColor.Parse("17365D"));
             }
             document.Calculate();
             document.InspectFormulas().EnsureAllSupported().EnsureAllHaveCachedResults().EnsureNoDependencyIssues();

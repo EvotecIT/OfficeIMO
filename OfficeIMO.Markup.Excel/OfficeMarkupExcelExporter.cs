@@ -147,7 +147,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
             var fill = GetAttribute(formatting.Attributes,
                 "fill", "background", "highlight", "highlight-color", "highlightColor");
             if (!string.IsNullOrWhiteSpace(fill)) {
-                sheet.Cell(row, column).SetFillColor(fill!);
+                sheet.Cell(row, column).SetFillColor(OfficeColor.Parse(fill!));
             }
 
             ApplyTextFormatting(sheet, row, column, formatting.Attributes);
@@ -172,7 +172,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
             var border = GetAttribute(formatting.Attributes, "border", "border-style", "borderStyle");
             if (TryParseBorderStyle(border, out var borderStyle)) {
                 var borderColor = GetAttribute(formatting.Attributes, "border-color", "borderColor", "line-color", "lineColor");
-                sheet.Cell(row, column).SetBorder(borderStyle, borderColor);
+                sheet.Cell(row, column).SetBorder(borderStyle, borderColor == null ? null : OfficeColor.Parse(borderColor));
             }
         }
     }
@@ -188,8 +188,8 @@ internal sealed partial class OfficeMarkupExcelExporter {
         if (bold) {
             sheet.Cell(row, 1).SetBold(true);
             if (context.Options.StyleMarkdownHeadings) {
-                sheet.Cell(row, 1).SetFillColor("1F4E78");
-                sheet.Cell(row, 1).SetFontColor("FFFFFF");
+                sheet.Cell(row, 1).SetFillColor(OfficeColor.Parse("1F4E78"));
+                sheet.Cell(row, 1).SetColor(OfficeColor.White);
             }
         }
 
@@ -287,8 +287,8 @@ internal sealed partial class OfficeMarkupExcelExporter {
         ApplyDataLabelOptions(chart, source);
         ApplyGridlineOptions(chart, source, normalizedType);
 
-        chart.SetTitleTextStyle(fontSize: OfficeLength.Points(14), bold: true, color: OfficeColor.Parse("172033"), fontName: "Aptos Display");
-        chart.SetLegendTextStyle(fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("475569"), fontName: "Aptos");
+        chart.SetTitleTextStyle(fontSize: OfficeLength.Points(14), bold: true, color: OfficeColor.Parse("172033"), fontFamily: "Aptos Display");
+        chart.SetLegendTextStyle(fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("475569"), fontFamily: "Aptos");
     }
 
     private static void ApplyLegendOptions(ExcelChart chart, OfficeMarkupChartBlock source) {
@@ -325,7 +325,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
             position: TryParseDataLabelPosition(labelPosition, out var parsedPosition) ? parsedPosition : null,
             numberFormat: string.IsNullOrWhiteSpace(labelFormat) ? null : labelFormat,
             sourceLinked: false);
-        chart.SetDataLabelTextStyle(fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("334155"), fontName: "Aptos");
+        chart.SetDataLabelTextStyle(fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("334155"), fontFamily: "Aptos");
     }
 
     private static void ApplyGridlineOptions(ExcelChart chart, OfficeMarkupChartBlock source, string normalizedType) {

@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[1].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[1].Highlight);
                 Assert.True(document.Paragraphs[1].FontSize?.ToPoints() == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[1].FontSize?.ToPoints());
                 Assert.True(document.Paragraphs[1].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[1].IsPageBreak);
-                Assert.True(document.Paragraphs[1].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[1].DoubleStrike);
+                Assert.True(document.Paragraphs[1].DoubleStrikethrough == false, "2nd paragraph should not be double strike. " + document.Paragraphs[1].DoubleStrikethrough);
 
                 Assert.True(document.Paragraphs[2].Bold == false, "3rd paragraph should not be bold");
                 Assert.True(document.Paragraphs[2].Italic == true, "3rd paragraph should be italic");
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[1].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[1].Highlight);
                 Assert.True(document.Paragraphs[1].FontSize?.ToPoints() == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[1].FontSize?.ToPoints());
                 Assert.True(document.Paragraphs[1].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[1].IsPageBreak);
-                Assert.True(document.Paragraphs[1].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[1].DoubleStrike);
+                Assert.True(document.Paragraphs[1].DoubleStrikethrough == false, "2nd paragraph should not be double strike. " + document.Paragraphs[1].DoubleStrikethrough);
 
                 Assert.True(document.Paragraphs[2].Bold == false, "3rd paragraph should not be bold");
                 Assert.True(document.Paragraphs[2].Italic == true, "3rd paragraph should be italic");
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[5].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[5].Highlight);
                 Assert.True(document.Paragraphs[5].FontSize?.ToPoints() == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[5].FontSize?.ToPoints());
                 Assert.True(document.Paragraphs[5].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[5].IsPageBreak);
-                Assert.True(document.Paragraphs[5].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[5].DoubleStrike);
+                Assert.True(document.Paragraphs[5].DoubleStrikethrough == false, "2nd paragraph should not be double strike. " + document.Paragraphs[5].DoubleStrikethrough);
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithProperties.docx"))) {
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[5].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[5].Highlight);
                 Assert.True(document.Paragraphs[5].FontSize?.ToPoints() == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[5].FontSize?.ToPoints());
                 Assert.True(document.Paragraphs[5].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[5].IsPageBreak);
-                Assert.True(document.Paragraphs[5].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[5].DoubleStrike);
+                Assert.True(document.Paragraphs[5].DoubleStrikethrough == false, "2nd paragraph should not be double strike. " + document.Paragraphs[5].DoubleStrikethrough);
             }
         }
         [Fact]
@@ -207,11 +207,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithParagraphsAndSomeStyles.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                var paragraph = document.AddParagraph().SetText("Basic paragraph - Page 1").SetColor(OfficeColor.Parse("#FF0000")).SetStrike();
+                var paragraph = document.AddParagraph().SetText("Basic paragraph - Page 1").SetColor(OfficeColor.Parse("#FF0000")).SetStrikethrough();
 
                 document.AddPageBreak();
 
-                paragraph = document.AddParagraph().SetColor(OfficeColor.Parse("#FFFF00")).SetSpacing(OfficeLength.Points(1)).SetDoubleStrike();
+                paragraph = document.AddParagraph().SetColor(OfficeColor.Parse("#FFFF00")).SetSpacing(OfficeLength.Points(1)).SetDoubleStrikethrough();
 
                 document.AddPageBreak();
 
@@ -223,20 +223,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
 
-                Assert.True(document.Paragraphs[0].Strike == true, "Strike should be set");
+                Assert.True(document.Paragraphs[0].Strikethrough == true, "Strike should be set");
                 Assert.True(document.Paragraphs[0].Text == "Basic paragraph - Page 1", "1st paragraph text doesn't match. Current: " + document.Paragraphs[0].Text);
                 Assert.True(document.Paragraphs[0].Text == document.Sections[0].Paragraphs[0].Text, "1st paragraph of 1st section should be the same 1");
                 Assert.True(document.Paragraphs[0] == document.Sections[0].Paragraphs[0]);
                 Assert.True(document.Paragraphs[0].Color == OfficeIMO.OfficeColor.Red, "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
                 Assert.True(document.Paragraphs[2].Color == OfficeIMO.OfficeColor.Yellow, "3rd paragraph color should be the same");
-                Assert.True(document.Paragraphs[2].DoubleStrike == true, "DoubleStrike should be set");
+                Assert.True(document.Paragraphs[2].DoubleStrikethrough == true, "DoubleStrike should be set");
                 Assert.True(document.Paragraphs[2].Spacing == OfficeLength.Points(1), "Spacing should be set");
                 Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
                 Assert.True(document.Paragraphs[4].Color == OfficeIMO.OfficeColor.Yellow, "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[4].Color);
                 Assert.True(document.Paragraphs[4].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[4].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[4].IsPageBreak);
-                Assert.True(document.Paragraphs[4].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[4].DoubleStrike);
+                Assert.True(document.Paragraphs[4].DoubleStrikethrough == false, "2nd paragraph should not be double strike. " + document.Paragraphs[4].DoubleStrikethrough);
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "DocumentWithParagraphsAndSomeStyles.docx"))) {
@@ -246,20 +246,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
 
-                Assert.True(document.Paragraphs[0].Strike == true, "Strike should be set");
+                Assert.True(document.Paragraphs[0].Strikethrough == true, "Strike should be set");
                 Assert.True(document.Paragraphs[0].Text == "Basic paragraph - Page 1", "1st paragraph text doesn't match. Current: " + document.Paragraphs[0].Text);
                 Assert.True(document.Paragraphs[0].Text == document.Sections[0].Paragraphs[0].Text, "1st paragraph of 1st section should be the same 1");
                 Assert.True(document.Paragraphs[0] == document.Sections[0].Paragraphs[0]);
                 Assert.True(document.Paragraphs[0].Color == OfficeIMO.OfficeColor.Red, "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
                 Assert.True(document.Paragraphs[2].Color == OfficeIMO.OfficeColor.Yellow, "3rd paragraph color should be the same");
-                Assert.True(document.Paragraphs[2].DoubleStrike == true, "DoubleStrike should be set");
+                Assert.True(document.Paragraphs[2].DoubleStrikethrough == true, "DoubleStrike should be set");
                 Assert.True(document.Paragraphs[2].Spacing == OfficeLength.Points(1), "Spacing should be set");
                 Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
                 Assert.True(document.Paragraphs[4].Color == OfficeIMO.OfficeColor.Yellow, "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[4].Color);
                 Assert.True(document.Paragraphs[4].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[4].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[4].IsPageBreak);
-                Assert.True(document.Paragraphs[4].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[4].DoubleStrike);
+                Assert.True(document.Paragraphs[4].DoubleStrikethrough == false, "2nd paragraph should not be double strike. " + document.Paragraphs[4].DoubleStrikethrough);
             }
         }
         [Fact]
@@ -459,11 +459,11 @@ namespace OfficeIMO.Tests {
 
                 document.Paragraphs[3].VerticalTextAlignment = null;
                 Assert.Null(document.Paragraphs[3].VerticalTextAlignment);
-                document.Paragraphs[4].SetSubScript();
+                document.Paragraphs[4].SetSubscript();
                 Assert.Equal(document.Paragraphs[4].VerticalTextAlignment, WordVerticalTextPosition.Subscript);
-                document.Paragraphs[5].SetSubScript();
+                document.Paragraphs[5].SetSubscript();
                 Assert.Equal(document.Paragraphs[5].VerticalTextAlignment, WordVerticalTextPosition.Subscript);
-                document.Paragraphs[6].SetSuperScript();
+                document.Paragraphs[6].SetSuperscript();
                 Assert.Equal(document.Paragraphs[6].VerticalTextAlignment, WordVerticalTextPosition.Superscript);
             }
         }

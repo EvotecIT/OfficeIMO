@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(presentation.OpenXmlDocument.DataParts);
             Assert.Empty(slide.SlidePart.DataPartReferenceRelationships);
-            Assert.Equal(1, table.Rows);
-            Assert.Equal(1, table.Columns);
+            Assert.Equal(1, table.RowCount);
+            Assert.Equal(1, table.ColumnCount);
             Assert.Empty(presentation.ValidateDocument());
         }
 

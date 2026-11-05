@@ -54,22 +54,22 @@ internal sealed class PowerPointTextScope {
 
 /// <summary>Maps shared text vocabulary to the native PowerPoint run and theme.</summary>
 internal static class PowerPointTextFormatting {
-    internal static void Apply(PowerPointTextRun run, PowerPointContentScope scope, bool bold, bool italic,
-        bool strikethrough, PowerPointUnderlineStyle? underline, OfficeColor? color, OfficeColor? highlight,
+    internal static void Apply(PowerPointTextRun run, PowerPointContentScope scope, bool? bold, bool? italic,
+        bool? strikethrough, PowerPointUnderlineStyle? underline, OfficeColor? color, OfficeColor? highlight,
         string? font, OfficeLength? size, string? link = null) =>
         Apply(run, scope.Document, scope.NativeSlide.AuthoringTheme, bold, italic, strikethrough, underline, color, highlight, font, size, link);
 
-    internal static void Apply(PowerPointTextRun run, PowerPointTextScope scope, bool bold, bool italic,
-        bool strikethrough, PowerPointUnderlineStyle? underline, OfficeColor? color, OfficeColor? highlight,
+    internal static void Apply(PowerPointTextRun run, PowerPointTextScope scope, bool? bold, bool? italic,
+        bool? strikethrough, PowerPointUnderlineStyle? underline, OfficeColor? color, OfficeColor? highlight,
         string? font, OfficeLength? size, string? link = null) =>
         Apply(run, scope.Document, scope.Theme, bold, italic, strikethrough, underline, color, highlight, font, size, link);
 
-    private static void Apply(PowerPointTextRun run, PowerPointDocument document, OfficeTheme theme, bool bold, bool italic,
-        bool strikethrough, PowerPointUnderlineStyle? underline, OfficeColor? color, OfficeColor? highlight,
+    private static void Apply(PowerPointTextRun run, PowerPointDocument document, OfficeTheme theme, bool? bold, bool? italic,
+        bool? strikethrough, PowerPointUnderlineStyle? underline, OfficeColor? color, OfficeColor? highlight,
         string? font, OfficeLength? size, string? link) {
-        if (bold) run.Bold = true;
-        if (italic) run.Italic = true;
-        if (strikethrough) run.Strikethrough = true;
+        if (bold.HasValue) run.Bold = bold.Value;
+        if (italic.HasValue) run.Italic = italic.Value;
+        if (strikethrough.HasValue) run.Strikethrough = strikethrough.Value;
         if (underline.HasValue) run.UnderlineStyle = underline;
         var context = new PowerPointLayoutContext(document, PowerPointLayoutTheme.From(theme));
         if (color.HasValue) run.Color = OfficeIMO.OfficeColor.Parse(context.ResolveColor(color)!);

@@ -1,179 +1,120 @@
+using System;
 using System.Management.Automation;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Updates OfficeIMO Word table-cell content, layout, and merge settings.</summary>
-/// <example>
-///   <summary>Replace text in a cell after finding a table.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Open-OfficeWord -Path .\Handover.docx
-/// $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
-/// $table |
-///     Get-OfficeWordTableCell -Row 2 -Column 2 |
-///     Set-OfficeWordTableCell -Text 'Investigating' -ShadingFillColor '#fff2cc' -ShadingPattern Clear
-/// $doc | Close-OfficeWord -Save</code>
-///   <para>Finds an existing table by text, replaces a target cell value, applies shading, and saves the document.</para>
-/// </example>
-/// <example>
-///   <summary>Highlight a status column in the first report table.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Open-OfficeWord -Path .\Report.docx
-/// $table = $doc | Get-OfficeWordTable | Select-Object -First 1
-/// $table |
-///     Get-OfficeWordTableCell -Column 2 |
-///     Set-OfficeWordTableCell -ShadingFillColor '#fff1f0' -ShadingPattern Clear -Width 2400 -WidthType Dxa
-/// $doc | Save-OfficeWord -Path .\Report-StatusCells.docx</code>
-///   <para>Reads cells from an OfficeIMO table object, applies cell shading and width, and saves the updated document.</para>
-/// </example>
-/// <example>
-///   <summary>Add readable padding to every cell in a report table.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16</code>
-///   <para>Sets independent cell margins in centimeters. Omitted margins retain their values; pass null to remove an explicit margin.</para>
-/// </example>
-/// <example>
-///   <summary>Merge a heading row across columns.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Open-OfficeWord -Path .\Report.docx
-/// $table = $doc | Get-OfficeWordTable | Select-Object -First 1
-/// $table |
-///     Get-OfficeWordTableCell -Row 0 -Column 0 |
-///     Set-OfficeWordTableCell -MergeRight 2 -CopyParagraphs
-/// $doc | Save-OfficeWord -Path .\Report-MergedHeader.docx</code>
-///   <para>Uses the OfficeIMO merge operation exposed by the thin table-cell wrapper.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeWordTableCell")]
-[Alias("WordTableCellStyle")]
+/// <summary>Updates native Word cell text, physical geometry and layout flags.</summary>
+[Cmdlet(VerbsCommon.Set, "OfficeWordTableCell", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordTableCell))]
-public sealed class SetOfficeWordTableCellCommand : PSCmdlet
-{
-    /// <summary>Table cell to update.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
-    public WordTableCell Cell { get; set; } = null!;
-
-    /// <summary>Replace the visible cell text.</summary>
-    [Parameter] public string? Text { get; set; }
-
-    /// <summary>Top cell padding in centimeters. Pass null to remove the explicit margin.</summary>
-    [Parameter] public double? MarginTopCentimeters { get; set; }
-
-    /// <summary>Bottom cell padding in centimeters. Pass null to remove the explicit margin.</summary>
-    [Parameter] public double? MarginBottomCentimeters { get; set; }
-
-    /// <summary>Left cell padding in centimeters. Pass null to remove the explicit margin.</summary>
-    [Parameter] public double? MarginLeftCentimeters { get; set; }
-
-    /// <summary>Right cell padding in centimeters. Pass null to remove the explicit margin.</summary>
-    [Parameter] public double? MarginRightCentimeters { get; set; }
-
-    /// <summary>Cell shading fill color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? ShadingFillColor { get; set; }
-
-    /// <summary>Cell shading pattern.</summary>
-    [Parameter]
+public sealed class SetOfficeWordTableCellCommand : OfficeCmdlet {
+    /// <summary>Cell for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Parameter(ParameterSetName = "WidthPercent", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    public WordTableCell? Cell { get; set; }
+    /// <summary>Text for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    public string? Text { get; set; }
+    /// <summary>MarginTop for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    [AllowNull, OfficeLengthTransformation(AllowNull = true)]
+    public OfficeLength? MarginTop { get; set; }
+    /// <summary>MarginBottom for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    [AllowNull, OfficeLengthTransformation(AllowNull = true)]
+    public OfficeLength? MarginBottom { get; set; }
+    /// <summary>MarginLeft for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    [AllowNull, OfficeLengthTransformation(AllowNull = true)]
+    public OfficeLength? MarginLeft { get; set; }
+    /// <summary>MarginRight for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    [AllowNull, OfficeLengthTransformation(AllowNull = true)]
+    public OfficeLength? MarginRight { get; set; }
+    /// <summary>BackgroundColor for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    [OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? BackgroundColor { get; set; }
+    /// <summary>ShadingPattern for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
     public WordShadingPattern? ShadingPattern { get; set; }
-
-    /// <summary>Native cell preference: twips for Dxa or fiftieths of a percent for Pct. Null removes the preference.</summary>
-    [Parameter] public int? Width { get; set; }
-
-    /// <summary>Cell width unit type.</summary>
-    [Parameter]
-    public WordTableWidthUnit? WidthType { get; set; }
-
-    /// <summary>Cell text direction.</summary>
-    [Parameter] public WordTextDirection? TextDirection { get; set; }
-
-    /// <summary>Whether text wraps in the cell.</summary>
-    [Parameter] public bool? WrapText { get; set; }
-
-    /// <summary>Whether text should fit within the cell.</summary>
-    [Parameter] public bool? FitText { get; set; }
-
-    /// <summary>Number of cells to merge to the right.</summary>
-    [Parameter] public int? MergeRight { get; set; }
-
-    /// <summary>Number of cells to merge downward.</summary>
-    [Parameter] public int? MergeDown { get; set; }
-
-    /// <summary>Number of columns to split the cell into.</summary>
-    [Parameter] public int? SplitHorizontal { get; set; }
-
-    /// <summary>Number of rows to split the cell into.</summary>
-    [Parameter] public int? SplitVertical { get; set; }
-
-    /// <summary>Copy paragraphs while merging cells.</summary>
-    [Parameter] public SwitchParameter CopyParagraphs { get; set; }
-
-    /// <summary>Emit the updated table cell.</summary>
-    [Parameter] public SwitchParameter PassThru { get; set; }
-
+    /// <summary>Width for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [AllowNull, OfficeLengthTransformation(AllowNull = true)]
+    public OfficeLength? Width { get; set; }
+    /// <summary>TextDirection for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    public WordTextDirection? TextDirection { get; set; }
+    /// <summary>NoWrap for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    public SwitchParameter NoWrap { get; set; }
+    /// <summary>FitText for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    public SwitchParameter FitText { get; set; }
+    /// <summary>MergeRight for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    public int? MergeRight { get; set; }
+    /// <summary>MergeDown for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    public int? MergeDown { get; set; }
+    /// <summary>SplitHorizontal for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    public int? SplitHorizontal { get; set; }
+    /// <summary>SplitVertical for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    public int? SplitVertical { get; set; }
+    /// <summary>CopyParagraphs for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    public SwitchParameter CopyParagraphs { get; set; }
+    /// <summary>PassThru for the native cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [Parameter(ParameterSetName = "WidthPercent")]
+    public SwitchParameter PassThru { get; set; }
+    /// <summary>WidthPercent for the native cell.</summary>
+    [Parameter(ParameterSetName = "WidthPercent", Mandatory = true)]
+    public double? WidthPercent { get; set; }
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        if (Cell == null)
-        {
-            return;
-        }
-
-        ValidateMargin(MarginTopCentimeters, nameof(MarginTopCentimeters));
-        ValidateMargin(MarginBottomCentimeters, nameof(MarginBottomCentimeters));
-        ValidateMargin(MarginLeftCentimeters, nameof(MarginLeftCentimeters));
-        ValidateMargin(MarginRightCentimeters, nameof(MarginRightCentimeters));
-
+    protected override void ProcessRecord() {
+        if (Cell == null) throw new PSArgumentNullException(nameof(Cell));
+        ValidateMargin(MarginTop, nameof(MarginTop)); ValidateMargin(MarginBottom, nameof(MarginBottom));
+        ValidateMargin(MarginLeft, nameof(MarginLeft)); ValidateMargin(MarginRight, nameof(MarginRight));
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Text))) Cell.AddParagraph(Text ?? string.Empty, removeExistingParagraphs: true);
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginTopCentimeters))) Cell.MarginTop= ((MarginTopCentimeters) is { } wordLength6025 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6025) : (global::OfficeIMO.OfficeLength?)null);
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginBottomCentimeters))) Cell.MarginBottom= ((MarginBottomCentimeters) is { } wordLength6165 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6165) : (global::OfficeIMO.OfficeLength?)null);
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginLeftCentimeters))) Cell.MarginLeft= ((MarginLeftCentimeters) is { } wordLength6304 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6304) : (global::OfficeIMO.OfficeLength?)null);
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginRightCentimeters))) Cell.MarginRight= ((MarginRightCentimeters) is { } wordLength6443 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6443) : (global::OfficeIMO.OfficeLength?)null);
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingFillColor))) Cell.ShadingFillValue = ShadingFillColor ?? string.Empty;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginTop))) Cell.MarginTop = MarginTop;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginBottom))) Cell.MarginBottom = MarginBottom;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginLeft))) Cell.MarginLeft = MarginLeft;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginRight))) Cell.MarginRight = MarginRight;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(BackgroundColor))) Cell.ShadingFillColor = BackgroundColor;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingPattern))) Cell.ShadingPattern = ShadingPattern;
-        bool hasWidth = MyInvocation.BoundParameters.ContainsKey(nameof(Width));
-        bool hasWidthType = MyInvocation.BoundParameters.ContainsKey(nameof(WidthType));
-        if (hasWidth || hasWidthType) {
-            if ((hasWidth && !Width.HasValue) || (hasWidthType && !WidthType.HasValue)) {
-                Cell.Width = null;
-            } else {
-                WordTableWidth? current = Cell.Width;
-                WordTableWidthKind kind = hasWidthType ? WidthType!.Value switch {
-                    WordTableWidthUnit.Dxa => WordTableWidthKind.Length,
-                    WordTableWidthUnit.Pct => WordTableWidthKind.Percent,
-                    WordTableWidthUnit.Nil => WordTableWidthKind.Nil,
-                    _ => WordTableWidthKind.Auto
-                } : current?.Kind ?? WordTableWidthKind.Length;
-                int width = hasWidth ? Width!.Value : current?.ToNativeValue() ?? 0;
-                Cell.Width = kind switch {
-                    WordTableWidthKind.Length => WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)width * 635))),
-                    WordTableWidthKind.Percent => WordTableWidth.Percent(width / 50d),
-                    WordTableWidthKind.Nil => WordTableWidth.Nil,
-                    _ => WordTableWidth.Auto
-                };
-            }
-        }
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Width))) Cell.Width = Width.HasValue ? WordTableWidth.Length(Width.Value) : null;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(WidthPercent))) Cell.Width = WidthPercent.HasValue ? WordTableWidth.Percent(WidthPercent.Value) : null;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(TextDirection))) Cell.TextDirection = TextDirection;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(WrapText))) Cell.WrapText = WrapText ?? false;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(FitText))) Cell.FitText = FitText ?? false;
-        if (MergeRight.HasValue) Cell.MergeHorizontally(MergeRight.Value, CopyParagraphs.IsPresent);
-        if (MergeDown.HasValue) Cell.MergeVertically(MergeDown.Value, CopyParagraphs.IsPresent);
+        if (BoundSwitch(nameof(NoWrap)) is bool noWrap) Cell.WrapText = !noWrap;
+        if (BoundSwitch(nameof(FitText)) is bool fit) Cell.FitText = fit;
+        if (MergeRight.HasValue) Cell.MergeHorizontally(MergeRight.Value, CopyParagraphs);
+        if (MergeDown.HasValue) Cell.MergeVertically(MergeDown.Value, CopyParagraphs);
         if (SplitHorizontal.HasValue) Cell.SplitHorizontally(SplitHorizontal.Value);
         if (SplitVertical.HasValue) Cell.SplitVertically(SplitVertical.Value);
-
-        if (PassThru.IsPresent)
-        {
-            WriteObject(Cell);
-        }
+        if (PassThru) WriteObject(Cell);
     }
-
-    private static void ValidateMargin(double? value, string name)
-    {
-        // OfficeIMO stores cell margins as signed 16-bit twips. Null removes an override.
-        if (value.HasValue && (double.IsNaN(value.Value) || value.Value < 0 || value.Value > 57.7))
-        {
-            throw new PSArgumentOutOfRangeException(name, value, "Cell margins must be between 0 and 57.7 centimeters, or null.");
-        }
+    private static void ValidateMargin(OfficeLength? value, string name) {
+        if (value.HasValue && (value.Value < OfficeLength.Zero || value.Value.ToTwips() > short.MaxValue))
+            throw new PSArgumentOutOfRangeException(name, value, "Cell margins must fit non-negative signed 16-bit twips.");
     }
 }

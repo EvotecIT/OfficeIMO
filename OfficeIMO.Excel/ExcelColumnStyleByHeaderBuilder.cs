@@ -89,150 +89,117 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelColumnStyleByHeaderBuilder Text() => ApplyFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Text));
 
-        /// <summary>
-        /// Applies a custom number format string.
-        /// </summary>
-        /// <param name="format">Number format pattern.</param>
-        public ExcelColumnStyleByHeaderBuilder NumberFormat(string format) => ApplyFormat(format);
+        /// <summary>Applies a custom number format without materializing a pending direct tabular export.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetNumberFormat(string format) => ApplyFormat(format);
 
-        /// <summary>
-        /// Makes all cells in the column bold.
-        /// </summary>
-        public ExcelColumnStyleByHeaderBuilder Bold() {
-            for (int r = _startRow; r <= _endRow; r++)
-                _sheet.CellBold(r, _colIndex, bold: true);
-            return this;
-        }
+        /// <summary>Sets or clears bold text.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetBold(bool bold = true) =>
+            Apply((row, column) => _sheet.CellBold(row, column, bold));
 
-        /// <summary>
-        /// Applies a solid background fill to the column. Accepts #RRGGBB or #AARRGGBB.
-        /// </summary>
-        public ExcelColumnStyleByHeaderBuilder Background(string hexColor) {
-            for (int r = _startRow; r <= _endRow; r++)
-                _sheet.CellBackground(r, _colIndex, hexColor);
-            return this;
-        }
+        /// <summary>Sets or clears italic text.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetItalic(bool italic = true) =>
+            Apply((row, column) => _sheet.CellItalic(row, column, italic));
 
-        /// <summary>
-        /// Applies a solid background fill to the column using an OfficeIMO color.
-        /// </summary>
-        /// <param name="color">Fill color.</param>
-        public ExcelColumnStyleByHeaderBuilder Background(OfficeIMO.OfficeColor color) {
-            for (int r = _startRow; r <= _endRow; r++)
-                _sheet.CellBackground(r, _colIndex, color);
-            return this;
-        }
+        /// <summary>Applies single underline.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetUnderline() => SetUnderline(true);
 
-        /// <summary>Aligns text left in the column.</summary>
-        public ExcelColumnStyleByHeaderBuilder AlignLeft() {
-            for (int r = _startRow; r <= _endRow; r++)
-                _sheet.CellAlign(r, _colIndex, ExcelHorizontalAlignment.Left);
-            return this;
-        }
+        /// <summary>Sets or clears single underline.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetUnderline(bool underline) =>
+            Apply((row, column) => _sheet.CellUnderline(row, column, underline));
 
-        /// <summary>Centers text in the column.</summary>
-        public ExcelColumnStyleByHeaderBuilder AlignCenter() {
-            for (int r = _startRow; r <= _endRow; r++)
-                _sheet.CellAlign(r, _colIndex, ExcelHorizontalAlignment.Center);
-            return this;
-        }
+        /// <summary>Sets the native Excel underline style.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetUnderline(ExcelUnderlineStyle underlineStyle) =>
+            Apply((row, column) => _sheet.CellUnderline(row, column, underlineStyle));
 
-        /// <summary>Aligns text right in the column.</summary>
-        public ExcelColumnStyleByHeaderBuilder AlignRight() {
-            for (int r = _startRow; r <= _endRow; r++)
-                _sheet.CellAlign(r, _colIndex, ExcelHorizontalAlignment.Right);
-            return this;
-        }
+        /// <summary>Sets or clears strikethrough.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetStrikethrough(bool strikethrough = true) =>
+            Apply((row, column) => _sheet.CellStrikethrough(row, column, strikethrough));
 
-        /// <summary>Sets font color using hex (#RRGGBB or #AARRGGBB).</summary>
-        public ExcelColumnStyleByHeaderBuilder FontColor(string hexColor) {
-            for (int r = _startRow; r <= _endRow; r++)
-                _sheet.CellFontColor(r, _colIndex, hexColor);
-            return this;
-        }
+        /// <summary>Sets the typeface family name.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetFontFamily(string fontFamily) =>
+            Apply((row, column) => _sheet.CellFontName(row, column, fontFamily));
 
-        /// <summary>
-        /// Sets font colors by matching cell text to a provided mapping of text→hex color.
-        /// </summary>
-        public ExcelColumnStyleByHeaderBuilder FontColorByTextMap(System.Collections.Generic.IDictionary<string, string> map, bool caseInsensitive = true) {
-            if (map == null || map.Count == 0) return this;
-            var dict = caseInsensitive ? new System.Collections.Generic.Dictionary<string, string>(map, System.StringComparer.OrdinalIgnoreCase)
-                                       : new System.Collections.Generic.Dictionary<string, string>(map);
-            for (int r = _startRow; r <= _endRow; r++) {
-                if (_sheet.TryGetCellText(r, _colIndex, out var value) && !string.IsNullOrEmpty(value) && dict.TryGetValue(value, out var color)) {
-                    _sheet.CellFontColor(r, _colIndex, color);
-                }
-            }
-            return this;
-        }
+        /// <summary>Sets a positive physical font size.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetFontSize(OfficeLength fontSize) =>
+            Apply((row, column) => _sheet.CellFontSize(row, column, fontSize));
 
-        /// <summary>
-        /// Applies a background fill to cells in this column when their text equals the specified value.
-        /// Comparison is case-insensitive by default.
-        /// </summary>
-        public ExcelColumnStyleByHeaderBuilder BackgroundWhenTextEquals(string text, string hexColor, bool caseInsensitive = true) {
-            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(hexColor)) return this;
-            var comparison = caseInsensitive ? System.StringComparison.OrdinalIgnoreCase : System.StringComparison.Ordinal;
-            for (int r = _startRow; r <= _endRow; r++) {
-                if (_sheet.TryGetCellText(r, _colIndex, out var value)) {
-                    if (string.Equals(value, text, comparison))
-                        _sheet.CellBackground(r, _colIndex, hexColor);
-                }
-            }
-            return this;
-        }
+        /// <summary>Sets the literal or theme-based text color.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetColor(OfficeColor color) =>
+            Apply((row, column) => _sheet.CellFontColor(row, column, color));
 
-        /// <summary>
-        /// Applies background fills to cells based on a text→color mapping.
-        /// Keys are compared case-insensitively by default.
-        /// </summary>
-        public ExcelColumnStyleByHeaderBuilder BackgroundByTextMap(System.Collections.Generic.IDictionary<string, string> map, bool caseInsensitive = true) {
-            if (map == null || map.Count == 0) return this;
-            var dict = caseInsensitive ? new System.Collections.Generic.Dictionary<string, string>(map, System.StringComparer.OrdinalIgnoreCase)
-                                       : new System.Collections.Generic.Dictionary<string, string>(map);
-            for (int r = _startRow; r <= _endRow; r++) {
-                if (_sheet.TryGetCellText(r, _colIndex, out var value) && !string.IsNullOrEmpty(value) && dict.TryGetValue(value, out var color)) {
-                    _sheet.CellBackground(r, _colIndex, color);
-                }
-            }
-            return this;
-        }
+        /// <summary>Sets the literal or theme-based solid fill color.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetFillColor(OfficeColor color) =>
+            Apply((row, column) => _sheet.CellBackground(row, column, color));
 
-        /// <summary>
-        /// Overload that accepts OfficeIMO colors for convenience.
-        /// </summary>
-        public ExcelColumnStyleByHeaderBuilder BackgroundByTextMap(System.Collections.Generic.IDictionary<string, OfficeIMO.OfficeColor> map, bool caseInsensitive = true) {
-            if (map == null || map.Count == 0) return this;
-            var hex = new System.Collections.Generic.Dictionary<string, string>(caseInsensitive ? System.StringComparer.OrdinalIgnoreCase : System.StringComparer.Ordinal);
-            foreach (var kv in map)
-                hex[kv.Key] = OfficeIMO.Excel.ExcelColor.ToArgbHex(kv.Value);
-            return BackgroundByTextMap(hex, caseInsensitive);
-        }
+        /// <summary>Sets horizontal alignment.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetHorizontalAlignment(ExcelHorizontalAlignment alignment) =>
+            Apply((row, column) => _sheet.CellAlign(row, column, alignment));
 
-        /// <summary>
-        /// Makes the cell bold when its text equals the specified value.
-        /// </summary>
-        public ExcelColumnStyleByHeaderBuilder BoldWhenTextEquals(string text, bool caseInsensitive = true) {
+        /// <summary>Sets vertical alignment.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetVerticalAlignment(ExcelVerticalAlignment alignment) =>
+            Apply((row, column) => _sheet.CellVerticalAlign(row, column, alignment));
+
+        /// <summary>Sets baseline, superscript or subscript text alignment.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetVerticalTextAlignment(ExcelVerticalTextAlignment alignment) =>
+            Apply((row, column) => _sheet.CellVerticalTextAlignment(row, column, alignment));
+
+        /// <summary>Sets or clears text wrapping.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetWrapText(bool wrapText = true) =>
+            Apply((row, column) => _sheet.CellWrapText(row, column, wrapText));
+
+        /// <summary>Sets text colors by matching cell text to a color map.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetColorByTextMap(IDictionary<string, OfficeColor> map, bool caseInsensitive = true) =>
+            ApplyColorMap(map, caseInsensitive, (row, column, color) => _sheet.CellFontColor(row, column, color));
+
+        /// <summary>Sets a fill where cell text equals the given value. Comparison is case-insensitive by default.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetFillColorWhenTextEquals(string text, OfficeColor color, bool caseInsensitive = true) {
             if (string.IsNullOrEmpty(text)) return this;
-            var comparison = caseInsensitive ? System.StringComparison.OrdinalIgnoreCase : System.StringComparison.Ordinal;
-            for (int r = _startRow; r <= _endRow; r++) {
-                if (_sheet.TryGetCellText(r, _colIndex, out var value) && string.Equals(value, text, comparison))
-                    _sheet.CellBold(r, _colIndex, true);
-            }
-            return this;
+            var comparison = caseInsensitive ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return Apply((row, column) => {
+                if (_sheet.TryGetCellText(row, column, out var value) && string.Equals(value, text, comparison))
+                    _sheet.CellBackground(row, column, color);
+            });
         }
 
-        /// <summary>
-        /// Makes the cell bold when its text is in the provided set.
-        /// </summary>
-        public ExcelColumnStyleByHeaderBuilder BoldByTextSet(System.Collections.Generic.ISet<string> values, bool caseInsensitive = true) {
+        /// <summary>Sets fill colors by matching cell text to a color map.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetFillColorByTextMap(IDictionary<string, OfficeColor> map, bool caseInsensitive = true) =>
+            ApplyColorMap(map, caseInsensitive, (row, column, color) => _sheet.CellBackground(row, column, color));
+
+        /// <summary>Sets or clears bold where cell text equals the given value.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetBoldWhenTextEquals(string text, bool bold = true, bool caseInsensitive = true) {
+            if (string.IsNullOrEmpty(text)) return this;
+            var comparison = caseInsensitive ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return Apply((row, column) => {
+                if (_sheet.TryGetCellText(row, column, out var value) && string.Equals(value, text, comparison))
+                    _sheet.CellBold(row, column, bold);
+            });
+        }
+
+        /// <summary>Sets or clears bold where cell text is in the given set.</summary>
+        public ExcelColumnStyleByHeaderBuilder SetBoldByTextSet(ISet<string> values, bool bold = true, bool caseInsensitive = true) {
             if (values == null || values.Count == 0) return this;
-            var set = caseInsensitive ? new System.Collections.Generic.HashSet<string>(values, System.StringComparer.OrdinalIgnoreCase)
-                                      : new System.Collections.Generic.HashSet<string>(values);
-            for (int r = _startRow; r <= _endRow; r++) {
-                if (_sheet.TryGetCellText(r, _colIndex, out var value) && !string.IsNullOrEmpty(value) && set.Contains(value))
-                    _sheet.CellBold(r, _colIndex, true);
-            }
+            var set = new HashSet<string>(values, caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+            return Apply((row, column) => {
+                if (_sheet.TryGetCellText(row, column, out var value) && !string.IsNullOrEmpty(value) && set.Contains(value))
+                    _sheet.CellBold(row, column, bold);
+            });
+        }
+
+        private ExcelColumnStyleByHeaderBuilder ApplyColorMap(IDictionary<string, OfficeColor> map, bool caseInsensitive,
+            Action<int, int, OfficeColor> apply) {
+            if (map == null || map.Count == 0) return this;
+            var colors = new Dictionary<string, OfficeColor>(map, caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+            return Apply((row, column) => {
+                if (_sheet.TryGetCellText(row, column, out var value) && !string.IsNullOrEmpty(value) && colors.TryGetValue(value, out var color))
+                    apply(row, column, color);
+            });
+        }
+
+        private ExcelColumnStyleByHeaderBuilder Apply(Action<int, int> apply) {
+            if (_colIndex <= 0 || _startRow > _endRow) return this;
+            _sheet.RangeEdit(() => {
+                for (int row = _startRow; row <= _endRow; row++) apply(row, _colIndex);
+            });
             return this;
         }
     }

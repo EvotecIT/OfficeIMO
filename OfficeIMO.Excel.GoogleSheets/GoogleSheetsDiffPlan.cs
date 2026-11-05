@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     string.Equals(candidate.Name, sheet.Name, StringComparison.OrdinalIgnoreCase));
                 result[$"sheet/{sheet.Name}"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{sheet.Index}|{sheet.Hidden}|{sheet.RightToLeft}|{sheet.ShowGridlines}|{sheet.FrozenRowCount}|{sheet.FrozenColumnCount}|{sheet.TabColorArgb}"));
                 foreach (ExcelCellInfo cell in sheet.Cells) {
-                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{cell.Value}|{cell.Formula}|{StyleFingerprint(cell.Style)}|{HyperlinkFingerprint(cell.Hyperlink)}|{RichTextFingerprint(cell.RichTextRuns)}|{cell.Comment?.Author}|{cell.Comment?.Text}"));
+                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{cell.Value}|{cell.Formula}|{StyleFingerprint(cell.Style)}|{HyperlinkFingerprint(cell.Hyperlink)}|{RichTextFingerprint(document, cell.RichTextRuns)}|{cell.Comment?.Author}|{cell.Comment?.Text}"));
                 }
                 foreach (ExcelRowInfo row in sheet.Rows) {
                     result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/row/{row.Index}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{(row.Height?.PhysicalLength?.ToPoints())}|{row.Hidden}|{row.OutlineLevel}"));
@@ -264,8 +264,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         private static string HyperlinkFingerprint(ExcelHyperlinkInfo? hyperlink) =>
             hyperlink == null ? string.Empty : $"{hyperlink.IsExternal}|{hyperlink.Target}";
 
-        private static string RichTextFingerprint(IReadOnlyList<ExcelRichTextRun> runs) => string.Join("~", runs.Select(run =>
-            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strikethrough}|{run.FontName}|{run.FontSize?.ToPoints()}|{run.FontColor}")));
+        private static string RichTextFingerprint(ExcelDocument document, IReadOnlyList<ExcelRichTextRun> runs) => string.Join("~", runs.Select(run =>
+            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strikethrough}|{run.FontFamily}|{run.FontSize?.ToPoints()}|{(run.Color.HasValue ? document.ResolveColor(run.Color.Value)?.ToArgbHex() : null)}")));
 
         private static string Hash(string value) {
             using SHA256 sha = SHA256.Create();

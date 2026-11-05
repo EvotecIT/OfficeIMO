@@ -19,7 +19,7 @@ public class CsvStreamingTests
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Async." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Id", "Name")
                 .AddRow(1, "Alice")
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });
@@ -40,7 +40,7 @@ public class CsvStreamingTests
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Async." + Guid.NewGuid().ToString("N") + ".data");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Id", "Name")
                 .AddRow(1, "Alice")
                 .Save(path, new CsvSaveOptions { CompressionType = CsvCompressionType.GZip, NewLine = "\n" });
@@ -63,7 +63,7 @@ public class CsvStreamingTests
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.AsyncBounded." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Id", "Name")
                 .AddRow(1, "Alice")
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });
@@ -224,7 +224,7 @@ public class CsvStreamingTests
         var tempPath = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.StreamingClone." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Id", "Name")
                 .AddRow(1, "Alice")
                 .Save(tempPath, new CsvSaveOptions { NewLine = "\n" });
@@ -561,7 +561,7 @@ public class CsvStreamingTests
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RowFieldSpans." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Name", "Value")
                 .AddRow("Alpha", 1)
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });

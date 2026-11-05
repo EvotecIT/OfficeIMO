@@ -1,6 +1,6 @@
 Search-OfficeDocument `
     -Path '.\Documents' `
-    -Query 'Retention' `
+    -Pattern 'Retention' `
     -Recurse `
-    -AllResults |
+    -MaximumResults 0 |
     Select-Object DocumentType, Path, Match

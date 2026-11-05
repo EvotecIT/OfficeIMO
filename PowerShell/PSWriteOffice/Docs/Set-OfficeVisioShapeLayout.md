@@ -9,9 +9,24 @@ schema: 2.0.0
 Applies OfficeIMO Visio selection layout and layer operations to shapes.
 
 ## SYNTAX
-### __AllParameterSets
+### Alignment (Default)
 ```powershell
-Set-OfficeVisioShapeLayout [[-InputObject] <Object>] [-Page <VisioPage>] [-ShapeId <string[]>] [-Layer <string>] [-AlignHorizontal <VisioHorizontalAlignment>] [-AlignVertical <VisioVerticalAlignment>] [-Distribute <VisioDistributionAxis>] [-Grid] [-HorizontalStack] [-VerticalStack] [-Columns <int>] [-HorizontalSpacing <double>] [-VerticalSpacing <double>] [-PreserveFirstShapeCenter] [-NoRouteInternalConnectors] [-PassThru] [<CommonParameters>]
+Set-OfficeVisioShapeLayout [[-InputObject] <Object>] [-Page <VisioPage>] [-ShapeId <string[]>] [-Layer <string>] [-HorizontalAlignment <VisioHorizontalAlignment>] [-VerticalAlignment <VisioVerticalAlignment>] [-Distribute <VisioDistributionAxis>] [-PassThru] [<CommonParameters>]
+```
+
+### Grid
+```powershell
+Set-OfficeVisioShapeLayout [[-InputObject] <Object>] -Grid [-Page <VisioPage>] [-ShapeId <string[]>] [-Layer <string>] [-Columns <int>] [-HorizontalSpacing <OfficeLength>] [-VerticalSpacing <OfficeLength>] [-PreserveFirstShapeCenter] [-NoRouteInternalConnectors] [-PassThru] [<CommonParameters>]
+```
+
+### HorizontalStack
+```powershell
+Set-OfficeVisioShapeLayout [[-InputObject] <Object>] -HorizontalStack [-Page <VisioPage>] [-ShapeId <string[]>] [-Layer <string>] [-HorizontalSpacing <OfficeLength>] [-NoRouteInternalConnectors] [-PassThru] [<CommonParameters>]
+```
+
+### VerticalStack
+```powershell
+Set-OfficeVisioShapeLayout [[-InputObject] <Object>] -VerticalStack [-Page <VisioPage>] [-ShapeId <string[]>] [-Layer <string>] [-VerticalSpacing <OfficeLength>] [-NoRouteInternalConnectors] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -24,7 +39,7 @@ Applies OfficeIMO Visio selection layout and layer operations to shapes.
 PS> OfficeVisio -Path .\Layout.vsdx {
     VisioRectangle -Key one -Text 'One'
     VisioRectangle -Key two -Text 'Two'
-    VisioLayout -ShapeId one,two -HorizontalStack -HorizontalSpacing 0.4
+    VisioLayout -ShapeId one,two -HorizontalStack -HorizontalSpacing 0.4in
 }
 ```
 
@@ -32,44 +47,12 @@ Resolves keyed shapes and applies a reusable OfficeIMO Visio layout operation.
 
 ## PARAMETERS
 
-### -AlignHorizontal
-Horizontal alignment inside the selected shapes' bounds.
-
-```yaml
-Type: VisioHorizontalAlignment
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values: Left, Center, Right
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AlignVertical
-Vertical alignment inside the selected shapes' bounds.
-
-```yaml
-Type: VisioVerticalAlignment
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values: Bottom, Middle, Top
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Columns
 Grid column count. Zero lets OfficeIMO choose a near-square grid.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Grid
 Aliases: None
 Possible values:
 
@@ -85,7 +68,7 @@ Distribute selected shapes along an axis.
 
 ```yaml
 Type: VisioDistributionAxis
-Parameter Sets: __AllParameterSets
+Parameter Sets: Alignment
 Aliases: None
 Possible values: Horizontal, Vertical
 
@@ -101,9 +84,25 @@ Lay out selected shapes as a grid.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Grid
 Aliases: None
 Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -HorizontalAlignment
+Horizontal alignment inside the selected shapes' bounds.
+
+```yaml
+Type: VisioHorizontalAlignment
+Parameter Sets: Alignment
+Aliases: None
+Possible values: Left, Center, Right
 
 Required: False
 Position: named
@@ -113,11 +112,11 @@ Accept wildcard characters: False
 ```
 
 ### -HorizontalSpacing
-Horizontal spacing in inches for grid/stack layout.
+Horizontal spacing; a number means points for grid/stack layout.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Grid, HorizontalStack
 Aliases: None
 Possible values:
 
@@ -133,11 +132,11 @@ Lay out selected shapes as a horizontal stack.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: HorizontalStack
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -149,7 +148,7 @@ Shapes, shape selections, or shape keys/ids to arrange.
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Alignment, Grid, HorizontalStack, VerticalStack
 Aliases: None
 Possible values:
 
@@ -165,7 +164,7 @@ Add selected shapes to this layer.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Alignment, Grid, HorizontalStack, VerticalStack
 Aliases: None
 Possible values:
 
@@ -181,7 +180,7 @@ Do not reroute internal connectors during OfficeIMO relayout.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Grid, HorizontalStack, VerticalStack
 Aliases: None
 Possible values:
 
@@ -197,7 +196,7 @@ Page that owns the shapes. Optional inside OfficeVisio/VisioPage DSL scopes.
 
 ```yaml
 Type: VisioPage
-Parameter Sets: __AllParameterSets
+Parameter Sets: Alignment, Grid, HorizontalStack, VerticalStack
 Aliases: None
 Possible values:
 
@@ -213,7 +212,7 @@ Emit arranged shapes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Alignment, Grid, HorizontalStack, VerticalStack
 Aliases: None
 Possible values:
 
@@ -229,7 +228,7 @@ Use the first selected shape as the grid origin instead of preserving the select
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Grid
 Aliases: None
 Possible values:
 
@@ -245,7 +244,7 @@ Shape keys or ids to resolve on the target page.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Alignment, Grid, HorizontalStack, VerticalStack
 Aliases: None
 Possible values:
 
@@ -256,12 +255,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -VerticalSpacing
-Vertical spacing in inches for grid/stack layout.
+### -VerticalAlignment
+Vertical alignment inside the selected shapes' bounds.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: VisioVerticalAlignment
+Parameter Sets: Alignment
+Aliases: None
+Possible values: Bottom, Middle, Top
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -VerticalSpacing
+Vertical spacing; a number means points for grid/stack layout.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Grid, VerticalStack
 Aliases: None
 Possible values:
 
@@ -277,11 +292,11 @@ Lay out selected shapes as a vertical stack.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: VerticalStack
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False

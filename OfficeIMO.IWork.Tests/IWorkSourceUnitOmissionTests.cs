@@ -169,21 +169,21 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static IWorkConversionReport ConvertUnitReport(Stream package, IWorkDocumentKind kind, bool visual = true,
-        IWorkReadOptions? readOptions = null) {
+        IWorkLoadOptions? readOptions = null) {
         var options = new IWorkConversionOptions {
             Mode = visual ? IWorkConversionMode.VisualOnly : IWorkConversionMode.Auto,
             AllowPartialEditableReconstruction = !visual,
             RequireCompleteVisualCoverage = false
         };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages, readOptions).ToWordResult(options);
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages, readOptions).ToWordResult(options);
             return result.Report;
         }
         if (kind == IWorkDocumentKind.Numbers) {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, readOptions).ToExcelResult(options);
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers, readOptions).ToExcelResult(options);
             return result.Report;
         }
-        using var keynote = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote, readOptions).ToPowerPointResult(options);
+        using var keynote = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote, readOptions).ToPowerPointResult(options);
         return keynote.Report;
     }
 }

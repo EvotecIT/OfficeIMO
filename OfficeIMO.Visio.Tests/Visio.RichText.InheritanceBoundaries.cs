@@ -146,7 +146,7 @@ public sealed class VisioTextInheritanceBoundaryTests {
             XElement painted = Assert.Single(XElement.Parse(page.ToSvg()).Descendants(), e => e.Name.LocalName == "text");
             double points = double.Parse((string)painted.Attribute("font-size")!, System.Globalization.CultureInfo.InvariantCulture) * 72 / 96;
             Assert.InRange(points, (character ? connector ? 9D : 10D : 18D) - .001, (character ? connector ? 9D : 10D : 18D) + .001);
-            _ = page.ToPng(new VisioPngSaveOptions { Supersampling = 1 });
+            _ = page.ToImage(new VisioImageExportOptions { Supersampling = 1 });
             if (character) Assert.DoesNotContain(page.ExportImage(OfficeImageExportFormat.Svg).Diagnostics,
                 diagnostic => diagnostic.Message.Contains("Deleted cached font"));
             Assert.Equal(before, candidate.ToLegacyXmlResult().Value);

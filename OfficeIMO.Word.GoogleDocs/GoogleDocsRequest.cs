@@ -171,7 +171,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         /// <summary>Gets or sets underline formatting.</summary>
         public bool Underline { get; set; }
         /// <summary>Gets or sets strikethrough formatting.</summary>
-        public bool Strike { get; set; }
+        public bool Strikethrough { get; set; }
         /// <summary>Gets or sets the font size.</summary>
         public int? FontSize { get; set; }
         /// <summary>Gets or sets the font family.</summary>

@@ -17,8 +17,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example><summary>Place a reusable visual in an existing paragraph.</summary>
 /// <code>$visual | WordImage -Paragraph $paragraph -Width 12cm -Title 'Availability' -PassThru</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordImage", DefaultParameterSetName = "Path")]
-[Alias("WordImage")]
 [OutputType(typeof(WordImage))]
+[Alias("WordImage") ]
 public sealed class AddOfficeWordImageCommand : OfficeVisualCommandBase {
     /// <summary>Literal local image path.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path"), ValidateNotNullOrEmpty]

@@ -1,42 +1,33 @@
 using Color = OfficeIMO.OfficeColor;
+using SpreadsheetColor = DocumentFormat.OpenXml.Spreadsheet.Color;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelColor {
-        /// <summary>Creates a native SpreadsheetML color, retaining supported theme slots. Callers must resolve status roles against their theme first.</summary>
-        internal static DocumentFormat.OpenXml.Spreadsheet.Color ToSpreadsheetColor(Color color) {
-            uint? themeIndex = color.ThemeSlot switch {
-                "lt1" => 0U,
-                "dk1" => 1U,
-                "lt2" => 2U,
-                "dk2" => 3U,
-                "accent1" => 4U,
-                "accent2" => 5U,
-                "accent3" => 6U,
-                "accent4" => 7U,
-                "accent5" => 8U,
-                "accent6" => 9U,
-                _ => null
-            };
-            return themeIndex.HasValue
-                ? new DocumentFormat.OpenXml.Spreadsheet.Color { Theme = themeIndex.Value }
-                : new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = ToArgbHex(color) };
+        /// <summary>Creates a native SpreadsheetML color, retaining theme slots and requiring a known palette for status roles.</summary>
+        internal static SpreadsheetColor ToSpreadsheetColor(Color color, OfficeTheme? theme = null) {
+            uint? index = OfficeOpenXmlThemeColorResolver.GetSpreadsheetThemeColorIndex(color.ThemeSlot);
+            return index.HasValue
+                ? new SpreadsheetColor { Theme = index.Value }
+                : new SpreadsheetColor { Rgb = (theme != null ? color.Resolve(theme) : color).ToArgbHex() };
         }
 
-        /// <summary>
-        /// Converts OfficeIMO color to ARGB hex string expected by Spreadsheet colors (AARRGGBB, uppercase).
-        /// </summary>
-        public static string ToArgbHex(Color color) {
-            var hex = color.ToHex().ToUpperInvariant(); // RRGGBBAA or RRGGBB
-            if (hex.Length >= 8) {
-                string rrggbb = hex.Substring(0, 6);
-                string aa = hex.Substring(6, 2);
-                return aa + rrggbb;
+        /// <summary>Projects rich-run colors, preserving unmodified native roles and interpreting native literals as ARGB.</summary>
+        internal static Color? FromSpreadsheetColor(SpreadsheetColor? color, string? resolvedArgb) {
+            if (color?.Theme?.Value is uint index && (color.Tint?.Value ?? 0D) == 0D) {
+                Color? role = index switch {
+                    0U => Color.Background, 1U => Color.Text, 3U => Color.TextMuted,
+                    4U => Color.Accent1, 5U => Color.Accent2, 6U => Color.Accent3,
+                    7U => Color.Accent4, 8U => Color.Accent5, 9U => Color.Accent6, _ => null
+                };
+                if (role.HasValue) return role;
             }
-            if (hex.Length == 6) {
-                return "FF" + hex;
-            }
-            return "FFFFFFFF";
+            string? argb = resolvedArgb ?? color?.Rgb?.Value;
+            if (string.IsNullOrWhiteSpace(argb)) return null;
+            argb = argb!.TrimStart('#');
+            return Color.ParseHex(argb.Length == 8 ? argb.Substring(2) + argb.Substring(0, 2) : argb);
         }
+
+        /// <summary>Converts a literal color to native AARRGGBB, distinct from the Core RRGGBBAA projection.</summary>
+        public static string ToArgbHex(Color color) => color.ToArgbHex();
     }
 }
-

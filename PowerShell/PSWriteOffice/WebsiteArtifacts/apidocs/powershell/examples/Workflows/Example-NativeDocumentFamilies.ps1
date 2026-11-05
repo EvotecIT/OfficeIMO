@@ -17,7 +17,7 @@ $project = New-OfficeProject -Name 'Handbook delivery' -StartDate '2026-10-20 08
 try {
     $draft = $project | Add-OfficeProjectTask -Name Draft -DurationDays 3 -PassThru
     $review = $project | Add-OfficeProjectTask -Name Review -DurationDays 2 -PassThru
-    $project | Add-OfficeProjectDependency -PredecessorUid $draft.Uid -SuccessorUid $review.Uid
+    $project | Add-OfficeProjectDependency -Predecessor $draft -Successor $review
     $project | Invoke-OfficeProjectSchedule -Apply | Out-Null
     $project | Save-OfficeProject -Path (Join-Path $OutputDirectory 'delivery.xml')
     if ($PSVersionTable.PSVersion.Major -ge 7) {

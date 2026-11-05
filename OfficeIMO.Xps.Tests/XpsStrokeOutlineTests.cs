@@ -193,7 +193,7 @@ public sealed class XpsStrokeOutlineTests {
 
     internal static XpsDocument Create(XpsFormat format, string geometry, string startCap, string endCap,
         string dashCap, string? dashes = null, double miterLimit = 10, string color = "#FF0000FF") {
-        var doc = XpsDocument.Create(format); var page = doc.AddPage(200,160).AddPath(geometry, null, color, 20);
+        var doc = XpsDocument.Create(format); var page = doc.AddPage(200,160).AddPath(geometry, null, color, 20).Page;
         var xml = page.GetMarkup(); var path = xml.Elements().Single();
         path.SetAttributeValue("StrokeStartLineCap", startCap); path.SetAttributeValue("StrokeEndLineCap", endCap);
         path.SetAttributeValue("StrokeDashCap", dashCap); path.SetAttributeValue("StrokeMiterLimit", miterLimit);

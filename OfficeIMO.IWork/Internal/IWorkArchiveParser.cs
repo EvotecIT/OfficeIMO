@@ -7,10 +7,10 @@ internal sealed class IWorkObjectIndex {
     private readonly Dictionary<IWorkArchiveRecord, IWorkWireMessage> _messages;
     private readonly Dictionary<IWorkArchiveRecord, InvalidDataException> _malformedMessages;
     private readonly object _messageLock;
-    private readonly IWorkReadOptions _options;
+    private readonly IWorkLoadOptions _options;
     private readonly CancellationToken _cancellationToken;
 
-    internal IWorkObjectIndex(IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options,
+    internal IWorkObjectIndex(IReadOnlyList<IWorkArchiveRecord> records, IWorkLoadOptions options,
         CancellationToken cancellationToken = default) {
         _options = options;
         _cancellationToken = cancellationToken;
@@ -169,7 +169,7 @@ internal sealed class IWorkObjectIndex {
 
 internal static class IWorkArchiveParser {
     internal static IReadOnlyList<IWorkArchiveRecord> Parse(IReadOnlyList<IWorkPackageEntry> entries,
-        IWorkReadOptions options, CancellationToken cancellationToken = default) {
+        IWorkLoadOptions options, CancellationToken cancellationToken = default) {
         var records = new List<IWorkArchiveRecord>();
         long totalDecompressedBytes = 0;
         int archiveReferenceCount = 0;
@@ -194,7 +194,7 @@ internal static class IWorkArchiveParser {
         && path.EndsWith(".iwa", StringComparison.OrdinalIgnoreCase);
 
     private static void ParseStream(byte[] stream, string entryPath, List<IWorkArchiveRecord> records,
-        IWorkReadOptions options, ref int archiveReferenceCount, CancellationToken cancellationToken) {
+        IWorkLoadOptions options, ref int archiveReferenceCount, CancellationToken cancellationToken) {
         int offset = 0;
         while (offset < stream.Length) {
             cancellationToken.ThrowIfCancellationRequested();

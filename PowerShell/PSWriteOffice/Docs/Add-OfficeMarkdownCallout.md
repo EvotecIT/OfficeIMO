@@ -11,12 +11,12 @@ Adds a Markdown callout block.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficeMarkdownCallout [-Kind] <string> [-Title] <string> [-Body] <string> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownCallout [-Kind] <string> [-Title] <string> [-Text] <string> [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficeMarkdownCallout [-Kind] <string> [-Title] <string> [-Body] <string> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownCallout [-Kind] <string> [-Title] <string> [-Text] <string> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -28,30 +28,14 @@ Adds a Markdown callout block.
 ```powershell
 PS> New-OfficeMarkdown -Path .\ReleaseNotes.md {
     Add-OfficeMarkdownHeading -Level 1 -Text 'Release notes'
-    Add-OfficeMarkdownCallout -Kind 'note' -Title 'Validation' -Body 'Artifacts were generated from deterministic example data.'
-    Add-OfficeMarkdownCallout -Kind 'warning' -Title 'Manual step' -Body 'Open the workbook in desktop Excel before publishing pivots.'
+    Add-OfficeMarkdownCallout -Kind 'note' -Title 'Validation' -Text 'Artifacts were generated from deterministic example data.'
+    Add-OfficeMarkdownCallout -Kind 'warning' -Title 'Manual step' -Text 'Open the workbook in desktop Excel before publishing pivots.'
 }
 ```
 
 Appends callout blocks while composing a Markdown report.
 
 ## PARAMETERS
-
-### -Body
-Callout body text.
-
-```yaml
-Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: 2
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -Document
 Markdown document to update outside the DSL context.
@@ -96,6 +80,22 @@ Possible values:
 
 Required: False
 Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Text
+Callout body text.
+
+```yaml
+Type: String
+Parameter Sets: Context, Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: 2
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

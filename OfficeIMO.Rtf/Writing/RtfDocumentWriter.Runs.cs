@@ -30,8 +30,8 @@ internal static partial class RtfDocumentWriter {
             builder.Append(' ');
             state.UnderlineStyle = run.UnderlineStyle;
         }
-        Toggle(builder, @"\strike", run.Strike, ref state.Strike);
-        Toggle(builder, @"\striked", run.DoubleStrike, ref state.DoubleStrike);
+        Toggle(builder, @"\strike", run.Strikethrough, ref state.Strikethrough);
+        Toggle(builder, @"\striked", run.DoubleStrikethrough, ref state.DoubleStrikethrough);
         if (state.PreserveStyleInheritance) AppendOptionalBinary(builder, @"\v", run.DirectHidden);
         else Toggle(builder, @"\v", run.Hidden, ref state.Hidden);
         Toggle(builder, @"\outl", run.Outline, ref state.Outline);
@@ -236,8 +236,8 @@ internal static partial class RtfDocumentWriter {
         if (state.Bold) builder.Append(@"\b0 ");
         if (state.Italic) builder.Append(@"\i0 ");
         if (state.UnderlineStyle != RtfUnderlineStyle.None) builder.Append(@"\ulnone ");
-        if (state.Strike) builder.Append(@"\strike0 ");
-        if (state.DoubleStrike) builder.Append(@"\striked0 ");
+        if (state.Strikethrough) builder.Append(@"\strike0 ");
+        if (state.DoubleStrikethrough) builder.Append(@"\striked0 ");
         if (state.Hidden) builder.Append(@"\v0 ");
         if (state.Outline) builder.Append(@"\outl0 ");
         if (state.Shadow) builder.Append(@"\shad0 ");
@@ -277,8 +277,8 @@ internal static partial class RtfDocumentWriter {
         public bool Bold;
         public bool Italic;
         public RtfUnderlineStyle UnderlineStyle;
-        public bool Strike;
-        public bool DoubleStrike;
+        public bool Strikethrough;
+        public bool DoubleStrikethrough;
         public bool Hidden;
         public bool Outline;
         public bool Shadow;
@@ -315,8 +315,8 @@ internal static partial class RtfDocumentWriter {
             Bold = false;
             Italic = false;
             UnderlineStyle = RtfUnderlineStyle.None;
-            Strike = false;
-            DoubleStrike = false;
+            Strikethrough = false;
+            DoubleStrikethrough = false;
             Hidden = false;
             Outline = false;
             Shadow = false;

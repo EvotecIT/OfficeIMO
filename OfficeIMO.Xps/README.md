@@ -4,6 +4,8 @@ Read, create, edit, and save XPS and OpenXPS documents without Windows desktop A
 or an external conversion process. The package references only `OfficeIMO.Core`.
 `OfficeIMO.Xps.Pdf` provides the optional bridge to the existing PDF engine.
 
+`XpsPage.AddPath`, `AddText` and `AddImage` return the created `XpsVisual`. Keep the page variable for sibling additions. A visual exposes its containing `Page`, detached `GetMarkup()` and validated `ReplaceMarkup()`. Page-wide markup replacement invalidates earlier handles.
+
 ## Read and convert
 
 ```csharp

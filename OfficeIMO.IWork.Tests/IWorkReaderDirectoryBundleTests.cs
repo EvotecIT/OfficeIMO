@@ -19,13 +19,13 @@ public sealed class IWorkReaderDirectoryBundleTests {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
         OfficeDocumentReadResult result = reader.ReadDocument(bundle.Path);
         OfficeDocumentReadResult asynchronous = await reader.ReadDocumentAsync(bundle.Path);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(bundle.Path);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(bundle.Path);
 
         Assert.Equal(ReaderInputKind.IWork, result.Kind);
         Assert.Equal(source.ContainerLengthBytes, result.Source.LengthBytes);
         Assert.Equal(Directory.EnumerateFiles(bundle.Path, "*", SearchOption.AllDirectories)
             .Sum(path => new FileInfo(path).Length), result.Source.LengthBytes);
-        Assert.Equal(IWorkSourceDocument.Open(Fixture(fixture)).ComputePackageContentHash(),
+        Assert.Equal(IWorkSourceDocument.Load(Fixture(fixture)).ComputePackageContentHash(),
             result.Source.SourceHash);
         Assert.Equal(source.ComputePackageContentHash(), result.Source.SourceHash);
         Assert.Equal(result.Source.SourceHash, asynchronous.Source.SourceHash);
@@ -103,7 +103,7 @@ public sealed class IWorkReaderDirectoryBundleTests {
     public void Bundle_input_and_folder_byte_limits_are_enforced_by_the_package_owner() {
         using var bundle = new ExtractedBundle("nim-iwork/simple.pages", ".pages");
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
-        long length = IWorkSourceDocument.Open(bundle.Path).ContainerLengthBytes;
+        long length = IWorkSourceDocument.Load(bundle.Path).ContainerLengthBytes;
         Assert.Throws<InvalidDataException>(() => reader.ReadDocument(bundle.Path,
             new ReaderOptions { MaxInputBytes = length - 1 }));
         ReaderIngestResult skipped = reader.ReadFolderDetailed(bundle.Root,
@@ -165,7 +165,7 @@ public sealed class IWorkReaderDirectoryBundleTests {
                 document.Chunks = Array.Empty<ReaderChunk>();
                 return document;
             })).Build();
-        IWorkSourceDocument source = IWorkSourceDocument.Open(bundle.Path);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(bundle.Path);
         ReaderIngestResult result = reader.ReadFolderDetailed(bundle.Root);
         Assert.Equal(1, calls);
         Assert.Empty(result.Chunks);

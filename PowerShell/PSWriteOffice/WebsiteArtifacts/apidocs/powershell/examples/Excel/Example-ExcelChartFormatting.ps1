@@ -10,13 +10,13 @@ $rows = @(
 
 New-OfficeExcel -Path $path {
     Add-OfficeExcelSheet -Name 'Data' -Content {
-        Add-OfficeExcelTable -Data $rows -Name 'Sales' -AutoFit
+        Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
 
         $chart = Add-OfficeExcelChart -Table 'Sales' -Address A6 -Type Pie -Title 'Revenue Mix' -PassThru
         $chart |
             Set-OfficeExcelChartLegend -Position Right -PassThru |
-            Set-OfficeExcelChartDataLabels -ShowValue $true -ShowPercent $true -Position OutsideEnd -NumberFormat '0.0%' -SourceLinked:$false -PassThru |
-            Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
+            Set-OfficeExcelChartDataLabel -ShowValue:$true -ShowPercent:$true -Position OutsideEnd -NumberFormat '0.0%' -SourceLinked:$false -PassThru |
+            Set-OfficeExcelChart -Style 251 -ColorStyle 10
     }
 }
 

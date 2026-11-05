@@ -8,45 +8,50 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Adds or reuses a worksheet within the current Excel DSL scope.</summary>
 /// <para>Creates the sheet when missing, pushes it onto the DSL stack, and executes the nested script block.</para>
 /// <example>
-///   <summary>Create a sheet named Data.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficeExcel -Path .\report.xlsx { Add-OfficeExcelSheet -Name 'Data' { ExcelCell -Address 'A1' -Value 'Region' } }</code>
-///   <para>Creates a workbook with a worksheet named Data and writes the header “Region”.</para>
+/// <summary>Add a sheet with content</summary>
+/// <code>New-OfficeExcel -Path .\Inventory.xlsx {
+///     ExcelSheet 'Servers' {
+///         ExcelTable (Import-OfficeCsv -Path .\Data\Servers.csv)
+///     }
+/// }</code>
+/// <para>Adds an Inventory sheet and writes a table of servers into it.</para>
 /// </example>
 /// <example>
-///   <summary>Add a worksheet through the workbook pipeline.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
-/// $sheet | Set-OfficeExcelCell -Address A1 -Value 'Region'</code>
-///   <para>Returns the worksheet so subsequent commands can target it directly.</para>
+/// <summary>Create one sheet per department</summary>
+/// <code>$staff = Import-OfficeCsv -Path .\HR\Headcount-2026-10.csv
+/// New-OfficeExcel -Path .\Reports\Headcount.xlsx {
+///     foreach ($group in $staff | Group-Object Department) {
+///         ExcelSheet $group.Name -ValidationMode Sanitize {
+///             ExcelTable ($group.Group | Select-Object Name, Title, Location, StartDate)
+///         }
+///     }
+/// }</code>
+/// <para>Groups the headcount export by department and writes each group to its own sheet, with a cleaned-up name when a department name has characters Excel does not allow.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelSheet", DefaultParameterSetName = ParameterSetContext)]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelSheet", DefaultParameterSetName = "Default")]
 [Alias("ExcelSheet")]
 [OutputType(typeof(ExcelSheet))]
 public sealed class AddOfficeExcelSheetCommand : PSCmdlet
 {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
 
     /// <summary>Workbook that will receive the worksheet.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
     public ExcelDocument? Document { get; set; }
 
     /// <summary>Name of the worksheet to create or reuse. When omitted the last sheet is reused or a default sheet is created.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(ParameterSetName = "Default", Position = 0)]
     public string? Name { get; set; }
 
     /// <summary>Controls how invalid sheet names are handled.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public ExcelSheetNameValidationMode ValidationMode { get; set; } = ExcelSheetNameValidationMode.Sanitize;
 
     /// <summary>Code to execute inside the worksheet context.</summary>
-    [Parameter(Position = 1, ParameterSetName = ParameterSetContext)]
-    [Parameter(Position = 1, ParameterSetName = ParameterSetDocument)]
+    [Parameter(ParameterSetName = "Default", Position = 1)]
     public ScriptBlock? Content { get; set; }
 
     /// <summary>Emit the <see cref="ExcelSheet"/> object after execution.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />

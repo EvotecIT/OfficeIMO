@@ -11,7 +11,7 @@ Creates discoverable page and rendering settings for Export-OfficeWordImage.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeWordImageOptions [-PageIndex <Int32>] [-PageCount <Int32>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficeWordImageOptions [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,29 +21,12 @@ Creates discoverable page and rendering settings for Export-OfficeWordImage.
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeWordImageOptions -PageIndex 0 -PageCount 2 -TargetDpi 144
-Export-OfficeWordImage -Path .\Report.docx -OutputPath .\Pages -Options $options
+$options = New-OfficeWordImageOptions -MaximumRasterPixelCount 10000000
+Export-OfficeDocumentImage -Path ./Report.docx -Page 1-2 -Dpi 144 -OutputDirectory ./Pages -Options $options
 ```
 
-Supplying PageCount selects batch export, so OutputPath is a folder. Use -AllPages on the export command for the complete document.
 
 ## PARAMETERS
-
-### -BackgroundColor
-Background color name or hex value.
-
-```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -MaximumDegreeOfParallelism
 Maximum independent renders processed concurrently.
@@ -157,38 +140,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PageCount
-Maximum pages exported. Supplying this value selects batch export.
-
-```yaml
-Type: Int32
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PageIndex
-Zero-based first page index.
-
-```yaml
-Type: Int32
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -RasterOverflowBehavior
 Reduce or reject oversized raster output.
 
@@ -207,38 +158,6 @@ Accept wildcard characters: False
 
 ### -RenderTimeoutSeconds
 Maximum seconds allowed for one render.
-
-```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Scale
-Output scale multiplier.
-
-```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TargetDpi
-Target output density in dots per inch.
 
 ```yaml
 Type: Double

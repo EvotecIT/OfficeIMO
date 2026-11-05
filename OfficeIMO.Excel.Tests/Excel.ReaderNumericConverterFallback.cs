@@ -23,7 +23,7 @@ public partial class Excel {
             sheet.Cell(1, 1).SetValue("Value");
             sheet.Cell(2, 1).SetValue(1.5d);
             sheet.Cell(3, 1).SetFormula("1+0.5");
-            sheet.ColumnStyleByHeader("Value").NumberFormat(format);
+            sheet.ColumnStyleByHeader("Value").SetNumberFormat(format);
             Assert.Equal(1, document.RecalculateSupportedFormulas());
             document.Save();
         }
@@ -85,7 +85,7 @@ public partial class Excel {
             var sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Value");
             sheet.Cell(2, 1).SetValue(1.5d);
-            sheet.ColumnStyleByHeader("Value").NumberFormat("[h]:mm");
+            sheet.ColumnStyleByHeader("Value").SetNumberFormat("[h]:mm");
             document.Save();
         }
         foreach (bool parallel in new[] { false, true }) {
@@ -124,7 +124,7 @@ public partial class Excel {
             var sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Value");
             for (int row = 2; row <= 4100; row++) sheet.Cell(row, 1).SetValue(row % 2 == 0 ? 1.5d : 60.5d);
-            sheet.ColumnStyleByHeader("Value").NumberFormat(format);
+            sheet.ColumnStyleByHeader("Value").SetNumberFormat(format);
             document.Save();
         }
         using var reader = ExcelDocumentReader.Open(path);

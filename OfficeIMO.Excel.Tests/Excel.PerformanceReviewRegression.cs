@@ -5032,8 +5032,8 @@ namespace OfficeIMO.Tests
                 sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
-                sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
-                sheet.ColumnStyleByHeader("Created").NumberFormat("yyyy-mm-dd hh:mm");
+                sheet.ColumnStyleByHeader("Score").SetNumberFormat("#,##0.000");
+                sheet.ColumnStyleByHeader("Created").SetNumberFormat("yyyy-mm-dd hh:mm");
 
                 document.Save(memory);
 
@@ -5061,7 +5061,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
                 sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
-                sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
+                sheet.ColumnStyleByHeader("Score").SetNumberFormat("#,##0.000");
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
 
@@ -5091,7 +5091,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
                 sheet.WriteData(rows, ("Total   Amount ", row => row.Score));
-                sheet.ColumnStyleByHeader("Total Amount").NumberFormat("0.00");
+                sheet.ColumnStyleByHeader("Total Amount").SetNumberFormat("0.00");
 
                 document.Save(memory);
 
@@ -5125,7 +5125,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.InsertDataSet(dataSet);
                 var sheet = CreateDeferredSheetHandle(document, "South");
-                sheet.ColumnStyleByHeader("Score").NumberFormat("0.00");
+                sheet.ColumnStyleByHeader("Score").SetNumberFormat("0.00");
                 typeof(ExcelDocument).GetField("_directDataSetMetadataSourceSheet", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(document, null);
 
                 document.Save(memory);
@@ -5156,7 +5156,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
                 sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
-                sheet.ColumnStyleByHeader("Score", includeHeader: true).NumberFormat("#,##0.000");
+                sheet.ColumnStyleByHeader("Score", includeHeader: true).SetNumberFormat("#,##0.000");
 
                 document.Save(memory);
             }
@@ -5187,7 +5187,7 @@ namespace OfficeIMO.Tests
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
                 sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
-                sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
+                sheet.ColumnStyleByHeader("Score").SetNumberFormat("#,##0.000");
 
                 document.Save(memory);
 
@@ -5217,7 +5217,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.InsertDataSet(dataSet);
                 var sheet = document.Sheets.First(item => string.Equals(item.Name, "Items", StringComparison.Ordinal));
-                sheet.ColumnStyleByHeader("Score").NumberFormat("0.00");
+                sheet.ColumnStyleByHeader("Score").SetNumberFormat("0.00");
                 table.Rows.Add("Late", 20);
 
                 document.Save(memory);

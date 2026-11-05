@@ -100,7 +100,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         Assert.Contains(deck.Slides[0].TextBoxes, b => ReferenceEquals(b, list));
         using var saved = PowerPointDocument.Load(Save(deck, "authored-frame.pptx"));
         var stored = Assert.Single(saved.Slides[0].TextBoxes, b => b.Text.Contains("Ready", StringComparison.Ordinal));
-        Assert.Equal("127733", stored.FillColor);
+        Assert.Equal(OfficeIMO.OfficeColor.Parse("127733"), stored.FillColor);
         Assert.Equal(PowerPointTextDirection.Vertical, stored.TextDirection);
         using var package = PresentationDocument.Open(Path.Combine(_root, "authored-frame.pptx"), false);
         var shape = Assert.Single(package.PresentationPart!.SlideParts.Single().Slide!.Descendants<DocumentFormat.OpenXml.Presentation.Shape>(),

@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 "Shows layout, charts, tables, images, notes, and transitions.",                introBox);
             intro.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             intro.Color = OfficeColor.Parse("1F4E79");
-            slide1.BackgroundColor = "F7F7F7";
+            slide1.BackgroundColor = OfficeColor.Parse("F7F7F7");
             slide1.Transition = PowerPointSlideTransition.Fade;
 
             // Slide 2: highlights with image
@@ -79,8 +79,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 caption.Color = OfficeColor.Parse("666666");
             } else {
                 PowerPointTextBox placeholder = slide2.AddTextBox("(image placeholder)",mediaBox);
-                placeholder.FillColor = "F3F3F3";
-                placeholder.OutlineColor = "CCCCCC";
+                placeholder.FillColor = OfficeColor.Parse("F3F3F3");
+                placeholder.OutlineColor = OfficeColor.Parse("CCCCCC");
                 placeholder.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
                 placeholder.ApplyTextStyle(PowerPointTextStyle.Body.WithColor(OfficeColor.Parse("777777")));
             }
@@ -97,7 +97,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             kpiTable.ApplyStyle(PowerPointTableStylePreset.Default);
             kpiTable.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(120));
             kpiTable.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(28));
-            for (int c = 0; c < kpiTable.Columns; c++) {
+            for (int c = 0; c < kpiTable.ColumnCount; c++) {
                 PowerPointTableCell header = kpiTable.GetCell(0, c);
                 header.Bold = true;
                 header.HorizontalAlignment = PowerPointTextAlignment.Center;

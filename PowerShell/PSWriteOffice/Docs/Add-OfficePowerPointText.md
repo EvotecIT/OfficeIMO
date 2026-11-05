@@ -11,7 +11,7 @@ Adds a live styled run to the enclosing paragraph or list item, or starts a slid
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Add-OfficePowerPointText [-Text] <string> [-Bold] [-Italic] [-Strikethrough] [-Underline <PowerPointUnderlineStyle>] [-Color <OfficeColor>] [-Highlight <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Link <string>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointText [-Text] <string> [-Bold] [-Italic] [-Strikethrough] [-Underline <PowerPointUnderlineStyle>] [-Color <OfficeColor>] [-Highlight <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Baseline <OfficeTextBaseline>] [-Link <string>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -35,6 +35,22 @@ Type: OfficeAlignment
 Parameter Sets: Text
 Aliases: None
 Possible values: Left, Center, Right, Justify, Start, End
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Baseline
+Normal, superscript or subscript baseline, retaining rich-run positioning.
+
+```yaml
+Type: OfficeTextBaseline
+Parameter Sets: Text
+Aliases: None
+Possible values: Normal, Superscript, Subscript
 
 Required: False
 Position: named

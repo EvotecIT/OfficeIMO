@@ -13,7 +13,7 @@ public partial class Excel {
     [InlineData(0.5d, "0.###%\"[Red]\"", "50%[Red]", false)]
     public void Numeric_format_color_preserves_negative_display_semantics_in_pdf(double value, string format, string expected, bool red) {
         using var workbook = ExcelDocument.Create();
-        workbook.AddSheet("Formats").Cell(1, 1).SetValue(value).SetNumberFormat(format).SetFontColor("0000FF");
+        workbook.AddSheet("Formats").Cell(1, 1).SetValue(value).SetNumberFormat(format).SetColor(global::OfficeIMO.OfficeColor.Parse("0000FF"));
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         byte[] bytes = reopened.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -66,7 +66,7 @@ public partial class Excel {
         ExcelSheet sheet = workbook.AddSheet("Text");
         if (formula) sheet.CellFormulaWithTextCache(1, 1, "=\"" + value + "\"", value);
         else sheet.Cell(1, 1).SetValue(value);
-        sheet.Cell(1, 1).SetNumberFormat(format).SetFontColor("0000FF");
+        sheet.Cell(1, 1).SetNumberFormat(format).SetColor(global::OfficeIMO.OfficeColor.Parse("0000FF"));
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         byte[] bytes = reopened.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

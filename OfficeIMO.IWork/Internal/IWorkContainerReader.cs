@@ -28,7 +28,7 @@ internal sealed class IWorkPackageData {
 }
 
 internal static class IWorkContainerReader {
-    internal static IWorkPackageData Read(string path, IWorkReadOptions options,
+    internal static IWorkPackageData Read(string path, IWorkLoadOptions options,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A source path is required.", nameof(path));
@@ -56,7 +56,7 @@ internal static class IWorkContainerReader {
         return OfficePathIdentity.OpenRegularFileForRead(fullPath, physicalRoot, 81920, share);
     }
 
-    internal static IWorkPackageData Read(Stream stream, IWorkReadOptions options,
+    internal static IWorkPackageData Read(Stream stream, IWorkLoadOptions options,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(stream);
@@ -66,10 +66,10 @@ internal static class IWorkContainerReader {
         return ReadZip(copy, options, cancellationToken);
     }
 
-    internal static IWorkPackageData ReadDirectorySnapshot(string path, IWorkReadOptions options, CancellationToken cancellationToken) =>
+    internal static IWorkPackageData ReadDirectorySnapshot(string path, IWorkLoadOptions options, CancellationToken cancellationToken) =>
         ReadDirectory(path, options, cancellationToken, expandNestedIndex: false);
 
-    private static IWorkPackageData ReadDirectory(string path, IWorkReadOptions options,
+    private static IWorkPackageData ReadDirectory(string path, IWorkLoadOptions options,
         CancellationToken cancellationToken, bool expandNestedIndex = true) {
         using var rootHandle = OfficePathIdentity.OpenDirectoryForIdentity(path,
             out string physicalRoot);
@@ -137,7 +137,7 @@ internal static class IWorkContainerReader {
             sourceFilePaths.ToArray(), containerEntries, physicalRoot);
     }
 
-    private static IWorkPackageData ReadZip(Stream stream, IWorkReadOptions options,
+    private static IWorkPackageData ReadZip(Stream stream, IWorkLoadOptions options,
         CancellationToken cancellationToken) {
         var entries = new Dictionary<string, IWorkPackageEntry>(StringComparer.Ordinal);
         long total = 0;
@@ -158,7 +158,7 @@ internal static class IWorkContainerReader {
     }
 
     private static void ExpandNestedIndex(Dictionary<string, IWorkPackageEntry> entries, ref long total,
-        ref int nodeCount, IWorkReadOptions options, CancellationToken cancellationToken) {
+        ref int nodeCount, IWorkLoadOptions options, CancellationToken cancellationToken) {
         if (!entries.TryGetValue("Index.zip", out IWorkPackageEntry? nested)) return;
         using var stream = new MemoryStream(nested.Bytes, writable: false);
         ValidateZipCentralDirectory(stream, options.MaxEntryCount - nodeCount,
@@ -184,7 +184,7 @@ internal static class IWorkContainerReader {
     }
 
     private static void ReadArchiveEntries(ZipArchive archive, Dictionary<string, IWorkPackageEntry> entries,
-        string? prefix, ref long total, ref int nodeCount, IWorkReadOptions options,
+        string? prefix, ref long total, ref int nodeCount, IWorkLoadOptions options,
         CancellationToken cancellationToken) {
         foreach (ZipArchiveEntry entry in archive.Entries) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -207,14 +207,14 @@ internal static class IWorkContainerReader {
         }
     }
 
-    private static void EnforceEntryCount(ref int count, IWorkReadOptions options) {
+    private static void EnforceEntryCount(ref int count, IWorkLoadOptions options) {
         if (count >= options.MaxEntryCount) {
             throw new InvalidDataException($"Package entry count exceeds the configured limit of {options.MaxEntryCount}.");
         }
         count++;
     }
 
-    private static void EnforceEntryBounds(long length, ref long total, IWorkReadOptions options, string path) {
+    private static void EnforceEntryBounds(long length, ref long total, IWorkLoadOptions options, string path) {
         if (length < 0 || length > options.MaxEntryBytes) {
             throw new InvalidDataException($"Entry {path} has length {length}, above the configured limit of {options.MaxEntryBytes} bytes.");
         }

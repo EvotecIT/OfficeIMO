@@ -17,8 +17,8 @@ public sealed class IWorkPagesTableWritingTests {
             Assert.Equal(artifact.Value.GetProperty("sha256").GetString(),
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
         }
-        Assert.Equal(File.ReadAllBytes(Asset("created")), Example().SaveBytes());
-        var source = IWorkSourceDocument.Open(Asset("nativeEdited"));
+        Assert.Equal(File.ReadAllBytes(Asset("created")), Example().ToBytes());
+        var source = IWorkSourceDocument.Load(Asset("nativeEdited"));
         var projection = source.ReadPages();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         Assert.Equal(2, projection.Tables.Count);
@@ -64,8 +64,8 @@ public sealed class IWorkPagesTableWritingTests {
             document.BodyBlocks.Select(block => block.GetType()));
         Assert.Equal(new[] { "Before 😀", "After" }, document.Paragraphs.Select(paragraph => paragraph.Text));
         Assert.Equal(new[] { "Values", "Empty" }, document.Tables.Select(table => table.Name));
-        byte[] bytes = document.SaveBytes(); Assert.Equal(bytes, Example().SaveBytes());
-        var projection = IWorkSourceDocument.Open(bytes).ReadPages();
+        byte[] bytes = document.ToBytes(); Assert.Equal(bytes, Example().ToBytes());
+        var projection = IWorkSourceDocument.Load(bytes).ReadPages();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         Assert.Equal(2, projection.Tables.Count);
         IWorkTable table = projection.Tables[0];
@@ -81,7 +81,7 @@ public sealed class IWorkPagesTableWritingTests {
         Assert.Equal(4, table.GetPadding(3, 3)!.BottomPoints);
         Assert.Equal(IWorkCellVerticalAlignment.Top, table.GetVerticalAlignment(3, 3));
         Assert.Equal("003366", table.GetParagraphStyle(3, 3)!.TextStyle.Color!.RgbHex);
-        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -105,14 +105,14 @@ public sealed class IWorkPagesTableWritingTests {
         var document = IWorkPagesDocument.Create();
         var data = IWorkTableData.Create(2, 2).SetText(1, 1, "original");
         var table = document.AddTable(data);
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         data.SetText(1, 1, "changed").SetBoolean(2, 2, true);
-        Assert.Equal(bytes, document.SaveBytes()); Assert.Equal("original", Assert.Single(table.Cells).Value);
+        Assert.Equal(bytes, document.ToBytes()); Assert.Equal("original", Assert.Single(table.Cells).Value);
         Assert.Empty(document.Paragraphs); Assert.Same(table, Assert.Single(document.BodyBlocks));
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkPagesBodyBlock>)document.BodyBlocks).Clear());
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkPagesTable>)document.Tables).Clear());
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkTableCell>)table.Cells).Clear());
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -127,7 +127,7 @@ public sealed class IWorkPagesTableWritingTests {
     [InlineData("runs")]
     [InlineData("characters")]
     public void Table_budgets_fail_before_mutating_the_caller_stream(string boundary) {
-        var limits = new IWorkPagesWriteOptions();
+        var limits = new IWorkPagesSaveOptions();
         switch (boundary) {
             case "tables": limits.MaxTables = 1; break;
             case "cells": limits.MaxTableCells = 12; break;
@@ -144,9 +144,9 @@ public sealed class IWorkPagesTableWritingTests {
     public void Limits_count_unset_cells_table_names_and_UTF16_attachment_text_at_the_exact_boundary() {
         var document = IWorkPagesDocument.Create();
         document.AddTable(IWorkTableData.Create(2, 3).SetText(1, 1, "x😀"), "T");
-        Assert.Throws<InvalidDataException>(() => document.SaveBytes(new() { MaxTextCharacters = 5 }));
-        Assert.Throws<InvalidDataException>(() => document.SaveBytes(new() { MaxTableCells = 5 }));
-        var projection = IWorkSourceDocument.Open(document.SaveBytes(new() {
+        Assert.Throws<InvalidDataException>(() => document.ToBytes(new() { MaxTextCharacters = 5 }));
+        Assert.Throws<InvalidDataException>(() => document.ToBytes(new() { MaxTableCells = 5 }));
+        var projection = IWorkSourceDocument.Load(document.ToBytes(new() {
             MaxTextCharacters = 6, MaxTableCells = 6, MaxTables = 1, MaxParagraphs = 1, MaxTextRuns = 1
         })).ReadPages();
         Assert.Equal("x😀", Assert.Single(Assert.Single(projection.Tables).Cells).Value);
@@ -155,15 +155,15 @@ public sealed class IWorkPagesTableWritingTests {
     [Fact]
     public void Invalid_table_names_dimensions_and_limits_preserve_the_document() {
         var document = IWorkPagesDocument.Create(); var data = IWorkTableData.Create(2, 2);
-        document.AddTable(data, "Values"); byte[] bytes = document.SaveBytes();
+        document.AddTable(data, "Values"); byte[] bytes = document.ToBytes();
         Assert.Throws<ArgumentException>(() => document.AddTable(data, "VALUES"));
         Assert.Throws<ArgumentException>(() => document.AddTable(data, "bad\nname"));
         Assert.Throws<ArgumentOutOfRangeException>(() => document.AddTable(data, "Other", columnWidthPoints: float.NaN));
         Assert.Throws<ArgumentException>(() => document.AddTable(data, "Other", columnWidthPoints: 250));
         Assert.Throws<ArgumentException>(() => document.AddTable(data, "Other", rowHeightPoints: 350));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTables = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTableCells = 0 }));
-        Assert.Equal(bytes, document.SaveBytes()); Assert.Single(document.Tables); Assert.Single(document.BodyBlocks);
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToBytes(new() { MaxTables = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToBytes(new() { MaxTableCells = 0 }));
+        Assert.Equal(bytes, document.ToBytes()); Assert.Single(document.Tables); Assert.Single(document.BodyBlocks);
     }
 
     internal static IWorkPagesDocument Example() {

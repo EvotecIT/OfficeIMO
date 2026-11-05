@@ -13,12 +13,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a footnote reference on the current paragraph.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordFootnote", DefaultParameterSetName = "Default")]
-[Alias("WordFootnote")]
 [OutputType(typeof(WordParagraph))]
+[Alias("WordFootnote") ]
 public sealed class AddOfficeWordFootnoteCommand : PSCmdlet
 {
     /// <summary>Footnote text.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Default")]
     public string Text { get; set; } = string.Empty;
 
     /// <summary>Paragraph to receive the footnote reference.</summary>

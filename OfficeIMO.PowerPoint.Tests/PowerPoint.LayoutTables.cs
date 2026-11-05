@@ -30,7 +30,7 @@ public sealed class PowerPointLayoutTableTests {
             Assert.Contains("Service", native.AltText);
             Assert.Contains("Count", native.AltText);
             if (includeHeaders) Assert.Equal("Service", native.GetCell(0, 0).Text);
-            for (int row = includeHeaders ? 1 : 0; row < native.Rows; row++) values.Add(native.GetCell(row, 0).Text);
+            for (int row = includeHeaders ? 1 : 0; row < native.RowCount; row++) values.Add(native.GetCell(row, 0).Text);
         }
         Assert.Equal(Enumerable.Range(1, 7).Select(index => "Service " + index), values);
         Assert.Empty(saved.ValidateDocument());
@@ -89,7 +89,7 @@ public sealed class PowerPointLayoutTableTests {
         options.ApplyTheme = false;
         var compose = System.Threading.Tasks.Task.Run(() => document.Compose(new PowerPointDeckPlan().AddContent("Services", new[] { table }), options));
         Assert.True(compose.Wait(TimeSpan.FromSeconds(30)), "Table pagination did not finish.");
-        Assert.Equal(4, document.Slides.SelectMany(slide => slide.Tables).Sum(native => native.Rows - 1));
+        Assert.Equal(4, document.Slides.SelectMany(slide => slide.Tables).Sum(native => native.RowCount - 1));
     }
 
     [Fact]
@@ -102,10 +102,10 @@ public sealed class PowerPointLayoutTableTests {
         document.Compose(new PowerPointDeckPlan().AddContent("Services", new[] { table }), options);
         var natives = document.Slides.SelectMany(slide => slide.Tables).ToArray();
         Assert.True(natives.Length > 1);
-        Assert.Equal(12, natives.Sum(native => native.Rows - 1));
+        Assert.Equal(12, natives.Sum(native => native.RowCount - 1));
         foreach (var native in natives) {
             double size = native.GetCell(1, 1).Paragraphs[0].Runs[0].FontSize!.Value.ToPoints();
-            Assert.True(native.Height.ToPoints() >= (native.Rows - 1) * 5 * size, "The frame must carry all five lines of each row.");
+            Assert.True(native.Height.ToPoints() >= (native.RowCount - 1) * 5 * size, "The frame must carry all five lines of each row.");
             Assert.True(native.Top.ToPoints() + native.Height.ToPoints() <= 488D, "The table must stay inside the live area.");
         }
     }

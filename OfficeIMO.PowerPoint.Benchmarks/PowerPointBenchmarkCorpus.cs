@@ -47,7 +47,7 @@ internal static class PowerPointBenchmarkCorpus {
     private static void AddSlide(PowerPointDocument presentation,
         int index, int slideCount) {
         PowerPointSlide slide = presentation.AddSlide();
-        slide.BackgroundColor = index % 2 == 0 ? "F8FAFC" : "F1F5F9";
+        slide.BackgroundColor = OfficeColor.Parse(index % 2 == 0 ? "F8FAFC" : "F1F5F9");
 
         PowerPointTextBox title = slide.AddTextBox(
             $"Operational review {index + 1}",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(600),global::OfficeIMO.OfficeLength.Points(40));
@@ -64,8 +64,8 @@ internal static class PowerPointBenchmarkCorpus {
         for (int card = 0; card < 4; card++) {
             PowerPointAutoShape panel = slide.AddRectangle(
                 OfficeIMO.OfficeLength.Points(40 + card * 220), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(190), OfficeIMO.OfficeLength.Points(72), $"Metric {card + 1}");
-            panel.FillColor = colors[(card + index) % colors.Length];
-            panel.OutlineColor = "CBD5E1";
+            panel.FillColor = OfficeColor.Parse(colors[(card + index) % colors.Length]);
+            panel.OutlineColor = OfficeColor.Parse("CBD5E1");
             panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1);
         }
 
@@ -100,7 +100,7 @@ internal static class PowerPointBenchmarkCorpus {
                 cell.Text = values[row, column];
                 if (row == 0) {
                     cell.Bold = true;
-                    cell.FillColor = "DBEAFE";
+                    cell.FillColor = OfficeColor.Parse("DBEAFE");
                 }
             }
         }
@@ -110,8 +110,8 @@ internal static class PowerPointBenchmarkCorpus {
         for (int row = 0; row < 3; row++) {
             PowerPointAutoShape panel = slide.AddRectangle(
                 OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(224 + row * 72), OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(54), $"Detail {row + 1}");
-            panel.FillColor = row % 2 == 0 ? "FFFFFF" : "F8FAFC";
-            panel.OutlineColor = "CBD5E1";
+            panel.FillColor = OfficeColor.Parse(row % 2 == 0 ? "FFFFFF" : "F8FAFC");
+            panel.OutlineColor = OfficeColor.Parse("CBD5E1");
             PowerPointTextBox value = slide.AddTextBox(
                 $"Workstream {row + 1}: checkpoint {index + row + 1}",                global::OfficeIMO.OfficeLength.Points(56),global::OfficeIMO.OfficeLength.Points(239 + row * 72),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(24));
             value.FontSize = global::OfficeIMO.OfficeLength.Points(12);

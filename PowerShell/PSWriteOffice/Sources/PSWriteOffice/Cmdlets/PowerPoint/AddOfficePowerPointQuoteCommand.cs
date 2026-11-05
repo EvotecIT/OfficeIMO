@@ -9,10 +9,10 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Adds a quotation and attribution to the current designed slide.</summary>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointQuote", DefaultParameterSetName = "Text")]
-[Alias("PowerPointQuote")]
+[Alias("PowerPointQuote") ]
 public sealed class AddOfficePowerPointQuoteCommand : OfficeCmdlet {
     /// <summary>Gets or sets the text.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text")]
     public string Text { get; set; } = string.Empty;
     /// <summary>Gets or sets the attribution.</summary>
     [Parameter(Position = 1)]

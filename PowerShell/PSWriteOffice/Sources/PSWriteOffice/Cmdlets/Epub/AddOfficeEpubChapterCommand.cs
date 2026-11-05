@@ -15,8 +15,8 @@ namespace PSWriteOffice.Cmdlets.Epub;
 ///   <code>$book | Add-OfficeEpubChapter -Title Opening -Text "Welcome to this handbook."</code>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeEpubChapter", DefaultParameterSetName = "Text")]
-[Alias("EpubChapter")]
 [OutputType(typeof(EpubManifestItem))]
+[Alias("EpubChapter") ]
 public sealed class AddOfficeEpubChapterCommand : OfficeDocumentCmdlet<EpubPublication> {
     /// <summary>Chapter title.</summary>
     [Parameter(Mandatory = true, Position = 0)]

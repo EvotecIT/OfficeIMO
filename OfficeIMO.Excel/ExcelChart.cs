@@ -308,8 +308,8 @@ namespace OfficeIMO.Excel {
         /// Sets the chart title text style.
         /// </summary>
         public ExcelChart SetTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
-            OfficeColor? color = null, string? fontName = null) {
-            ValidateDataLabelTextStyle(fontSize, color, fontName);
+            OfficeColor? color = null, string? fontFamily = null) {
+            ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             C.Chart chart = GetChart();
             C.Title? title = chart.GetFirstChild<C.Title>();
@@ -322,7 +322,7 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSize, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSize, bold, italic, color, fontFamily);
             Save();
             return this;
         }
@@ -339,21 +339,23 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets the legend position and visibility.
+        /// Shows the legend and updates only the supplied position or overlay state.
         /// </summary>
-        public ExcelChart SetLegend(OfficeChartLegendPosition position, bool overlay = false) {
+        public ExcelChart SetLegend(OfficeChartLegendPosition? position = null, bool? overlay = null) {
             C.Chart chart = GetChart();
             C.Legend legend = chart.GetFirstChild<C.Legend>() ?? new C.Legend();
-            var legendPosition = legend.GetFirstChild<C.LegendPosition>() ?? new C.LegendPosition();
-            legendPosition.Val = position.ToOpenXml();
-            if (legendPosition.Parent == null) {
-                legend.AddChild(legendPosition, true);
+            if (position.HasValue) {
+                var legendPosition = legend.GetFirstChild<C.LegendPosition>() ?? new C.LegendPosition();
+                legendPosition.Val = position.Value.ToOpenXml();
+                if (legendPosition.Parent == null) legend.AddChild(legendPosition, true);
             }
             if (legend.GetFirstChild<C.Layout>() == null) {
                 legend.AddChild(new C.Layout(), true);
             }
-            legend.RemoveAllChildren<C.Overlay>();
-            legend.AddChild(new C.Overlay { Val = overlay }, true);
+            if (overlay.HasValue) {
+                legend.RemoveAllChildren<C.Overlay>();
+                legend.AddChild(new C.Overlay { Val = overlay.Value }, true);
+            }
 
             if (chart.GetFirstChild<C.Legend>() == null) {
                 C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -372,8 +374,8 @@ namespace OfficeIMO.Excel {
         /// Sets the legend text style.
         /// </summary>
         public ExcelChart SetLegendTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
-            OfficeColor? color = null, string? fontName = null) {
-            ValidateDataLabelTextStyle(fontSize, color, fontName);
+            OfficeColor? color = null, string? fontFamily = null) {
+            ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             C.Chart chart = GetChart();
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
@@ -381,7 +383,7 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSize, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSize, bold, italic, color, fontFamily);
             Save();
             return this;
         }

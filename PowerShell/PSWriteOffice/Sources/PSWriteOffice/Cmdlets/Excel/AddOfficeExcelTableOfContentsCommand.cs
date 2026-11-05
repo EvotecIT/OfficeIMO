@@ -1,173 +1,104 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Adds or refreshes a workbook table of contents sheet.</summary>
-/// <para>Can run inside the Excel DSL, against an open workbook, or directly against a file path.</para>
+/// <summary>Adds or refreshes a table-of-contents sheet with links to every sheet.</summary>
 /// <example>
-///   <summary>Add a TOC sheet and verify workbook structure.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$proof = @(
-///     Add-OfficeExcelTableOfContents -Path .\report.xlsx -IncludeNamedRanges -AddBackLinks -PassThru
-///     Get-OfficeExcelSummary -Path .\report.xlsx -IncludeSheets |
-///         Select-Object -Property SheetCount, NamedRangeCount, Sheets
-/// )
-/// $proof</code>
-///   <para>Creates or refreshes a TOC sheet, adds back links, and reads back workbook navigation metadata.</para>
+/// <summary>Add a contents sheet</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Board-Pack.xlsx {
+///     ExcelTableOfContents
+/// }</code>
+/// <para>Adds a first sheet with a link to every other sheet.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelTableOfContents", DefaultParameterSetName = ParameterSetContext)]
+/// <example>
+/// <summary>Build a navigable report pack</summary>
+/// <code>$orders = Import-OfficeCsv -Path .\Data\Q3-Orders.csv
+/// New-OfficeExcel -Path .\Reports\Q3-Regions.xlsx {
+///     foreach ($group in $orders | Group-Object Region) {
+///         ExcelSheet $group.Name {
+///             ExcelTable $group.Group -Address A3
+///         }
+///     }
+///     ExcelTableOfContents -Name 'Contents' -BackLink -BackLinkAddress A1 -BackLinkText 'Back to contents'
+/// }</code>
+/// <para>Writes one sheet per region, then adds a contents sheet with links and a back link on each regional sheet.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Add, "OfficeExcelTableOfContents", DefaultParameterSetName = "Default")]
 [Alias("ExcelTableOfContents")]
-[OutputType(typeof(ExcelDocument), typeof(FileInfo))]
 public sealed class AddOfficeExcelTableOfContentsCommand : PSCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Path to the workbook to update in place.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Named range name.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public string? Name { get; set; }
 
-    /// <summary>Workbook to update.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Name of the TOC sheet.</summary>
-    [Parameter]
-    public string SheetName { get; set; } = "TOC";
-
-    /// <summary>Keep the TOC sheet in its current position instead of moving it first.</summary>
-    [Parameter]
-    public SwitchParameter DoNotPlaceFirst { get; set; }
+    /// <summary>Keeps the table-of-contents worksheet at its current position.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter NoMoveFirst { get; set; }
 
     /// <summary>Disable internal hyperlinks in the TOC sheet.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter NoHyperlinks { get; set; }
 
     /// <summary>Include named ranges in the TOC.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter IncludeNamedRanges { get; set; }
 
     /// <summary>Include hidden named ranges when listing named ranges.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter IncludeHiddenNamedRanges { get; set; }
 
     /// <summary>Disable formatted TOC styling.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter NoStyle { get; set; }
 
-    /// <summary>Add a quick link back to the TOC on each worksheet.</summary>
-    [Parameter]
-    public SwitchParameter AddBackLinks { get; set; }
+    /// <summary>Adds a link from each listed worksheet back to the table of contents.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter BackLink { get; set; }
 
-    /// <summary>Row for the back link when <see cref="AddBackLinks"/> is used.</summary>
-    [Parameter]
-    public int BackLinkRow { get; set; } = 2;
-
-    /// <summary>Column for the back link when <see cref="AddBackLinks"/> is used.</summary>
-    [Parameter]
-    public int BackLinkColumn { get; set; } = 1;
+    /// <summary>A1 destination for worksheet back links; omission chooses an unused cell.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public string? BackLinkAddress { get; set; }
 
     /// <summary>Text used for back links.</summary>
-    [Parameter]
-    public string BackLinkText { get; set; } = "\u2190 TOC";
+    [Parameter(ParameterSetName = "Default")]
+    public string? BackLinkText { get; set; }
 
-    /// <summary>Open the workbook after saving when <see cref="Path"/> is used.</summary>
-    [Parameter]
-    public SwitchParameter Open { get; set; }
-
-    /// <summary>Emit the updated document or file info.</summary>
-    [Parameter]
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (BackLinkRow < 1) {
-            throw new PSArgumentOutOfRangeException(nameof(BackLinkRow));
-        }
-
-        if (BackLinkColumn < 1) {
-            throw new PSArgumentOutOfRangeException(nameof(BackLinkColumn));
-        }
-
-        if (ParameterSetName == ParameterSetPath) {
-            ProcessPath();
-            return;
-        }
-
-        var document = ParameterSetName == ParameterSetDocument
-            ? Document
-            : ExcelDslContext.Require(this).Document;
-
-        Apply(document);
-
-        if (PassThru.IsPresent) {
-            WriteObject(document);
-        }
-    }
-
-    private void ProcessPath() {
-        var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-        if (!File.Exists(resolvedPath)) {
-            throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
-        }
-
-        var fileInfo = new FileInfo(resolvedPath);
-        var document = ExcelDocumentService.LoadDocument(resolvedPath, readOnly: false, autoSave: false);
-        try {
-            Apply(document);
-            ExcelDocumentService.SaveDocument(document, Open.IsPresent, resolvedPath);
-        } catch {
-            ExcelDocumentService.CloseDocument(document);
-            throw;
-        }
-
-        if (PassThru.IsPresent) {
-            WriteObject(fileInfo);
-        }
-    }
-
-    private void Apply(ExcelDocument document) {
-        document.AddTableOfContents(
-            sheetName: SheetName,
-            placeFirst: !DoNotPlaceFirst.IsPresent,
-            withHyperlinks: !NoHyperlinks.IsPresent,
-            includeNamedRanges: IncludeNamedRanges.IsPresent,
-            includeHiddenNamedRanges: IncludeHiddenNamedRanges.IsPresent,
-            styled: !NoStyle.IsPresent);
-
-        if (AddBackLinks.IsPresent) {
-            AddBackLinksToSheets(document);
-        }
-    }
-
-    private void AddBackLinksToSheets(ExcelDocument document) {
-        var useExplicitPlacement =
-            MyInvocation.BoundParameters.ContainsKey(nameof(BackLinkRow)) ||
-            MyInvocation.BoundParameters.ContainsKey(nameof(BackLinkColumn));
-
-        if (useExplicitPlacement) {
-            document.AddBackLinksToToc(
-                tocSheetName: SheetName,
-                row: BackLinkRow,
-                col: BackLinkColumn,
-                text: BackLinkText);
-            return;
-        }
-
-        var tocSheet = document[SheetName];
-        foreach (var sheet in document.Sheets) {
-            if (string.Equals(sheet.Name, tocSheet.Name, System.StringComparison.OrdinalIgnoreCase)) {
-                continue;
+        var document = ExcelCommandTargets.Document(Document);
+        string name = Name ?? "TOC";
+        document.AddTableOfContents(sheetName: name, placeFirst: !NoMoveFirst, withHyperlinks: !NoHyperlinks, includeNamedRanges: IncludeNamedRanges, includeHiddenNamedRanges: IncludeHiddenNamedRanges, styled: !NoStyle);
+        if (BackLink) {
+            if (BackLinkAddress != null) {
+                var (row, column) = ExcelHostExtensions.ResolveCellAddress(null, null, BackLinkAddress);
+                document.AddBackLinksToToc(name, row, column, BackLinkText ?? "← TOC");
+            } else foreach (var sheet in document.Sheets) {
+                if (sheet.Name == name) continue;
+                var (_, _, endRow, _) = ExcelA1.ParseRange(sheet.UsedRange.Address);
+                sheet.SetInternalLink(Math.Max(1, endRow + 2), 1, document[name], "A1", BackLinkText ?? "← TOC");
             }
-
-            var usedRange = sheet.UsedRange.Address;
-            var (startRow, _, endRow, _) = ExcelA1.ParseRange(usedRange);
-            var row = System.Math.Max(1, System.Math.Max(startRow, endRow) + 2);
-            sheet.SetInternalLink(row, 1, tocSheet, "A1", BackLinkText);
         }
+        if (PassThru) WriteObject(document);
     }
+
 }

@@ -86,30 +86,6 @@ public static partial class VisioImageExportExtensions {
             resolved);
     }
 
-    /// <summary>Renders a Visio page to JPEG bytes.</summary>
-    public static byte[] ToJpeg(this VisioPage page, VisioImageExportOptions? options = null) =>
-        page.ExportImage(OfficeImageExportFormat.Jpeg, options).Bytes;
-
-    /// <summary>Renders the selected Visio document page to JPEG bytes.</summary>
-    public static byte[] ToJpeg(this VisioDocument document, VisioImageExportOptions? options = null) =>
-        document.ExportImage(OfficeImageExportFormat.Jpeg, options).Bytes;
-
-    /// <summary>Renders a Visio page to TIFF bytes.</summary>
-    public static byte[] ToTiff(this VisioPage page, VisioImageExportOptions? options = null) =>
-        page.ExportImage(OfficeImageExportFormat.Tiff, options).Bytes;
-
-    /// <summary>Renders the selected Visio document page to TIFF bytes.</summary>
-    public static byte[] ToTiff(this VisioDocument document, VisioImageExportOptions? options = null) =>
-        document.ExportImage(OfficeImageExportFormat.Tiff, options).Bytes;
-
-    /// <summary>Renders a Visio page to lossless WebP bytes.</summary>
-    public static byte[] ToWebp(this VisioPage page, VisioImageExportOptions? options = null) =>
-        page.ExportImage(OfficeImageExportFormat.Webp, options).Bytes;
-
-    /// <summary>Renders the selected Visio document page to lossless WebP bytes.</summary>
-    public static byte[] ToWebp(this VisioDocument document, VisioImageExportOptions? options = null) =>
-        document.ExportImage(OfficeImageExportFormat.Webp, options).Bytes;
-
     private static VisioImageExportOptions Normalize(VisioImageExportOptions? options) {
         VisioImageExportOptions resolved = options?.Clone() ?? new VisioImageExportOptions();
         resolved.Validate();

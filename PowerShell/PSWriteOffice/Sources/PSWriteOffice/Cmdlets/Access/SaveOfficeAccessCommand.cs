@@ -17,16 +17,19 @@ namespace PSWriteOffice.Cmdlets.Access;
 [OutputType(typeof(AccessDocument))]
 public sealed class SaveOfficeAccessCommand : PSCmdlet {
     /// <summary>Live database document.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public AccessDocument Document { get; set; } = null!;
 
     /// <summary>Destination filename.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    public string Path { get; set; } = string.Empty;
+    [Parameter(Position = 0)]
+    public string? Path { get; set; }
 
     /// <summary>Replace an existing destination through the canonical atomic writer.</summary>
     [Parameter]
     public SwitchParameter Force { get; set; }
+
+    /// <summary>Explicitly accept reported native-save loss.</summary>
+    [Parameter] public SwitchParameter AllowLoss { get; set; }
 
     /// <summary>Return the created or changed object.</summary>
     [Parameter]
@@ -34,13 +37,15 @@ public sealed class SaveOfficeAccessCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var path = OfficeFileCommandUtilities.ResolvePath(this, Path);
-        if (!ShouldProcess(path, "Save native Access database")) return;
+        var path = Path == null ? null : OfficeFileCommandUtilities.ResolvePath(this, Path);
+        if (!ShouldProcess(path ?? "Associated Access destination", "Save native Access database")) return;
         var options = new AccessSaveOptions {
+            AllowLoss = AllowLoss,
             FileConflictPolicy = Force.IsPresent ? OfficeConversionFileConflictPolicy.Replace : OfficeConversionFileConflictPolicy.FailIfExists
         };
-        Document.AssessSave(path, options).ThrowIfLoss();
-        Document.Save(path, options);
+        var report = path == null ? Document.AssessSave(options) : Document.AssessSave(path, options);
+        if (!AllowLoss) report.ThrowIfLoss();
+        if (path == null) Document.Save(options); else Document.Save(path, options);
         if (PassThru.IsPresent) WriteObject(Document);
     }
 }

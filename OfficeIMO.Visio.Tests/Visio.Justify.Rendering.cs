@@ -36,11 +36,11 @@ public sealed class VisioJustifyRenderingTests {
         Assert.InRange(Number(justifiedLines[1][0], "x") - Number(leftLines[1][0], "x"), -.002D, .002D);
         Assert.InRange(Number(justifiedLines[1].Last(), "x") - Number(leftLines[1].Last(), "x"), -.002D, .002D);
 
-        var pngOptions = new VisioPngSaveOptions { Supersampling = 1, ResolveConnectorLabelOverlaps = false };
+        var pngOptions = new VisioImageExportOptions { Supersampling = 1, ResolveConnectorLabelOverlaps = false };
         pngOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, font)
             .Add(spaceFamily, spaceFont).AddFallbackFamily(spaceFamily);
-        (int Left, int Right)[] leftInk = RasterLineBounds(left.ToPng(pngOptions));
-        (int Left, int Right)[] justifiedInk = RasterLineBounds(justified.ToPng(pngOptions));
+        (int Left, int Right)[] leftInk = RasterLineBounds(left.ToImage(pngOptions));
+        (int Left, int Right)[] justifiedInk = RasterLineBounds(justified.ToImage(pngOptions));
         Assert.Equal(2, leftInk.Length);
         Assert.Equal(leftInk.Length, justifiedInk.Length);
         Assert.Equal(leftInk[0].Left, justifiedInk[0].Left);

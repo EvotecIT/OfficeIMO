@@ -121,7 +121,7 @@ public sealed class PublisherPairedCompositionTests {
     public void Creation_preserves_authored_none_wrapping_after_reload_and_allows_guarded_master_picture_edits() {
         PublisherDocument authored = Author(true);
         PublisherPicture authoredPicture = Assert.Single(authored.MasterPages.Single(page => page.MasterSide == PublisherMasterPageSide.Left).Pictures);
-        authored.SetPictureBounds(authoredPicture.Id, 144, authoredPicture.Y, authoredPicture.Width, authoredPicture.Height);
+        authored.SetPictureBounds(authoredPicture.Id, OfficeLength.Points(144), OfficeLength.Points(authoredPicture.Y), OfficeLength.Points(authoredPicture.Width), OfficeLength.Points(authoredPicture.Height));
         byte[] generated = PublisherNativeCreationCodec.Create(PublisherNativeCreationProjection.ComposedContent(authored),
             new PublisherLoadOptions(), MaximumBytes, CancellationToken.None);
         PublisherDocument decoded = PublisherDocument.Load(generated);
@@ -151,7 +151,7 @@ public sealed class PublisherPairedCompositionTests {
         PublisherPicture[] pictures = decoded.MasterPages.Concat(decoded.Pages).SelectMany(page => page.Pictures).ToArray();
         var stories = decoded.TextStories.Select(story => (story.Id, story.Text)).ToArray();
         var owners = decoded.MasterPages.Concat(decoded.Pages).Select(page => (page.Id, page.MasterPageId, page.MasterSide, page.Name)).ToArray();
-        decoded.SetPictureBounds(original.Id, original.X + 12, original.Y, original.Width, original.Height);
+        decoded.SetPictureBounds(original.Id, OfficeLength.Points(original.X + 12), OfficeLength.Points(original.Y), OfficeLength.Points(original.Width), OfficeLength.Points(original.Height));
 
         OfficeConversionException refusal = Assert.Throws<OfficeConversionException>(() => decoded.ToBytes());
         PublisherSaveReport strict = Assert.IsType<PublisherSaveReport>(refusal.Report);
@@ -180,7 +180,7 @@ public sealed class PublisherPairedCompositionTests {
 
     [Fact]
     public void Composed_creation_refuses_three_centered_masters() {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         document.AddMasterPage("First");
         document.AddMasterPage("Second");
         document.AddMasterPage("Third");
@@ -189,7 +189,7 @@ public sealed class PublisherPairedCompositionTests {
     }
 
     private static PublisherDocument Author(bool paired) {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         document.AddMasterPage("Centered brand");
         if (paired) document.AddMasterPagePair("Paired brand");
         else document.AddMasterPage("Alternate brand");
@@ -202,14 +202,14 @@ public sealed class PublisherPairedCompositionTests {
         int? imageId = null;
         for (int index = 0; index < document.MasterPages.Count; index++) {
             uint masterId = document.MasterPages[index].Id;
-            document.AddTextFrame(masterId, 36 + index * 12, 72, 360, 36, new[] { Paragraph("Master marker " + index) });
+            document.AddTextFrame(masterId, OfficeLength.Points(36 + index * 12), OfficeLength.Points(72), OfficeLength.Points(360), OfficeLength.Points(36), new[] { Paragraph("Master marker " + index) });
             OfficeShape rectangle = OfficeShape.Rectangle(240, 24);
             rectangle.FillColor = OfficeColor.FromRgb((byte)(60 + index * 60), 90, 150);
             rectangle.StrokeColor = null;
-            document.AddShape(masterId, rectangle, 36 + index * 12, 36 + index * 6);
+            document.AddShape(masterId, rectangle, OfficeLength.Points(36 + index * 12), OfficeLength.Points(36 + index * 6));
             PublisherPicture picture = imageId.HasValue
-                ? document.AddImage(masterId, imageId.Value, 504, 36, 36, 36)
-                : document.AddImage(masterId, image, 504, 36, 36, 36);
+                ? document.AddImage(masterId, imageId.Value, OfficeLength.Points(504), OfficeLength.Points(36), OfficeLength.Points(36), OfficeLength.Points(36))
+                : document.AddImage(masterId, image, OfficeLength.Points(504), OfficeLength.Points(36), OfficeLength.Points(36), OfficeLength.Points(36));
             imageId = picture.ImageId;
         }
 
@@ -217,13 +217,13 @@ public sealed class PublisherPairedCompositionTests {
             Paragraph(string.Concat(Enumerable.Repeat("The linked lead stays in its complete story. ", 12)).TrimEnd()),
             Paragraph(string.Concat(Enumerable.Repeat("The closing paragraph follows the reordered frames. ", 10)).TrimEnd())
         };
-        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, 72, 144, 216, 36, linkedParagraphs);
-        PublisherTextFrame middle = document.AddLinkedTextFrame(first.Id, document.Pages[2].Id, 72, 144, 216, 36);
-        document.AddLinkedTextFrame(middle.Id, document.Pages[1].Id, 72, 144, 468, 360);
-        PublisherTextFrame columns = document.AddTextFrame(document.Pages[0].Id, 72, 240, 360, 180,
+        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(216), OfficeLength.Points(36), linkedParagraphs);
+        PublisherTextFrame middle = document.AddLinkedTextFrame(first.Id, document.Pages[2].Id, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(216), OfficeLength.Points(36));
+        document.AddLinkedTextFrame(middle.Id, document.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(468), OfficeLength.Points(360));
+        PublisherTextFrame columns = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(240), OfficeLength.Points(360), OfficeLength.Points(180),
             new[] { Paragraph("Independent columns retain their own story and frame layout.") });
-        document.SetTextFrameLayout(columns.Id, 2, 18, new OfficeTextPadding(6, 9, 12, 3), OfficeTextVerticalAlignment.Top);
-        PublisherTable table = document.AddTable(document.Pages[2].Id, 72, 600, new[] { 120D, 180D }, new[] { 42D });
+        document.SetTextFrameLayout(columns.Id, 2, OfficeLength.Points(18), new OfficeTextPadding(6, 9, 12, 3), OfficeTextVerticalAlignment.Top);
+        PublisherTable table = document.AddTable(document.Pages[2].Id, OfficeLength.Points(72), OfficeLength.Points(600), new OfficeLength[] { OfficeLength.Points(120D), OfficeLength.Points(180D) }, new OfficeLength[] { OfficeLength.Points(42D) });
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] { Paragraph("Item") });
         document.ReplaceTableCellParagraphs(table.Id, 0, 1, new[] { Paragraph("Count") });
         return document;

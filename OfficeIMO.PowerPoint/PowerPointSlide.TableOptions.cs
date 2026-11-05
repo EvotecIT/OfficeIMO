@@ -3,7 +3,7 @@ namespace OfficeIMO.PowerPoint;
 public partial class PowerPointSlide {
     private static void ApplyTableAlignments(PowerPointTable table, OfficeTableOptions? options) {
         if (options == null) return;
-        for (int column = 0; column < table.Columns && column < options.Alignments.Count; column++) {
+        for (int column = 0; column < table.ColumnCount && column < options.Alignments.Count; column++) {
             if (options.Alignments[column] is not { } alignment) continue;
             var native = alignment switch {
                 OfficeAlignment.Left or OfficeAlignment.Start => PowerPointTextAlignment.Left,
@@ -11,7 +11,7 @@ public partial class PowerPointSlide {
                 OfficeAlignment.Right or OfficeAlignment.End => PowerPointTextAlignment.Right,
                 _ => PowerPointTextAlignment.Justified
             };
-            for (int row = 0; row < table.Rows; row++) table.GetCell(row, column).HorizontalAlignment = native;
+            for (int row = 0; row < table.RowCount; row++) table.GetCell(row, column).HorizontalAlignment = native;
         }
     }
 }

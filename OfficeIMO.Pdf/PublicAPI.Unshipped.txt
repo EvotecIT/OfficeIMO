@@ -878,3 +878,13 @@ static OfficeIMO.Pdf.PdfTextRun.Subscript(string! text, OfficeIMO.OfficeColor? c
 static OfficeIMO.Pdf.PdfTextRun.Superscript(string! text, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? standardFont = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
 *REMOVED*static OfficeIMO.Pdf.PdfTextRun.Underlined(string! text, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
 static OfficeIMO.Pdf.PdfTextRun.Underlined(string! text, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? standardFont = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
+OfficeIMO.Pdf.PdfImageStampOptions.Opacity.get -> double
+OfficeIMO.Pdf.PdfImageStampOptions.Opacity.set -> void
+OfficeIMO.Pdf.PdfPageOverlayOptions.RotationDegrees.get -> double
+OfficeIMO.Pdf.PdfPageOverlayOptions.RotationDegrees.set -> void
+OfficeIMO.Pdf.PdfTextStampOptions.Opacity.get -> double
+OfficeIMO.Pdf.PdfTextStampOptions.Opacity.set -> void
+OfficeIMO.Pdf.PdfAnnotation.Uri.get -> string?
+OfficeIMO.Pdf.PdfFormFillerOptions.Clone() -> OfficeIMO.Pdf.PdfFormFillerOptions!
+OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions.Clone() -> OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions!
+OfficeIMO.Pdf.PdfRewritePreservationOptions.Clone() -> OfficeIMO.Pdf.PdfRewritePreservationOptions!

@@ -6,53 +6,39 @@ schema: 2.0.0
 ---
 # New-OfficeExcelImageOptions
 ## SYNOPSIS
-Creates discoverable rendering settings for Excel range and chart image export.
+Creates Excel rendering settings for Export-OfficeDocumentImage and ConvertTo-OfficeDocumentImage.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeExcelImageOptions [-ShowGridlines] [-IncludeHidden] [-IncludeImages] [-IncludeCharts] [-IncludeDrawingObjects] [-IncludeConditionalFormatting] [-ShowHyperlinkHints] [-ShowCommentBodies] [-MaximumRenderedCells <Int32>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficeExcelImageOptions [-ShowGridlines] [-IncludeHidden] [-IncludeImages] [-IncludeCharts] [-IncludeDrawingObjects] [-IncludeConditionalFormatting] [-ShowHyperlinkHints] [-ShowCommentBodies] [-MaximumRenderedCells <Int32>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [-IncludeHiddenSheets] [-UseWorksheetPrintAreas] [-SplitWorksheetsByManualPageBreaks] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates discoverable rendering settings for Excel range and chart image export.
+Creates Excel rendering settings for Export-OfficeDocumentImage and ConvertTo-OfficeDocumentImage.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeExcelImageOptions -ShowGridlines -ShowHyperlinkHints -TargetDpi 144
-Export-OfficeExcelRangeImage -Path .\Workbook.xlsx -Worksheet Summary -Range A1:H20 -OutputPath .\Summary.svg -Options $options
+$image = New-OfficeExcelImageOptions -ShowGridlines
+Export-OfficeDocumentImage -Path .\Reports\Q3-Sales.xlsx -Sheet Summary -OutputPath .\Images\Q3-Summary.png -Options $image
 ```
 
+Renders the Summary sheet to PNG with gridlines shown.
 
 ### EXAMPLE 2
 ```powershell
-PS> $options = New-OfficeExcelImageOptions -TargetDpi 144 -MaximumOutputWidth 1600
-Export-OfficeExcelChartImage -Path .\Workbook.xlsx -Worksheet Summary -ChartName Revenue -OutputPath .\Revenue.svg -Options $options
+$image = New-OfficeExcelImageOptions -IncludeCharts -IncludeImages -IncludeConditionalFormatting
+Export-OfficeDocumentImage -Path .\Reports\Operations.xlsx -Sheet Dashboard -OutputDirectory .\Site\Images -Scale 2 -Options $image
 ```
 
+Renders the dashboard at double scale with charts and images, so the PNG stays sharp when embedded in a web page.
 
 ## PARAMETERS
 
-### -BackgroundColor
-Background color name or hex value.
-
-```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -IncludeCharts
-Include worksheet charts.
+Includes charts in the rendered output; explicit false omits them.
 
 ```yaml
 Type: SwitchParameter
@@ -68,7 +54,7 @@ Accept wildcard characters: False
 ```
 
 ### -IncludeConditionalFormatting
-Include conditional formatting.
+Evaluates supported conditional formatting during rendering; explicit false disables it.
 
 ```yaml
 Type: SwitchParameter
@@ -84,7 +70,7 @@ Accept wildcard characters: False
 ```
 
 ### -IncludeDrawingObjects
-Include drawing objects.
+Includes worksheet drawing objects in the rendered output.
 
 ```yaml
 Type: SwitchParameter
@@ -100,7 +86,23 @@ Accept wildcard characters: False
 ```
 
 ### -IncludeHidden
-Include hidden rows and columns.
+Renders hidden rows and columns; explicit false omits them.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IncludeHiddenSheets
+Includes hidden worksheets when no explicit sheet selection is supplied.
 
 ```yaml
 Type: SwitchParameter
@@ -116,7 +118,7 @@ Accept wildcard characters: False
 ```
 
 ### -IncludeImages
-Include worksheet images.
+Includes embedded worksheet images in the rendered output.
 
 ```yaml
 Type: SwitchParameter
@@ -132,7 +134,7 @@ Accept wildcard characters: False
 ```
 
 ### -MaximumDegreeOfParallelism
-Maximum independent renders processed concurrently.
+Maximum concurrent render workers; omission retains the native limit.
 
 ```yaml
 Type: Int32
@@ -148,7 +150,7 @@ Accept wildcard characters: False
 ```
 
 ### -MaximumOutputCount
-Maximum images accepted from one batch export.
+Maximum number of images produced by one batch operation.
 
 ```yaml
 Type: Int32
@@ -196,7 +198,7 @@ Accept wildcard characters: False
 ```
 
 ### -MaximumRasterPixelCount
-Maximum pixels allocated for one raster image.
+Maximum pixel count allocated for one raster image.
 
 ```yaml
 Type: Int64
@@ -212,7 +214,7 @@ Accept wildcard characters: False
 ```
 
 ### -MaximumRenderedCells
-Maximum cells rendered.
+Maximum worksheet cells materialized for one visual snapshot.
 
 ```yaml
 Type: Int32
@@ -228,7 +230,7 @@ Accept wildcard characters: False
 ```
 
 ### -MaximumTotalEncodedBytes
-Maximum aggregate encoded bytes accepted from one batch.
+Maximum aggregate encoded image bytes in one batch.
 
 ```yaml
 Type: Int64
@@ -244,7 +246,7 @@ Accept wildcard characters: False
 ```
 
 ### -MaximumTotalRasterPixelCount
-Maximum aggregate raster pixels accepted from one batch.
+Maximum aggregate raster pixels in one batch.
 
 ```yaml
 Type: Int64
@@ -260,7 +262,7 @@ Accept wildcard characters: False
 ```
 
 ### -RasterOverflowBehavior
-Reduce or reject oversized raster output.
+Native policy when the requested raster exceeds its pixel budget.
 
 ```yaml
 Type: OfficeRasterOverflowBehavior
@@ -276,23 +278,7 @@ Accept wildcard characters: False
 ```
 
 ### -RenderTimeoutSeconds
-Maximum seconds allowed for one render.
-
-```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Scale
-Output scale multiplier.
+Render timeout in seconds; omission retains the native timeout.
 
 ```yaml
 Type: Double
@@ -308,7 +294,7 @@ Accept wildcard characters: False
 ```
 
 ### -ShowCommentBodies
-Show cell comment bodies.
+Renders comment text rather than only comment indicators.
 
 ```yaml
 Type: SwitchParameter
@@ -324,7 +310,7 @@ Accept wildcard characters: False
 ```
 
 ### -ShowGridlines
-Show worksheet gridlines.
+Renders worksheet gridlines; explicit false hides them.
 
 ```yaml
 Type: SwitchParameter
@@ -340,7 +326,7 @@ Accept wildcard characters: False
 ```
 
 ### -ShowHyperlinkHints
-Show hyperlink hints.
+Renders hyperlink hints in worksheet snapshots.
 
 ```yaml
 Type: SwitchParameter
@@ -355,11 +341,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TargetDpi
-Target output density in dots per inch.
+### -SplitWorksheetsByManualPageBreaks
+Creates separate images at worksheet manual page breaks.
 
 ```yaml
-Type: Double
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -372,10 +358,26 @@ Accept wildcard characters: False
 ```
 
 ### -TextShapingLanguage
-BCP 47 language hint for text shaping.
+Language tag used for native text shaping.
 
 ```yaml
 Type: String
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -UseWorksheetPrintAreas
+Honor worksheet print areas.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -396,7 +398,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Excel.ExcelImageExportOptions`
+- `None`
 
 ## RELATED LINKS
 

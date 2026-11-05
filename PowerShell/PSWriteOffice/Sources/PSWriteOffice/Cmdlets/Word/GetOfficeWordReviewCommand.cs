@@ -1,48 +1,32 @@
-using PSWriteOffice.Services;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Inspects Word comments, threads, tracked revisions, and unsupported review metadata.</summary>
-/// <example>
-///   <summary>Inspect a document review state.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficeWordReview -Path .\Draft.docx</code>
-///   <para>Returns a structured WordReviewReport without changing the document.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordReview", DefaultParameterSetName = "Path")]
+/// <summary>Reports comments, threads, tracked revisions and unsupported review metadata.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficeWordReview", DefaultParameterSetName = "Document")]
 [OutputType(typeof(WordReviewReport))]
-public sealed class GetOfficeWordReviewCommand : PSCmdlet
-{
-    /// <summary>Path to the Word document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path", ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Open Word document instance.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
-    public WordDocument Document { get; set; } = null!;
+public sealed class GetOfficeWordReviewCommand : PSCmdlet {
+    /// <summary>Path for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>LiteralPath for this inspection.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Document for this inspection.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public WordDocument? Document { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        WordDocument? owned = null;
-        try
-        {
-            var document = Document;
-            if (ParameterSetName == "Path")
-            {
-                owned = WordDocumentService.LoadDocument(
-                    OfficeFileCommandUtilities.ResolvePath(this, Path), readOnly: true, autoSave: false);
-                document = owned;
-            }
-            WriteObject(document.InspectReviewReport());
-        }
-        finally
-        {
-            owned?.Dispose();
-        }
+    protected override void ProcessRecord() {
+        WordQuerySource.Visit(this, ParameterSetName, Path, LiteralPath, Document, Inspect);
     }
+
+    private void Inspect(WordDocument document) => WriteObject(document.InspectReviewReport());
 }

@@ -17,7 +17,7 @@ public class RtfPdfImportTests {
             })
             .ToBytes();
 
-        RtfDocument document = LoadSemanticPdf(pdf).ToRtfDocument();
+        RtfDocument document = LoadSemanticPdf(pdf).ToRtf();
         RtfRun red = document.Paragraphs
             .SelectMany(paragraph => paragraph.Runs)
             .First(run => run.Text.Contains("Bold red", StringComparison.Ordinal));
@@ -55,7 +55,7 @@ public class RtfPdfImportTests {
         PdfCore.PdfLogicalListItem logicalItem = Assert.Single(logical.ListItems);
         Assert.Equal(logicalItem.Text, string.Concat(logicalItem.Runs.Select(run => run.Text)));
 
-        RtfDocument document = logical.ToRtfDocument();
+        RtfDocument document = logical.ToRtf();
         RtfParagraph listItem = Assert.Single(document.Paragraphs);
         Assert.Equal("Bold red italic blue", listItem.ToPlainText());
         Assert.Equal(RtfListKind.Bullet, listItem.ListKind);
@@ -71,7 +71,7 @@ public class RtfPdfImportTests {
     public void PdfBytes_ToRtfDocument_Imports_Metadata_Headings_Lists_Paragraphs_And_PageBreaks() {
         byte[] pdf = CreateSemanticPdf();
 
-        RtfDocument document = LoadSemanticPdf(pdf).ToRtfDocument(CreateImportOptions());
+        RtfDocument document = LoadSemanticPdf(pdf).ToRtf(CreateImportOptions());
 
         Assert.Equal("PDF Import Title", document.Properties.Title);
         Assert.Equal("OfficeIMO", document.Properties.Author);
@@ -104,7 +104,7 @@ public class RtfPdfImportTests {
     public void Pdf_ToRtf_Serializes_And_RoundTrips_Imported_Text() {
         byte[] pdf = CreateSemanticPdf();
 
-        string rtf = LoadSemanticPdf(pdf).ToRtfDocument(CreateImportOptions()).ToRtf();
+        string rtf = LoadSemanticPdf(pdf).ToRtf(CreateImportOptions()).ToRtf();
         RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
 
         Assert.Contains("Clinical Summary", rtf, StringComparison.Ordinal);
@@ -127,12 +127,12 @@ public class RtfPdfImportTests {
             using MemoryStream pdfStream = new MemoryStream(pdf);
             RtfDocument fromStream = PdfCore.PdfDocumentReadResult
                 .Load(pdfStream, CreateLayoutOptions())
-                .ToRtfDocument(CreateImportOptions());
+                .ToRtf(CreateImportOptions());
             Assert.Contains(fromStream.Paragraphs, paragraph => paragraph.ToPlainText() == "First bullet");
 
             RtfDocument fromFile = PdfCore.PdfDocumentReadResult
                 .Load(pdfPath, CreateLayoutOptions())
-                .ToRtfDocument(CreateImportOptions());
+                .ToRtf(CreateImportOptions());
             Assert.Contains(fromFile.Paragraphs, paragraph => paragraph.ToPlainText() == "Second page body.");
 
             fromFile.Save(rtfPath, encoding: Encoding.UTF8);
@@ -162,24 +162,70 @@ public class RtfPdfImportTests {
         Assert.True(clone.IncludeMetadata);
     }
 
-    [Fact]
-    public async Task PdfDocument_RtfFacade_ReturnsDiagnosticsAndSupportsSyncAndAsyncSave() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PdfDocument_RtfFacade_ReturnsDiagnosticsAndSupportsSyncAndAsyncSave(bool logicalSource) {
         byte[] pdf = CreateSemanticPdf();
-        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Load(pdf);
+        using PdfCore.PdfDocument opened = PdfCore.PdfDocument.Load(pdf);
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
 
-        PdfRtfConversionResult result = opened.ToRtfDocumentResult(CreateImportOptions());
+        OfficeConversionResult<RtfDocument> result = logicalSource
+            ? await logical.ToRtfAsync(CreateImportOptions())
+            : await opened.ToRtfAsync(CreateImportOptions());
+        using RtfDocument converted = result.Value;
+        PdfRtfConversionReport convertedReport = Assert.IsType<PdfRtfConversionReport>(result.Report);
         Assert.False(result.HasLoss);
-        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
+        Assert.Null(result.Report.OutputPath);
+        Assert.Contains(converted.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
 
         using var sync = new MemoryStream();
-        PdfRtfConversionReport syncReport = opened.SaveAsRtf(sync, CreateImportOptions()).RequireSuccess().Report!;
+        OfficeConversionReport syncReport = logicalSource
+            ? logical.SaveAsRtf(sync, CreateImportOptions())
+            : opened.SaveAsRtf(sync, CreateImportOptions());
         Assert.False(syncReport.HasLoss);
-        Assert.NotEmpty(sync.ToArray());
+        Assert.Null(syncReport.OutputPath);
+        Assert.IsType<PdfRtfConversionReport>(syncReport);
+        using RtfDocument syncRtf = RtfDocument.ParseResult(Encoding.UTF8.GetString(sync.ToArray())).Document;
+        Assert.Contains(syncRtf.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
+        Assert.True(sync.CanWrite);
 
         using var asyncOutput = new MemoryStream();
-        PdfRtfConversionReport asyncReport = (await opened.SaveAsRtfAsync(asyncOutput, CreateImportOptions())).RequireSuccess().Report!;
+        OfficeConversionReport asyncReport = logicalSource
+            ? await logical.SaveAsRtfAsync(asyncOutput, CreateImportOptions())
+            : await opened.SaveAsRtfAsync(asyncOutput, CreateImportOptions());
         Assert.False(asyncReport.HasLoss);
-        Assert.NotEmpty(asyncOutput.ToArray());
+        Assert.Null(asyncReport.OutputPath);
+        Assert.IsType<PdfRtfConversionReport>(asyncReport);
+        using RtfDocument asyncRtf = RtfDocument.ParseResult(Encoding.UTF8.GetString(asyncOutput.ToArray())).Document;
+        Assert.Contains(asyncRtf.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
+        Assert.True(asyncOutput.CanWrite);
+
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-rtf-report-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string syncPath = Path.Combine(directory, "sync.rtf");
+            OfficeConversionReport syncFile = logicalSource
+                ? logical.SaveAsRtf(Path.Combine(directory, ".", "sync.rtf"), CreateImportOptions())
+                : opened.SaveAsRtf(Path.Combine(directory, ".", "sync.rtf"), CreateImportOptions());
+            Assert.Equal(Path.GetFullPath(syncPath), syncFile.OutputPath);
+            Assert.Equal(convertedReport.Warnings.Select(w => (w.Code, w.LossKind)),
+                Assert.IsType<PdfRtfConversionReport>(syncFile).Warnings.Select(w => (w.Code, w.LossKind)));
+            using RtfDocument savedSync = RtfDocument.LoadResult(syncPath).Document;
+            Assert.Contains(savedSync.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
+
+            string asyncPath = Path.Combine(directory, "async.rtf");
+            OfficeConversionReport asyncFile = logicalSource
+                ? await logical.SaveAsRtfAsync(asyncPath, CreateImportOptions())
+                : await opened.SaveAsRtfAsync(asyncPath, CreateImportOptions());
+            Assert.Equal(Path.GetFullPath(asyncPath), asyncFile.OutputPath);
+            Assert.Equal(convertedReport.Diagnostics.Select(d => (d.Code, d.LossKind)),
+                Assert.IsType<PdfRtfConversionReport>(asyncFile).Diagnostics.Select(d => (d.Code, d.LossKind)));
+            using RtfDocument savedAsync = RtfDocument.LoadResult(asyncPath).Document;
+            Assert.Contains(savedAsync.Paragraphs, paragraph => paragraph.ToPlainText() == "Second page body.");
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]
@@ -194,15 +240,52 @@ public class RtfPdfImportTests {
         PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
         Assert.NotEmpty(logical.Tables);
 
-        PdfRtfConversionResult result = logical.ToRtfDocumentResult();
+        logical.ToRtf(null, out OfficeConversionReport report);
+        PdfRtfConversionReport result = (PdfRtfConversionReport)report;
 
         Assert.True(result.HasLoss);
         PdfCore.PdfConversionWarning warning = Assert.Single(
-            result.Report.Warnings,
+            result.Warnings,
             item => item.Code == "TABLES_NOT_IMPORTED");
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.Equal(logical.Tables.Count.ToString(), warning.Details["count"]);
+
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-rtf-loss-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string path = Path.Combine(directory, "table.rtf");
+            PdfRtfConversionReport saved = Assert.IsType<PdfRtfConversionReport>(logical.SaveAsRtf(path));
+            Assert.Equal(Path.GetFullPath(path), saved.OutputPath);
+            Assert.True(saved.HasLoss);
+            PdfCore.PdfConversionWarning savedWarning = Assert.Single(saved.Warnings, item => item.Code == "TABLES_NOT_IMPORTED");
+            Assert.Equal(warning.LossKind, savedWarning.LossKind);
+            Assert.Equal(warning.Details["count"], savedWarning.Details["count"]);
+            Assert.Contains(saved.Diagnostics, diagnostic => diagnostic.Code == "TABLES_NOT_IMPORTED"
+                && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => saved.ThrowIfLoss());
+            Assert.Same(saved, error.Report);
+            Assert.StartsWith(@"{\rtf1", File.ReadAllText(path));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task PdfToRtf_StrictLossRejectionLeavesCallerStreamUntouched() {
+        using PdfCore.PdfDocument source = PdfCore.PdfDocument.Create().KeyValueTable(new[] {
+            PdfCore.PdfKeyValueRow.Text("Invoice", "INV-001"),
+            PdfCore.PdfKeyValueRow.Text("Customer", "Evotec"),
+            PdfCore.PdfKeyValueRow.Text("Due", "2026-06-30")
+        });
+        using var output = new MemoryStream(new byte[] { 1, 2, 3 }, writable: true);
+        OfficeConversionException error = await Assert.ThrowsAsync<OfficeConversionException>(() =>
+            source.SaveAsRtfAsync(output, new PdfRtfExportOptions { FailOnLoss = true }));
+        Assert.IsType<PdfRtfConversionReport>(error.Report);
+        Assert.Contains(error.Report.Diagnostics, diagnostic => diagnostic.Code == "TABLES_NOT_IMPORTED");
+        Assert.Equal(new byte[] { 1, 2, 3 }, output.ToArray());
+        Assert.Equal(0, output.Position);
+        Assert.True(output.CanWrite);
     }
 
     private static PdfRtfExportOptions CreateImportOptions() => new PdfRtfExportOptions();

@@ -30,7 +30,7 @@ public class ChartTests {
         document.AddParagraph("This is a bar chart");
         var barChart2 = document.AddChart();
         barChart2.AddCategories(categories);
-        barChart2.AddBar("USA", 15, Color.Aqua);
+        barChart2.AddBar("USA", new[] { 15 }, Color.Aqua);
         barChart2.RoundedCorners = true;
 
         document.AddParagraph("This is a pie chart");
@@ -43,7 +43,7 @@ public class ChartTests {
         document.AddParagraph("Adding a line chart as required 1");
 
         var lineChart = document.AddChart();
-        lineChart.AddChartAxisX(categories);
+        lineChart.AddCategories(categories);
         lineChart.AddLine("USA", new List<int> { 10, 35, 18, 23 }, Color.AliceBlue);
         lineChart.AddLine("Brazil", new List<int> { 10, 35, 300, 18 }, Color.Brown);
         lineChart.AddLine("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
@@ -51,14 +51,14 @@ public class ChartTests {
         document.AddParagraph("Adding a line chart as required 2");
 
         var lineChart2 = document.AddChart();
-        lineChart2.AddChartAxisX(categories);
+        lineChart2.AddCategories(categories);
         lineChart2.AddLine("USA", new List<int> { 10, 35, 18, 23 }, Color.AliceBlue);
         lineChart2.AddLine("Brazil", new List<int> { 10, 35, 300, 18 }, Color.Brown);
         lineChart2.AddLine("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
 
         document.AddParagraph("Adding a 3-D line chart");
         var line3d = document.AddChart();
-        line3d.AddChartAxisX(categories);
+        line3d.AddCategories(categories);
         line3d.AddLine3D("USA", new List<int> { 5, 2, 3, 4 }, Color.Purple);
 
         document.AddParagraph("Adding a 3-D area chart");

@@ -99,16 +99,16 @@ namespace OfficeIMO.Tests {
                 VisioDocument document = VisioDocument.Load(result.FilePath);
 
                 string svgPath = Path.Combine(actualDirectory, prefix + "-native-page1.svg");
-                document.SaveAsSvg(svgPath, new VisioSvgSaveOptions {
+                document.SaveAsImage(svgPath, new VisioImageExportOptions { Format = OfficeImageExportFormat.Svg,
                     PageIndex = 0,
-                    PixelsPerInch = 96
+                    Scale = 1D
                 });
                 AssertBaseline(Path.GetFileName(svgPath), svgPath, context);
 
                 string pngPath = Path.Combine(actualDirectory, prefix + "-native-page1.png");
-                document.SaveAsPng(pngPath, new VisioPngSaveOptions {
+                document.SaveAsImage(pngPath, new VisioImageExportOptions {
                     PageIndex = 0,
-                    PixelsPerInch = 96,
+                    TargetDpi = 96,
                     Supersampling = 3
                 });
                 AssertBaseline(Path.GetFileName(pngPath), pngPath, context);

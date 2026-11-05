@@ -13,7 +13,7 @@ public sealed class CorruptionSafetyTests {
     [MemberData(nameof(Fixtures))]
     public void DeterministicByteMutationsEitherParseOrFailWithBoundedIoErrors(string fixture) {
         byte[] source = File.ReadAllBytes(FixturePath(fixture));
-        OneNoteReaderOptions options = TightOptions(source.Length);
+        OneNoteLoadOptions options = TightOptions(source.Length);
 
         for (int sample = 0; sample < 24; sample++) {
             byte[] mutated = (byte[])source.Clone();
@@ -21,7 +21,7 @@ public sealed class CorruptionSafetyTests {
             mutated[offset] ^= (byte)(0x5A ^ sample);
 
             try {
-                OneNoteSection section = OneNoteSectionReader.Read(new MemoryStream(mutated), options);
+                OneNoteSection section = OneNoteSection.Load(new MemoryStream(mutated), options);
                 Assert.NotNull(section);
             } catch (IOException) {
                 // Stable bounded parse failures are expected for malformed mutations.
@@ -40,7 +40,7 @@ public sealed class CorruptionSafetyTests {
         foreach (int length in lengths.Distinct().Where(value => value >= 0 && value < source.Length)) {
             var truncated = new byte[length];
             Buffer.BlockCopy(source, 0, truncated, 0, length);
-            Exception? exception = Record.Exception(() => OneNoteSectionReader.Read(new MemoryStream(truncated), TightOptions(source.Length)));
+            Exception? exception = Record.Exception(() => OneNoteSection.Load(new MemoryStream(truncated), TightOptions(source.Length)));
 
             if (exception != null) Assert.IsAssignableFrom<IOException>(exception);
         }
@@ -60,9 +60,9 @@ public sealed class CorruptionSafetyTests {
             OneNoteRevisionStoreWriter.Write(graph, 1024));
 
         IOException exception = Assert.Throws<IOException>(() =>
-            OneNoteSectionWriter.Write(section, new OneNoteWriterOptions { MaxOutputBytes = 1024 }));
+            section.ToBytes(new OneNoteSaveOptions { MaxOutputBytes = 1024 }));
         IOException packageException = Assert.Throws<IOException>(() =>
-            OneNoteSectionWriter.Write(section, new OneNoteWriterOptions {
+            section.ToBytes(new OneNoteSaveOptions {
                 StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage,
                 MaxOutputBytes = 1024
             }));
@@ -74,14 +74,14 @@ public sealed class CorruptionSafetyTests {
 
     [Fact]
     public void WriterRoundTripValidationAllowsAssetsWithinTheOutputBound() {
-        long outputLimit = OneNoteReaderOptions.DefaultMaxAssetBytes + 1;
-        var writerOptions = new OneNoteWriterOptions {
+        long outputLimit = OneNoteLoadOptions.DefaultMaxAssetBytes + 1;
+        var writerOptions = new OneNoteSaveOptions {
             MaxPageRelationshipDepth = 192,
             MaxContentDepth = 160,
             MaxInkPathValues = 1_250_000
         };
 
-        OneNoteReaderOptions options = OneNoteWriterValidation.CreateReaderOptions(writerOptions, outputLimit);
+        OneNoteLoadOptions options = OneNoteWriterValidation.CreateReaderOptions(writerOptions, outputLimit);
 
         Assert.Equal(outputLimit, options.MaxInputBytes);
         Assert.Equal(outputLimit, options.MaxAssetBytes);
@@ -113,12 +113,12 @@ public sealed class CorruptionSafetyTests {
         byte[] data = OneNoteRevisionStoreWriter.Write(graph);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionReader.Read(new MemoryStream(data)));
+            OneNoteSection.Load(new MemoryStream(data)));
 
         Assert.Equal("ONENOTE_TEXT_RUN_BOUNDARY", exception.Code);
     }
 
-    private static OneNoteReaderOptions TightOptions(int inputLength) => new OneNoteReaderOptions {
+    private static OneNoteLoadOptions TightOptions(int inputLength) => new OneNoteLoadOptions {
         MaxInputBytes = Math.Max(1, inputLength),
         MaxFileNodeListFragments = 1024,
         MaxFileNodes = 10000,

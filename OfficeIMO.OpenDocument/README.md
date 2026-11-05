@@ -112,7 +112,7 @@ using OfficeIMO.OpenDocument;
 
 OdtDocument document = OdtDocument.Create();
 OdtParagraph paragraph = document.AddParagraph();
-OdtSpan emphasis = paragraph.AddSpan("Read ");
+OdtSpan emphasis = paragraph.AddRun("Read ");
 emphasis.Bold = true;
 emphasis.AddHyperlink("the guide", "https://example.com/guide").Italic = true;
 
@@ -931,7 +931,7 @@ IReadOnlyList<string> rewritten = result.Report.RewrittenEntries;
 IReadOnlyList<string> lossy = result.Report.LossyEntries;
 ```
 
-`Serialize`, `ToBytes`, `ToStream`, `SaveCopy`, and `SaveCopyAsync` produce independent outputs without accepting pending edits or changing the source version, signatures, path, or encryption state. Stream saves also remain independent when a source path is attached. Use `Save` or `SaveAsync` with a path to accept changes and associate the document with that destination.
+`Serialize`, `ToBytes`, `SaveCopy`, and `SaveCopyAsync` produce independent outputs without accepting pending edits or changing the source version, signatures, path, or encryption state. Stream saves also remain independent when a source path is attached. Use `Save` or `SaveAsync` with a path to accept changes and associate the document with that destination.
 
 A failed or canceled write keeps pending edits, the source version, and signature and encryption state intact. Existing typed wrappers remain usable after a successful save.
 

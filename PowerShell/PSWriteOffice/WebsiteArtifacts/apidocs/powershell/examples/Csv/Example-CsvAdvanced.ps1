@@ -11,4 +11,4 @@ $rows = @(
 $rows | Export-OfficeCsv -Path $path -Delimiter ';'
 
 Write-Host "CSV saved to $path"
-Import-OfficeCsv -Path $path -Delimiter ';' -AsHashtable | Format-Table
+Import-OfficeCsv -Path $path -Delimiter ';' -As Hashtable | Format-Table

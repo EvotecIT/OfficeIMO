@@ -6,25 +6,37 @@ schema: 2.0.0
 ---
 # Set-OfficeExcelDateSystem
 ## SYNOPSIS
-Sets the workbook date system used for numeric date serials.
+Sets the workbook date system (1900 or 1904).
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Set-OfficeExcelDateSystem [-Document] <ExcelDocument> [-DateSystem] <string> [-PassThru] [<CommonParameters>]
+Set-OfficeExcelDateSystem [-DateSystem] <ExcelDateSystem> [-Document <ExcelDocument>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets the workbook date system used for numeric date serials.
+Sets the workbook date system (1900 or 1904).
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $workbook | Set-OfficeExcelDateSystem -DateSystem 1904 -PassThru | Save-OfficeExcel
+Open-OfficeExcel -Path .\Finance\Legacy-Ledger.xlsx {
+    ExcelDateSystem 1904
+}
 ```
 
-Marks the workbook to use Excel's 1904 date system before saving.
+Switches the workbook to the 1904 date system used by some older Mac workbooks.
+
+### EXAMPLE 2
+```powershell
+New-OfficeExcel -Path .\Finance\Consolidated.xlsx {
+    ExcelDateSystem 1904
+    Copy-OfficeExcelSheet -Source .\Partners\Ledger-1904.xlsx -Sheet Ledger
+}
+```
+
+Sets the date system of a new workbook to match a 1904-based partner file before copying its sheets in.
 
 ## PARAMETERS
 
@@ -32,20 +44,20 @@ Marks the workbook to use Excel's 1904 date system before saving.
 Date system to use for Excel date serials.
 
 ```yaml
-Type: String
+Type: ExcelDateSystem
 Parameter Sets: Default
 Aliases: None
-Possible values: 1900, 1904, NineteenHundred, NineteenFour
+Possible values: NineteenHundred, NineteenFour
 
 Required: True
-Position: 1
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to update.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
@@ -53,15 +65,15 @@ Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
-Position: 0
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the workbook for further pipeline operations.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
@@ -85,7 +97,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Excel.ExcelDocument`
+- `None`
 
 ## RELATED LINKS
 

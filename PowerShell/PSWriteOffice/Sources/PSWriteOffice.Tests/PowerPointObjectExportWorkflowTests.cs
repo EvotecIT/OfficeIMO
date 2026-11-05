@@ -49,12 +49,12 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
         Assert.Contains(saved.Slides[1].TextBoxes, box => box.Text == "4");
         Assert.Contains(saved.Slides[1].TextBoxes, box => box.Text == "3");
         var tables = saved.Slides.Skip(2).Take(3).Select(slide => Assert.Single(slide.Tables)).ToArray();
-        Assert.All(tables, table => Assert.InRange(table.Rows, 2, 4));
+        Assert.All(tables, table => Assert.InRange(table.RowCount, 2, 4));
         AssertHeaders(tables, "Name", "Revenue", "Region");
         Assert.Equal(Enumerable.Range(1, 7).Select(index => "Item " + index),
-            tables.SelectMany(table => Enumerable.Range(1, table.Rows - 1).Select(row => table.GetCell(row, 0).Text)));
+            tables.SelectMany(table => Enumerable.Range(1, table.RowCount - 1).Select(row => table.GetCell(row, 0).Text)));
         Assert.Equal(new[] { "10", "20", "30", "40", "50", "60", "70" },
-            tables.SelectMany(table => Enumerable.Range(1, table.Rows - 1).Select(row => table.GetCell(row, 1).Text)));
+            tables.SelectMany(table => Enumerable.Range(1, table.RowCount - 1).Select(row => table.GetCell(row, 1).Text)));
         Assert.Contains("continued", Text(saved.Slides[3]));
         Assert.Contains("continued", Text(saved.Slides[4]));
         Assert.Empty(saved.Slides.Last().Tables);
@@ -89,7 +89,7 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
         Assert.True(tables.Length > 1);
         AssertHeaders(tables, "Item", "Number");
         Assert.Equal(Enumerable.Range(1, 45).Select(index => "Row " + index),
-            tables.SelectMany(table => Enumerable.Range(1, table.Rows - 1).Select(row => table.GetCell(row, 0).Text)));
+            tables.SelectMany(table => Enumerable.Range(1, table.RowCount - 1).Select(row => table.GetCell(row, 0).Text)));
         Assert.Equal(1 + tables.Length, saved.Slides.Count);
     }
 
@@ -258,7 +258,7 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
         Assert.False(shell.HadErrors, Errors(shell));
         Assert.Equal(path, Assert.IsType<FileInfo>(Assert.Single(result).BaseObject).FullName);
         using var saved = PowerPointDocument.Load(path);
-        Assert.Equal(7, saved.Slides.SelectMany(slide => slide.Tables).Sum(table => table.Rows - 1));
+        Assert.Equal(7, saved.Slides.SelectMany(slide => slide.Tables).Sum(table => table.RowCount - 1));
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal(new[] { path }, Directory.GetFileSystemEntries(_root));
     }
@@ -314,8 +314,8 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
     private static void AssertHeaders(IEnumerable<PowerPointTable> tables, params string[] headers) {
         foreach (var table in tables) {
             Assert.True(table.FirstRow);
-            Assert.Equal(headers.Length, table.Columns);
-            Assert.Equal(headers, Enumerable.Range(0, table.Columns).Select(column => table.GetCell(0, column).Text));
+            Assert.Equal(headers.Length, table.ColumnCount);
+            Assert.Equal(headers, Enumerable.Range(0, table.ColumnCount).Select(column => table.GetCell(0, column).Text));
         }
     }
 

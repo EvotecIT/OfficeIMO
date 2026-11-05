@@ -9,14 +9,19 @@ using System.Threading.Tasks;
 using OfficeIMO;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
+using PSWriteOffice.Services.Ocr;
 
 namespace PSWriteOffice.Cmdlets.Conversion;
 
 public sealed partial class ConvertOfficeDocumentCommand {
     private static readonly UTF8Encoding TextEncoding = new(false, true);
+    private StringBuilder? _textRecords;
+    private long _textRecordBytes;
+    private long _textInputLimit;
+    private bool _hasTextRecord;
 
-    /// <summary>Literal source content, interpreted according to From rather than as a filename.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Text")]
+    /// <summary>Literal source content. Select a string pipeline explicitly with -Text { $_ }; records are separated by a newline and converted together once. Unqualified string pipelines remain file paths, including with From.</summary>
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = "Text")]
     [AllowEmptyString]
     public string Text { get; set; } = string.Empty;
 
@@ -37,7 +42,23 @@ public sealed partial class ConvertOfficeDocumentCommand {
     [Parameter(ParameterSetName = "Document")]
     public SwitchParameter AsString { get; set; }
 
-    private async Task ConvertTextAsync() {
+    private void CaptureTextRecord() {
+        CancelToken.ThrowIfCancellationRequested();
+        if (_textRecords == null) {
+            _textInputLimit = MyInvocation.BoundParameters.ContainsKey(nameof(MaximumInputBytes))
+                ? MaximumInputBytes : CaptureInputFormat().MaximumInputBytes;
+            _textRecords = new StringBuilder();
+        }
+        long bytes = TextEncoding.GetByteCount(Text) + (_hasTextRecord ? (long)TextEncoding.GetByteCount(Environment.NewLine) : 0L);
+        if (bytes > _textInputLimit - _textRecordBytes)
+            throw new PSArgumentException("The accumulated literal source exceeds MaximumInputBytes.");
+        if (_hasTextRecord) _textRecords.AppendLine();
+        _textRecords.Append(Text);
+        _textRecordBytes += bytes;
+        _hasTextRecord = true;
+    }
+
+    private async Task ConvertTextAsync(string text) {
         if (NoClobber && AutoRename) throw new PSArgumentException("NoClobber and AutoRename cannot be combined.");
         string sourceExtension = OfficeFormatSelection.Parse(From)!.Extension;
         string targetExtension = OfficeFormatSelection.Parse(To)!.Extension;
@@ -52,10 +73,10 @@ public sealed partial class ConvertOfficeDocumentCommand {
         var options = CaptureOptions(new[] { sourceName }, targetExtension);
         options.SourceName = sourceName;
         options.TargetName = outputPath == null ? "output" + targetExtension : System.IO.Path.GetFileName(outputPath);
-        if (TextEncoding.GetByteCount(Text) > options.MaximumInputBytes)
+        if (TextEncoding.GetByteCount(text) > options.MaximumInputBytes)
             throw new PSArgumentException("The literal source exceeds MaximumInputBytes.");
         if (!ShouldProcess(outputPath ?? "in-memory " + targetExtension + " output", "Convert text")) return;
-        using var input = new MemoryStream(TextEncoding.GetBytes(Text), writable: false);
+        using var input = new MemoryStream(TextEncoding.GetBytes(text), writable: false);
         if (outputText) {
             using var output = new MemoryStream();
             OfficeConversionReport report = await OfficeConverter.ConvertAsync(input, OfficeConverter.FormatForExtension(sourceExtension),
@@ -63,10 +84,11 @@ public sealed partial class ConvertOfficeDocumentCommand {
             SetSummary(report);
             WriteObject(TextEncoding.GetString(output.ToArray()));
         } else {
-            OfficeConversionReport report = await OfficeConverter.ConvertAsync(input, OfficeConverter.FormatForExtension(sourceExtension),
-                outputPath!, options, CancelToken);
+            OfficeConversionReport report = await ConvertFileOutputAsync(outputPath!, () => OfficeConverter.ConvertAsync(input, OfficeConverter.FormatForExtension(sourceExtension),
+                outputPath!, options, CancelToken));
             SetSummary(report);
             WriteObject(report);
+            OpenPublishedOutput(report);
         }
     }
 
@@ -77,6 +99,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
         string target = OfficeFormatSelection.Parse(To)!.Extension;
         if (!IsTextExtension(target)) throw new PSArgumentException("AsString requires a text target format.");
         var options = CaptureOptions(_inputs, target);
+        if (UsesOcr) OfficeImageExporter.ValidateTextExtension(target);
         options.TargetName = "output" + target;
         var errors = new ConcurrentQueue<ErrorRecord>();
         long completed = 0, failed = 0;
@@ -84,9 +107,15 @@ public sealed partial class ConvertOfficeDocumentCommand {
         if (!ShouldProcess("in-memory " + target + " output", "Convert documents to text")) return;
         await OfficeBatch.RunAsync(_inputs, async (input, token) => {
             try {
-                using var output = new MemoryStream();
-                await OfficeConverter.ConvertAsync(input, output, OfficeConverter.FormatForExtension(target), options, token);
-                string text = TextEncoding.GetString(output.ToArray());
+                string text;
+                if (UsesOcr) {
+                    var review = await RecognizePathAsync(input, options, token).ConfigureAwait(false);
+                    text = OfficeImageExporter.ExportText(review, target, options, token, out _);
+                } else {
+                    using var output = new MemoryStream();
+                    await OfficeConverter.ConvertAsync(input, output, OfficeConverter.FormatForExtension(target), options, token);
+                    text = TextEncoding.GetString(output.ToArray());
+                }
                 Interlocked.Increment(ref completed);
                 return (object?)text;
             } catch (Exception error) when (error is not OperationCanceledException and not OutOfMemoryException and not StackOverflowException) {

@@ -107,12 +107,13 @@ namespace OfficeIMO.Excel.Pdf {
         public ExcelPdfWorksheetLayoutMode WorksheetLayout { get; set; } = ExcelPdfWorksheetLayoutMode.WorksheetCanvas;
 
         /// <summary>
-        /// Optional workbook sheet names to export. When null or empty, all workbook sheets are exported in workbook order.
+        /// Optional worksheet names, wildcard patterns, one-based positions or live worksheet identities.
+        /// Null exports all worksheets in workbook order; an explicit empty or unmatched selection is rejected.
         /// </summary>
-        public IReadOnlyList<string>? SheetNames { get; set; }
+        public IReadOnlyList<OfficeSheetSelector>? Sheets { get; set; }
 
         /// <summary>
-        /// When true, hidden workbook worksheets are omitted from the default all-sheets export. Explicit SheetNames still export requested sheets. Defaults to true.
+        /// When true, hidden workbook worksheets are omitted from the default all-sheets export. Explicit Sheets still export requested sheets. Defaults to true.
         /// </summary>
         public bool RespectWorkbookSheetVisibility { get; set; } = true;
 
@@ -437,7 +438,7 @@ namespace OfficeIMO.Excel.Pdf {
         internal ExcelPdfExportOptions CloneForConversion() {
             var clone = (ExcelPdfExportOptions)MemberwiseClone();
             clone._pdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
-            clone.SheetNames = SheetNames?.ToArray();
+            clone.Sheets = Sheets?.ToArray();
             clone.ResourcePolicy = ResourcePolicy.Clone();
             clone.Warnings = new List<ExcelPdfExportWarning>();
             clone.Report = new PdfCore.PdfConversionReport();

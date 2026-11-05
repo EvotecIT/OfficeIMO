@@ -71,13 +71,13 @@ namespace OfficeIMO.Tests {
                         string format = "0.00\"" + row + "\"";
                         for (int column = 1; column <= 2; column++) {
                             sheet.Cell(row, column).SetValue(row);
-                            sheet.Cell(row, column).SetFillColor(color);
-                            sheet.Cell(row, column).SetFontName("Bounded Font");
+                            sheet.Cell(row, column).SetFillColor(OfficeColor.Parse(color));
+                            sheet.Cell(row, column).SetFontFamily("Bounded Font");
                             sheet.Cell(row, column).SetNumberFormat(format);
                         }
                     }
                     second.Cell(1, 1).SetValue(7);
-                    second.Cell(1, 1).SetFillColor("ABCDEF");
+                    second.Cell(1, 1).SetFillColor(OfficeColor.Parse("ABCDEF"));
                     second.Cell(1, 1).SetNumberFormat("0.00\"other\"");
                 }
                 document.Save();

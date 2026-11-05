@@ -108,8 +108,8 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.Contains(slide.TextBoxes, box => box.Text.Contains("Semantic content remains editable"));
         var signal = Assert.IsType<PowerPointAutoShape>(Assert.Single(slide.Shapes, shape => shape.Name == "Signal"));
         Assert.Equal(OfficeIMO.Drawing.OfficePresetShapeType.Ellipse, signal.ShapeType);
-        Assert.Equal("112233", signal.FillColor, ignoreCase: true);
-        Assert.Equal("445566", signal.OutlineColor, ignoreCase: true);
+        Assert.Equal(OfficeIMO.OfficeColor.Parse("112233"), signal.FillColor);
+        Assert.Equal(OfficeIMO.OfficeColor.Parse("445566"), signal.OutlineColor);
         Assert.Equal(720000L, signal.Left.ToEmus());
         Assert.Equal(720000L, signal.Width.ToEmus());
         Assert.Equal(2520000L, signal.Top.ToEmus());

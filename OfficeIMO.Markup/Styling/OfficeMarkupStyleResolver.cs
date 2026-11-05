@@ -13,9 +13,25 @@ public sealed class OfficeMarkupStyleResolver {
     /// <summary>Creates a resolver using the document's current <c>theme</c> metadata value.</summary>
     /// <remarks>The palette is selected at creation; later metadata changes do not update this resolver.</remarks>
     public static OfficeMarkupStyleResolver Create(OfficeMarkupDocument document) {
+        return Create(document, null);
+    }
+
+    /// <summary>Creates a resolver with shared theme defaults; explicit block attributes still override them.</summary>
+    public static OfficeMarkupStyleResolver Create(OfficeMarkupDocument document, OfficeTheme? theme) {
         ArgumentNullException.ThrowIfNull(document);
 
-        var styles = CreateBaseStyles(document.Metadata.TryGetValue("theme", out var theme) ? theme : null);
+        var styles = CreateBaseStyles(document.Metadata.TryGetValue("theme", out var themeName) ? themeName : null);
+        if (theme != null) {
+            foreach (var pair in styles) {
+                var style = pair.Value;
+                bool heading = pair.Key.StartsWith("heading", StringComparison.Ordinal) || pair.Key.EndsWith("title", StringComparison.Ordinal);
+                style.FontFamily = heading ? theme.Fonts.Heading.Family : theme.Fonts.Body.Family;
+                style.TextColor = (pair.Key is "caption" or "muted" or "lead" ? theme.Palette.TextMuted :
+                    pair.Key == "accent" ? theme.Palette.Accent1 : theme.Palette.Text).ToRgbHex();
+                if (style.FillColor != null) style.FillColor = theme.Surfaces.Surface.ToRgbHex();
+                if (style.BorderColor != null) style.BorderColor = theme.Surfaces.Rule.ToRgbHex();
+            }
+        }
         return new OfficeMarkupStyleResolver(styles);
     }
 
@@ -64,7 +80,7 @@ public sealed class OfficeMarkupStyleResolver {
 
     private static Dictionary<string, OfficeMarkupResolvedStyle> CreateBaseStyles(string? themeName) {
         var palette = CreatePalette(themeName);
-        var font = palette.FontName;
+        var font = palette.FontFamily;
         var styles = new Dictionary<string, OfficeMarkupResolvedStyle>(StringComparer.OrdinalIgnoreCase);
 
         Add(styles, "heading-1", font, 28, true, palette.Text, null, null, null);
@@ -95,7 +111,7 @@ public sealed class OfficeMarkupStyleResolver {
         string? textAlign) {
         styles[Normalize(name)] = new OfficeMarkupResolvedStyle {
             Name = name,
-            FontName = fontName,
+            FontFamily = fontName,
             FontSize = fontSize,
             Bold = bold,
             TextColor = textColor,
@@ -109,7 +125,7 @@ public sealed class OfficeMarkupStyleResolver {
         style ??= new OfficeMarkupResolvedStyle();
 
         if (TryGetAttribute(attributes, "font", out var value) || TryGetAttribute(attributes, "font-name", out value) || TryGetAttribute(attributes, "font-family", out value)) {
-            style.FontName = value;
+            style.FontFamily = value;
         }
 
         if ((TryGetAttribute(attributes, "font-size", out value) || TryGetAttribute(attributes, "fontsize", out value) || TryGetAttribute(attributes, "size", out value))
@@ -318,7 +334,7 @@ public sealed class OfficeMarkupStyleResolver {
 
     private sealed class Palette {
         public Palette(string fontName, string text, string mutedText, string primary, string surface, string border, string callout) {
-            FontName = fontName;
+            FontFamily = fontName;
             Text = text;
             MutedText = mutedText;
             Primary = primary;
@@ -327,7 +343,7 @@ public sealed class OfficeMarkupStyleResolver {
             Callout = callout;
         }
 
-        public string FontName { get; }
+        public string FontFamily { get; }
         public string Text { get; }
         public string MutedText { get; }
         public string Primary { get; }

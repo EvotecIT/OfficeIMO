@@ -1,58 +1,61 @@
+using System;
+using System.IO;
 using System.Management.Automation;
 using System.Security;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Gets PDF font diagnostics for embedding and ToUnicode repair-readiness workflows.</summary>
-[Cmdlet(VerbsCommon.Get, "OfficePdfFont")]
+/// <summary>Lists fonts with embedding and ToUnicode diagnostics.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficePdfFont", DefaultParameterSetName = "Path")]
 [OutputType(typeof(PdfFontDiagnostic))]
-public sealed class GetOfficePdfFontCommand : PSCmdlet
-{
-    /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
-    [Alias("FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Optional font subtype filter such as Type1, Type0, or TrueType.</summary>
-    [Parameter]
+public sealed class GetOfficePdfFontCommand : PSCmdlet {
+    /// <summary>Path for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0)]
+    [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Subtype for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public string? Subtype { get; set; }
-
-    /// <summary>Return only fonts that need embedding or ToUnicode review.</summary>
-    [Parameter]
+    /// <summary>NeedsReview for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public SwitchParameter NeedsReview { get; set; }
-
-    /// <summary>Password used to analyze a Standard password-encrypted PDF.</summary>
-    [Parameter]
+    /// <summary>Password for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
     [OfficePasswordTransformation]
     public SecureString? Password { get; set; }
-
-    /// <summary>After successful password authentication, explicitly ignore owner-imposed extraction restrictions.</summary>
-    [Parameter]
+    /// <summary>IgnorePermissionRestrictions for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
     public SwitchParameter IgnorePermissionRestrictions { get; set; }
+    /// <summary>LoadOptions for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [OfficeOptionsTransformation(typeof(PdfLoadOptions))]
+    public PdfLoadOptions? LoadOptions { get; set; }
+    /// <summary>LiteralPath for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Document for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Document", Mandatory = true, ValueFromPipeline = true)]
+    public PdfDocument? Document { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        foreach (var font in PdfDocument
-                     .Load(
-                         PdfCommandUtilities.ResolvePath(this, Path),
-                         PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
-                     .Diagnostics()
-                     .Fonts)
-        {
-            if (!string.IsNullOrWhiteSpace(Subtype) && !string.Equals(font.Subtype, Subtype, System.StringComparison.Ordinal))
-            {
-                continue;
-            }
+    protected override void ProcessRecord() => PdfInspectionSource.Visit(this, ParameterSetName, Path, LiteralPath, Document, LoadOptions, Password, IgnorePermissionRestrictions, Inspect);
 
-            if (NeedsReview.IsPresent && !font.RequiresEmbeddingReview && !font.RequiresToUnicodeReview)
-            {
-                continue;
-            }
-
+    private void Inspect(PdfDocument document) {
+        foreach (var font in document.Diagnostics().Fonts) {
+            if (Subtype != null && !string.Equals(font.Subtype, Subtype, StringComparison.Ordinal)) continue;
+            if (NeedsReview && !font.RequiresEmbeddingReview && !font.RequiresToUnicodeReview) continue;
             WriteObject(font);
         }
     }

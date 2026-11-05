@@ -1,141 +1,118 @@
 using PdfCore = OfficeIMO.Pdf;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Rtf.Pdf;
 
-/// <content>Converts the first-party logical PDF model to RTF.</content>
+/// <content>Converts the first-party logical PDF model to editable RTF with loss evidence.</content>
 public static partial class RtfPdfConverterExtensions {
-    /// <summary>Converts an opened PDF into an editable RTF document.</summary>
-    public static RtfDocument ToRtfDocument(
-        this PdfCore.PdfDocument document,
-        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToRtfDocumentResult(options, cancellationToken).Value;
+    /// <summary>Reconstructs editable RTF from the supported PDF semantics.</summary>
+    public static RtfDocument ToRtf(this PdfCore.PdfDocument document, PdfRtfExportOptions? options = null,
+        CancellationToken cancellationToken = default) => document.ToRtf(options, out _, cancellationToken);
 
-    /// <summary>Converts an opened PDF into an editable RTF document with conversion diagnostics.</summary>
-    public static PdfRtfConversionResult ToRtfDocumentResult(
-        this PdfCore.PdfDocument document,
-        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Reconstructs RTF and retains completed semantic reconstruction diagnostics.</summary>
+    public static RtfDocument ToRtf(this PdfCore.PdfDocument document, PdfRtfExportOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(document);
-        return ReadForRtf(document, options, cancellationToken).ToRtfDocumentResult(options, cancellationToken);
+        return document.Read(options?.ReadOptions, cancellationToken).ToRtf(options, out report, cancellationToken);
     }
 
-    /// <summary>Converts an opened PDF and saves the editable RTF document to a file.</summary>
-    public static OfficeOutputResult<PdfRtfConversionReport> SaveAsRtf(
-        this PdfCore.PdfDocument document,
-        string path,
-        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Reconstructs RTF asynchronously and returns the document with its report.</summary>
+    public static Task<OfficeConversionResult<RtfDocument>> ToRtfAsync(this PdfCore.PdfDocument document,
+        PdfRtfExportOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeConversionOutput.RunAsync(() => (document.ToRtf(options, out OfficeConversionReport report, cancellationToken), report), cancellationToken);
+
+    /// <summary>Writes reconstructed RTF and returns its completed conversion report.</summary>
+    public static OfficeConversionReport SaveAsRtf(this PdfCore.PdfDocument document,
+        string path, PdfRtfExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using RtfDocument value = document.ToRtf(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(document);
-        return ReadForRtf(document, options, cancellationToken).SaveAsRtf(path, options, cancellationToken);
+        OfficeConversionFailures.Run(report, () => value.Save(path));
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
     }
 
-    /// <summary>Converts an opened PDF and saves the editable RTF document to a caller-owned stream.</summary>
-    public static OfficeOutputResult<PdfRtfConversionReport> SaveAsRtf(
-        this PdfCore.PdfDocument document,
-        Stream stream,
-        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Writes reconstructed RTF and returns its completed conversion report.</summary>
+    public static OfficeConversionReport SaveAsRtf(this PdfCore.PdfDocument document,
+        Stream stream, PdfRtfExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using RtfDocument value = document.ToRtf(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(document);
-        return ReadForRtf(document, options, cancellationToken).SaveAsRtf(stream, options, cancellationToken);
+        OfficeConversionFailures.Run(report, () => value.Save(stream));
+        return report;
     }
 
-    /// <summary>Converts an opened PDF and asynchronously saves the editable RTF document to a file.</summary>
-    public static Task<OfficeOutputResult<PdfRtfConversionReport>> SaveAsRtfAsync(
-        this PdfCore.PdfDocument document,
-        string path,
-        PdfRtfExportOptions? options = null,
-        CancellationToken cancellationToken = default) {
+    /// <summary>Asynchronously writes reconstructed RTF and returns its completed conversion report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsRtfAsync(this PdfCore.PdfDocument document,
+        string path, PdfRtfExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using RtfDocument value = document.ToRtf(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(document);
-        return ReadForRtf(document, options, cancellationToken).SaveAsRtfAsync(path, options, cancellationToken);
+        await OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(path, cancellationToken: cancellationToken)).ConfigureAwait(false);
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
     }
 
-    /// <summary>Converts an opened PDF and asynchronously saves the editable RTF document to a caller-owned stream.</summary>
-    public static Task<OfficeOutputResult<PdfRtfConversionReport>> SaveAsRtfAsync(
-        this PdfCore.PdfDocument document,
-        Stream stream,
-        PdfRtfExportOptions? options = null,
-        CancellationToken cancellationToken = default) {
+    /// <summary>Asynchronously writes reconstructed RTF and returns its completed conversion report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsRtfAsync(this PdfCore.PdfDocument document,
+        Stream stream, PdfRtfExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using RtfDocument value = document.ToRtf(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(document);
-        return ReadForRtf(document, options, cancellationToken).SaveAsRtfAsync(stream, options, cancellationToken);
+        await OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(stream, cancellationToken: cancellationToken)).ConfigureAwait(false);
+        return report;
     }
 
-    private static PdfCore.PdfDocumentReadResult ReadForRtf(
-        PdfCore.PdfDocument document,
-        PdfRtfExportOptions? options,
-        CancellationToken cancellationToken = default) =>
-        document.Read(options?.ReadOptions, cancellationToken);
+    /// <summary>Reconstructs editable RTF from the supported PDF semantics.</summary>
+    public static RtfDocument ToRtf(this PdfCore.PdfDocumentReadResult document, PdfRtfExportOptions? options = null,
+        CancellationToken cancellationToken = default) => document.ToRtf(options, out _, cancellationToken);
 
-    /// <summary>Converts a logical PDF model into an editable RTF document.</summary>
-    public static RtfDocument ToRtfDocument(
-        this PdfCore.PdfDocumentReadResult document,
-        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToRtfDocumentResult(options, cancellationToken).Value;
-
-    /// <summary>Converts a logical PDF model into an editable RTF document with conversion diagnostics.</summary>
-    public static PdfRtfConversionResult ToRtfDocumentResult(
-        this PdfCore.PdfDocumentReadResult document,
-        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Reconstructs RTF and retains completed semantic reconstruction diagnostics.</summary>
+    public static RtfDocument ToRtf(this PdfCore.PdfDocumentReadResult document, PdfRtfExportOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(document);
         PdfRtfExportOptions operation = (options ?? new PdfRtfExportOptions()).CloneForConversion();
         operation.CancellationToken = cancellationToken;
         RtfDocument value = PdfRtfConverter.Convert(document, operation);
-        return new PdfRtfConversionResult(value, operation.Report);
+        cancellationToken.ThrowIfCancellationRequested();
+        return OfficeConversionOutput.Complete(value, new PdfRtfConversionReport(operation.Report), operation.FailOnLoss, out report);
     }
 
-    /// <summary>Converts a logical PDF model and saves the editable RTF document to a file.</summary>
-    public static OfficeOutputResult<PdfRtfConversionReport> SaveAsRtf(
-        this PdfCore.PdfDocumentReadResult document,
-        string path,
-        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Reconstructs RTF asynchronously and returns the document with its report.</summary>
+    public static Task<OfficeConversionResult<RtfDocument>> ToRtfAsync(this PdfCore.PdfDocumentReadResult document,
+        PdfRtfExportOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeConversionOutput.RunAsync(() => (document.ToRtf(options, out OfficeConversionReport report, cancellationToken), report), cancellationToken);
+
+    /// <summary>Writes reconstructed RTF and returns its completed conversion report.</summary>
+    public static OfficeConversionReport SaveAsRtf(this PdfCore.PdfDocumentReadResult document,
+        string path, PdfRtfExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using RtfDocument value = document.ToRtf(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
-        PdfRtfConversionResult result = document.ToRtfDocumentResult(options, cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-        result.Value.Save(path);
-        return OfficeOutputResult<PdfRtfConversionReport>.FromSuccess(path, result.Report);
+        OfficeConversionFailures.Run(report, () => value.Save(path));
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
     }
 
-    /// <summary>Converts a logical PDF model and saves the editable RTF document to a caller-owned stream.</summary>
-    public static OfficeOutputResult<PdfRtfConversionReport> SaveAsRtf(
-        this PdfCore.PdfDocumentReadResult document,
-        Stream stream,
-        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Writes reconstructed RTF and returns its completed conversion report.</summary>
+    public static OfficeConversionReport SaveAsRtf(this PdfCore.PdfDocumentReadResult document,
+        Stream stream, PdfRtfExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using RtfDocument value = document.ToRtf(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
-        PdfRtfConversionResult result = document.ToRtfDocumentResult(options, cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-        result.Value.Save(stream);
-        return OfficeOutputResult<PdfRtfConversionReport>.FromSuccess(null, result.Report);
+        OfficeConversionFailures.Run(report, () => value.Save(stream));
+        return report;
     }
 
-    /// <summary>Converts a logical PDF model and asynchronously saves the editable RTF document to a file.</summary>
-    public static async Task<OfficeOutputResult<PdfRtfConversionReport>> SaveAsRtfAsync(
-        this PdfCore.PdfDocumentReadResult document,
-        string path,
-        PdfRtfExportOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
+    /// <summary>Asynchronously writes reconstructed RTF and returns its completed conversion report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsRtfAsync(this PdfCore.PdfDocumentReadResult document,
+        string path, PdfRtfExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using RtfDocument value = document.ToRtf(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfRtfConversionResult result = document.ToRtfDocumentResult(options, cancellationToken);
-        await result.Value.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return OfficeOutputResult<PdfRtfConversionReport>.FromSuccess(path, result.Report);
+        await OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(path, cancellationToken: cancellationToken)).ConfigureAwait(false);
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
     }
 
-    /// <summary>Converts a logical PDF model and asynchronously saves the editable RTF document to a caller-owned stream.</summary>
-    public static async Task<OfficeOutputResult<PdfRtfConversionReport>> SaveAsRtfAsync(
-        this PdfCore.PdfDocumentReadResult document,
-        Stream stream,
-        PdfRtfExportOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
+    /// <summary>Asynchronously writes reconstructed RTF and returns its completed conversion report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsRtfAsync(this PdfCore.PdfDocumentReadResult document,
+        Stream stream, PdfRtfExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using RtfDocument value = document.ToRtf(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfRtfConversionResult result = document.ToRtfDocumentResult(options, cancellationToken);
-        await result.Value.SaveAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return OfficeOutputResult<PdfRtfConversionReport>.FromSuccess(null, result.Report);
+        await OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(stream, cancellationToken: cancellationToken)).ConfigureAwait(false);
+        return report;
     }
+
 }

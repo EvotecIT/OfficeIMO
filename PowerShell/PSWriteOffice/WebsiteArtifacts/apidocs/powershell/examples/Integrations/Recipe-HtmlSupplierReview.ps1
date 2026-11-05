@@ -95,15 +95,15 @@ New-OfficeWord -Path $docx {
         WordText 'Input contract: Item, Supplier, UnitPriceUsd and LeadDays. The bundled HTML contains synthetic data.' -Size 10 -Color '475569'
     }
 }
-Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
+Convert-OfficeDocument -Path $docx -To Pdf -OutputPath $pdf
 
 New-OfficeExcel -Path $xlsx {
     ExcelSheet 'Offers' {
         ExcelSheetView -NoGridlines
         ExcelCell -Address A1 -Value 'Supplier offers / USD per unit'
-        ExcelRow -Row 1 -Height 30 -Bold $true -FontName 'Carlito'
+        ExcelRow -Row 1 -Height 30 -Bold -Font 'Carlito'
         ExcelCell -Address A2 -Value 'Editable numeric values; freight and tax excluded.'
-        ExcelTable -InputObject $offers -StartRow 4 -Name SupplierOffers -TableStyle TableStyleMedium2 -AutoFit
+        ExcelTable -InputObject $offers -Address A4 -Name SupplierOffers -TableStyle TableStyleMedium2
         for ($row = 5; $row -lt 5 + $offers.Count; $row++) {
             # Keep each quote's decimal places visible rather than rounding every price to cents.
             $priceText = $offers[$row - 5].UnitPriceUsd.ToString($priceTextFormat, [Globalization.CultureInfo]::InvariantCulture)

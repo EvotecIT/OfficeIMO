@@ -358,11 +358,7 @@ namespace OfficeIMO.Word {
         private ChartShapeProperties AddShapeProperties(OfficeIMO.OfficeColor color) {
             ChartShapeProperties chartShapeProperties1 = new ChartShapeProperties();
 
-            DocumentFormat.OpenXml.Drawing.SolidFill solidFill1 = new DocumentFormat.OpenXml.Drawing.SolidFill();
-            DocumentFormat.OpenXml.Drawing.RgbColorModelHex rgbColorModelHex1 = new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = color.ToRgbHex() };
-
-            solidFill1.Append(rgbColorModelHex1);
-            chartShapeProperties1.Append(solidFill1);
+            chartShapeProperties1.Append(CreateChartFill(color));
 
             return chartShapeProperties1;
 

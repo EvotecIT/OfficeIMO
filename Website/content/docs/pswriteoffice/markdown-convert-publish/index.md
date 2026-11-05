@@ -8,15 +8,15 @@ Markdown is often the editable source while HTML is the delivery artifact. Keep 
 
 ## Publish HTML
 
-`ConvertTo-OfficeMarkdownHtml` supports fragment or document output, visual themes, CSS delivery modes, anchor links, task lists, footnotes, external-link attributes, and explicit URL or image restrictions.
+`Convert-OfficeDocument -To Html` with `New-OfficeMarkdownHtmlOptions` supports fragment or document output, visual themes, CSS delivery modes, anchor links, task lists, footnotes, external-link attributes, and explicit URL or image restrictions.
 
 ```powershell
-ConvertTo-OfficeMarkdownHtml -Path '.\Runbook.md' `
-    -OutputPath '.\Runbook.html' -DocumentMode `
-    -Title 'Operations runbook' -IncludeAnchorLinks
+$options = New-OfficeMarkdownHtmlOptions -DocumentMode -Title 'Operations runbook' -IncludeAnchorLinks
+Convert-OfficeDocument -Path '.\Runbook.md' -To Html `
+    -OutputPath '.\Runbook.html' -Options $options
 ```
 
-The [publish-HTML recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-PublishHtml.ps1) creates a runbook and publishes a complete HTML document.
+The [publish-HTML recipe](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-PublishHtml.ps1) creates a runbook and publishes a complete HTML document.
 
 ## Bring HTML back
 

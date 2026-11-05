@@ -1,90 +1,79 @@
-using OfficeIMO.Core.Internal;
+using System;
 using System.IO;
 using System.Management.Automation;
 using System.Security;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
-using PSWriteOffice.Services;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Gets or extracts embedded file attachments from a PDF.</summary>
-/// <example>
-///   <summary>List and extract embedded PDF attachments.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$proof = @(
-///     Get-OfficePdfAttachment -Path .\Examples\Documents\PdfWithAttachment.pdf
-///     Get-OfficePdfAttachment -Path .\Examples\Documents\PdfWithAttachment.pdf -OutputDirectory .\Examples\Documents\Attachments
-/// )
-/// $proof</code>
-///   <para>First returns attachment metadata, then writes embedded files to disk.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficePdfAttachment")]
+/// <summary>Lists embedded files, or extracts them with -OutputDirectory.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficePdfAttachment", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(PdfExtractedAttachment), typeof(FileInfo))]
-public sealed class GetOfficePdfAttachmentCommand : PSCmdlet
-{
-    /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
-    [Alias("FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Optional attachment name or file name filter.</summary>
-    [Parameter]
+public sealed class GetOfficePdfAttachmentCommand : PSCmdlet {
+    /// <summary>Path for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0)]
+    [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Name for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public string? Name { get; set; }
-
-    /// <summary>Optional directory where attachments should be written.</summary>
-    [Parameter]
+    /// <summary>OutputDirectory for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public string? OutputDirectory { get; set; }
-
-    /// <summary>Password used to read a Standard password-encrypted PDF.</summary>
-    [Parameter]
+    /// <summary>NoClobber for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    public SwitchParameter NoClobber { get; set; }
+    /// <summary>Password for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
     [OfficePasswordTransformation]
     public SecureString? Password { get; set; }
-
-    /// <summary>After successful password authentication, explicitly ignore owner-imposed extraction restrictions.</summary>
-    [Parameter]
+    /// <summary>IgnorePermissionRestrictions for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
     public SwitchParameter IgnorePermissionRestrictions { get; set; }
+    /// <summary>LoadOptions for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [OfficeOptionsTransformation(typeof(PdfLoadOptions))]
+    public PdfLoadOptions? LoadOptions { get; set; }
+    /// <summary>LiteralPath for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Document for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Document", Mandatory = true, ValueFromPipeline = true)]
+    public PdfDocument? Document { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var attachments = PdfDocument.Load(
-            PdfCommandUtilities.ResolvePath(this, Path),
-            PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent)).Attachments.Extract();
-        string? outputDirectory = null;
-        if (!string.IsNullOrWhiteSpace(OutputDirectory))
-        {
-            outputDirectory = PdfCommandUtilities.ResolvePath(this, OutputDirectory!);
-            PdfCommandUtilities.EnsureOutputDirectory(outputDirectory);
-        }
+    protected override void ProcessRecord() => PdfInspectionSource.Visit(this, ParameterSetName, Path, LiteralPath, Document, LoadOptions, Password, IgnorePermissionRestrictions, Inspect);
 
-        foreach (var attachment in attachments)
-        {
-            if (!Matches(attachment))
-            {
-                continue;
-            }
-
-            if (outputDirectory == null)
-            {
-                WriteObject(attachment);
-                continue;
-            }
-
-            var fileName = !string.IsNullOrWhiteSpace(attachment.UnicodeFileName)
-                ? attachment.UnicodeFileName!
-                : attachment.FileName;
-            var outputPath = OfficeFileOutput.WriteUnique(outputDirectory, fileName, attachment.Bytes);
-            WriteObject(new FileInfo(outputPath));
+    private void Inspect(PdfDocument document) {
+        string? directory = OutputDirectory == null ? null : OfficePath.ResolveOutput(SessionState, OutputDirectory, directory: true);
+        if (directory != null && !ShouldProcess(directory, "Extract PDF attachments")) return;
+        foreach (var attachment in document.Attachments.Extract()) {
+            if (Name != null && !string.Equals(attachment.Name, Name, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(attachment.FileName, Name, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(attachment.UnicodeFileName, Name, StringComparison.OrdinalIgnoreCase)) continue;
+            if (directory == null) { WriteObject(attachment); continue; }
+            var name = string.IsNullOrWhiteSpace(attachment.UnicodeFileName) ? attachment.FileName : attachment.UnicodeFileName!;
+            WriteObject(new FileInfo(WriteExtraction(directory, name, attachment.Bytes)));
         }
     }
 
-    private bool Matches(PdfExtractedAttachment attachment)
-    {
-        return string.IsNullOrWhiteSpace(Name) ||
-            string.Equals(attachment.Name, Name, System.StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(attachment.FileName, Name, System.StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(attachment.UnicodeFileName, Name, System.StringComparison.OrdinalIgnoreCase);
+    private string WriteExtraction(string directory, string name, byte[] bytes) {
+        if (!NoClobber) return OfficeFileOutput.WriteUnique(directory, name, bytes);
+        string path = System.IO.Path.Combine(directory, OfficeFileOutput.GetSafeFileName(name));
+        OfficeFileOutput.Write(path, bytes, overwrite: false);
+        return path;
     }
 }

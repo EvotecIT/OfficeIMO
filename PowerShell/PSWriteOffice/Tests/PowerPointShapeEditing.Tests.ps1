@@ -57,7 +57,7 @@ Describe 'PowerPointShapeEditing workflows' {
         $bullets.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTextBox'
         $slide.Shapes.Count | Should -BeGreaterThan 0
         @($slide.Tables).Count | Should -BeGreaterThan 0
-        $table.Rows | Should -BeGreaterThan 0
+        $table.Rows.Count | Should -BeGreaterThan 0
         $shape | Should -Not -BeNullOrEmpty
         $slide.Images.Count | Should -BeGreaterThan 0
         $image | Should -Not -BeNullOrEmpty

@@ -9,8 +9,8 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Unused_rich_text_storage_does_not_consume_text_budget_or_reference_evidence(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 40 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 40 });
         (IWorkTable table, IReadOnlyList<IWorkSourceReferenceIssue> issues) = ReadSelectedRichTable(source, kind);
         Assert.Equal("Value", Assert.Single(table.Cells).RichText!.PlainText);
         Assert.Empty(issues);
@@ -65,8 +65,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Rich_text_aliases_share_storage_and_physical_reference_accounting(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind,
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 999))), aliases: true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 1 });
         (IWorkTable table, IReadOnlyList<IWorkSourceReferenceIssue> issues) = ReadSelectedRichTable(source, kind);
         AssertMissingReference(Assert.Single(issues), 15, "8/1[1]/2", 999);
         Assert.Equal(2, table.Cells.Count);
@@ -81,8 +81,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = SelectedRichTextPackage(kind,
             Message(AttributeTable(8, AttributeEntry(0, ReferenceField(2, 999))),
                 AttributeTable(11, AttributeEntry(0, ReferenceField(2, 998)))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 1 });
         Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind));
     }
 
@@ -93,7 +93,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Repeated_rich_catalog_keys_remain_rejected_after_a_third_declaration(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind, duplicateKeys: true);
         (IWorkTable table, IReadOnlyList<IWorkSourceReferenceIssue> issues) = ReadSelectedRichTable(
-            IWorkSourceDocument.Open(package, kind), kind);
+            IWorkSourceDocument.Load(package, kind), kind);
         Assert.Equal(IWorkCellKind.Error, Assert.Single(table.Cells).Kind);
         Assert.Empty(issues);
     }

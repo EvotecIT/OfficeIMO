@@ -6,17 +6,22 @@ schema: 2.0.0
 ---
 # Get-OfficeWordImage
 ## SYNOPSIS
-Gets images from a Word document, section, or paragraph.
+Gets images from a document, section or paragraph.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeWordImage [-Path] <string> [<CommonParameters>]
+Get-OfficeWordImage [-Document <WordDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordImage -Document <WordDocument> [<CommonParameters>]
+Get-OfficeWordImage [-Path] <string[]> [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordImage -LiteralPath <string[]> [<CommonParameters>]
 ```
 
 ### Section
@@ -30,24 +35,32 @@ Get-OfficeWordImage -Paragraph <WordParagraph> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets images from a Word document, section, or paragraph.
+Gets images from a document, section or paragraph.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $images = Get-OfficeWordImage -Path .\Report.docx
-$images |
-    Select-Object -Property Title, Description, Width, Height |
-    Format-Table -AutoSize
+Get-OfficeWordImage -Document 'Value'
 ```
 
-Reads images from a document so metadata and sizing can be reviewed before publication.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordImage -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordImage -Paragraph 'Value'
+```
+
 
 ## PARAMETERS
 
 ### -Document
-Document to inspect.
+Document for this inspection.
 
 ```yaml
 Type: WordDocument
@@ -55,15 +68,31 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
+### -LiteralPath
+LiteralPath for this inspection.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
 ### -Paragraph
-Paragraph to inspect.
+Paragraph for this inspection.
 
 ```yaml
 Type: WordParagraph
@@ -79,23 +108,23 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the document.
+Path for this inspection.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### -Section
-Section to inspect.
+Section for this inspection.
 
 ```yaml
 Type: WordSection
@@ -115,7 +144,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 - `OfficeIMO.Word.WordSection`
 - `OfficeIMO.Word.WordParagraph`

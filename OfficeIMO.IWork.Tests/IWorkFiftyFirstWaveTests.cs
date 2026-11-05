@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(package,
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Keynote).ReadKeynote();
 
         Assert.False(projection.HasEditableContent);
@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package,
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Numbers).ReadNumbers();
 
         Assert.False(projection.HasEditableContent);
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] node = Message(VarintField(1, 67), BytesField(40, tract));
         IWorkWireMessage formula = IWorkProtobuf.Parse(
             Message(BytesField(1, Message(BytesField(1, node)))),
-            new IWorkReadOptions());
+            new IWorkLoadOptions());
 
         Assert.False(IWorkFormulaReader.TryReadAbsoluteRange(formula, 10,
             out _, out _, out _, out _));
@@ -98,7 +98,7 @@ public sealed partial class IWorkBoundaryTests {
             ($"Data/{imageName}", CreateSizedPreviewPng(2400, 1200)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_IMAGE_UNSUPPORTED");
@@ -123,7 +123,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);

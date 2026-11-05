@@ -13,8 +13,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a date picker control with an initial value.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordDatePicker", DefaultParameterSetName = "Default")]
-[Alias("WordDatePicker")]
 [OutputType(typeof(WordDatePicker))]
+[Alias("WordDatePicker") ]
 public sealed class AddOfficeWordDatePickerCommand : PSCmdlet
 {
     /// <summary>Optional initial date.</summary>
@@ -30,7 +30,7 @@ public sealed class AddOfficeWordDatePickerCommand : PSCmdlet
     public string? Tag { get; set; }
 
     /// <summary>Explicit paragraph to receive the control.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public WordParagraph? Paragraph { get; set; }
 
     /// <summary>Emit the created control.</summary>

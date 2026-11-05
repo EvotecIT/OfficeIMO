@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -133,8 +134,8 @@ namespace OfficeIMO.Examples.Visio {
                 string svgPath = Path.Combine(previewPath, prefix + "-page1.native.svg");
                 string pngPath = Path.Combine(previewPath, prefix + "-page1.native.png");
 
-                document.SaveAsSvg(svgPath, new VisioSvgSaveOptions { PixelsPerInch = 96 });
-                document.SaveAsPng(pngPath, new VisioPngSaveOptions { PixelsPerInch = 96 });
+                document.SaveAsImage(svgPath, new VisioImageExportOptions { Format = OfficeImageExportFormat.Svg, Scale = 1D });
+                document.SaveAsImage(pngPath, new VisioImageExportOptions { TargetDpi = 96 });
 
                 VerifyNonEmptyPreview(svgPath, "native SVG");
                 VerifyNonEmptyPreview(pngPath, "native PNG");

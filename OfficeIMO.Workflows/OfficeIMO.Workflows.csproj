@@ -27,6 +27,25 @@
   </ItemGroup>
 
   <ItemGroup>
+
+    <ProjectReference Include="..\OfficeIMO.Markup.PowerPoint\OfficeIMO.Markup.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.AsciiDoc.Markdown\OfficeIMO.AsciiDoc.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Latex.Markdown\OfficeIMO.Latex.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.AsciiDoc.Pdf\OfficeIMO.AsciiDoc.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Latex.Pdf\OfficeIMO.Latex.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Rtf.Markdown\OfficeIMO.Rtf.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Rtf\OfficeIMO.Html.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Rtf\OfficeIMO.Word.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.OpenDocument\OfficeIMO.Word.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.OpenDocument\OfficeIMO.Excel.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Html\OfficeIMO.Excel.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.OpenDocument\OfficeIMO.PowerPoint.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OneNote.Html\OfficeIMO.OneNote.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OneNote.Markdown\OfficeIMO.OneNote.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OneNote.Pdf\OfficeIMO.OneNote.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OpenDocument.Odt.Pdf\OfficeIMO.OpenDocument.Odt.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OpenDocument.Ods.Pdf\OfficeIMO.OpenDocument.Ods.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OpenDocument.Odp.Pdf\OfficeIMO.OpenDocument.Odp.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Odg.Pdf\OfficeIMO.OpenDocument.Odg.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email.Html\OfficeIMO.Email.Html.csproj" />

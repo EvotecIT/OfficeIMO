@@ -242,11 +242,11 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(design);
             OfficeTheme theme = baseTheme ?? OfficeTheme.Default;
             OfficeThemePalette palette = theme.Palette;
-            OfficeColor accent = Color(design.AccentColor, palette.Accent1);
+            OfficeColor accent = design.AccentColor.Resolve(theme);
             // An accent that cannot carry text on the background (e.g. a pastel brand colour) is darkened until it can.
             accent = EnsureContrast(accent, palette.Background, 4.5D);
-            OfficeColor accent2 = EnsureContrast(Color(design.Accent2Color, palette.Accent2), palette.Background, 3D);
-            OfficeColor accent3 = EnsureContrast(Color(design.Accent3Color, palette.Accent3), palette.Background, 3D);
+            OfficeColor accent2 = EnsureContrast(design.Accent2Color.Resolve(theme), palette.Background, 3D);
+            OfficeColor accent3 = EnsureContrast(design.Accent3Color.Resolve(theme), palette.Background, 3D);
             // Series and comparison columns are told apart by these accents. A brand accent that is only a shade of
             // the primary keeps the theme's own accent instead, so two chart series never share one blue.
             // A design that repeats the theme's own primary accent composes with the theme as it is.
@@ -257,8 +257,8 @@ namespace OfficeIMO.PowerPoint {
             if (!Distinct(accent2, accent)) accent2 = Distinct(palette.Accent2, accent) ? palette.Accent2 : palette.Accent4;
             if (!Distinct(accent3, accent) || !Distinct(accent3, accent2)) accent3 = palette.Accent3;
             palette = palette.With(accent1: accent, accent2: accent2, accent3: accent3);
-            OfficeThemeFont heading = theme.Fonts.Heading.With(family: Font(design.HeadingFontName, theme.Fonts.Heading.Family));
-            OfficeThemeFont body = theme.Fonts.Body.With(family: Font(design.BodyFontName, theme.Fonts.Body.Family));
+            OfficeThemeFont heading = theme.Fonts.Heading.With(family: Font(design.HeadingFontFamily, theme.Fonts.Heading.Family));
+            OfficeThemeFont body = theme.Fonts.Body.With(family: Font(design.BodyFontFamily, theme.Fonts.Body.Family));
             OfficeTheme mapped = theme.WithPalette(palette).WithFonts(new OfficeThemeFonts(heading, body));
             return new PowerPointLayoutTheme(mapped);
         }
@@ -288,17 +288,6 @@ namespace OfficeIMO.PowerPoint {
             value >= 18D ? Math.Round(value / 2D, MidpointRounding.AwayFromZero) * 2D : Math.Round(value, MidpointRounding.AwayFromZero);
 
         internal static string Hex(OfficeColor color) => color.ToRgbHex();
-
-        private static OfficeColor Color(string? hex, OfficeColor fallback) {
-            if (string.IsNullOrWhiteSpace(hex)) return fallback;
-            try {
-                return OfficeColor.ParseHex(hex!.Trim().TrimStart('#'));
-            } catch (FormatException) {
-                return fallback;
-            } catch (ArgumentException) {
-                return fallback;
-            }
-        }
 
         // Fonts that ship with Microsoft Office on Windows and macOS. Others (Poppins, Lato, Segoe UI on a Mac, the
         // cloud-only Aptos Display) are replaced by the theme font so a deck never depends on a font the reader lacks.

@@ -23,16 +23,16 @@ namespace PSWriteOffice.Cmdlets.Project;
 [OutputType(typeof(FileInfo))]
 public sealed class ExportOfficeProjectReportCommand : PSCmdlet {
     /// <summary>Captured report from Get-OfficeProjectView.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "View")]
     public ProjectView View { get; set; } = null!;
 
     /// <summary>PDF, HTML, DOCX, XLSX or PPTX destination filename.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>Replace an existing destination.</summary>
+    /// <summary>Refuse replacement of an existing destination.</summary>
     [Parameter]
-    public SwitchParameter Force { get; set; }
+    public SwitchParameter NoClobber { get; set; }
 
     /// <summary>Return the saved report file.</summary>
     [Parameter]
@@ -60,7 +60,7 @@ public sealed class ExportOfficeProjectReportCommand : PSCmdlet {
                 break;
             default: throw new PSArgumentException("Choose a .pdf, .html, .docx, .xlsx or .pptx report destination.", nameof(Path));
         }
-        OfficeFileOutput.Write(path, bytes, Force.IsPresent);
+        OfficeFileOutput.Write(path, bytes, !NoClobber.IsPresent);
         if (PassThru.IsPresent) WriteObject(new FileInfo(path));
 #endif
     }

@@ -932,7 +932,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksConditionalFormattingVisualPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting visual or extension payloads", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue(5d);
-                sheet.Range("A1:A1").ConditionalFormat().ColorScale("FFFF0000", "FF00FF00");
+                sheet.Range("A1:A1").ConditionalFormat().ColorScale(global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF), global::OfficeIMO.OfficeColor.FromRgba(0x00, 0xFF, 0x00, 0xFF));
             });
 
             AssertNativeXlsSaveNotSupported("conditional formatting visual or extension payloads", (document, sheet) => {
@@ -1419,7 +1419,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksDuplicateCellFontPropertiesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell font properties with duplicate font name elements", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Duplicate font");
-                sheet.Cell(1, 1).SetFontName("Arial");
+                sheet.Cell(1, 1).SetFontFamily("Arial");
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1445,7 +1445,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksUnsupportedCellFontMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell font properties with unsupported metadata", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Font metadata");
-                sheet.Cell(1, 1).SetFontName("Arial");
+                sheet.Cell(1, 1).SetFontFamily("Arial");
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1472,7 +1472,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksDuplicateFillStyleChildrenBeforeWriting() {
             AssertNativeXlsSaveNotSupported("fill style with duplicate foreground color elements", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Duplicate fill");
-                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1501,7 +1501,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksDuplicateBorderStyleChildrenBeforeWriting() {
             AssertNativeXlsSaveNotSupported("border style with duplicate left border elements", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Duplicate border");
-                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1527,7 +1527,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksDuplicateCellFormatAlignmentChildrenBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell-format style with duplicate alignment elements", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Duplicate alignment");
-                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1549,7 +1549,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksDuplicateCellFormatProtectionChildrenBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell-format style with duplicate protection elements", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Duplicate protection");
-                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();

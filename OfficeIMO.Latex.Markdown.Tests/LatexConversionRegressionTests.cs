@@ -12,11 +12,12 @@ public sealed class LatexConversionRegressionTests {
         int secondLevel) {
         string source = "\\documentclass{" + documentClass + "}\n\\begin{document}\n" + headings + "\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
-        HeadingBlock[] converted = result.Value.Blocks.OfType<HeadingBlock>().ToArray();
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport1);
+        var resultReport = (LatexToMarkdownReport)conversionReport1;
+        HeadingBlock[] converted = result.Blocks.OfType<HeadingBlock>().ToArray();
 
         Assert.Equal(new[] { firstLevel, secondLevel }, converted.Select(heading => heading.Level));
-        Assert.Equal(2, result.Report.NativeDiagnostics.Count(diagnostic => diagnostic.Feature == "heading-numbering"));
+        Assert.Equal(2, resultReport.NativeDiagnostics.Count(diagnostic => diagnostic.Feature == "heading-numbering"));
     }
 
     [Theory]
@@ -27,8 +28,8 @@ public sealed class LatexConversionRegressionTests {
         string source = "\\documentclass{" + documentClass + "}\n\\begin{document}\n" +
             "\\part{Part}\\section{Section}\\subsection{Subsection}\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
-        HeadingBlock[] headings = result.Value.Blocks.OfType<HeadingBlock>().ToArray();
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null);
+        HeadingBlock[] headings = result.Blocks.OfType<HeadingBlock>().ToArray();
 
         Assert.Equal(new[] { "Part", "Section", "Subsection" }, headings.Select(heading => heading.Text));
         Assert.Equal(new[] { 1, sectionLevel, subsectionLevel }, headings.Select(heading => heading.Level));
@@ -39,12 +40,13 @@ public sealed class LatexConversionRegressionTests {
         const string source = "\\documentclass{article}\n\\begin{document}\n\\section*{Unnumbered}\n\\end{document}\n";
 
         LatexDocument document = LatexDocument.ParseResult(source).Document;
-        LatexToMarkdownResult result = document.ToMarkdownDocumentResult();
+        var result = document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport3);
+        var resultReport = (LatexToMarkdownReport)conversionReport3;
 
         Assert.True(Assert.Single(document.Headings).IsStarred);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD212" &&
+        Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD212" &&
             diagnostic.Message.IndexOf("unnumbered", StringComparison.Ordinal) >= 0);
-        Assert.Equal(1, Assert.Single(result.Value.Blocks.OfType<HeadingBlock>()).Level);
+        Assert.Equal(1, Assert.Single(result.Blocks.OfType<HeadingBlock>()).Level);
     }
 
     [Fact]
@@ -58,13 +60,14 @@ public sealed class LatexConversionRegressionTests {
             "\\end{table}\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport4);
+        var resultReport = (LatexToMarkdownReport)conversionReport4;
 
-        TableBlock table = Assert.Single(result.Value.Blocks.OfType<TableBlock>());
+        TableBlock table = Assert.Single(result.Blocks.OfType<TableBlock>());
         Assert.Equal("tab:values", table.Attributes.ElementId);
         Assert.Equal("Important values", table.Attributes.GetAttribute("caption"));
-        Assert.Contains("A", ((result.Value.ToMarkdown())), StringComparison.Ordinal);
-        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic =>
+        Assert.Contains("A", ((result.ToMarkdown())), StringComparison.Ordinal);
+        Assert.Contains(resultReport.NativeDiagnostics, static diagnostic =>
             diagnostic.Feature == "table-header" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
     }
 
@@ -72,34 +75,36 @@ public sealed class LatexConversionRegressionTests {
     public void BracedListItem_ConvertsItsVisibleContent() {
         const string source = "\\documentclass{article}\n\\begin{document}\n\\begin{itemize}\\item {Visible item}\\end{itemize}\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null);
 
-        UnorderedListBlock list = Assert.Single(result.Value.Blocks.OfType<UnorderedListBlock>());
+        UnorderedListBlock list = Assert.Single(result.Blocks.OfType<UnorderedListBlock>());
         Assert.Single(list.Items);
-        Assert.Contains("- Visible item", ((result.Value.ToMarkdown())), StringComparison.Ordinal);
+        Assert.Contains("- Visible item", ((result.ToMarkdown())), StringComparison.Ordinal);
     }
 
     [Fact]
     public void FrontMatterTitle_DoesNotConsumeADifferentFirstHeading() {
         MarkdownDocument document = MarkdownDocument.Parse("---\ntitle: Document title\n---\n\n# Introduction\n\nBody\n");
 
-        MarkdownToLatexResult result = document.ToLatexDocumentResult();
+        var result = document.ToLatex(null, out OfficeIMO.OfficeConversionReport conversionReport6);
+        var resultReport = (MarkdownToLatexReport)conversionReport6;
 
-        Assert.Contains("\\title{Document title}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\maketitle", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\section{Introduction}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("Body", result.Source, StringComparison.Ordinal);
+        Assert.Contains("\\title{Document title}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\maketitle", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\section{Introduction}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("Body", resultReport.GeneratedSource, StringComparison.Ordinal);
     }
 
     [Fact]
     public void TheoremCallouts_DeclareGeneratedTheoremEnvironments() {
         MarkdownDocument document = MarkdownDocument.Create().Callout("theorem", "Result", "Proof text.");
 
-        MarkdownToLatexResult result = document.ToLatexDocumentResult();
+        var result = document.ToLatex(null, out OfficeIMO.OfficeConversionReport conversionReport7);
+        var resultReport = (MarkdownToLatexReport)conversionReport7;
 
-        Assert.Contains("\\usepackage{amsthm}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\newtheorem{theorem}{Theorem}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\begin{theorem}[Result]", result.Source, StringComparison.Ordinal);
+        Assert.Contains("\\usepackage{amsthm}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\newtheorem{theorem}{Theorem}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\begin{theorem}[Result]", resultReport.GeneratedSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -108,11 +113,12 @@ public sealed class LatexConversionRegressionTests {
             "## Heading {#section%231}\n\n[query](https://example.test/a%20b?q=x#part&v=1)\n",
             new MarkdownLoadOptions { GenericAttributes = true });
 
-        MarkdownToLatexResult result = document.ToLatexDocumentResult();
+        var result = document.ToLatex(null, out OfficeIMO.OfficeConversionReport conversionReport8);
+        var resultReport = (MarkdownToLatexReport)conversionReport8;
 
-        Assert.Contains("https://example.test/a\\%20b?q=x\\#part\\&v=1", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\label{section_0025_231}", result.Source, StringComparison.Ordinal);
-        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "label");
+        Assert.Contains("https://example.test/a\\%20b?q=x\\#part\\&v=1", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\label{section_0025_231}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains(resultReport.NativeDiagnostics, static diagnostic => diagnostic.Feature == "label");
     }
 
     [Fact]
@@ -124,10 +130,11 @@ public sealed class LatexConversionRegressionTests {
 
         using var addedDocument = MarkdownDocument.Create();
         addedDocument.Add(table);
-        MarkdownToLatexResult result = addedDocument.ToLatexDocumentResult();
+        var result = addedDocument.ToLatex(null, out OfficeIMO.OfficeConversionReport conversionReport9);
+        var resultReport = (MarkdownToLatexReport)conversionReport9;
 
-        Assert.Contains("\\begin{tabular}{ll}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\multicolumn{2}{l}{\\multirow{2}{*}{wide}}", result.Source, StringComparison.Ordinal);
+        Assert.Contains("\\begin{tabular}{ll}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\multicolumn{2}{l}{\\multirow{2}{*}{wide}}", resultReport.GeneratedSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -137,13 +144,13 @@ public sealed class LatexConversionRegressionTests {
             "\\section{Start}\n\\label{sec:start}\nBody.\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null);
 
-        HeadingBlock heading = Assert.Single(result.Value.Blocks.OfType<HeadingBlock>());
+        HeadingBlock heading = Assert.Single(result.Blocks.OfType<HeadingBlock>());
         Assert.Equal("sec:start", heading.Attributes.ElementId);
-        Assert.DoesNotContain(result.Value.Blocks.OfType<ParagraphBlock>(),
+        Assert.DoesNotContain(result.Blocks.OfType<ParagraphBlock>(),
             static paragraph => paragraph.Inlines.Nodes.OfType<HtmlRawInline>().Any());
-        Assert.Contains(result.Value.Blocks.OfType<ParagraphBlock>(),
+        Assert.Contains(result.Blocks.OfType<ParagraphBlock>(),
             static paragraph => paragraph.Inlines.Nodes.OfType<MarkdownTextRun>().Any(text => text.Text.IndexOf("Body.", StringComparison.Ordinal) >= 0));
     }
 
@@ -155,13 +162,14 @@ public sealed class LatexConversionRegressionTests {
             "\\begin{table}\n\\centering\n\\begin{tabular}{l}\nA\\\\\n\\end{tabular}\n\\end{table}\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport11);
+        var resultReport = (LatexToMarkdownReport)conversionReport11;
 
-        Assert.Single(result.Value.Blocks.OfType<ImageBlock>());
-        Assert.Single(result.Value.Blocks.OfType<TableBlock>());
-        Assert.Equal(2, result.Report.NativeDiagnostics.Count(static diagnostic =>
+        Assert.Single(result.Blocks.OfType<ImageBlock>());
+        Assert.Single(result.Blocks.OfType<TableBlock>());
+        Assert.Equal(2, resultReport.NativeDiagnostics.Count(static diagnostic =>
             diagnostic.Code == "LATEXMD298" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback));
-        Assert.Equal(2, result.Value.Blocks.OfType<CodeBlock>().Count(static block =>
+        Assert.Equal(2, result.Blocks.OfType<CodeBlock>().Count(static block =>
             block.Content.IndexOf("\\centering", StringComparison.Ordinal) >= 0));
     }
 
@@ -172,14 +180,15 @@ public sealed class LatexConversionRegressionTests {
             "Text \\textsuperscript{two} \\textsubscript{sub} \\sout{gone}\\newline Next\\linebreak[4]Done.\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
-        ParagraphBlock paragraph = Assert.Single(result.Value.Blocks.OfType<ParagraphBlock>());
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport12);
+        var resultReport = (LatexToMarkdownReport)conversionReport12;
+        ParagraphBlock paragraph = Assert.Single(result.Blocks.OfType<ParagraphBlock>());
 
         Assert.Single(paragraph.Inlines.Nodes.OfType<SuperscriptSequenceInline>());
         Assert.Single(paragraph.Inlines.Nodes.OfType<SubscriptSequenceInline>());
         Assert.Single(paragraph.Inlines.Nodes.OfType<StrikethroughSequenceInline>());
         Assert.Equal(2, paragraph.Inlines.Nodes.OfType<HardBreakInline>().Count());
-        Assert.DoesNotContain(result.Report.NativeDiagnostics, static diagnostic =>
+        Assert.DoesNotContain(resultReport.NativeDiagnostics, static diagnostic =>
             diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
     }
 
@@ -190,13 +199,14 @@ public sealed class LatexConversionRegressionTests {
         options.Subscript = true;
         MarkdownDocument document = MarkdownDocument.Parse("^up **two**^ ~sub *italic*~ ~~gone **bold**~~", options);
 
-        MarkdownToLatexResult result = document.ToLatexDocumentResult();
+        var result = document.ToLatex(null, out OfficeIMO.OfficeConversionReport conversionReport13);
+        var resultReport = (MarkdownToLatexReport)conversionReport13;
 
-        Assert.Contains("\\textsuperscript{up \\textbf{two}}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\textsubscript{sub \\emph{italic}}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\usepackage[normalem]{ulem}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\sout{gone \\textbf{bold}}", result.Source, StringComparison.Ordinal);
-        Assert.DoesNotContain("\\usepackage{amsmath}", result.Source, StringComparison.Ordinal);
+        Assert.Contains("\\textsuperscript{up \\textbf{two}}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\textsubscript{sub \\emph{italic}}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\usepackage[normalem]{ulem}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\sout{gone \\textbf{bold}}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\usepackage{amsmath}", resultReport.GeneratedSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -207,15 +217,16 @@ public sealed class LatexConversionRegressionTests {
             "\\begin{verbatim}literal % value { \\command\\end{verbatim}\n" +
             "After.\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
-        string markdown = ((result.Value.ToMarkdown()));
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport14);
+        var resultReport = (LatexToMarkdownReport)conversionReport14;
+        string markdown = ((result.ToMarkdown()));
 
         Assert.DoesNotContain("SECRET", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden", markdown, StringComparison.Ordinal);
         Assert.Contains("literal % value { \\command", markdown, StringComparison.Ordinal);
-        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
+        Assert.Contains(resultReport.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "LATEXMD210" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
-        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
+        Assert.Contains(resultReport.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "LATEXMD213" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
     }
 
@@ -228,8 +239,8 @@ public sealed class LatexConversionRegressionTests {
             "\\begin {Verbatim}[numbers=left]\nopaque();\n\\end {Verbatim}\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
-        CodeBlock[] blocks = result.Value.Blocks.OfType<CodeBlock>().ToArray();
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null);
+        CodeBlock[] blocks = result.Blocks.OfType<CodeBlock>().ToArray();
 
         Assert.Equal(3, blocks.Length);
         Assert.Contains("Console.WriteLine(1);", blocks[0].Content, StringComparison.Ordinal);
@@ -248,8 +259,8 @@ public sealed class LatexConversionRegressionTests {
             "\\begin{minted}\r\n[linenos]\r\n{csharp}\r\nConsole.WriteLine(1);\r\n\\end{minted}\r\n" +
             "\\end{document}\r\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
-        CodeBlock block = Assert.Single(result.Value.Blocks.OfType<CodeBlock>());
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null);
+        CodeBlock block = Assert.Single(result.Blocks.OfType<CodeBlock>());
 
         Assert.Contains("Console.WriteLine(1);", block.Content, StringComparison.Ordinal);
         Assert.DoesNotContain("linenos", block.Content, StringComparison.Ordinal);
@@ -261,12 +272,13 @@ public sealed class LatexConversionRegressionTests {
         const string source =
             "\\documentclass{article}\n\\begin{document}\nBefore \\verb|a%b{c}| after.\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
-        string markdown = ((result.Value.ToMarkdown()));
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport17);
+        var resultReport = (LatexToMarkdownReport)conversionReport17;
+        string markdown = ((result.ToMarkdown()));
 
         Assert.Contains("`a%b{c}`", markdown, StringComparison.Ordinal);
         Assert.Contains("after", markdown, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
+        Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
     }
 
     [Fact]
@@ -276,16 +288,17 @@ public sealed class LatexConversionRegressionTests {
             "\\begin{unknown}Visible before.\\begin{comment}SECRET\\section{Hidden}\\end{comment}Visible after.\\end{unknown}\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
-        string markdown = ((result.Value.ToMarkdown()));
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport18);
+        var resultReport = (LatexToMarkdownReport)conversionReport18;
+        string markdown = ((result.ToMarkdown()));
 
         Assert.Contains("Visible before", markdown, StringComparison.Ordinal);
         Assert.Contains("Visible after", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("SECRET", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden", markdown, StringComparison.Ordinal);
-        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "LATEXMD210" &&
+        Assert.Contains(resultReport.NativeDiagnostics, diagnostic => diagnostic.Code == "LATEXMD210" &&
             diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
-        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "LATEXMD299" &&
+        Assert.Contains(resultReport.NativeDiagnostics, diagnostic => diagnostic.Code == "LATEXMD299" &&
             diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
     }
 
@@ -293,10 +306,11 @@ public sealed class LatexConversionRegressionTests {
     public void UnterminatedInlineVerbPreservesEveryContentCharacter() {
         const string source = "\\documentclass{article}\n\\begin{document}\nBefore \\verb|abc";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport19);
+        var resultReport = (LatexToMarkdownReport)conversionReport19;
 
-        Assert.Contains("`abc`", ((result.Value.ToMarkdown())), StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
+        Assert.Contains("`abc`", ((result.ToMarkdown())), StringComparison.Ordinal);
+        Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
     }
 
     [Fact]
@@ -304,12 +318,13 @@ public sealed class LatexConversionRegressionTests {
         const string source =
             "\\documentclass{article}\n\\begin{document}\nBefore \\verb|abc\n\\section{Next}\nAfter\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
-        string markdown = ((result.Value.ToMarkdown()));
+        var result = LatexDocument.ParseResult(source).Document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport20);
+        var resultReport = (LatexToMarkdownReport)conversionReport20;
+        string markdown = ((result.ToMarkdown()));
 
         Assert.Contains("`abc`", markdown, StringComparison.Ordinal);
         Assert.Contains("# Next", markdown, StringComparison.Ordinal);
         Assert.Contains("After", markdown, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
+        Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
     }
 }

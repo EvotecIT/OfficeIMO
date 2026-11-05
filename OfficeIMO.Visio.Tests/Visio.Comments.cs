@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -56,24 +55,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentCanAddCommentsToLoadedPageById() {
+        public void NativeCanAddCommentsToLoadedPageById() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string editedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            document.AsFluent()
-                .AddPage("Existing", page => page
-                    .AddRectangle("api", OfficeLength.Inches(3), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "API"))
-                .End()
-                .Save();
+            document.AddPage("Existing", page => page.AddRectangle("api", OfficeLength.Inches(3), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "API")); document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            loaded.AsFluent()
-                .GetPage(0, page => page
-                    .CommentShape("api", "Needs owner", "Operations", "OP")
-                    .Comment("Page review complete", "Operations", "OP"))
-                .End()
-                .Save(editedPath);
+            loaded.GetPage(0, page => { page.AddCommentToShape("api", "Needs owner", "Operations", "OP"); page.AddComment("Page review complete", "Operations", "OP"); }); loaded.Save(editedPath);
 
             VisioDocument roundTrip = VisioDocument.Load(editedPath);
             VisioPage pageAfterRoundTrip = Assert.Single(roundTrip.Pages);
@@ -122,10 +112,8 @@ namespace OfficeIMO.Tests {
             DateTimeOffset finalResolvedAt = new(2026, 2, 4, 11, 15, 0, TimeSpan.Zero);
 
             VisioDocument document = VisioDocument.Create(filePath);
-            document.AsFluent()
-                .AddPage("Review", page => page
-                    .AddRectangle("api", OfficeLength.Inches(3), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "API"))
-                .End();
+            document
+                .AddPage("Review", page => page.AddRectangle("api", OfficeLength.Inches(3), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "API"));
             VisioPage page = document.Pages.Single();
             VisioComment owner = page.AddCommentToShape("api", "Who owns this?", "Operations", "OP", new VisioCommentOptions { CreatedAt = created });
             VisioComment followUp = page.AddCommentToShape("api", "Check again later", "Operations", "OP", new VisioCommentOptions { CreatedAt = created });
@@ -154,14 +142,13 @@ namespace OfficeIMO.Tests {
             AssertCommentXml(reviewedPath, "Check again later", done: false, expectedEdited: reopenedAt);
             AssertCommentTextAbsent(reviewedPath, "Remove after review");
 
-            reviewed.AsFluent()
-                .GetPage(0, pageBuilder => pageBuilder
-                    .ShapeComments("api", comments => Assert.Equal(2, comments.Count))
-                    .RemoveComment(owner.Id)
-                    .UpdateComment(followUp.Id, "Follow-up resolved", finalResolvedAt)
-                    .ResolveComment(followUp.Id, finalResolvedAt))
-                .End()
-                .Save(fluentPath);
+            reviewed.GetPage(0, pageBuilder => {
+                Assert.Equal(2, pageBuilder.CommentsForShape("api").Count);
+                pageBuilder.RemoveComment(owner.Id);
+                pageBuilder.UpdateCommentText(followUp.Id, "Follow-up resolved", finalResolvedAt);
+                pageBuilder.ResolveComment(followUp.Id, finalResolvedAt);
+            });
+            reviewed.Save(fluentPath);
 
             VisioDocument final = VisioDocument.Load(fluentPath);
             VisioComment remaining = Assert.Single(final.Pages.Single().Comments);
@@ -237,8 +224,7 @@ namespace OfficeIMO.Tests {
             byte[] originalBytes = File.ReadAllBytes(filePath);
 
             VisioDocument invalid = VisioDocument.Create(filePath);
-            invalid.AddPage("Review", OfficeLength.Inches(11), OfficeLength.Inches(8.5))
-                .AddComment(new string('x', VisioDocument.MaxCommentTextCharacters + 1), "Operations", "OP");
+            invalid.AddPage("Review", OfficeLength.Inches(11), OfficeLength.Inches(8.5)).AddComment(new string('x', VisioDocument.MaxCommentTextCharacters + 1), "Operations", "OP");
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() => invalid.Save());
 

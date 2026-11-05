@@ -138,7 +138,7 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
             SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
             Shape? shape = FindLayoutPlaceholderShape(layoutPart, placeholderType, index);
-            return shape == null ? null : new PowerPointTextBox(shape);
+            return shape == null ? null : new PowerPointTextBox(shape, layoutPart);
         }
 
         /// <summary>Reads layout geometry in native inheritance order before a partial edit materializes a local transform.</summary>
@@ -162,7 +162,7 @@ namespace OfficeIMO.PowerPoint {
             SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
             Shape? shape = FindLayoutPlaceholderShape(layoutPart, placeholderType, index);
             if (shape != null) {
-                return new PowerPointTextBox(shape);
+                return new PowerPointTextBox(shape, layoutPart);
             }
 
             ShapeTree tree = EnsureLayoutShapeTree(layoutPart);
@@ -173,7 +173,7 @@ namespace OfficeIMO.PowerPoint {
 
             Shape created = CreateLayoutPlaceholderShape(shapeId, resolvedName, placeholderType, resolvedIndex, resolvedBounds);
             tree.AppendChild(created);
-            return new PowerPointTextBox(created);
+            return new PowerPointTextBox(created, layoutPart);
         }
 
         /// <summary>
@@ -245,7 +245,7 @@ namespace OfficeIMO.PowerPoint {
                     defaults = new A.DefaultRunProperties();
                     properties.AddChild(defaults, true);
                 }
-                style.ApplyDefaults(defaults);
+                style.ApplyDefaults(defaults, PowerPointDrawingColor.ThemeFor(paragraph.OwnerPart));
             }
         }
 

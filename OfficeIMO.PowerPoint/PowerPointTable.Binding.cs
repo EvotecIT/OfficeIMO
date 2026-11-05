@@ -29,10 +29,10 @@ namespace OfficeIMO.PowerPoint {
             int requiredRows = items.Count + (includeHeaders ? 1 : 0);
             int requiredColumns = columnList.Count;
 
-            while (Rows < startRow + requiredRows) {
+            while (RowCount < startRow + requiredRows) {
                 AddRow();
             }
-            while (Columns < startColumn + requiredColumns) {
+            while (ColumnCount < startColumn + requiredColumns) {
                 AddColumn();
             }
 

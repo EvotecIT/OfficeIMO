@@ -11,7 +11,7 @@ Creates an in-memory Confluence Cloud session.
 ## SYNTAX
 ### Basic (Default)
 ```powershell
-New-OfficeConfluenceSession [-SiteUri] <uri> -Credential <pscredential> [-ApplicationName <string>] [-RequestTimeoutSeconds <int>] [-MaxRetryCount <int>] [<CommonParameters>]
+New-OfficeConfluenceSession [-SiteUri] <uri> -Password <securestring> [-UserName <string>] [-ApplicationName <string>] [-RequestTimeoutSeconds <int>] [-MaxRetryCount <int>] [<CommonParameters>]
 ```
 
 ### Bearer
@@ -81,22 +81,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Credential
-Atlassian email and API token credential.
-
-```yaml
-Type: PSCredential
-Parameter Sets: Basic
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -MaxRetryCount
 Maximum retry count for safe read requests. Writes are never retried automatically.
 
@@ -107,6 +91,22 @@ Aliases: None
 Possible values:
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Password
+API token accepted through the common password binder.
+
+```yaml
+Type: SecureString
+Parameter Sets: Basic
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -140,6 +140,22 @@ Possible values:
 
 Required: True
 Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -UserName
+Atlassian email for basic authentication.
+
+```yaml
+Type: String
+Parameter Sets: Basic
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

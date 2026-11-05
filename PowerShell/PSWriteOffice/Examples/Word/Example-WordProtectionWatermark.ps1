@@ -6,7 +6,7 @@ $path = Join-Path $documents 'Word-ProtectedWatermark.docx'
 New-OfficeWord -Path $path {
     Add-OfficeWordParagraph -Text 'Confidential report'
     Add-OfficeWordWatermark -Text 'CONFIDENTIAL'
-    Protect-OfficeWordDocument -Password 'secret'
+    Protect-OfficeDocument -Restriction ReadOnly -RestrictionPassword 'secret'
 }
 
 Write-Host "Document saved to $path"

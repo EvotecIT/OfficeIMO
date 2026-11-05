@@ -90,7 +90,7 @@ Describe 'PowerPointTableEditing workflows' {
             $row = $tableShape | Add-OfficePowerPointTableRow -TemplateRow 2 -Position 3 -Value 'Latency', 'Investigating' -PassThru
             $row.Cells[0].Text | Should -Be 'Latency'
             $row.Cells[1].Text | Should -Be 'Investigating'
-            $row.Cells[0].FillColor | Should -Be 'FFFF00'
+            $row.Cells[0].FillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('FFFF00'))
 
             $cell = $tableShape | Set-OfficePowerPointTableCell -Row 2 -Column 2 -Text 'Mitigating' -PassThru
             $cell.Text | Should -Be 'Mitigating'
@@ -114,10 +114,10 @@ Describe 'PowerPointTableEditing workflows' {
             $updatedTable.RowCount | Should -Be 4
             $updatedTable.Shape.GetCell(1, 0).Text | Should -Be 'Risk'
             $updatedTable.Shape.GetCell(2, 0).Text | Should -Be 'Latency'
-            $updatedTable.Shape.GetCell(2, 0).FillColor | Should -Be 'FFFF00'
+            $updatedTable.Shape.GetCell(2, 0).FillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('FFFF00'))
             $updatedTable.Shape.GetCell(3, 0).Text | Should -Be 'Quality'
             { $updatedTable | Add-OfficePowerPointTableRow -Position 6 -Value 'Rejected' -ErrorAction Stop } | Should -Throw
-            $updatedTable.Shape.Rows | Should -Be 4
+            $updatedTable.Shape.Rows.Count | Should -Be 4
             $latencyTable = Get-OfficePowerPointShape -Document $reloaded -Text 'Latency' -Kind Table | Select-Object -First 1
             $latencyTable | Should -Not -BeNullOrEmpty
         } finally {
@@ -154,8 +154,8 @@ Describe 'PowerPointTableEditing workflows' {
                 , @(
                     @{
                         Run = @(
-                            New-OfficeTextRun 'Build '
-                            New-OfficeTextRun 'Ready' -Color SeaGreen
+                            @{ Text = 'Build ' }
+                            @{ Text = 'Ready'; Color = 'SeaGreen' }
                         )
                         ColumnSpan = 2
                         FillColor = 'AliceBlue'
@@ -181,13 +181,13 @@ Describe 'PowerPointTableEditing workflows' {
             $table.GetCell(2, 0).Text | Should -Be 'Filled'
             $table.GetCell(2, 0).Runs[0].Bold | Should -BeTrue
             $table.GetCell(2, 0).Runs[0].BackgroundColor | Should -BeNullOrEmpty
-            $table.GetCell(2, 0).FillColor | Should -Be 'FFFF00'
+            $table.GetCell(2, 0).FillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('FFFF00'))
             $table.GetCell(3, 0).Text | Should -Be 'Queued'
 
             $row = $table | Add-OfficePowerPointTableRow -Value @(
                 @{ Run = @(
-                    New-OfficeTextRun 'Latency '
-                    New-OfficeTextRun 'Ready' -Color SeaGreen -Bold
+                    @{ Text = 'Latency ' }
+                    @{ Text = 'Ready'; Color = 'SeaGreen'; Bold = $true }
                 ) },
                 'SRE'
             ) -PassThru
@@ -216,21 +216,21 @@ Describe 'PowerPointTableEditing workflows' {
                     @{ Text = 'Too wide'; ColumnSpan = 4 }
                 )
             } | Should -Throw '*ColumnSpan 4*'
-            $threeColumnTable.Rows | Should -Be 2
+            $threeColumnTable.Rows.Count | Should -Be 2
 
             {
                 $threeColumnTable | Add-OfficePowerPointTableRow -Value @(
                     @{ Text = 'Too tall'; RowSpan = 2 }
                 )
             } | Should -Throw '*RowSpan*'
-            $threeColumnTable.Rows | Should -Be 2
+            $threeColumnTable.Rows.Count | Should -Be 2
 
             {
                 $threeColumnTable | Add-OfficePowerPointTableRow -Value @(
-                    @{ Run = @(New-OfficeTextRun 'site' -LinkUri 'https://example.org/table-cell') }
+                    @{ Run = @(@{ Text = 'site'; LinkUri = 'https://example.org/table-cell' }) }
                 )
             } | Should -Throw '*do not support hyperlinks yet*'
-            $threeColumnTable.Rows | Should -Be 2
+            $threeColumnTable.Rows.Count | Should -Be 2
 
             $cell = $table | Set-OfficePowerPointTableCell -Row 2 -Column 2 -Content {
                 PowerPointText 'Owner '
@@ -258,9 +258,9 @@ Describe 'PowerPointTableEditing workflows' {
                 , @(
                     @{
                         Run = @(
-                            New-OfficeTextRun 'H'
-                            New-OfficeTextRun '2' -Baseline Subscript
-                            New-OfficeTextRun 'O'
+                            @{ Text = 'H' }
+                            @{ Text = '2'; Baseline = 'Subscript' }
+                            @{ Text = 'O' }
                         )
                     }
                 )
@@ -323,7 +323,7 @@ Describe 'PowerPointTableEditing workflows' {
             {
                 Add-OfficePowerPointTable -Slide $slide -InputObject @(
                     , @(
-                        @{ Run = @(New-OfficeTextRun 'site' -LinkUri 'https://example.org/table-cell') }
+                        @{ Run = @(@{ Text = 'site'; LinkUri = 'https://example.org/table-cell' }) }
                     )
                 ) -X 80 -Y 150 -Width 300 -Height 100 -ErrorAction Stop
             } | Should -Throw '*do not support hyperlinks yet*'
@@ -369,7 +369,7 @@ Describe 'PowerPointTableEditing workflows' {
                     Qty  = 10
                 }
                 , @(
-                    @{ Run = @(New-OfficeTextRun 'Total' -Bold) },
+                    @{ Run = @(@{ Text = 'Total'; Bold = $true }) },
                     'Two'
                 )
             ) -X 80 -Y 150 -Width 420 -Height 140 -PassThru

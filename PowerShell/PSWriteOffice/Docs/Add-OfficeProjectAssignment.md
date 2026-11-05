@@ -11,7 +11,7 @@ Assigns a project resource to a task by stable UID.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Add-OfficeProjectAssignment -Document <ProjectDocument> -TaskUid <int> -ResourceUid <int> [-UnitsPercent <decimal>] [-PassThru] [<CommonParameters>]
+Add-OfficeProjectAssignment [-Task] <OfficeProjectTaskSelector> [-Resource] <OfficeProjectResourceSelector> [-Document <ProjectDocument>] [-UnitsPercent <decimal>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Assigns a project resource to a task by stable UID.
 
 ### EXAMPLE 1
 ```powershell
-$project | Add-OfficeProjectAssignment -TaskUid 1 -ResourceUid 1 -UnitsPercent 50
+$project | Add-OfficeProjectAssignment -Task 1 -Resource 1 -UnitsPercent 50
 ```
 
 
@@ -36,7 +36,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -59,33 +59,33 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ResourceUid
+### -Resource
 Stable resource UID.
 
 ```yaml
-Type: Int32
+Type: OfficeProjectResourceSelector
 Parameter Sets: Document
 Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 1
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TaskUid
+### -Task
 Stable task UID.
 
 ```yaml
-Type: Int32
+Type: OfficeProjectTaskSelector
 Parameter Sets: Document
 Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

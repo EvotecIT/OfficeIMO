@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Source");
-            sheet.Cell(1, 1).SetBold().SetFillColor("D9EAF7").SetNumberFormat("0.00");
+            sheet.Cell(1, 1).SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("D9EAF7")).SetNumberFormat("0.00");
 
             ExcelNamedStyleInfo defined = sheet.DefineNamedStyle("Input Value", 1, 1);
             sheet.ApplyNamedStyle("Input Value", "B2:C3");
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Initial");
-            sheet.Cell(1, 1).SetFillColor("F4CCCC");
+            sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("F4CCCC"));
             ExcelNamedStyleInfo initial = sheet.DefineNamedStyle("Input", 1, 1);
             sheet.ApplyNamedStyle("Input", "B2:B2");
 
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 .ElementAt((int)appliedStyleIndex).FillId!.Value;
 
             sheet.Cell(1, 3).SetValue("Replacement");
-            sheet.Cell(1, 3).SetFillColor("C6EFCE");
+            sheet.Cell(1, 3).SetFillColor(global::OfficeIMO.OfficeColor.Parse("C6EFCE"));
             ExcelNamedStyleInfo redefined = sheet.DefineNamedStyle("Input", 1, 3);
             sheet.ApplyNamedStyle("Input", "C2:C2");
 

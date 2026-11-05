@@ -6,43 +6,62 @@ schema: 2.0.0
 ---
 # Update-OfficeExcelText
 ## SYNOPSIS
-Replaces text in worksheet values.
+Replaces text in cell values across a workbook, sheet or range.
 
 ## SYNTAX
-### Path (Default)
+### Document (Default)
 ```powershell
-Update-OfficeExcelText [-Path] <string> -OldValue <string> -NewValue <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Range <string>] [-CaseSensitive] [-Regex] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Update-OfficeExcelText [-Pattern] <string> [-Replacement] <string> [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-SimpleMatch] [-CaseSensitive] [-Show] [-PassThru] [-Document <ExcelDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Update-OfficeExcelText -Document <ExcelDocument> -OldValue <string> -NewValue <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Range <string>] [-CaseSensitive] [-Regex] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Update-OfficeExcelText [-Path] <string[]> [-Pattern] <string> [-Replacement] <string> [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-SimpleMatch] [-CaseSensitive] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Update-OfficeExcelText [-Pattern] <string> [-Replacement] <string> -LiteralPath <string[]> [-Sheet <OfficeSheetSelector[]>] [-Range <string>] [-SimpleMatch] [-CaseSensitive] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Replaces text in worksheet values.
+Replaces text in cell values across a workbook, sheet or range.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $count = Update-OfficeExcelText -Path .\Report.xlsx -Sheet Summary -OldValue Draft -NewValue Ready -PassThru
-[pscustomobject]@{
-    Path = '.\Report.xlsx'
-    Replacements = $count
+Update-OfficeExcelText -Path .\Templates\Price-List.xlsx -Pattern 'Fabrikam Ltd' -Replacement 'Northwind Traders' -SimpleMatch
+```
+
+Replaces the old company name in every cell of the workbook and saves it.
+
+### EXAMPLE 2
+```powershell
+$changed = Update-OfficeExcelText -Path .\Reports\Inventory.xlsx -Sheet Servers, Services -Pattern '^SRV-(\d+)$' -Replacement 'NW-APP-$1' -PassThru
+"Renamed $changed cells"
+```
+
+Uses a regular expression to rename the old SRV hosts to the new naming scheme on the inventory sheets and reports how many cells changed.
+
+### EXAMPLE 3
+```powershell
+Open-OfficeExcel -Path .\Templates\Quote.xlsx {
+    Update-OfficeExcelText -Pattern '{{Customer}}' -Replacement 'Northwind Traders' -SimpleMatch
+    Update-OfficeExcelText -Pattern '{{Date}}' -Replacement (Get-Date -Format 'yyyy-MM-dd') -SimpleMatch
 }
 ```
 
-Updates matching text cells on a sheet, saves the workbook, and returns the replacement count.
+Fills a template and replaces its placeholder text in the same Open-OfficeExcel block.
 
 ## PARAMETERS
 
 ### -CaseSensitive
-Use case-sensitive matching.
+Matches names and text using ordinal case sensitivity. Omission ignores case.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -54,7 +73,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to update outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
@@ -62,67 +81,35 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -NewValue
-Replacement text.
+### -LiteralPath
+Literal workbook paths, including FileInfo.FullName and provider PSPath.
 
 ```yaml
-Type: String
-Parameter Sets: Path, Document
-Aliases: None
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
 Possible values:
 
 Required: True
 Position: named
 Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -OldValue
-Text or pattern to replace.
-
-```yaml
-Type: String
-Parameter Sets: Path, Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Open
-Open the file after saving when using -Path.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path
-Aliases: Show
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -134,27 +121,43 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Workbook path to update.
+Workbook paths resolved with filesystem wildcard support.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Pattern
+Date or DateTime number format pattern.
+
+```yaml
+Type: String
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: True
+Position: 1
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Range
-A1 range to update. Defaults to each selected worksheet's used range.
+A1 cell range on the selected worksheet.
 
 ```yaml
 Type: String
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -165,29 +168,29 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Regex
-Treat -OldValue as a regular expression.
+### -Replacement
+Replacement text or regular-expression replacement pattern.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Document
+Type: String
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
-Required: False
-Position: named
+Required: True
+Position: 2
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name. Defaults to all sheets for path/document use and current sheet inside an ExcelSheet block.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Path, Document
-Aliases: WorksheetName
+Type: OfficeSheetSelector[]
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
 Possible values:
 
 Required: False
@@ -197,12 +200,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SheetIndex
-Worksheet index when using a workbook object or path.
+### -Show
+Open the saved file in its registered application after a local block completes.
 
 ```yaml
-Type: Int32
-Parameter Sets: Path, Document
+Type: SwitchParameter
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SimpleMatch
+Uses literal text matching instead of regular expressions.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -218,11 +237,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 
-- `System.Int32`
+- `None`
 
 ## RELATED LINKS
 

@@ -11,7 +11,7 @@ Saves a live presentation without closing it.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Save-OfficePowerPoint [-Path <string>] [-Password <securestring>] [-AllowLoss] [-Show] [-PassThru] [-Document <PowerPointDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficePowerPoint [-Document] <PowerPointDocument> [-Path <string>] [-Password <securestring>] [-AllowLoss] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -46,7 +46,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Gets or sets an explicit live document; omission uses the enclosing content block.
+Live presentation to save.
 
 ```yaml
 Type: PowerPointDocument
@@ -54,8 +54,8 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: False
-Position: named
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False

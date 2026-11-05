@@ -5,7 +5,7 @@ namespace OfficeIMO.OneNote.Tests;
 public sealed class InkFixtureTests {
     [Fact]
     public void LicensedHandwritingFixturePreservesGeometryAndRecognition() {
-        OneNoteSection source = OneNoteSectionReader.Read(FixturePath("handwriting_recognition.one"));
+        OneNoteSection source = OneNoteSection.Load(FixturePath("handwriting_recognition.one"));
         OfficeInkStroke[] sourceStrokes = Strokes(source);
         OfficeInkStroke[] sourceRecognized = sourceStrokes.Where(stroke => !string.IsNullOrWhiteSpace(stroke.RecognizedText)).ToArray();
         OneNoteTag[] sourceTags = Tags(source);
@@ -16,8 +16,8 @@ public sealed class InkFixtureTests {
         Assert.All(sourceRecognized, stroke => Assert.NotEmpty(stroke.RecognitionAlternatives));
         Assert.InRange(sourceStrokes[0].Points[1].X, 1D, 2D);
         Assert.InRange(sourceStrokes[0].Points[1].Y, 30D, 32D);
-        byte[] regenerated = OneNoteSectionWriter.Write(source, new OneNoteWriterOptions { ValidateRoundTrip = false });
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(regenerated));
+        byte[] regenerated = source.ToBytes(new OneNoteSaveOptions { ValidateRoundTrip = false });
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(regenerated));
         OfficeInkStroke[] resultStrokes = Strokes(roundTrip);
 
         Assert.Equal(sourceStrokes.Length, resultStrokes.Length);

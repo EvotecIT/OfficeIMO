@@ -20,7 +20,7 @@ public sealed class XpsDocumentTests {
         var document = XpsDocument.Create(format);
         string font = document.AddFont(Font);
         document.AddResource("Metadata/opaque.bin", new byte[] { 3, 7, 9 }, "application/octet-stream");
-        document.AddPage(320, 160).AddPath("M10,10 L310,10 310,150 10,150Z", "#FF0080FF").AddText("{Hello XPS}", font, 24, 30, 80);
+        document.AddPage(320, 160).AddPath("M10,10 L310,10 310,150 10,150Z", "#FF0080FF").Page.AddText("{Hello XPS}", font, 24, 30, 80);
         Assert.Equal(document.ToBytes(), document.ToBytes());
         using var stream = new MemoryStream(document.ToBytes());
         var loaded = XpsDocument.Load(stream);
@@ -92,7 +92,7 @@ public sealed class XpsDocumentTests {
     }
     [Fact]
     public void GlyphIndicesOverrideUnicodeAndAdvancesRemainPositioned() {
-        var doc = XpsDocument.Create(); string font = doc.AddFont(Font, false); var page = doc.AddPage(200, 100).AddText("AB", font, 24, 10, 50);
+        var doc = XpsDocument.Create(); string font = doc.AddFont(Font, false); var page = doc.AddPage(200, 100).AddText("AB", font, 24, 10, 50).Page;
         var xml = page.GetMarkup(); var glyphs = xml.Elements().Single(); glyphs.SetAttributeValue("Indices", "36,100;37,100"); page.ReplaceMarkup(xml);
         string first = page.ToSvg().Svg;
         glyphs.SetAttributeValue("UnicodeString", "ZZ"); page.ReplaceMarkup(xml);
@@ -107,7 +107,7 @@ public sealed class XpsDocumentTests {
     public void ImagesRetainPlacementAndPixels(XpsFormat dialect) {
         var doc = XpsDocument.Create(dialect);
         string image = doc.AddResource("Resources/test.png", OfficePngWriter.Encode(new OfficeRasterImage(4, 2, OfficeColor.SteelBlue)), "image/png");
-        var page = doc.AddPage(80, 60).AddImage(image, 10, 20, 40, 20);
+        var page = doc.AddPage(80, 60).AddImage(image, 10, 20, 40, 20).Page;
         var loaded = XpsDocument.Load(doc.ToBytes());
         Assert.True(OfficeRasterImageDecoder.TryDecode(loaded.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         Assert.NotNull(raster);
@@ -135,12 +135,12 @@ public sealed class XpsDocumentTests {
         doc.AddResource("Resources/cycle.xaml", Encoding.UTF8.GetBytes(new XElement(ns + "ResourceDictionary", new XAttribute("Source", "cycle.xaml")).ToString()), "application/vnd.ms-package.xps-resourcedictionary+xml");
         xml.Add(new XElement(ns + "FixedPage.Resources", new XElement(ns + "ResourceDictionary", new XAttribute("Source", "/Resources/cycle.xaml")))); page.ReplaceMarkup(xml);
         Assert.Throws<InvalidDataException>(() => page.ToSvg());
-        var invalid = XpsDocument.Create().AddPage().AddPath("M0,0 C1,2");
+        var invalid = XpsDocument.Create().AddPage().AddPath("M0,0 C1,2").Page;
         Assert.Throws<InvalidDataException>(() => invalid.ToSvg());
     }
     [Fact]
     public void ClustersCanMapSeveralCodeUnitsToOneExplicitGlyph() {
-        var doc = XpsDocument.Create(); var page = doc.AddPage(150, 80).AddText("fi", doc.AddFont(Font), 24, 10, 40);
+        var doc = XpsDocument.Create(); var page = doc.AddPage(150, 80).AddText("fi", doc.AddFont(Font), 24, 10, 40).Page;
         var xml = page.GetMarkup(); xml.Elements().Single().SetAttributeValue("Indices", "(2:1)36,100"); page.ReplaceMarkup(xml);
         Assert.True(page.ToSvg().IsComplete);
         xml.Elements().Single().SetAttributeValue("Indices", "(3:1)36"); page.ReplaceMarkup(xml);
@@ -162,12 +162,12 @@ public sealed class XpsDocumentTests {
     [InlineData("F 1")]
     [InlineData("F\t1")]
     public void PathFillRuleAllowsSpecificationWhitespace(string prefix) {
-        var page = XpsDocument.Create().AddPage(40, 40).AddPath(prefix + " M0,0 H30 V30 H0Z");
+        var page = XpsDocument.Create().AddPage(40, 40).AddPath(prefix + " M0,0 H30 V30 H0Z").Page;
         Assert.Contains("fill-rule=\"nonzero\"", page.ToSvg().Svg);
     }
     [Fact]
     public void WhitespaceOnlyGlyphRunsDoNotBecomeFailedDrawingGeometry() {
-        var doc = XpsDocument.Create(); var page = doc.AddPage(100, 100).AddText(" ", doc.AddFont(Font), 16, 10, 30);
+        var doc = XpsDocument.Create(); var page = doc.AddPage(100, 100).AddText(" ", doc.AddFont(Font), 16, 10, 30).Page;
         Assert.Equal(" ", page.ExtractText());
         Assert.NotNull(page.ToDrawing());
     }

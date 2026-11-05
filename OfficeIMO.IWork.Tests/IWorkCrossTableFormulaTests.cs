@@ -27,9 +27,9 @@ public sealed partial class IWorkBoundaryTests {
         byte[] range = Message(BytesField(3, Message(VarintField(1, 0), VarintField(2, 1))),
             BytesField(4, Message(VarintField(1, 0), VarintField(2, 1))));
         byte[] node = Message(VarintField(1, 67), BytesField(40, range), BytesField(28, BytesField(1, uuid)));
-        var formula = IWorkProtobuf.Parse(BytesField(1, BytesField(1, node)), new IWorkReadOptions());
+        var formula = IWorkProtobuf.Parse(BytesField(1, BytesField(1, node)), new IWorkLoadOptions());
         var table = IWorkProtobuf.Parse(Message(StringField(1, tableId),
-            variant == 6 ? StringField(1, tableId) : Array.Empty<byte>()), new IWorkReadOptions());
+            variant == 6 ? StringField(1, tableId) : Array.Empty<byte>()), new IWorkLoadOptions());
         Assert.Equal(expected, IWorkFormulaReader.TryReadAbsoluteRange(formula, 10,
             out _, out _, out _, out _, table));
         Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 10, 100).IsComplete);
@@ -45,7 +45,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] node = Message(VarintField(1, 67), BytesField(40, range), BytesField(28, Array.Empty<byte>()));
         byte[] pair = BytesField(3, BytesField(2, BytesField(1, BytesField(1, node))));
         using MemoryStream package = MergeTestPackage(kind, MergeTestOwner(pair));
-        var projection = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        var projection = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         Assert.Empty(projection.Item1.MergedRanges);
         Assert.Equal(42d, Assert.Single(projection.Item1.Cells).Value);
         package.Position = 0;
@@ -80,7 +80,7 @@ public sealed partial class IWorkBoundaryTests {
             byte[] last = Message(VarintField(1, 36), BytesField(26, lastCoordinate), BytesField(27, lastCoordinate));
             nodes = Message(BytesField(1, first), BytesField(1, last), BytesField(1, VarintField(1, 29)));
         }
-        var formula = IWorkProtobuf.Parse(BytesField(1, nodes), new IWorkReadOptions());
+        var formula = IWorkProtobuf.Parse(BytesField(1, nodes), new IWorkLoadOptions());
         Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 10, 100).IsComplete);
         Assert.False(IWorkFormulaReader.TryReadAbsoluteRange(formula, 10, out _, out _, out _, out _));
     }
@@ -95,7 +95,7 @@ public sealed class IWorkCrossTableFormulaCorpusTests {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
         string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Fixture("numbers")))).ToLowerInvariant();
         Assert.Equal(manifest.RootElement.GetProperty("sourceSha256").GetString(), hash);
-        var source = IWorkSourceDocument.Open(Fixture("numbers"));
+        var source = IWorkSourceDocument.Load(Fixture("numbers"));
         IWorkNumbersProjection projection = source.ReadNumbers();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             IWorkTable table = Assert.Single(Assert.Single(projection.Sheets,
@@ -114,7 +114,7 @@ public sealed class IWorkCrossTableFormulaCorpusTests {
     [Fact]
     public void Saved_cross_table_formulas_use_actual_worksheet_names_and_preserve_caches() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
-        using var converted = IWorkSourceDocument.Open(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var converted = IWorkSourceDocument.Load(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(converted.IsVisualFallback);
         Assert.ThrowsAny<OfficeConversionException>(() => converted.Report.ThrowIfLoss());
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;

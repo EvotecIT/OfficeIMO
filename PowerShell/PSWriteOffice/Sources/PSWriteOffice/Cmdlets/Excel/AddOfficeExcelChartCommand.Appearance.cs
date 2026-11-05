@@ -43,7 +43,7 @@ public sealed partial class AddOfficeExcelChartCommand {
         }
     }
 
-    private static void ValidateChartData(OfficeChartData data, OfficeChartType kind) {
+    internal static void ValidateChartData(OfficeChartData data, OfficeChartType kind) {
         if ((kind is OfficeChartType.Pie or OfficeChartType.Doughnut) && data.Series.Count != 1) {
             throw new PSArgumentException("Pie and Doughnut charts require exactly one value column.", nameof(Value));
         }

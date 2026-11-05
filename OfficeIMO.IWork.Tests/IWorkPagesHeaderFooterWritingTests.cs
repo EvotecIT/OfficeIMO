@@ -9,16 +9,16 @@ public sealed class IWorkPagesHeaderFooterWritingTests {
     [Fact]
     public void Default_page_text_is_deterministic_and_retains_styles_and_distances_in_strict_saved_Docx() {
         IWorkPagesDocument document = Example();
-        byte[] bytes = document.SaveBytes(); Assert.Equal(bytes, Example().SaveBytes());
+        byte[] bytes = document.ToBytes(); Assert.Equal(bytes, Example().ToBytes());
         Assert.Equal(File.ReadAllBytes(Fixture("pages-created-headers-v15.4.pages")), bytes);
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(new MemoryStream(bytes)).ReadPages();
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(new MemoryStream(bytes)).ReadPages();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         IWorkPagesSection section = Assert.Single(projection.Sections);
         Assert.False(section.DifferentFirstPage); Assert.False(section.DifferentOddAndEvenPages);
         Assert.Equal("OfficeIMO — Pages header", Assert.Single(section.DefaultPageHeaderContents).PlainText);
         Assert.Equal("Zażółć café — footer", Assert.Single(section.DefaultPageFooterContents).PlainText);
         Assert.Equal(30, projection.PageLayout!.HeaderMarginPoints); Assert.Equal(36, projection.PageLayout.FooterMarginPoints);
-        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false); Assert.Empty(new OpenXmlValidator().Validate(saved));
@@ -37,12 +37,12 @@ public sealed class IWorkPagesHeaderFooterWritingTests {
     [Fact]
     public void Native_saved_page_text_retains_edits_and_exports_the_same_text_and_distances_as_Apple() {
         string source = Fixture("pages-created-headers-edited-v15.4.pages");
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(source).ReadPages();
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(source).ReadPages();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         IWorkPagesSection section = Assert.Single(projection.Sections);
         Assert.Equal("OfficeIMO — Native header", Assert.Single(section.DefaultPageHeaderContents).PlainText);
         Assert.Equal("Zażółć café — native footer", Assert.Single(section.DefaultPageFooterContents).PlainText);
-        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -70,17 +70,17 @@ public sealed class IWorkPagesHeaderFooterWritingTests {
         var document = IWorkPagesDocument.Create(); document.AddParagraph("Body");
         if (header) document.SetHeader(text, distancePoints: 0);
         if (footer) document.SetFooter(text, distancePoints: 0);
-        using var result = IWorkSourceDocument.Open(new MemoryStream(document.SaveBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(new MemoryStream(document.ToBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(new MemoryStream(document.SaveBytes())).ReadPages();
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(new MemoryStream(document.ToBytes())).ReadPages();
         Assert.Equal(header ? text : "", string.Concat(projection.Sections.Single().SelectedHeaderContents.Select(content => content.PlainText)));
         Assert.Equal(footer ? text : "", string.Concat(projection.Sections.Single().SelectedFooterContents.Select(content => content.PlainText)));
     }
 
     [Fact]
     public void Invalid_page_text_updates_are_atomic_and_clearing_restores_the_original_creation_graph() {
-        var document = IWorkPagesDocument.Create(); document.AddParagraph("Body"); byte[] original = document.SaveBytes();
-        document.SetHeader("Header"); document.SetFooter("Footer"); byte[] authored = document.SaveBytes();
+        var document = IWorkPagesDocument.Create(); document.AddParagraph("Body"); byte[] original = document.ToBytes();
+        document.SetHeader("Header"); document.SetFooter("Footer"); byte[] authored = document.ToBytes();
         foreach (float distance in new[] { -1f, 72f, float.NaN, float.PositiveInfinity }) {
             Assert.Throws<ArgumentOutOfRangeException>(() => document.SetHeader("Rejected", distancePoints: distance));
             Assert.Throws<ArgumentOutOfRangeException>(() => document.SetFooter("Rejected", distancePoints: distance));
@@ -93,11 +93,11 @@ public sealed class IWorkPagesHeaderFooterWritingTests {
         var emptyStyledRun = new IWorkTextRunData("", "Times New Roman", 24, "003366", bold: true);
         Assert.Throws<ArgumentException>(() => document.SetHeader(emptyStyledRun));
         Assert.Throws<ArgumentException>(() => document.SetFooter(emptyStyledRun));
-        Assert.Equal(authored, document.SaveBytes());
+        Assert.Equal(authored, document.ToBytes());
         document.ClearHeader(); document.ClearFooter();
         Assert.Null(document.Header); Assert.Null(document.Footer);
         Assert.Equal(0, document.HeaderDistancePoints); Assert.Equal(0, document.FooterDistancePoints);
-        Assert.Equal(original, document.SaveBytes());
+        Assert.Equal(original, document.ToBytes());
     }
 
     [Theory]
@@ -106,8 +106,8 @@ public sealed class IWorkPagesHeaderFooterWritingTests {
     [InlineData("characters")]
     public void Page_text_shares_creation_budgets_before_mutating_output(string budget) {
         var document = IWorkPagesDocument.Create(); document.AddParagraph("B"); document.SetHeader("H"); document.SetFooter("F");
-        var limits = new IWorkPagesWriteOptions { MaxParagraphs = 3, MaxTextRuns = 3, MaxTextCharacters = 4 };
-        byte[] expected = document.SaveBytes(limits);
+        var limits = new IWorkPagesSaveOptions { MaxParagraphs = 3, MaxTextRuns = 3, MaxTextCharacters = 4 };
+        byte[] expected = document.ToBytes(limits);
         switch (budget) {
             case "paragraphs": limits.MaxParagraphs = 2; break;
             case "runs": limits.MaxTextRuns = 2; break;
@@ -115,7 +115,7 @@ public sealed class IWorkPagesHeaderFooterWritingTests {
         }
         using var output = new MemoryStream(new byte[] { 9, 8, 7 });
         Assert.Throws<InvalidDataException>(() => document.Save(output, limits)); Assert.Equal(new byte[] { 9, 8, 7 }, output.ToArray());
-        Assert.Equal(expected, document.SaveBytes());
+        Assert.Equal(expected, document.ToBytes());
     }
 
     internal static IWorkPagesDocument Example() {

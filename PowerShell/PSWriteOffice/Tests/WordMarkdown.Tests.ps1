@@ -19,12 +19,12 @@ Describe 'Word Markdown conversions' {
             Add-OfficeWordParagraph -Text 'Hello Markdown'
         } | Out-Null
 
-        $markdown = ConvertTo-OfficeWordMarkdown -Path $docPath
+        $markdown = Convert-OfficeDocument -To Markdown -Path $docPath -AsString
         $markdown | Should -Match '# Quarterly Report'
         $markdown | Should -Match 'Hello Markdown'
 
-        $file = ConvertTo-OfficeWordMarkdown -Path $docPath -OutputPath $markdownPath -PassThru
-        $file | Should -BeOfType System.IO.FileInfo
+        $file = Convert-OfficeDocument -To Markdown -Path $docPath -OutputPath $markdownPath
+        $file | Should -BeOfType OfficeIMO.OfficeConversionReport
         (Get-Content -Path $markdownPath -Raw) | Should -Match 'Quarterly Report'
     }
 
@@ -39,7 +39,7 @@ Describe 'Word Markdown conversions' {
             }
         } | Out-Null
 
-        ConvertTo-OfficeWordMarkdown -Path $docPath -ImageExportMode File -ImageDirectory $imageDirectory -WhatIf | Out-Null
+        Convert-OfficeDocument -To Markdown -Path $docPath -WhatIf -Options (New-OfficeWordMarkdownOptions -ImageExportMode File -ImageDirectory $imageDirectory) -AsString | Out-Null
 
         Test-Path -LiteralPath $imageDirectory | Should -BeFalse
     }
@@ -48,8 +48,8 @@ Describe 'Word Markdown conversions' {
         $docPath = Join-Path $TestDrive 'MarkdownRoundtrip.docx'
         $markdown = "# Title`n`nBody text"
 
-        $file = ConvertFrom-OfficeWordMarkdown -Markdown $markdown -OutputPath $docPath -PassThru
-        $file | Should -BeOfType System.IO.FileInfo
+        $file = Convert-OfficeDocument -To Word -From Markdown -Text $markdown -OutputPath $docPath
+        $file | Should -BeOfType OfficeIMO.OfficeConversionReport
         Test-Path $docPath | Should -BeTrue
 
         $paragraphs = Get-OfficeWordParagraph -Path $docPath
@@ -57,7 +57,9 @@ Describe 'Word Markdown conversions' {
         ($paragraphs.Text -join "`n") | Should -Match 'Body text'
 
         $markdownDocument = Open-OfficeMarkdown -Text "## Pipeline`n`nGenerated"
-        $document = $markdownDocument | ConvertFrom-OfficeWordMarkdown
+        $pipelinePath = Join-Path $TestDrive 'MarkdownPipeline.docx'
+        $markdownDocument | Convert-OfficeDocument -To Word -OutputPath $pipelinePath | Out-Null
+        $document = Open-OfficeWord -LiteralPath $pipelinePath
         try {
             $document.Paragraphs.Count | Should -BeGreaterThan 0
         } finally {
@@ -71,7 +73,7 @@ Describe 'Word Markdown conversions' {
         $server = Start-TestHttpFileServer -FilePath $imagePath -ContentType 'image/bmp'
 
         try {
-            ConvertFrom-OfficeWordMarkdown -Markdown "![Remote image]($($server.Url))" -AllowRemoteImages -OutputPath $docPath | Out-Null
+            Convert-OfficeDocument -To Word -From Markdown -Text "![Remote image]($($server.Url))" -OutputPath $docPath -Options (New-OfficeMarkdownWordOptions -AllowRemoteImages), @{ RemoteImageLoadOptions = @{ AllowPrivateNetworkAddresses = $true } } | Out-Null
 
             $document = Open-OfficeWord -Path $docPath -ReadOnly
             try {
@@ -106,8 +108,8 @@ title: Hidden metadata
 Inserted body.
 '@
 
-        $file = ConvertFrom-OfficeWordMarkdown -Markdown $markdown -TemplatePath $templatePath -BookmarkName 'MainContent' -OutputPath $docPath -PassThru
-        $file | Should -BeOfType System.IO.FileInfo
+        $file = Convert-OfficeDocument -To Word -From Markdown -Text $markdown -OutputPath $docPath -Options (New-OfficeMarkdownWordOptions -Template $templatePath -BookmarkName 'MainContent' -NoFrontMatter)
+        $file | Should -BeOfType OfficeIMO.OfficeConversionReport
 
         $paragraphs = @(Get-OfficeWordParagraph -Path $docPath)
         $texts = @($paragraphs.Text | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
@@ -123,7 +125,7 @@ Inserted body.
     }
 
     It 'rejects template insertion selectors without a template path' {
-        { ConvertFrom-OfficeWordMarkdown -Markdown '# Missing template' -BookmarkName 'MainContent' -ErrorAction Stop } |
-            Should -Throw '*Template insertion parameters require -TemplatePath*'
+        { Convert-OfficeDocument -To Word -From Markdown -Text '# Missing template' -OutputPath (Join-Path $TestDrive 'missing-template.docx') -ErrorAction Stop -Options (New-OfficeMarkdownWordOptions -BookmarkName 'MainContent') } |
+            Should -Throw '*Template insertion parameters require -Template.*'
     }
 }

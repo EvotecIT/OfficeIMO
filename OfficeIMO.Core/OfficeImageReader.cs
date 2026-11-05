@@ -11,6 +11,42 @@ namespace OfficeIMO.Drawing;
 /// Bounded image metadata reader used to avoid full image decoding dependencies.
 /// </summary>
 public static partial class OfficeImageReader {
+    private static readonly System.Collections.Generic.Dictionary<string, OfficeImageFormat> ImageFormats =
+        new(StringComparer.OrdinalIgnoreCase) {
+        [".png"] = OfficeImageFormat.Png,
+        [".jpg"] = OfficeImageFormat.Jpeg,
+        [".jpeg"] = OfficeImageFormat.Jpeg,
+        [".gif"] = OfficeImageFormat.Gif,
+        [".bmp"] = OfficeImageFormat.Bmp,
+        [".tif"] = OfficeImageFormat.Tiff,
+        [".tiff"] = OfficeImageFormat.Tiff,
+        [".svg"] = OfficeImageFormat.Svg,
+        [".emf"] = OfficeImageFormat.Emf,
+        [".wmf"] = OfficeImageFormat.Wmf,
+        [".ico"] = OfficeImageFormat.Icon,
+        [".pcx"] = OfficeImageFormat.Pcx,
+        [".webp"] = OfficeImageFormat.Webp,
+        [".avif"] = OfficeImageFormat.Avif,
+        [".heic"] = OfficeImageFormat.Heic,
+        [".heif"] = OfficeImageFormat.Heic,
+        [".hif"] = OfficeImageFormat.Heic,
+        [".jxr"] = OfficeImageFormat.JpegXr,
+        [".wdp"] = OfficeImageFormat.JpegXr,
+        [".hdp"] = OfficeImageFormat.JpegXr,
+        [".jp2"] = OfficeImageFormat.Jpeg2000,
+        [".j2k"] = OfficeImageFormat.Jpeg2000Codestream,
+        [".j2c"] = OfficeImageFormat.Jpeg2000Codestream,
+        [".pbm"] = OfficeImageFormat.PortableMap,
+        [".pgm"] = OfficeImageFormat.PortableMap,
+        [".ppm"] = OfficeImageFormat.PortableMap,
+        [".pnm"] = OfficeImageFormat.PortableMap,
+        [".tga"] = OfficeImageFormat.Tga,
+    };
+
+    /// <summary>The authoritative extension inventory shared by native identification and in-process file selectors.</summary>
+    internal static System.Collections.Generic.IReadOnlyList<string> KnownExtensions { get; } =
+        new System.Collections.Generic.List<string>(ImageFormats.Keys).AsReadOnly();
+
     /// <summary>
     /// Identifies image metadata from a file.
     /// </summary>
@@ -293,27 +329,7 @@ public static partial class OfficeImageReader {
             ext = "." + text;
         }
         ext = ext.ToLowerInvariant();
-        return ext switch {
-            ".png" => OfficeImageFormat.Png,
-            ".jpg" or ".jpeg" => OfficeImageFormat.Jpeg,
-            ".gif" => OfficeImageFormat.Gif,
-            ".bmp" => OfficeImageFormat.Bmp,
-            ".tif" or ".tiff" => OfficeImageFormat.Tiff,
-            ".svg" => OfficeImageFormat.Svg,
-            ".emf" => OfficeImageFormat.Emf,
-            ".wmf" => OfficeImageFormat.Wmf,
-            ".ico" => OfficeImageFormat.Icon,
-            ".pcx" => OfficeImageFormat.Pcx,
-            ".webp" => OfficeImageFormat.Webp,
-            ".avif" => OfficeImageFormat.Avif,
-            ".heic" or ".heif" or ".hif" => OfficeImageFormat.Heic,
-            ".jxr" or ".wdp" or ".hdp" => OfficeImageFormat.JpegXr,
-            ".jp2" => OfficeImageFormat.Jpeg2000,
-            ".j2k" or ".j2c" => OfficeImageFormat.Jpeg2000Codestream,
-            ".pbm" or ".pgm" or ".ppm" or ".pnm" => OfficeImageFormat.PortableMap,
-            ".tga" => OfficeImageFormat.Tga,
-            _ => OfficeImageFormat.Unknown
-        };
+        return ImageFormats.TryGetValue(ext, out var format) ? format : OfficeImageFormat.Unknown;
     }
 
     private static bool TryReadJpeg2000(

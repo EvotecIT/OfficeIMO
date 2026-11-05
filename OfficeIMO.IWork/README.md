@@ -2,6 +2,8 @@
 
 `OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages, creates native documents and saves captured sources with explicit preservation boundaries, without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
 
+Authored Pages, Numbers and Keynote models support `Create(path)`, associated-path `Save()` and `ToBytes()`. Captured sources use `Load()` and retain separate preservation edit sessions. The models implement `IDisposable` without retaining caller streams. Existing-file replacement requires `overwrite: true`.
+
 ## Reference from a source checkout
 
 For source-based development, reference the bounded reader and the opt-in adapter you need:
@@ -38,7 +40,7 @@ var imageSlide = presentation.AddSlide();
 imageSlide.AddImage(File.ReadAllBytes("photo.png"), 60, 100, 480, 320,
     accessibilityDescription: "A photograph of the finished project");
 presentation.Save("created.key"); // rejects an existing destination
-byte[] package = presentation.SaveBytes();
+byte[] package = presentation.ToBytes();
 ```
 
 The writer generates its own native object graph, protobuf archives, Snappy frames and deterministic ZIP package. It needs no seed file, OOXML conversion or installed Apple application. Slides have opaque six-digit sRGB backgrounds. `AddText` uses one font, size and opaque color throughout. `AddRichText` copies immutable runs with independent fonts, sizes, colors, bold, italic, single underline and single strikethrough. Plain runs clear earlier decoration. Empty ranges are discarded unless the entire box is blank; `Runs` exposes the retained snapshot. Text boxes use left and top alignment, zero internal padding and no automatic fitting. Frames must lie within the canvas. CR and CRLF normalize to LF; other control characters and invalid UTF-16 are rejected. Fonts are requested by name and are not embedded. Wrapping, fallback glyphs and appearance depend on the receiving application's fonts.
@@ -56,7 +58,7 @@ slide.AddTable(values, 60, 120, 840, 300, "Values", "Arial", 24, "003366");
 
 Each axis supports 1–256 cells. Tables use equal row heights and column widths, a uniform font/size/color, white cell fills, solid black one-point borders, four-point padding and top alignment. Text beginning with `=` remains literal text. Header/footer regions, merges, formulas, comments and per-cell fonts/fills/borders are not authored. Numeric display formats use the [shared format API](#format-numeric-cells-in-new-tables). `MaxTables` and `MaxTableCells` bound aggregate tables and grid positions, including unset cells; table names and set text cells count toward the text budget. The [table reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-tables-v15.4.json) records independent decoding, native style presets, all-slide open/export and text/numeric edits that survive native save/reopen. The reader and destination adapters retain the [qualified solid/invisible border profile](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md#table-borders), including borders of unset cells.
 
-`IWorkKeynoteWriteOptions` limits slides, total text boxes and retained character runs, UTF-16 text length, image count, combined encoded/RGBA image bytes and package/intermediate archive size. Image limits count each instance, including repeated payloads; Core image validation also bounds each input. Save operations accept cancellation. Encoding and validation finish before stream copying or file staging. Stream saves leave the caller's stream open and can leave partial data after cancellation or an I/O failure during copying. Path saves use the shared atomic file-commit owner; failed staging preserves the existing destination. Use `overwrite: true` to replace an existing file. Creation instances are not thread safe.
+`IWorkKeynoteSaveOptions` limits slides, total text boxes and retained character runs, UTF-16 text length, image count, combined encoded/RGBA image bytes and package/intermediate archive size. Image limits count each instance, including repeated payloads; Core image validation also bounds each input. Save operations accept cancellation. Encoding and validation finish before stream copying or file staging. Stream saves leave the caller's stream open and can leave partial data after cancellation or an I/O failure during copying. Path saves use the shared atomic file-commit owner; failed staging preserves the existing destination. Use `overwrite: true` to replace an existing file. Creation instances are not thread safe.
 
 The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. The [rich-run reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.json) adds Helvetica Neue, character decorations and resets, mixed font sizes/colors and Unicode ranges. The [image reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-v15.4.json) qualifies PNG alpha, JPEG stretching, stacking and accessibility descriptions, with native PPTX/PDF exports and an image edit/save/reopen check. These qualify their recorded fixtures and font environment. Other native versions, fonts/scripts, image transformations, broader table formatting, transitions, builds and editing loaded packages remain outside this evidence.
 
@@ -122,7 +124,7 @@ numbered.AddRichItem(new[] {
 pages.Save("mixed-size-list.pages");
 ```
 
-`IWorkPagesWriteOptions` bounds used list groups (`MaxNumberedLists`), paragraphs including header/footer and list/image/table hosts, retained runs including header/footer and attachment markers, image instances (`MaxImages`), combined encoded/RGBA image bytes (`MaxEncodedImageBytes`/`MaxDecodedImageBytes`), aggregate tables (`MaxTables`) and dense grid positions (`MaxTableCells`), UTF-16 body/header/footer/cell/name characters including stored terminators, aggregate custom tab stops (`MaxTabStops`) and encoded package/intermediate archive bytes. Byte, caller-stream and atomic path saves accept cancellation and use the same package and file-commit owners as Keynote creation. Encoding completes before stream copying or file staging. Stream saves leave the caller's stream open; copy failure or cancellation can leave partial stream output. File staging failure preserves an existing destination.
+`IWorkPagesSaveOptions` bounds used list groups (`MaxNumberedLists`), paragraphs including header/footer and list/image/table hosts, retained runs including header/footer and attachment markers, image instances (`MaxImages`), combined encoded/RGBA image bytes (`MaxEncodedImageBytes`/`MaxDecodedImageBytes`), aggregate tables (`MaxTables`) and dense grid positions (`MaxTableCells`), UTF-16 body/header/footer/cell/name characters including stored terminators, aggregate custom tab stops (`MaxTabStops`) and encoded package/intermediate archive bytes. Byte, caller-stream and atomic path saves accept cancellation and use the same package and file-commit owners as Keynote creation. Encoding completes before stream copying or file staging. Stream saves leave the caller's stream open; copy failure or cancellation can leave partial stream output. File staging failure preserves an existing destination.
 
 The [Pages creation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4.json) records independent decoding of the complete graph and native Pages 15.4 open, edit, save, close/reopen and PDF/DOCX export. Both PDF pages are inspected. Native Pages/PDF and strict saved OfficeIMO DOCX retain the recorded rich formatting. Apple's DOCX export agrees on text and page settings but changes selected font runs and bold/italic overrides; equivalent DOCX typography is outside that reference.
 
@@ -167,7 +169,7 @@ The writer creates its own document, calculation metadata, sheet/sidebar, table,
 
 Each table supports 1–256 positions on either axis, equal positive row/column dimensions and finite positions in points. Cells share a requested font, size and opaque sRGB color, white fills, black one-point borders, wrapping and four-point padding. Text, finite numbers, booleans and unset empty positions remain distinct; text beginning with `=` is literal. Formulas, comments, merges, headers, rich cell text, images and editing loaded sources are unsupported by this creation model. Numeric display formats use the shared API below.
 
-`IWorkNumbersWriteOptions` bounds sheets, combined tables, dense grid positions including unset cells, combined UTF-16 sheet/table names and cell text, and package/intermediate bytes. Encoding and validation finish before copying or atomic path staging. Stream saves write at the current position and leave the caller open; copying failures can leave partial stream data. Path saves reject existing destinations unless `overwrite: true` is supplied and preserve the existing file after failed staging. Save operations accept cancellation. Creation instances are not thread safe.
+`IWorkNumbersSaveOptions` bounds sheets, combined tables, dense grid positions including unset cells, combined UTF-16 sheet/table names and cell text, and package/intermediate bytes. Encoding and validation finish before copying or atomic path staging. Stream saves write at the current position and leave the caller open; copying failures can leave partial stream data. Path saves reject existing destinations unless `overwrite: true` is supplied and preserve the existing file after failed staging. Save operations accept cancellation. Creation instances are not thread safe.
 
 The [Numbers creation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-v14.5.json) records independent decoding of all 108 objects and native Numbers 14.5 open, numeric edit, save, close/reopen and PDF/XLSX export. Both sheets and both PDF pages are inspected. Saved/reopened OfficeIMO XLSX under explicit partial acceptance retains all three tables and their typed values, including Polish text, emoji, booleans, literal equals-sign text and a completely empty grid. Four-point native region padding remains available through `IWorkTable.GetPadding`; XLSX reports `IWORK_NUMBERS_CELL_PADDING_OMITTED` and requires `AllowPartialEditableReconstruction = true`. Complete-content PDF workflows reject this omission. Apple's empty-table Excel placement differs from the table-relative OfficeIMO output; this reference does not qualify equivalent Excel positioning or appearance. Other versions, fonts, scripts, layouts and runtime architectures require additional qualification.
 
@@ -197,7 +199,7 @@ The [macOS arm64 NativeAOT receipt](../Docs/Compatibility/iwork-numeric-formats-
 ```csharp
 using OfficeIMO.IWork;
 
-var source = IWorkSourceDocument.Open("source.pages");
+var source = IWorkSourceDocument.Load("source.pages");
 var session = source.BeginEdit(); // separate from the immutable source snapshot
 IWorkNativeSaveReport report = session.Save("preserved.pages");
 // An unchanged save has equal normalized source and output content hashes.
@@ -208,7 +210,7 @@ An unchanged save writes all captured file-entry payloads into a native ZIP pack
 Keynote image mutations move and resize direct, unlocked, unrotated and unmasked images within their slide canvas:
 
 ```csharp
-var keynote = IWorkSourceDocument.Open("deck.key");
+var keynote = IWorkSourceDocument.Load("deck.key");
 var image = keynote.ReadKeynote().Slides[0].Images[0];
 var edit = keynote.BeginEdit();
 edit.MoveKeynoteImage(image.SourceIdentity!, leftPoints: 100, topPoints: 130);
@@ -223,7 +225,7 @@ Only the requested existing position or size floats change. Image pixels, intrin
 Numbers sessions replace existing numeric or boolean cells using one-based coordinates and the table's source identity:
 
 ```csharp
-var numbers = IWorkSourceDocument.Open("budget.numbers");
+var numbers = IWorkSourceDocument.Load("budget.numbers");
 var table = numbers.ReadNumbers().Sheets[0].Tables[0];
 var cells = numbers.BeginEdit();
 cells.SetNumbersCellNumber(table.SourceIdentity!, row: 2, column: 2, value: 42.125);
@@ -242,7 +244,7 @@ The [macOS arm64 NativeAOT receipt](../Docs/Compatibility/iwork-numbers-cell-edi
 Pages sessions replace a plain body paragraph using its one-based paragraph number and the body text storage's identity:
 
 ```csharp
-var pages = IWorkSourceDocument.Open("source.pages");
+var pages = IWorkSourceDocument.Load("source.pages");
 var body = pages.ReadPages().Body;
 var paragraphs = pages.BeginEdit();
 paragraphs.SetPagesBodyParagraphText(body.SourceIdentity!, paragraph: 1, text: "Edited paragraph layout");
@@ -262,7 +264,7 @@ The [macOS arm64 NativeAOT receipt](../Docs/Compatibility/iwork-pages-paragraph-
 Keynote sessions use the text box's source identity and a one-based paragraph number:
 
 ```csharp
-var deck = IWorkSourceDocument.Open("source.key");
+var deck = IWorkSourceDocument.Load("source.key");
 var box = deck.ReadKeynote().Slides[0].TextBoxes[0];
 var textEdit = deck.BeginEdit();
 textEdit.SetKeynoteTextBoxParagraphText(box.SourceIdentity!, paragraph: 1,
@@ -282,14 +284,14 @@ Edited saves require `AllowUnassessedVisualCaches` and report `IWORK_NATIVE_VISU
 
 The [image resizing reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-preserved-resized-v15.4.json) qualifies composed moves and resizes of opaque PNG, alpha PNG and JPEG images, including a subsequent native width edit and save/close/reopen in Keynote 15.4. Independent IWA, PPTX and PDF checks retain exact image resources and final frames; native and composed PDF inspection confirms transparency and stacking. Font metrics differ, and wider image states and native cache regeneration remain outside this profile.
 
-`IWorkNativeSaveOptions` independently bounds the sum of input file-entry bytes and encoded ZIP length, combined decompressed bytes of changed archives, and distinct edited records. `SaveBytesResult` returns a defensive package copy through `GetPackageBytes()` and an operation-level report with normalized content hashes, physical entry/record counts and updated identities/entry paths. Counts do not establish semantic fidelity of opaque content. Encoding completes before writing. Stream saves start at the caller's current position, leave the stream open and can leave partial bytes on copying failure or cancellation. Path saves are atomic, require `overwrite: true` for existing files and reject output inside a captured directory source, including directory aliases. Sessions are not thread safe.
+`IWorkNativeSaveOptions` independently bounds the sum of input file-entry bytes and encoded ZIP length, combined decompressed bytes of changed archives, and distinct edited records. `ToBytes(out IWorkNativeSaveReport report, options)` returns caller-owned package bytes and an operation-level report with normalized content hashes, physical entry/record counts and updated identities/entry paths. Counts do not establish semantic fidelity of opaque content. Encoding completes before writing. Stream saves start at the caller's current position, leave the stream open and can leave partial bytes on copying failure or cancellation. Path saves are atomic, require `overwrite: true` for existing files and reject output inside a captured directory source, including directory aliases. Sessions are not thread safe.
 
 ## Read and inspect a source
 
 ```csharp
 using OfficeIMO.IWork;
 
-IWorkSourceDocument source = IWorkSourceDocument.Open("report.pages");
+IWorkSourceDocument source = IWorkSourceDocument.Load("report.pages");
 IWorkPagesProjection pages = source.ReadPages();
 
 Console.WriteLine(source.Kind);                 // Pages
@@ -333,9 +335,9 @@ Path and stream entry points use the same bounded parser. Stream and byte-array 
 
 ```csharp
 using FileStream stream = File.OpenRead("budget.numbers");
-IWorkSourceDocument source = IWorkSourceDocument.Open(
+IWorkSourceDocument source = IWorkSourceDocument.Load(
     stream,
-    new IWorkReadOptions {
+    new IWorkLoadOptions {
         MaxPackageBytes = 64 * 1024 * 1024,
         MaxArchiveReferenceCount = 1_000_000,
         MaxMaterializedCells = 1_000_000,
@@ -347,7 +349,7 @@ IWorkSourceDocument source = IWorkSourceDocument.Open(
 IWorkNumbersProjection workbook = source.ReadNumbers();
 ```
 
-The verifying form is `IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, options)`.
+The verifying form is `IWorkSourceDocument.Load(stream, IWorkDocumentKind.Numbers, options)`.
 
 `IWorkTable.FillStyles` exposes supported body, header-row, header-column and footer-row fills, plus `BandedBody` for every second body row after the headers. `table.GetFill(row, column)` resolves a one-based position without materializing unstored cells. Selected fills override region defaults, including explicit no-fill; unresolved selected fills stay null. Header and footer rows take precedence over header columns. Banding applies only to body cells. Unsupported or unresolved banding suppresses fill defaults and produces `IWORK_TABLE_FILL_DEFAULTS_UNSUPPORTED`; selected cell fills remain available. The [support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md#table-fill-defaults-and-banding) defines the native Numbers export evidence and remaining appearance limits.
 
@@ -363,7 +365,7 @@ Path, stream, and byte-array `Open` overloads accept a `CancellationToken` after
 
 ```csharp
 using var cancellation = new CancellationTokenSource();
-IWorkSourceDocument source = IWorkSourceDocument.Open(
+IWorkSourceDocument source = IWorkSourceDocument.Load(
     "budget.numbers", IWorkDocumentKind.Numbers, options: null,
     cancellationToken: cancellation.Token);
 IWorkNumbersProjection workbook = source.ReadNumbers();
@@ -392,7 +394,7 @@ This is extended semantic reconstruction rather than plain-text extraction:
 
 Advanced charts, vector effects, animations, non-cell comments/change tracking, masks/crops, and other application-only structures remain available in source records. Reachable unsupported structures produce conversion diagnostics; preserved records alone do not establish a field-level fidelity assessment. Keynote measurements finer than PPTX's integral EMU grid stay editable and emit `IWORK_KEYNOTE_PPTX_PRECISION` when they are quantized to the nearest destination unit.
 
-`IWorkReadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables/images, repeated encoded destination-image bytes, merged ranges, source-wide table catalogs, materialized cells, and ArchiveInfo references in addition to the package/IWA byte limits.
+`IWorkLoadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables/images, repeated encoded destination-image bytes, merged ranges, source-wide table catalogs, materialized cells, and ArchiveInfo references in addition to the package/IWA byte limits.
 
 All conversion modes use the same bounded semantic source read, so package and projection limits are enforced before the destination representation is chosen. `Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview for the destination and reports `VisualFallback`; it does not erase or bypass the semantic `ReadPages`, `ReadNumbers`, or `ReadKeynote` projection. `RequireCompleteVisualCoverage` defaults to `true`, so incomplete or unknown preview coverage is rejected. Set it to `false` explicitly on a result API to retain and inspect preview output. Value-only adapter APIs require complete editable reconstruction and reject partial or preview results even under permissive options. `AllowPartialEditableReconstruction = true` retains bounded recoverable objects and exposes `IsPartialEditableReconstruction`; source and destination limits still apply.
 

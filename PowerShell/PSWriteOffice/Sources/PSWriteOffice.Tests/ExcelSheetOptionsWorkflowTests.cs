@@ -46,7 +46,7 @@ public sealed class ExcelSheetOptionsWorkflowTests {
         book.AddSheet("Summary");
         var lookup = book.AddSheet("Lookups");
         lookup.SetVeryHidden(true);
-        lookup.SetTabColor("#336699");
+        lookup.SetTabColor(OfficeIMO.OfficeColor.Parse("#336699"));
         using var runspace = Open(book);
         Assert.Empty(Invoke(runspace, "Set-OfficeExcelSheet -Document $book -Sheet Lookups -Active:$false -NoTabColor:$false"));
         Assert.True(book["Lookups"].VeryHidden);
@@ -81,7 +81,7 @@ public sealed class ExcelSheetOptionsWorkflowTests {
         using var book = ExcelDocument.Create();
         book.AddSheet("Summary");
         var lookup = book.AddSheet("Lookups");
-        lookup.SetTabColor("#336699");
+        lookup.SetTabColor(OfficeIMO.OfficeColor.Parse("#336699"));
         using var foreignBook = ExcelDocument.Create();
         using var runspace = Open(book);
         runspace.SessionStateProxy.SetVariable("foreign", foreignBook.AddSheet("Lookups"));

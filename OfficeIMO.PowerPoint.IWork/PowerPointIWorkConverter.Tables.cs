@@ -34,7 +34,10 @@ public static partial class PowerPointIWorkConverter {
                     ? perimeter : source.GetBorders(row, column));
                 if (source.GetFill(row, column) is { } fill) {
                     if (fill.IsNone) fillTarget.NoFill = true;
-                    else fillTarget.FillColor = fill.Color!.RgbHex;
+                    else {
+                        IWorkColor color = fill.Color!;
+                        fillTarget.FillColor = OfficeColor.FromRgba(color.Red, color.Green, color.Blue, color.Alpha);
+                    }
                 }
                 if (source.GetPadding(row, column) is { } padding) {
                     fillTarget.PaddingLeft = global::OfficeIMO.OfficeLength.Points(padding.LeftPoints);

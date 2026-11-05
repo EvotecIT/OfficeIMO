@@ -65,8 +65,9 @@ public sealed class PdfInspectionProjectionConversionScopeTests {
         using (word.Value) Assert.NotEmpty(word.Report.Diagnostics);
         Assert.Contains("Native page text", logical.ToHtmlResult().Value);
         Assert.Contains("Native page text", logical.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile()).Value);
-        PdfRtfConversionResult rtf = logical.ToRtfDocumentResult();
-        Assert.Contains(rtf.Report.Warnings, warning => warning.Code == "IMAGES_NOT_IMPORTED");
+        logical.ToRtf(null, out OfficeConversionReport rtfReport);
+        PdfRtfConversionReport rtf = (PdfRtfConversionReport)rtfReport;
+        Assert.Contains(rtf.Warnings, warning => warning.Code == "IMAGES_NOT_IMPORTED");
     }
 
     private static void Convert(PdfDocumentReadResult logical, string converter) {
@@ -81,7 +82,7 @@ public sealed class PdfInspectionProjectionConversionScopeTests {
             }).Value) { } break;
             case "html-semantic": logical.ToHtmlResult(); break;
             case "html-positioned": logical.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile()); break;
-            case "rtf": logical.ToRtfDocumentResult(); break;
+            case "rtf": logical.ToRtf(); break;
             default: throw new ArgumentOutOfRangeException(nameof(converter));
         }
     }

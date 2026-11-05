@@ -10,14 +10,14 @@ namespace PSWriteOffice.Cmdlets.Email;
 /// <example>
 ///   <summary>Read an EMLX message without retaining attachment payloads.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$options = New-OfficeEmailStoreReaderOptions -ExcludeAttachmentContent -MaxAttachmentsPerItem 100
+///   <code>$options = New-OfficeEmailStoreReaderOptions -NoAttachmentContent -MaxAttachmentsPerItem 100
 /// Get-OfficeEmail -Path .\Message.emlx -StoreOptions $options -AsResult</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeEmailStoreReaderOptions", DefaultParameterSetName = "Options")]
 [OutputType(typeof(EmailStoreReaderOptions))]
 public sealed class NewOfficeEmailStoreReaderOptionsCommand : PSCmdlet {
     /// <summary>Maximum seekable source length.</summary>
-    [Parameter] [ValidateRange(1, long.MaxValue)] public long MaxInputBytes { get; set; } = 1L * 1024 * 1024 * 1024 * 1024;
+    [Parameter(ParameterSetName = "Options")] [ValidateRange(1, long.MaxValue)] public long MaxInputBytes { get; set; } = 1L * 1024 * 1024 * 1024 * 1024;
     /// <summary>Maximum NDB nodes and blocks visited.</summary>
     [Parameter] [ValidateRange(1, int.MaxValue)] public int MaxNodeCount { get; set; } = 25_000_000;
     /// <summary>Maximum tree traversal depth.</summary>
@@ -39,13 +39,13 @@ public sealed class NewOfficeEmailStoreReaderOptionsCommand : PSCmdlet {
     /// <summary>Maximum decoded attachment bytes across the read.</summary>
     [Parameter] [ValidateRange(1, long.MaxValue)] public long MaxTotalAttachmentBytes { get; set; } = 4L * 1024 * 1024 * 1024;
     /// <summary>Do not retain decoded attachment payloads in memory.</summary>
-    [Parameter] public SwitchParameter ExcludeAttachmentContent { get; set; }
+    [Parameter] public SwitchParameter NoAttachmentContent { get; set; }
     /// <summary>Password used to validate legacy protected PST files.</summary>
     [Parameter]
     [OfficePasswordTransformation]
-    public SecureString? PstPassword { get; set; }
+    public SecureString? Password { get; set; }
     /// <summary>Encoding name used for the legacy PST password checksum.</summary>
-    [Parameter] public string PstPasswordEncoding { get; set; } = "us-ascii";
+    [Parameter] public string PasswordEncoding { get; set; } = "us-ascii";
     /// <summary>Materialize folder-associated information items.</summary>
     [Parameter] public SwitchParameter IncludeAssociatedItems { get; set; }
     /// <summary>Recover item nodes absent from folder contents tables.</summary>
@@ -73,9 +73,9 @@ public sealed class NewOfficeEmailStoreReaderOptionsCommand : PSCmdlet {
     protected override void ProcessRecord() {
         Encoding encoding;
         try {
-            encoding = Encoding.GetEncoding(PstPasswordEncoding);
+            encoding = Encoding.GetEncoding(PasswordEncoding);
         } catch (System.Exception) {
-            throw new PSArgumentException($"Unknown PST password encoding '{PstPasswordEncoding}'.", nameof(PstPasswordEncoding));
+            throw new PSArgumentException($"Unknown PST password encoding '{PasswordEncoding}'.", nameof(PasswordEncoding));
         }
 
         WriteObject(new EmailStoreReaderOptions(
@@ -90,8 +90,8 @@ public sealed class NewOfficeEmailStoreReaderOptionsCommand : PSCmdlet {
             MaxAttachmentsPerItem,
             MaxAttachmentBytes,
             MaxTotalAttachmentBytes,
-            !ExcludeAttachmentContent.IsPresent,
-            PstPassword.ToPlainText(),
+            !NoAttachmentContent.IsPresent,
+            Password.ToPlainText(),
             encoding,
             IncludeAssociatedItems.IsPresent,
             IncludeOrphanedItems.IsPresent,

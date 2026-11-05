@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = DimensionPackage(kind,
             firstBucketPayload: columns ? null : new byte[] { 0x80 },
             columnBucketPayload: columns ? new byte[] { 0x80 } : null);
-        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1;
+        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1;
         if (columns) {
             Assert.Empty(table.ColumnWidths);
             Assert.Equal(20.25d, table.GetRowHeight(1));
@@ -47,12 +47,12 @@ public sealed partial class IWorkBoundaryTests {
         byte[] first = Message(BytesField(2, DimensionHeader(0, 20.25f)),
             wrongWire ? VarintField(2, 0) : BytesField(2, new byte[] { 0x80 }));
         using MemoryStream package = DimensionPackage(kind, firstBucketPayload: first);
-        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1;
+        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1;
         Assert.Empty(table.RowHeights);
         Assert.Equal(40.5d, table.GetColumnWidth(1));
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Empty(report.PreservedRecords);
         Assert.Contains(report.Diagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && issue.LossKind == OfficeConversionLossKind.Unassessed);
@@ -69,7 +69,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Invalid_dimension_value_retains_distinct_sibling_sizes_and_physical_evidence(IWorkDocumentKind kind) {
         using MemoryStream package = DimensionPackage(kind, firstRowHeader: DimensionHeader(0, -1));
-        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1;
+        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1;
         Assert.False(table.RowHeights.ContainsKey(1));
         Assert.Equal(30d, table.GetRowHeight(3));
         Assert.Equal(40.5d, table.GetColumnWidth(1));
@@ -93,7 +93,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstRowHeader: Message(index, FloatField(2, 20), VarintField(3, 0)));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ReadNumbers();
         IWorkTable table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.Empty(table.RowHeights);
         Assert.Equal(40.5d, table.GetColumnWidth(1));
@@ -107,7 +107,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Third_dimension_duplicate_cannot_restore_an_override_after_an_invalid_value() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             secondBucketPayload: Message(BytesField(2, DimensionHeader(0, -1)), BytesField(2, DimensionHeader(0, 30))));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ReadNumbers();
         Assert.False(Assert.Single(Assert.Single(projection.Sheets).Tables).RowHeights.ContainsKey(1));
         Assert.Equal(new[] { "2[1]/1", "2[1]/2", "2[2]/1" }, projection.SourceDeclarationIssues.Select(issue => issue.FieldPath));
         Assert.All(projection.SourceDeclarationIssues, issue => Assert.Equal(13ul, issue.Owner.RecordIdentifier));
@@ -119,7 +119,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Unresolved_dimension_bucket_does_not_leave_other_bucket_overrides_trusted(IWorkDocumentKind kind) {
         using MemoryStream package = DimensionPackage(kind, missingBucket: true);
-        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1;
+        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1;
         Assert.Empty(table.RowHeights);
         Assert.Equal(40.5d, table.GetColumnWidth(1));
         package.Position = 0;
@@ -135,8 +135,8 @@ public sealed partial class IWorkBoundaryTests {
         byte[] fields = Message(Enumerable.Range(0, 9).Select(_ => VarintField(1, 0)).ToArray());
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstBucketPayload: nested ? BytesField(2, fields) : fields);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -144,8 +144,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Unreadable_dimension_headers_consume_budget_before_nested_parsing() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstBucketPayload: Message(BytesField(2, new byte[] { 0x80 }), VarintField(2, 0), BytesField(2, new byte[] { 0x80 })));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxTableDimensionEntries = 4 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxTableDimensionEntries = 4 });
         Assert.Contains("dimension entries", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -153,8 +153,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Dimension_declaration_budget_is_cumulative_and_snapshotted() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstBucketPayload: Message(BytesField(2, new byte[] { 0x80 }), BytesField(2, new byte[] { 0x80 })));
-        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options);
+        var options = new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 };
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers, options);
         options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
@@ -163,8 +163,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Reused_dimension_bucket_reports_each_physical_path_once() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers, repeatTable: true,
             firstRowHeader: DimensionHeader(0, -1));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Single(projection.SourceDeclarationIssues);
     }
@@ -177,7 +177,7 @@ public sealed partial class IWorkBoundaryTests {
         bool duplicate = repeatCount > 0;
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             repeatBucketCount: repeatCount, firstBucketType: duplicate ? 6006u : 2001u);
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ReadNumbers();
         IWorkTable table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         if (duplicate) {
             Assert.False(table.RowHeights.ContainsKey(1));
@@ -202,7 +202,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Recovered_sibling_dimensions_survive_partial_destination_save_and_reopen(IWorkDocumentKind kind, bool unknownIndex) {
         using MemoryStream package = DimensionPackage(kind, firstRowHeader: DimensionHeader(0, -1),
             firstBucketPayload: unknownIndex ? new byte[] { 0x80 } : null);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {

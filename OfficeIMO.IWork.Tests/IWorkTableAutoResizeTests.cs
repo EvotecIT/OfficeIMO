@@ -7,7 +7,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Numbers_formula_binding_preserves_native_table_row_sizing() {
-        var source = IWorkSourceDocument.Open(CorpusFixture("numbers-parser/test-10-formulas.numbers"));
+        var source = IWorkSourceDocument.Load(CorpusFixture("numbers-parser/test-10-formulas.numbers"));
         IWorkTable table = Assert.Single(source.ReadNumbers().Sheets.SelectMany(sheet => sheet.Tables),
             table => table.Name == "Table 2");
         Assert.Contains(table.Cells, cell => cell.Formula != null);
@@ -17,7 +17,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Independent_Pages_sizing_declarations_become_minimum_DOCX_heights() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-table-sizing.json")));
-        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         var expected = manifest.RootElement.GetProperty("tables").EnumerateArray().ToArray();
         Assert.Equal(expected.Length, result.Projection.Tables.Count);
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkDocumentKind kind, bool autoResize) {
         using MemoryStream package = DimensionPackage(kind, tableStyleReference: ReferenceField(3, 30),
             styleRecords: new[] { TableSizingStyle(30, autoResize) });
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package);
         IWorkTable table = kind switch {
             IWorkDocumentKind.Pages => source.ReadPages().Tables[0],
             IWorkDocumentKind.Numbers => source.ReadNumbers().Sheets[0].Tables[0],
@@ -79,7 +79,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Pages,
             tableStyleReference: ReferenceField(3, 30),
             styleRecords: new[] { TableSizingStyle(30, child, 31), TableSizingStyle(31, true) });
-        Assert.Equal(expected, IWorkSourceDocument.Open(package).ReadPages().Tables[0].AutoResizeRows);
+        Assert.Equal(expected, IWorkSourceDocument.Load(package).ReadPages().Tables[0].AutoResizeRows);
     }
 
     [Theory]
@@ -112,8 +112,8 @@ public sealed partial class IWorkBoundaryTests {
             tableStyleReference: defect == "duplicate-reference"
                 ? Message(ReferenceField(3, 30), ReferenceField(3, 31)) : ReferenceField(3, 30),
             styleRecords: defect == "missing" ? Array.Empty<byte[]>() : new[] { style, TableSizingStyle(31, false) });
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 });
         using var result = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Null(result.Projection.Tables[0].AutoResizeRows);

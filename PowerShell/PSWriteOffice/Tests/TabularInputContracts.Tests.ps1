@@ -62,56 +62,6 @@ namespace PSWriteOffice.Tests {
 }
 
 Describe 'Shared tabular input contracts' {
-    It 'exposes nested value formatting consistently across table outputs' {
-        $commands = @(
-            'Add-OfficeExcelTable'
-            'Export-OfficeExcel'
-            'Add-OfficeExcelReportTable'
-            'Add-OfficeWordTable'
-            'Add-OfficePowerPointTable'
-            'Add-OfficePdfTable'
-            'Add-OfficeMarkdownTable'
-            'ConvertTo-OfficeMarkdown'
-        )
-
-        foreach ($commandName in $commands) {
-            $parameters = (Get-Command $commandName -ErrorAction Stop).Parameters.Keys
-            $parameters | Should -Contain 'CollectionSeparator'
-            $parameters | Should -Contain 'DictionaryEntrySeparator'
-            $parameters | Should -Contain 'DictionaryKeyValueSeparator'
-        }
-    }
-
-    It 'exposes caller-controlled normalization limits across every object table output' {
-        $commands = @(
-            'Add-OfficeExcelTable'
-            'Export-OfficeExcel'
-            'Add-OfficeExcelReportTable'
-            'Add-OfficeWordTable'
-            'Add-OfficePowerPointTable'
-            'Add-OfficePdfTable'
-            'Add-OfficeMarkdownTable'
-            'ConvertTo-OfficeMarkdown'
-            'ConvertTo-OfficeCsv'
-            'Export-OfficeCsv'
-        )
-
-        foreach ($commandName in $commands) {
-            $parameters = (Get-Command $commandName -ErrorAction Stop).Parameters.Keys
-            $parameters | Should -Contain 'MaxCollectionItems'
-            $parameters | Should -Contain 'MaxNestingDepth'
-        }
-
-        foreach ($commandName in 'ConvertTo-OfficeCsv', 'Export-OfficeCsv') {
-            $documentSets = (Get-Command $commandName -ErrorAction Stop).ParameterSets |
-                Where-Object Name -Like 'Document*'
-            foreach ($parameterSet in $documentSets) {
-                $parameterSet.Parameters.Name | Should -Not -Contain 'MaxCollectionItems'
-                $parameterSet.Parameters.Name | Should -Not -Contain 'MaxNestingDepth'
-            }
-        }
-    }
-
     It 'reports and honors the required collection limit on Excel report tables' {
         $row = [pscustomobject]@{ Name = 'Alpha'; Tags = @('One', 'Two', 'Three') }
         $limitedPath = Join-Path $TestDrive 'Report-CollectionLimit.xlsx'
@@ -119,18 +69,18 @@ Describe 'Shared tabular input contracts' {
         {
             New-OfficeExcel -Path $limitedPath {
                 Add-OfficeExcelReportSheet -Name 'Report' {
-                    Add-OfficeExcelReportTable -InputObject $row -MaxCollectionItems 2
+                    Add-OfficeExcelReportTable -InputObject $row -FlattenOptions @{ MaxCollectionItems = 2 }
                 }
             }
         } | Should -Throw '*collection*at least 3 items*-MaxCollectionItems 2*Rerun with -MaxCollectionItems 3 or higher*'
 
         New-OfficeExcel -Path $limitedPath {
             Add-OfficeExcelReportSheet -Name 'Report' {
-                Add-OfficeExcelReportTable -InputObject $row -MaxCollectionItems 3
+                Add-OfficeExcelReportTable -InputObject $row -FlattenOptions @{ MaxCollectionItems = 3 }
             }
         }
 
-        $result = @(Import-OfficeExcel -Path $limitedPath -WorksheetName 'Report')
+        $result = @(Import-OfficeExcel -Path $limitedPath -Sheet 'Report')
         $result[0].Tags | Should -Be 'One, Two, Three'
     }
 
@@ -156,11 +106,11 @@ Describe 'Shared tabular input contracts' {
         $path = Join-Path $TestDrive 'Export-CollectionLimit.xlsx'
 
         {
-            $row | Export-OfficeExcel -Path $path -MaxCollectionItems 2 -ErrorAction Stop
+            $row | Export-OfficeExcel -Path $path  -ErrorAction Stop -FlattenOptions @{ MaxCollectionItems = 2 }
         } | Should -Throw '*collection*at least 3 items*-MaxCollectionItems 2*Rerun with -MaxCollectionItems 3 or higher*'
 
-        $row | Export-OfficeExcel -Path $path -MaxCollectionItems 3
-        $result = @(Import-OfficeExcel -Path $path -WorksheetName 'Sheet1')
+        $row | Export-OfficeExcel -Path $path -FlattenOptions @{ MaxCollectionItems = 3 }
+        $result = @(Import-OfficeExcel -Path $path -Sheet 'Sheet1')
         $result[0].Tags | Should -Be 'One, Two, Three'
     }
 
@@ -174,11 +124,11 @@ Describe 'Shared tabular input contracts' {
         $path = Join-Path $TestDrive 'DataSet-CollectionLimit.xlsx'
 
         {
-            $dataSet | Export-OfficeExcel -Path $path -MaxCollectionItems 2 -ErrorAction Stop
+            $dataSet | Export-OfficeExcel -Path $path  -ErrorAction Stop -FlattenOptions @{ MaxCollectionItems = 2 }
         } | Should -Throw '*collection*at least 3 items*-MaxCollectionItems 2*Rerun with -MaxCollectionItems 3 or higher*'
 
-        $dataSet | Export-OfficeExcel -Path $path -MaxCollectionItems 3
-        $result = @(Import-OfficeExcel -Path $path -WorksheetName 'Rows')
+        $dataSet | Export-OfficeExcel -Path $path -FlattenOptions @{ MaxCollectionItems = 3 }
+        $result = @(Import-OfficeExcel -Path $path -Sheet 'Rows')
         $result[0].Tags | Should -Be 'One, Two, Three'
     }
 
@@ -186,10 +136,10 @@ Describe 'Shared tabular input contracts' {
         $row = [ordered]@{ A = 1; B = 2; C = 3 }
         $path = Join-Path $TestDrive 'TopLevelDictionary.xlsx'
 
-        { $row | Export-OfficeExcel -Path $path -MaxCollectionItems 2 -ErrorAction Stop } |
+        { $row | Export-OfficeExcel -Path $path  -ErrorAction Stop -FlattenOptions @{ MaxCollectionItems = 2 } } |
             Should -Not -Throw
 
-        $result = @(Import-OfficeExcel -Path $path -WorksheetName 'Sheet1')
+        $result = @(Import-OfficeExcel -Path $path -Sheet 'Sheet1')
         $result.Count | Should -Be 1
         $result[0].A | Should -Be 1
         $result[0].B | Should -Be 2
@@ -310,7 +260,7 @@ Describe 'Shared tabular input contracts' {
                 }
             }
 
-            $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Report')
+            $rows = @(Import-OfficeExcel -Path $path -Sheet 'Report')
             $rows.Count | Should -Be 1
 
             if ($case.Name -eq 'ClrObject') {
@@ -337,7 +287,7 @@ Describe 'Shared tabular input contracts' {
             }
         }
 
-        $result = @(Import-OfficeExcel -Path $path -WorksheetName 'Report')
+        $result = @(Import-OfficeExcel -Path $path -Sheet 'Report')
         $result | Should -HaveCount 3
         $result[0].PSObject.Properties.Name | Should -Contain 'Department'
         $result[0].PSObject.Properties.Name | Should -Contain 'Score'
@@ -377,7 +327,7 @@ Describe 'Shared tabular input contracts' {
                 }
             }
 
-            $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Report')
+            $rows = @(Import-OfficeExcel -Path $path -Sheet 'Report')
             $rows.Count | Should -Be 1 -Because $entry.Key
             $rows[0].Name | Should -Be 'Alpha' -Because $entry.Key
             $rows[0].Value | Should -Be 7 -Because $entry.Key
@@ -395,7 +345,7 @@ Describe 'Shared tabular input contracts' {
             }
         }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Report')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Report')
         $rows.Count | Should -Be 1
         $rows[0].Value | Should -Be 'Scalar value'
     }
@@ -411,13 +361,11 @@ Describe 'Shared tabular input contracts' {
         New-OfficeExcel -Path $excelPath {
             Add-OfficeExcelReportSheet -Name 'Report' {
                 Add-OfficeExcelReportTable -InputObject $inputRow `
-                    -CollectionSeparator ' | ' `
-                    -DictionaryEntrySeparator '; ' `
-                    -DictionaryKeyValueSeparator ': '
+                    -CollectionSeparator ' | ' -FlattenOptions @{ DictionaryEntrySeparator = '; '; DictionaryKeyValueSeparator = ': ' }
             }
         }
 
-        $excelRows = @(Import-OfficeExcel -Path $excelPath -WorksheetName 'Report')
+        $excelRows = @(Import-OfficeExcel -Path $excelPath -Sheet 'Report')
         $excelRows[0].Tags | Should -Be 'One | Two'
         $excelRows[0].Metadata | Should -Be 'Region: EU; Tier: 1'
 
@@ -451,7 +399,7 @@ Describe 'Shared tabular input contracts' {
             }
         }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Report')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Report')
         $rows[0].PSObject.Properties.Name | Should -Be @('Value', 'Name')
         $rows[0].Value | Should -Be 1
         $rows[0].Name | Should -Be 'Alpha'
@@ -471,7 +419,7 @@ Describe 'Shared tabular input contracts' {
             }
         }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Report')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Report')
         $rows[0].PSObject.Properties.Name | Should -Be @('Zulu', 'Alpha', 'Middle')
     }
 
@@ -480,14 +428,12 @@ Describe 'Shared tabular input contracts' {
         $reader = New-TestTabularContractReader
         try {
             Export-OfficeExcel -Path $path -InputObject $reader `
-                -CollectionSeparator ' | ' `
-                -DictionaryEntrySeparator '; ' `
-                -DictionaryKeyValueSeparator ': '
+                -CollectionSeparator ' | ' -FlattenOptions @{ DictionaryEntrySeparator = '; '; DictionaryKeyValueSeparator = ': ' }
         } finally {
             $reader.Dispose()
         }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Sheet1')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Sheet1')
         $rows.Count | Should -Be 1
         $rows[0].Name | Should -Be 'Alpha'
         $rows[0].Tags | Should -Be 'One | Two'
@@ -503,11 +449,9 @@ Describe 'Shared tabular input contracts' {
         }
 
         Export-OfficeExcel -Path $path -InputObject $row `
-            -CollectionSeparator ' | ' `
-            -DictionaryEntrySeparator '; ' `
-            -DictionaryKeyValueSeparator ': '
+            -CollectionSeparator ' | ' -FlattenOptions @{ DictionaryEntrySeparator = '; '; DictionaryKeyValueSeparator = ': ' }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Sheet1')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Sheet1')
         $rows[0].Tags | Should -Be 'One | Two'
         $rows[0].Metadata | Should -Be 'Region: EU; Tier: 1'
     }
@@ -569,7 +513,7 @@ Describe 'Shared tabular input contracts' {
             $reader.Dispose()
         }
 
-        $pdfText = Get-OfficePdfText -Path $pdfPath
+        $pdfText = Read-OfficeDocument -As Text -Path $pdfPath
         $pdfText | Should -Match 'Alpha'
         $pdfText | Should -Match 'One \| Two'
         $pdfText | Should -Match 'Region: EU; Tier: 1'
@@ -621,7 +565,7 @@ Describe 'Shared tabular input contracts' {
 
         $exportPath = Join-Path $TestDrive 'ReadOnlyDictionaryExport.xlsx'
         Export-OfficeExcel -Path $exportPath -InputObject $row -CollectionSeparator ' | '
-        $exportRows = @(Import-OfficeExcel -Path $exportPath -WorksheetName 'Sheet1')
+        $exportRows = @(Import-OfficeExcel -Path $exportPath -Sheet 'Sheet1')
         $exportRows[0].Name | Should -Be 'Alpha'
         $exportRows[0].Tags | Should -Be 'One | Two'
 
@@ -631,7 +575,7 @@ Describe 'Shared tabular input contracts' {
                 Add-OfficeExcelTable -InputObject $row -Name 'ReadOnlyRows' -CollectionSeparator ' | '
             }
         }
-        $tableRows = @(Import-OfficeExcel -Path $tablePath -WorksheetName 'Data')
+        $tableRows = @(Import-OfficeExcel -Path $tablePath -Sheet 'Data')
         $tableRows[0].Name | Should -Be 'Alpha'
         $tableRows[0].Tags | Should -Be 'One | Two'
 
@@ -641,7 +585,7 @@ Describe 'Shared tabular input contracts' {
                 Add-OfficeExcelReportTable -InputObject $row -CollectionSeparator ' | '
             }
         }
-        $reportRows = @(Import-OfficeExcel -Path $reportPath -WorksheetName 'Report')
+        $reportRows = @(Import-OfficeExcel -Path $reportPath -Sheet 'Report')
         $reportRows[0].Name | Should -Be 'Alpha'
         $reportRows[0].Tags | Should -Be 'One | Two'
 
@@ -679,7 +623,7 @@ Describe 'Shared tabular input contracts' {
         New-OfficePdf -Path $pdfPath {
             Add-OfficePdfTable -InputObject $row -CollectionSeparator ' | '
         } | Out-Null
-        $pdfText = Get-OfficePdfText -Path $pdfPath
+        $pdfText = Read-OfficeDocument -As Text -Path $pdfPath
         $pdfText | Should -Match 'Name'
         $pdfText | Should -Match 'Alpha'
         $pdfText | Should -Match 'One \| Two'

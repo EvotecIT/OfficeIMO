@@ -1,104 +1,32 @@
+using System;
 using System.Management.Automation;
-using System.Security;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Previews explicit or text-matched PDF redaction areas before content is removed.</summary>
-/// <remarks>
-/// This command reports redaction impact only. It does not remove or rewrite PDF content.
-/// </remarks>
-/// <example>
-///   <summary>Preview a redaction rectangle.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficePdfRedactionPlan -Path .\Report.pdf -PageNumber 1 -X 72 -Y 650 -Width 240 -Height 32</code>
-///   <para>Returns line-level text blocks and annotations that intersect the rectangle.</para>
-/// </example>
-/// <example>
-///   <summary>Find content to redact by text.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficePdfRedactionPlan -Path .\Report.pdf -Text 'Account number'</code>
-///   <para>Derives reviewable redaction areas from logical text blocks containing the supplied text.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficePdfRedactionPlan", DefaultParameterSetName = ParameterSetRectangle)]
+/// <summary>Previews explicit, literal-text or bounded regular-expression redaction selections without changing PDF content.</summary>
+/// <example><summary>Preview sensitive identifiers.</summary><code>Get-OfficePdfRedactionPlan -LiteralPath './Report[1].pdf' -Pattern 'Account: \d+'</code></example>
+[Cmdlet(VerbsCommon.Get, "OfficePdfRedactionPlan", DefaultParameterSetName = "Text")]
 [OutputType(typeof(PdfRedactionPlan))]
-public sealed class GetOfficePdfRedactionPlanCommand : PSCmdlet
-{
-    private const string ParameterSetRectangle = "Rectangle";
-    private const string ParameterSetArea = "Area";
-    private const string ParameterSetText = "Text";
-
-    /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
-    [Alias("FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>One-based page number for the redaction rectangle.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetRectangle)]
-    public int PageNumber { get; set; }
-
-    /// <summary>Left coordinate in PDF points.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetRectangle)]
-    public double X { get; set; }
-
-    /// <summary>Bottom coordinate in PDF points.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetRectangle)]
-    public double Y { get; set; }
-
-    /// <summary>Rectangle width in PDF points.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetRectangle)]
-    public double Width { get; set; }
-
-    /// <summary>Rectangle height in PDF points.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetRectangle)]
-    public double Height { get; set; }
-
-    /// <summary>Optional redaction area label.</summary>
-    [Parameter(ParameterSetName = ParameterSetRectangle)]
-    public string? Label { get; set; }
-
-    /// <summary>One or more pre-created OfficeIMO.Pdf redaction areas.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetArea)]
-    public PdfRedactionArea[] Area { get; set; } = System.Array.Empty<PdfRedactionArea>();
-
-    /// <summary>Literal text used to derive redaction areas from matching logical text blocks.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetText)]
-    public string[] Text { get; set; } = System.Array.Empty<string>();
-
-    /// <summary>Use case-sensitive literal text matching.</summary>
-    [Parameter(ParameterSetName = ParameterSetText)]
-    public SwitchParameter MatchCase { get; set; }
-
-    /// <summary>Password used to read a Standard password-encrypted PDF.</summary>
-    [Parameter]
-    [OfficePasswordTransformation]
-    public SecureString? Password { get; set; }
-
-    /// <summary>After successful password authentication, explicitly ignore owner-imposed extraction restrictions.</summary>
-    [Parameter]
-    public SwitchParameter IgnorePermissionRestrictions { get; set; }
-
+public sealed partial class GetOfficePdfRedactionPlanCommand : PSCmdlet {
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var document = PdfDocument.Load(
-            PdfCommandUtilities.ResolvePath(this, Path),
-            PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent));
-
-        if (ParameterSetName == ParameterSetText)
-        {
-            var search = new PdfRedactionSearchOptions { MatchCase = MatchCase.IsPresent };
-            search.AddLiteral(Text);
-            WriteObject(document.Redactions.Search(search));
-            return;
+    protected override void ProcessRecord() {
+        bool literal = ParameterSetName.EndsWith("LiteralPath", StringComparison.Ordinal);
+        var options = PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions.IsPresent);
+        if (OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(IgnorePermissionRestrictions)) is bool ignore)
+            options = (options ?? new PdfLoadOptions()).Snapshot(null, null, ignore ? PdfPermissionPolicy.IgnoreRestrictions : PdfPermissionPolicy.Enforce);
+        foreach (string input in OfficePath.ResolveInputs(this, literal ? LiteralPath : Path, literal)) {
+            using var document = PdfDocument.Load(input, options);
+            if (ParameterSetName.StartsWith("Area", StringComparison.Ordinal)) WriteObject(document.Redactions.Plan(Area));
+            else if (ParameterSetName.StartsWith("Rectangle", StringComparison.Ordinal))
+                WriteObject(document.Redactions.Plan(new[] { new PdfRedactionArea(Page, X.ToPoints(), Y.ToPoints(), Width.ToPoints(), Height.ToPoints(), Label) }));
+            else {
+                bool regex = ParameterSetName.StartsWith("Pattern", StringComparison.Ordinal);
+                var search = PdfRedactionCommandOptions.Create(regex ? null : Text, regex ? Pattern : null, CaseSensitive.IsPresent);
+                WriteObject(document.Redactions.Search(search));
+            }
         }
-
-        var areas = ParameterSetName == ParameterSetArea
-            ? Area
-            : new[] { new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label) };
-
-        WriteObject(document.Redactions.Plan(areas));
     }
 }

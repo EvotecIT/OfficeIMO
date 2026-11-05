@@ -17,7 +17,7 @@ public sealed class IWorkNumericFormatWritingTests {
             data.SetNumber(row, 2, 0.5, formats[row - 1]);
         }
         byte[] bytes = Save(kind, data); Assert.Equal(bytes, Save(kind, data));
-        var source = IWorkSourceDocument.Open(bytes);
+        var source = IWorkSourceDocument.Load(bytes);
         IWorkTable table;
         if (kind == IWorkDocumentKind.Numbers) {
             var projection = source.ReadNumbers(); Assert.Empty(projection.SourceDeclarationIssues);
@@ -44,7 +44,7 @@ public sealed class IWorkNumericFormatWritingTests {
         var data = IWorkTableData.Create(3, 1).SetNumber(1, 1, -1234.5, IWorkNumberFormat.CreateNumber(2, true, IWorkNegativeNumberStyle.Parentheses))
             .SetNumber(2, 1, -0.125, IWorkNumberFormat.CreatePercentage(1, negativeStyle: IWorkNegativeNumberStyle.RedAndParentheses))
             .SetNumber(3, 1, 1234.5, IWorkNumberFormat.CreateScientific(4));
-        using var result = IWorkSourceDocument.Open(Save(IWorkDocumentKind.Numbers, data)).ToExcelResult(
+        using var result = IWorkSourceDocument.Load(Save(IWorkDocumentKind.Numbers, data)).ToExcelResult(
             new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
@@ -67,7 +67,7 @@ public sealed class IWorkNumericFormatWritingTests {
     [Fact]
     public void Invalid_or_unsupported_formats_preserve_existing_cell_and_table_snapshot() {
         var format = IWorkNumberFormat.CreateNumber(2); var data = IWorkTableData.Create(1, 1).SetNumber(1, 1, 12.5, format);
-        var document = IWorkNumbersDocument.Create(); document.AddSheet("Data").AddTable(data); byte[] baseline = document.SaveBytes();
+        var document = IWorkNumbersDocument.Create(); document.AddSheet("Data").AddTable(data); byte[] baseline = document.ToBytes();
         Assert.Throws<ArgumentOutOfRangeException>(() => IWorkNumberFormat.CreateNumber(-1));
         Assert.Throws<ArgumentOutOfRangeException>(() => IWorkNumberFormat.CreatePercentage(31));
         Assert.Throws<ArgumentOutOfRangeException>(() => IWorkNumberFormat.CreateScientific(31));
@@ -75,13 +75,13 @@ public sealed class IWorkNumericFormatWritingTests {
         Assert.Throws<ArgumentNullException>(() => data.SetNumber(1, 1, 99, null!));
         Assert.Throws<ArgumentOutOfRangeException>(() => data.SetNumber(1, 1, double.NaN, format));
         Assert.Throws<ArgumentOutOfRangeException>(() => data.SetNumber(2, 1, 99, format));
-        var unsupported = IWorkSourceDocument.Open(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports",
+        var unsupported = IWorkSourceDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports",
             "numbers-blank-explicit-currency-v14.5.numbers")).ReadNumbers().Sheets.SelectMany(sheet => sheet.Tables)
             .SelectMany(table => table.Cells).Select(cell => cell.NumberFormat).First(item => item?.Kind == IWorkNumberFormatKind.Currency)!;
         Assert.Throws<ArgumentException>(() => data.SetNumber(1, 1, 99, unsupported));
         Assert.Equal(12.5, data.GetCell(1, 1).Value); Assert.Same(format, data.GetCell(1, 1).NumberFormat);
         data.SetNumber(1, 1, 99, IWorkNumberFormat.CreatePercentage(4));
-        Assert.Equal(baseline, document.SaveBytes());
+        Assert.Equal(baseline, document.ToBytes());
         data.SetNumber(1, 1, 42); Assert.Null(data.GetCell(1, 1).NumberFormat);
         data.SetText(1, 1, "text"); Assert.Null(data.GetCell(1, 1).NumberFormat);
     }
@@ -117,11 +117,11 @@ public sealed class IWorkNumericFormatWritingTests {
 
     private static byte[] Save(IWorkDocumentKind kind, IWorkTableData data) {
         if (kind == IWorkDocumentKind.Numbers) {
-            var document = IWorkNumbersDocument.Create(); document.AddSheet("Data").AddTable(data); return document.SaveBytes();
+            var document = IWorkNumbersDocument.Create(); document.AddSheet("Data").AddTable(data); return document.ToBytes();
         }
         if (kind == IWorkDocumentKind.Pages) {
-            var document = IWorkPagesDocument.Create(); document.AddTable(data); return document.SaveBytes();
+            var document = IWorkPagesDocument.Create(); document.AddTable(data); return document.ToBytes();
         }
-        var deck = IWorkKeynoteDocument.Create(); deck.AddSlide().AddTable(data, 0, 0, 800, 400); return deck.SaveBytes();
+        var deck = IWorkKeynoteDocument.Create(); deck.AddSlide().AddTable(data, 0, 0, 800, 400); return deck.ToBytes();
     }
 }

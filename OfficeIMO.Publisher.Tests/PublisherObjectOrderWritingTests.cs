@@ -42,7 +42,7 @@ public sealed class PublisherObjectOrderWritingTests {
         var d = PublisherDocument.Load(Source(false)); var page = d.Pages[0];
         uint[] order = page.ObjectIds.Reverse().ToArray();
         PublisherTextFrame frame = page.TextFrames.Single(f => f.Id == 302);
-        d.SetTextFrameLayout(frame.Id, 2, 12, new OfficeTextPadding(4, 5, 6, 7), OfficeTextVerticalAlignment.Center);
+        d.SetTextFrameLayout(frame.Id, 2, OfficeLength.Points(12), new OfficeTextPadding(4, 5, 6, 7), OfficeTextVerticalAlignment.Center);
         d.SetPageObjectOrder(page.Id, order);
         var loaded = PublisherDocument.Load(d.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.Equal(order, loaded.Pages[0].ObjectIds);
@@ -132,10 +132,10 @@ public sealed class PublisherObjectOrderWritingTests {
 
     [Fact]
     public void Authored_object_order_drives_the_scene_and_retains_old_snapshots() {
-        var d = PublisherDocument.Create(300, 300); uint pageId = d.Pages[0].Id;
+        var d = PublisherDocument.Create(OfficeLength.Points(300), OfficeLength.Points(300)); uint pageId = d.Pages[0].Id;
         var red = OfficeShape.Rectangle(100, 100); red.FillColor = OfficeColor.Red;
         var blue = OfficeShape.Rectangle(100, 100); blue.FillColor = OfficeColor.Blue;
-        uint a = d.AddShape(pageId, red, 20, 20).Id, b = d.AddShape(pageId, blue, 40, 40).Id;
+        uint a = d.AddShape(pageId, red, OfficeLength.Points(20), OfficeLength.Points(20)).Id, b = d.AddShape(pageId, blue, OfficeLength.Points(40), OfficeLength.Points(40)).Id;
         var snapshot = d.Pages[0]; uint[] order = { b, a };
         d.SetPageObjectOrder(pageId, order); order[0] = a;
         Assert.Equal(new[] { b, a }, d.Pages[0].ObjectIds);

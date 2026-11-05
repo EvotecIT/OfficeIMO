@@ -57,6 +57,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     internal static class ExcelTableStyleCatalog {
         private static readonly HashSet<ExcelTableStyle> CrossHostRecommendedStyles = new HashSet<ExcelTableStyle> {
+            ExcelTableStyle.None,
             ExcelTableStyle.TableStyleLight1,
             ExcelTableStyle.TableStyleLight2,
             ExcelTableStyle.TableStyleLight9,

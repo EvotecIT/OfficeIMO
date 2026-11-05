@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
         /// <param name="height">Rectangle height.</param>
         /// <param name="fillColor">Fill color; white when omitted.</param>
         public WordShape AddShape(OfficeLength width, OfficeLength height, OfficeColor? fillColor = null) {
-            return new WordShape(_document, this, width, height, (fillColor ?? OfficeColor.White).ToRgbHex());
+            return new WordShape(_document, this, width, height, WordRunColor.Resolve(fillColor ?? OfficeColor.White, _document).ToRgbHex());
         }
 
         /// <summary>Adds a VML shape to the paragraph and returns the created shape.</summary>
@@ -18,7 +18,6 @@ namespace OfficeIMO.Word {
         /// <param name="arcSize">Dimensionless corner roundness fraction.</param>
         public WordShape AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height,
             OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) {
-            WordShape.ValidateVmlColors(fillColor, strokeColor);
             WordShape shape;
             switch (shapeType) {
                 case WordShapeType.Rectangle:
@@ -61,7 +60,7 @@ namespace OfficeIMO.Word {
         public WordLine AddLine(OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY,
             OfficeColor? color = null, OfficeLength? strokeWeight = null) {
             return new WordLine(_document, this, startX, startY, endX, endY,
-                (color ?? OfficeColor.Black).ToRgbHex(), strokeWeight ?? OfficeLength.Points(1));
+                WordRunColor.Resolve(color ?? OfficeColor.Black, _document).ToRgbHex(), strokeWeight ?? OfficeLength.Points(1));
         }
     }
 }

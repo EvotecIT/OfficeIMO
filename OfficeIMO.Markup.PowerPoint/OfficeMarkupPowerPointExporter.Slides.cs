@@ -45,10 +45,11 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         OfficeMarkupSlideBlock slideBlock,
         MarkupPowerPointExportOptions options,
         SlideCanvasMetrics metrics,
-        OfficeMarkupStyleResolver styleResolver) {
+        OfficeMarkupStyleResolver styleResolver,
+        List<OfficeMarkupDiagnostic> diagnostics) {
         if (TryExportDesignerSlide(presentation, deck, slideBlock, styleResolver, metrics, out var designedSlide)) {
             ApplyTransition(designedSlide!, slideBlock.Transition);
-            ApplyBackground(designedSlide!, slideBlock.Background, deck.Design.Theme, options, metrics);
+            diagnostics.AddRange(ApplyBackground(designedSlide!, slideBlock, deck.Design.Theme, options, metrics));
             if (!string.IsNullOrWhiteSpace(slideBlock.Notes)) {
                 designedSlide!.Notes.Text = slideBlock.Notes!;
             }
@@ -66,7 +67,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             : presentation.AddSlide();
 
         ApplyTransition(slide, slideBlock.Transition);
-        ApplyBackground(slide, slideBlock.Background, deck.Design.Theme, options, metrics);
+        diagnostics.AddRange(ApplyBackground(slide, slideBlock, deck.Design.Theme, options, metrics));
 
         if (!useDesignerCanvas && !HasExplicitBackground(slideBlock)) {
             AddMarkupCanvas(slide, deck.Design.Theme, slideBlock, metrics);
@@ -92,14 +93,14 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         for (int index = 0; index < slideBlock.Blocks.Count; index++) {
             var block = slideBlock.Blocks[index];
             if (IsColumns(block)) {
-                index = ExportColumns(slide, slideBlock.Blocks, index, options, metrics, cursor, styleResolver);
+                index = ExportColumns(slide, slideBlock.Blocks, index, options, metrics, cursor, styleResolver, diagnostics);
                 if (!HasExplicitPlacement(block)) {
                     cursor.MoveToBottom();
                 }
                 continue;
             }
 
-            ExportBlock(slide, block, options, metrics, cursor, styleResolver);
+            diagnostics.AddRange(ExportBlock(slide, block, options, metrics, cursor, styleResolver));
         }
 
         if (!string.IsNullOrWhiteSpace(slideBlock.Notes)) {
@@ -163,18 +164,18 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         var eyebrow = slide.AddTextBox("OfficeIMO Markup",global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(0.72)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.42)),global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(2.2)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.28)));
         ApplyTextStyle(eyebrow, new OfficeMarkupResolvedStyle {
-            FontName = theme.BodyFontName,
+            FontFamily = theme.BodyFontFamily,
             FontSize = 9,
             Bold = true,
-            TextColor = theme.AccentColor
+            TextColor = theme.AccentColor.ToString()
         });
 
         var title = slide.AddTitle(slideBlock.Title ?? "Summary",global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(0.72)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.72)),global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(5.7)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.78)));
         ApplyTextStyle(title, new OfficeMarkupResolvedStyle {
-            FontName = theme.HeadingFontName,
+            FontFamily = theme.HeadingFontFamily,
             FontSize = 30,
             Bold = true,
-            TextColor = theme.PrimaryTextColor
+            TextColor = theme.PrimaryTextColor.ToString()
         });
 
         var paragraph = slideBlock.Blocks.OfType<OfficeMarkupParagraphBlock>().FirstOrDefault();
@@ -304,7 +305,8 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         MarkupPowerPointExportOptions options,
         SlideCanvasMetrics metrics,
         LayoutCursor cursor,
-        OfficeMarkupStyleResolver styleResolver) {
+        OfficeMarkupStyleResolver styleResolver,
+        List<OfficeMarkupDiagnostic> diagnostics) {
         var columnsBlock = blocks[startIndex];
         var columns = new List<List<OfficeMarkupBlock>>();
         var index = startIndex + 1;
@@ -340,7 +342,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 columnWidth,
                 region.Height);
             foreach (var block in columns[columnIndex]) {
-                ExportBlock(slide, block, options, metrics, columnCursor, styleResolver);
+                diagnostics.AddRange(ExportBlock(slide, block, options, metrics, columnCursor, styleResolver));
             }
         }
 

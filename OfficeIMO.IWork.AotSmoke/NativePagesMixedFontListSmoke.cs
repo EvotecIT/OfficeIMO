@@ -7,9 +7,9 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 internal static class NativePagesMixedFontListSmoke {
     internal static void Run() {
-        var document = Example(); byte[] bytes = document.SaveBytes();
+        var document = Example(); byte[] bytes = document.ToBytes();
         Require(bytes.Length == 20753 && Hash(bytes) == "92D388CDE48F4B8DB891E39F25530E19A79FB63343A081BDD2A336BFE80AFB07"
-            && bytes.SequenceEqual(document.SaveBytes()), "Mixed-family creation differs from the Apple-accepted package.");
+            && bytes.SequenceEqual(document.ToBytes()), "Mixed-family creation differs from the Apple-accepted package.");
         Verify(bytes, edited: false);
         byte[] original = Read("original");
         Require(Hash(original) == "7E9E9A9C7454619ADE26C4F8263156C7D84136677D26D5AA442128128CCD4053", "Apple mixed-family save changed.");
@@ -22,7 +22,7 @@ internal static class NativePagesMixedFontListSmoke {
             list.AddRichItem(new[] { new IWorkTextRunData("Fractional size", "Courier New", 14.5f) }, restartAt: 100);
             throw new InvalidOperationException("Mixed-family input bypassed the whole-point size restriction.");
         } catch (ArgumentException) { }
-        Require(bytes.SequenceEqual(document.SaveBytes()) && list.AddItem("Next child", level: 1).ListNumber == 3,
+        Require(bytes.SequenceEqual(document.ToBytes()) && list.AddItem("Next child", level: 1).ListNumber == 3,
             "Rejected fractional-size input changed the package or list counters.");
         using var output = new MemoryStream(); output.WriteByte(9);
         try {
@@ -34,7 +34,7 @@ internal static class NativePagesMixedFontListSmoke {
     }
 
     internal static void Verify(byte[] bytes, bool edited, Func<string, double[]>? runSizes = null) {
-        var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadPages();
+        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
         Require(projection.Body.IsFormattingComplete && projection.Diagnostics.Count == 0
             && projection.SourceDeclarationIssues.Count == 0 && projection.SourceReferenceIssues.Count == 0,
             "Mixed-family source contains unqualified declarations.");

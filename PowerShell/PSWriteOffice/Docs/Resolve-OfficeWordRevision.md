@@ -9,14 +9,19 @@ schema: 2.0.0
 Accepts or rejects filtered Word revisions and returns an operation report.
 
 ## SYNTAX
-### Path (Default)
+### Document (Default)
+```powershell
+Resolve-OfficeWordRevision -Action <WordRevisionOperationKind> [-Document <WordDocument>] [-Filter <WordRevisionFilter>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Path
 ```powershell
 Resolve-OfficeWordRevision [-Path] <string> -Action <WordRevisionOperationKind> -OutputPath <string> [-Filter <WordRevisionFilter>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### Document
+### LiteralPath
 ```powershell
-Resolve-OfficeWordRevision -Document <WordDocument> -Action <WordRevisionOperationKind> [-Filter <WordRevisionFilter>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Resolve-OfficeWordRevision -LiteralPath <string> -Action <WordRevisionOperationKind> -OutputPath <string> [-Filter <WordRevisionFilter>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -39,7 +44,7 @@ Accept or reject matching revisions.
 
 ```yaml
 Type: WordRevisionOperationKind
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values: Accept, Reject
 
@@ -59,7 +64,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -71,7 +76,7 @@ Optional author, id, type, date, location, part, or container filter.
 
 ```yaml
 Type: WordRevisionFilter
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -82,12 +87,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -LiteralPath
+Literal Word input file.
+
+```yaml
+Type: String
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
 ### -OutputPath
 Output document path. Required for path input.
 
 ```yaml
 Type: String
-Parameter Sets: Path
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -135,6 +156,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
+- `System.String`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS

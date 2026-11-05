@@ -80,7 +80,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (underlineStyle is ExcelUnderlineStyle.SingleAccounting or ExcelUnderlineStyle.DoubleAccounting) unsupported++;
         }
         if (style.Strikethrough) {
-            target.StrikeThrough = true;
+            target.Strikethrough = true;
             target.LineThroughStyle = OdfTextDecorationStyle.Solid;
             target.LineThroughType = OdfTextDecorationType.Single;
         }
@@ -218,7 +218,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             out bool approximatedUnderline);
         if (underline.HasValue) target.SetUnderline(underline.Value);
         if (approximatedUnderline) approximatedTextDecorations++;
-        bool hasStrike = style.StrikeThrough == true &&
+        bool hasStrike = style.Strikethrough == true &&
             style.LineThroughStyle != OdfTextDecorationStyle.None &&
             style.LineThroughType != OdfTextDecorationType.None;
         if (hasStrike) target.SetStrikethrough();
@@ -250,9 +250,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
         string? fontFamily = SelectOdfFontFamily(style.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-        if (fontFamily != null) target.SetFontName(fontFamily);
-        if (style.Color.HasValue) target.SetFontColor(style.Color.Value.ToString().TrimStart('#'));
-        if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
+        if (fontFamily != null) target.SetFontFamily(fontFamily);
+        if (style.Color.HasValue) target.SetColor(OfficeColor.Parse(style.Color.Value.ToString()));
+        if (style.BackgroundColor.HasValue) target.SetFillColor(OfficeColor.Parse(style.BackgroundColor.Value.ToString()));
         string? textAlign = style.TextAlign;
         string? textAlignSource = style.TextAlignSource;
         ExcelHorizontalAlignment? horizontal = null;
@@ -320,7 +320,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool HasRichTextFormatting(ExcelRichTextRun run) =>
         run.Bold || run.Italic || run.Underline || run.Strikethrough ||
         (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != ExcelUnderlineStyle.None) ||
-        !string.IsNullOrWhiteSpace(run.FontColor) || !string.IsNullOrWhiteSpace(run.FontName) ||
+        run.Color.HasValue || !string.IsNullOrWhiteSpace(run.FontFamily) ||
         run.FontSize.HasValue || run.VerticalTextAlignment.HasValue || run.Outline || run.Shadow ||
-        run.Condense || run.Extend || run.FontFamily.HasValue || run.FontCharacterSet.HasValue;
+        run.Condense || run.Extend || run.FontFamilyClassification.HasValue || run.FontCharacterSet.HasValue;
 }

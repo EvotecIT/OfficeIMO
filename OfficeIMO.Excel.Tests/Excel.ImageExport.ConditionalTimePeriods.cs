@@ -22,8 +22,8 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-            sheet.Range("A1:A3").ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
-            sheet.Range("B1:B3").ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Last7Days, fillColor: "DBEAFE");
+            sheet.Range("A1:A3").ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Today, fillColor: global::OfficeIMO.OfficeColor.Parse("C6EFCE"));
+            sheet.Range("B1:B3").ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Last7Days, fillColor: global::OfficeIMO.OfficeColor.Parse("DBEAFE"));
 
             var options = new ExcelImageExportOptions {
                 ShowGridlines = false,

@@ -2,6 +2,9 @@ namespace OfficeIMO.Markup.Excel;
 
 /// <summary>Controls conversion of an Office Markup document to an Excel workbook.</summary>
 public sealed class MarkupExcelExportOptions {
+    /// <summary>Rejects conversion when mapping or native validation reports fidelity loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Whether non-tabular Markdown should be included as worksheet text.</summary>
     public bool IncludeMarkdownAsWorksheetText { get; set; } = true;
     /// <summary>Worksheet name used when the markup does not provide one.</summary>

@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTableRow GetRow(int rowIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, Rows);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, RowCount);
 
             A.TableRow tableRow = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
             return new PowerPointTableRow(this, tableRow);
@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTableColumn GetColumn(int columnIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, Columns);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, ColumnCount);
 
             A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
             return new PowerPointTableColumn(this, column);
@@ -38,7 +38,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="index">Optional zero-based index where the row should be inserted. If omitted, row is appended.</param>
         public PowerPointTableRow AddRow(int? index = null) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
-            int columns = Columns;
+            int columns = ColumnCount;
             var regions = CaptureMergeRegions();
             A.TableRow row = new() { Height = 370840L };
             for (int c = 0; c < columns; c++) {
@@ -50,8 +50,8 @@ namespace OfficeIMO.PowerPoint {
                 row.Append(cell);
             }
 
-            int insertAt = index.HasValue && index.Value < Rows ? index.Value : Rows;
-            if (insertAt < Rows) {
+            int insertAt = index.HasValue && index.Value < RowCount ? index.Value : RowCount;
+            if (insertAt < RowCount) {
                 A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(insertAt);
                 table.InsertBefore(row, refRow);
             } else {
@@ -70,7 +70,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTableRow AddRowFromTemplate(int templateRowIndex, int? index = null, bool clearText = true) {
             ArgumentOutOfRangeException.ThrowIfNegative(templateRowIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(templateRowIndex, Rows);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(templateRowIndex, RowCount);
 
             A.Table table = TableElement;
             var regions = CaptureMergeRegions();
@@ -87,8 +87,8 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            int insertAt = index.HasValue ? Math.Min(index.Value, Rows) : Rows;
-            if (insertAt < Rows) {
+            int insertAt = index.HasValue ? Math.Min(index.Value, RowCount) : RowCount;
+            if (insertAt < RowCount) {
                 A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(insertAt);
                 table.InsertBefore(newRow, refRow);
             } else {
@@ -145,7 +145,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointTableColumn AddColumn(int? index = null) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableGrid grid = table.TableGrid!;
-            int existingColumns = Columns;
+            int existingColumns = ColumnCount;
             var regions = CaptureMergeRegions();
             A.GridColumn gridColumn = new() { Width = 3708400L };
 
@@ -184,11 +184,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTableColumn AddColumnFromTemplate(int templateColumnIndex, int? index = null, bool clearText = true) {
             ArgumentOutOfRangeException.ThrowIfNegative(templateColumnIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(templateColumnIndex, Columns);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(templateColumnIndex, ColumnCount);
 
             A.Table table = TableElement;
             A.TableGrid grid = table.TableGrid ?? throw new InvalidOperationException("Table grid is missing.");
-            int existingColumns = Columns;
+            int existingColumns = ColumnCount;
             var regions = CaptureMergeRegions();
             var templateVerticalRegions = regions
                 .Where(region => region.Column <= templateColumnIndex &&

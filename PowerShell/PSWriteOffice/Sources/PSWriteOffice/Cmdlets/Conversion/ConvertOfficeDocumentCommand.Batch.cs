@@ -139,7 +139,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
             AllowEmpty = AllowEmpty.IsPresent
         };
         OfficeWorkflowCommandUtilities.ConfigureBatch(batch);
-        var routes = Options == null && Route == null && From == null ? null : OfficeBatchExecutor.SelectCapabilities(batch, CancelToken);
+        var routes = Options == null && Theme == null && Route == null && From == null && Page == null && !Dpi.HasValue ? null : OfficeBatchExecutor.SelectCapabilities(batch, CancelToken);
         var conversion = CaptureOptions(_inputs, target, routes);
         batch.ConversionOptions = conversion;
         batch.OutputProfile = conversion.OutputProfile;
@@ -150,6 +150,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
     }
 
     private async Task ConvertBatchAsync() {
+        if (HasOcrRequest) { await ConvertOcrBatchAsync(); return; }
         OfficeBatchOptions batch = CaptureBatch();
         // Capture provider paths before the first await. Native planning never resolves secret references.
         string? reportPath = ReportPath == null ? null : OfficePath.ResolveOutput(SessionState, ReportPath, directory: false);
@@ -189,6 +190,8 @@ public sealed partial class ConvertOfficeDocumentCommand {
         public void Report(OfficeBatchItemReport item) {
             // Retain failures and skipped observations as well as successful conversion reports.
             command.WriteObject(item.Status == OfficeBatchItemStatus.Completed && item.Report != null ? (object)item.Report : item);
+            if (item.Status == OfficeBatchItemStatus.Completed && !item.Reused && item.Report != null)
+                command.OpenPublishedOutput(item.Report);
             int processed = System.Threading.Interlocked.Increment(ref _processed);
             if (processed == 1 || processed % 100 == 0)
                 command.WriteProgress(new ProgressRecord(1, "Convert documents", $"Processed {processed} files"));

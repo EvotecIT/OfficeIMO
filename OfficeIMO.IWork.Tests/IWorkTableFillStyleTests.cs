@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote, true)]
     public void Role_and_banded_fills_preserve_sparse_defaults_and_selected_overrides_in_saved_destinations(IWorkDocumentKind kind, bool banded) {
         using var package = RoleFillPackage(kind, banded: banded);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         IWorkTable table;
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             for (int i = 0; i < positions.Length; i++) {
                 var (row, column) = positions[i]; var cell = Assert.Single(reopened.Slides[0].Tables).GetCell(row - 1, column - 1);
-                Assert.Equal(expected[i], cell.FillColor); Assert.Equal(expected[i] == null, cell.NoFill);
+                Assert.Equal(expected[i] == null ? (OfficeIMO.OfficeColor?)null : OfficeIMO.OfficeColor.Parse(expected[i]!), cell.FillColor); Assert.Equal(expected[i] == null, cell.NoFill);
             }
             Assert.Empty(reopened.ValidateDocument());
         }
@@ -73,7 +73,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("unresolved-selected")]
     public void Unsupported_role_or_selected_fills_are_reported_without_false_default_fallback(string defect) {
         using var package = RoleFillPackage(IWorkDocumentKind.Pages, defect);
-        var projection = IWorkSourceDocument.Open(package).ReadPages(); var table = Assert.Single(projection.Tables);
+        var projection = IWorkSourceDocument.Load(package).ReadPages(); var table = Assert.Single(projection.Tables);
         Assert.False(projection.HasEditableContent);
         Assert.Equal(42d, table.GetCell(3, 2)!.Value);
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == (defect == "unresolved-selected"
@@ -96,7 +96,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Numbers_role_defaults_respect_the_bounded_destination_style_budget() {
         using var package = RoleFillPackage(IWorkDocumentKind.Numbers, rows: 100_001);
-        using var result = IWorkSourceDocument.Open(package).ToExcelResult(
+        using var result = IWorkSourceDocument.Load(package).ToExcelResult(
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         var table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
@@ -111,7 +111,7 @@ public sealed partial class IWorkBoundaryTests {
         string path = CorpusFixture(native.GetProperty("path").GetString()!);
         Assert.Equal(native.GetProperty("sha256").GetString(), Convert.ToHexString(
             System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         var expected = Assert.Single(manifest.RootElement.GetProperty("tables").EnumerateArray());
         var table = Assert.Single(result.Projection.Slides.SelectMany(slide => slide.Tables));

@@ -1,7 +1,7 @@
 namespace OfficeIMO.OneNote;
 
 internal static class OneNoteWriterValidation {
-    internal static void ValidateSectionOptions(OneNoteWriterOptions options) {
+    internal static void ValidateSectionOptions(OneNoteSaveOptions options) {
         ArgumentNullException.ThrowIfNull(options);
         if (options.MaxOutputBytes < 1) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxOutputBytes), "MaxOutputBytes must be greater than zero.");
@@ -13,7 +13,7 @@ internal static class OneNoteWriterValidation {
         ValidateTraversalDepth(options.MaxContentDepth, nameof(options.MaxContentDepth));
     }
 
-    internal static void ValidateNotebookOptions(OneNoteWriterOptions options) {
+    internal static void ValidateNotebookOptions(OneNoteSaveOptions options) {
         ValidateSectionOptions(options);
         ValidateTraversalDepth(options.MaxSectionGroupDepth, nameof(options.MaxSectionGroupDepth));
         if (options.MaxPackageEntries < 1 || options.MaxPackageEntries > ushort.MaxValue) {
@@ -24,24 +24,24 @@ internal static class OneNoteWriterValidation {
     /// <summary>
     /// Creates read-back limits that accept any asset set already bounded by the serialized output limit.
     /// </summary>
-    internal static OneNoteReaderOptions CreateReaderOptions(OneNoteWriterOptions options, long maxOutputBytes) => new OneNoteReaderOptions {
+    internal static OneNoteLoadOptions CreateReaderOptions(OneNoteSaveOptions options, long maxOutputBytes) => new OneNoteLoadOptions {
         MaxInputBytes = maxOutputBytes,
         MaxAssetBytes = maxOutputBytes,
         MaxTotalAssetBytes = maxOutputBytes,
         MaxInkPathValues = options.MaxInkPathValues,
         MaxPageRelationshipDepth = Math.Max(
-            OneNoteReaderOptions.DefaultMaxPageRelationshipDepth,
+            OneNoteLoadOptions.DefaultMaxPageRelationshipDepth,
             options.MaxPageRelationshipDepth),
         MaxPropertySetDepth = Math.Max(
-            OneNoteReaderOptions.DefaultMaxPropertySetDepth,
+            OneNoteLoadOptions.DefaultMaxPropertySetDepth,
             options.MaxContentDepth)
     };
 
     private static void ValidateTraversalDepth(int value, string parameterName) {
-        if (value < 1 || value > OneNoteWriterOptions.MaximumTraversalDepth) {
+        if (value < 1 || value > OneNoteSaveOptions.MaximumTraversalDepth) {
             throw new ArgumentOutOfRangeException(
                 parameterName,
-                "Writer traversal depths must be between 1 and " + OneNoteWriterOptions.MaximumTraversalDepth + ".");
+                "Writer traversal depths must be between 1 and " + OneNoteSaveOptions.MaximumTraversalDepth + ".");
         }
     }
 }

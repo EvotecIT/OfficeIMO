@@ -1,159 +1,112 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
 using System.Security;
+using System.Threading;
+using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Adds a text or image stamp to an existing PDF.</summary>
-/// <remarks>
-/// Stamps are existing-PDF operations. Use text stamps for review labels and image stamps for logos or approval marks.
-/// Use <c>-Watermark</c> when the stamp should be placed behind existing page content.
-/// </remarks>
-/// <example>
-///   <summary>Add a review stamp to selected pages.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$proof = @(
-///     Add-OfficePdfStamp -Path .\Examples\Documents\Report.pdf -OutputPath .\Examples\Documents\Stamped.pdf -Text 'REVIEWED' -Color '#0F766E' -FontSize 24 -Rotation 12 -PageRange '1-2'
-///     Get-OfficePdfPreflight -Path .\Examples\Documents\Stamped.pdf
-/// )
-/// $proof</code>
-///   <para>Adds a text stamp to the first two pages and preflights the result.</para>
-/// </example>
-/// <example>
-///   <summary>Add an image watermark.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$logo = '.\Tests\Assets\CellImage.png'
-/// Add-OfficePdfStamp -Path .\Examples\Documents\Report.pdf -OutputPath .\Examples\Documents\Watermarked.pdf -Image $logo -Width 160 -Watermark</code>
-///   <para>Adds a logo behind existing content as a watermark.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Add, "OfficePdfStamp", DefaultParameterSetName = ParameterSetText, SupportsShouldProcess = true)]
-[Alias("PdfStamp")]
-[OutputType(typeof(FileInfo))]
-public sealed class AddOfficePdfStampCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    private const string ParameterSetText = "Text";
-    private const string ParameterSetImage = "Image";
-
-    /// <summary>Input PDF path.</summary>
-    [Parameter(Mandatory = true)]
-    [Alias("FilePath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Output PDF path.</summary>
-    [Parameter(Mandatory = true)]
-    public string OutputPath { get; set; } = string.Empty;
-
-    /// <summary>Password used to authenticate an encrypted input PDF.</summary>
-    [Parameter]
-    [OfficePasswordTransformation]
-    public SecureString? Password { get; set; }
-
-    /// <summary>
-    /// After successful password authentication, explicitly ignore owner-imposed usage restrictions.
-    /// This does not discover, bypass, or crack a missing password.
-    /// </summary>
-    [Parameter]
-    public SwitchParameter IgnorePermissionRestrictions { get; set; }
-
-    /// <summary>Text to stamp.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetText)]
-    public string? Text { get; set; }
-
-    /// <summary>Image path to stamp.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetImage)]
-    [Alias("ImagePath")]
-    public string? Image { get; set; }
-
-    /// <summary>Stamp selected pages, for example 1-3,5. Omit to stamp every page.</summary>
-    [Parameter]
-    public string? PageRange { get; set; }
-
-    /// <summary>X coordinate in PDF points.</summary>
-    [Parameter]
-    public double? X { get; set; }
-
-    /// <summary>Y coordinate in PDF points.</summary>
-    [Parameter]
-    public double? Y { get; set; }
-
-    /// <summary>Font size for text stamps.</summary>
-    [Parameter(ParameterSetName = ParameterSetText)]
-    public double FontSize { get; set; } = 24;
-
-    /// <summary>Text color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter(ParameterSetName = ParameterSetText)]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? Color { get; set; }
-
-    /// <summary>Rendered image width in PDF points.</summary>
-    [Parameter(ParameterSetName = ParameterSetImage)]
-    public double? Width { get; set; }
-
-    /// <summary>Rendered image height in PDF points.</summary>
-    [Parameter(ParameterSetName = ParameterSetImage)]
-    public double? Height { get; set; }
-
-    /// <summary>Rotation in degrees.</summary>
-    [Parameter]
-    public double Rotation { get; set; }
-
-    /// <summary>Place the stamp behind existing content as a watermark.</summary>
-    [Parameter]
-    public SwitchParameter Watermark { get; set; }
-
+/// <summary>Stamps text, images, native canvas content or a PDF page onto existing PDFs.</summary>
+[Cmdlet(VerbsCommon.Add, "OfficePdfStamp", DefaultParameterSetName = "TextDocument", SupportsShouldProcess = true)]
+[OutputType(typeof(PdfDocument), typeof(FileInfo))]
+public sealed partial class AddOfficePdfStampCommand : PSCmdlet, IDisposable {
+    private readonly CancellationTokenSource _stop = new();
+    private readonly List<string> _files = new();
+    private readonly List<PdfDocument> _documents = new();
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var outputPath = PdfCommandUtilities.ResolvePath(this, OutputPath);
-        if (!PdfCommandUtilities.ShouldWrite(this, outputPath, "Write stamped PDF")) {
-            return;
+        if (ParameterSetName.EndsWith("Document", StringComparison.Ordinal)) {
+            _documents.Add(Document ?? OfficeDocumentContext.Find<PdfDocument>() ??
+                throw new PSArgumentException("Supply Document or use an enclosing Open-OfficePdf block."));
+        } else {
+            bool literal = ParameterSetName.Contains("LiteralPath");
+            _files.AddRange(OfficePath.ResolveInputs(this, literal ? LiteralPath : Path, literal));
         }
-
-        var readOptions = PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent);
-        var document = PdfDocument.Load(PdfCommandUtilities.ResolvePath(this, Path), readOptions);
-        PdfDocument result = ParameterSetName == ParameterSetImage
-            ? StampImage(document)
-            : StampText(document);
-
-        PdfCommandUtilities.EnsureDirectory(outputPath);
-        result.Save(outputPath);
-        WritePassThru(new FileInfo(outputPath));
     }
-
-    private PdfDocument StampText(PdfDocument document) {
-        var options = new PdfTextStampOptions {
-            X = X.HasValue ? global::OfficeIMO.OfficeLength.Points(X.Value) : null,
-            Y = Y.HasValue ? global::OfficeIMO.OfficeLength.Points(Y.Value) : null,
-            FontSize = global::OfficeIMO.OfficeLength.Points(FontSize),
-            RotationDegrees = Rotation,
-            BehindContent = Watermark.IsPresent
-        };
-        var color = PdfCommandUtilities.ParseColor(Color);
-        if (color.HasValue) {
-            options.Color = color.Value;
+    /// <inheritdoc />
+    protected override void EndProcessing() {
+        string mode = ParameterSetName.StartsWith("Text", StringComparison.Ordinal) ? "Text" :
+            ParameterSetName.StartsWith("Image", StringComparison.Ordinal) ? "Image" :
+            ParameterSetName.StartsWith("Content", StringComparison.Ordinal) ? "Content" : "Page";
+        foreach (var document in _documents) {
+            _stop.Token.ThrowIfCancellationRequested();
+            if (!ShouldProcess("PDF document", "Add " + mode.ToLowerInvariant() + " stamp")) continue;
+            var result = Stamp(document, mode, null);
+            bool adopted = OfficeDocumentContext.Replace(document, result);
+            if (PassThru.IsPresent || !adopted) WriteObject(result);
         }
-
-        PdfCommandUtilities.ApplyPageRange(options, PageRange);
-        return Watermark.IsPresent
-            ? document.Stamp.TextWatermark(Text!, options)
-            : document.Stamp.Text(Text!, options);
+        if (_files.Count == 0) return;
+        var work = PdfFileCommandInputs.Resolve(this, null, _files.ToArray(), OutputPath, OutputDirectory, noClobber: false);
+        var read = ReadPolicy(LoadOptions, Password, nameof(IgnorePermissionRestrictions));
+        foreach (var item in work) {
+            _stop.Token.ThrowIfCancellationRequested();
+            if (!ShouldProcess(item.Output, "Save PDF with " + mode.ToLowerInvariant() + " stamp")) continue;
+            using var source = PdfDocument.Load(item.Input, read, _stop.Token);
+            var result = Stamp(source, mode, read);
+            try {
+                result.Save(item.Output, new PdfSaveOptions { ConflictPolicy = OfficeConversionFileConflictPolicy.Replace }, _stop.Token);
+                if (PassThru.IsPresent) WriteObject(new FileInfo(item.Output));
+            } finally { if (!ReferenceEquals(source, result)) result.Dispose(); }
+        }
     }
-
-    private PdfDocument StampImage(PdfDocument document) {
-        var options = new PdfImageStampOptions {
-            X = X.HasValue ? global::OfficeIMO.OfficeLength.Points(X.Value) : null,
-            Y = Y.HasValue ? global::OfficeIMO.OfficeLength.Points(Y.Value) : null,
-            Width = Width.HasValue ? global::OfficeIMO.OfficeLength.Points(Width.Value) : null,
-            Height = Height.HasValue ? global::OfficeIMO.OfficeLength.Points(Height.Value) : null,
-            RotationDegrees = Rotation,
-            BehindContent = Watermark.IsPresent
-        };
-        PdfCommandUtilities.ApplyPageRange(options, PageRange);
-        using var imageStream = File.OpenRead(PdfCommandUtilities.ResolvePath(this, Image!));
-        return Watermark.IsPresent
-            ? document.Stamp.ImageWatermark(imageStream, options)
-            : document.Stamp.Image(imageStream, options);
+    private PdfDocument Stamp(PdfDocument document, string mode, PdfLoadOptions? read) {
+        if (mode == "Text") {
+            var options = new PdfTextStampOptions { X = X, Y = Y, RotationDegrees = Rotation,
+                BehindContent = Behind.IsPresent, Opacity = Opacity };
+            if (Size.HasValue) options.FontSize = Size.Value;
+            if (Color.HasValue) options.Color = Color.Value;
+            if (Page != null) options.PageNumbers = Page.Resolve(document.GetPageLayouts(read, _stop.Token).Count).ToArray();
+            return Behind.IsPresent ? document.Stamp.TextWatermark(Text!, options, read, _stop.Token)
+                : document.Stamp.Text(Text!, options, read, _stop.Token);
+        }
+        if (mode == "Image") {
+            var options = new PdfImageStampOptions { X = X, Y = Y, Width = Width, Height = Height,
+                RotationDegrees = Rotation, BehindContent = Behind.IsPresent, Opacity = Opacity };
+            if (Page != null) options.PageNumbers = Page.Resolve(document.GetPageLayouts(read, _stop.Token).Count).ToArray();
+            string image = ResolveOne(ImagePath!);
+            using var stream = File.OpenRead(image);
+            return Behind.IsPresent ? document.Stamp.ImageWatermark(stream, options, read, _stop.Token)
+                : document.Stamp.Image(stream, options, read, _stop.Token);
+        }
+        if (mode == "Content") {
+            PdfCreateOptions? rendering = null;
+            if (ConfigureRendering != null) { rendering = new PdfCreateOptions(); ConfigureRendering.Invoke(rendering); }
+            var options = new PdfCanvasStampOptions { BehindContent = Behind.IsPresent, Opacity = Opacity,
+                TargetPages = Page, RenderingOptions = rendering };
+            var transform = OfficeTransform.RotateDegrees(Rotation).Then(OfficeTransform.Translate(X?.ToPoints() ?? 0D, Y?.ToPoints() ?? 0D));
+            return document.Stamp.Content((canvas, page) => canvas.Effect(transform, 1D, nested => {
+                _stop.Token.ThrowIfCancellationRequested();
+                using (PdfCanvasDslContext.Enter(nested, page)) Content!.Invoke(nested, page);
+            }), options, read, _stop.Token);
+        }
+        var overlayRead = ReadPolicy(OverlayLoadOptions, OverlayPassword, nameof(IgnoreOverlayPermissionRestrictions));
+        var overlay = new PdfPageOverlayOptions { SourcePageNumber = OverlayPage, Fit = Fit,
+            HorizontalAlignment = HorizontalAlignment,
+            VerticalAlignment = VerticalAlignment == OfficeTextVerticalAlignment.Top ? PdfVerticalAlign.Top :
+                VerticalAlignment == OfficeTextVerticalAlignment.Bottom ? PdfVerticalAlign.Bottom : PdfVerticalAlign.Middle,
+            X = X?.ToPoints(), Y = Y?.ToPoints(), Width = Width?.ToPoints(), Height = Height?.ToPoints(),
+            Opacity = Opacity, RotationDegrees = Rotation, BehindContent = Behind.IsPresent, SourceReadOptions = overlayRead,
+            TargetPages = Page };
+        string path = ResolveOne(OverlayPath!);
+        return Behind.IsPresent ? document.Stamp.UnderlayPage(path, overlay, read, _stop.Token)
+            : document.Stamp.OverlayPage(path, overlay, read, _stop.Token);
     }
+    private string ResolveOne(string value) => OfficePath.ResolveInput(SessionState, value, literal: true)[0];
+    private PdfLoadOptions? ReadPolicy(PdfLoadOptions? options, SecureString? password, string ignoreName) {
+        var result = PdfCommandUtilities.CreateReadOptions(options, password);
+        if (OfficeSwitch.Get(MyInvocation.BoundParameters, ignoreName) is bool ignore)
+            result = (result ?? new PdfLoadOptions()).Snapshot(null, null, ignore ? PdfPermissionPolicy.IgnoreRestrictions : PdfPermissionPolicy.Enforce);
+        return result;
+    }
+    /// <inheritdoc />
+    protected override void StopProcessing() => _stop.Cancel();
+    /// <summary>Releases this invocation's cancellation source.</summary>
+    public void Dispose() => _stop.Dispose();
 }

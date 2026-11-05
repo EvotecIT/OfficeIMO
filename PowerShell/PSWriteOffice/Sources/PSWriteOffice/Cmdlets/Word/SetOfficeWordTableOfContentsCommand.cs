@@ -27,7 +27,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// $doc | Save-OfficeWord -Path .\Report-Toc.docx</code>
 ///   <para>Pipes the OfficeIMO TOC object into the thin setter and saves the document.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeWordTableOfContents")]
+[Cmdlet(VerbsCommon.Set, "OfficeWordTableOfContents", DefaultParameterSetName = ParameterSetDocument)]
 [OutputType(typeof(WordTableOfContent))]
 public sealed class SetOfficeWordTableOfContentsCommand : PSCmdlet
 {
@@ -35,7 +35,7 @@ public sealed class SetOfficeWordTableOfContentsCommand : PSCmdlet
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Table of contents to update.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetTableOfContents)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetTableOfContents)]
     public WordTableOfContent? TableOfContents { get; set; }
 
     /// <summary>Document to update when provided explicitly.</summary>

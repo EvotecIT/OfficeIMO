@@ -203,7 +203,7 @@ public sealed partial class HtmlRenderingTests {
             });
         string svg = document.ToSvg(options);
         OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
-        byte[] pngBytes = document.ToPng(options);
+        byte[] pngBytes = document.ToImage(options);
         Assert.True(OfficePngReader.TryDecode(pngBytes, out OfficeRasterImage? pngRaster));
         foreach (HtmlRenderText run in textRuns) {
             Assert.True(FontFallbackRunHasInk(svgRaster, run), run.Font.FamilyName);

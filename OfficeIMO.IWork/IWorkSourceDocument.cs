@@ -7,12 +7,12 @@ namespace OfficeIMO.IWork;
 
 /// <summary>Bounded, read-only representation of a modern Pages, Numbers, or Keynote source package.</summary>
 public sealed partial class IWorkSourceDocument {
-    private readonly IWorkReadOptions _options;
+    private readonly IWorkLoadOptions _options;
     private readonly IWorkObjectIndex _index;
     private readonly CancellationToken _cancellationToken;
 
     private IWorkSourceDocument(IWorkDocumentKind kind, IWorkPackageData package,
-        IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options,
+        IReadOnlyList<IWorkArchiveRecord> records, IWorkLoadOptions options,
         CancellationToken cancellationToken) {
         Kind = kind;
         ContainerKind = package.ContainerKind;
@@ -40,6 +40,7 @@ public sealed partial class IWorkSourceDocument {
         Entries = source.Entries;
         ContainerEntries = source.ContainerEntries;
         SourceDirectoryPath = source.SourceDirectoryPath;
+        FilePath = source.FilePath;
         Records = source.Records;
         BuildVersions = source.BuildVersions;
         Previews = source.Previews;
@@ -81,100 +82,100 @@ public sealed partial class IWorkSourceDocument {
         preview.MediaType == "image/jpeg" || preview.MediaType == "image/png");
 
     /// <summary>Opens an iWork file or directory bundle and detects its application kind.</summary>
-    public static IWorkSourceDocument Open(string path, IWorkReadOptions? options = null) =>
+    public static IWorkSourceDocument Load(string path, IWorkLoadOptions? options = null) =>
         OpenPath(path, expectedKind: null, options);
 
     /// <summary>Opens an iWork file or directory bundle and verifies the expected application kind.</summary>
-    public static IWorkSourceDocument Open(string path, IWorkDocumentKind expectedKind,
-        IWorkReadOptions? options = null) {
+    public static IWorkSourceDocument Load(string path, IWorkDocumentKind expectedKind,
+        IWorkLoadOptions? options = null) {
         ValidateDocumentKind(expectedKind, nameof(expectedKind));
         return OpenPath(path, expectedKind, options);
     }
 
     /// <summary>Opens a ZIP-based iWork stream using the supplied application kind.</summary>
-    public static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind expectedKind,
-        IWorkReadOptions? options = null) {
+    public static IWorkSourceDocument Load(Stream stream, IWorkDocumentKind expectedKind,
+        IWorkLoadOptions? options = null) {
         ValidateDocumentKind(expectedKind, nameof(expectedKind));
-        IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
+        IWorkLoadOptions resolved = (options ?? new IWorkLoadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(stream, resolved);
         return Create(package, hint: expectedKind, options: resolved, expectedKind: expectedKind);
     }
 
     /// <summary>Opens a file or directory bundle with cancellation and verifies its application kind.</summary>
     /// <remarks>The token also governs subsequent semantic projections and destination conversion from this source.</remarks>
-    public static IWorkSourceDocument Open(string path, IWorkDocumentKind expectedKind,
-        IWorkReadOptions? options, CancellationToken cancellationToken) {
+    public static IWorkSourceDocument Load(string path, IWorkDocumentKind expectedKind,
+        IWorkLoadOptions? options, CancellationToken cancellationToken) {
         ValidateDocumentKind(expectedKind, nameof(expectedKind));
         return OpenPath(path, expectedKind, options, cancellationToken);
     }
 
     /// <summary>Opens a file or directory bundle with cancellation and detects its application kind.</summary>
     /// <remarks>The token also governs subsequent semantic projections and destination conversion from this source.</remarks>
-    public static IWorkSourceDocument Open(string path, IWorkReadOptions? options,
+    public static IWorkSourceDocument Load(string path, IWorkLoadOptions? options,
         CancellationToken cancellationToken) => OpenPath(path, expectedKind: null,
             options, cancellationToken);
 
     /// <summary>Opens a caller-owned ZIP stream with cancellation and verifies its application kind.</summary>
     /// <remarks>The stream remains open. The token also governs subsequent projections and destination conversion.</remarks>
-    public static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind expectedKind,
-        IWorkReadOptions? options, CancellationToken cancellationToken) {
+    public static IWorkSourceDocument Load(Stream stream, IWorkDocumentKind expectedKind,
+        IWorkLoadOptions? options, CancellationToken cancellationToken) {
         ValidateDocumentKind(expectedKind, nameof(expectedKind));
-        IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
+        IWorkLoadOptions resolved = (options ?? new IWorkLoadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(stream, resolved, cancellationToken);
         return Create(package, expectedKind, resolved, expectedKind, cancellationToken);
     }
 
     /// <summary>Opens a caller-owned ZIP stream with cancellation and detects its application kind.</summary>
     /// <remarks>The stream remains open. The token also governs subsequent projections and destination conversion.</remarks>
-    public static IWorkSourceDocument Open(Stream stream, IWorkReadOptions? options,
+    public static IWorkSourceDocument Load(Stream stream, IWorkLoadOptions? options,
         CancellationToken cancellationToken) {
-        IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
+        IWorkLoadOptions resolved = (options ?? new IWorkLoadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(stream, resolved, cancellationToken);
         return Create(package, hint: null, resolved, expectedKind: null, cancellationToken);
     }
 
     /// <summary>Opens a ZIP-based iWork stream and detects its application kind.</summary>
-    public static IWorkSourceDocument Open(Stream stream, IWorkReadOptions? options = null) {
-        IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
+    public static IWorkSourceDocument Load(Stream stream, IWorkLoadOptions? options = null) {
+        IWorkLoadOptions resolved = (options ?? new IWorkLoadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(stream, resolved);
         return Create(package, hint: null, resolved, expectedKind: null);
     }
 
     /// <summary>Opens iWork package bytes and detects the application kind.</summary>
-    public static IWorkSourceDocument Open(byte[] data, IWorkReadOptions? options = null) {
+    public static IWorkSourceDocument Load(byte[] data, IWorkLoadOptions? options = null) {
         ArgumentNullException.ThrowIfNull(data);
         using var stream = new MemoryStream(data, writable: false);
-        return Open(stream, options);
+        return Load(stream, options);
     }
 
     /// <summary>Opens iWork package bytes and verifies the expected application kind.</summary>
-    public static IWorkSourceDocument Open(byte[] data, IWorkDocumentKind expectedKind,
-        IWorkReadOptions? options = null) {
+    public static IWorkSourceDocument Load(byte[] data, IWorkDocumentKind expectedKind,
+        IWorkLoadOptions? options = null) {
         ArgumentNullException.ThrowIfNull(data);
         using var stream = new MemoryStream(data, writable: false);
-        return Open(stream, expectedKind, options);
+        return Load(stream, expectedKind, options);
     }
 
     /// <summary>Opens package bytes with cancellation and detects the application kind.</summary>
     /// <remarks>The token also governs subsequent projections and destination conversion.</remarks>
-    public static IWorkSourceDocument Open(byte[] data, IWorkReadOptions? options,
+    public static IWorkSourceDocument Load(byte[] data, IWorkLoadOptions? options,
         CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(data);
         using var stream = new MemoryStream(data, writable: false);
-        return Open(stream, options, cancellationToken);
+        return Load(stream, options, cancellationToken);
     }
 
     /// <summary>Opens package bytes with cancellation and verifies the application kind.</summary>
     /// <remarks>The token also governs subsequent projections and destination conversion.</remarks>
-    public static IWorkSourceDocument Open(byte[] data, IWorkDocumentKind expectedKind,
-        IWorkReadOptions? options, CancellationToken cancellationToken) {
+    public static IWorkSourceDocument Load(byte[] data, IWorkDocumentKind expectedKind,
+        IWorkLoadOptions? options, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(data);
         using var stream = new MemoryStream(data, writable: false);
-        return Open(stream, expectedKind, options, cancellationToken);
+        return Load(stream, expectedKind, options, cancellationToken);
     }
 
     internal IWorkObjectIndex Index => _index;
-    internal IWorkReadOptions Options => _options;
+    internal IWorkLoadOptions Options => _options;
     internal CancellationToken CancellationToken => _cancellationToken;
 
     internal IWorkConversionReport CreateReport(IWorkProjectionKind projectionKind,
@@ -210,15 +211,17 @@ public sealed partial class IWorkSourceDocument {
     }
 
     private static IWorkSourceDocument OpenPath(string path, IWorkDocumentKind? expectedKind,
-        IWorkReadOptions? options, CancellationToken cancellationToken = default) {
-        IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
+        IWorkLoadOptions? options, CancellationToken cancellationToken = default) {
+        IWorkLoadOptions resolved = (options ?? new IWorkLoadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(path, resolved, cancellationToken);
         IWorkDocumentKind? extensionKind = KindFromExtension(Path.GetExtension(path));
-        return Create(package, expectedKind ?? extensionKind, resolved, expectedKind, cancellationToken);
+        var document = Create(package, expectedKind ?? extensionKind, resolved, expectedKind, cancellationToken);
+        document.FilePath = package.SourceDirectoryPath == null ? Path.GetFullPath(path) : null;
+        return document;
     }
 
     private static IWorkSourceDocument Create(IWorkPackageData package, IWorkDocumentKind? hint,
-        IWorkReadOptions options, IWorkDocumentKind? expectedKind,
+        IWorkLoadOptions options, IWorkDocumentKind? expectedKind,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!package.Entries.Any(entry => IWorkArchiveParser.IsIndexArchivePath(entry.Path))) {
@@ -249,7 +252,7 @@ public sealed partial class IWorkSourceDocument {
     }
 
     private static IWorkDocumentKind DetectKind(IReadOnlyList<IWorkArchiveRecord> records,
-        IWorkDocumentKind? hint, IWorkReadOptions options, CancellationToken cancellationToken) {
+        IWorkDocumentKind? hint, IWorkLoadOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         bool hasPagesRoot = records.Any(record => record.IsPrimary && record.MessageType == 10000);
         var index = new IWorkObjectIndex(records, options, cancellationToken);
@@ -267,7 +270,7 @@ public sealed partial class IWorkSourceDocument {
     }
 
     private static bool HasNumbersRoot(IWorkObjectIndex index,
-        IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options) {
+        IReadOnlyList<IWorkArchiveRecord> records, IWorkLoadOptions options) {
         foreach (IWorkArchiveRecord document in records.Where(record =>
                      record.IsPrimary && record.MessageType == 1)) {
             int declaredSheetCount;

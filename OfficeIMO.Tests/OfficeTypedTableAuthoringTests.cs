@@ -35,7 +35,7 @@ public sealed class OfficeTypedTableAuthoringTests {
             default:
                 using (var document = PowerPointDocument.Create()) {
                     var table = document.AddSlide().AddTable(rows, new OfficeTableOptions { Name = "Products" });
-                    Assert.Equal(3, table.Rows);
+                    Assert.Equal(3, table.RowCount);
                     Assert.Equal("Products", table.Name);
                     document.Save(output);
                 }

@@ -62,25 +62,25 @@ public sealed class AddOfficePowerPointTableRowCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var table = ResolveTable(InputObject);
-        if (TemplateRow.HasValue && TemplateRow.Value > table.Rows)
-            throw new PSArgumentOutOfRangeException(nameof(TemplateRow), TemplateRow, $"Table contains {table.Rows} rows.");
-        if (Position.HasValue && Position.Value - 1 > table.Rows)
-            throw new PSArgumentOutOfRangeException(nameof(Position), Position, $"Insert position must be between 1 and {table.Rows + 1}.");
+        if (TemplateRow.HasValue && TemplateRow.Value > table.Rows.Count)
+            throw new PSArgumentOutOfRangeException(nameof(TemplateRow), TemplateRow, $"Table contains {table.Rows.Count} rows.");
+        if (Position.HasValue && Position.Value - 1 > table.Rows.Count)
+            throw new PSArgumentOutOfRangeException(nameof(Position), Position, $"Insert position must be between 1 and {table.Rows.Count + 1}.");
         var values = ExpandValues(Value);
-        if (table.Rows > 0)
+        if (table.Rows.Count > 0)
         {
-            ValidateValues(values, table.Columns);
+            ValidateValues(values, table.Columns.Count);
         }
 
         PowerPointTableRow row;
-        if (table.Rows == 0)
+        if (table.Rows.Count == 0)
         {
             table.AddRow(Position - 1);
             row = table.GetRow(0);
         }
         else
         {
-            var templateRowIndex = TemplateRow.HasValue ? TemplateRow.Value - 1 : table.Rows - 1;
+            var templateRowIndex = TemplateRow.HasValue ? TemplateRow.Value - 1 : table.Rows.Count - 1;
             row = table.AddRowFromTemplate(templateRowIndex, Position - 1, clearText: true);
         }
 

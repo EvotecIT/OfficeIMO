@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.IO;
 using System.Linq;
@@ -15,9 +16,10 @@ namespace PSWriteOffice.Cmdlets.Project;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeProjectResource", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectResource))]
+[Alias("ProjectResource") ]
 public sealed class AddOfficeProjectResourceCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
     public ProjectDocument Document { get; set; } = null!;
 
     /// <summary>Resource name.</summary>
@@ -35,6 +37,7 @@ public sealed class AddOfficeProjectResourceCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        Document ??= OfficeDocumentContext.Find<ProjectDocument>() ?? throw new PSInvalidOperationException("Provide -Document or use a Project content block.");
         var resource = Document.Resources.AddWork(Name);
         resource.StandardRate = StandardRate;
         resource.IsNull = false;

@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Management.Automation;
 using OfficeIMO;
@@ -15,6 +17,15 @@ public sealed class OfficeLengthTransformationAttribute : ArgumentTransformation
     public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) {
         var value = OfficeArgumentValue.Unwrap(inputData);
         if (value == null && AllowNull) return null!;
+        if (value is IEnumerable values && value is not string) {
+            var lengths = new List<OfficeLength>();
+            foreach (object? item in values) lengths.Add(ConvertLength(OfficeArgumentValue.Unwrap(item)));
+            return lengths.ToArray();
+        }
+        return ConvertLength(value);
+    }
+
+    private static OfficeLength ConvertLength(object? value) {
         if (value is OfficeLength length) return length;
         if (value is string text && OfficeLength.TryParse(text, out length)) return length;
         if (value is byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal) {

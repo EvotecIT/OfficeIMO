@@ -3,7 +3,7 @@ namespace OfficeIMO.OneNote.Tests;
 public sealed class SectionReaderTests {
     [Fact]
     public void ReadsPageTitleAndParagraphText() {
-        OneNoteSection section = OneNoteSectionReader.Read(FixturePath("testOneNote2016.one"));
+        OneNoteSection section = OneNoteSection.Load(FixturePath("testOneNote2016.one"));
 
         OneNotePage page = Assert.Single(section.Pages);
         Assert.Equal(0x00E4A88AU, section.ColorArgb);
@@ -15,7 +15,7 @@ public sealed class SectionReaderTests {
 
     [Fact]
     public void MaterializesNestedOutlineTextWithoutFontJunk() {
-        OneNoteSection section = OneNoteSectionReader.Read(FixturePath("testOneNote.one"));
+        OneNoteSection section = OneNoteSection.Load(FixturePath("testOneNote.one"));
 
         OneNotePage page = Assert.Single(section.Pages);
         string text = ExtractText(page);
@@ -26,12 +26,12 @@ public sealed class SectionReaderTests {
 
     [Fact]
     public void ResolvesEmbeddedWordPayloadFromFileDataStore() {
-        OneNoteSection section = OneNoteSectionReader.Read(FixturePath("testOneNoteEmbeddedWordDoc.one"));
+        OneNoteSection section = OneNoteSection.Load(FixturePath("testOneNoteEmbeddedWordDoc.one"));
 
         OneNoteEmbeddedFile embedded = Assert.Single(section.Pages.SelectMany(page => page.DirectContent).OfType<OneNoteEmbeddedFile>());
         Assert.Equal("Dude this is a super cool embedded doc.docx", embedded.FileName);
         Assert.NotNull(embedded.Payload);
-        byte[] payload = embedded.Payload!.ToArray(OneNoteReaderOptions.DefaultMaxAssetBytes);
+        byte[] payload = embedded.Payload!.ToArray(OneNoteLoadOptions.DefaultMaxAssetBytes);
         Assert.True(payload.Length > 4);
         Assert.Equal((byte)'P', payload[0]);
         Assert.Equal((byte)'K', payload[1]);
@@ -41,7 +41,7 @@ public sealed class SectionReaderTests {
     [InlineData("testOneNoteFromOffice365.one", "testOneNoteFromOffice365")]
     [InlineData("testOneNoteFromOffice365-2.one", "Section1.one")]
     public void ReadsOffice365PackageStoreIntoSameSemanticModel(string fixture, string expectedSectionName) {
-        OneNoteSection section = OneNoteSectionReader.Read(FixturePath(fixture));
+        OneNoteSection section = OneNoteSection.Load(FixturePath(fixture));
 
         Assert.Equal(expectedSectionName, section.Name);
         Assert.Equal(2, section.Pages.Count);
@@ -53,7 +53,7 @@ public sealed class SectionReaderTests {
 
     [Fact]
     public void ReadsVersionHistoryFromItsReferencedRevisionContext() {
-        OneNoteSection section = OneNoteSectionReader.Read(FixturePath("testOneNoteFromOffice365.one"));
+        OneNoteSection section = OneNoteSection.Load(FixturePath("testOneNoteFromOffice365.one"));
 
         OneNotePage version = Assert.Single(section.Pages.SelectMany(page => page.VersionHistory));
         Assert.True(version.IsVersionHistoryPage);

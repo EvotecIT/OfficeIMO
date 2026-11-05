@@ -11,8 +11,8 @@ namespace OfficeIMO.PowerPoint {
             Density = design.BaseIntent.Density;
             VisualStyle = design.BaseIntent.VisualStyle;
             LayoutStrategy = design.BaseIntent.LayoutStrategy;
-            HeadingFontName = design.Theme.HeadingFontName;
-            BodyFontName = design.Theme.BodyFontName;
+            HeadingFontFamily = design.Theme.HeadingFontFamily;
+            BodyFontFamily = design.Theme.BodyFontFamily;
             AccentColor = design.Theme.AccentColor;
             Accent2Color = design.Theme.Accent2Color;
             Accent3Color = design.Theme.Accent3Color;
@@ -60,32 +60,32 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Heading font used by this alternative.
         /// </summary>
-        public string HeadingFontName { get; }
+        public string HeadingFontFamily { get; }
 
         /// <summary>
         ///     Body font used by this alternative.
         /// </summary>
-        public string BodyFontName { get; }
+        public string BodyFontFamily { get; }
 
         /// <summary>
         ///     Primary brand accent.
         /// </summary>
-        public string AccentColor { get; }
+        public OfficeColor AccentColor { get; }
 
         /// <summary>
         ///     Secondary accent color.
         /// </summary>
-        public string Accent2Color { get; }
+        public OfficeColor Accent2Color { get; }
 
         /// <summary>
         ///     Tertiary accent color.
         /// </summary>
-        public string Accent3Color { get; }
+        public OfficeColor Accent3Color { get; }
 
         /// <summary>
         ///     Warm accent used for markers and highlights.
         /// </summary>
-        public string WarningColor { get; }
+        public OfficeColor WarningColor { get; }
 
         /// <summary>
         ///     Supporting palette strategy used by this alternative.
@@ -105,7 +105,7 @@ namespace OfficeIMO.PowerPoint {
         /// <inheritdoc />
         public override string ToString() {
             return Index + ": " + DirectionName + " (" + Mood + ", " + VisualStyle + ", " +
-                   HeadingFontName + "/" + BodyFontName + ")";
+                   HeadingFontFamily + "/" + BodyFontFamily + ")";
         }
     }
 }

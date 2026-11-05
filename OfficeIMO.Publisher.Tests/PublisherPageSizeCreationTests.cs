@@ -199,7 +199,10 @@ public sealed class PublisherPageSizeCreationTests {
     [InlineData("fractional-EMU")]
     public void Native_projection_refuses_unrepresentable_page_dimensions_without_mutating_the_model(string boundary) {
         double width = boundary == "signed-range" ? ((double)int.MaxValue + 1) / 12700 : 612 + 0.5 / 12700;
-        PublisherDocument document = EmptyPublication(width, 792);
+        // Exercise the raw native projection boundary before a public OfficeLength can quantize the input.
+        PublisherDocument document = PublisherModelState.Create(width, 792, new PublisherLoadOptions(), CancellationToken.None).Project(CancellationToken.None);
+        PublisherPage master = document.AddMasterPage("Page-size brand");
+        document.SetPageMaster(document.Pages[0].Id, master.Id);
         AssertRefusedUnchanged(document, () => PublisherNativeCreationProjection.ComposedContent(document));
     }
 
@@ -214,7 +217,7 @@ public sealed class PublisherPageSizeCreationTests {
         double objectWidth = boundary == "fractional-final" ? 12 + 0.5 / 12700 : boundary == "overflow-final" ? 2 : 12;
         var rectangle = OfficeShape.Rectangle(objectWidth, 12);
         rectangle.FillColor = OfficeColor.Blue; rectangle.StrokeColor = null;
-        document.AddShape(document.Pages[0].Id, rectangle, x, 36);
+        document.AddShape(document.Pages[0].Id, rectangle, OfficeLength.Points(x), OfficeLength.Points(36));
         AssertRefusedUnchanged(document, () => PublisherNativeCreationCodec.Create(PublisherNativeCreationProjection.ComposedContent(document),
             new PublisherLoadOptions(), MaximumBytes, CancellationToken.None));
     }
@@ -223,28 +226,28 @@ public sealed class PublisherPageSizeCreationTests {
         PublisherDocument document = EmptyPublication(width, height);
         uint master = document.MasterPages[0].Id;
         document.AddPage(master);
-        document.AddTextFrame(master, 18, 18, width - 84, 24, new[] { Paragraph("Sized publication", true) });
+        document.AddTextFrame(master, OfficeLength.Points(18), OfficeLength.Points(18), OfficeLength.Points(width - 84), OfficeLength.Points(24), new[] { Paragraph("Sized publication", true) });
         var rule = OfficeShape.Rectangle(width - 36, 3);
         rule.FillColor = OfficeColor.Blue; rule.StrokeColor = null;
-        document.AddShape(master, rule, 18, height - 18);
-        PublisherPicture logo = document.AddImage(master, PublisherPictureEditingFixture.Image(OfficeColor.FromRgb(40, 120, 200)), width - 42, 18, 24, 24);
-        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, 18, 54, width - 36, 36, new[] {
+        document.AddShape(master, rule, OfficeLength.Points(18), OfficeLength.Points(height - 18));
+        PublisherPicture logo = document.AddImage(master, PublisherPictureEditingFixture.Image(OfficeColor.FromRgb(40, 120, 200)), OfficeLength.Points(width - 42), OfficeLength.Points(18), OfficeLength.Points(24), OfficeLength.Points(24));
+        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(18), OfficeLength.Points(54), OfficeLength.Points(width - 36), OfficeLength.Points(36), new[] {
             Paragraph("A dimensioned publication keeps its complete linked story.", true),
             Paragraph(string.Concat(Enumerable.Repeat("Continuation content remains separate from page geometry. ", 5)).TrimEnd())
         });
-        document.AddLinkedTextFrame(first.Id, document.Pages[1].Id, 18, 54, width - 36, 72);
-        PublisherTextFrame columns = document.AddTextFrame(document.Pages[0].Id, 18, height - 162, width - 36, 66,
+        document.AddLinkedTextFrame(first.Id, document.Pages[1].Id, OfficeLength.Points(18), OfficeLength.Points(54), OfficeLength.Points(width - 36), OfficeLength.Points(72));
+        PublisherTextFrame columns = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(18), OfficeLength.Points(height - 162), OfficeLength.Points(width - 36), OfficeLength.Points(66),
             new[] { Paragraph("Independent columns retain their own layout.") });
-        document.SetTextFrameLayout(columns.Id, 2, 18, new OfficeTextPadding(6, 9, 12, 3), OfficeTextVerticalAlignment.Top);
-        document.AddImage(document.Pages[1].Id, logo.ImageId!.Value, width - 54, height - 42, 36, 36);
-        PublisherTable table = document.AddTable(document.Pages[1].Id, width - 174, height - 90, new[] { 72D, 84D }, new[] { 30D });
+        document.SetTextFrameLayout(columns.Id, 2, OfficeLength.Points(18), new OfficeTextPadding(6, 9, 12, 3), OfficeTextVerticalAlignment.Top);
+        document.AddImage(document.Pages[1].Id, logo.ImageId!.Value, OfficeLength.Points(width - 54), OfficeLength.Points(height - 42), OfficeLength.Points(36), OfficeLength.Points(36));
+        PublisherTable table = document.AddTable(document.Pages[1].Id, OfficeLength.Points(width - 174), OfficeLength.Points(height - 90), new OfficeLength[] { OfficeLength.Points(72D), OfficeLength.Points(84D) }, new OfficeLength[] { OfficeLength.Points(30D) });
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] { Paragraph("Item") });
         document.ReplaceTableCellParagraphs(table.Id, 0, 1, new[] { Paragraph("Count") });
         return document;
     }
 
     private static PublisherDocument EmptyPublication(double width, double height) {
-        PublisherDocument document = PublisherDocument.Create(width, height);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(width), OfficeLength.Points(height));
         PublisherPage master = document.AddMasterPage("Page-size brand");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         return document;

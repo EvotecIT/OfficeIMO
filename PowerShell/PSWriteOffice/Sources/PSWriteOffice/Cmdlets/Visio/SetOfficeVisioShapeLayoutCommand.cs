@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Visio;
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Visio;
 
 namespace PSWriteOffice.Cmdlets.Visio;
@@ -14,13 +16,13 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///   <code>OfficeVisio -Path .\Layout.vsdx {
 ///     VisioRectangle -Key one -Text 'One'
 ///     VisioRectangle -Key two -Text 'Two'
-///     VisioLayout -ShapeId one,two -HorizontalStack -HorizontalSpacing 0.4
+///     VisioLayout -ShapeId one,two -HorizontalStack -HorizontalSpacing 0.4in
 /// }</code>
 ///   <para>Resolves keyed shapes and applies a reusable OfficeIMO Visio layout operation.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeVisioShapeLayout")]
-[Alias("VisioLayout", "VisioArrange")]
+[Cmdlet(VerbsCommon.Set, "OfficeVisioShapeLayout", DefaultParameterSetName = "Alignment")]
 [OutputType(typeof(VisioShape))]
+[Alias("VisioLayout") ]
 public sealed class SetOfficeVisioShapeLayoutCommand : PSCmdlet
 {
     private readonly List<object> _input = new();
@@ -42,50 +44,52 @@ public sealed class SetOfficeVisioShapeLayoutCommand : PSCmdlet
     public string? Layer { get; set; }
 
     /// <summary>Horizontal alignment inside the selected shapes' bounds.</summary>
-    [Parameter]
-    public VisioHorizontalAlignment? AlignHorizontal { get; set; }
+    [Parameter(ParameterSetName = "Alignment")]
+    public VisioHorizontalAlignment? HorizontalAlignment { get; set; }
 
     /// <summary>Vertical alignment inside the selected shapes' bounds.</summary>
-    [Parameter]
-    public VisioVerticalAlignment? AlignVertical { get; set; }
+    [Parameter(ParameterSetName = "Alignment")]
+    public VisioVerticalAlignment? VerticalAlignment { get; set; }
 
     /// <summary>Distribute selected shapes along an axis.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Alignment")]
     public VisioDistributionAxis? Distribute { get; set; }
 
     /// <summary>Lay out selected shapes as a grid.</summary>
-    [Parameter]
+    [Parameter(Mandatory = true, ParameterSetName = "Grid")]
     public SwitchParameter Grid { get; set; }
 
     /// <summary>Lay out selected shapes as a horizontal stack.</summary>
-    [Parameter]
+    [Parameter(Mandatory = true, ParameterSetName = "HorizontalStack")]
     public SwitchParameter HorizontalStack { get; set; }
 
     /// <summary>Lay out selected shapes as a vertical stack.</summary>
-    [Parameter]
+    [Parameter(Mandatory = true, ParameterSetName = "VerticalStack")]
     public SwitchParameter VerticalStack { get; set; }
 
     /// <summary>Grid column count. Zero lets OfficeIMO choose a near-square grid.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Grid")]
     [ValidateRange(0, int.MaxValue)]
     public int Columns { get; set; }
 
-    /// <summary>Horizontal spacing in inches for grid/stack layout.</summary>
-    [Parameter]
-    [ValidateRange(0, double.MaxValue)]
-    public double HorizontalSpacing { get; set; } = 0.5D;
+    /// <summary>Horizontal spacing; a number means points for grid/stack layout.</summary>
+    [Parameter(ParameterSetName = "Grid")]
+    [Parameter(ParameterSetName = "HorizontalStack"), OfficeLengthTransformation]
+    public OfficeLength HorizontalSpacing { get; set; } = OfficeLength.Inches(0.5);
 
-    /// <summary>Vertical spacing in inches for grid/stack layout.</summary>
-    [Parameter]
-    [ValidateRange(0, double.MaxValue)]
-    public double VerticalSpacing { get; set; } = 0.5D;
+    /// <summary>Vertical spacing; a number means points for grid/stack layout.</summary>
+    [Parameter(ParameterSetName = "Grid")]
+    [Parameter(ParameterSetName = "VerticalStack"), OfficeLengthTransformation]
+    public OfficeLength VerticalSpacing { get; set; } = OfficeLength.Inches(0.5);
 
     /// <summary>Use the first selected shape as the grid origin instead of preserving the selection top-left.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Grid")]
     public SwitchParameter PreserveFirstShapeCenter { get; set; }
 
     /// <summary>Do not reroute internal connectors during OfficeIMO relayout.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Grid")]
+    [Parameter(ParameterSetName = "HorizontalStack")]
+    [Parameter(ParameterSetName = "VerticalStack")]
     public SwitchParameter NoRouteInternalConnectors { get; set; }
 
     /// <summary>Emit arranged shapes.</summary>
@@ -101,6 +105,8 @@ public sealed class SetOfficeVisioShapeLayoutCommand : PSCmdlet
     /// <inheritdoc />
     protected override void EndProcessing()
     {
+        if (HorizontalSpacing.ToPoints() < 0 || VerticalSpacing.ToPoints() < 0)
+            throw new PSArgumentOutOfRangeException(nameof(HorizontalSpacing), HorizontalSpacing, "Layout spacing must be non-negative.");
         var page = Page ?? VisioDslContext.Current?.CurrentPage;
         var shapes = ResolveShapes(page);
         var selection = new VisioShapeSelection(shapes, page);
@@ -120,14 +126,14 @@ public sealed class SetOfficeVisioShapeLayoutCommand : PSCmdlet
             }
         }
 
-        if (AlignHorizontal.HasValue)
+        if (HorizontalAlignment.HasValue)
         {
-            selection.Align(AlignHorizontal.Value);
+            selection.Align(HorizontalAlignment.Value);
         }
 
-        if (AlignVertical.HasValue)
+        if (VerticalAlignment.HasValue)
         {
-            selection.Align(AlignVertical.Value);
+            selection.Align(VerticalAlignment.Value);
         }
 
         if (Distribute.HasValue)
@@ -140,19 +146,19 @@ public sealed class SetOfficeVisioShapeLayoutCommand : PSCmdlet
             selection.RelayoutAsGrid(new VisioSelectionLayoutOptions
             {
                 Columns = Columns <= 0 ? null : Columns,
-                HorizontalSpacing = HorizontalSpacing,
-                VerticalSpacing = VerticalSpacing,
+                HorizontalSpacing = HorizontalSpacing.ToInches(),
+                VerticalSpacing = VerticalSpacing.ToInches(),
                 PreserveTopLeft = !PreserveFirstShapeCenter.IsPresent,
                 RouteInternalConnectors = !NoRouteInternalConnectors.IsPresent
             });
         }
         else if (HorizontalStack.IsPresent)
         {
-            selection.RelayoutAsHorizontalStack(HorizontalSpacing, !NoRouteInternalConnectors.IsPresent);
+            selection.RelayoutAsHorizontalStack(HorizontalSpacing.ToInches(), !NoRouteInternalConnectors.IsPresent);
         }
         else if (VerticalStack.IsPresent)
         {
-            selection.RelayoutAsVerticalStack(VerticalSpacing, !NoRouteInternalConnectors.IsPresent);
+            selection.RelayoutAsVerticalStack(VerticalSpacing.ToInches(), !NoRouteInternalConnectors.IsPresent);
         }
 
         if (PassThru.IsPresent)

@@ -11,8 +11,7 @@ namespace PSWriteOffice.Cmdlets.Visuals;
 ///   <code>$officeVisual = $artifact | ConvertTo-OfficeVisual -Width 420 -SvgPolicy RasterizeWhenNeeded</code>
 ///   <para>Creates one fidelity report and placement payload that can be reused in Word, Excel, PowerPoint, and PDF.</para>
 /// </example>
-[Cmdlet(VerbsData.ConvertTo, "OfficeVisual")]
-[Alias("OfficeVisual")]
+[Cmdlet(VerbsData.ConvertTo, "OfficeVisual", DefaultParameterSetName = "Visual")]
 [OutputType(typeof(OfficeVisualConversionResult))]
 public sealed class ConvertToOfficeVisualCommand : OfficeVisualCommandBase
 {

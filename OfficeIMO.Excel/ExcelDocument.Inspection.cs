@@ -6,6 +6,12 @@ using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        /// <summary>Counts all workbook sheet entries, including chart sheets, for source-level inspection.</summary>
+        internal int GetWorkbookSheetCount(CancellationToken cancellationToken) {
+            MaterializeDeferredDataSetImport(cancellationToken);
+            return Locking.ExecuteRead(EnsureLock(), () => WorkbookRoot.Sheets?.Elements<Sheet>().Count() ?? 0);
+        }
+
         /// <summary>
         /// Creates an immutable workbook snapshot that exposes OfficeIMO's current workbook model for downstream integrations.
         /// </summary>

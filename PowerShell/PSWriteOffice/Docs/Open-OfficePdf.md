@@ -11,12 +11,22 @@ Opens native PDF documents or atomically saves a completed editing block.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Open-OfficePdf [-Path] <string[]> [[-Content] <scriptblock>] [-OutputPath <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Open-OfficePdf [-Path] <string[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Content
+```powershell
+Open-OfficePdf [-Path] <string[]> [-Content] <scriptblock> [-PassThru] [-Show] [-OutputPath <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathContent
+```powershell
+Open-OfficePdf [-Content] <scriptblock> -LiteralPath <string[]> [-PassThru] [-Show] [-OutputPath <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Open-OfficePdf [[-Content] <scriptblock>] -LiteralPath <string[]> [-OutputPath <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Open-OfficePdf -LiteralPath <string[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -43,33 +53,17 @@ finally { $documents | Close-OfficePdf }
 
 ## PARAMETERS
 
-### -AllowLoss
-Gets or sets whether native-save loss is explicitly accepted.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, LiteralPath
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Content
-Gets or sets a content block; omission returns the live document.
+An optional authoring block; omission returns the live document.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Content, LiteralPathContent
 Aliases: None
 Possible values:
 
-Required: False
-Position: 1
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -80,7 +74,7 @@ After authentication, explicitly ignore owner-imposed usage restrictions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, Content, LiteralPathContent, LiteralPath
 Aliases: None
 Possible values:
 
@@ -96,7 +90,7 @@ Literal PDF paths; accepts FileInfo.FullName and provider PSPath.
 
 ```yaml
 Type: String[]
-Parameter Sets: LiteralPath
+Parameter Sets: LiteralPathContent, LiteralPath
 Aliases: FullName, PSPath
 Possible values:
 
@@ -112,7 +106,7 @@ Native PDF parsing, resource-limit and authentication settings.
 
 ```yaml
 Type: PdfLoadOptions
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, Content, LiteralPathContent, LiteralPath
 Aliases: None
 Possible values:
 
@@ -128,7 +122,7 @@ Optional destination for a content block; omission saves back to the input.
 
 ```yaml
 Type: String
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Content, LiteralPathContent
 Aliases: None
 Possible values:
 
@@ -140,11 +134,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Gets or sets whether a completed content block returns the saved FileInfo.
+Emit the FileInfo after a completed authoring block.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Content, LiteralPathContent
 Aliases: None
 Possible values:
 
@@ -160,7 +154,7 @@ Source password as a SecureString, credential, or warned plaintext value.
 
 ```yaml
 Type: SecureString
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, Content, LiteralPathContent, LiteralPath
 Aliases: None
 Possible values:
 
@@ -176,23 +170,23 @@ One or more PDF input paths, with FileSystem wildcard expansion.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path
+Parameter Sets: Path, Content
 Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: True
 ```
 
 ### -Show
-Gets or sets whether the saved file opens in the system default application.
+Open the saved document after a completed authoring block.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Content, LiteralPathContent
 Aliases: None
 Possible values:
 

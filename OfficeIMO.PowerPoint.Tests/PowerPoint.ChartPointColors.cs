@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
                     renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
             });
             PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(320) });
-            chart.SetChartAreaStyle(fillColor: "ABCDEF");
+            chart.SetChartAreaStyle(fillColor: OfficeColor.Parse("ABCDEF"));
             Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot native));
             OfficeChartSnapshot projected = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(native, 600, 320, new PowerPointPdfExportOptions());
             Assert.Equal(Colors, projected.Data.Series[0].PointColors);
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
                 Hyperlink = A.ColorSchemeIndexValues.Hyperlink,
                 FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
             }, true);
-            chart.SetChartAreaStyle(fillColor: "ABCDEF");
+            chart.SetChartAreaStyle(fillColor: OfficeColor.Parse("ABCDEF"));
             C.ShapeProperties area = part.ChartSpace.GetFirstChild<C.ShapeProperties>()!;
             area.GetFirstChild<A.SolidFill>()!.Remove();
             area.AddChild(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }), true);

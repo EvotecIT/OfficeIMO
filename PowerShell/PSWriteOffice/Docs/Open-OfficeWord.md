@@ -11,12 +11,12 @@ Opens a Word document for explicit editing, or saves and closes a completed cont
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Open-OfficeWord [-Path] <string> [[-Content] <scriptblock>] [-ReadOnly] [-Password <securestring>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Open-OfficeWord [-Path] <string> [[-Content] <scriptblock>] [-PassThru] [-AllowLoss] [-Show] [-ReadOnly] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Open-OfficeWord [[-Content] <scriptblock>] -LiteralPath <string> [-ReadOnly] [-Password <securestring>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Open-OfficeWord [[-Content] <scriptblock>] -LiteralPath <string> [-PassThru] [-AllowLoss] [-Show] [-ReadOnly] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,7 +42,7 @@ Open-OfficeWord -Path ./Report.docx -PassThru {
 ## PARAMETERS
 
 ### -AllowLoss
-Gets or sets whether native-save loss is explicitly accepted.
+Explicitly accept native-save loss for an authoring block.
 
 ```yaml
 Type: SwitchParameter
@@ -58,7 +58,7 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Gets or sets a content block; omission returns the live document.
+An optional authoring block; omission returns the live document.
 
 ```yaml
 Type: ScriptBlock
@@ -90,7 +90,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Gets or sets whether a completed content block returns the saved FileInfo.
+Emit the FileInfo after a completed authoring block.
 
 ```yaml
 Type: SwitchParameter
@@ -154,7 +154,7 @@ Accept wildcard characters: False
 ```
 
 ### -Show
-Gets or sets whether the saved file opens in the system default application.
+Open the saved document after a completed authoring block.
 
 ```yaml
 Type: SwitchParameter

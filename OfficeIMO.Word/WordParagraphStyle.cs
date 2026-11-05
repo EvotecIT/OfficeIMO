@@ -145,24 +145,24 @@ namespace OfficeIMO.Word {
         /// Creates a simple paragraph style that uses the specified font.
         /// </summary>
         /// <param name="styleId">Identifier of the style.</param>
-        /// <param name="fontName">Font family to apply to runs.</param>
+        /// <param name="fontFamily">Font family to apply to runs.</param>
         /// <param name="styleName">Optional friendly style name.</param>
         /// <returns>The created style.</returns>
-        public static WordParagraphStyleDefinition CreateFontStyle(string styleId, string fontName, string? styleName = null) {
+        public static WordParagraphStyleDefinition CreateFontStyle(string styleId, string fontFamily, string? styleName = null) {
             if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
-            if (string.IsNullOrWhiteSpace(fontName)) throw new ArgumentException("Font name cannot be empty", nameof(fontName));
+            if (string.IsNullOrWhiteSpace(fontFamily)) throw new ArgumentException("Font family cannot be empty", nameof(fontFamily));
 
             return new WordParagraphStyleDefinition(styleId) {
                 Name = styleName ?? styleId,
-                FontFamily = fontName
+                FontFamily = fontFamily
             };
         }
 
         /// <summary>
         /// Registers a paragraph style that applies the specified font to all runs.
         /// </summary>
-        public static void RegisterFontStyle(string styleId, string fontName, string? styleName = null) {
-            var style = CreateFontStyle(styleId, fontName, styleName);
+        public static void RegisterFontStyle(string styleId, string fontFamily, string? styleName = null) {
+            var style = CreateFontStyle(styleId, fontFamily, styleName);
             RegisterCustomStyle(styleId, style);
         }
 

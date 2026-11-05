@@ -9,13 +9,14 @@ public sealed partial class PdfLoadOptions {
     public PdfLoadOptions Clone(long? maximumInputBytes, string? passwordOverride) =>
         Snapshot(maximumInputBytes.HasValue ? System.Math.Min(Limits.MaxInputBytes, maximumInputBytes.Value) : (long?)null, passwordOverride);
 
-    internal PdfLoadOptions Snapshot(long? maximumInputBytes, string? passwordOverride, PdfPermissionPolicy? permissionPolicyOverride = null) {
+    internal PdfLoadOptions Snapshot(long? maximumInputBytes, string? passwordOverride, PdfPermissionPolicy? permissionPolicyOverride = null,
+        bool? includeImagesOverride = null, bool? includeFormWidgetsOverride = null) {
         PdfLoadOptions effective = Resolve(this);
         return new PdfLoadOptions {
             ParsingMode = effective.ParsingMode,
             Profile = effective.Profile,
-            IncludeImages = effective.IncludeImages,
-            IncludeFormWidgets = effective.IncludeFormWidgets,
+            IncludeImages = includeImagesOverride ?? effective.IncludeImages,
+            IncludeFormWidgets = includeFormWidgetsOverride ?? effective.IncludeFormWidgets,
             PageSelection = effective.PageSelection,
             LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
             Pipeline = ClonePipelineOptions(effective.Pipeline),

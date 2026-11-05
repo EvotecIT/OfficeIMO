@@ -62,6 +62,7 @@ namespace OfficeIMO.Word {
                 Author = Properties?.Creator,
                 Subject = Properties?.Subject,
                 Keywords = Properties?.Keywords,
+                Statistics = new WordDocumentStatisticsInfo(Statistics),
             };
 
             for (int sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++) {
@@ -303,8 +304,8 @@ namespace OfficeIMO.Word {
                     Italic = run.Italic,
                     Underline = run.Underline.HasValue && run.Underline.Value != WordUnderlineStyle.None,
                     UnderlineStyle = run.Underline,
-                    Strike = run.Strike || run.DoubleStrike,
-                    DoubleStrike = run.DoubleStrike,
+                    Strikethrough = run.Strikethrough || run.DoubleStrikethrough,
+                    DoubleStrikethrough = run.DoubleStrikethrough,
                     FontSize = run.FontSize,
                     FontFamily = run.FontFamily,
                     Color = run.Color,

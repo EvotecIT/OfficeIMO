@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 [OutputType(typeof(EmailMailboxReaderOptions))]
 public sealed class NewOfficeEmailMailboxReaderOptionsCommand : PSCmdlet {
     /// <summary>Bounded policy applied independently to each message.</summary>
-    [Parameter(ValueFromPipeline = true)] public EmailReaderOptions? MessageOptions { get; set; }
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Options")] public EmailReaderOptions? MessageOptions { get; set; }
     /// <summary>Escaping convention to decode.</summary>
     [Parameter] public MboxVariant Variant { get; set; } = MboxVariant.Auto;
     /// <summary>Maximum messages in one mailbox.</summary>

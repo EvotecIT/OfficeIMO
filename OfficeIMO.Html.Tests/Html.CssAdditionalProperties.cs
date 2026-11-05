@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Single, run.Underline);
-            Assert.True(run.Strike);
+            Assert.True(run.Strikethrough);
         }
 
         [Fact]

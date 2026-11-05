@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Management.Automation;
 using System.Security;
 using OfficeIMO.Pdf;
@@ -9,10 +11,10 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <summary>Creates a proof report for user-visible signals preserved by a PDF rewrite.</summary>
 [Cmdlet(VerbsDiagnostic.Test, "OfficePdfRewrite", DefaultParameterSetName = "Path")]
 [OutputType(typeof(PdfRewritePreservationReport))]
-public sealed class TestOfficePdfRewriteCommand : PSCmdlet
+public sealed class TestOfficePdfRewriteCommand : OfficeCmdlet
 {
     /// <summary>Original PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path")]
     public string ReferencePath { get; set; } = string.Empty;
 
     /// <summary>Rewritten PDF path.</summary>
@@ -21,7 +23,7 @@ public sealed class TestOfficePdfRewriteCommand : PSCmdlet
 
     /// <summary>Optional required preservation signals and limits.</summary>
     [Parameter]
-    public PdfRewritePreservationOptions? Options { get; set; }
+    public object[]? Options { get; set; }
 
     /// <summary>Throw when preservation checks find a mismatch.</summary>
     [Parameter]
@@ -30,11 +32,11 @@ public sealed class TestOfficePdfRewriteCommand : PSCmdlet
     /// <summary>Password used to authenticate the original PDF.</summary>
     [Parameter]
     [OfficePasswordTransformation]
-    public SecureString? ReferencePassword { get; set; }
+    public SecureString? Password { get; set; }
 
     /// <summary>After authentication, explicitly ignore restrictions on the original PDF.</summary>
     [Parameter]
-    public SwitchParameter IgnoreReferencePermissionRestrictions { get; set; }
+    public SwitchParameter IgnorePermissionRestrictions { get; set; }
 
     /// <summary>Password used to authenticate the rewritten PDF.</summary>
     [Parameter]
@@ -48,36 +50,33 @@ public sealed class TestOfficePdfRewriteCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var options = Options ?? new PdfRewritePreservationOptions();
+        var binder = new OfficeOptionsTransformationAttribute(typeof(PdfRewritePreservationOptions));
+        var options = new PdfRewritePreservationOptions();
+        foreach (object item in Options ?? Array.Empty<object>()) {
+            object? value = item is PSObject wrapped ? wrapped.BaseObject : item;
+            if (value is PdfRewritePreservationOptions native) options = native.Clone();
+            else if (value is IDictionary fields) options = (PdfRewritePreservationOptions)binder.ApplyTo(
+                (EngineIntrinsics)SessionState.PSVariable.GetValue("ExecutionContext"), options, fields);
+            else throw new PSArgumentException("Options accepts PdfRewritePreservationOptions or its property hashtables.");
+        }
         var originalReadOptions = PdfCommandUtilities.CreateReadOptions(
             options.OriginalReadOptions,
-            ReferencePassword,
-            IgnoreReferencePermissionRestrictions.IsPresent);
+            Password,
+            IgnorePermissionRestrictions.IsPresent);
         var rewrittenReadOptions = PdfCommandUtilities.CreateReadOptions(
             options.RewrittenReadOptions,
             DifferencePassword,
             IgnoreDifferencePermissionRestrictions.IsPresent);
-        var original = PdfCommandUtilities.LoadDocument(
+        using var original = PdfCommandUtilities.LoadDocument(
             SessionState.Path.GetUnresolvedProviderPathFromPSPath(ReferencePath),
             originalReadOptions);
-        var rewritten = PdfCommandUtilities.LoadDocument(
+        using var rewritten = PdfCommandUtilities.LoadDocument(
             SessionState.Path.GetUnresolvedProviderPathFromPSPath(DifferencePath),
             rewrittenReadOptions);
 
-        var suppliedOriginalReadOptions = options.OriginalReadOptions;
-        var suppliedRewrittenReadOptions = options.RewrittenReadOptions;
-        PdfRewritePreservationReport report;
-        try
-        {
-            options.OriginalReadOptions = originalReadOptions;
-            options.RewrittenReadOptions = rewrittenReadOptions;
-            report = original.Proof.AssessRewritePreservation(rewritten, options);
-        }
-        finally
-        {
-            options.OriginalReadOptions = suppliedOriginalReadOptions;
-            options.RewrittenReadOptions = suppliedRewrittenReadOptions;
-        }
+        options.OriginalReadOptions = originalReadOptions;
+        options.RewrittenReadOptions = rewrittenReadOptions;
+        PdfRewritePreservationReport report = original.Proof.AssessRewritePreservation(rewritten, options);
 
         if (FailOnLoss.IsPresent) report.ThrowIfFailed();
         WriteObject(report);

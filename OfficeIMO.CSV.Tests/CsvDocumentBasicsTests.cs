@@ -73,7 +73,7 @@ public class CsvDocumentBasicsTests
     [Fact]
     public void RoundTrip_ToString_ParsesBack()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Name", "Age", "City");
 
         doc.AddRow("Przemek", 36, "Mikołów")
@@ -91,7 +91,7 @@ public class CsvDocumentBasicsTests
     [Fact]
     public void Supports_Custom_Delimiters()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithDelimiter(';')
             .WithHeader("Name", "Age");
 
@@ -212,7 +212,7 @@ public class CsvDocumentBasicsTests
     [InlineData('\t')]
     public void Handles_Quoted_Fields_With_Delimiters(char delimiter)
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithDelimiter(delimiter)
             .WithHeader("Id", "Value");
 
@@ -838,7 +838,7 @@ public class CsvDocumentBasicsTests
     [Fact]
     public void Formula_Injection_Policy_Preserves_Values_By_Default()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("=Header");
 
         doc.AddRow("=cmd");
@@ -857,7 +857,7 @@ public class CsvDocumentBasicsTests
     [InlineData("  =cmd", "'  =cmd")]
     public void Formula_Injection_Policy_Escapes_Dangerous_Row_Values(string value, string expected)
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Value");
 
         doc.AddRow(value);
@@ -873,7 +873,7 @@ public class CsvDocumentBasicsTests
     [Fact]
     public void Formula_Injection_Policy_Escapes_Dangerous_Headers()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("=Header");
 
         doc.AddRow("safe");
@@ -904,7 +904,7 @@ public class CsvDocumentBasicsTests
     [Fact]
     public void Formula_Injection_Policy_Preserves_Typed_Numbers_With_Text_Delimiters()
     {
-        var document = new CsvDocument()
+        var document = CsvDocument.Create()
             .WithHeader("Number", "Text")
             .AddRow(-1, "-cmd");
 

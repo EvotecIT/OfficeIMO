@@ -601,8 +601,8 @@ public partial class Html {
         Assert.Equal(new int?[] { 1, null }, paragraphs.Select(paragraph => paragraph.List?.DisplayIndex));
         Assert.Equal(new bool?[] { true, false }, paragraphs.Select(paragraph => paragraph.List?.Restart));
 
-        byte[] bytes = OfficeIMO.OneNote.OneNoteSectionWriter.Write(section);
-        OfficeIMO.OneNote.OneNoteSection reloaded = OfficeIMO.OneNote.OneNoteSectionReader.Read(new MemoryStream(bytes));
+        byte[] bytes = section.ToBytes();
+        OfficeIMO.OneNote.OneNoteSection reloaded = OfficeIMO.OneNote.OneNoteSection.Load(new MemoryStream(bytes));
         var reloadedParagraphs = Assert.Single(Assert.Single(reloaded.Pages).Outlines).Children
             .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
             .ToArray();

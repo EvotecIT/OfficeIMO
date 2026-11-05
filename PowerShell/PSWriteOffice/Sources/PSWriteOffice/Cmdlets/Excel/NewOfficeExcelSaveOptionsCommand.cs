@@ -8,6 +8,21 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example><summary>Validate and recalculate a workbook on save.</summary>
 /// <code>$options = New-OfficeExcelSaveOptions -Preflight -EvaluateFormulas -FullCalculationOnOpen -ValidateOpenXml
 /// Save-OfficeExcel -Document $workbook -SaveOptions $options</code></example>
+/// <example>
+/// <summary>Validate the package on save</summary>
+/// <code>$saveOptions = New-OfficeExcelSaveOptions -ValidateOpenXml</code>
+/// <para>Creates save options that check the written workbook against the Open XML schema.</para>
+/// </example>
+/// <example>
+/// <summary>Recalculate a budget model when it is saved</summary>
+/// <code>$saveOptions = New-OfficeExcelSaveOptions -EvaluateFormulas -FullCalculationOnOpen -RepairDefinedNames
+/// Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx -SaveOptions $saveOptions {
+///     ExcelSheet 'Assumptions' {
+///         ExcelCell B4 0.035
+///     }
+/// }</code>
+/// <para>Changes an assumption in the budget model, evaluates the formulas and asks Excel to recalculate fully when the file is next opened.</para>
+/// </example>
 [Cmdlet(VerbsCommon.New, "OfficeExcelSaveOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ExcelSaveOptions))]
 public sealed class NewOfficeExcelSaveOptionsCommand : PSCmdlet {

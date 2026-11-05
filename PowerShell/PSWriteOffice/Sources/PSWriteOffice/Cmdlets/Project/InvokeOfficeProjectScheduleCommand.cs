@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.IO;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 [OutputType(typeof(ProjectScheduleResult))]
 public sealed class InvokeOfficeProjectScheduleCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
     public ProjectDocument Document { get; set; } = null!;
 
     /// <summary>Also calculate assignment work and costs.</summary>
@@ -30,6 +31,7 @@ public sealed class InvokeOfficeProjectScheduleCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        Document ??= OfficeDocumentContext.Find<ProjectDocument>() ?? throw new PSInvalidOperationException("Provide -Document or use a Project content block.");
         if (Apply.IsPresent && !ShouldProcess(Document.Name ?? "Project", "Apply calculated schedule")) return;
         var result = Document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = CalculateAssignments.IsPresent });
         if (Apply.IsPresent) Document.ApplySchedule(result);

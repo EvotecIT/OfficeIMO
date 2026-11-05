@@ -83,17 +83,74 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(WordPageSize.Envelope10, 297D, 684D)]
-    [InlineData(WordPageSize.B5, 515.9D, 728.5D)]
-    public void SaveAsPdf_DefaultPaperPresetUsesTheWordDimensionCatalog(WordPageSize preset, double width, double height) {
+    [InlineData(297D, 684D, "missing")]
+    [InlineData(515.9D, 728.5D, "missing")]
+    [InlineData(123D, 456D, "missing")]
+    [InlineData(700D, 400D, "missing")]
+    [InlineData(123D, 456D, "empty")]
+    [InlineData(123D, 456D, "zero")]
+    public void SaveAsPdf_FallbackPageSizeUsesPhysicalDimensions(double width, double height, string sourceGeometry) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0]._sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()!.Remove();
+        var section = document.Sections[0]._sectionProperties;
+        section.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()!.Remove();
+        if (sourceGeometry == "empty") section.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.PageSize());
+        if (sourceGeometry == "zero") section.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.PageSize { Width = 0U, Height = 1000U });
         document.AddParagraph("Default preset");
         PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, DefaultPageSize = preset
+            IncludePageNumbers = false,
+            FallbackPageSize = new PdfCore.PdfPageSize(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = new PdfCore.PdfPageMargins(OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(10))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages);
         Assert.Equal(width, page.Width, 3);
         Assert.Equal(height, page.Height, 3);
+    }
+
+    [Theory]
+    [InlineData(WordPageSize.A4, false)]
+    [InlineData(WordPageSize.A5, true)]
+    public void PageSize_PhysicalEditsClearPrinterIdentityAndPreserveOrientation(WordPageSize preset, bool landscape) {
+        using var source = new MemoryStream();
+        using (var document = WordDocument.Create()) {
+            var settings = document.Sections[0].PageSetup.Size;
+            settings.PageSize = WordPageSize.Letter;
+            settings.Orientation = landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
+            document.Save(source);
+        }
+        source.Position = 0;
+        using var edited = WordDocument.Load(source);
+        var size = edited.Sections[0].PageSetup.Size;
+        Assert.Equal((ushort)1, size.Code);
+        Assert.Equal(WordPageSize.Letter, size.PageSize);
+        var beforeInvalid = edited.Sections[0]._sectionProperties.OuterXml;
+        Assert.Throws<ArgumentOutOfRangeException>(() => size.Width = OfficeLength.Emus(-1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => size.Height = OfficeLength.Emus(-1));
+        Assert.Equal(beforeInvalid, edited.Sections[0]._sectionProperties.OuterXml);
+        var definition = WordPageSizes.GetDefinition(preset)!;
+        size.Width = landscape ? definition.Height : definition.Width;
+        Assert.Null(size.Code);
+        // Each axis independently invalidates an explicitly supplied source printer code.
+        size.Code = 1;
+        size.Height = landscape ? definition.Width : definition.Height;
+        Assert.Null(size.Code);
+        Assert.Equal(preset, size.PageSize);
+        size.Code = 1;
+        Assert.Equal(WordPageSize.Unknown, size.PageSize);
+        size.Code = null;
+        using var output = new MemoryStream();
+        edited.Save(output);
+        output.Position = 0;
+        using (var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(output, false)) {
+            var xml = Assert.Single(package.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Wordprocessing.PageSize>());
+            Assert.Null(xml.Code);
+            Assert.Equal((landscape ? definition.Height : definition.Width).ToTwips(), xml.Width!.Value);
+            Assert.Equal((landscape ? definition.Width : definition.Height).ToTwips(), xml.Height!.Value);
+        }
+        output.Position = 0;
+        using var loaded = WordDocument.Load(output);
+        Assert.Equal(preset, loaded.Sections[0].PageSetup.Size.PageSize);
+        Assert.Equal(landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait,
+            loaded.Sections[0].PageSetup.Size.Orientation);
+        Assert.Null(loaded.Sections[0].PageSetup.Size.Code);
     }
 
     [Theory]

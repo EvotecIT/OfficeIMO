@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [Cmdlet(VerbsCommon.Close, "OfficePdf", DefaultParameterSetName = "Document")]
 public sealed class CloseOfficePdfCommand : PSCmdlet {
     /// <summary>Live PDF document to close.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true), ValidateNotNull]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document"), ValidateNotNull]
     public PdfDocument Document { get; set; } = null!;
 
     /// <inheritdoc />

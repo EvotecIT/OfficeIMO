@@ -3,6 +3,8 @@ namespace OfficeIMO.Excel {
     /// Built-in table styles available in Excel.
     /// </summary>
     public enum ExcelTableStyle {
+        /// <summary>No named table style. Existing table options and filters remain available.</summary>
+        None = -1,
         // Light styles
         /// <summary>Light style 1.</summary>
         TableStyleLight1,

@@ -27,8 +27,8 @@ namespace OfficeIMO.Tests {
                 slide.AddChart();
                 slide.Notes.Text = "Notes";
 
-                slide.BackgroundColor = "FF0000";
-                text.FillColor = "00FF00";
+                slide.BackgroundColor = OfficeColor.Parse("FF0000");
+                text.FillColor = OfficeColor.Parse("00FF00");
                 slide.Transition = PowerPointSlideTransition.Fade;
 
                 presentation.Save();
@@ -36,13 +36,13 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
-                Assert.Equal("FF0000", slide.BackgroundColor);
+                Assert.Equal(OfficeColor.Parse("FF0000"), slide.BackgroundColor);
                 Assert.Equal(PowerPointSlideTransition.Fade, slide.Transition);
                 Assert.Single(slide.TextBoxes);
                 Assert.Single(slide.Images);
                 Assert.Single(slide.Tables);
                 Assert.Single(slide.Charts);
-                Assert.Equal("00FF00", slide.TextBoxes.First().FillColor);
+                Assert.Equal(OfficeColor.Parse("00FF00"), slide.TextBoxes.First().FillColor);
                 Assert.Equal("Notes", slide.Notes.Text);
             }
 
@@ -305,7 +305,7 @@ namespace OfficeIMO.Tests {
                     slide.Notes.Text = "Initial morph notes";
 
                     slide.Transition = PowerPointSlideTransition.Flash;
-                    slide.BackgroundColor = "112233";
+                    slide.BackgroundColor = OfficeColor.Parse("112233");
                     slide.Notes.Text = "Updated notes";
 
                     PowerPointSlide cleared = presentation.AddSlide();
@@ -321,7 +321,7 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     Assert.Equal(PowerPointSlideTransition.Flash, presentation.Slides[0].Transition);
-                    Assert.Equal("112233", presentation.Slides[0].BackgroundColor);
+                    Assert.Equal(OfficeColor.Parse("112233"), presentation.Slides[0].BackgroundColor);
                     Assert.Equal("Updated notes", presentation.Slides[0].Notes.Text);
                     Assert.Equal(PowerPointSlideTransition.None, presentation.Slides[1].Transition);
                     Assert.Equal("Cleared transition notes", presentation.Slides[1].Notes.Text);
@@ -441,7 +441,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.SetBackgroundImage(imagePath);
-                    slide.BackgroundColor = "112233";
+                    slide.BackgroundColor = OfficeColor.Parse("112233");
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());
@@ -449,7 +449,7 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
-                    Assert.Equal("112233", slide.BackgroundColor);
+                    Assert.Equal(OfficeColor.Parse("112233"), slide.BackgroundColor);
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
@@ -475,8 +475,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    slide.BackgroundColor = "112233";
-                    slide.SetBackgroundGradient("112233", "445566");
+                    slide.BackgroundColor = OfficeColor.Parse("112233");
+                    slide.SetBackgroundGradient(OfficeColor.Parse("112233"), OfficeColor.Parse("445566"));
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());
@@ -512,7 +512,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    slide.SetBackgroundGradient("112233", "445566", 45d);
+                    slide.SetBackgroundGradient(OfficeColor.Parse("112233"), OfficeColor.Parse("445566"), 45d);
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());

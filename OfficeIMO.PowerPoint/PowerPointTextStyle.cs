@@ -227,16 +227,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Applies requested formatting to the paragraph defaults inherited by new placeholder text.</summary>
-        internal void ApplyDefaults(A.DefaultRunProperties properties) {
+        internal void ApplyDefaults(A.DefaultRunProperties properties, OfficeTheme theme) {
             if (FontSize.HasValue) properties.FontSize = PowerPointTextDefaults.ToDrawingFontSize(FontSize.Value.ToPoints(), nameof(FontSize));
             if (FontFamily != null) PowerPointTextPropertyFormatting.SetFontFamily(properties, FontFamily);
-            if (Color.HasValue) PowerPointTextPropertyFormatting.SetColor(properties, Color);
+            if (Color.HasValue) PowerPointTextPropertyFormatting.SetColor(properties, Color, theme);
             if (Bold.HasValue) properties.Bold = Bold.Value;
             if (Italic.HasValue) properties.Italic = Italic.Value;
             if (UnderlineStyle.HasValue) properties.Underline = UnderlineStyle.Value.ToOpenXml();
             else if (Underline.HasValue) properties.Underline = Underline.Value ? A.TextUnderlineValues.Single : A.TextUnderlineValues.None;
             if (Strikethrough.HasValue) properties.Strike = Strikethrough.Value ? A.TextStrikeValues.SingleStrike : A.TextStrikeValues.NoStrike;
-            if (BackgroundColor.HasValue) PowerPointTextPropertyFormatting.SetBackgroundColor(properties, BackgroundColor);
+            if (BackgroundColor.HasValue) PowerPointTextPropertyFormatting.SetBackgroundColor(properties, BackgroundColor, theme);
         }
     }
 }

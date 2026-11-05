@@ -28,8 +28,8 @@ namespace OfficeIMO.Tests {
             connector.Label = "yes";
             connector.LabelPlacement = VisioConnectorLabelPlacement.Along(0.5, 0, 0.2);
 
-            byte[] png = document.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = document.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White
             });
 
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
             using MemoryStream blankStream = new();
             VisioDocument blank = VisioDocument.Create(blankStream);
             blank.AddPage("Blank").Size(OfficeLength.Inches(6), OfficeLength.Inches(4));
-            byte[] blankPng = blank.ToPng(new VisioPngSaveOptions { PixelsPerInch = 100, BackgroundColor = OfficeColor.White });
+            byte[] blankPng = blank.ToImage(new VisioImageExportOptions { TargetDpi = 100, BackgroundColor = OfficeColor.White });
             AssertPngHeader(blankPng, 600, 400);
             Assert.NotEqual(blankPng, png);
         }
@@ -51,12 +51,12 @@ namespace OfficeIMO.Tests {
 
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".png");
             try {
-                page.SaveAsPng(path, new VisioPngSaveOptions { PixelsPerInch = 96 });
+                page.SaveAsImage(path, new VisioImageExportOptions { TargetDpi = 96 });
                 byte[] fileBytes = File.ReadAllBytes(path);
                 AssertPngHeader(fileBytes, 192, 96);
 
                 using MemoryStream stream = new();
-                document.SaveAsPng(stream, new VisioPngSaveOptions { PixelsPerInch = 96 });
+                document.SaveAsImage(stream, new VisioImageExportOptions { TargetDpi = 96 });
                 AssertPngHeader(stream.ToArray(), 192, 96);
             } finally {
                 if (File.Exists(path)) {
@@ -66,20 +66,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void RetainedPngApiUsesTheSharedRasterSafetyPlanner() {
+        public void ImageExportEvidenceUsesTheSharedRasterSafetyPlanner() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Bounded").Size(OfficeLength.Inches(100), OfficeLength.Inches(100));
             page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(50, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(50, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(80, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(80, page.DefaultUnit)), "Bounded");
             using var output = new MemoryStream();
 
-            OfficeImageExportResult result = page.SaveAsPng(
-                output,
-                new VisioPngSaveOptions {
-                    PixelsPerInch = 96D,
+            OfficeImageExportResult result = page.ExportImage(
+                OfficeImageExportFormat.Png,
+                new VisioImageExportOptions {
+                    TargetDpi = 96D,
                     Supersampling = 1,
                     MaximumRasterPixels = 10_000L
-                });
+                }).Save(output);
 
             Assert.True((long)result.Width * result.Height <= 10_000L);
             Assert.Contains(
@@ -107,8 +107,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.Black
             };
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -145,8 +145,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.Transparent
             };
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -173,8 +173,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.Transparent
             };
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -210,8 +210,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.FromRgba(220, 38, 38, 128)
             };
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -246,8 +246,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.FromRgb(22, 101, 52)
             };
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -346,8 +346,8 @@ namespace OfficeIMO.Tests {
             shape.LinePattern = 2;
             shape.LineWeight = 0.04D;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -374,8 +374,8 @@ namespace OfficeIMO.Tests {
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineWeight = 0D;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -406,8 +406,8 @@ namespace OfficeIMO.Tests {
             shape.LineWeight = 0.03D;
             shape.SetUserCell("OfficeIMO.StencilId", "architecture.database", "STR");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -434,8 +434,8 @@ namespace OfficeIMO.Tests {
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LinePattern = 0;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -455,8 +455,8 @@ namespace OfficeIMO.Tests {
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LinePattern = 0;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -476,8 +476,8 @@ namespace OfficeIMO.Tests {
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LinePattern = 0;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -498,8 +498,8 @@ namespace OfficeIMO.Tests {
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LinePattern = 0;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -520,8 +520,8 @@ namespace OfficeIMO.Tests {
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LinePattern = 0;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -575,8 +575,8 @@ namespace OfficeIMO.Tests {
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LinePattern = 0;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -595,8 +595,8 @@ namespace OfficeIMO.Tests {
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LinePattern = 0;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 80,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 80,
                 BackgroundColor = OfficeColor.Transparent,
                 Supersampling = 4
             });
@@ -633,8 +633,8 @@ namespace OfficeIMO.Tests {
             connector.LineColor = OfficeColor.FromRgb(220, 38, 38);
             connector.LinePattern = 0;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -669,8 +669,8 @@ namespace OfficeIMO.Tests {
             connector.LineColor = OfficeColor.FromRgb(220, 38, 38);
             connector.LineWeight = 0.03;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -708,8 +708,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.Black
             };
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 FontFilePath = fontPath,
                 Supersampling = 1
@@ -747,8 +747,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.Black
             };
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -786,8 +786,8 @@ namespace OfficeIMO.Tests {
             Assert.True(placement.Adjusted, "Expected endpoint collision avoidance to adjust the connector label placement.");
             Assert.True(placement.X > 2D, "Expected endpoint collision avoidance to move the label away from the source shape.");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -816,8 +816,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.Transparent
             };
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -853,8 +853,8 @@ namespace OfficeIMO.Tests {
             Assert.True(placement.Adjusted, "Expected connector-line collision avoidance to adjust the connector label placement.");
             Assert.True(Math.Abs(placement.X - 3D) > 0.6D, "Expected connector-line collision avoidance to move the label away from the crossing connector.");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -891,8 +891,8 @@ namespace OfficeIMO.Tests {
             Assert.True(upperPlacement.Adjusted, "Expected dense label clearance to move the second label away from the first label.");
             Assert.True(Math.Abs(upperPlacement.Y - lowerPlacement.Y) > 0.32D, "Expected dense labels to keep a readable vertical gap.");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -909,8 +909,8 @@ namespace OfficeIMO.Tests {
             shape.FillPattern = 0;
             shape.LinePattern = 0;
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -984,8 +984,8 @@ namespace OfficeIMO.Tests {
             fragment.SetUserCell("OfficeIMO.StencilAliases", "alt;combined-fragment;critical;fragment;loop;opt;region", "STR");
             fragment.SetUserCell("OfficeIMO.StencilTags", "Rectangle;seq;Sequence Diagram", "STR");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 48,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 48,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1008,8 +1008,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, TrueColorBluePng);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1032,8 +1032,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Package BMP Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, TrueColorBlueBmp, "image/bmp", ".bmp", "../media/image1.bmp");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1057,8 +1057,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path fill=\"#0070c0\" fill-rule=\"evenodd\" d=\"M0 0 H20 V20 H0 Z M7 7 H13 V13 H7 Z\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/image1.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1083,8 +1083,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>path{fill:#dc2626}#badge{fill:#0070c0}.cutout,path.cutout{fill-rule:evenodd}</style><path id=\"badge\" class=\"cutout\" d=\"M0 0 H20 V20 H0 Z M7 7 H13 V13 H7 Z\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/css.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1109,8 +1109,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>.accent{color:#0070c0}.mark{fill:currentColor}.stop{stop-color:currentColor}</style><defs><linearGradient id=\"fade\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\"><stop class=\"stop\" offset=\"0%\"/><stop offset=\"100%\" stop-color=\"#dc2626\"/></linearGradient></defs><g class=\"accent\"><rect class=\"mark\" x=\"0\" y=\"0\" width=\"10\" height=\"20\"/><rect x=\"10\" y=\"0\" width=\"10\" height=\"20\" fill=\"url(#fade)\"/></g></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/current-color.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1141,8 +1141,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>.label{fill:#0070c0;font-size:9px;font-weight:700;text-anchor:middle}</style><text class=\"label\" x=\"10\" y=\"13\"><tspan>IMO</tspan></text></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/text-label.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1167,8 +1167,8 @@ namespace OfficeIMO.Tests {
                 VisioPage page = document.AddPage("Package SVG Text Space Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
                 AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/text-space-label.svg");
 
-                byte[] png = page.ToPng(new VisioPngSaveOptions {
-                    PixelsPerInch = 100,
+                byte[] png = page.ToImage(new VisioImageExportOptions {
+                    TargetDpi = 100,
                     BackgroundColor = OfficeColor.White,
                     Supersampling = 1
                 });
@@ -1214,8 +1214,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>.hidden{display:none}.ghost{visibility:hidden}</style><rect class=\"hidden\" x=\"0\" y=\"0\" width=\"20\" height=\"20\" fill=\"#dc2626\"/><g class=\"ghost\"><rect x=\"0\" y=\"0\" width=\"20\" height=\"20\" fill=\"#dc2626\"/></g><rect x=\"2\" y=\"2\" width=\"16\" height=\"16\" fill=\"#0070c0\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/hidden.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1246,8 +1246,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 20 20\"><defs><symbol id=\"badge\" viewBox=\"0 0 10 10\"><path fill=\"#0070c0\" fill-rule=\"evenodd\" d=\"M0 0 H10 V10 H0 Z M4 4 H6 V6 H4 Z\"/></symbol></defs><use xlink:href=\"#badge\" width=\"20\" height=\"20\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/use-symbol.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1272,8 +1272,8 @@ namespace OfficeIMO.Tests {
             string svg = $"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><image href=\"data:image/png;base64,{TrueColorBluePng}\" x=\"4\" y=\"4\" width=\"12\" height=\"12\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/embedded-raster.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1306,8 +1306,8 @@ namespace OfficeIMO.Tests {
                 Data = Convert.FromBase64String(TrueColorBluePng)
             });
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1332,8 +1332,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><defs><linearGradient id=\"accent\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\"><stop offset=\"0%\" stop-color=\"#0070c0\"/><stop offset=\"100%\" stop-color=\"#dc2626\"/></linearGradient></defs><g fill=\"url(#accent)\"><rect x=\"0\" y=\"0\" width=\"20\" height=\"20\"/></g></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/gradient.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1363,8 +1363,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><defs><clipPath id=\"rightHalf\"><rect x=\"10\" y=\"0\" width=\"10\" height=\"20\"/></clipPath></defs><rect x=\"0\" y=\"0\" width=\"20\" height=\"20\" fill=\"#0070c0\" clip-path=\"url(#rightHalf)\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/clip.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1382,8 +1382,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><g stroke=\"#0070c0\" stroke-width=\"2\" stroke-dasharray=\"2 2\" fill=\"none\"><path d=\"M2 10 H18\"/></g></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/dashed-stroke.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1408,8 +1408,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><defs><linearGradient id=\"accent\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\"><stop offset=\"0%\" stop-color=\"#0070c0\"/><stop offset=\"100%\" stop-color=\"#dc2626\"/></linearGradient></defs><g stroke=\"url(#accent)\" stroke-width=\"2\" stroke-dasharray=\"2 2\" fill=\"none\"><path d=\"M2 10 H18\"/></g></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/dashed-gradient-stroke.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1434,8 +1434,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path d=\"M5 6 H15\" fill=\"none\" stroke=\"#dc2626\" stroke-width=\"4\" stroke-linecap=\"butt\"/><path d=\"M5 14 H15\" fill=\"none\" stroke=\"#0070c0\" stroke-width=\"4\" stroke-linecap=\"round\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/round-stroke-cap.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1457,8 +1457,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 20 28\"><path d=\"M3 11 L10 3 L17 11\" fill=\"none\" stroke=\"#dc2626\" stroke-width=\"5\" stroke-linecap=\"butt\" stroke-linejoin=\"bevel\"/><path d=\"M3 25 L10 17 L17 25\" fill=\"none\" stroke=\"#0070c0\" stroke-width=\"5\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/round-stroke-join.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1488,8 +1488,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 20 20\"><path d=\"M4 6 H16\" fill=\"none\" stroke=\"#dc2626\" stroke-width=\"4\" stroke-linecap=\"butt\"/><path d=\"M4 14 H16\" fill=\"none\" stroke=\"#0070c0\" stroke-width=\"4\" stroke-linecap=\"butt\" vector-effect=\"non-scaling-stroke\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/non-scaling-stroke.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1517,8 +1517,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path fill=\"#0070c0\" d=\"M5 2 H15 A3 3 0 0 1 18 5 V15 A3 3 0 0 1 15 18 H5 A3 3 0 0 1 2 15 V5 A3 3 0 0 1 5 2 Z\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/arc.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1536,8 +1536,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><rect x=\"2\" y=\"2\" width=\"16\" height=\"16\" rx=\"5\" ry=\"5\" fill=\"#0070c0\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/rounded-rect.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1555,8 +1555,8 @@ namespace OfficeIMO.Tests {
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path fill=\"#0070c0\" transform=\"rotate(45 10 10)\" d=\"M8 0 H12 V20 H8 Z\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/transform.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1573,8 +1573,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Package Preview Sniff").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, TrueColorBluePng, "application/octet-stream", ".bin", "../media/blob1.bin");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1597,8 +1597,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Package Preview Content Type").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, TrueColorBluePng, "image/png; charset=binary", ".bin", "../media/blob1.bin");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1623,8 +1623,8 @@ namespace OfficeIMO.Tests {
             shape.SetUserCell("OfficeIMO.StencilPreviewImageRelationshipId", "rIdStale", "STR");
             shape.SetUserCell("OfficeIMO.StencilPreviewImageTarget", "../media/stale.png", "STR");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1648,8 +1648,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Package Preview Aspect").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, WideTrueColorBluePng);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1697,8 +1697,8 @@ namespace OfficeIMO.Tests {
                 ".svg",
                 "../media/image1.svg");
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1715,8 +1715,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddRelativeTriangleGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1733,8 +1733,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Subpaths").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddSubpathBreakGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1752,8 +1752,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Geometry Hole").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddDonutGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1770,8 +1770,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Open Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddOpenNoFillGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1789,8 +1789,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Deleted Rows").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddDeletedGeometryRowShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1807,8 +1807,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Master Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddMasterBackedTriangleGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1825,8 +1825,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1843,8 +1843,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("LocPin Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddLocPinFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1861,8 +1861,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Shape Transform Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddShapeTransformFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1879,8 +1879,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Min Max Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddMinMaxFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1897,8 +1897,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Scalar Math Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddScalarMathFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1915,8 +1915,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Trig Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddTrigonometricFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1933,8 +1933,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Advanced Math Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddAdvancedMathFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1951,8 +1951,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Power Operator Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPowerOperatorFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1969,8 +1969,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Unit Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddUnitFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -1987,8 +1987,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Guarded Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddGuardedFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2005,8 +2005,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("If Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddIfFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2023,8 +2023,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Lazy If Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddLazyIfFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2041,8 +2041,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Logical If Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddLogicalIfFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2059,8 +2059,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Geometry Flags").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddGeometryFlagShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2078,8 +2078,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Ellipse Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddEllipseGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2096,8 +2096,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Infinite Line Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddInfiniteLineGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2114,8 +2114,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Polyline Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPolylineGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2132,8 +2132,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Polyline Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPolylineMinMaxFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2150,8 +2150,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Polyline Percent Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPolylinePercentageFormulaGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2168,8 +2168,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Arc Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddArcGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2186,8 +2186,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Elliptical Arc Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddEllipticalArcGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2204,8 +2204,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Relative Elliptical Arc Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddRelativeEllipticalArcGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2222,8 +2222,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Cubic Bezier Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddRelativeCubicBezierGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2240,8 +2240,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Absolute Cubic Bezier Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddAbsoluteCubicBezierGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2258,8 +2258,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Quadratic Bezier Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddRelativeQuadraticBezierGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2276,8 +2276,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Absolute Quadratic Bezier Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddAbsoluteQuadraticBezierGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2294,8 +2294,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Spline Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddSplineGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2312,8 +2312,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Deleted Spline Knot Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddDeletedSplineKnotGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2330,8 +2330,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved NURBS Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddNurbsGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2348,8 +2348,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Preserved Non Uniform NURBS Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddNonUniformNurbsGeometryShape(page);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2373,8 +2373,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Indexed Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, IndexedBluePng);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2397,8 +2397,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Indexed Transparent Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, IndexedTransparentBluePng);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2415,8 +2415,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("TrueColor Transparent Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, TrueColorTransparentBluePng);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2433,8 +2433,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Grayscale Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, GrayscaleAlphaBlackPng);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2457,8 +2457,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Packed Grayscale Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, PackedGrayscaleBlackPng);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2481,8 +2481,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Sixteen Bit Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, SixteenBitTrueColorBluePng);
 
-            byte[] png = page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            byte[] png = page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2542,8 +2542,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.FromRgb(22, 101, 52)
             };
 
-            return page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            return page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2564,8 +2564,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.FromRgb(22, 101, 52)
             };
 
-            return page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            return page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2588,8 +2588,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.Transparent
             };
 
-            return page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            return page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2604,8 +2604,8 @@ namespace OfficeIMO.Tests {
             shape.LinePattern = 0;
             shape.Angle = angle;
 
-            return page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            return page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2618,8 +2618,8 @@ namespace OfficeIMO.Tests {
             VisioShape shape = AddPackagePreviewShape(page, WideTrueColorBluePng);
             shape.Angle = angle;
 
-            return page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            return page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });
@@ -2638,8 +2638,8 @@ namespace OfficeIMO.Tests {
             shape.Angle = angle;
             shape.SetUserCell("OfficeIMO.StencilId", stencilId, "STR");
 
-            return page.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 100,
+            return page.ToImage(new VisioImageExportOptions {
+                TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
             });

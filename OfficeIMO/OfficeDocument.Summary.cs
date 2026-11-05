@@ -41,7 +41,13 @@ public static partial class OfficeDocument {
                 : reader.ReadDocument(input, result.Source, readOptions, cancellationToken), settings);
             return;
         }
-        switch (result.Format) {
+        // The detector can classify macro/template workbook packages as generic ZIP. The registered
+        // Excel family still owns their native inspection; its loader enforces the same admission policy.
+        ReaderInputKind nativeKind = result.Format;
+        if (nativeKind == ReaderInputKind.Zip && result.Detection.ExtensionKind == ReaderInputKind.Excel &&
+            OfficeIMO.Excel.ExcelFormatCatalog.TryGetByExtension(result.Source, out _))
+            nativeKind = ReaderInputKind.Excel;
+        switch (nativeKind) {
             case ReaderInputKind.Word:
                 using (var document = OfficeIMO.Reader.Word.WordReaderAdapter.Load(input, readOptions))
                     PopulateSummary(result, document, settings, cancellationToken);

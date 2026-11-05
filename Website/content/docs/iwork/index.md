@@ -7,7 +7,7 @@ meta.seo_title: "Apple Pages, Numbers, and Keynote import | OfficeIMO"
 
 ## Choose the package boundary
 
-`OfficeIMO.IWork` is the bounded, read-only source package for modern Apple Pages, Numbers, and Keynote files. It does not add Word, Excel, or PowerPoint as dependencies.
+`OfficeIMO.IWork` is the bounded source package for modern Apple Pages, Numbers, and Keynote files. It does not add Word, Excel, or PowerPoint as dependencies.
 
 ```shell
 dotnet add package OfficeIMO.IWork
@@ -28,7 +28,7 @@ The default `OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.PowerPoint` pack
 ```csharp
 using OfficeIMO.IWork;
 
-IWorkSourceDocument source = IWorkSourceDocument.Open("report.pages");
+IWorkSourceDocument source = IWorkSourceDocument.Load("report.pages");
 IWorkPagesProjection pages = source.ReadPages();
 
 Console.WriteLine(source.Kind);
@@ -43,7 +43,7 @@ The reader accepts ZIP packages, directory bundles, and packages with a nested `
 using OfficeIMO.IWork;
 using OfficeIMO.Excel.IWork;
 
-IWorkSourceDocument source = IWorkSourceDocument.Open("budget.numbers");
+IWorkSourceDocument source = IWorkSourceDocument.Load("budget.numbers");
 using NumbersToExcelResult result = source.ToExcelResult(
     new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
@@ -52,10 +52,10 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("budget.xlsx");
 ```
 
-Open the source with `IWorkSourceDocument.Open`, then use `ToWord`, `ToExcel` or `ToPowerPoint` (with an optional `out OfficeConversionReport`) and `SaveAsWord`, `SaveAsExcel` or `SaveAsPowerPoint`. `ToWordResult`, `ToExcelResult` and `ToPowerPointResult` also expose the typed projection, diagnostics, preserved source records, producer build history, and the exact editable or visual-fallback result.
+Load the source with `IWorkSourceDocument.Load`, then use `ToWord`, `ToExcel` or `ToPowerPoint` (with an optional `out OfficeConversionReport`) and `SaveAsWord`, `SaveAsExcel` or `SaveAsPowerPoint`. `ToWordResult`, `ToExcelResult` and `ToPowerPointResult` also expose the typed projection, diagnostics, preserved source records, producer build history, and the exact editable or visual-fallback result.
 
 ## Preservation boundary
 
 OfficeIMO reconstructs supported content as editable DOCX, XLSX, or PPTX. Unsupported and partially consumed records remain available in the bounded source model and are reported as conversion loss. `IWorkConversionOptions.Mode` chooses editable, automatic, or visual destination representation without changing how the source is read. A visual preview is not presented as editable content.
 
-There is no Pages, Numbers, or Keynote writer. See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for the tested producer corpus, exact semantic coverage, limits, and known boundaries.
+Separate native creation models and preservation edit sessions in `OfficeIMO.IWork` provide bounded Pages, Numbers and Keynote writing. See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for the tested producer corpus, exact semantic coverage, limits, and known boundaries.

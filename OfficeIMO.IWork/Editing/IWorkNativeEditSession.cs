@@ -19,20 +19,23 @@ public sealed partial class IWorkNativeEditSession {
     public IWorkSourceDocument Source => _source;
 
     /// <summary>Encodes a native ZIP package, preserving all unmodified captured entry payloads.</summary>
-    public byte[] SaveBytes(IWorkNativeSaveOptions? options = null, CancellationToken cancellationToken = default) =>
-        SaveBytesResult(options, cancellationToken).Bytes;
+    public byte[] ToBytes(IWorkNativeSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        ToBytes(out _, options, cancellationToken);
 
-    /// <summary>Encodes a native ZIP package and returns its operation-level preservation report.</summary>
-    public IWorkNativeSaveResult SaveBytesResult(IWorkNativeSaveOptions? options = null, CancellationToken cancellationToken = default) =>
-        IWorkPreservationPackageWriter.Write(_source, _payloads, (options ?? new()).Snapshot(), cancellationToken);
+    /// <summary>Encodes a native ZIP package and returns its actual operation-level preservation evidence.</summary>
+    public byte[] ToBytes(out IWorkNativeSaveReport report, IWorkNativeSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        var result = IWorkPreservationPackageWriter.Write(_source, _payloads, (options ?? new()).Snapshot(), cancellationToken);
+        report = result.Report;
+        return result.Bytes;
+    }
 
     /// <summary>Writes a completed package at the caller stream's current position, leaves it open and returns the report.</summary>
     /// <remarks>Validation/encoding finish first. A copying failure can leave partial stream bytes.</remarks>
     public IWorkNativeSaveReport Save(Stream destination, IWorkNativeSaveOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
-        IWorkNativeSaveResult result = SaveBytesResult(options, cancellationToken);
-        IWorkNativePackageWriter.Copy(result.Bytes, destination, cancellationToken); return result.Report;
+        byte[] bytes = ToBytes(out var report, options, cancellationToken);
+        IWorkNativePackageWriter.Copy(bytes, destination, cancellationToken); return report;
     }
 
     /// <summary>Atomically publishes a native ZIP package. Existing destinations require explicit overwrite.</summary>
@@ -43,10 +46,11 @@ public sealed partial class IWorkNativeEditSession {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
         cancellationToken.ThrowIfCancellationRequested();
         RejectDirectoryMember(path);
-        IWorkNativeSaveResult result = SaveBytesResult(options, cancellationToken);
-        OfficeFileCommit.WriteAtomically(path, stream => IWorkNativePackageWriter.Copy(result.Bytes, stream, cancellationToken),
+        byte[] bytes = ToBytes(out var report, options, cancellationToken);
+        OfficeFileCommit.WriteAtomically(path, stream => IWorkNativePackageWriter.Copy(bytes, stream, cancellationToken),
             cancellationToken, overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
-        return result.Report;
+        FilePath = Path.GetFullPath(path);
+        return report;
     }
 
     private void RejectDirectoryMember(string path) {

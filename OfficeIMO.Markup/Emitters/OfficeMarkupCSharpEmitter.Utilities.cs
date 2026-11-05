@@ -129,7 +129,8 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         return row > 0 && column > 0;
     }
 
-    private static bool TryParseInt(string? value, out int result) =>
+    /// <summary>Reads pixel extents consistently in C# and PowerShell chart handoffs.</summary>
+    internal static bool TryParseInt(string? value, out int result) =>
         int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out result);
 
     private static string NumericLiteral(string? value) {

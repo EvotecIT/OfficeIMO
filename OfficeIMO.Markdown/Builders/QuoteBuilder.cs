@@ -24,12 +24,12 @@ public sealed class MarkdownQuoteBuilder {
         return Block(new ParagraphBlock(new InlineSequence().Text(text ?? string.Empty)));
     }
 
-    /// <summary>Adds a paragraph built via <see cref="MarkdownParagraphBuilder"/>.</summary>
-    public MarkdownQuoteBuilder P(System.Action<MarkdownParagraphBuilder> build) {
+    /// <summary>Adds a paragraph built via <see cref="InlineSequence"/>.</summary>
+    public MarkdownQuoteBuilder P(System.Action<InlineSequence> build) {
         if (build == null) return this;
-        MarkdownParagraphBuilder builder = new MarkdownParagraphBuilder();
+        InlineSequence builder = new InlineSequence();
         build(builder);
-        return Block(new ParagraphBlock(builder.Inlines));
+        return Block(new ParagraphBlock(builder));
     }
 
     /// <summary>Adds a nested block quote.</summary>

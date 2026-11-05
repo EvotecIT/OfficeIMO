@@ -103,9 +103,9 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool firstRow = row == 0;
-            bool lastRow = row + Math.Max(1, rowSpan) >= table.Rows;
+            bool lastRow = row + Math.Max(1, rowSpan) >= table.RowCount;
             bool firstColumn = column == 0;
-            bool lastColumn = column + Math.Max(1, columnSpan) >= table.Columns;
+            bool lastColumn = column + Math.Max(1, columnSpan) >= table.ColumnCount;
             return edge switch {
                 TableCellBorderEdge.Left => firstColumn
                     ? borders.LeftBorder?.Outline
@@ -129,9 +129,9 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool firstRow = row == 0;
-            bool lastRow = row == table.Rows - 1;
+            bool lastRow = row == table.RowCount - 1;
             bool firstColumn = column == 0;
-            bool lastColumn = column == table.Columns - 1;
+            bool lastColumn = column == table.ColumnCount - 1;
 
             if (table.FirstRow && table.FirstColumn && firstRow && firstColumn && tableStyle.NorthwestCell != null) {
                 yield return tableStyle.NorthwestCell;
@@ -185,10 +185,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool IsExcludedTableStyleBandRow(PowerPointTable table, int row) =>
-            (table.FirstRow && row == 0) || (table.LastRow && row == table.Rows - 1);
+            (table.FirstRow && row == 0) || (table.LastRow && row == table.RowCount - 1);
 
         private static bool IsExcludedTableStyleBandColumn(PowerPointTable table, int column) =>
-            (table.FirstColumn && column == 0) || (table.LastColumn && column == table.Columns - 1);
+            (table.FirstColumn && column == 0) || (table.LastColumn && column == table.ColumnCount - 1);
 
         private static A.TablePartStyleType? ResolveHorizontalBand(PowerPointTable table, int row, A.TableStyleEntry tableStyle) {
             int visualRow = row - (table.FirstRow ? 1 : 0);

@@ -11,7 +11,7 @@ Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeRtfPdfOptions [-PdfOptions <PdfCreateOptions>] [-IncludeHiddenText] [-IncludeImages] [-DefaultImageWidth <Double>] [-DefaultImageHeight <Double>] [-IncludeMetadata] [-IncludeTables] [-IncludeHeaderFooters] [-IncludeNotes] [-MaximumSystemFontFamilies <Int32>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficeRtfPdfOptions [-PdfOptions <PdfCreateOptions>] [-IncludeHiddenText] [-NoImages] [-DefaultImageWidth <OfficeLength>] [-DefaultImageHeight <OfficeLength>] [-NoMetadata] [-NoTables] [-NoHeaderFooters] [-NoNotes] [-MaximumSystemFontFamilies <Int32>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeRtfPdfOptions -IncludeImages -IncludeTables -IncludeHeaderFooters -MaximumSystemFontFamilies 32
+PS> $options = New-OfficeRtfPdfOptions -NoImages -NoTables -NoHeaderFooters -MaximumSystemFontFamilies 32
 Export-OfficeDocumentPdf -InputPath .\Report.rtf -Path .\Report.pdf -RtfOptions $options
 ```
 
@@ -64,7 +64,7 @@ Accept wildcard characters: False
 Fallback image height in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -80,23 +80,7 @@ Accept wildcard characters: False
 Fallback image width in PDF points.
 
 ```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeHeaderFooters
-Render headers and footers.
-
-```yaml
-Type: SwitchParameter
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -124,7 +108,39 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IncludeImages
+### -MaximumSystemFontFamilies
+Maximum number of system font families to discover.
+
+```yaml
+Type: Int32
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoHeaderFooters
+Render headers and footers.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoImages
 Render images.
 
 ```yaml
@@ -140,7 +156,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IncludeMetadata
+### -NoMetadata
 Copy document metadata into the PDF.
 
 ```yaml
@@ -156,7 +172,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IncludeNotes
+### -NoNotes
 Render document notes.
 
 ```yaml
@@ -172,27 +188,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IncludeTables
+### -NoTables
 Render tables.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MaximumSystemFontFamilies
-Maximum number of system font families to discover.
-
-```yaml
-Type: Int32
 Parameter Sets: Default
 Aliases: None
 Possible values:

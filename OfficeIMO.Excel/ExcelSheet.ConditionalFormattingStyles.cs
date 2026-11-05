@@ -19,6 +19,11 @@ namespace OfficeIMO.Excel {
                 : new DifferentialFormat();
             ApplyProjectedConditionalFormattingStyle(candidate, definition);
             if (!candidate.ChildElements.Any() && !candidate.ExtendedAttributes.Any()) return null;
+            return GetOrAddConditionalDifferentialFormat(stylesPart, stylesheet, candidate);
+        }
+
+        private static uint GetOrAddConditionalDifferentialFormat(WorkbookStylesPart stylesPart, Stylesheet stylesheet,
+            DifferentialFormat candidate) {
             DifferentialFormats formats = stylesheet.DifferentialFormats ??= new DifferentialFormats();
             int existingIndex = formats.Elements<DifferentialFormat>()
                 .Select((format, index) => new { format, index })

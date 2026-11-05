@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PSWriteOffice\PSWriteOffice.csproj" />
+    <ProjectReference Include="..\..\..\..\OfficeIMO.Markup\OfficeIMO.Markup.csproj" />
     <Compile Include="..\..\..\..\OfficeIMO.Chm.Tests\ChmFixture.cs" Link="Fixtures\ChmFixture.cs" />
   </ItemGroup>
 

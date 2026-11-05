@@ -1,4 +1,4 @@
-BeforeAll {
+﻿BeforeAll {
     $ModuleManifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) {
         $env:PSWRITEOFFICE_MODULE_MANIFEST
     } else {
@@ -19,49 +19,7 @@ BeforeAll {
 }
 
 Describe 'CSV cmdlets' {
-    It 'exposes NoHeader instead of bool header toggles on CSV commands' {
-        (Get-Command ConvertTo-OfficeCsv).Parameters.Keys | Should -Contain 'NoHeader'
-        (Get-Command Export-OfficeCsv).Parameters.Keys | Should -Contain 'NoHeader'
-        (Get-Command Get-OfficeCsv).Parameters.Keys | Should -Contain 'NoHeader'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'NoHeader'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'AsDataTable'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'AsDataReader'
-        (Get-Command ConvertFrom-OfficeCsv).Parameters.Mode.ParameterType.FullName | Should -Be 'PSWriteOffice.Cmdlets.Csv.CsvReadMode'
-        (Get-Command Import-OfficeCsv).Parameters.Mode.ParameterType.FullName | Should -Be 'PSWriteOffice.Cmdlets.Csv.CsvReadMode'
-        (Get-Command Get-OfficeCsv).Parameters.Keys | Should -Not -Contain 'Mode'
-        (Get-Command Export-OfficeCsv).Parameters.Keys | Should -Contain 'CompressionType'
-        (Get-Command Get-OfficeCsv).Parameters.Keys | Should -Contain 'CompressionType'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'CompressionType'
-        (Get-Command Get-OfficeCsv).Parameters.Keys | Should -Contain 'MaxDecompressedBytes'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'MaxDecompressedBytes'
-        (Get-Command Get-OfficeCsv).Parameters.Keys | Should -Contain 'ParseErrorAction'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'ParseErrorAction'
-        (Get-Command Get-OfficeCsv).Parameters.Keys | Should -Contain 'ProgressInterval'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'ProgressInterval'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'InferSchema'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'ColumnType'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'DuplicateHeaderBehavior'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'NullValue'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'DateTimeFormats'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'QuoteParsingMode'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Contain 'StaticColumns'
-        (Get-Command Export-OfficeCsv).Parameters.Keys | Should -Contain 'NullValue'
-        (Get-Command Export-OfficeCsv).Parameters.Keys | Should -Contain 'DateTimeFormat'
-        (Get-Command Export-OfficeCsv).Parameters.Keys | Should -Contain 'UseUtc'
 
-        (Get-Command ConvertTo-OfficeCsv).Parameters.Keys | Should -Not -Contain 'IncludeHeader'
-        (Get-Command ConvertTo-OfficeCsv).Parameters.Keys | Should -Not -Contain 'CompressionType'
-        (Get-Command ConvertFrom-OfficeCsv).Parameters.Keys | Should -Not -Contain 'CompressionType'
-        (Get-Command Export-OfficeCsv).Parameters.Keys | Should -Not -Contain 'IncludeHeader'
-        (Get-Command Get-OfficeCsv).Parameters.Keys | Should -Not -Contain 'HasHeaderRow'
-        (Get-Command Import-OfficeCsv).Parameters.Keys | Should -Not -Contain 'HasHeaderRow'
-    }
-
-    It 'exposes CSV row import with idiomatic command names' {
-        (Get-Command Import-OfficeCsv).CommandType | Should -Be 'Cmdlet'
-        (Get-Command ConvertFrom-OfficeCsv).CommandType | Should -Be 'Cmdlet'
-        { Get-Command Get-OfficeCsvData -ErrorAction Stop } | Should -Throw
-    }
 
     It 'converts objects to CSV and reads them back' {
         $rows = @(
@@ -139,7 +97,7 @@ Describe 'CSV cmdlets' {
         { Import-OfficeCsv -Path $path -DuplicateHeaderBehavior Throw -ErrorAction Stop } |
             Should -Throw '*duplicate*'
 
-        { ConvertFrom-OfficeCsv -Text "Name,Value`nAlpha,`"one`"two" -QuoteParsingMode Strict -ErrorAction Stop } |
+        { Import-OfficeCsv -Text "Name,Value`nAlpha,`"one`"two" -QuoteParsingMode Strict -ErrorAction Stop } |
             Should -Throw '*quoted*'
     }
 
@@ -170,8 +128,8 @@ Describe 'CSV cmdlets' {
     It 'keeps load-time options on file import parameter sets' {
         $parameterSets = (Get-Command Import-OfficeCsv).Parameters['NullValue'].ParameterSets.Keys
 
-        $parameterSets | Should -Contain 'PathDelimiter'
-        $parameterSets | Should -Contain 'LiteralPathDelimiter'
+        $parameterSets | Should -Contain 'Path'
+        $parameterSets | Should -Contain 'LiteralPath'
         $parameterSets | Should -Not -Contain 'Document'
     }
 
@@ -179,7 +137,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'datatable.csv'
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1`nBeta,2" -Encoding UTF8
 
-        $table = Import-OfficeCsv -Path $path -AsDataTable
+        $table = Import-OfficeCsv -Path $path -As DataTable
 
         $table.GetType() | Should -Be ([System.Data.DataTable])
         $table.TableName | Should -Be 'datatable'
@@ -194,7 +152,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'datatable-missing.csv'
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1`nBeta" -Encoding UTF8
 
-        $table = Import-OfficeCsv -Path $path -AsDataTable
+        $table = Import-OfficeCsv -Path $path -As DataTable
 
         $table.Rows[1]['Value'] | Should -Be ''
     }
@@ -203,7 +161,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'datatable-header-only.csv'
         Set-Content -LiteralPath $path -Value 'Name,Value' -Encoding UTF8
 
-        $table = Import-OfficeCsv -Path $path -AsDataTable
+        $table = Import-OfficeCsv -Path $path -As DataTable
 
         $table.GetType() | Should -Be ([System.Data.DataTable])
         $table.Columns.Count | Should -Be 2
@@ -282,8 +240,8 @@ Describe 'CSV cmdlets' {
         $bytes[1] | Should -Be 0x8B
 
         $imported = @(Import-OfficeCsv -Path $path -CompressionType GZip)
-        $document = Get-OfficeCsv -Path $path -CompressionType GZip
-        $table = Import-OfficeCsv -Path $path -CompressionType GZip -AsDataTable
+        $document = Import-OfficeCsv -As Document -Path $path -CompressionType GZip
+        $table = Import-OfficeCsv -Path $path -CompressionType GZip -As DataTable
 
         $imported.Count | Should -Be 2
         $imported[1].Name | Should -Be 'Beta'
@@ -352,7 +310,7 @@ Describe 'CSV cmdlets' {
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1`nBroken,`"one`"two`nBeta,2" -Encoding UTF8
 
         $parseErrors = $null
-        $reader = Import-OfficeCsv -Path $path -AsDataReader -Mode Stream -QuoteParsingMode Strict -ParseErrorAction SkipRow -CollectParseErrors -ErrorAction SilentlyContinue -ErrorVariable parseErrors
+        $reader = Import-OfficeCsv -Path $path -As DataReader -Mode Stream -QuoteParsingMode Strict -ParseErrorAction SkipRow -CollectParseErrors -ErrorAction SilentlyContinue -ErrorVariable parseErrors
         try {
             $reader.GetType().Name | Should -Be 'CsvDataReader'
             $rows = 0
@@ -373,7 +331,7 @@ Describe 'CSV cmdlets' {
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1`nBroken,`"one`"two`nBeta,2" -Encoding UTF8
 
         $parseErrors = $null
-        $document = Get-OfficeCsv -Path $path -QuoteParsingMode Strict -ParseErrorAction SkipRow -CollectParseErrors -ErrorAction SilentlyContinue -ErrorVariable parseErrors
+        $document = Import-OfficeCsv -As Document -Path $path -QuoteParsingMode Strict -ParseErrorAction SkipRow -CollectParseErrors -ErrorAction SilentlyContinue -ErrorVariable parseErrors
 
         @($document.AsEnumerable()).Count | Should -Be 2
         $parseErrors.Count | Should -BeGreaterThan 0
@@ -383,7 +341,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'datatable-infer.csv'
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1`nBeta,2" -Encoding UTF8
 
-        $table = Import-OfficeCsv -Path $path -AsDataTable -InferSchema
+        $table = Import-OfficeCsv -Path $path -As DataTable -InferSchema
 
         $table.Columns['Value'].DataType | Should -Be ([int])
         $table.Rows[1]['Value'] | Should -Be 2
@@ -393,7 +351,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'reader-import.csv'
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1`nBeta,2" -Encoding UTF8
 
-        $reader = Import-OfficeCsv -Path $path -AsDataReader -InferSchema -SchemaSampleRows 2
+        $reader = Import-OfficeCsv -Path $path -As DataReader -InferSchema -SchemaSampleRows 2
         try {
             $reader.GetType().Name | Should -Be 'CsvDataReader'
             $reader.GetFieldType($reader.GetOrdinal('Value')) | Should -Be ([int])
@@ -409,7 +367,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'reader-column-type.csv'
         Set-Content -LiteralPath $path -Value "Name,Value,Created`nAlpha,1,2026-07-07`nBeta,2,2026-07-08" -Encoding UTF8
 
-        $reader = Import-OfficeCsv -Path $path -AsDataReader -ColumnType @{
+        $reader = Import-OfficeCsv -Path $path -As DataReader -ColumnType @{
             Value = [int]
             Created = [datetime]
         }
@@ -430,7 +388,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'reader-column-type-name.csv'
         Set-Content -LiteralPath $path -Value "Value,Created`n1,2026-07-07" -Encoding UTF8
 
-        $reader = Import-OfficeCsv -Path $path -AsDataReader -ColumnType @{
+        $reader = Import-OfficeCsv -Path $path -As DataReader -ColumnType @{
             Value = 'System.Int32'
             Created = [datetime].AssemblyQualifiedName
         }
@@ -449,7 +407,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'reader-column-type-infer.csv'
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1" -Encoding UTF8
 
-        { Import-OfficeCsv -Path $path -AsDataReader -ColumnType @{ Value = [int] } -InferSchema -ErrorAction Stop } |
+        { Import-OfficeCsv -Path $path -As DataReader -ColumnType @{ Value = [int] } -InferSchema -ErrorAction Stop } |
             Should -Throw '*ColumnType*InferSchema*'
     }
 
@@ -457,7 +415,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'progress-stream.csv'
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1`nBeta,2" -Encoding UTF8
 
-        $reader = Import-OfficeCsv -Path $path -AsDataReader -Mode Stream -ProgressInterval 1
+        $reader = Import-OfficeCsv -Path $path -As DataReader -Mode Stream -ProgressInterval 1
         try {
             $rows = 0
             while ($reader.Read()) {
@@ -469,7 +427,7 @@ Describe 'CSV cmdlets' {
             $reader.Dispose()
         }
 
-        $document = Get-OfficeCsv -Path $path -ProgressInterval 1
+        $document = Import-OfficeCsv -As Document -Path $path -ProgressInterval 1
         @($document.AsEnumerable()).Count | Should -Be 2
     }
 
@@ -1034,16 +992,6 @@ Describe 'CSV cmdlets' {
         [System.IO.File]::ReadAllText($path) | Should -Be $original
     }
 
-    It 'rejects conflicting CSV table and hashtable output modes' {
-        $path = Join-Path $TestDrive 'datatable-conflict.csv'
-        Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1" -Encoding UTF8
-
-        { Import-OfficeCsv -Path $path -AsDataTable -AsHashtable -ErrorAction Stop } |
-            Should -Throw '*AsDataTable*AsDataReader*AsHashtable*'
-
-        { Import-OfficeCsv -Path $path -AsDataTable -AsDataReader -ErrorAction Stop } |
-            Should -Throw '*AsDataTable*AsDataReader*AsHashtable*'
-    }
 
     It 'writes to files using the Path alias' {
         $path = Join-Path $TestDrive 'path-alias.csv'
@@ -1288,7 +1236,7 @@ Describe 'CSV cmdlets' {
         [pscustomobject]@{ Name = 'Alpha'; Value = 1 } |
             Export-OfficeCsv -Path $path
 
-        $document = Get-OfficeCsv -Text "Name,Value`nBeta,2"
+        $document = Import-OfficeCsv -As Document -Text "Name,Value`nBeta,2"
         Export-OfficeCsv -Document $document -Path $path -Append
 
         Get-Content -LiteralPath $path | Should -Be @('Name,Value', 'Alpha,1', 'Beta,2')
@@ -1297,8 +1245,8 @@ Describe 'CSV cmdlets' {
     It 'appends multiple piped CSV documents to the same path' {
         $path = Join-Path $TestDrive 'append-piped-documents.csv'
         $documents = @(
-            Get-OfficeCsv -Text "Name,Value`nAlpha,1"
-            Get-OfficeCsv -Text "Name,Value`nBeta,2"
+            Import-OfficeCsv -As Document -Text "Name,Value`nAlpha,1"
+            Import-OfficeCsv -As Document -Text "Name,Value`nBeta,2"
         )
 
         $documents | Export-OfficeCsv -Path $path -Append
@@ -1308,7 +1256,7 @@ Describe 'CSV cmdlets' {
 
     It 'serializes piped CSV documents as rows instead of object properties' {
         $path = Join-Path $TestDrive 'piped-document.csv'
-        $document = Get-OfficeCsv -Text "Name,Value`nAlpha,1"
+        $document = Import-OfficeCsv -As Document -Text "Name,Value`nAlpha,1"
 
         $csvText = @($document | ConvertTo-OfficeCsv)
         $document | Export-OfficeCsv -Path $path
@@ -1361,7 +1309,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'detect-read.csv'
         Set-Content -LiteralPath $path -Value "Field1;Field2;Field3`n1,2,3,4;5,6,7,8;9,10,11,12" -Encoding UTF8
 
-        $document = Get-OfficeCsv -Path $path -DetectDelimiter
+        $document = Import-OfficeCsv -As Document -Path $path -DetectDelimiter
         $data = Import-OfficeCsv -Path $path -DetectDelimiter
 
         $document.Delimiter | Should -Be ';'
@@ -1373,7 +1321,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'detect-after-preamble.csv'
         Set-Content -LiteralPath $path -Value "generated,by,vendor,with,commas`nName;Value`nAlpha;1" -Encoding UTF8
 
-        $document = Get-OfficeCsv -Path $path -DetectDelimiter -SkipRows 1
+        $document = Import-OfficeCsv -As Document -Path $path -DetectDelimiter -SkipRows 1
         $data = Import-OfficeCsv -Path $path -DetectDelimiter -SkipRows 1
 
         $document.Delimiter | Should -Be ';'
@@ -1382,7 +1330,7 @@ Describe 'CSV cmdlets' {
     }
 
     It 'uses delimiter candidates when detecting from text' {
-        $document = Get-OfficeCsv -Text "Name|Value`nAlpha|1" -DetectDelimiter -DelimiterCandidates ';', '|'
+        $document = Import-OfficeCsv -As Document -Text "Name|Value`nAlpha|1" -DetectDelimiter -DelimiterCandidates ';', '|'
 
         $document.Delimiter | Should -Be '|'
         $row = @($document.AsEnumerable())[0]
@@ -1390,7 +1338,7 @@ Describe 'CSV cmdlets' {
     }
 
     It 'converts CSV text directly into row objects' {
-        $data = @(ConvertFrom-OfficeCsv -Text "Name|Value`nAlpha|1" -DetectDelimiter -DelimiterCandidates ';', '|')
+        $data = @(Import-OfficeCsv -Text "Name|Value`nAlpha|1" -DetectDelimiter -DelimiterCandidates ';', '|')
 
         $data.Count | Should -Be 1
         $data[0].Name | Should -Be 'Alpha'
@@ -1398,7 +1346,7 @@ Describe 'CSV cmdlets' {
     }
 
     It 'parses piped CSV text as one stream' {
-        $data = "Name,Value", "Alpha,1", "Beta,2" | ConvertFrom-OfficeCsv
+        $data = Import-OfficeCsv -Text ("Name,Value", "Alpha,1", "Beta,2" -join "`n")
 
         $data.Count | Should -Be 2
         $data[0].Name | Should -Be 'Alpha'
@@ -1415,13 +1363,20 @@ Describe 'CSV cmdlets' {
 
         $data.Count | Should -Be 1
         $data[0].Name | Should -Be 'Alpha'
+
+        foreach ($mode in @(@{}, @{ UseCulture = $true; Culture = [cultureinfo]::InvariantCulture }, @{ DetectDelimiter = $true })) {
+            $propertyRows = @([pscustomobject]@{ Path = [string[]] @($path) } | Import-OfficeCsv @mode)
+            $propertyRows.Count | Should -Be 1
+            $propertyRows[0].Name | Should -Be 'Alpha'
+            $propertyRows[0].Value | Should -Be '1'
+        }
     }
 
     It 'loads CSV documents from literal paths' {
         $path = Join-Path $TestDrive 'literal[1].csv'
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1" -Encoding UTF8
 
-        $document = Get-OfficeCsv -LiteralPath $path
+        $document = Import-OfficeCsv -As Document -LiteralPath $path
 
         $document.Header | Should -Be @('Name', 'Value')
         $document.AsEnumerable().Count | Should -Be 1
@@ -1431,7 +1386,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'input-path-alias.csv'
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1" -Encoding UTF8
 
-        $document = Get-OfficeCsv -Path $path
+        $document = Import-OfficeCsv -As Document -Path $path
 
         $document.Header | Should -Be @('Name', 'Value')
         $document.AsEnumerable().Count | Should -Be 1
@@ -1460,7 +1415,7 @@ Describe 'CSV cmdlets' {
         Set-Content -LiteralPath $paths[0] -Value "Name,Value`nAlpha,1" -Encoding UTF8
         Set-Content -LiteralPath $paths[1] -Value "Name,Value`nBeta,2" -Encoding UTF8
 
-        $documents = @(Get-OfficeCsv -Path $paths)
+        $documents = @(Import-OfficeCsv -As Document -Path $paths)
 
         $documents.Count | Should -Be 2
         $documents[0].Header | Should -Be @('Name', 'Value')
@@ -1499,28 +1454,28 @@ Describe 'CSV cmdlets' {
         $row.Name_2 | Should -Be '1'
         { Import-OfficeCsv -Path $path -DuplicateHeaderBehavior Throw -ErrorAction Stop } | Should -Throw '*duplicate*'
         { Import-OfficeCsv -Path $path -DuplicateHeaderBehavior Preserve -ErrorAction Stop } | Should -Throw '*Preserve*row*object*hashtable*'
-        { Import-OfficeCsv -Path $path -AsDataTable -DuplicateHeaderBehavior Preserve -ErrorAction Stop } | Should -Throw '*Preserve*DataTable*'
+        { Import-OfficeCsv -Path $path -As DataTable -DuplicateHeaderBehavior Preserve -ErrorAction Stop } | Should -Throw '*Preserve*DataTable*'
     }
 
     It 'renames duplicate hashtable headers by default and can reject them in strict mode' {
         $path = Join-Path $TestDrive 'duplicate-hashtable-header.csv'
         Set-Content -LiteralPath $path -Value "Name,Name`nAlpha,1" -Encoding UTF8
 
-        $row = Import-OfficeCsv -Path $path -AsHashtable
+        $row = Import-OfficeCsv -Path $path -As Hashtable
 
         $row['Name'] | Should -Be 'Alpha'
         $row['Name_2'] | Should -Be '1'
-        { Import-OfficeCsv -Path $path -AsHashtable -DuplicateHeaderBehavior Throw -ErrorAction Stop } | Should -Throw '*duplicate*'
-        { Import-OfficeCsv -Path $path -AsHashtable -DuplicateHeaderBehavior Preserve -ErrorAction Stop } | Should -Throw '*Preserve*row*object*hashtable*'
+        { Import-OfficeCsv -Path $path -As Hashtable -DuplicateHeaderBehavior Throw -ErrorAction Stop } | Should -Throw '*duplicate*'
+        { Import-OfficeCsv -Path $path -As Hashtable -DuplicateHeaderBehavior Preserve -ErrorAction Stop } | Should -Throw '*Preserve*row*object*hashtable*'
     }
 
     It 'rejects duplicate-header preservation for ConvertFrom row outputs' {
         $text = "Name,Name`nAlpha,1"
 
-        { ConvertFrom-OfficeCsv -Text $text -DuplicateHeaderBehavior Preserve -ErrorAction Stop } |
+        { Import-OfficeCsv -Text $text -DuplicateHeaderBehavior Preserve -ErrorAction Stop } |
             Should -Throw '*Preserve*row*object*hashtable*'
 
-        { ConvertFrom-OfficeCsv -Text $text -AsHashtable -DuplicateHeaderBehavior Preserve -ErrorAction Stop } |
+        { Import-OfficeCsv -Text $text -As Hashtable -DuplicateHeaderBehavior Preserve -ErrorAction Stop } |
             Should -Throw '*Preserve*row*object*hashtable*'
     }
 
@@ -1529,7 +1484,7 @@ Describe 'CSV cmdlets' {
         Set-Content -LiteralPath $path -Value "Alpha,1`nBeta,2" -Encoding UTF8
 
         $data = Import-OfficeCsv -Path $path -NoHeader
-        $document = Get-OfficeCsv -Path $path -NoHeader
+        $document = Import-OfficeCsv -As Document -Path $path -NoHeader
 
         $data.Count | Should -Be 2
         $data[0].Column1 | Should -Be 'Alpha'
@@ -1543,8 +1498,8 @@ Describe 'CSV cmdlets' {
         Set-Content -LiteralPath $path -Value "generated by vendor`nexported today`nName,Value`nAlpha,1" -Encoding UTF8
 
         $data = @(Import-OfficeCsv -Path $path -SkipRows 2)
-        $document = Get-OfficeCsv -Path $path -SkipRows 2
-        $fromText = @(ConvertFrom-OfficeCsv -Text "metadata`nName,Value`nBeta,2" -SkipRows 1)
+        $document = Import-OfficeCsv -As Document -Path $path -SkipRows 2
+        $fromText = @(Import-OfficeCsv -Text "metadata`nName,Value`nBeta,2" -SkipRows 1)
 
         $data.Count | Should -Be 1
         $data[0].Name | Should -Be 'Alpha'
@@ -1572,7 +1527,7 @@ Describe 'CSV cmdlets' {
 
         $streamed = @(Import-OfficeCsv -Path $path)
         $inMemory = @(Import-OfficeCsv -Path $path -Mode InMemory)
-        $fromDocument = @(Get-OfficeCsv -Path $path | Import-OfficeCsv)
+        $fromDocument = @(Import-OfficeCsv -As Document -Path $path | Import-OfficeCsv)
 
         foreach ($row in @($streamed[0], $inMemory[0], $fromDocument[0])) {
             $row.PSObject.Properties.Name | Should -Contain 'Other'
@@ -1588,7 +1543,7 @@ Describe 'CSV cmdlets' {
     }
 
     It 'recognizes W3C fields headers when loading CSV documents' {
-        $document = Get-OfficeCsv -Text "#Version: 1.0`n#Fields: date time cs-uri`n2026-06-24 12:00 /index" -Delimiter ' '
+        $document = Import-OfficeCsv -As Document -Text "#Version: 1.0`n#Fields: date time cs-uri`n2026-06-24 12:00 /index" -Delimiter ' '
 
         $document.Header | Should -Be @('date', 'time', 'cs-uri')
         $row = @($document.AsEnumerable())[0]
@@ -1596,7 +1551,7 @@ Describe 'CSV cmdlets' {
     }
 
     It 'can treat a leading comment row as the header when requested' {
-        $document = Get-OfficeCsv -Text "#Name,Value`nAlpha,1" -SkipCommentRowsBeforeHeader:$false
+        $document = Import-OfficeCsv -As Document -Text "#Name,Value`nAlpha,1" -NoSkipCommentRowsBeforeHeader
 
         $document.Header | Should -Be @('#Name', 'Value')
         $row = @($document.AsEnumerable())[0]
@@ -1608,7 +1563,7 @@ Describe 'CSV cmdlets' {
         Set-Content -LiteralPath $path -Value '"#Tag",Name', '10,Alpha' -Encoding UTF8
 
         $data = @(Import-OfficeCsv -Path $path)
-        $document = Get-OfficeCsv -Path $path
+        $document = Import-OfficeCsv -As Document -Path $path
 
         $document.Header | Should -Be @('#Tag', 'Name')
         $data.Count | Should -Be 1
@@ -1648,7 +1603,7 @@ Describe 'CSV cmdlets' {
 
     It 'lets parameter binding reject Delimiter and DetectDelimiter together' {
         {
-            Get-OfficeCsv -Text "Name;Value`nAlpha;1" -Delimiter ';' -DetectDelimiter
+            Import-OfficeCsv -As Document -Text "Name;Value`nAlpha;1" -Delimiter ';' -DetectDelimiter
         } | Should -Throw
     }
 
@@ -1657,12 +1612,12 @@ Describe 'CSV cmdlets' {
         Set-Content -LiteralPath $path -Value "Alpha,1" -Encoding UTF8
 
         { Import-OfficeCsv -Path $path -Header Name, Value -NoHeader -ErrorAction Stop } | Should -Throw '*Header*NoHeader*'
-        { Get-OfficeCsv -Path $path -Header Name, Value -NoHeader -ErrorAction Stop } | Should -Throw '*Header*NoHeader*'
-        { ConvertFrom-OfficeCsv -Text "Alpha,1" -Header Name, Value -NoHeader -ErrorAction Stop } | Should -Throw '*Header*NoHeader*'
+        { Import-OfficeCsv -As Document -Path $path -Header Name, Value -NoHeader -ErrorAction Stop } | Should -Throw '*Header*NoHeader*'
+        { Import-OfficeCsv -Text "Alpha,1" -Header Name, Value -NoHeader -ErrorAction Stop } | Should -Throw '*Header*NoHeader*'
     }
 
     It 'keeps file-only encoding off text parameter sets' {
-        $textSets = (Get-Command Get-OfficeCsv).ParameterSets |
+        $textSets = (Get-Command Import-OfficeCsv).ParameterSets |
             Where-Object Name -like 'Text*'
 
         foreach ($set in $textSets) {
@@ -1673,14 +1628,14 @@ Describe 'CSV cmdlets' {
         (Get-Command ConvertTo-OfficeCsv).Parameters.Keys | Should -Not -Contain 'Encoding'
     }
 
-    It 'streams ConvertTo-OfficeCsv output as CSV records that ConvertFrom-OfficeCsv can read' {
+    It 'streams ConvertTo-OfficeCsv output as CSV records that Import-OfficeCsv can read' {
         $rows = @(
             [pscustomobject]@{ Name = 'Alpha'; Value = 1 }
             [pscustomobject]@{ Name = 'Beta'; Value = 2 }
         )
 
         $csvLines = @($rows | ConvertTo-OfficeCsv)
-        $roundTrip = $csvLines | ConvertFrom-OfficeCsv
+        $roundTrip = Import-OfficeCsv -Text ($csvLines -join "`n")
 
         $csvLines | Should -Be @('Name,Value', 'Alpha,1', 'Beta,2')
         $roundTrip.Count | Should -Be 2
@@ -1692,8 +1647,8 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'multi-delimiter.csv'
         Set-Content -LiteralPath $path -Value "Name||Value`nAlpha||`"one||two`"" -Encoding UTF8
 
-        $document = Get-OfficeCsv -Path $path -DelimiterText '||'
-        $data = @(Import-OfficeCsv -Path $path -DelimiterText '||')
+        $document = Import-OfficeCsv -As Document -Path $path -Delimiter '||'
+        $data = @(Import-OfficeCsv -Path $path -Delimiter '||')
 
         $document.Header | Should -Be @('Name', 'Value')
         $data.Count | Should -Be 1
@@ -1707,8 +1662,8 @@ Describe 'CSV cmdlets' {
             [pscustomobject]@{ Name = 'Beta'; Value = 'plain' }
         )
 
-        $csvLines = @($rows | ConvertTo-OfficeCsv -DelimiterText '||')
-        $roundTrip = @($csvLines | ConvertFrom-OfficeCsv -DelimiterText '||')
+        $csvLines = @($rows | ConvertTo-OfficeCsv -Delimiter '||')
+        $roundTrip = @(Import-OfficeCsv -Text ($csvLines -join "`n") -Delimiter '||')
 
         $csvLines | Should -Be @('Name||Value', 'Alpha||"one||two"', 'Beta||plain')
         $roundTrip.Count | Should -Be 2
@@ -1722,24 +1677,24 @@ Describe 'CSV cmdlets' {
             [pscustomobject]@{ Name = ''; Value = "one`ntwo" }
         )
 
-        $csvLines = @($rows | ConvertTo-OfficeCsv -DelimiterText '||')
+        $csvLines = @($rows | ConvertTo-OfficeCsv -Delimiter '||')
 
         $csvLines.Count | Should -Be 3
         $csvLines[1] | Should -Be 'Alpha||ends|'
         $csvLines[2] | Should -Match '^\|\|"one\r?\ntwo"$'
-        (@($csvLines | ConvertFrom-OfficeCsv -DelimiterText '||')[1].Value -replace "`r`n", "`n") | Should -Be "one`ntwo"
+        (@(Import-OfficeCsv -Text ($csvLines -join "`n") -Delimiter '||')[1].Value -replace "`r`n", "`n") | Should -Be "one`ntwo"
     }
 
     It 'exports CSV with a multi-character delimiter and can append using the same delimiter' {
         $path = Join-Path $TestDrive 'export-multi-delimiter.csv'
 
         [pscustomobject]@{ Name = 'Alpha'; Value = 'one||two' } |
-            Export-OfficeCsv -Path $path -DelimiterText '||'
+            Export-OfficeCsv -Path $path -Delimiter '||'
         [pscustomobject]@{ Name = 'Beta'; Value = 'plain' } |
-            Export-OfficeCsv -Path $path -DelimiterText '||' -Append
+            Export-OfficeCsv -Path $path -Delimiter '||' -Append
 
         Get-Content -LiteralPath $path | Should -Be @('Name||Value', 'Alpha||"one||two"', 'Beta||plain')
-        @((Import-OfficeCsv -Path $path -DelimiterText '||'))[1].Name | Should -Be 'Beta'
+        @((Import-OfficeCsv -Path $path -Delimiter '||'))[1].Name | Should -Be 'Beta'
     }
 
     It 'keeps quoted embedded newlines inside one ConvertTo-OfficeCsv record object' {
@@ -1748,7 +1703,7 @@ Describe 'CSV cmdlets' {
         $csvLines.Count | Should -Be 2
         $csvLines[0] | Should -Be 'Name,Note'
         $csvLines[1] | Should -Be "Alpha,`"one`ntwo`""
-        @($csvLines | ConvertFrom-OfficeCsv)[0].Note | Should -Be "one`ntwo"
+        @(Import-OfficeCsv -Text ($csvLines -join "`n"))[0].Note | Should -Be "one`ntwo"
     }
 
     It 'keeps separate records when unquoted values contain quote characters' {

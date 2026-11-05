@@ -547,10 +547,10 @@ namespace OfficeIMO.Word.Html {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
             if (formatting.Underline) run.SetUnderline((GetUnderlineValue(formatting) ?? UnderlineValues.Single).ToOfficeEnum());
-            if (formatting.Strike) run.SetStrike();
-            if (formatting.DoubleStrike) run.SetDoubleStrike();
-            if (formatting.Superscript) run.SetSuperScript();
-            if (formatting.Subscript) run.SetSubScript();
+            if (formatting.Strike) run.SetStrikethrough();
+            if (formatting.DoubleStrike) run.SetDoubleStrikethrough();
+            if (formatting.Superscript) run.SetSuperscript();
+            if (formatting.Subscript) run.SetSubscript();
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColor(OfficeIMO.OfficeColor.Parse(formatting.ColorHex!));
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value.ToOfficeEnum());
             ApplyTextBackground(run, formatting, options);

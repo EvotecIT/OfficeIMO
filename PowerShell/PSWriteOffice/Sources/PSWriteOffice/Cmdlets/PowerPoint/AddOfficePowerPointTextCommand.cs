@@ -12,11 +12,11 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example><summary>Link a status label.</summary>
 /// <code>PowerPointParagraph { PowerPointText 'Service status' -Bold -Link 'https://status.contoso.com' }</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointText", DefaultParameterSetName = "Text")]
-[Alias("PowerPointText")]
 [OutputType(typeof(PowerPointTextRun))]
+[Alias("PowerPointText") ]
 public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {
     /// <summary>Gets or sets the text to append.</summary>
-    [Parameter(Mandatory = true, Position = 0), AllowEmptyString]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]
     public string Text { get; set; } = string.Empty;
     /// <summary>Gets or sets bold formatting.</summary>
     [Parameter]
@@ -31,10 +31,10 @@ public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {
     [Parameter]
     public PowerPointUnderlineStyle? Underline { get; set; }
     /// <summary>Gets or sets text color or a theme role.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Color { get; set; }
     /// <summary>Gets or sets the highlight color.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Highlight { get; set; }
     /// <summary>Gets or sets the font family.</summary>
     [Parameter]
@@ -42,6 +42,9 @@ public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {
     /// <summary>Gets or sets the font size; numbers mean points.</summary>
     [Parameter, OfficeLengthTransformation]
     public OfficeLength? Size { get; set; }
+    /// <summary>Normal, superscript or subscript baseline, retaining rich-run positioning.</summary>
+    [Parameter]
+    public OfficeTextBaseline? Baseline { get; set; }
     /// <summary>Gets or sets the hyperlink target.</summary>
     [Parameter]
     public string? Link { get; set; }
@@ -68,8 +71,13 @@ public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {
         PowerPointTextRun? run = null;
         try {
             run = paragraph.AddText(Text);
-            if (textScope != null) PowerPointTextFormatting.Apply(run, textScope, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size, Link);
-            else PowerPointTextFormatting.Apply(run, scope!, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size, Link);
+            if (textScope != null) PowerPointTextFormatting.Apply(run, textScope, BoundSwitch(nameof(Bold)), BoundSwitch(nameof(Italic)), BoundSwitch(nameof(Strikethrough)), Underline, Color, Highlight, Font, Size, Link);
+            else PowerPointTextFormatting.Apply(run, scope!, BoundSwitch(nameof(Bold)), BoundSwitch(nameof(Italic)), BoundSwitch(nameof(Strikethrough)), Underline, Color, Highlight, Font, Size, Link);
+            if (Baseline.HasValue) run.BaselinePercent = Baseline.Value switch {
+                OfficeTextBaseline.Superscript => 30D,
+                OfficeTextBaseline.Subscript => -25D,
+                _ => null
+            };
             if (body != null) scope!.Blocks.Add(new PowerPointLayoutText(Text) { NativeBody = body });
             if (PassThru) WriteObject(run);
         } catch {

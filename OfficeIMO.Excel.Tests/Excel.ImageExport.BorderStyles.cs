@@ -16,11 +16,11 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Dashed, "C00000");
-            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Dotted, "00A000");
-            sheet.Cell(1, 3).SetBorder(ExcelBorderStyle.MediumDashDotDot, "004C99");
-            sheet.Cell(1, 4).SetBorder(ExcelBorderStyle.Double, "C00000");
-            sheet.Cell(1, 5).SetDiagonalBorder(ExcelBorderStyle.DashDotDot, "004C99", diagonalUp: true, diagonalDown: true);
+            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Dashed, global::OfficeIMO.OfficeColor.Parse("C00000"));
+            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Dotted, global::OfficeIMO.OfficeColor.Parse("00A000"));
+            sheet.Cell(1, 3).SetBorder(ExcelBorderStyle.MediumDashDotDot, global::OfficeIMO.OfficeColor.Parse("004C99"));
+            sheet.Cell(1, 4).SetBorder(ExcelBorderStyle.Double, global::OfficeIMO.OfficeColor.Parse("C00000"));
+            sheet.Cell(1, 5).SetDiagonalBorder(ExcelBorderStyle.DashDotDot, global::OfficeIMO.OfficeColor.Parse("004C99"), diagonalUp: true, diagonalDown: true);
 
             ExcelRange range = sheet.Range("A1:E1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();

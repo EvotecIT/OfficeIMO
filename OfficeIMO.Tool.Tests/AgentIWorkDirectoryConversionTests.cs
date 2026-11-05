@@ -27,7 +27,7 @@ public sealed partial class AgentIWorkConversionTests {
         var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]), registry);
         AgentConvertResult result = await service.ConvertAsync(files.Input, files.Output(format), format);
         Assert.True(result.Workflow!.Succeeded, result.Workflow.Summary);
-        string contentHash = IWorkSourceDocument.Open(files.Input).ComputePackageContentHash();
+        string contentHash = IWorkSourceDocument.Load(files.Input).ComputePackageContentHash();
         Assert.Equal(contentHash, result.Workflow.ConversionEvidence!.Facts["packageContentSha256"]);
         var source = registry.Resolve(result.SourceId);
         Assert.Equal(directoryPackage, source.IsDirectory);

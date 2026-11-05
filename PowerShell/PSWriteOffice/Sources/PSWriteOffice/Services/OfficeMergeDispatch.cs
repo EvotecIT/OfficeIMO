@@ -48,8 +48,8 @@ internal static partial class OfficeMergeDispatch {
         }
     }
 
-    internal static void Execute(IReadOnlyList<string> paths, SecureString?[]? passwords, OfficeMergeFamily family,
-        string extension, object options, object? document, string? output, bool noClobber) {
+    internal static PdfMergeReport? Execute(IReadOnlyList<string> paths, SecureString?[]? passwords, OfficeMergeFamily family,
+        string extension, object options, object? document, string? output, bool noClobber, PdfLoadOptions? readOptions = null) {
         var owned = new List<IDisposable>();
         Exception? operationFailure = null;
         try {
@@ -67,7 +67,7 @@ internal static partial class OfficeMergeDispatch {
                         AccessMode = primary ? DocumentAccessMode.ReadWrite : DocumentAccessMode.ReadOnly,
                         PersistenceMode = DocumentPersistenceMode.Explicit, AllowBinaryProjection = false, Password = password
                     }),
-                    _ => PdfDocument.Load(paths[index], new PdfLoadOptions { Password = password })
+                    _ => PdfDocument.Load(paths[index], (readOptions ?? new PdfLoadOptions()).Clone(null, password))
                 };
                 owned.Add(source);
                 // Extension checking alone must not permit a mislabeled package or a template conversion.
@@ -77,9 +77,9 @@ internal static partial class OfficeMergeDispatch {
             }
             if (family == OfficeMergeFamily.Pdf) {
                 // Keep each loaded source's native read options and permission enforcement intact.
-                using var merged = PdfDocument.Merge(owned.Cast<PdfDocument>(), (PdfMergeOptions)options);
+                using var merged = PdfDocument.Merge(owned.Cast<PdfDocument>(), (PdfMergeOptions)options, out PdfMergeReport report);
                 OfficeOutput.Write(output!, stream => merged.Save(stream), noClobber);
-                return;
+                return report;
             }
             object target = document ?? owned[0];
             int firstAppend = document == null ? 1 : 0;
@@ -92,6 +92,7 @@ internal static partial class OfficeMergeDispatch {
                 MergeExcel(targetExcel, owned, firstAppend, (ExcelMergeOptions)options);
                 if (output != null) OfficeOutput.Write(output, stream => targetExcel.Save(stream), noClobber);
             }
+            return null;
         } catch (Exception error) {
             operationFailure = error;
             throw;

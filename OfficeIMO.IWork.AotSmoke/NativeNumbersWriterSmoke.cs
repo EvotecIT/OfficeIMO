@@ -17,13 +17,13 @@ internal static class NativeNumbersWriterSmoke {
         first.AddTable(IWorkTableData.Create(2, 2).SetText(1, 1, "Totals").SetNumber(1, 2, 99).SetBoolean(2, 1, false),
             "Totals", 40, 300, 130, 36);
         document.AddSheet("Empty grid").AddTable(IWorkTableData.Create(2, 3), "Empty", 30, 40, 80, 28);
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         Require(Convert.ToHexString(SHA256.HashData(bytes)) == AcceptedSha256 && bytes.Length == 22_573,
             "The NativeAOT Numbers creator differs from the independently decoded Apple-accepted package.");
-        Require(bytes.SequenceEqual(document.SaveBytes()), "Numbers creation is not deterministic.");
+        Require(bytes.SequenceEqual(document.ToBytes()), "Numbers creation is not deterministic.");
         using var destination = new MemoryStream(); destination.WriteByte(9); document.Save(destination);
         Require(destination.CanWrite && bytes.SequenceEqual(destination.ToArray().Skip(1)), "Numbers stream save differs or closes its caller.");
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(bytes).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(bytes).ReadNumbers();
         Require(projection.Sheets.Count == 2 && projection.Sheets[0].Tables.Count == 2
             && projection.SourceDeclarationIssues.Count == 0 && projection.SourceReferenceIssues.Count == 0
             && projection.Diagnostics.Count == 0, "Numbers creation lost its complete sheet/table graph.");
@@ -34,7 +34,7 @@ internal static class NativeNumbersWriterSmoke {
             && table.GetCell(3, 4)!.Kind == IWorkCellKind.Text && table.RowHeights[1] == 36
             && table.ColumnWidths[1] == 130 && empty.RowCount == 2 && empty.ColumnCount == 3 && empty.Cells.Count == 0,
             "Numbers scalar types, Unicode, dimensions or empty positions differ.");
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(bytes), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Require(converted.Report.IsPartialEditableReconstruction
             && converted.Report.Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED")
             && empty.GetPadding(2, 3)?.BottomPoints == 4, "Native Numbers region padding was silently discarded.");

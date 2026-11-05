@@ -1229,7 +1229,7 @@ public sealed class HtmlPdfTests {
             Scale = 1D
         };
 
-        byte[] png = HtmlConversionDocument.Parse(html).ToPng(options);
+        byte[] png = HtmlConversionDocument.Parse(html).ToImage(options);
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
 

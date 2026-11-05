@@ -48,8 +48,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                         swatchColumns[i].Width,
                         swatchColumns[i].Height,
                         $"Swatch {i + 1}")
-                    .Fill(swatches[i])
-                    .Stroke("FFFFFF", global::OfficeIMO.OfficeLength.Points(1));
+                    .Fill(OfficeColor.Parse(swatches[i]))
+                    .Stroke(OfficeColor.Parse("FFFFFF"), global::OfficeIMO.OfficeLength.Points(1));
             }
 
             PowerPointSlide second = presentation.AddSlide(masterIndex: 0, layoutIndex: 1);
@@ -94,20 +94,20 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointLayoutBox[] topColumns = rows[0].SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.6));
 
             PowerPointTextBox leftCard = third.AddTextBox("Left column\n(overview)",topColumns[0]);
-            leftCard.FillColor = "E7F7FF";
-            leftCard.OutlineColor = "5B9BD5";
+            leftCard.FillColor = OfficeColor.Parse("E7F7FF");
+            leftCard.OutlineColor = OfficeColor.Parse("5B9BD5");
             leftCard.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
             leftCard.ApplyTextStyle(PowerPointTextStyle.Body.WithColor(OfficeColor.Parse("1F4E79")));
 
             PowerPointTextBox rightCard = third.AddTextBox("Right column\n(details)",topColumns[1]);
-            rightCard.FillColor = "FFF4E5";
-            rightCard.OutlineColor = "C48A00";
+            rightCard.FillColor = OfficeColor.Parse("FFF4E5");
+            rightCard.OutlineColor = OfficeColor.Parse("C48A00");
             rightCard.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
             rightCard.ApplyTextStyle(PowerPointTextStyle.Body.WithColor(OfficeColor.Parse("7F6000")));
 
             PowerPointTextBox footer = third.AddTextBox("Content boxes keep spacing consistent across slides.",rows[1]);
-            footer.FillColor = "F3F3F3";
-            footer.OutlineColor = "CCCCCC";
+            footer.FillColor = OfficeColor.Parse("F3F3F3");
+            footer.OutlineColor = OfficeColor.Parse("CCCCCC");
             footer.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
 
             presentation.Save();

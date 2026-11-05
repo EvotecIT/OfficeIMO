@@ -6,44 +6,94 @@ schema: 2.0.0
 ---
 # Import-OfficePdfXfdf
 ## SYNOPSIS
-Imports bounded DTD-free XFDF through the validated PDF form filler.
+Imports bounded DTD-free XFDF into native PDF forms, with atomic file output or a caller-owned live result.
 
 ## SYNTAX
-### Text (Default)
+### Document (Default)
 ```powershell
-Import-OfficePdfXfdf [-Path] <string> -Xfdf <string> -OutputPath <string> [-Options <PdfFormFillerOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-MaxXfdfBytes <long>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Import-OfficePdfXfdf -Xfdf <string> [-Options <Object[]>] [-MaxXfdfSize <long>] [-PassThru] [-Document <PdfDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### File
+### Path
 ```powershell
-Import-OfficePdfXfdf [-Path] <string> -XfdfPath <string> -OutputPath <string> [-Options <PdfFormFillerOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-MaxXfdfBytes <long>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Import-OfficePdfXfdf [-Path] <string[]> -OutputPath <string> -Xfdf <string> [-Options <Object[]>] [-MaxXfdfSize <long>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathDirectory
+```powershell
+Import-OfficePdfXfdf [-Path] <string[]> -Xfdf <string> -OutputDirectory <string> [-Options <Object[]>] [-MaxXfdfSize <long>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathFile
+```powershell
+Import-OfficePdfXfdf [-Path] <string[]> -OutputPath <string> -XfdfPath <string> [-Options <Object[]>] [-MaxXfdfSize <long>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathFileDirectory
+```powershell
+Import-OfficePdfXfdf [-Path] <string[]> -OutputDirectory <string> -XfdfPath <string> [-Options <Object[]>] [-MaxXfdfSize <long>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Import-OfficePdfXfdf -OutputPath <string> -Xfdf <string> -LiteralPath <string[]> [-Options <Object[]>] [-MaxXfdfSize <long>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathFile
+```powershell
+Import-OfficePdfXfdf -OutputPath <string> -LiteralPath <string[]> -XfdfPath <string> [-Options <Object[]>] [-MaxXfdfSize <long>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathDirectory
+```powershell
+Import-OfficePdfXfdf -Xfdf <string> -OutputDirectory <string> -LiteralPath <string[]> [-Options <Object[]>] [-MaxXfdfSize <long>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathFileDirectory
+```powershell
+Import-OfficePdfXfdf -OutputDirectory <string> -LiteralPath <string[]> -XfdfPath <string> [-Options <Object[]>] [-MaxXfdfSize <long>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### DocumentFile
+```powershell
+Import-OfficePdfXfdf -XfdfPath <string> [-Options <Object[]>] [-MaxXfdfSize <long>] [-PassThru] [-Document <PdfDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Imports bounded DTD-free XFDF through the validated PDF form filler.
+Imports bounded DTD-free XFDF into native PDF forms, with atomic file output or a caller-owned live result.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-Import-OfficePdfXfdf -Path 'C:\Path' -Xfdf 'Value' -OutputPath 'C:\Path'
-```
-
-
-### EXAMPLE 2
-```powershell
-Import-OfficePdfXfdf -Path 'C:\Path' -XfdfPath 'C:\Path' -OutputPath 'C:\Path'
+Import-OfficePdfXfdf -LiteralPath './Form[1].pdf' -XfdfPath ./Values.xfdf -OutputPath ./Completed.pdf
 ```
 
 
 ## PARAMETERS
 
+### -Document
+Native caller-owned PDF; omission uses the enclosing content block.
+
+```yaml
+Type: PdfDocument
+Parameter Sets: Document, DocumentFile
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed form-modification restrictions.
+IgnorePermissionRestrictions setting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Text, File
+Parameter Sets: Path, PathDirectory, PathFile, PathFileDirectory, LiteralPath, LiteralPathFile, LiteralPathDirectory, LiteralPathFileDirectory
 Aliases: None
 Possible values:
 
@@ -54,12 +104,44 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxXfdfBytes
-Maximum UTF-8 byte count accepted from an XFDF file or pipeline. Default: 4 MiB.
+### -LiteralPath
+Literal input PDF paths; accepts FileInfo.FullName.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath, LiteralPathFile, LiteralPathDirectory, LiteralPathFileDirectory
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+Native parsing, authentication and resource policy.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, PathDirectory, PathFile, PathFileDirectory, LiteralPath, LiteralPathFile, LiteralPathDirectory, LiteralPathFileDirectory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxXfdfSize
+MaxXfdfSize setting.
 
 ```yaml
 Type: Int64
-Parameter Sets: Text, File
+Parameter Sets: Document, Path, PathDirectory, PathFile, PathFileDirectory, LiteralPath, LiteralPathFile, LiteralPathDirectory, LiteralPathFileDirectory, DocumentFile
 Aliases: None
 Possible values:
 
@@ -71,11 +153,11 @@ Accept wildcard characters: False
 ```
 
 ### -Options
-Optional validated form filling behavior.
+Options setting.
 
 ```yaml
-Type: PdfFormFillerOptions
-Parameter Sets: Text, File
+Type: Object[]
+Parameter Sets: Document, Path, PathDirectory, PathFile, PathFileDirectory, LiteralPath, LiteralPathFile, LiteralPathDirectory, LiteralPathFileDirectory, DocumentFile
 Aliases: None
 Possible values:
 
@@ -86,12 +168,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -OutputPath
-Destination PDF path.
+### -OutputDirectory
+Batch destination retaining source names.
 
 ```yaml
 Type: String
-Parameter Sets: Text, File
+Parameter Sets: PathDirectory, PathFileDirectory, LiteralPathDirectory, LiteralPathFileDirectory
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -OutputPath
+Single-file destination.
+
+```yaml
+Type: String
+Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile
 Aliases: None
 Possible values:
 
@@ -103,11 +201,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Return the rewritten fluent PDF document.
+Return the changed, caller-owned PDF document. Dispose it when finished.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Text, File
+Parameter Sets: Document, Path, PathDirectory, PathFile, PathFileDirectory, LiteralPath, LiteralPathFile, LiteralPathDirectory, LiteralPathFileDirectory, DocumentFile
 Aliases: None
 Possible values:
 
@@ -119,11 +217,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to authenticate the source form.
+Password setting.
 
 ```yaml
 Type: SecureString
-Parameter Sets: Text, File
+Parameter Sets: Path, PathDirectory, PathFile, PathFileDirectory, LiteralPath, LiteralPathFile, LiteralPathDirectory, LiteralPathFileDirectory
 Aliases: None
 Possible values:
 
@@ -135,43 +233,27 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Source PDF path.
+Input PDF paths with wildcard expansion.
 
 ```yaml
-Type: String
-Parameter Sets: Text, File
-Aliases: FullName, LiteralPath
+Type: String[]
+Parameter Sets: Path, PathDirectory, PathFile, PathFileDirectory
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -ReadOptions
-Optional bounded PDF parsing and password settings for the source form.
-
-```yaml
-Type: PdfLoadOptions
-Parameter Sets: Text, File
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -Xfdf
-XFDF XML.
+Xfdf setting.
 
 ```yaml
 Type: String
-Parameter Sets: Text
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -183,11 +265,11 @@ Accept wildcard characters: False
 ```
 
 ### -XfdfPath
-Path to an XFDF file.
+XfdfPath setting.
 
 ```yaml
 Type: String
-Parameter Sets: File
+Parameter Sets: PathFile, PathFileDirectory, LiteralPathFile, LiteralPathFileDirectory, DocumentFile
 Aliases: None
 Possible values:
 
@@ -204,6 +286,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `System.String`
+- `System.String[]`
+- `OfficeIMO.Pdf.PdfDocument`
 
 ## OUTPUTS
 

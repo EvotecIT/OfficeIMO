@@ -10,7 +10,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
     [Fact]
     public void Native_Pages_spacing_tabs_and_decimal_restarts_survive_strict_DOCX() {
         VerifyManifest("pages-paragraph-list-v15.4.json");
-        using var result = IWorkSourceDocument.Open(Corpus("native-exports/pages-paragraph-list-v15.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(Corpus("native-exports/pages-paragraph-list-v15.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         Assert.True(result.Projection.Body.IsFormattingComplete);
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal(new double?[] { 1.5, 2, 1 }, result.Projection.Body.Paragraphs.Take(3)
@@ -69,7 +69,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
     [InlineData(8192)]
     [InlineData(8)]
     public void Reader_blocks_and_markdown_preserve_native_decimal_counters(int maximumChunkCharacters) {
-        var source = IWorkSourceDocument.Open(Corpus("native-exports/pages-paragraph-list-v15.4.pages"));
+        var source = IWorkSourceDocument.Load(Corpus("native-exports/pages-paragraph-list-v15.4.pages"));
         var output = new OfficeDocumentReadResult { Kind = ReaderInputKind.IWork };
         var reader = new IWorkReadProjection(output, "paragraph-list.pages", new ReaderOptions { MaxChars = maximumChunkCharacters },
             new ReaderIWorkOptions(), System.Threading.CancellationToken.None);

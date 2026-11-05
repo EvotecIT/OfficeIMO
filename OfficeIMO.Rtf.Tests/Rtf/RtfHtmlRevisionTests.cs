@@ -62,7 +62,7 @@ public class RtfHtmlRevisionTests {
         Assert.Equal(RtfRevisionKind.Deleted, removed.RevisionKind);
         Assert.Equal(1, removed.RevisionAuthorIndex);
         Assert.Equal(50, removed.DeletionRevisionSaveId);
-        Assert.False(removed.Strike);
+        Assert.False(removed.Strikethrough);
 
         string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\*\revtbl{Alice;}{Bob;}}", rtf, StringComparison.Ordinal);

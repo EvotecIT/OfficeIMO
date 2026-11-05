@@ -81,7 +81,7 @@ public static partial class PowerPointIWorkConverter {
                     paragraph.SetNumbered(scheme, source.ListNumber ?? start);
                 else paragraph.SetNumbered(scheme);
             } else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
-            if (source.ListFontName != null) paragraph.BulletFontName = source.ListFontName;
+            if (source.ListFontName != null) paragraph.BulletFontFamily = source.ListFontName;
             if (source.ListLayout is { } layout && source.Style.TextStyle.FontSizePoints is double fontSize) {
                 double textOffset = layout.TextIndentEm * fontSize;
                 paragraph.LeftMargin = global::OfficeIMO.OfficeLength.Points(source.Style.LeftIndentPoints.GetValueOrDefault()
@@ -89,7 +89,7 @@ public static partial class PowerPointIWorkConverter {
                 paragraph.Indent = global::OfficeIMO.OfficeLength.Points(source.Style.FirstLineIndentPoints.GetValueOrDefault() - textOffset);
                 if (IWorkDecimalListLayout.TryResolve(source, out double markerSize, out _)) {
                     paragraph.BulletSize = global::OfficeIMO.OfficeLength.Points(checked((int)markerSize));
-                    paragraph.BulletFontName = IWorkDecimalListLayout.MarkerFontName(source);
+                    paragraph.BulletFontFamily = IWorkDecimalListLayout.MarkerFontName(source);
                 } else paragraph.BulletSizePercent = checked((int)Math.Round(layout.MarkerScale * 100d));
             }
         }
@@ -325,8 +325,8 @@ public static partial class PowerPointIWorkConverter {
         if (style.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSizePoints.Value);
         if (style.CharacterSpacingPoints.HasValue) run.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(style.CharacterSpacingPoints.Value);
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontFamily = style.FontName;
-        if (style.Color != null) run.Color = OfficeIMO.OfficeColor.Parse(style.Color.RgbHex);
-        if (style.BackgroundColor != null) run.BackgroundColor = OfficeIMO.OfficeColor.Parse(style.BackgroundColor.RgbHex);
+        if (style.Color != null) run.Color = OfficeColor.FromRgba(style.Color.Red, style.Color.Green, style.Color.Blue, style.Color.Alpha);
+        if (style.BackgroundColor != null) run.BackgroundColor = OfficeColor.FromRgba(style.BackgroundColor.Red, style.BackgroundColor.Green, style.BackgroundColor.Blue, style.BackgroundColor.Alpha);
     }
 
     private static bool CanApplyCharacterTracking(IWorkTextStyle style) => !style.CharacterTrackingEm.HasValue

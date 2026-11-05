@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Reader_comment_limits_keep_original_cell_coordinates_across_flattened_headers() {
         using var package = CommentPackage(IWorkDocumentKind.Numbers);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package);
         IWorkCellComment comment = source.ReadNumbers().Sheets[0].Tables[0].Cells[0].Comment!;
         var cells = new[] { (1, 1), (2, 1), (3, 1), (4, 1), (3, 2) }
             .Select(address => new IWorkTableCell(address.Item1, address.Item2,
@@ -43,7 +43,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Reader_comment_chunks_retain_anchors_and_escape_literal_markup() {
         using var package = CommentPackage(IWorkDocumentKind.Numbers);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package);
         IWorkCellComment native = source.ReadNumbers().Sheets[0].Tables[0].Cells[0].Comment!;
         const string text = "<b>&amp;*review* 😀 \n";
         var comment = new IWorkCellComment(text, "<author>", native.CreationDateUtc,
@@ -80,8 +80,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Reader_comment_identity_metadata_counts_against_the_projection_text_budget() {
         using var package = CommentPackage(IWorkDocumentKind.Numbers);
-        var limits = new IWorkReadOptions { MaxProjectedTextCharacters = 50 };
-        Assert.NotNull(IWorkSourceDocument.Open(package, limits).ReadNumbers().Sheets[0].Tables[0].Cells[0].Comment);
+        var limits = new IWorkLoadOptions { MaxProjectedTextCharacters = 50 };
+        Assert.NotNull(IWorkSourceDocument.Load(package, limits).ReadNumbers().Sheets[0].Tables[0].Cells[0].Comment);
         package.Position = 0;
         var reader = new OfficeDocumentReaderBuilder().AddIWorkHandler(new ReaderIWorkOptions { ReadOptions = limits }).Build();
         Assert.Throws<InvalidDataException>(() => reader.ReadDocument(package, "comments.numbers"));
@@ -90,7 +90,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Reader_comment_output_does_not_amplify_long_table_names_per_cell() {
         using var package = CommentPackage(IWorkDocumentKind.Numbers);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package);
         IWorkCellComment comment = source.ReadNumbers().Sheets[0].Tables[0].Cells[0].Comment!;
         string name = new string('T', 4096);
         var table = new IWorkTable(name, 1, 64, Enumerable.Range(1, 64)

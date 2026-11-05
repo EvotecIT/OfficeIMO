@@ -6,23 +6,24 @@ namespace PSWriteOffice.Cmdlets.Excel;
 
 /// <summary>Lists built-in Excel table styles and compatibility recommendations.</summary>
 /// <example>
-///   <summary>Show table styles recommended for cross-host workbooks.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficeExcelTableStyle -RecommendedOnly |
-///     Sort-Object Name |
-///     Format-Table Name, Profile</code>
-///   <para>Uses OfficeIMO's table style catalog to return styles that are broadly stable across desktop, web, and spreadsheet viewers.</para>
+/// <summary>List the recommended table styles</summary>
+/// <code>Get-OfficeExcelTableStyle -RecommendedOnly</code>
+/// <para>Shows the built-in table styles that render well in every supported host.</para>
+/// </example>
+/// <example>
+/// <summary>Pick styles that render outside desktop Excel</summary>
+/// <code>Get-OfficeExcelTableStyle -Profile CrossHost -RecommendedOnly | Format-Table</code>
+/// <para>Lists the styles recommended for workbooks also opened in web and mobile spreadsheet apps.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeExcelTableStyle", DefaultParameterSetName = "Default")]
-[Alias("ExcelTableStyle")]
 public sealed class GetOfficeExcelTableStyleCommand : PSCmdlet
 {
     /// <summary>Compatibility profile used to evaluate table styles.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public ExcelTableStyleCompatibilityProfile Profile { get; set; } = ExcelTableStyleCompatibilityProfile.CrossHost;
 
     /// <summary>Return only styles recommended for the selected profile.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter RecommendedOnly { get; set; }
 
     /// <inheritdoc />
@@ -36,14 +37,7 @@ public sealed class GetOfficeExcelTableStyleCommand : PSCmdlet
                 continue;
             }
 
-            var record = new PSObject();
-            record.Properties.Add(new PSNoteProperty("Name", info.Name));
-            record.Properties.Add(new PSNoteProperty("Style", info.Style));
-            record.Properties.Add(new PSNoteProperty("Profile", info.Profile));
-            record.Properties.Add(new PSNoteProperty("IsBuiltIn", info.IsBuiltIn));
-            record.Properties.Add(new PSNoteProperty("IsRecommended", info.IsRecommended));
-            record.Properties.Add(new PSNoteProperty("Warning", info.Warning));
-            WriteObject(record);
+            WriteObject(info);
         }
     }
 }

@@ -4,7 +4,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -88,23 +87,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentHelpersCreateSemanticShapesAndRegisteredMasters() {
+        public void NativeHelpersCreateSemanticShapesAndRegisteredMasters() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
             document.RegisterMaster("CustomAudit", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty) { NameU = "CustomAudit" });
 
-            document.AsFluent()
-                .AddPage("Flow", p => p
-                    .AddProcess("p1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Process")
-                    .AddDecision("d1", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Decision")
-                    .AddData("data1", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Data")
-                    .AddPreparation("prep1", OfficeLength.Inches(10), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Prepare")
-                    .AddManualOperation("manual1", OfficeLength.Inches(13), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Manual")
-                    .AddOffPageReference("jump1", OfficeLength.Inches(16), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Jump")
-                    .AddShape("audit1", "CustomAudit", OfficeLength.Inches(19), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Audit"))
-                .End()
-                .Save();
+            document.AddPage("Flow", p => {
+                p.AddProcess("p1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Process");
+                p.AddDecision("d1", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Decision");
+                p.AddData("data1", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Data");
+                p.AddPreparation("prep1", OfficeLength.Inches(10), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Prepare");
+                p.AddManualOperation("manual1", OfficeLength.Inches(13), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Manual");
+                p.AddOffPageReference("jump1", OfficeLength.Inches(16), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Jump");
+                p.AddShape("audit1", "CustomAudit", OfficeLength.Inches(19), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Audit");
+            });
+            document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Equal(new[] { "Process", "Decision", "Data", "Preparation", "Manual operation", "Off-page reference", "CustomAudit" }, loaded.Pages[0].Shapes.Select(shape => shape.NameU));

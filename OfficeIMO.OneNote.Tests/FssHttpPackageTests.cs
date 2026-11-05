@@ -6,7 +6,7 @@ public sealed class FssHttpPackageTests {
     [InlineData("testOneNoteFromOffice365-2.one")]
     public void ParsesBoundedStreamObjectTree(string fixture) {
         using FileStream stream = File.OpenRead(FixturePath(fixture));
-        var options = new OneNoteReaderOptions();
+        var options = new OneNoteLoadOptions();
 
         FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, options);
 
@@ -33,7 +33,7 @@ public sealed class FssHttpPackageTests {
     [Fact]
     public void StreamObjectCountLimitStopsPackageTraversal() {
         using FileStream stream = File.OpenRead(FixturePath("testOneNoteFromOffice365.one"));
-        var options = new OneNoteReaderOptions { MaxStreamObjects = 2 };
+        var options = new OneNoteLoadOptions { MaxStreamObjects = 2 };
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() => FssHttpStreamObjectReader.ReadPackaging(stream, options));
 
@@ -270,7 +270,7 @@ public sealed class FssHttpPackageTests {
             Assert.Equal(payload, raw.Skip(2).ToArray());
         }
 
-        OneNoteSection section = OneNoteSectionReader.Read(new MemoryStream(data));
+        OneNoteSection section = OneNoteSection.Load(new MemoryStream(data));
         OneNoteEmbeddedFile file = Assert.Single(section.Pages.SelectMany(page => page.Outlines).SelectMany(outline => outline.Children).OfType<OneNoteEmbeddedFile>());
         Assert.Equal(payload, file.Payload!.ToArray(payload.Length));
     }
@@ -281,15 +281,15 @@ public sealed class FssHttpPackageTests {
         byte[] second = Enumerable.Repeat((byte)2, 300).ToArray();
         byte[] data = WriteSectionWithEmbeddedFiles(first, second);
 
-        OneNoteSection section = OneNoteSectionReader.Read(new MemoryStream(data), new OneNoteReaderOptions { MaxAssetBytes = 300, MaxTotalAssetBytes = 600 });
+        OneNoteSection section = OneNoteSection.Load(new MemoryStream(data), new OneNoteLoadOptions { MaxAssetBytes = 300, MaxTotalAssetBytes = 600 });
 
         Assert.Equal(new[] { first, second }, section.Pages.SelectMany(page => page.Outlines).SelectMany(outline => outline.Children).OfType<OneNoteEmbeddedFile>().Select(file => file.Payload!.ToArray(300)).ToArray());
         Assert.Equal("ONENOTE_ASSET_LIMIT", Assert.Throws<OneNoteFormatException>(() => OneNoteRevisionStoreReader.Read(
             new MemoryStream(data),
-            new OneNoteReaderOptions { MaxAssetBytes = 299 })).Code);
+            new OneNoteLoadOptions { MaxAssetBytes = 299 })).Code);
         Assert.Equal("ONENOTE_ASSET_LIMIT", Assert.Throws<OneNoteFormatException>(() => OneNoteRevisionStoreReader.Read(
             new MemoryStream(data),
-            new OneNoteReaderOptions { MaxAssetBytes = 300, MaxTotalAssetBytes = 599 })).Code);
+            new OneNoteLoadOptions { MaxAssetBytes = 300, MaxTotalAssetBytes = 599 })).Code);
     }
 
     [Fact]
@@ -320,7 +320,7 @@ public sealed class FssHttpPackageTests {
 
     private static void DuplicateSecondUserRevisionIdentifier(byte[] data) {
         using var stream = new MemoryStream(data);
-        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteReaderOptions());
+        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteLoadOptions());
         FssHttpStreamObject package = Assert.Single(packaging.Children, item => item.Type == 0x15);
         FssHttpStreamObject[] revisionDeclarations = package.Children
             .Where(item => DataElementType(stream, item) == 4)
@@ -341,7 +341,7 @@ public sealed class FssHttpPackageTests {
 
     private static void ChangeFirstNonStorageElementToStorageIndex(byte[] data) {
         using var stream = new MemoryStream(data);
-        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteReaderOptions());
+        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteLoadOptions());
         FssHttpStreamObject package = Assert.Single(packaging.Children, item => item.Type == 0x15);
         FssHttpStreamObject element = Assert.Single(
             package.Children.Where(item => DataElementType(stream, item) != 1).Take(1));
@@ -413,7 +413,7 @@ public sealed class FssHttpPackageTests {
 
     private static FssHttpStreamObject FindPropertySetObject(byte[] data, OneNoteExtendedGuid objectId, out FssHttpStreamObject declaration) {
         using var stream = new MemoryStream(data);
-        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteReaderOptions());
+        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteLoadOptions());
         FssHttpStreamObject package = Assert.Single(packaging.Children, item => item.Type == 0x15);
         foreach (FssHttpStreamObject group in package.Children.Where(item => DataElementType(stream, item) == 5)) {
             FssHttpStreamObject[] declarations = Assert.Single(group.Children, item => item.Type == 0x1D).Children
@@ -437,7 +437,7 @@ public sealed class FssHttpPackageTests {
     private static byte[] ReplacePropertySet(byte[] data, OneNoteExtendedGuid objectId, OneNoteEncodedPropertySet replacement) {
         FssHttpStreamObject objectData = FindPropertySetObject(data, objectId, out FssHttpStreamObject declaration);
         using var source = new MemoryStream(data);
-        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(source, new OneNoteReaderOptions());
+        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(source, new OneNoteLoadOptions());
         using var declarationData = new MemoryStream();
         FssHttpStreamObjectWriter.WriteExtendedGuid(declarationData, objectId);
         FssHttpStreamObjectWriter.WriteCompactUInt64(declarationData, 1);
@@ -476,11 +476,11 @@ public sealed class FssHttpPackageTests {
             });
         }
         section.Pages.Add(page);
-        return OneNoteSectionWriter.Write(section, new OneNoteWriterOptions { StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage });
+        return section.ToBytes(new OneNoteSaveOptions { StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage });
     }
 
     private static IEnumerable<FssHttpStreamObject> FindObjectDataBlobs(Stream stream) {
-        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteReaderOptions());
+        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteLoadOptions());
         FssHttpStreamObject package = Assert.Single(packaging.Children, item => item.Type == 0x15);
         return package.Children
             .Where(item => DataElementType(stream, item) == 10)

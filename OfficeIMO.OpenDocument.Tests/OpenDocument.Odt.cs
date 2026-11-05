@@ -36,7 +36,7 @@ public class OpenDocumentOdtTests {
         document.Properties.Title = "Native ODT";
         document.AddHeading("Quarterly report", 1);
         OdtParagraph paragraph = document.AddParagraph("Revenue  increased\t12%\nYear over year.");
-        OdtSpan span = paragraph.AddSpan(" Important");
+        OdtSpan span = paragraph.AddRun(" Important");
         span.Bold = true;
         span.Color = OdfColor.Parse("#B42318");
         paragraph.AddHyperlink("Details", "https://example.test/report");

@@ -1,0 +1,24 @@
+{
+  "package": "OfficeIMO.Markup",
+  "status": "Current native code-emission and package contracts.",
+  "changes": [
+    {
+      "old": "OfficeMarkupCSharpEmitter.Emit workbook/presentation code with former enums, chart overloads and A1 names",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeMarkupCSharpEmitter.Emit code using ExcelTableStyle, ExcelA1, PowerPointSlideTransition and type/data/options chart calls",
+      "reason": "Generated programs compile against the same public APIs as handwritten consumers. Formatting keeps the supported native setters, including bold, italic, underline, colors, alignment, wrapping and borders. The emitter remains an editable code handoff.",
+      "file": "OfficeIMO.Markup/Emitters/OfficeMarkupCSharpEmitter.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeMarkupPowerShellEmitter.Emit workbook charts through AddChartFromRange positional arguments",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeMarkupPowerShellEmitter.Emit workbook charts through AddChart with OfficeChartType and ExcelChartOptions",
+      "reason": "Generated PowerShell captures pixel dimensions and one-based chart placement in native options instead of calling removed chart overloads. Existing formatting setters and the generated script lifecycle remain unchanged.",
+      "file": "OfficeIMO.Markup/Emitters/OfficeMarkupPowerShellEmitter.cs",
+      "category": "authoring"
+    }
+  ]
+}

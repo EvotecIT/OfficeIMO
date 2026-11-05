@@ -42,7 +42,7 @@ $rows | Export-Excel -Path '.\Report.xlsx' -WorksheetName 'Data' -AutoSize
 PSWriteOffice also has a compact pipeline for the common case:
 
 ```powershell
-$rows | Export-OfficeExcel -Path '.\Report.xlsx' -WorksheetName 'Data' -TableName 'Data'
+$rows | Export-OfficeExcel -Path '.\Report.xlsx' -Sheet 'Data' -TableName 'Data'
 ```
 
 Move to the document DSL when the workbook structure is part of the job:
@@ -50,7 +50,7 @@ Move to the document DSL when the workbook structure is part of the job:
 ```powershell
 New-OfficeExcel -Path '.\Report.xlsx' {
     Add-OfficeExcelSheet -Name 'Data' {
-        Add-OfficeExcelTable -InputObject $rows -TableName 'Data' -AutoFit
+        Add-OfficeExcelTable -InputObject $rows -Name 'Data'
     }
 }
 ```
@@ -65,7 +65,7 @@ $rows | Export-Workbook '.\Report.xlsx'
 
 ```powershell
 $importExcelRows = Import-Excel -Path '.\Report.xlsx' -WorksheetName 'Data'
-$psWriteOfficeRows = Import-OfficeExcel -Path '.\Report.xlsx' -WorksheetName 'Data'
+$psWriteOfficeRows = Import-OfficeExcel -Path '.\Report.xlsx' -Sheet 'Data'
 $excelFastRows = Import-Workbook '.\Report.xlsx'
 ```
 

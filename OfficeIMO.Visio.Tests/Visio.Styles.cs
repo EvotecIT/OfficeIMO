@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
-using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
 using Color = OfficeIMO.OfficeColor;
@@ -35,13 +34,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(theme.ControlConnector.TextStyle!.Color, connector.TextStyle!.Color);
 
             VisioDocument fluentDocument = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            fluentDocument.AsFluent()
-                .AddPage("Fluent", pageBuilder => pageBuilder
-                    .AddRectangle("a", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "A")
-                    .GetShape("a", shape => shape.ApplyStyle(theme.Success))
-                    .AddRectangle("b", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "B")
-                    .AddConnector("a", "b", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connection => connection.ApplyStyle(theme.DataConnector)))
-                .End();
+            fluentDocument
+                .AddPage("Fluent", pageBuilder => {
+                    pageBuilder.AddRectangle("a", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "A");
+                    pageBuilder.GetShape("a", shape => shape.ApplyStyle(theme.Success));
+                    pageBuilder.AddRectangle("b", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "B");
+                    pageBuilder.AddConnector("a", "b", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connection => connection.ApplyStyle(theme.DataConnector));
+                });
 
             Assert.Equal(theme.Success.FillColor, fluentDocument.Pages[0].Shapes[0].FillColor);
             Assert.Equal(theme.DataConnector.LineColor, fluentDocument.Pages[0].Connectors[0].LineColor);
@@ -162,25 +161,27 @@ namespace OfficeIMO.Tests {
             string technicalPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string printPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument.Create(technicalPath)
-                .BlockDiagram("Technical System", diagram => diagram
-                    .Theme(VisioStyleTheme.Technical())
-                    .Region("platform", "Platform", 0, 0, 3, 1)
-                    .Block("api", "API", 0, 0)
-                    .EmphasisBlock("worker", "Worker", 1, 0)
-                    .Block("queue", "Queue", 2, 0)
-                    .DataFlow("api", "worker", "request")
-                    .ControlFlow("worker", "queue", "dispatch"))
-                .Save();
+            using var nativeDocument2 = VisioDocument.Create(technicalPath);
+            nativeDocument2.BlockDiagram("Technical System", diagram => {
+                diagram.Theme(VisioStyleTheme.Technical());
+                diagram.Region("platform", "Platform", 0, 0, 3, 1);
+                diagram.Block("api", "API", 0, 0);
+                diagram.EmphasisBlock("worker", "Worker", 1, 0);
+                diagram.Block("queue", "Queue", 2, 0);
+                diagram.DataFlow("api", "worker", "request");
+                diagram.ControlFlow("worker", "queue", "dispatch");
+            });
+            nativeDocument2.Save();
 
-            VisioDocument.Create(printPath)
-                .Flowchart("Print Safe Approval", flow => flow
-                    .Theme(VisioStyleTheme.Print())
-                    .Start("start", "Request")
-                    .Step("review", "Review")
-                    .Decision("approved", "Approved?")
-                    .End("done", "Done"))
-                .Save();
+            using var nativeDocument1 = VisioDocument.Create(printPath);
+            nativeDocument1.Flowchart("Print Safe Approval", flow => {
+                flow.Theme(VisioStyleTheme.Print());
+                flow.Start("start", "Request");
+                flow.Step("review", "Review");
+                flow.Decision("approved", "Approved?");
+                flow.End("done", "Done");
+            });
+            nativeDocument1.Save();
 
             Assert.Empty(VisioValidator.Validate(technicalPath));
             Assert.Empty(VisioValidator.Validate(printPath));
@@ -192,12 +193,7 @@ namespace OfficeIMO.Tests {
             VisioStyleTheme theme = VisioStyleTheme.Minimal();
 
             VisioDocument document = VisioDocument.Create(filePath)
-                .Flowchart("Styled Flowchart", flow => flow
-                    .Theme(theme)
-                    .Start("start", "Start")
-                    .Step("step", "Do work")
-                    .Decision("decision", "Done?")
-                    .End("end", "End"));
+                .Flowchart("Styled Flowchart", flow => { flow.Theme(theme); flow.Start("start", "Start"); flow.Step("step", "Do work"); flow.Decision("decision", "Done?"); flow.End("end", "End"); });
 
             VisioPage page = document.Pages[0];
 
@@ -217,12 +213,13 @@ namespace OfficeIMO.Tests {
             VisioStyleTheme theme = VisioStyleTheme.Dark();
 
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
-                .BlockDiagram("Styled Blocks", diagram => diagram
-                    .Theme(theme)
-                    .Region("region", "Zone", 0, 0, 2, 1)
-                    .Block("input", "Input", 0, 0)
-                    .EmphasisBlock("worker", "Worker", 1, 0)
-                    .ControlFlow("input", "worker", "control"));
+                .BlockDiagram("Styled Blocks", diagram => {
+                    diagram.Theme(theme);
+                    diagram.Region("region", "Zone", 0, 0, 2, 1);
+                    diagram.Block("input", "Input", 0, 0);
+                    diagram.EmphasisBlock("worker", "Worker", 1, 0);
+                    diagram.ControlFlow("input", "worker", "control");
+                });
 
             VisioPage page = document.Pages[0];
             VisioShape region = page.Shapes.Single(shape => shape.Id == "region");

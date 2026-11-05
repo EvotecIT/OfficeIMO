@@ -176,6 +176,15 @@
       "category": "conversion",
       "phase": "M4",
       "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.OfficeConverter.ConvertAsync(Stream, OfficeDocumentFormat, Stream, OfficeDocumentFormat, OfficeConversionOptions, CancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(Stream, OfficeDocumentFormat, Stream, OfficeDocumentFormat, OfficeConversionOptions, CancellationToken)",
+      "replacement": "The optional format bundle reopens RTF, AsciiDoc, LaTeX, OpenDocument and OneNote artifacts through its existing native engines. Existing Word/Excel/PowerPoint/PDF/HTML/Markdown validation remains in OfficeConverter. New first-party optional adapters are referenced by Workflows; the front-door dependency boundary does not gain those engines.",
+      "category": "conversion",
+      "applied": true
     }
   ],
   "packageMoves": [
@@ -572,6 +581,18 @@
         "OfficeIMO.Studio.Tests/StudioAnnotationSelectionTests.cs",
         "OfficeIMO.Studio.Tests/PdfEditorCommandTests.cs"
       ]
+    },
+    {
+      "subject": "Native document validation",
+      "note": "OfficeDocument.Validate(source, checks, options, cancellationToken) accepts a file path or native model and owns structural, schema, package security, accessibility and PDF compliance/preservation checks. OfficeDocumentValidationOptions, OfficeExcelValidationOptions and OfficePdfValidationOptions retain existing engine policies and typed native evidence. Borrowed models remain open and include unsaved edits; optional format checks are explicitly not applicable. Test-OfficeDocument is a thin consumer of this owner.",
+      "status": "applied"
+    },
+    {
+      "subject": "Native OCR CSV projection options",
+      "note": "OfficeConversionOptions.CsvSave uses existing OfficeIMO.CSV.CsvSaveOptions, snapshots with Clone, and rejects portable serialization. Real consumer: native OCR projection dispatch in OfficeImageExporter and canonical Convert typed binding. Omitted CSV options escape spreadsheet formulas; supplied complete options retain their policy. The first detected source row is written once as data.",
+      "file": "OfficeIMO/OfficeConversionOptions.cs",
+      "category": "conversion",
+      "applied": "applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

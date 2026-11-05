@@ -11,7 +11,7 @@ using OfficeIMO.Xps;
 namespace OfficeIMO.Workflows;
 
 /// <summary>Settings for the additional format routes registered by <see cref="OfficeWorkflow.RegisterConversions"/>.</summary>
-public sealed class OfficeWorkflowRouteSettings : IOfficeConversionSettings {
+public sealed partial class OfficeWorkflowRouteSettings : IOfficeConversionSettings {
     /// <summary>RTF projection and PDF settings.</summary>
     public RtfPdfExportOptions? Rtf { get; set; }
     /// <summary>OpenDocument drawing projection and PDF settings.</summary>
@@ -39,8 +39,8 @@ public sealed class OfficeWorkflowRouteSettings : IOfficeConversionSettings {
     /// <inheritdoc />
     public IOfficeConversionSettings Snapshot() {
         OfficeWorkflowRenderingOptions copy = Capture(false);
-        return new OfficeWorkflowRouteSettings { Rtf = copy.Rtf, Draw = copy.Draw, Visio = copy.Visio,
+        return CopyPairSettingsTo(new OfficeWorkflowRouteSettings { Rtf = copy.Rtf, Draw = copy.Draw, Visio = copy.Visio,
             PublisherRead = copy.PublisherRead, PublisherPdf = copy.PublisherPdf, Xps = copy.Xps,
-            DjVu = copy.DjVu, Chm = copy.Chm, ChmHtml = copy.Html };
+            DjVu = copy.DjVu, Chm = copy.Chm, ChmHtml = copy.Html });
     }
 }

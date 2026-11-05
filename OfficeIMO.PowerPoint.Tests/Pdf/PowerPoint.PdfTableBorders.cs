@@ -19,13 +19,13 @@ public sealed class PowerPointPdfTableBorderTests {
                 var cell = table.GetCell(row, column);
                 cell.Text = row == 0 ? "Plain" : "Body";
                 cell.Color = OfficeColor.Parse("000000");
-                cell.FillColor = "FFFFFF";
-                cell.SetBorders(PowerPointTableCellBorders.All, "000000", global::OfficeIMO.OfficeLength.Points(2));
+                cell.FillColor = OfficeColor.Parse("FFFFFF");
+                cell.SetBorders(PowerPointTableCellBorders.All, OfficeColor.Parse("000000"), global::OfficeIMO.OfficeLength.Points(2));
             }
             table.GetCell(0, 0).HideBorders(PowerPointTableCellBorders.Right);
             table.GetCell(0, 1).HideBorders(PowerPointTableCellBorders.Left);
-            table.GetCell(0, 0).SetBorders(PowerPointTableCellBorders.Bottom, "FF3333", global::OfficeIMO.OfficeLength.Points(3));
-            table.GetCell(1, 0).SetBorders(PowerPointTableCellBorders.Top, "FF3333", global::OfficeIMO.OfficeLength.Points(3));
+            table.GetCell(0, 0).SetBorders(PowerPointTableCellBorders.Bottom, OfficeColor.Parse("FF3333"), global::OfficeIMO.OfficeLength.Points(3));
+            table.GetCell(1, 0).SetBorders(PowerPointTableCellBorders.Top, OfficeColor.Parse("FF3333"), global::OfficeIMO.OfficeLength.Points(3));
             presentation.Save(saved);
         }
         saved.Position = 0;

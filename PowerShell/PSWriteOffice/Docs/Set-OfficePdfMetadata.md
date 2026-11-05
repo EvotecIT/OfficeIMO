@@ -9,19 +9,34 @@ schema: 2.0.0
 Updates metadata on a generated PDF, an open editing block, or file copies.
 
 ## SYNTAX
-### Document (Default)
+### Context (Default)
 ```powershell
-Set-OfficePdfMetadata [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Incremental] [-Document <PdfDocument>] [-AllowLoss] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfMetadata [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Document
+```powershell
+Set-OfficePdfMetadata -Document <PdfDocument> [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Set-OfficePdfMetadata [-Path] <string[]> [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Incremental] [-OutputPath <string>] [-OutputDirectory <string>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-AllowLoss] [-PassThru] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfMetadata [-Path] <string[]> -OutputPath <string> [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Incremental] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathDirectory
+```powershell
+Set-OfficePdfMetadata [-Path] <string[]> -OutputDirectory <string> [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Incremental] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Set-OfficePdfMetadata -LiteralPath <string[]> [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Incremental] [-OutputPath <string>] [-OutputDirectory <string>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-AllowLoss] [-PassThru] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfMetadata -LiteralPath <string[]> -OutputPath <string> [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Incremental] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathDirectory
+```powershell
+Set-OfficePdfMetadata -LiteralPath <string[]> -OutputDirectory <string> [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Incremental] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -43,28 +58,12 @@ Open-OfficePdf ./Report.pdf -OutputPath ./Reviewed.pdf { PdfMetadata -Title 'Rev
 
 ## PARAMETERS
 
-### -AllowLoss
-Explicitly accept fidelity loss when saving file outputs.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Document, Path, LiteralPath
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Author
 Document author; an empty string clears it.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path, LiteralPath
+Parameter Sets: Context, Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -76,7 +75,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Explicit native input; omission uses the enclosing New-/Open- content block.
+Explicit caller-owned document for inspection or editing.
 
 ```yaml
 Type: PdfDocument
@@ -84,7 +83,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -96,7 +95,7 @@ After authentication, explicitly ignore owner-imposed usage restrictions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -112,7 +111,7 @@ Append a metadata revision instead of rewriting existing PDF content.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Document, Path, LiteralPath
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -128,7 +127,7 @@ Document keywords; an empty string clears them.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path, LiteralPath
+Parameter Sets: Context, Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -140,12 +139,12 @@ Accept wildcard characters: False
 ```
 
 ### -LiteralPath
-Gets or sets input paths without wildcard expansion, binding FileInfo.FullName and provider PSPath.
+Literal input files, including FileInfo.FullName.
 
 ```yaml
 Type: String[]
-Parameter Sets: LiteralPath
-Aliases: PSPath, FullName
+Parameter Sets: LiteralPath, LiteralPathDirectory
+Aliases: FullName, PSPath
 Possible values:
 
 Required: True
@@ -156,27 +155,11 @@ Accept wildcard characters: False
 ```
 
 ### -LoadOptions
-Native source parsing, authentication and resource-limit settings.
+Native source parsing, authentication and resource settings.
 
 ```yaml
 Type: PdfLoadOptions
-Parameter Sets: Path, LiteralPath
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoClobber
-Refuse replacement of an existing file output.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -188,15 +171,15 @@ Accept wildcard characters: False
 ```
 
 ### -OutputDirectory
-Destination folder for one or more inputs, retaining their file names.
+Destination folder retaining input file names.
 
 ```yaml
 Type: String
-Parameter Sets: Path, LiteralPath
+Parameter Sets: PathDirectory, LiteralPathDirectory
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -204,7 +187,7 @@ Accept wildcard characters: False
 ```
 
 ### -OutputPath
-Single-file destination. Cannot be combined with OutputDirectory.
+Single-file destination.
 
 ```yaml
 Type: String
@@ -212,7 +195,7 @@ Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -224,7 +207,7 @@ Emit the updated native document or each saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Document, Path, LiteralPath
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -236,11 +219,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Source password as secure input or a warned plaintext value.
+Source password.
 
 ```yaml
 Type: SecureString
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -252,18 +235,18 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Gets or sets input paths with provider wildcard expansion.
+Input files with FileSystem wildcard expansion.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path
+Parameter Sets: Path, PathDirectory
 Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: True
 ```
 
@@ -272,23 +255,7 @@ Document subject; an empty string clears it.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path, LiteralPath
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ThrottleLimit
-Gets or sets the maximum number of concurrent background operations.
-
-```yaml
-Type: Int32
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Context, Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -304,7 +271,7 @@ Document title; an empty string clears it.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path, LiteralPath
+Parameter Sets: Context, Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 

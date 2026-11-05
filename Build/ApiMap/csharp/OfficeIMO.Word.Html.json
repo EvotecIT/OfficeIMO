@@ -670,6 +670,12 @@
       "files": [
         "OfficeIMO.Html.Tests/Html.WordToHtml.cs"
       ]
+    },
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "HtmlWordExportOptions.Theme",
+      "reason": "Applies immutable shared theme at native Word creation; cloned conversion settings retain it."
     }
   ],
   "applicationStatus": "Phase A applied and validated on macOS, including standard-library and modern-framework runtime proof. Windows .NET Framework validation remains pending.",

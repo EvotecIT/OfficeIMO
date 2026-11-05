@@ -69,7 +69,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(270));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.BackgroundColor = "F8FAFC";
+        slide.BackgroundColor = OfficeColor.Parse("F8FAFC");
         PowerPointTextBox title = slide.AddTextBox("Delivery dashboard",global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(34));
         title.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         title.Bold = true;
@@ -86,8 +86,8 @@ public sealed class ImageExportProviderVisualBaselineTests {
         evidence.FontFamily = PortableFontFamily;
         evidence.Color = OfficeColor.Parse("155E75");
         slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(28), OfficeIMO.OfficeLength.Points(178), OfficeIMO.OfficeLength.Points(174), OfficeIMO.OfficeLength.Points(46))
-            .Fill("DBEAFE")
-            .Stroke("2563EB", global::OfficeIMO.OfficeLength.Points(1D));
+            .Fill(OfficeColor.Parse("DBEAFE"))
+            .Stroke(OfficeColor.Parse("2563EB"), global::OfficeIMO.OfficeLength.Points(1D));
         using (var image = new MemoryStream(CreateVisualBadge())) {
             slide.AddImage(
                 image,

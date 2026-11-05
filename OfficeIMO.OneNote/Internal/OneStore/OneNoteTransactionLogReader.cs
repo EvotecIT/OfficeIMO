@@ -8,7 +8,7 @@ internal static class OneNoteTransactionLogReader {
     internal static IReadOnlyDictionary<uint, int> Read(
         Stream stream,
         OneNoteFileHeader header,
-        OneNoteReaderOptions options) {
+        OneNoteLoadOptions options) {
         if (!header.TransactionLog.HasValue || !header.TransactionCount.HasValue || !header.ExpectedFileLength.HasValue) {
             throw new OneNoteFormatException("ONENOTE_TRANSACTION_LOG_HEADER", "The revision-store header does not expose a complete transaction log reference.");
         }

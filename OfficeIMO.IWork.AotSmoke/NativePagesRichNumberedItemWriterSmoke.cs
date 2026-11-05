@@ -7,9 +7,9 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 internal static class NativePagesRichNumberedItemWriterSmoke {
     internal static void Run() {
-        var document = Example(); byte[] bytes = document.SaveBytes();
+        var document = Example(); byte[] bytes = document.ToBytes();
         Require(Convert.ToHexString(SHA256.HashData(bytes)) == "9AAB5AA4C78F2F0A427255D8126C6CA80D44CCFFB9E23E51854E10E862AC898A"
-            && bytes.SequenceEqual(document.SaveBytes()), "Rich native Pages creation differs from the Apple-accepted package.");
+            && bytes.SequenceEqual(document.ToBytes()), "Rich native Pages creation differs from the Apple-accepted package.");
         Verify(bytes, "Resumed parent ten");
         byte[] edited = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "pages-created-rich-numbering-edited.pages"));
         Require(Convert.ToHexString(SHA256.HashData(edited)) == "817ABBEE08E66209C4282EC04D2A2DCF35F9CC2F4CA0D89F8D1B2B49ADEDB880",
@@ -20,7 +20,7 @@ internal static class NativePagesRichNumberedItemWriterSmoke {
             list.AddRichItem(new[] { new IWorkTextRunData("Fractional size", "Arial", 14.5f) }, restartAt: 100);
             throw new InvalidOperationException("Fractional rich-list size was accepted.");
         } catch (ArgumentException) { }
-        Require(bytes.SequenceEqual(document.SaveBytes()) && list.AddItem("Next").ListNumber == 11,
+        Require(bytes.SequenceEqual(document.ToBytes()) && list.AddItem("Next").ListNumber == 11,
             "Rejected rich-list input changed counters or document state.");
         using var output = new MemoryStream(); output.WriteByte(9);
         try {
@@ -32,7 +32,7 @@ internal static class NativePagesRichNumberedItemWriterSmoke {
     }
 
     private static void Verify(byte[] bytes, string lastText) {
-        var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadPages();
+        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
         Require(projection.Diagnostics.Count == 0 && projection.SourceDeclarationIssues.Count == 0
             && projection.SourceReferenceIssues.Count == 0 && projection.Body.IsFormattingComplete,
             "Rich Pages source has unqualified declarations.");

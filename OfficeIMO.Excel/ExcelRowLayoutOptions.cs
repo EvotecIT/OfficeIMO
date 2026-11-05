@@ -46,12 +46,12 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Optional font family applied to cells in the target column span.
         /// </summary>
-        public string? FontName { get; set; }
+        public string? FontFamily { get; set; }
 
         /// <summary>
-        /// Optional background color applied to cells in the target column span. Accepts RGB or ARGB hex text.
+        /// Optional background color applied to cells in the target column span. Native theme roles remain linked to the workbook theme.
         /// </summary>
-        public string? BackgroundColor { get; set; }
+        public OfficeColor? BackgroundColor { get; set; }
 
         /// <summary>
         /// First 1-based column affected by cell style options. Defaults to the worksheet used range.

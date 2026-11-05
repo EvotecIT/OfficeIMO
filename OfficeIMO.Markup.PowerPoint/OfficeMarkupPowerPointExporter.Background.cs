@@ -4,15 +4,15 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.Markup.PowerPoint;
 
 internal sealed partial class OfficeMarkupPowerPointExporter {
-    private static void ApplyBackground(PowerPointSlide slide, string? background, PowerPointDesignTheme theme, MarkupPowerPointExportOptions options, SlideCanvasMetrics metrics) {
-        var spec = ParseBackground(background, theme, options);
+    private static IReadOnlyList<OfficeMarkupDiagnostic> ApplyBackground(PowerPointSlide slide, OfficeMarkupSlideBlock source, PowerPointDesignTheme theme, MarkupPowerPointExportOptions options, SlideCanvasMetrics metrics) {
+        var spec = ParseBackground(source.Background, theme, options);
         if (!string.IsNullOrWhiteSpace(spec.GradientStartColor) && !string.IsNullOrWhiteSpace(spec.GradientEndColor)) {
             slide.SetBackgroundGradient(
-                spec.GradientStartColor!,
-                spec.GradientEndColor!,
+                OfficeColor.Parse(spec.GradientStartColor!),
+                OfficeColor.Parse(spec.GradientEndColor!),
                 spec.GradientAngleDegrees ?? 135d);
         } else if (!string.IsNullOrWhiteSpace(spec.Color)) {
-            slide.BackgroundColor = spec.Color;
+            slide.BackgroundColor = OfficeColor.Parse(spec.Color!);
         }
 
         if (!string.IsNullOrWhiteSpace(spec.ImagePath)) {
@@ -27,11 +27,18 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 OfficeIMO.OfficeLength.Inches(metrics.Width),
                 OfficeIMO.OfficeLength.Inches(metrics.Height),
                 "OfficeIMO Markup Background Overlay");
-            overlay.FillColor = spec.OverlayColor;
+            overlay.FillColor = OfficeColor.Parse(spec.OverlayColor!);
             overlay.FillTransparency = spec.OverlayTransparency;
-            overlay.OutlineColor = spec.OverlayColor;
+            overlay.OutlineColor = OfficeColor.Parse(spec.OverlayColor!);
             overlay.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
         }
+        return spec.ImageRequested && string.IsNullOrWhiteSpace(spec.ImagePath)
+            ? new[] { new OfficeMarkupDiagnostic(
+                OfficeMarkupDiagnosticSeverity.Warning,
+                "Background image is omitted because its source could not be resolved under the configured image path policy.",
+                source,
+                OfficeConversionLossKind.Omission) }
+            : Array.Empty<OfficeMarkupDiagnostic>();
     }
 
     private static string? ParseBackgroundColor(string? background, PowerPointDesignTheme? theme) {
@@ -65,6 +72,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             GradientStartColor = gradientStartColor,
             GradientEndColor = gradientEndColor,
             GradientAngleDegrees = TryParseGradientAngle(angle, out var gradientAngleDegrees) ? gradientAngleDegrees : null,
+            ImageRequested = image != null,
             ImagePath = resolvedImage
         };
 
@@ -203,46 +211,46 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         switch (Normalize(value!)) {
             case "primary":
-                return theme.AccentDarkColor;
+                return theme.AccentDarkColor.ToString();
             case "accent":
             case "accent1":
             case "brand":
-                return theme.AccentColor;
+                return theme.AccentColor.ToString();
             case "accentdark":
-                return theme.AccentDarkColor;
+                return theme.AccentDarkColor.ToString();
             case "accentlight":
-                return theme.AccentLightColor;
+                return theme.AccentLightColor.ToString();
             case "accent2":
             case "secondary":
-                return theme.Accent2Color;
+                return theme.Accent2Color.ToString();
             case "accent3":
             case "tertiary":
-                return theme.Accent3Color;
+                return theme.Accent3Color.ToString();
             case "warning":
-                return theme.WarningColor;
+                return theme.WarningColor.ToString();
             case "background":
             case "background1":
             case "bg1":
-                return theme.BackgroundColor;
+                return theme.BackgroundColor.ToString();
             case "surface":
             case "background2":
             case "bg2":
-                return theme.SurfaceColor;
+                return theme.SurfaceColor.ToString();
             case "panel":
-                return theme.PanelColor;
+                return theme.PanelColor.ToString();
             case "panelborder":
             case "border":
-                return theme.PanelBorderColor;
+                return theme.PanelBorderColor.ToString();
             case "text":
             case "text1":
             case "foreground":
-                return theme.PrimaryTextColor;
+                return theme.PrimaryTextColor.ToString();
             case "text2":
             case "secondarytext":
-                return theme.SecondaryTextColor;
+                return theme.SecondaryTextColor.ToString();
             case "muted":
             case "mutedtext":
-                return theme.MutedTextColor;
+                return theme.MutedTextColor.ToString();
             case "white":
                 return "FFFFFF";
             case "black":
@@ -257,6 +265,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         public string? GradientStartColor { get; set; }
         public string? GradientEndColor { get; set; }
         public double? GradientAngleDegrees { get; set; }
+        public bool ImageRequested { get; set; }
         public string? ImagePath { get; set; }
         public string? OverlayColor { get; set; }
         public int? OverlayTransparency { get; set; }

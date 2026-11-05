@@ -6,30 +6,45 @@ schema: 2.0.0
 ---
 # New-OfficeHtmlPdfOptions
 ## SYNOPSIS
-Creates typed HTML rendering options for Export-OfficeDocumentPdf.
+Creates HTML-to-PDF options for Convert-OfficeDocument -To Pdf.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeHtmlPdfOptions [-Options <HtmlPdfExportOptions>] [-PdfOptions <PdfCreateOptions>] [-FontFamily <string>] [-Margin <Double>] [-IncludeLocalResources] [-InteractiveFormControls <Boolean>] [<CommonParameters>]
+New-OfficeHtmlPdfOptions [-BaseOptions <HtmlPdfExportOptions>] [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-Margin <OfficeLength>] [-IncludeLocalResources] [-NoInteractiveFormControls] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates typed HTML rendering options for Export-OfficeDocumentPdf.
+Creates HTML-to-PDF options for Convert-OfficeDocument -To Pdf.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeHtmlPdfOptions -FontFamily Arial -IncludeLocalResources
-Export-OfficeDocumentPdf -InputPath .\Report.html -Path .\Report.pdf -MarkdownHtmlExportOptions $options
+Convert-OfficeDocument -Path .\Report.html -To Pdf -OutputPath .\Report.pdf -Options (New-OfficeHtmlPdfOptions -Margin 2cm)
 ```
 
 
 ## PARAMETERS
 
-### -FontFamily
-Default HTML font family.
+### -BaseOptions
+BaseOptions for this operation.
+
+```yaml
+Type: HtmlPdfExportOptions
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Font
+Font for this operation.
 
 ```yaml
 Type: String
@@ -45,7 +60,7 @@ Accept wildcard characters: False
 ```
 
 ### -IncludeLocalResources
-Allow bounded local images, stylesheets and fonts. Workflow batches constrain them to the source directory.
+IncludeLocalResources for this operation.
 
 ```yaml
 Type: SwitchParameter
@@ -60,27 +75,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -InteractiveFormControls
-Render supported HTML form controls as interactive PDF fields.
-
-```yaml
-Type: Boolean
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Margin
-Uniform page margins in CSS pixels.
+Margin for this operation.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -92,11 +91,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Options
-Existing options to clone before applying explicitly supplied values.
+### -NoInteractiveFormControls
+NoInteractiveFormControls for this operation.
 
 ```yaml
-Type: HtmlPdfExportOptions
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -104,12 +103,12 @@ Possible values:
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -PdfOptions
-Underlying PDF writer settings, cloned before use.
+PdfOptions for this operation.
 
 ```yaml
 Type: PdfCreateOptions

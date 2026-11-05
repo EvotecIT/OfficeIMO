@@ -18,7 +18,7 @@ public sealed class IWorkPagesRichNumberedItemNativeExportTests {
             Assert.Equal(artifact.Value.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
         }
         Assert.Equal(File.ReadAllBytes(Artifact(manifest.RootElement, "created")),
-            IWorkPagesRichNumberedItemWritingTests.Example().SaveBytes());
+            IWorkPagesRichNumberedItemWritingTests.Example().ToBytes());
     }
 
     [Theory]
@@ -27,7 +27,7 @@ public sealed class IWorkPagesRichNumberedItemNativeExportTests {
     public void Native_edit_save_reopen_retains_rich_runs_plain_markers_and_strict_Word(int caseIndex) {
         using var manifest = Manifest();
         JsonElement scenario = manifest.RootElement.GetProperty("cases")[caseIndex];
-        var source = IWorkSourceDocument.Open(Artifact(manifest.RootElement, scenario.GetProperty("source").GetString()!));
+        var source = IWorkSourceDocument.Load(Artifact(manifest.RootElement, scenario.GetProperty("source").GetString()!));
         var projection = source.ReadPages();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         Assert.True(projection.Body.IsFormattingComplete);

@@ -14,15 +14,6 @@ $excelPath = Join-Path $documents 'Showcase-RichTextRuns.xlsx'
 $pdfPath = Join-Path $documents 'Showcase-RichTextRuns.pdf'
 $pptPath = Join-Path $documents 'Showcase-RichTextRuns.pptx'
 
-$runs = @(
-    TextRun 'Status: '
-    TextRun 'Ready' -Color SeaGreen -Bold
-    TextRun ' with '
-    TextRun 'named colors' -Color Navy -Italic
-    TextRun ' and '
-    TextRun 'underline' -UnderlineStyle Dotted -Color DarkSlateBlue
-)
-
 $serviceRows = @(
     [pscustomobject]@{ Service = 'Identity Sync'; Status = 'Ready'; Owner = 'Platform' }
     [pscustomobject]@{ Service = 'Backup'; Status = 'Watch'; Owner = 'Operations' }
@@ -32,73 +23,79 @@ $serviceRows = @(
 New-OfficeWord -Path $wordPath {
     WordSection {
         WordParagraph -Text 'Rich text runs' -Style Heading1
-        WordParagraph -Run $runs
+        WordParagraph {
+            WordText 'Status: '
+            WordText 'Ready' -Color SeaGreen -Bold
+            WordText ' with '
+            WordText 'named colors' -Color Navy -Italic
+            WordText ' and '
+            WordText 'underline' -Underline Dotted -Color DarkSlateBlue
+        }
         WordTable -Style TableGrid -InputObject @(
             , @(
-                WordTableCellSpec -Run @(
-                    WordTextRun 'Service '
-                    WordTextRun 'readiness' -Color SeaGreen -Bold
-                ) -ColumnSpan 3 -FillColor AliceBlue -Align Center
+                New-OfficeWordTableCell -ColumnSpan 3 -BackgroundColor AliceBlue -Alignment Center -Content {
+                    WordText 'Service '
+                    WordText 'readiness' -Color SeaGreen -Bold
+                }
             )
             , @('Service', 'Status', 'Owner')
-            , @((WordTableCellSpec -Run @(WordTextRun 'Identity Sync' -Bold; WordTextRun ' 99.98%' -Color SeaGreen)), 'Ready', 'Platform')
-            , @('Backup', (WordTableCellSpec -Run @(WordTextRun 'Watch' -Color DarkOrange -Bold)), 'Operations')
+            , @((New-OfficeWordTableCell -Content { WordText 'Identity Sync' -Bold; WordText ' 99.98%' -Color SeaGreen }), 'Ready', 'Platform')
+            , @('Backup', (New-OfficeWordTableCell -Text 'Watch' -Color DarkOrange -Bold), 'Operations')
         )
     }
 }
 
 New-OfficeExcel -Path $excelPath {
     ExcelSheet -Name 'Summary' -Content {
-        ExcelRichText -Address A1 -Run @(
-            ExcelTextRun 'Status: '
-            ExcelTextRun 'Ready' -Color SeaGreen -Bold
-            ExcelTextRun ' for review' -Italic
-        )
-        ExcelRichText -Address A3 -Run @(
-            ExcelTextRun 'Owner: '
-            ExcelTextRun 'Platform' -Color Navy -Bold
-        )
-        ExcelTable -Data $serviceRows -Name 'ServiceReadiness' -StartRow 5 -StartColumn 1
+        ExcelCell -Address A1 {
+            ExcelText 'Status: '
+            ExcelText 'Ready' -Color SeaGreen -Bold
+            ExcelText ' for review' -Italic
+        }
+        ExcelCell -Address A3 {
+            ExcelText 'Owner: '
+            ExcelText 'Platform' -Color Navy -Bold
+        }
+        ExcelTable -InputObject $serviceRows -Name 'ServiceReadiness' -Address A5
         ExcelAutoFit
     }
 }
 
 New-OfficePdf -Path $pdfPath {
     PdfHeading 'Rich text runs'
-    PdfText -Run @(
-        PdfTextRun 'Status: '
-        PdfTextRun 'Ready' -Color SeaGreen -Bold
-        PdfTextRun ' with named colors and '
-        PdfTextRun 'inline emphasis' -Color Navy -Italic
-    )
+    PdfParagraph {
+        PdfText 'Status: '
+        PdfText 'Ready' -Color SeaGreen -Bold
+        PdfText ' with named colors and '
+        PdfText 'inline emphasis' -Color Navy -Italic
+    }
     PdfTable -HeaderRowCount 1 -InputObject @(
         , @(
-            PdfTableCell -Run @(
-                PdfTextRun 'Service '
-                PdfTextRun 'readiness' -Color SeaGreen -Bold
-            ) -ColumnSpan 3 -FillColor AliceBlue -Align Center
+            PdfTableCell -ColumnSpan 3 -BackgroundColor AliceBlue -Alignment Center -Content {
+                PdfText 'Service '
+                PdfText 'readiness' -Color SeaGreen -Bold
+            }
         )
         , @('Service', 'Status', 'Owner')
-        , @((PdfTableCell -Run @(PdfTextRun 'Identity Sync' -Bold; PdfTextRun ' 99.98%' -Color SeaGreen)), 'Ready', 'Platform')
-        , @('Backup', (PdfTableCell -Run @(PdfTextRun 'Watch' -Color DarkOrange -Bold)), 'Operations')
+        , @((PdfTableCell -Content { PdfText 'Identity Sync' -Bold; PdfText ' 99.98%' -Color SeaGreen }), 'Ready', 'Platform')
+        , @('Backup', (PdfTableCell -Text 'Watch' -Color DarkOrange -Bold), 'Operations')
     )
 }
 
-PptNew -Path $pptPath {
-    PptSlideSize -Preset Screen16x9
-    PptSlide {
-        PptTitle -Title 'Rich text runs'
+New-OfficePowerPoint -Path $pptPath {
+    Set-OfficePowerPointSlideSize -Preset Screen16x9
+    PowerPointSlide -Title 'Rich text runs' {
         PowerPointTextBox -Content {
             PowerPointText 'Status: '
             PowerPointText 'Ready' -Color SeaGreen -Bold
             PowerPointText ' with named colors' -Color Navy -Italic
         } -X 70 -Y 115 -Width 560 -Height 54
-        PptTable -InputObject @(
+        PowerPointTable -InputObject @(
             , @(
                 @{
                     Run = @(
-                        PptTextRun 'Service '
-                        PptTextRun 'readiness' -Color SeaGreen -Bold
+                        @{ Text = 'Service ' }
+                        @{ Text = 'readiness'; Color = 'SeaGreen'; Bold = $true }
                     )
                     ColumnSpan = 3
                     FillColor = 'AliceBlue'
@@ -107,11 +104,11 @@ PptNew -Path $pptPath {
             )
             , @('Service', 'Status', 'Owner')
             , @(
-                @{ Run = @(PptTextRun 'Identity Sync' -Bold; PptTextRun ' 99.98%' -Color SeaGreen) },
+                @{ Run = @(@{ Text = 'Identity Sync'; Bold = $true }; @{ Text = ' 99.98%'; Color = 'SeaGreen' }) },
                 'Ready',
                 'Platform'
             )
-            , @('Backup', @{ Run = @(PptTextRun 'Watch' -Color DarkOrange -Bold) }, 'Operations')
+            , @('Backup', @{ Run = @(@{ Text = 'Watch'; Color = 'DarkOrange'; Bold = $true }) }, 'Operations')
         ) -X 70 -Y 190 -Width 560 -Height 160
     }
 }

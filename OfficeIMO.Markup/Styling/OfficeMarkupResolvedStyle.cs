@@ -7,7 +7,7 @@ public sealed class OfficeMarkupResolvedStyle {
     /// <summary>Gets or sets the style name, when one was selected.</summary>
     public string? Name { get; set; }
     /// <summary>Gets or sets the font family.</summary>
-    public string? FontName { get; set; }
+    public string? FontFamily { get; set; }
     /// <summary>Gets or sets the numeric font size.</summary>
     public int? FontSize { get; set; }
     /// <summary>Gets or sets the optional bold setting.</summary>
@@ -37,7 +37,7 @@ public sealed class OfficeMarkupResolvedStyle {
 
     /// <summary>Gets whether any visual value is set; a name alone does not count.</summary>
     public bool HasVisualValues =>
-        !string.IsNullOrWhiteSpace(FontName)
+        !string.IsNullOrWhiteSpace(FontFamily)
         || FontSize != null
         || Bold != null
         || Italic != null
@@ -55,7 +55,7 @@ public sealed class OfficeMarkupResolvedStyle {
     internal OfficeMarkupResolvedStyle Clone() =>
         new OfficeMarkupResolvedStyle {
             Name = Name,
-            FontName = FontName,
+            FontFamily = FontFamily,
             FontSize = FontSize,
             Bold = Bold,
             Italic = Italic,

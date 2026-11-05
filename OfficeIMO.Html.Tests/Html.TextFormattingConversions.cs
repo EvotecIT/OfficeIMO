@@ -206,7 +206,7 @@ public class HtmlTextFormattingConversionTests {
         using WordDocument source = WordDocument.Create();
         WordParagraph authored = source.AddParagraph("Styled");
         authored.SetBold().SetItalic().SetUnderline(WordUnderlineStyle.WavyDouble)
-            .SetDoubleStrike().SetSuperScript().SetSmallCaps()
+            .SetDoubleStrikethrough().SetSuperscript().SetSmallCaps()
             .SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetColor(OfficeColor.Parse("336699"));
 
         HtmlTextConversionResult export = source.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { IncludeFontStyles = true });
@@ -223,7 +223,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.True(actual.Bold);
         Assert.True(actual.Italic);
         Assert.Equal(WordUnderlineStyle.WavyDouble, actual.Underline);
-        Assert.True(actual.DoubleStrike);
+        Assert.True(actual.DoubleStrikethrough);
         Assert.Equal(WordVerticalTextPosition.Superscript, actual.VerticalTextAlignment);
         Assert.Equal(WordCapsStyle.SmallCaps, actual.CapsStyle);
         Assert.Equal("Aptos", actual.FontFamily);
@@ -236,15 +236,15 @@ public class HtmlTextFormattingConversionTests {
         ExcelSheet sheet = source.AddSheet("Text");
         sheet.Cell(1, 1).SetValue("Cell").SetBold().SetItalic()
             .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
-            .SetSuperscript().SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
+            .SetSuperscript().SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetColor(global::OfficeIMO.OfficeColor.Parse("336699"));
         sheet.Cell(2, 1).SetRichText(
             new ExcelRichTextRun("Rich") {
                 Bold = true,
                 Underline = true,
                 UnderlineStyle = ExcelUnderlineStyle.SingleAccounting,
-                FontName = "Aptos",
+                FontFamily = "Aptos",
                 FontSize = global::OfficeIMO.OfficeLength.Points(13),
-                FontColor = "663399"
+                Color = global::OfficeIMO.OfficeColor.Parse("663399")
             },
             new ExcelRichTextRun("Sub") {
                 Italic = true,
@@ -276,7 +276,7 @@ public class HtmlTextFormattingConversionTests {
         ExcelRichTextRun[] runs = actualSheet.Cell(2, 1).GetRichText().ToArray();
         Assert.Equal(2, runs.Length);
         Assert.Equal(ExcelUnderlineStyle.SingleAccounting, runs[0].UnderlineStyle);
-        Assert.Equal("Aptos", runs[0].FontName);
+        Assert.Equal("Aptos", runs[0].FontFamily);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(13D), runs[0].FontSize);
         Assert.Equal(ExcelVerticalTextAlignment.Subscript, runs[1].VerticalTextAlignment);
         Assert.True(runs[1].Strikethrough);
@@ -289,7 +289,7 @@ public class HtmlTextFormattingConversionTests {
         sheet.Cell(1, 1).SetValue("Anchor");
         sheet.Cell(1, 2).SetBold().SetItalic()
             .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
-            .SetSubscript().SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
+            .SetSubscript().SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetColor(global::OfficeIMO.OfficeColor.Parse("336699"));
 
         string html = source.ToHtml(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
         Assert.Contains("data-officeimo-empty=\"true\"", html, StringComparison.Ordinal);
@@ -323,7 +323,7 @@ public class HtmlTextFormattingConversionTests {
         ExcelSheet sheet = Assert.Single(imported.Sheets);
 
         Assert.Equal("336699", sheet.Cell(1, 1).GetStyle().FontColorHex);
-        Assert.Equal("FFCC3300", Assert.Single(sheet.Cell(1, 1).GetRichText()).FontColor);
+        Assert.Equal("40CC3300", Assert.Single(sheet.Cell(1, 1).GetRichText()).Color?.ToArgbHex());
 
         using ExcelDocument generic = HtmlConversionDocument
             .Parse("<table><tr><td style=\"color:#11223380\">Generic</td></tr></table>")
@@ -384,14 +384,14 @@ public class HtmlTextFormattingConversionTests {
         ExcelCell cell = source.AddSheet("Text").Cell(1, 1)
             .SetRichText(
                 new ExcelRichTextRun("Inherited"),
-                new ExcelRichTextRun(" Override") { Italic = true, FontColor = "CC0000" })
+                new ExcelRichTextRun(" Override") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("CC0000") })
             .SetBold()
             .SetUnderline(ExcelUnderlineStyle.Double)
             .SetStrikethrough()
             .SetSuperscript()
-            .SetFontName("Aptos")
+            .SetFontFamily("Aptos")
             .SetFontSize(global::OfficeIMO.OfficeLength.Points(15))
-            .SetFontColor("336699");
+            .SetColor(global::OfficeIMO.OfficeColor.Parse("336699"));
 
         string html = source.ToHtml(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
         using ExcelDocument imported = HtmlConversionDocument
@@ -406,11 +406,11 @@ public class HtmlTextFormattingConversionTests {
             Assert.Equal(ExcelUnderlineStyle.Double, run.UnderlineStyle);
             Assert.True(run.Strikethrough);
             Assert.Equal(ExcelVerticalTextAlignment.Superscript, run.VerticalTextAlignment);
-            Assert.Equal("Aptos", run.FontName);
+            Assert.Equal("Aptos", run.FontFamily);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(15D), run.FontSize);
         });
-        Assert.Equal("FF336699", runs[0].FontColor);
-        Assert.Equal("FFCC0000", runs[1].FontColor);
+        Assert.Equal("FF336699", runs[0].Color?.ToArgbHex());
+        Assert.Equal("FFCC0000", runs[1].Color?.ToArgbHex());
         Assert.True(runs[1].Italic);
     }
 
@@ -760,7 +760,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.EndsWith("'", quoted, StringComparison.Ordinal);
 
         using ExcelDocument excel = ExcelDocument.Create();
-        excel.AddSheet("Text").Cell(1, 1).SetValue("Excel").SetFontName(hostile);
+        excel.AddSheet("Text").Cell(1, 1).SetValue("Excel").SetFontFamily(hostile);
         string excelHtml = excel.ToHtml(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
         Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), excelHtml, StringComparison.Ordinal);
 
@@ -916,8 +916,8 @@ public class HtmlTextFormattingConversionTests {
     public void StyledWordDocumentReachesEveryDirectAndPdfBackedImageFormat() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Styled").SetBold().SetItalic()
-            .SetUnderline(WordUnderlineStyle.WavyDouble).SetDoubleStrike()
-            .SetSuperScript().SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(18)).SetColor(OfficeColor.Parse("336699"));
+            .SetUnderline(WordUnderlineStyle.WavyDouble).SetDoubleStrikethrough()
+            .SetSuperscript().SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(18)).SetColor(OfficeColor.Parse("336699"));
         OfficeImageExportFormat[] formats = {
             OfficeImageExportFormat.Png,
             OfficeImageExportFormat.Svg,

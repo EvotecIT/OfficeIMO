@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
             Array.Empty<TableSpec>(), includePreview: true, sheetReferenceCount: 2);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, new IWorkReadOptions { MaxProjectedSheets = 1 }).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers, new IWorkLoadOptions { MaxProjectedSheets = 1 }).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
         Assert.Contains("sheet count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithSharedImage(image);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote, new IWorkReadOptions { MaxProjectedImageBytes = image.LongLength }).ToPowerPointResult());
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote, new IWorkLoadOptions { MaxProjectedImageBytes = image.LongLength }).ToPowerPointResult());
 
         Assert.Contains("destination image", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -35,7 +35,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithSharedImage(image);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages, new IWorkReadOptions { MaxProjectedImageBytes = image.LongLength }).ToWordResult());
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages, new IWorkLoadOptions { MaxProjectedImageBytes = image.LongLength }).ToWordResult());
 
         Assert.Contains("destination image", exception.Message,
             StringComparison.OrdinalIgnoreCase);

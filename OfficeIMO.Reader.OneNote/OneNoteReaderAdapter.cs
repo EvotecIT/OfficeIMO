@@ -108,7 +108,7 @@ internal static partial class OneNoteReaderAdapter {
             OneNoteNotebook notebook = OneNoteNotebookReader.Read(path, native.NotebookOptions);
             return CreateNotebookContext(notebook, source, reader, native, cancellationToken);
         }
-        OneNoteSection section = OneNoteSectionReader.Read(path, native.OneNoteOptions);
+        OneNoteSection section = OneNoteSection.Load(path, native.OneNoteOptions);
         cancellationToken.ThrowIfCancellationRequested();
         return CreateSectionContext(section, source, reader, native, cancellationToken);
     }
@@ -144,7 +144,7 @@ internal static partial class OneNoteReaderAdapter {
                 OneNoteNotebook notebook = OneNoteNotebookReader.Read(parseStream, logicalName, native.NotebookOptions);
                 return CreateNotebookContext(notebook, source, reader, native, cancellationToken);
             }
-            OneNoteSection section = OneNoteSectionReader.Read(parseStream, native.OneNoteOptions);
+            OneNoteSection section = OneNoteSection.Load(parseStream, native.OneNoteOptions);
             cancellationToken.ThrowIfCancellationRequested();
             return CreateSectionContext(section, source, reader, native, cancellationToken);
         } finally {
@@ -254,9 +254,9 @@ internal static partial class OneNoteReaderAdapter {
             // Reader metadata counts all related pages even when their chunk projection is disabled.
             IncludeConflictPages = true,
             IncludeVersionHistory = true,
-            MaxSectionGroupDepth = Math.Min(OneNoteWriterOptions.MaximumTraversalDepth, options.NotebookOptions.MaxSectionGroupDepth),
-            MaxPageRelationshipDepth = Math.Min(OneNoteWriterOptions.MaximumTraversalDepth, options.OneNoteOptions.MaxPageRelationshipDepth),
-            MaxContentDepth = Math.Min(OneNoteWriterOptions.MaximumTraversalDepth, options.OneNoteOptions.MaxPropertySetDepth)
+            MaxSectionGroupDepth = Math.Min(OneNoteSaveOptions.MaximumTraversalDepth, options.NotebookOptions.MaxSectionGroupDepth),
+            MaxPageRelationshipDepth = Math.Min(OneNoteSaveOptions.MaximumTraversalDepth, options.OneNoteOptions.MaxPageRelationshipDepth),
+            MaxContentDepth = Math.Min(OneNoteSaveOptions.MaximumTraversalDepth, options.OneNoteOptions.MaxPropertySetDepth)
         }.CloneValidated();
     }
 

@@ -15,20 +15,20 @@ internal static class CandidatePairedBrochure {
             PublisherPage master = document.MasterPages[index];
             Rectangle(master.Id, 36, 66, 540, 6, colors[index]);
             double logoX = index == 1 ? 72 : 504;
-            if (logo == null) logo = document.AddImage(master.Id, image, logoX, 708, 72, 48);
-            else document.AddImage(master.Id, logo.ImageId!.Value, logoX, 708, 72, 48);
+            if (logo == null) logo = document.AddImage(master.Id, image, OfficeLength.Points(logoX), OfficeLength.Points(708), OfficeLength.Points(72), OfficeLength.Points(48));
+            else document.AddImage(master.Id, logo.ImageId!.Value, OfficeLength.Points(logoX), OfficeLength.Points(708), OfficeLength.Points(72), OfficeLength.Points(48));
         }
 
-        PublisherTextFrame lead = document.AddTextFrame(document.Pages[0].Id, 36, 180, 330, 180,
+        PublisherTextFrame lead = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(36), OfficeLength.Points(180), OfficeLength.Points(330), OfficeLength.Points(180),
             CandidateMultiParagraph.Paragraphs());
         document.SetStoryAutomaticHyphenation(lead.StoryId, true);
-        PublisherTextFrame middle = document.AddLinkedTextFrame(lead.Id, document.Pages[2].Id, 36, 180, 540, 180);
-        document.AddLinkedTextFrame(middle.Id, document.Pages[1].Id, 36, 180, 330, 180);
+        PublisherTextFrame middle = document.AddLinkedTextFrame(lead.Id, document.Pages[2].Id, OfficeLength.Points(36), OfficeLength.Points(180), OfficeLength.Points(540), OfficeLength.Points(180));
+        document.AddLinkedTextFrame(middle.Id, document.Pages[1].Id, OfficeLength.Points(36), OfficeLength.Points(180), OfficeLength.Points(330), OfficeLength.Points(180));
         Text(document.Pages[0].Id, "In this brochure: shared spaces, community projects and the events calendar.",
             390, 180, 186, 156);
         Rectangle(document.Pages[0].Id, 36, 384, 540, 6, OfficeColor.Blue);
-        PublisherTable calendar = document.AddTable(document.Pages[0].Id, 36, 420,
-            new[] { 180D, 150D }, new[] { 30D, 42D });
+        PublisherTable calendar = document.AddTable(document.Pages[0].Id, OfficeLength.Points(36), OfficeLength.Points(420),
+            new OfficeLength[] { OfficeLength.Points(180D), OfficeLength.Points(150D) }, new OfficeLength[] { OfficeLength.Points(30D), OfficeLength.Points(42D) });
         string[] cells = { "Activity", "Date", "Community meeting", "Saturday" };
         for (int row = 0; row < 2; row++)
             for (int column = 0; column < 2; column++)
@@ -37,8 +37,8 @@ internal static class CandidatePairedBrochure {
         PublisherTextFrame columns = Text(document.Pages[1].Id,
             string.Concat(Enumerable.Repeat("Small projects help neighbors share skills and improve shared spaces. ", 10)).TrimEnd(),
             36, 420, 540, 240);
-        document.SetTextFrameLayout(columns.Id, 2, 18, new OfficeTextPadding(6, 9, 12, 3), OfficeTextVerticalAlignment.Top);
-        document.AddImage(document.Pages[1].Id, logo!.ImageId!.Value, 390, 180, 144, 96);
+        document.SetTextFrameLayout(columns.Id, 2, OfficeLength.Points(18), new OfficeTextPadding(6, 9, 12, 3), OfficeTextVerticalAlignment.Top);
+        document.AddImage(document.Pages[1].Id, logo!.ImageId!.Value, OfficeLength.Points(390), OfficeLength.Points(180), OfficeLength.Points(144), OfficeLength.Points(96));
         Text(document.Pages[2].Id, "Thank you for taking part. Send your ideas for the next issue.", 36, 420, 540, 72);
         return document;
 
@@ -46,11 +46,11 @@ internal static class CandidatePairedBrochure {
             var paint = OfficeShape.Rectangle(width, height);
             paint.FillColor = color;
             paint.StrokeColor = null;
-            document.AddShape(owner, paint, x, y);
+            document.AddShape(owner, paint, OfficeLength.Points(x), OfficeLength.Points(y));
         }
 
         PublisherTextFrame Text(uint owner, string text, double x, double y, double width, double height) {
-            PublisherTextFrame frame = document.AddTextFrame(owner, x, y, width, height, Paragraphs(text));
+            PublisherTextFrame frame = document.AddTextFrame(owner, OfficeLength.Points(x), OfficeLength.Points(y), OfficeLength.Points(width), OfficeLength.Points(height), Paragraphs(text));
             document.SetStoryAutomaticHyphenation(frame.StoryId, true);
             return frame;
         }

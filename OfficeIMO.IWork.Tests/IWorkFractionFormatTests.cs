@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Fraction_precision_is_shared_metadata_without_changing_raw_values(IWorkDocumentKind kind) {
         using MemoryStream package = NumberFormatPackage(kind, FractionFormat(16), value: -1.375d);
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), kind).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), kind).Item1.Cells);
         Assert.Equal(-1.375d, cell.Value);
         Assert.Equal("-1.375", cell.DisplayText);
         Assert.Equal(IWorkNumberFormatKind.Fraction, cell.NumberFormat!.Kind);
@@ -44,13 +44,13 @@ public sealed partial class IWorkBoundaryTests {
             _ => FractionFormat(8)
         };
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, format, value: -1.375d, currency: failure == 7);
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Equal(-1.375d, cell.Value);
         Assert.Null(cell.NumberFormat);
         Assert.False(cell.HasDecodeError);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Equal("3[1]/6", Assert.Single(report.SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 13).FieldPath);
         Assert.Empty(report.PreservedRecords);
         Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED"
@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(
                 ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(FractionFormat(8))))),
                 ArchiveRecord(14, 6201, Message(VarintField(1, 3), BytesField(3, Message(VarintField(1, 0), BytesField(5, FormulaConstant(1d))))))));
-        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var converted = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(converted.IsVisualFallback);
         IWorkTableCell projected = Assert.Single(Assert.Single(Assert.Single(converted.Projection.Sheets).Tables).Cells);
         Assert.Equal(IWorkCellKind.Formula, projected.Kind);

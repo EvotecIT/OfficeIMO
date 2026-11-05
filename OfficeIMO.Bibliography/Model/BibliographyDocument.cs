@@ -74,9 +74,6 @@ public sealed partial class BibliographyDocument {
     /// <summary>Writes or converts the document to bytes.</summary>
     public byte[] ToBytes(BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) => Write(options, cancellationToken).Bytes;
 
-    /// <summary>Writes or converts the document to a new memory stream positioned at the beginning.</summary>
-    public MemoryStream ToStream(BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) => new MemoryStream(ToBytes(options, cancellationToken));
-
     /// <summary>Writes text in preserve mode using the source format.</summary>
     public override string ToString() => Write().Content;
 

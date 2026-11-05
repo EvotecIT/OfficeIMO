@@ -2,6 +2,11 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>A native paragraph or heading in Draw text content.</summary>
 public sealed partial class OdfTextParagraph : OdfTextContent {
+    /// <summary>Appends native text and returns this paragraph.</summary>
+    public new OdfTextParagraph AddText(string text) { base.AddText(text); return this; }
+    /// <summary>Transforms stored text and returns the same native receiver.</summary>
+    public new OdfTextParagraph TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) { base.TransformTextCase(textCase, culture); return this; }
+
     internal OdfTextParagraph(OdfDocument document, XElement element, XElement graphic) : base(document, element, graphic, OdfStyleFamily.Paragraph) { }
     /// <summary>Whether this element is a heading.</summary>
     public bool IsHeading => Element.Name == OdfNamespaces.Text + "h";

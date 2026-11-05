@@ -17,7 +17,7 @@ public sealed class OpenDocumentRepeatedTableRowTests {
         OdtTable table = document.AddTable(1, 1, "Repeated");
         OdtParagraph paragraph = table.Cell(0, 0).Paragraphs.Single();
         paragraph.Text = "original";
-        paragraph.AddSpan("span").AddHyperlink("link", "https://example.com");
+        paragraph.AddRun("span").AddHyperlink("link", "https://example.com");
         paragraph.AddField(OdtFieldKind.Date, "date");
         table.Element.Descendants(OdfNamespaces.Table + "table-cell").Single()
             .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);

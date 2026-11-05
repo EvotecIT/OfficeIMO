@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
             for (int i = count; i < source.Tables.Count; i++) {
                 WordTable resTable = result.Tables[i];
                 WordTable srcTable = source.Tables[i];
-                for (int r = 0; r < srcTable.RowsCount; r++) {
+                for (int r = 0; r < srcTable.RowCount; r++) {
                     for (int c = 0; c < srcTable.Rows[r].CellsCount; c++) {
                         string text = srcTable.Rows[r].Cells[c].Paragraphs.FirstOrDefault()?.Text ?? string.Empty;
                         resTable.Rows[r].Cells[c].AddParagraph(removeExistingParagraphs: true).AddDeletedText(text, "Comparer");
@@ -29,13 +29,13 @@ namespace OfficeIMO.Word {
         }
 
         private static void CompareTable(WordTable source, WordTable target, WordTable result) {
-            int rowCount = Math.Min(source.RowsCount, target.RowsCount);
+            int rowCount = Math.Min(source.RowCount, target.RowCount);
 
             for (int i = 0; i < rowCount; i++) {
                 CompareTableRow(source.Rows[i], target.Rows[i], result.Rows[i]);
             }
 
-            for (int i = rowCount; i < source.RowsCount; i++) {
+            for (int i = rowCount; i < source.RowCount; i++) {
                 WordTableRow srcRow = source.Rows[i];
                 WordTableRow resRow = result.Rows[i];
                 for (int c = 0; c < srcRow.CellsCount; c++) {
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            for (int i = rowCount; i < target.RowsCount; i++) {
+            for (int i = rowCount; i < target.RowCount; i++) {
                 WordTableRow tgtRow = target.Rows[i];
                 var clonedRow = (TableRow)tgtRow._tableRow.CloneNode(true);
                 MarkRowAsInserted(clonedRow);

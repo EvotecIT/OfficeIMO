@@ -110,7 +110,9 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(1, 1).SetValue("Existing");
                 sheet.Cell(2, 1).SetValue(10);
 
-                sheet.ColumnStyleByHeader("Missing").Bold().Number();
+                sheet.ColumnStyleByHeader("Missing").SetBold().SetItalic(false).SetUnderline(false)
+                    .SetStrikethrough(false).SetColor(OfficeColor.Accent1).SetFillColor(OfficeColor.Accent2)
+                    .SetFontFamily("Aptos").SetHorizontalAlignment(ExcelHorizontalAlignment.Right).Number();
                 doc.Save();
             }
 

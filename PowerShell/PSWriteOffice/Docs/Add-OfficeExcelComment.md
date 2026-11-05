@@ -6,44 +6,59 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelComment
 ## SYNOPSIS
-Adds or replaces a comment (note) on a worksheet cell.
+Adds a note or a threaded comment (or reply) to a cell.
 
 ## SYNTAX
-### Context (Default)
+### Note (Default)
 ```powershell
-Add-OfficeExcelComment -Text <string> [-Row <Int32>] [-Column <Int32>] [-Address <string>] [-Author <string>] [-Initials <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelComment [-Address] <string> [-Text] <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Author <string>] [-PassThru] [-Initials <string>] [<CommonParameters>]
 ```
 
-### Document
+### Threaded
 ```powershell
-Add-OfficeExcelComment -Document <ExcelDocument> -Text <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Row <Int32>] [-Column <Int32>] [-Address <string>] [-Author <string>] [-Initials <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelComment [-Address] <string> [-Text] <string> -Threaded [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Author <string>] [-PassThru] [-ParentId <string>] [-Id <string>] [-Date <DateTime>] [-Done] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds or replaces a comment (note) on a worksheet cell.
+Adds a note or a threaded comment (or reply) to a cell.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Add-OfficeExcelComment -Address 'A1' -Text 'Review this cell' }
+Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+    ExcelSheet 'Assumptions' {
+        ExcelComment B4 'Inflation from the October central bank projection.' -Author 'Finance'
+    }
+}
 ```
 
-Creates a cell comment at ExcelA1.
+Explains the source of a figure in a note on B4.
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Finance\Forecast-2027.xlsx {
+    ExcelSheet 'Forecast' {
+        ExcelComment F12 'Can we confirm the Q2 hiring plan before this goes to the board?' -Threaded -Author 'Anna Kowalska'
+    }
+}
+```
+
+Adds a threaded comment asking for confirmation of a forecast figure, attributed to the reviewer.
 
 ## PARAMETERS
 
 ### -Address
-A1-style cell address (e.g., A1, C5).
+A1 address of the target cell.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Note, Threaded
 Aliases: None
 Possible values:
 
-Required: False
-Position: named
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -54,7 +69,7 @@ Author name (optional).
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Note, Threaded
 Aliases: None
 Possible values:
 
@@ -65,12 +80,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Column
-1-based column index.
+### -Date
+Optional timestamp for the threaded comment.
 
 ```yaml
-Type: Int32
-Parameter Sets: Context, Document
+Type: DateTime
+Parameter Sets: Threaded
 Aliases: None
 Possible values:
 
@@ -82,27 +97,75 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to operate on outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Note, Threaded
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Initials
-Author initials (optional).
+### -Done
+Mark the threaded comment as done/resolved.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Threaded
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Id
+Optional stable threaded-comment id.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Threaded
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Initials
+Author initials, supplied together with Author.
+
+```yaml
+Type: String
+Parameter Sets: Note
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ParentId
+Optional parent threaded-comment id when adding a reply.
+
+```yaml
+Type: String
+Parameter Sets: Threaded
 Aliases: None
 Possible values:
 
@@ -114,27 +177,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the worksheet after adding the comment.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Row
-1-based row index.
-
-```yaml
-Type: Int32
-Parameter Sets: Context, Document
+Parameter Sets: Note, Threaded
 Aliases: None
 Possible values:
 
@@ -146,27 +193,11 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name when using Document.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) when using Document.
-
-```yaml
-Type: Int32
-Parameter Sets: Document
+Type: OfficeSheetSelector
+Parameter Sets: Note, Threaded
 Aliases: None
 Possible values:
 
@@ -182,7 +213,23 @@ Comment text.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Note, Threaded
+Aliases: None
+Possible values:
+
+Required: True
+Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Threaded
+Creates a threaded comment instead of a note.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Threaded
 Aliases: None
 Possible values:
 

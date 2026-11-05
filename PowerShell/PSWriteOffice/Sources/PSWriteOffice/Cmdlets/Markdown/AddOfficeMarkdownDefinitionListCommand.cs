@@ -14,8 +14,8 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Appends a definition list built from the provided pairs.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownDefinitionList", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownDefinitionList")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownDefinitionList") ]
 public sealed class AddOfficeMarkdownDefinitionListCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -25,9 +25,9 @@ public sealed class AddOfficeMarkdownDefinitionListCommand : PSCmdlet
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
     public MarkdownDocument Document { get; set; } = null!;
 
-    /// <summary>Hashtable of term/definition pairs to render.</summary>
+    /// <summary>Dictionary of term/definition pairs to render.</summary>
     [Parameter(Mandatory = true, Position = 0)]
-    public Hashtable Definition { get; set; } = new();
+    public IDictionary Definition { get; set; } = new Hashtable();
 
     /// <summary>Emit the updated Markdown document.</summary>
     [Parameter]
@@ -57,7 +57,7 @@ public sealed class AddOfficeMarkdownDefinitionListCommand : PSCmdlet
         }
     }
 
-    private static List<KeyValuePair<string, string>> NormalizePairs(Hashtable? definition)
+    private static List<KeyValuePair<string, string>> NormalizePairs(IDictionary? definition)
     {
         var pairs = new List<KeyValuePair<string, string>>();
         if (definition == null)

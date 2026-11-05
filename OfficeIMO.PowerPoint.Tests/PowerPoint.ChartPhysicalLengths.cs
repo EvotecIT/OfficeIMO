@@ -23,20 +23,20 @@ public sealed class PowerPointChartPhysicalLengthsTests {
             Assert.Equal(4750001, initialSnapshot.Width.ToEmus());
             Assert.Equal(1908175, initialSnapshot.Height.ToEmus());
             chart.SetTitle("Revenue")
-                .SetTitleTextStyle(OfficeLength.Points(12.345), bold: true, fontName: "Aptos")
+                .SetTitleTextStyle(OfficeLength.Points(12.345), bold: true, fontFamily: "Aptos")
                 .SetLegend(OfficeChartLegendPosition.Right)
                 .SetLegendTextStyle(OfficeLength.Points(9.125), italic: true)
                 .SetCategoryAxisTitle("Period")
                 .SetCategoryAxisTitleTextStyle(OfficeLength.Points(10.125))
                 .SetValueAxisLabelTextStyle(OfficeLength.Points(8.125))
                 .SetValueAxisGridlines(lineWidth: OfficeLength.Emus(9526))
-                .SetSeriesLineColor(0, "123456", OfficeLength.Emus(19051))
+                .SetSeriesLineColor(0, OfficeColor.Parse("123456"), OfficeLength.Emus(19051))
                 .SetSeriesMarker(0, OfficeChartMarkerShape.Circle, OfficeLength.Points(8.5),
-                    lineColor: "654321", lineWidth: OfficeLength.Emus(6351))
+                    lineColor: OfficeColor.Parse("654321"), lineWidth: OfficeLength.Emus(6351))
                 .SetSeriesDataLabelTemplate("Revenue", new PowerPointChartDataLabelTemplate {
                     ShowValue = true,
                     FontSize = OfficeLength.Points(11.125),
-                    LineColor = "234567",
+                    LineColor = OfficeColor.Parse("234567"),
                     LineWidth = OfficeLength.Emus(12701),
                     ShowLeaderLines = true,
                     LeaderLineWidth = OfficeLength.Emus(9526)
@@ -54,8 +54,8 @@ public sealed class PowerPointChartPhysicalLengthsTests {
             var chart = loaded.Slides[0].Charts.Single();
             Assert.Equal(4750001, chart.Width.ToEmus());
             Assert.Equal(1908175, chart.Height.ToEmus());
-            chart.SetTitleTextStyle(color: "ABCDEF")
-                .SetSeriesLineColor("Revenue", "ABCDEF")
+            chart.SetTitleTextStyle(color: OfficeColor.Parse("ABCDEF"))
+                .SetSeriesLineColor("Revenue", OfficeColor.Parse("ABCDEF"))
                 .SetSeriesMarker("Revenue", OfficeChartMarkerShape.Diamond);
             using var savedBytes = new MemoryStream();
             loaded.Save(savedBytes);
@@ -104,7 +104,7 @@ public sealed class PowerPointChartPhysicalLengthsTests {
         Assert.Throws<ArgumentException>(() => chart.SetDataLabelShapeStyle(lineWidth: OfficeLength.Points(1), noLine: true));
         Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, OfficeLength.Zero));
         Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetSeriesMarker("Revenue", OfficeChartMarkerShape.Circle, OfficeLength.Points(73)));
-        chart.SetTitleTextStyle(fontSize: null).SetSeriesLineColor(0, "123456", OfficeLength.Zero);
+        chart.SetTitleTextStyle(fontSize: null).SetSeriesLineColor(0, OfficeColor.Parse("123456"), OfficeLength.Zero);
         var outline = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace
             .Descendants<C.LineChartSeries>().Single().ChartShapeProperties!.GetFirstChild<A.Outline>()!;
         Assert.Equal(0, outline.Width!.Value);

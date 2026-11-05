@@ -21,12 +21,17 @@ Lists built-in Excel table styles and compatibility recommendations.
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficeExcelTableStyle -RecommendedOnly |
-                Sort-Object Name |
-                Format-Table Name, Profile
+Get-OfficeExcelTableStyle -RecommendedOnly
 ```
 
-Uses OfficeIMO's table style catalog to return styles that are broadly stable across desktop, web, and spreadsheet viewers.
+Shows the built-in table styles that render well in every supported host.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeExcelTableStyle -Profile CrossHost -RecommendedOnly | Format-Table
+```
+
+Lists the styles recommended for workbooks also opened in web and mobile spreadsheet apps.
 
 ## PARAMETERS
 

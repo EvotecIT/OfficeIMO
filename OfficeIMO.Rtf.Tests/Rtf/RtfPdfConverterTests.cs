@@ -316,7 +316,7 @@ public class RtfPdfConverterTests {
         RtfDocument document = RtfDocument.Create();
         RtfRun run = document.AddParagraph().AddText("Formatted");
         run.UnderlineStyle = RtfUnderlineStyle.Double;
-        run.DoubleStrike = true;
+        run.DoubleStrikethrough = true;
         run.CapsStyle = RtfCapsStyle.SmallCaps;
         run.CharacterScalePercent = 80;
         run.LanguageId = 1045;

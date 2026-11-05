@@ -5,7 +5,6 @@ using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
 using VisioBounds = OfficeIMO.Visio.VisioShapeBounds;
@@ -102,15 +101,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(ConnectorKind.Dynamic, first.Kind);
 
             VisioDocument fluentDocument = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            fluentDocument.AsFluent()
-                .AddPage("Fluent routes", pageBuilder => pageBuilder
-                    .AddRectangle("a", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(0.8), "A")
-                    .AddRectangle("b", OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(1.5), OfficeLength.Inches(0.8), "B")
-                    .AddConnector("a", "b", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector
-                        .RouteThrough(VisioConnectorWaypoint.At(3, 1), VisioConnectorWaypoint.At(3, 4))
-                        .ArrowEnd(EndArrow.Triangle)
-                        .Label("routed")))
-                .End();
+            fluentDocument
+                .AddPage("Fluent routes", pageBuilder => {
+                    pageBuilder.AddRectangle("a", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(0.8), "A");
+                    pageBuilder.AddRectangle("b", OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(1.5), OfficeLength.Inches(0.8), "B");
+                    pageBuilder.AddConnector("a", "b", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => {
+                        connector.RouteThrough(VisioConnectorWaypoint.At(3, 1), VisioConnectorWaypoint.At(3, 4));
+                        connector.SetArrowEnd(EndArrow.Triangle);
+                        connector.SetLabel("routed");
+                    });
+                });
 
             VisioConnector fluentConnector = fluentDocument.Pages[0].Connectors.Single();
             Assert.Equal(2, fluentConnector.Waypoints.Count);
@@ -473,14 +473,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0.35, loadedConnector.LabelPlacement.Height);
 
             VisioDocument fluentDocument = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            fluentDocument.AsFluent()
-                .AddPage("Fluent labels", pageBuilder => pageBuilder
-                    .AddRectangle("a", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(0.8), "A")
-                    .AddRectangle("b", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(0.8), "B")
-                    .AddConnector("a", "b", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: route => route
-                        .RouteOrthogonal()
-                        .Label("yes", 0.7, offsetY: 0.15)))
-                .End();
+            fluentDocument
+                .AddPage("Fluent labels", pageBuilder => {
+                    pageBuilder.AddRectangle("a", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(0.8), "A");
+                    pageBuilder.AddRectangle("b", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(0.8), "B");
+                    pageBuilder.AddConnector("a", "b", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: route => {
+                        route.RouteOrthogonal();
+                        route.SetLabel("yes", 0.7, offsetY: 0.15);
+                    });
+                });
 
             VisioConnector fluentConnector = fluentDocument.Pages[0].Connectors.Single();
             Assert.Equal("yes", fluentConnector.Label);

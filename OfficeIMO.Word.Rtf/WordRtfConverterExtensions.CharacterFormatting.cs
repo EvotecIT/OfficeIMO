@@ -20,14 +20,15 @@ public static partial class WordRtfConverterExtensions {
             run.UnderlineColorIndex = GetOrAddColor(rtfDocument, underlineRed, underlineGreen, underlineBlue);
         }
 
-        run.Strike = wordRun.Strike;
-        run.DoubleStrike = wordRun.DoubleStrike;
+        run.Strikethrough = wordRun.Strikethrough;
+        run.DoubleStrikethrough = wordRun.DoubleStrikethrough;
         run.DirectHidden = ReadToggle(wordRun.ScopedRunProperties?.Vanish);
         run.Outline = wordRun.Outline;
         run.Shadow = wordRun.Shadow;
         run.Emboss = wordRun.Emboss;
         run.Imprint = IsImprintWordRun(wordRun);
         run.CapsStyle = ToRtfCapsStyle(wordRun.CapsStyle);
+        run.FontSize = wordRun.FontSize?.ToPoints();
         if (wordRun.FontFamily is string fontFamily && !string.IsNullOrWhiteSpace(fontFamily)) {
             run.FontId = rtfDocument.AddFont(fontFamily);
         }
@@ -74,8 +75,8 @@ public static partial class WordRtfConverterExtensions {
             }
         }
 
-        wordRun.Strike = run.Strike;
-        wordRun.DoubleStrike = run.DoubleStrike;
+        wordRun.Strikethrough = run.Strikethrough;
+        wordRun.DoubleStrikethrough = run.DoubleStrikethrough;
         wordRun.CapsStyle = ToWordCapsStyle(run.CapsStyle);
         wordRun.Outline = run.Outline;
         wordRun.Shadow = run.Shadow;
@@ -135,7 +136,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         if (run.FontSize.HasValue) {
-            wordRun.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(run.FontSize.Value, MidpointRounding.AwayFromZero));
+            wordRun.FontSize = global::OfficeIMO.OfficeLength.Points(run.FontSize.Value);
         }
     }
 

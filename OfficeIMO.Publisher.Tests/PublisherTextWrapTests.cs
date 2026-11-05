@@ -57,7 +57,7 @@ public sealed class PublisherTextWrapTests {
         document.ReplaceStoryParagraphs(frame.StoryId, PublisherAuthoringTests.Paragraphs("Alignment marker"));
         var baselines = new List<double>();
         foreach (var alignment in new[] { OfficeTextVerticalAlignment.Top, OfficeTextVerticalAlignment.Center, OfficeTextVerticalAlignment.Bottom }) {
-            document.SetTextFrameLayout(frame.Id, 1, 0, frame.Padding, alignment);
+            document.SetTextFrameLayout(frame.Id, 1, OfficeLength.Points(0), frame.Padding, alignment);
             using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
             var span = Assert.Single(pdf.Pages[0].GetTextSpans(), s => s.IsVisible && s.Text == "Alignment marker");
             baselines.Add(span.Y);

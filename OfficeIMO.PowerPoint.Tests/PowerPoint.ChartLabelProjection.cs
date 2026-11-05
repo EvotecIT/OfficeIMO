@@ -73,7 +73,7 @@ public sealed class PowerPointChartLabelProjectionTests {
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }))
             .SetDataLabels(showValue: true)
             .SetDataLabelTextStyle(fontSize: OfficeLength.Points(9), bold: false, italic: false,
-                color: "172033", fontName: "Aptos");
+                color: OfficeColor.Parse("172033"), fontFamily: "Aptos");
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(9D, snapshot.Layout.DataLabelFontSize);
         Assert.Equal(OfficeColor.Parse("#172033"), snapshot.Style.DataLabelTextColor);
@@ -85,7 +85,7 @@ public sealed class PowerPointChartLabelProjectionTests {
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }))
             .SetDataLabels(showValue: true)
-            .SetDataLabelTextStyle(color: "172033");
+            .SetDataLabelTextStyle(color: OfficeColor.Parse("172033"));
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(OfficeTheme.Default.ChartStyle.AxisFontSize.ToPoints(), snapshot.Layout.DataLabelFontSize);
         Assert.Equal(OfficeTheme.Default.ChartStyle.AxisFont.Family, snapshot.Layout.DataLabelFontFamily);
@@ -101,7 +101,7 @@ public sealed class PowerPointChartLabelProjectionTests {
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }))
             .SetDataLabels(showValue: true)
             .SetDataLabelTextStyle(fontSize: OfficeLength.Points(9), bold: false,
-                italic: overrideItalic ? false : null, color: "172033", fontName: "Aptos");
+                italic: overrideItalic ? false : null, color: OfficeColor.Parse("172033"), fontFamily: "Aptos");
         ChartStylePart stylePart = presentation.Slides.Single().SlidePart.ChartParts.Single()
             .GetPartsOfType<ChartStylePart>().Single();
         XDocument style;

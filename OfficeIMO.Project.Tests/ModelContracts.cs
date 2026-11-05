@@ -1,5 +1,3 @@
-using OfficeIMO.Project.Fluent;
-
 namespace OfficeIMO.Project.Tests;
 
 public class ModelContracts {
@@ -16,7 +14,7 @@ public class ModelContracts {
     }
 
     [Fact]
-    public void NormalAndFluentAuthorTheSameProjectAndAllowMixedEdits() {
+    public void PropertiesAndChainableMutationsAuthorTheSameProject() {
         using var normal = ProjectDocument.Create();
         normal.Name = "Delivery";
         normal.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
@@ -32,15 +30,13 @@ public class ModelContracts {
         normal.Dependencies.Add(design, build);
         normal.Assignments.Add(build, resource, ProjectUnits.Percent(50));
 
-        using var fluent = ProjectDocument.Create().AsFluent()
-            .Info(i => i.Name("Delivery"))
-            .StartsOn(new DateTime(2026, 10, 5, 8, 0, 0))
-            .StandardWorkingWeek()
-            .Resource("engineer", r => r.Name("Engineer").Work().StandardRate(125))
-            .Summary("delivery", "Delivery", tasks => tasks
-                .Task("design", "Design", t => t.Duration(ProjectDuration.WorkingDays(3)))
-                .Task("build", "Build", t => t.Duration(ProjectDuration.WorkingDays(5)).After("design").Assign("engineer", ProjectUnits.Percent(50))))
-            .End();
+        using var fluent = ProjectDocument.Create().StartsOn(new DateTime(2026, 10, 5, 8, 0, 0)).StandardWorkingWeek();
+        fluent.Name = "Delivery";
+        fluent.Resources.AddWork("Engineer").SetAlias("engineer").SetStandardRate(125);
+        var phase = fluent.Tasks.AddSummary("Delivery").SetAlias("delivery");
+        phase.Children.Add("Design").SetAlias("design").SetDuration(ProjectDuration.WorkingDays(3));
+        phase.Children.Add("Build").SetAlias("build").SetDuration(ProjectDuration.WorkingDays(5)).After("design").Assign("engineer", ProjectUnits.Percent(50));
+        fluent.End();
         var allowXml = new ProjectSaveOptions { AllowLoss = true };
         Assert.Equal(normal.ToXml(allowXml), fluent.ToXml(allowXml));
         fluent.Tasks.GetByUid(build.Uid).Notes = "Mixed normal/fluent edit";
@@ -116,14 +112,33 @@ public class ModelContracts {
     [Fact]
     public void ForwardReferencesResolveTogetherAndMissingAliasesDoNotAddPartialLinks() {
         using var document = ProjectDocument.Create();
-        var builder = document.AsFluent()
-            .Task("first", "First", t => t.After("second"))
-            .Task("second", "Second", t => t.After("missing"));
-        Assert.Throws<InvalidOperationException>(() => builder.End());
+        document.Tasks.Add("First").SetAlias("first").After("second");
+        document.Tasks.Add("Second").SetAlias("second").After("missing");
+        Assert.Throws<InvalidOperationException>(() => document.End());
         Assert.Empty(document.Dependencies);
-        builder.Task("missing", "Third").End();
+        document.Tasks.Add("Third").SetAlias("missing");
+        document.End();
         Assert.Equal(2, document.Dependencies.Count);
         Assert.Same(document.Tasks[1], document.Dependencies[0].Predecessor);
+    }
+
+    [Fact]
+    public void DeferredAssignmentsValidateBeforeAnyPendingRelationshipIsAdded() {
+        using var document = ProjectDocument.Create();
+        document.Tasks.Add("Predecessor").SetAlias("before");
+        var task = document.Tasks.Add("Successor").After("before").Assign("engineer");
+        Assert.Throws<InvalidOperationException>(() => document.End());
+        Assert.Empty(document.Dependencies);
+        Assert.Empty(document.Assignments);
+        var resource = document.Resources.AddWork("Engineer").SetAlias("engineer");
+        Assert.Same(document, document.End());
+        Assert.Same(resource, Assert.Single(document.Assignments).Resource);
+        Assert.Single(document.Dependencies);
+        Assert.Null(task.Start);
+        task.Assign("engineer");
+        Assert.Throws<InvalidOperationException>(() => document.End());
+        Assert.Single(document.Assignments);
+        Assert.Single(document.Dependencies);
     }
 
     [Fact]

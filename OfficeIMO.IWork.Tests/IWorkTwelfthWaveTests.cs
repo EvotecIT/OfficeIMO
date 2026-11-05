@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithUnlabeledList(
             nested: true, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Nested_list_levels_are_recovered_from_source_indentation() {
         using MemoryStream package = CreatePagesPackageWithResolvedNestedList();
 
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages).ReadPages();
         IWorkTextParagraph paragraph = Assert.Single(projection.Body.Paragraphs);
 
@@ -53,8 +53,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Text", 1, 1, 0d, textValue: "12345")
         });
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 4 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 4 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 
@@ -65,7 +65,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_inline_breaks_keep_run_styling_on_each_segment() {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
             bodyText: "First\u2028Second", bold: true);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult();
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
@@ -89,7 +89,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithLargeTables(tableCount: 11);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
 
         Assert.Contains("destination cell budget", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -100,7 +100,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithLargeTables(tableCount: 11);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
 
         Assert.Contains("destination cell budget", exception.Message,
             StringComparison.OrdinalIgnoreCase);

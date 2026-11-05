@@ -5,7 +5,7 @@ namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Snapshots and bounds the public Pages model before native encoding.</summary>
 internal static class IWorkPagesPackageWriter {
-    internal static byte[] Write(IWorkPagesDocument document, IWorkPagesWriteOptions limits, CancellationToken cancellationToken) {
+    internal static byte[] Write(IWorkPagesDocument document, IWorkPagesSaveOptions limits, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document.BodyBlocks.Count == 0) throw new InvalidOperationException("A native Pages document requires at least one body block.");
         int pageTextParagraphs = (document.Header != null ? 1 : 0) + (document.Footer != null ? 1 : 0);

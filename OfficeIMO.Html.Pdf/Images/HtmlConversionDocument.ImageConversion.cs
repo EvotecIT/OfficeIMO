@@ -89,13 +89,4 @@ public static partial class HtmlImageExportExtensions {
             exportWithCancellation: (encoding, effective, token) => document.ExportImage(encoding, effective, effective.PageIndex, token),
             exportAsync: (encoding, effective, token) => document.ExportImageAsync(encoding, effective, effective.PageIndex, token));
     }
-    private static OfficeImageExportOperation<HtmlRenderOptions> CreateImageExportOperation(
-        HtmlConversionDocument document, HtmlRenderOptions? options, OfficeImageExportFormat format, int pageIndex) {
-        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
-        HtmlRenderOptions resolved = SnapshotHtmlConversionDocumentImageOptions(options);
-        resolved.Format = format;
-        resolved.PageIndex = pageIndex;
-        return CreateImageExportOperation(document, resolved);
-    }
-
 }

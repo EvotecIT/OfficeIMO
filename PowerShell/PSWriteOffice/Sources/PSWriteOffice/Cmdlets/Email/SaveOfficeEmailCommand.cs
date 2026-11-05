@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 [OutputType(typeof(EmailWriteResult))]
 public sealed class SaveOfficeEmailCommand : OfficeMutationCmdlet {
     /// <summary>Email document to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public EmailDocument Document { get; set; } = null!;
 
     /// <summary>Destination path.</summary>

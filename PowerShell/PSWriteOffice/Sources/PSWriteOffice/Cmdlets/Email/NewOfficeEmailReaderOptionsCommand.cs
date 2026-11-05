@@ -7,14 +7,14 @@ namespace PSWriteOffice.Cmdlets.Email;
 /// <example>
 ///   <summary>Read message diagnostics without retaining attachment payloads.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$options = New-OfficeEmailReaderOptions -ExcludeAttachmentContent -MaxAttachmentBytes 25MB
+///   <code>$options = New-OfficeEmailReaderOptions -NoAttachmentContent -MaxAttachmentBytes 25MB
 /// Get-OfficeEmail -Path .\Message.msg -Options $options -AsResult</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeEmailReaderOptions", DefaultParameterSetName = "Options")]
 [OutputType(typeof(EmailReaderOptions))]
 public sealed class NewOfficeEmailReaderOptionsCommand : PSCmdlet {
     /// <summary>Maximum artifact size accepted by the reader.</summary>
-    [Parameter] [ValidateRange(1, long.MaxValue)] public long MaxInputBytes { get; set; } = 256L * 1024L * 1024L;
+    [Parameter(ParameterSetName = "Options")] [ValidateRange(1, long.MaxValue)] public long MaxInputBytes { get; set; } = 256L * 1024L * 1024L;
     /// <summary>Maximum bytes allowed in one MIME header section.</summary>
     [Parameter] [ValidateRange(1, int.MaxValue)] public int MaxHeaderBytes { get; set; } = 1024 * 1024;
     /// <summary>Maximum number of header fields in one entity.</summary>
@@ -30,7 +30,7 @@ public sealed class NewOfficeEmailReaderOptionsCommand : PSCmdlet {
     /// <summary>Maximum embedded-message recursion depth.</summary>
     [Parameter] [ValidateRange(0, int.MaxValue)] public int MaxNestedMessageDepth { get; set; } = 16;
     /// <summary>Do not retain decoded attachment payloads in memory.</summary>
-    [Parameter] public SwitchParameter ExcludeAttachmentContent { get; set; }
+    [Parameter] public SwitchParameter NoAttachmentContent { get; set; }
     /// <summary>Retain original artifact bytes for an explicit lossless write.</summary>
     [Parameter] public SwitchParameter PreserveRawSource { get; set; }
     /// <summary>Maximum CFB directory entries accepted while reading MSG.</summary>
@@ -54,7 +54,7 @@ public sealed class NewOfficeEmailReaderOptionsCommand : PSCmdlet {
         MaxAttachmentBytes,
         MaxTotalAttachmentBytes,
         MaxNestedMessageDepth,
-        !ExcludeAttachmentContent.IsPresent,
+        !NoAttachmentContent.IsPresent,
         PreserveRawSource.IsPresent,
         MaxCompoundDirectoryEntries,
         MaxMapiPropertyCount,

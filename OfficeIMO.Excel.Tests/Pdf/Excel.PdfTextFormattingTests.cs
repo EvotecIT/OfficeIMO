@@ -18,9 +18,9 @@ public sealed class ExcelPdfTextFormattingTests {
             .SetUnderline(ExcelUnderlineStyle.Double)
             .SetStrikethrough()
             .SetSuperscript()
-            .SetFontName("Aptos")
+            .SetFontFamily("Aptos")
             .SetFontSize(global::OfficeIMO.OfficeLength.Points(14))
-            .SetFontColor("336699");
+            .SetColor(global::OfficeIMO.OfficeColor.Parse("336699"));
 
         PdfCore.PdfDocument pdf = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,

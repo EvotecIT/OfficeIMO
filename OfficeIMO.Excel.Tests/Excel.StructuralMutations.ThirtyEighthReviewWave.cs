@@ -18,11 +18,30 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(1, 1).SetValue(new string('x', 32_768)));
 
             Assert.Equal("value", exception.ParamName);
+            document.SetWorkbookThemeXml(document.GetWorkbookThemeXml()!);
+            Assert.Throws<InvalidOperationException>(() => sheet.Cell(1, 1).SetRichText(
+                new ExcelRichTextRun("First") { Color = OfficeIMO.OfficeColor.Red },
+                new ExcelRichTextRun("Status") { Color = OfficeIMO.OfficeColor.Success }));
             ExcelInCellImage image = Assert.Single(sheet.GetInCellImages());
             Assert.Equal("A1", image.CellReference);
             Assert.Equal("Preserved image", image.AltText);
             Assert.Equal(TinyPng, image.Bytes);
             AssertRichImageGraphCounts(document, expected: 1);
+            using var output = new MemoryStream();
+            document.Save(output);
+            output.Position = 0;
+            using var reopened = ExcelDocument.Load(output);
+            ExcelSheet saved = reopened.Sheets[0];
+            ExcelInCellImage reloaded = Assert.Single(saved.GetInCellImages());
+            Assert.Equal("A1", reloaded.CellReference);
+            Assert.Equal("Preserved image", reloaded.AltText);
+            Assert.Equal(TinyPng, reloaded.Bytes);
+            AssertRichImageGraphCounts(reopened, expected: 1);
+            saved.Cell(1, 1).SetRichText(
+                new ExcelRichTextRun("Literal") { Color = OfficeIMO.OfficeColor.Red },
+                new ExcelRichTextRun("Theme") { Color = OfficeIMO.OfficeColor.Accent1 });
+            Assert.Empty(saved.GetInCellImages());
+            Assert.Equal("LiteralTheme", saved.Cell(1, 1).GetValue<string>());
         }
 
         [Fact]

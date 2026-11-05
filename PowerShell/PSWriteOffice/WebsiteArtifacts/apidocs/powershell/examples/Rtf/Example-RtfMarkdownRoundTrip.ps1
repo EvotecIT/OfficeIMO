@@ -21,8 +21,8 @@ The weekly service review is ready.
 | Reporting | Analytics |
 '@ | Set-Content -Path $markdownPath -Encoding UTF8
 
-ConvertTo-OfficeRtf -MarkdownPath $markdownPath -OutputPath $rtfPath
-ConvertFrom-OfficeRtf -Path $rtfPath -As Markdown -OutputPath $roundTripMarkdownPath
+Convert-OfficeDocument -To Rtf -Path $markdownPath -OutputPath $rtfPath
+Convert-OfficeDocument -To Markdown -Path $rtfPath -OutputPath $roundTripMarkdownPath
 
 Write-Host "Markdown saved to $markdownPath"
 Write-Host "RTF saved to $rtfPath"

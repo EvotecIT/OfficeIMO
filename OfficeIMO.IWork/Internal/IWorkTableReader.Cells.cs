@@ -7,7 +7,7 @@ internal static partial class IWorkTableReader {
         int row, int column,
         IReadOnlyDictionary<uint, string> strings, IWorkTableRichTextCatalog richStrings,
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkTableNumberFormatCatalog numberFormats, IWorkTableCellStyleCatalog cellStyles, IWorkTableTextStyleReader textStyles,
-        IWorkReadOptions options, IWorkProjectionBudget projectionBudget, IWorkTableCommentCatalog comments,
+        IWorkLoadOptions options, IWorkProjectionBudget projectionBudget, IWorkTableCommentCatalog comments,
         HashSet<uint> formulaRichStringIdentifiers, HashSet<uint> nonFormulaRichStringIdentifiers) {
         if (offset < 0 || endOffset < offset || endOffset > buffer.Length
             || offset > endOffset - 12) return Error(row, column, "Truncated cell record.");
@@ -135,7 +135,7 @@ internal static partial class IWorkTableReader {
         int row, int column, int type, uint flags,
         IReadOnlyDictionary<uint, string> strings, IWorkTableRichTextCatalog richStrings,
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
-        IWorkReadOptions options, IWorkProjectionBudget projectionBudget,
+        IWorkLoadOptions options, IWorkProjectionBudget projectionBudget,
         HashSet<uint> formulaRichStringIdentifiers, HashSet<uint> nonFormulaRichStringIdentifiers) {
         if ((flags & ~RecognizedCellValueMask) != 0) {
             return Error(row, column, "Cell storage contains unsupported value fields.");
@@ -294,7 +294,7 @@ internal static partial class IWorkTableReader {
     private static int CellValueFieldSize(int bit) => bit == 0 ? 16 : bit is 1 or 2 ? 8 : 4;
 
     private static IWorkTableCell Formula(int row, int column, uint formulaIdentifier,
-        IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkReadOptions options,
+        IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkLoadOptions options,
         IWorkProjectionBudget projectionBudget,
         object? cachedValue = null,
         IWorkCellKind? cachedValueKind = null,
@@ -325,7 +325,7 @@ internal static partial class IWorkTableReader {
 
     private static IWorkTableCell FiniteNumber(int row, int column, double value, bool hasFormula,
         uint formulaIdentifier, IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
-        IWorkReadOptions options, IWorkProjectionBudget projectionBudget) =>
+        IWorkLoadOptions options, IWorkProjectionBudget projectionBudget) =>
         IsFinite(value)
             ? hasFormula
                 ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, value, IWorkCellKind.Number)

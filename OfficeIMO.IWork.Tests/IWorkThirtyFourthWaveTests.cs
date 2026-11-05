@@ -16,8 +16,8 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(stream)));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-                new IWorkReadOptions { MaxRecordCount = 1 }));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+                new IWorkLoadOptions { MaxRecordCount = 1 }));
 
         Assert.Contains("record count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_text_storage_shared_by_a_header_and_drawable_is_projected_twice() {
         using MemoryStream package = CreatePagesPackageWithSharedHeaderDrawableStorage();
 
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages).ReadPages();
 
         Assert.True(projection.HasEditableContent);
@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Crossing", 1, 2, 42d, cellCrossesNextOffset: true)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_rejects_wrong_type_presenter_note_wrappers() {
         using MemoryStream package = CreateKeynotePackageWithWrongTypePresenterNote();
 
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Keynote).ReadKeynote();
 
         Assert.False(projection.HasEditableContent);

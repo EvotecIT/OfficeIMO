@@ -13,14 +13,14 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a section header that prints “Confidential”.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordHeader", DefaultParameterSetName = "Default")]
-[Alias("WordHeader")]
+[Alias("WordHeader") ]
 public sealed class AddOfficeWordHeaderCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>The header type to modify.</summary>
     [Parameter]
     public WordHeaderFooterType Type { get; set; } = WordHeaderFooterType.Default;
 
     /// <summary>DSL scriptblock to execute inside the header.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(Position = 0, ParameterSetName = "Default")]
     public ScriptBlock? Content { get; set; }
 
     /// <inheritdoc />

@@ -6,42 +6,55 @@ schema: 2.0.0
 ---
 # Get-OfficeWordDocumentProperty
 ## SYNOPSIS
-Gets built-in and custom document properties from a Word document.
+Gets built-in and custom document properties.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeWordDocumentProperty [-Path] <string> [-Name <string[]>] [-BuiltIn] [-Custom] [<CommonParameters>]
+Get-OfficeWordDocumentProperty [-Name <string[]>] [-BuiltIn] [-Custom] [-Document <WordDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordDocumentProperty -Document <WordDocument> [-Name <string[]>] [-BuiltIn] [-Custom] [<CommonParameters>]
+Get-OfficeWordDocumentProperty [-Path] <string[]> [-Name <string[]>] [-BuiltIn] [-Custom] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordDocumentProperty -LiteralPath <string[]> [-Name <string[]>] [-BuiltIn] [-Custom] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets built-in and custom document properties from a Word document.
+Gets built-in and custom document properties.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $properties = Get-OfficeWordDocumentProperty -Path .\Report.docx -Name Title, Subject, ReleaseStatus
-$properties |
-    Select-Object -Property Name, Value, IsCustom |
-    Format-Table -AutoSize
+Get-OfficeWordDocumentProperty -Name @('Name')
 ```
 
-Returns selected built-in and custom properties for a document metadata check.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordDocumentProperty -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordDocumentProperty -Path @('C:\Path')
+```
+
 
 ## PARAMETERS
 
 ### -BuiltIn
-Only return built-in document properties.
+BuiltIn for this inspection.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -53,11 +66,11 @@ Accept wildcard characters: False
 ```
 
 ### -Custom
-Only return custom document properties.
+Custom for this inspection.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -69,7 +82,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Document to inspect.
+Document for this inspection.
 
 ```yaml
 Type: WordDocument
@@ -77,19 +90,35 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Name
-Property name filter (wildcards supported).
+### -LiteralPath
+LiteralPath for this inspection.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, Document
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Name
+Name for this inspection.
+
+```yaml
+Type: String[]
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -97,23 +126,23 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: True
+Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the document.
+Path for this inspection.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -121,7 +150,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS

@@ -15,7 +15,7 @@ internal static partial class OneNoteSemanticMapper {
     private static OneNoteInk BuildInk(
         OneNoteMaterializedObjectSpace space,
         OneNoteRevisionStoreObject container,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         int depth,
         HashSet<OneNoteExtendedGuid> path) {
         var ink = new OneNoteInk { Id = container.Id, Layout = ReadLayout(container) };
@@ -89,7 +89,7 @@ internal static partial class OneNoteSemanticMapper {
         OneNoteRevisionStoreObject source,
         double scaleX,
         double scaleY,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         out bool dimensionsContainUnsupportedPackets) {
         dimensionsContainUnsupportedPackets = false;
         OneNoteExtendedGuid? propertiesId = GetReferences(source, OneNoteSchema.InkStrokeProperties).FirstOrDefault();

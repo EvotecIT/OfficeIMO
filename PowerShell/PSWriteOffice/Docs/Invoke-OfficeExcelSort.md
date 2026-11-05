@@ -9,24 +9,14 @@ schema: 2.0.0
 Sorts the used range on the current worksheet.
 
 ## SYNTAX
-### ContextSingle (Default)
+### Header (Default)
 ```powershell
-Invoke-OfficeExcelSort [-Header] <string> [-Descending] [-PassThru] [<CommonParameters>]
+Invoke-OfficeExcelSort [-Header] <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Descending] [-PassThru] [<CommonParameters>]
 ```
 
-### DocumentSingle
+### Order
 ```powershell
-Invoke-OfficeExcelSort [-Header] <string> -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-Descending] [-PassThru] [<CommonParameters>]
-```
-
-### DocumentOrder
-```powershell
-Invoke-OfficeExcelSort -Document <ExcelDocument> -Order <hashtable> [-Sheet <string>] [-SheetIndex <Int32>] [-PassThru] [<CommonParameters>]
-```
-
-### ContextOrder
-```powershell
-Invoke-OfficeExcelSort -Order <hashtable> [-PassThru] [<CommonParameters>]
+Invoke-OfficeExcelSort -Order <ordered> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -36,17 +26,25 @@ Sorts the used range on the current worksheet.
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Invoke-OfficeExcelSort -Header 'Name' }
+Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+    ExcelSheet 'Servers' {
+        ExcelSort Name
+    }
+}
 ```
 
-Sorts by the Name column in ascending order.
+Sorts the used range of the Servers sheet by the Name header.
 
 ### EXAMPLE 2
 ```powershell
-PS> $order = [ordered]@{ Status = $true; Total = $false }\nExcelSheet 'Data' { Invoke-OfficeExcelSort -Order $order }
+Open-OfficeExcel -Path .\Reports\Helpdesk.xlsx {
+    ExcelSheet 'Tickets' {
+        ExcelSort -Order ([ordered]@{ Priority = $true; AgeDays = $false })
+    }
+}
 ```
 
-Sorts by Status ascending, then Total descending.
+Sorts tickets by priority ascending and then by age with the oldest first.
 
 ## PARAMETERS
 
@@ -55,7 +53,7 @@ Sort descending (single-column sort).
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: ContextSingle, DocumentSingle
+Parameter Sets: Header
 Aliases: None
 Possible values:
 
@@ -71,11 +69,11 @@ Workbook to operate on outside the DSL context.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: DocumentSingle, DocumentOrder
+Parameter Sets: Header, Order
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -87,7 +85,7 @@ Header to sort by (single-column sort).
 
 ```yaml
 Type: String
-Parameter Sets: ContextSingle, DocumentSingle
+Parameter Sets: Header
 Aliases: None
 Possible values:
 
@@ -102,8 +100,8 @@ Accept wildcard characters: False
 Ordered dictionary of header => ascending (true/false).
 
 ```yaml
-Type: Hashtable
-Parameter Sets: DocumentOrder, ContextOrder
+Type: OrderedDictionary
+Parameter Sets: Order
 Aliases: None
 Possible values:
 
@@ -119,7 +117,7 @@ Emit the worksheet after sorting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: ContextSingle, DocumentSingle, DocumentOrder, ContextOrder
+Parameter Sets: Header, Order
 Aliases: None
 Possible values:
 
@@ -134,24 +132,8 @@ Accept wildcard characters: False
 Worksheet name when using Document.
 
 ```yaml
-Type: String
-Parameter Sets: DocumentSingle, DocumentOrder
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) when using Document.
-
-```yaml
-Type: Int32
-Parameter Sets: DocumentSingle, DocumentOrder
+Type: OfficeSheetSelector
+Parameter Sets: Header, Order
 Aliases: None
 Possible values:
 

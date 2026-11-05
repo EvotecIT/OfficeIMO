@@ -18,8 +18,8 @@ public sealed class PowerPointLayoutChartRecoveryTests {
     public void ComboSeriesStylesUseAnIndexAcrossChartGroups() {
         using var document = PowerPointDocument.Create();
         var chart = document.AddSlide().AddChart(OfficeChartType.ColumnClustered, Combo());
-        chart.SetSeriesFillColor(0, "123456");
-        chart.SetSeriesLineColor(1, "654321", OfficeLength.Points(2));
+        chart.SetSeriesFillColor(0, OfficeColor.Parse("123456"));
+        chart.SetSeriesLineColor(1, OfficeColor.Parse("654321"), OfficeLength.Points(2));
         chart.SetSeriesMarker(1, OfficeChartMarkerShape.Diamond, OfficeLength.Points(9));
         Assert.Throws<InvalidOperationException>(() => chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle));
         C.BarChartSeries bar = chart.GetChart().Descendants<C.BarChartSeries>().Single();

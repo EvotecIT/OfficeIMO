@@ -35,6 +35,20 @@ Get-OfficeExcelConditionalFormat -Path .\Report.xlsx -Sheet Data -Table Sales -H
 ```
 
 
+### EXAMPLE 2
+```powershell
+Get-OfficeExcelConditionalFormat -Path .\Reports\Q3-Performance.xlsx
+```
+
+Shows every conditional formatting rule in the workbook.
+
+### EXAMPLE 3
+```powershell
+Get-OfficeExcelConditionalFormat -Path .\Reports\Q3-Performance.xlsx -Sheet Performance -Header Attainment -Table Actuals
+```
+
+Reads only the rules that apply to the Attainment column of the Actuals table.
+
 ## PARAMETERS
 
 ### -Document

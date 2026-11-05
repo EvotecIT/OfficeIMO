@@ -1,64 +1,60 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
 /// <summary>Removes worksheet protection.</summary>
 /// <example>
-///   <summary>Unprotect the active sheet.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Unprotect-OfficeExcelSheet }</code>
-///   <para>Removes worksheet protection.</para>
+/// <summary>Remove sheet protection</summary>
+/// <code>Open-OfficeExcel -Path .\Finance\Pricing-Model.xlsx {
+///     Unprotect-OfficeExcelSheet -Sheet Inputs
+/// }</code>
+/// <para>Unprotects the Inputs sheet.</para>
 /// </example>
-[Cmdlet(VerbsSecurity.Unprotect, "OfficeExcelSheet", DefaultParameterSetName = ParameterSetContext)]
-[Alias("ExcelUnprotect")]
-public sealed class UnprotectOfficeExcelSheetCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
+/// <example>
+/// <summary>Update a protected sheet and protect it again</summary>
+/// <code>Open-OfficeExcel -Path .\Finance\Pricing-Model.xlsx {
+///     ExcelSheet 'Rates' {
+///         Unprotect-OfficeExcelSheet
+///         ExcelCell B2 1.09
+///         ExcelCell B3 0.86
+///         Protect-OfficeExcelSheet -AllowSort
+///     }
+/// }</code>
+/// <para>Unprotects the price sheet, writes the new rates and restores protection with sorting allowed.</para>
+/// </example>
+[Cmdlet(VerbsSecurity.Unprotect, "OfficeExcelSheet", DefaultParameterSetName = "Default")]
+public sealed class UnprotectOfficeExcelSheetCommand : PSCmdlet {
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Workbook to operate on outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
-    /// <summary>Worksheet name when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public string? Sheet { get; set; }
-
-    /// <summary>Worksheet index (0-based) when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>Emit the worksheet after removing protection.</summary>
-    [Parameter]
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var sheet = ResolveSheet();
+    protected override void ProcessRecord() {
+        var sheet = ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
         sheet.Unprotect();
-
-        if (PassThru.IsPresent)
-        {
-            WriteObject(sheet);
-        }
+        if (PassThru) WriteObject(sheet);
     }
 
-    private ExcelSheet ResolveSheet()
-    {
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            if (Document == null)
-            {
-                throw new PSArgumentException("Provide an Excel document.");
-            }
-
-            return ExcelSheetResolver.Resolve(Document, Sheet, SheetIndex);
-        }
-
-        var context = ExcelDslContext.Require(this);
-        return context.RequireSheet();
-    }
 }

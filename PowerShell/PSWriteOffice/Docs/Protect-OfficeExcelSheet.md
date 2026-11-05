@@ -6,30 +6,48 @@ schema: 2.0.0
 ---
 # Protect-OfficeExcelSheet
 ## SYNOPSIS
-Protects the current worksheet.
+Protects a worksheet and chooses what users may still do.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Protect-OfficeExcelSheet [-AllowTableEditing] [-AllowSelectLockedCells <bool>] [-AllowSelectUnlockedCells <bool>] [-AllowFormatCells <bool>] [-AllowFormatColumns <bool>] [-AllowFormatRows <bool>] [-AllowInsertColumns <bool>] [-AllowInsertRows <bool>] [-AllowInsertHyperlinks <bool>] [-AllowDeleteColumns <bool>] [-AllowDeleteRows <bool>] [-AllowSort <bool>] [-AllowAutoFilter <bool>] [-AllowPivotTables <bool>] [-PassThru] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Protect-OfficeExcelSheet -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-AllowTableEditing] [-AllowSelectLockedCells <bool>] [-AllowSelectUnlockedCells <bool>] [-AllowFormatCells <bool>] [-AllowFormatColumns <bool>] [-AllowFormatRows <bool>] [-AllowInsertColumns <bool>] [-AllowInsertRows <bool>] [-AllowInsertHyperlinks <bool>] [-AllowDeleteColumns <bool>] [-AllowDeleteRows <bool>] [-AllowSort <bool>] [-AllowAutoFilter <bool>] [-AllowPivotTables <bool>] [-PassThru] [<CommonParameters>]
+Protect-OfficeExcelSheet [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Password <securestring>] [-AllowTableEditing] [-NoSelectLockedCells] [-NoSelectUnlockedCells] [-AllowFormatCells] [-AllowFormatColumns] [-AllowFormatRows] [-AllowInsertColumns] [-AllowInsertRows] [-AllowInsertHyperlinks] [-AllowDeleteColumns] [-AllowDeleteRows] [-AllowSort] [-AllowAutoFilter] [-AllowPivotTables] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Protects the current worksheet.
+Protects a worksheet and chooses what users may still do.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Protect-OfficeExcelSheet }
+Open-OfficeExcel -Path .\Finance\Pricing-Model.xlsx {
+    Protect-OfficeExcelSheet -Sheet Inputs
+}
 ```
 
-Enables worksheet protection.
+Locks the Inputs sheet so only unlocked cells can be edited.
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\HR\Staff-Directory.xlsx {
+    ExcelSheet 'Directory' {
+        Protect-OfficeExcelSheet -AllowSort -AllowAutoFilter -AllowFormatColumns
+    }
+}
+```
+
+Protects the staff list while still letting colleagues sort, filter and resize columns.
+
+### EXAMPLE 3
+```powershell
+$password = Read-Host -Prompt 'Sheet password' -AsSecureString
+Open-OfficeExcel -Path .\Finance\Pricing-Model.xlsx {
+    Protect-OfficeExcelSheet -Sheet Inputs -Password $password -AllowSort -AllowAutoFilter
+}
+```
+
+Locks the input sheet with a password read from the console, still allowing sorting and filtering.
 
 ## PARAMETERS
 
@@ -37,8 +55,8 @@ Enables worksheet protection.
 Allow AutoFilter.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -53,8 +71,8 @@ Accept wildcard characters: False
 Allow deleting columns.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -69,8 +87,8 @@ Accept wildcard characters: False
 Allow deleting rows.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -85,8 +103,8 @@ Accept wildcard characters: False
 Allow formatting cells.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -101,8 +119,8 @@ Accept wildcard characters: False
 Allow formatting columns.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -117,8 +135,8 @@ Accept wildcard characters: False
 Allow formatting rows.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -133,8 +151,8 @@ Accept wildcard characters: False
 Allow inserting columns.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -149,8 +167,8 @@ Accept wildcard characters: False
 Allow inserting hyperlinks.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -165,8 +183,8 @@ Accept wildcard characters: False
 Allow inserting rows.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -181,40 +199,8 @@ Accept wildcard characters: False
 Allow PivotTables.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AllowSelectLockedCells
-Allow selecting locked cells.
-
-```yaml
-Type: Boolean
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AllowSelectUnlockedCells
-Allow selecting unlocked cells.
-
-```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -229,8 +215,8 @@ Accept wildcard characters: False
 Allow sorting.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Context, Document
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -246,7 +232,7 @@ Allow common protected-table workflows: selecting cells, inserting rows, sorting
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -258,27 +244,75 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to operate on outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -PassThru
-Emit the worksheet after protection.
+### -NoSelectLockedCells
+Prevents selecting locked cells while the worksheet is protected.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoSelectUnlockedCells
+Prevents selecting unlocked cells while the worksheet is protected.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PassThru
+Emits the native result after the operation.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Password
+Password used to open an encrypted workbook package.
+
+```yaml
+Type: SecureString
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -290,27 +324,11 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name when using Document.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) when using Document.
-
-```yaml
-Type: Int32
-Parameter Sets: Document
+Type: OfficeSheetSelector
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

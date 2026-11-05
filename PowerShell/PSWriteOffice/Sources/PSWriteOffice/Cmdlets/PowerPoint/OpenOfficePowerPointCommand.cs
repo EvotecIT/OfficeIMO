@@ -18,6 +18,27 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [Cmdlet(VerbsCommon.Open, "OfficePowerPoint", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(PowerPointDocument), typeof(FileInfo))]
 public sealed class OpenOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPointDocument> {
+    /// <summary>An optional authoring block; omission returns the live document.</summary>
+    [Parameter(ParameterSetName = "Path", Position = 1)]
+    [Parameter(ParameterSetName = "LiteralPath", Position = 1)]
+    [ValidateNotNull]
+    public override ScriptBlock? Content { get => base.Content; set => base.Content = value; }
+
+    /// <summary>Emit the FileInfo after a completed authoring block.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    public override SwitchParameter PassThru { get => base.PassThru; set => base.PassThru = value; }
+
+    /// <summary>Explicitly accept native-save loss for an authoring block.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    public override SwitchParameter AllowLoss { get => base.AllowLoss; set => base.AllowLoss = value; }
+
+    /// <summary>Open the saved document after a completed authoring block.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    public override SwitchParameter Show { get => base.Show; set => base.Show = value; }
+
     /// <summary>Presentation paths with FileSystem wildcard expansion.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
     [SupportsWildcards]

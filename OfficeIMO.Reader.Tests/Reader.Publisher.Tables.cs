@@ -231,7 +231,7 @@ public sealed class ReaderPublisherTableTests {
         Assert.Equal(2, tables.Select(table => table.Location!.BlockAnchor).Distinct().Count());
         OfficeDocumentBlock block = Assert.Single(result.Blocks, item => item.Kind == "table");
         Assert.Single(tables, table => table.Location!.BlockAnchor == block.Location.BlockAnchor);
-        Assert.Single(Regex.Matches(result.Markdown, "Table on page 2"));
+        Assert.Single(Regex.Matches(Assert.IsType<string>(result.Markdown), "Table on page 2"));
         foreach (PdfProjectionPagePolicy policy in new[] { PdfProjectionPagePolicy.ContinuousFlow, PdfProjectionPagePolicy.PreserveSourcePages }) {
             string text = PdfReadDocument.Open(result.ToPdfDocumentResult(new PdfProjectionOptions {
                 PagePolicy = policy, IncludeMetadata = false
@@ -267,7 +267,7 @@ public sealed class ReaderPublisherTableTests {
         Assert.Equal(2, publicExports.Select(bundle => bundle.FileNamePrefix).Distinct().Count());
         Assert.All(result.Chunks.Where(chunk => chunk.Tables?.Count > 0), chunk => Assert.Null(chunk.Location.Page));
         Assert.Single(Regex.Matches(result.ToPageMarkedMarkdown(), "Table on page 2"));
-        Assert.Single(Regex.Matches(result.Markdown, "Table on page 2"));
+        Assert.Single(Regex.Matches(Assert.IsType<string>(result.Markdown), "Table on page 2"));
     }
 
     private static OfficeDocumentReadResult Read(byte[] bytes, ReaderOptions? options = null) =>

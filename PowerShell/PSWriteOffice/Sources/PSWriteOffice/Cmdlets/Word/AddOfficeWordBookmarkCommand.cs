@@ -12,11 +12,11 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a bookmark named <c>Intro</c> on the paragraph.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordBookmark", DefaultParameterSetName = "Default")]
-[Alias("WordBookmark")]
+[Alias("WordBookmark") ]
 public sealed class AddOfficeWordBookmarkCommand : PSCmdlet
 {
     /// <summary>Bookmark name.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Default")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Explicit paragraph to receive the bookmark.</summary>

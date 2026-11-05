@@ -152,9 +152,10 @@ namespace OfficeIMO.PowerPoint {
             if (!background.HasValue) return;
             bool inspectedRun = false;
             foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
-                foreach (PowerPointTextRun run in paragraph.Runs) {
-                    if (string.IsNullOrWhiteSpace(run.Text)) continue;
-                    OfficeColor? foreground = run.Color ?? textBox.Color;
+                foreach (PowerPointParagraphInline inline in paragraph.InlineNodes) {
+                    PowerPointTextRun? run = inline.Run;
+                    if (run == null || string.IsNullOrWhiteSpace(run.Text)) continue;
+                    OfficeColor? foreground = PowerPointEffectiveRunStyleResolver.ResolveTextColorForExport(run, paragraph, textBox);
                     double? fontSize = run.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints();
                     if (!foreground.HasValue || !fontSize.HasValue) continue;
                     inspectedRun = true;
@@ -175,7 +176,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (!inspectedRun && !string.IsNullOrWhiteSpace(textBox.Text)) {
-                OfficeColor? foreground = textBox.Color;
+                OfficeColor? foreground = PowerPointEffectiveRunStyleResolver.ResolveTextColorForExport(null, textBox.Paragraphs.FirstOrDefault(), textBox);
                 double? fontSize = textBox.FontSize?.ToPoints();
                 if (foreground.HasValue && fontSize.HasValue) {
                     double required = fontSize.Value >= options.LargeTextThreshold.ToPoints()
@@ -213,8 +214,8 @@ namespace OfficeIMO.PowerPoint {
         private static bool HasVisibleText(PowerPointShape shape) {
             if (shape is PowerPointTextBox textBox) return !string.IsNullOrWhiteSpace(textBox.Text);
             if (shape is PowerPointTable table) {
-                for (int row = 0; row < table.Rows; row++)
-                    for (int column = 0; column < table.Columns; column++)
+                for (int row = 0; row < table.RowCount; row++)
+                    for (int column = 0; column < table.ColumnCount; column++)
                         if (!string.IsNullOrWhiteSpace(table.GetCell(row, column).Text)) return true;
             }
             return false;
@@ -228,8 +229,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeColor? ResolveBackgroundColor(PowerPointSlide slide, PowerPointTextBox textBox,
             IReadOnlyList<PowerPointShape> shapes) {
-            if (!string.IsNullOrWhiteSpace(textBox.FillColor) && (textBox.FillTransparency ?? 0) < 50) {
-                return ParseColor(textBox.FillColor);
+            if (textBox.ResolveFillColorForExport() is OfficeColor ownFill && (textBox.FillTransparency ?? 0) < 50) {
+                return ownFill;
             }
             int textBoxIndex = IndexOfReference(shapes, textBox);
             IEnumerable<PowerPointShape> earlierShapes = textBoxIndex >= 0
@@ -237,10 +238,10 @@ namespace OfficeIMO.PowerPoint {
                 : shapes.Where(shape => shape.DrawingOrder < textBox.DrawingOrder);
             PowerPointShape? containingShape = earlierShapes
                 .Where(shape => !ReferenceEquals(shape, textBox) && !shape.Hidden &&
-                                !string.IsNullOrWhiteSpace(shape.FillColor) &&
+                                shape.ResolveFillColorForExport().HasValue &&
                                 (shape.FillTransparency ?? 0) < 50 && Contains(shape, textBox))
                 .LastOrDefault();
-            if (containingShape != null) return ParseColor(containingShape.FillColor);
+            if (containingShape != null) return containingShape.ResolveFillColorForExport();
             PowerPointSlideBackground background = slide.GetBackground();
             return background.Kind == PowerPointSlideBackgroundKind.SolidColor
                 ? ParseColor(background.Color) : null;

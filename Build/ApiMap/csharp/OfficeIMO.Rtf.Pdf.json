@@ -50,6 +50,24 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "PdfDocument/PdfDocumentReadResult.ToRtfDocument / ToRtfDocumentResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "ToRtf(PdfRtfExportOptions[, out OfficeConversionReport], CancellationToken)",
+      "replacement": "The model return is RtfDocument; the report remains PdfRtfConversionReport with Warnings and loss categories. ToRtfAsync returns OfficeConversionResult<RtfDocument>. Preserve the already-read logical input overload and ReadOptions for opened PDFs. PdfRtfExportOptions.FailOnLoss rejects with completed evidence.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "PdfDocument/PdfDocumentReadResult.SaveAsRtf / SaveAsRtfAsync : OfficeOutputResult<PdfRtfConversionReport>",
+      "kind": "method",
+      "action": "change",
+      "new": "SaveAsRtf(path|stream, options, CancellationToken) : OfficeConversionReport",
+      "replacement": "Remove RequireSuccess().Report. The save returns the completed report directly; async returns Task<OfficeConversionReport>. Cast for PdfRtfConversionReport.Warnings. Native RTF save semantics remain independent; strict reconstruction rejects before output.",
+      "category": "conversion",
+      "applied": true
     }
   ]
 }

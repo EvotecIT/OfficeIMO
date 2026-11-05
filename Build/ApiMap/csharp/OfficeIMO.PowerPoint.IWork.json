@@ -5,10 +5,10 @@
       "old": "PowerPointIWorkConverter.ConvertKeynoteToPowerPoint(path | stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertKeynoteToPowerPointResult",
       "kind": "method",
       "action": "remove",
-      "new": "IWorkSourceDocument.Open(path | stream, IWorkDocumentKind.Keynote, readOptions[, ct]).ToPowerPoint(...) / ToPowerPointResult(...)",
+      "new": "IWorkSourceDocument.Load(path | stream, IWorkDocumentKind.Keynote, loadOptions[, ct]).ToPowerPoint(...) / ToPowerPointResult(...)",
       "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
       "category": "conversion",
-      "replacement": "Open the source with IWorkSourceDocument.Open and call ToPowerPoint, SaveAsPowerPoint or ToPowerPointResult; append RequireCompleteEditableReconstruction() to keep the strict behaviour.",
+      "replacement": "Load the source with IWorkSourceDocument.Load and call ToPowerPoint, SaveAsPowerPoint or ToPowerPointResult; use ToPowerPointResult(...).RequireCompleteEditableReconstruction() to require complete editable output.",
       "applied": true
     },
     {

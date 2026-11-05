@@ -4,6 +4,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Controls the shared-Drawing layout diagnostics projected over one PDF page.</summary>
 public sealed class PdfLayoutDebugOverlayOptions {
+    /// <summary>Creates an independent copy of these overlay settings.</summary>
+    public PdfLayoutDebugOverlayOptions Clone() => (PdfLayoutDebugOverlayOptions)MemberwiseClone();
+
     /// <summary>Default maximum number of pixels allocated by one PNG overlay.</summary>
     public const long DefaultMaxRasterPixels = 64_000_000;
 

@@ -55,7 +55,7 @@ public class CsvSaveApiTests
         try
         {
             File.WriteAllText(path, "Name,Value\nAlpha,1\n");
-            await new CsvDocument()
+            await CsvDocument.Create()
                 .WithHeader("Name", "Value")
                 .AddRow("Beta", 2)
                 .SaveAsync(path, new CsvSaveOptions { Append = true, IncludeHeader = false, NewLine = "\n" });
@@ -78,7 +78,7 @@ public class CsvSaveApiTests
         try
         {
             File.WriteAllText(path, "Name,Value\nAlpha,1\n", encoding);
-            await new CsvDocument()
+            await CsvDocument.Create()
                 .WithHeader("Name", "Value")
                 .AddRow("Beta", 2)
                 .SaveAsync(path, new CsvSaveOptions {
@@ -188,7 +188,7 @@ public class CsvSaveApiTests
         Assert.False(File.Exists(path));
     }
 
-    private static CsvDocument CreateDocument() => new CsvDocument()
+    private static CsvDocument CreateDocument() => CsvDocument.Create()
         .WithHeader("Name", "Value")
         .AddRow("Alpha", 1);
 

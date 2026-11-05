@@ -15,8 +15,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///     $paragraph.AddText(' in all regions')
 /// }</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointParagraph", DefaultParameterSetName = "Text")]
-[Alias("PowerPointParagraph")]
 [OutputType(typeof(PowerPointParagraph))]
+[Alias("PowerPointParagraph") ]
 public sealed class AddOfficePowerPointParagraphCommand : PowerPointTextPlacementCmdlet {
     /// <summary>Gets or sets the paragraph text.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]
@@ -47,9 +47,11 @@ public sealed class AddOfficePowerPointParagraphCommand : PowerPointTextPlacemen
     public PowerPointUnderlineStyle? Underline { get; set; }
     /// <summary>Gets or sets the text color or theme role.</summary>
     [Parameter(ParameterSetName = "Text"), OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Color { get; set; }
     /// <summary>Gets or sets the highlight color.</summary>
     [Parameter(ParameterSetName = "Text"), OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Highlight { get; set; }
     /// <summary>Gets or sets the font family.</summary>
     [Parameter(ParameterSetName = "Text")]
@@ -91,8 +93,8 @@ public sealed class AddOfficePowerPointParagraphCommand : PowerPointTextPlacemen
                 using (OfficeDocumentContext.Push(inline.Document))
                 using (OfficeDocumentContext.Push(inline)) Content.Invoke();
             } else foreach (var run in paragraph.Runs) {
-                if (body != null) PowerPointTextFormatting.Apply(run, scope!, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
-                else PowerPointTextFormatting.Apply(run, textScope!, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
+                if (body != null) PowerPointTextFormatting.Apply(run, scope!, BoundSwitch(nameof(Bold)), BoundSwitch(nameof(Italic)), BoundSwitch(nameof(Strikethrough)), Underline, Color, Highlight, Font, Size);
+                else PowerPointTextFormatting.Apply(run, textScope!, BoundSwitch(nameof(Bold)), BoundSwitch(nameof(Italic)), BoundSwitch(nameof(Strikethrough)), Underline, Color, Highlight, Font, Size);
             }
             if (body != null) scope!.Blocks.Add(new PowerPointLayoutText(Text) { NativeBody = body });
             if (fixedBox != null) fixedScope?.TrackFixedFigure(fixedBox);

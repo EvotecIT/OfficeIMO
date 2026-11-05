@@ -12,12 +12,12 @@ public static partial class WordOpenDocumentConversionExtensions {
         target.Underline = (source.Underline ?? paragraph.Underline) == true
             ? WordUnderlineStyle.Single
             : (WordUnderlineStyle?)null;
-        target.Strike = (source.StrikeThrough ?? paragraph.StrikeThrough) == true;
+        target.Strikethrough = (source.Strikethrough ?? paragraph.Strikethrough) == true;
         ApplyOdfRunSemantics(
             source.Underline ?? paragraph.Underline,
             source.UnderlineStyle ?? paragraph.UnderlineStyle,
             source.UnderlineType ?? paragraph.UnderlineType,
-            source.StrikeThrough ?? paragraph.StrikeThrough,
+            source.Strikethrough ?? paragraph.Strikethrough,
             source.LineThroughStyle ?? paragraph.LineThroughStyle,
             source.LineThroughType ?? paragraph.LineThroughType,
             source.TextPosition ?? paragraph.TextPosition,
@@ -41,12 +41,12 @@ public static partial class WordOpenDocumentConversionExtensions {
         target.Bold = source.Bold == true;
         target.Italic = source.Italic == true;
         target.Underline = source.Underline == true ? WordUnderlineStyle.Single : (WordUnderlineStyle?)null;
-        target.Strike = source.StrikeThrough == true;
+        target.Strikethrough = source.Strikethrough == true;
         ApplyOdfRunSemantics(
             source.Underline,
             source.UnderlineStyle,
             source.UnderlineType,
-            source.StrikeThrough,
+            source.Strikethrough,
             source.LineThroughStyle,
             source.LineThroughType,
             source.TextPosition,
@@ -69,12 +69,12 @@ public static partial class WordOpenDocumentConversionExtensions {
         target.Underline = (source.Underline ?? paragraph.Underline) == true
             ? WordUnderlineStyle.Single
             : (WordUnderlineStyle?)null;
-        target.Strike = (source.StrikeThrough ?? paragraph.StrikeThrough) == true;
+        target.Strikethrough = (source.Strikethrough ?? paragraph.Strikethrough) == true;
         ApplyOdfRunSemantics(
             source.Underline ?? paragraph.Underline,
             source.UnderlineStyle ?? paragraph.UnderlineStyle,
             source.UnderlineType ?? paragraph.UnderlineType,
-            source.StrikeThrough ?? paragraph.StrikeThrough,
+            source.Strikethrough ?? paragraph.Strikethrough,
             source.LineThroughStyle ?? paragraph.LineThroughStyle,
             source.LineThroughType ?? paragraph.LineThroughType,
             source.TextPosition ?? paragraph.TextPosition,
@@ -133,8 +133,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         WordParagraph target) {
         target.Underline = MapOdfUnderline(underline, underlineStyle, underlineType);
         bool hasStrike = strike == true && strikeStyle != OdfTextDecorationStyle.None && strikeType != OdfTextDecorationType.None;
-        target.DoubleStrike = hasStrike && strikeType == OdfTextDecorationType.Double;
-        target.Strike = hasStrike && !target.DoubleStrike;
+        target.DoubleStrikethrough = hasStrike && strikeType == OdfTextDecorationType.Double;
+        target.Strikethrough = hasStrike && !target.DoubleStrikethrough;
         target.VerticalTextAlignment = position switch {
             OdfTextPosition.Superscript => WordVerticalTextPosition.Superscript,
             OdfTextPosition.Subscript => WordVerticalTextPosition.Subscript,

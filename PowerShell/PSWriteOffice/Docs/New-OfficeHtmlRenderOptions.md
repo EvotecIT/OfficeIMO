@@ -11,7 +11,7 @@ Creates discoverable layout, resource-limit, and rendering settings for HTML ima
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeHtmlRenderOptions [-Mode <HtmlRenderMode>] [-FidelityPolicy <HtmlRenderFidelityPolicy>] [-ViewportWidth <Double>] [-ViewportHeight <Double>] [-PageSize <OfficePageSize>] [-HonorCssPageRules] [-DefaultFontFamily <string>] [-DefaultFontSize <Double>] [-DefaultLineHeight <Double>] [-BaseUri <string>] [-MaxPageCount <Int32>] [-MaxInputCharacters <Int32>] [-MaxHtmlNodes <Int32>] [-MaxTotalResourceBytes <Int64>] [-ResourceTimeoutSeconds <Double>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficeHtmlRenderOptions [-Mode <HtmlRenderMode>] [-FidelityPolicy <HtmlRenderFidelityPolicy>] [-ViewportWidth <OfficeLength>] [-ViewportHeight <OfficeLength>] [-PageSize <OfficePageSize>] [-NoCssPageRules] [-DefaultFont <string>] [-DefaultSize <OfficeLength>] [-DefaultLineHeight <Double>] [-BaseUri <string>] [-MaxPageCount <Int32>] [-MaxInputCharacters <Int32>] [-MaxHtmlNodes <Int32>] [-MaxTotalResourceBytes <Int64>] [-ResourceTimeoutSeconds <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -27,22 +27,6 @@ Export-OfficeHtmlImage -Path .\Report.html -OutputPath .\Report.svg -RenderOptio
 
 
 ## PARAMETERS
-
-### -BackgroundColor
-Background color name or hex value.
-
-```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -BaseUri
 Base URI for relative resources.
@@ -60,27 +44,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -DefaultFontFamily
+### -DefaultFont
 Default font family.
 
 ```yaml
 Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DefaultFontSize
-Default font size.
-
-```yaml
-Type: Double
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -108,14 +76,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FidelityPolicy
-Fidelity policy for unsupported content.
+### -DefaultSize
+Default font size.
 
 ```yaml
-Type: HtmlRenderFidelityPolicy
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
-Possible values: AllowDiagnosedLoss, FailOnLoss
+Possible values:
 
 Required: False
 Position: named
@@ -124,14 +92,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -HonorCssPageRules
-Honor CSS page rules.
+### -FidelityPolicy
+Fidelity policy for unsupported content.
 
 ```yaml
-Type: SwitchParameter
+Type: HtmlRenderFidelityPolicy
 Parameter Sets: Default
 Aliases: None
-Possible values:
+Possible values: AllowDiagnosedLoss, FailOnLoss
 
 Required: False
 Position: named
@@ -332,6 +300,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -NoCssPageRules
+Honor CSS page rules.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -PageSize
 Page size used by paged rendering.
 
@@ -396,38 +380,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Scale
-Output scale multiplier.
-
-```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TargetDpi
-Target output density in dots per inch.
-
-```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -TextShapingLanguage
 BCP 47 language hint for text shaping.
 
@@ -448,7 +400,7 @@ Accept wildcard characters: False
 Optional viewport height in CSS pixels.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -464,7 +416,7 @@ Accept wildcard characters: False
 Viewport width in CSS pixels.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:

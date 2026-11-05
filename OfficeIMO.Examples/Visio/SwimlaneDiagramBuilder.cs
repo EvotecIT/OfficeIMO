@@ -9,8 +9,8 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Swimlane diagram builder");
             string filePath = Path.Combine(folderPath, "Swimlane Diagram Builder.vsdx");
 
-            VisioDocument.Create(filePath)
-                .SwimlaneDiagram("Order Fulfillment", swim => swim
+            using var nativeDocument1 = VisioDocument.Create(filePath);
+            nativeDocument1.SwimlaneDiagram("Order Fulfillment", swim => swim
                     .Theme(VisioStyleTheme.Modern())
                     .Lane("customer", "Customer")
                     .Lane("sales", "Sales")
@@ -31,8 +31,8 @@ namespace OfficeIMO.Examples.Visio {
                     .Exception("approved", "revise", "no")
                     .Handoff("approved", "pick", "yes")
                     .Flow("pick", "invoice")
-                    .Flow("invoice", "ship"))
-                .Save();
+                    .Flow("invoice", "ship"));
+            nativeDocument1.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

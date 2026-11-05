@@ -25,7 +25,7 @@ public sealed class OfficeDocumentInfo {
     public ReaderDetectionResult? Detection { get; internal set; }
     /// <summary>Native page count when known. Word uses recorded statistics or explicit structure, without repagination.</summary>
     public int? PageCount { get; internal set; }
-    /// <summary>Number of source worksheets, including empty and hidden sheets, when known.</summary>
+    /// <summary>Number of source sheets, including empty and hidden worksheets and chart sheets, when known.</summary>
     public int? SheetCount { get; internal set; }
     /// <summary>Number of source slides, including hidden slides, when known.</summary>
     public int? SlideCount { get; internal set; }

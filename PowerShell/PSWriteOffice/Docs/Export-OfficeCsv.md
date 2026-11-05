@@ -9,29 +9,29 @@ schema: 2.0.0
 Exports objects or a CSV document to a CSV file.
 
 ## SYNTAX
-### InputObjectPathDelimiter (Default)
+### InputObjectPath (Default)
 ```powershell
-Export-OfficeCsv [-Path] <string> [-InputObject <Object>] [-Delimiter <char>] [-DelimiterText <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeCsv [-Path] <string> -InputObject <Object> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectPathCulture
 ```powershell
-Export-OfficeCsv [-Path] <string> -UseCulture [-InputObject <Object>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeCsv [-Path] <string> -InputObject <Object> -UseCulture [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### InputObjectLiteralPathDelimiter
+### InputObjectLiteralPath
 ```powershell
-Export-OfficeCsv -LiteralPath <string> [-InputObject <Object>] [-Delimiter <char>] [-DelimiterText <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeCsv -InputObject <Object> -LiteralPath <string> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectLiteralPathCulture
 ```powershell
-Export-OfficeCsv -LiteralPath <string> -UseCulture [-InputObject <Object>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeCsv -InputObject <Object> -LiteralPath <string> -UseCulture [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### DocumentPathDelimiter
+### DocumentPath
 ```powershell
-Export-OfficeCsv [-Path] <string> -Document <CsvDocument> [-Delimiter <char>] [-DelimiterText <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeCsv [-Path] <string> -Document <CsvDocument> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### DocumentPathCulture
@@ -39,9 +39,9 @@ Export-OfficeCsv [-Path] <string> -Document <CsvDocument> [-Delimiter <char>] [-
 Export-OfficeCsv [-Path] <string> -Document <CsvDocument> -UseCulture [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### DocumentLiteralPathDelimiter
+### DocumentLiteralPath
 ```powershell
-Export-OfficeCsv -Document <CsvDocument> -LiteralPath <string> [-Delimiter <char>] [-DelimiterText <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeCsv -Document <CsvDocument> -LiteralPath <string> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### DocumentLiteralPathCulture
@@ -75,7 +75,7 @@ Append rows to an existing CSV file. Existing headers are reused when present.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -91,7 +91,7 @@ Compression level used when CompressionType is enabled.
 
 ```yaml
 Type: CompressionLevel
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values: Optimal, Fastest, NoCompression, SmallestSize
 
@@ -107,7 +107,7 @@ Compression used when writing the CSV file.
 
 ```yaml
 Type: CsvCompressionType
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values: None, Auto, GZip, Deflate, Brotli, ZLib
 
@@ -123,7 +123,7 @@ Culture used for value formatting.
 
 ```yaml
 Type: CultureInfo
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -139,7 +139,7 @@ Date/time format used for DateTime and DateTimeOffset values.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -151,27 +151,11 @@ Accept wildcard characters: False
 ```
 
 ### -Delimiter
-Field delimiter character.
-
-```yaml
-Type: Char
-Parameter Sets: InputObjectPathDelimiter, InputObjectLiteralPathDelimiter, DocumentPathDelimiter, DocumentLiteralPathDelimiter
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DelimiterText
-Field delimiter text for multi-character delimiters such as || or ::.
+Field delimiter text, including multi-character separators.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectPathDelimiter, InputObjectLiteralPathDelimiter, DocumentPathDelimiter, DocumentLiteralPathDelimiter
+Parameter Sets: InputObjectPath, InputObjectLiteralPath, DocumentPath, DocumentLiteralPath
 Aliases: None
 Possible values:
 
@@ -187,7 +171,7 @@ CSV document to export.
 
 ```yaml
 Type: CsvDocument
-Parameter Sets: DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -203,7 +187,7 @@ Encoding used when writing files.
 
 ```yaml
 Type: Encoding
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -219,7 +203,7 @@ Allow overwriting read-only files and appending rows with missing existing colum
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -235,7 +219,7 @@ Controls how formula-like values are written.
 
 ```yaml
 Type: CsvFormulaInjectionPolicy
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values: Preserve, Escape
 
@@ -251,11 +235,11 @@ Objects to export into CSV rows.
 
 ```yaml
 Type: Object
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -267,7 +251,7 @@ Literal destination CSV path. Wildcards are not expanded.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: PSPath, LP
 Possible values:
 
@@ -283,7 +267,7 @@ Maximum number of items allowed in one nested collection or dictionary field. De
 
 ```yaml
 Type: Int32
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -299,7 +283,7 @@ Maximum nesting depth allowed while normalizing one field value. Defaults to 64;
 
 ```yaml
 Type: Int32
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -315,7 +299,7 @@ Override the newline sequence.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -331,7 +315,7 @@ Do not overwrite an existing CSV file.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: NoOverwrite
 Possible values:
 
@@ -347,7 +331,7 @@ Omit the header row from the output.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -363,7 +347,7 @@ Token written for null values.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -379,7 +363,7 @@ Emit a FileInfo for the exported file.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -395,7 +379,7 @@ Destination CSV path.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, DocumentPathDelimiter, DocumentPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, DocumentPath, DocumentPathCulture
 Aliases: FilePath, OutputPath, OutPath
 Possible values:
 
@@ -411,7 +395,7 @@ Field names that should always be quoted when UseQuotes is AsNeeded.
 
 ```yaml
 Type: String[]
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -443,7 +427,7 @@ Controls when CSV fields are quoted. Defaults to quoting only fields that need i
 
 ```yaml
 Type: CsvQuoteMode
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values: AsNeeded, Always, Never
 
@@ -459,7 +443,7 @@ Convert date/time values to UTC before formatting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPathDelimiter, InputObjectPathCulture, InputObjectLiteralPathDelimiter, InputObjectLiteralPathCulture, DocumentPathDelimiter, DocumentPathCulture, DocumentLiteralPathDelimiter, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
 Aliases: None
 Possible values:
 

@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [OutputType(typeof(PowerPointSlideSize))]
 public sealed class SetOfficePowerPointSlideSizeCommand : OfficeDocumentCmdlet<PowerPointDocument> {
     /// <summary>Gets or sets a standard slide size.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = "Preset")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Preset")]
     public PowerPointSlideSizePreset Preset { get; set; }
 
     /// <summary>Gets or sets whether to rotate the chosen preset to portrait orientation.</summary>

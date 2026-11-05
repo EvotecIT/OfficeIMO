@@ -33,9 +33,9 @@ internal static class PowerPointObjectSearch
     private static string GetTableText(PowerPointTable table)
     {
         var text = new StringBuilder();
-        for (var row = 0; row < table.Rows; row++)
+        for (var row = 0; row < table.Rows.Count; row++)
         {
-            for (var column = 0; column < table.Columns; column++)
+            for (var column = 0; column < table.Columns.Count; column++)
             {
                 if (text.Length > 0)
                 {

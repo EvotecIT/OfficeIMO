@@ -14,10 +14,10 @@ internal static class LatexPdfConversionEngine {
         document = document.GetCurrentView(cancellationToken);
 
         LatexPdfExportOptions operation = (options ?? new LatexPdfExportOptions()).CloneForConversion();
-        LatexToMarkdownResult projection = document.ToMarkdownDocumentResult(operation.ProjectionOptions, cancellationToken);
-        PdfCore.PdfDocumentConversionResult result = projection.Value.ConvertToPdfWithEvidence(operation.MarkdownOptions, cancellationToken);
+        var projection = document.ToMarkdown(operation.ProjectionOptions, out OfficeConversionReport projectionReport, cancellationToken);
+        PdfCore.PdfDocumentConversionResult result = projection.ConvertToPdfWithEvidence(operation.MarkdownOptions, cancellationToken);
         return result
-            .WithSourceConversionReport(projection.Report)
+            .WithSourceConversionReport(projectionReport)
             .WithAdditionalWarnings(ToPdfWarnings(document));
     }
 

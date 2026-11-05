@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 [OutputType(typeof(ProjectMappedTable))]
 public sealed class ConvertToOfficeProjectTableCommand : PSCmdlet {
     /// <summary>Rows from Import-Csv, dictionaries or PowerShell objects.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "InputObject")]
     public PSObject[] InputObject { get; set; } = Array.Empty<PSObject>();
     /// <summary>Entity collection represented by the rows.</summary>
     [Parameter(Mandatory = true)]

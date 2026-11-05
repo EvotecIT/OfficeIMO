@@ -11,14 +11,14 @@ public sealed class PublisherFrameCreationTests {
         PublisherTextFrame original = Assert.Single(document.Pages[0].TextFrames);
         var sourceReport = document.SourceReadReport;
         document.ReplaceStoryParagraphs(original.StoryId, Paragraphs());
-        document.SetTextFrameBounds(original.Id, 54, 108, 228, 120);
+        document.SetTextFrameBounds(original.Id, OfficeLength.Points(54), OfficeLength.Points(108), OfficeLength.Points(228), OfficeLength.Points(120));
         PublisherPage oldPage = document.Pages[0];
         PublisherTextFrame oldFrame = Assert.Single(oldPage.TextFrames);
         string before = document.ToSvg();
         Assert.True(oldFrame.HasOverflow);
         int records = document.ReadReport.InspectedRecordCount;
         int originalObjects = document.ReadReport.SourceObjectCount;
-        PublisherTextFrame created = document.AddLinkedTextFrame(original.Id, document.Pages[1].Id, 54, 72, 468, 600);
+        PublisherTextFrame created = document.AddLinkedTextFrame(original.Id, document.Pages[1].Id, OfficeLength.Points(54), OfficeLength.Points(72), OfficeLength.Points(468), OfficeLength.Points(600));
         PublisherTextFrame first = Assert.Single(document.Pages[0].TextFrames);
         Assert.Same(created, Assert.Single(document.Pages[1].TextFrames));
         Assert.NotEqual(original.Id, created.Id); Assert.Equal(original.StoryId, created.StoryId);
@@ -55,15 +55,15 @@ public sealed class PublisherFrameCreationTests {
         PublisherDocument document = Load();
         PublisherTextFrame first = Assert.Single(document.Pages[0].TextFrames);
         document.ReplaceStoryParagraphs(first.StoryId, Paragraphs());
-        document.SetTextFrameBounds(first.Id, 54, 108, 228, 120);
-        PublisherTextFrame second = document.AddLinkedTextFrame(first.Id, document.Pages[1].Id, 54, 72, 228, 120);
-        PublisherTextFrame third = document.AddLinkedTextFrame(second.Id, document.Pages[1].Id, 54, 250, 468, 400);
+        document.SetTextFrameBounds(first.Id, OfficeLength.Points(54), OfficeLength.Points(108), OfficeLength.Points(228), OfficeLength.Points(120));
+        PublisherTextFrame second = document.AddLinkedTextFrame(first.Id, document.Pages[1].Id, OfficeLength.Points(54), OfficeLength.Points(72), OfficeLength.Points(228), OfficeLength.Points(120));
+        PublisherTextFrame third = document.AddLinkedTextFrame(second.Id, document.Pages[1].Id, OfficeLength.Points(54), OfficeLength.Points(250), OfficeLength.Points(468), OfficeLength.Points(400));
         Assert.Null(second.NextFrameId);
         PublisherTextFrame[] chain = Frames(document);
         Assert.Equal(new[] { first.Id, second.Id, third.Id }, chain.Select(frame => frame.Id));
         Assert.Equal(new[] { first.Id, second.Id }, chain.Skip(1).Select(frame => frame.PreviousFrameId!.Value));
         Assert.Equal(Assigned(document), Assert.Single(document.TextStories).Text);
-        document.SetTextFrameBounds(third.Id, -12, 250, 480, 420);
+        document.SetTextFrameBounds(third.Id, OfficeLength.Points(-12), OfficeLength.Points(250), OfficeLength.Points(480), OfficeLength.Points(420));
         Assert.Equal(54, third.X);
         Assert.Equal(-12, Frames(document)[2].X);
         Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
@@ -86,22 +86,22 @@ public sealed class PublisherFrameCreationTests {
         uint destination = document.Pages[1].Id;
         var pages = document.Pages; var stories = document.TextStories; var report = document.ReadReport;
         string before = document.ToSvg();
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddLinkedTextFrame(uint.MaxValue, destination, 72, 72, 100, 100));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddLinkedTextFrame(first.Id, uint.MaxValue, 72, 72, 100, 100));
-        Assert.Throws<NotSupportedException>(() => document.AddLinkedTextFrame(first.Id, document.MasterPages[0].Id, 72, 72, 100, 100));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddLinkedTextFrame(first.Id, destination, double.NaN, 72, 100, 100));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddLinkedTextFrame(first.Id, destination, 72, 72, 0, 100));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddLinkedTextFrame(first.Id, destination, double.MaxValue, 72, 100, 100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddLinkedTextFrame(uint.MaxValue, destination, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddLinkedTextFrame(first.Id, uint.MaxValue, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)));
+        Assert.Throws<NotSupportedException>(() => document.AddLinkedTextFrame(first.Id, document.MasterPages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeLength.Points(double.NaN));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddLinkedTextFrame(first.Id, destination, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(0), OfficeLength.Points(100)));
+        Assert.Throws<OverflowException>(() => OfficeLength.Points(double.MaxValue));
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
-        Assert.Throws<OperationCanceledException>(() => document.AddLinkedTextFrame(first.Id, destination, 72, 72, 100, 100, cancelled.Token));
+        Assert.Throws<OperationCanceledException>(() => document.AddLinkedTextFrame(first.Id, destination, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100), cancelled.Token));
         Assert.Same(pages, document.Pages); Assert.Same(stories, document.TextStories); Assert.Same(report, document.ReadReport);
         Assert.Equal(before, document.ToSvg());
         PublisherDocument control = Load();
-        PublisherTextFrame expected = control.AddLinkedTextFrame(first.Id, destination, 72, 72, 100, 100);
-        PublisherTextFrame actual = document.AddLinkedTextFrame(first.Id, destination, 72, 72, 100, 100);
+        PublisherTextFrame expected = control.AddLinkedTextFrame(first.Id, destination, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100));
+        PublisherTextFrame actual = document.AddLinkedTextFrame(first.Id, destination, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100));
         Assert.Equal(expected.Id, actual.Id);
         var committed = document.Pages;
-        Assert.Throws<NotSupportedException>(() => document.AddLinkedTextFrame(first.Id, destination, 72, 200, 100, 100));
+        Assert.Throws<NotSupportedException>(() => document.AddLinkedTextFrame(first.Id, destination, OfficeLength.Points(72), OfficeLength.Points(200), OfficeLength.Points(100), OfficeLength.Points(100)));
         Assert.Same(committed, document.Pages);
     }
 
@@ -110,13 +110,13 @@ public sealed class PublisherFrameCreationTests {
         PublisherDocument masters = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/MultipleMasters/native-multiplemasters.pub"));
         PublisherTextFrame master = masters.MasterPages.SelectMany(page => page.TextFrames).First();
         var masterPages = masters.Pages;
-        Assert.Throws<NotSupportedException>(() => masters.AddLinkedTextFrame(master.Id, masters.Pages[0].Id, 72, 72, 100, 100));
+        Assert.Throws<NotSupportedException>(() => masters.AddLinkedTextFrame(master.Id, masters.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)));
         Assert.Same(masterPages, masters.Pages);
         PublisherDocument grouped = PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"));
-        Assert.Throws<NotSupportedException>(() => grouped.AddLinkedTextFrame(345, grouped.Pages[0].Id, 72, 72, 100, 100));
+        Assert.Throws<NotSupportedException>(() => grouped.AddLinkedTextFrame(345, grouped.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)));
         PublisherDocument table = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TableLabel/native-tablelabel.pub"));
         uint tableId = table.Pages.SelectMany(page => page.Tables).First().Id;
-        Assert.Throws<ArgumentOutOfRangeException>(() => table.AddLinkedTextFrame(tableId, table.Pages[0].Id, 72, 72, 100, 100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => table.AddLinkedTextFrame(tableId, table.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)));
         byte[] unresolved = PublisherInputContractTests.Mutate("Contents", bytes => {
             var data = new OfficeIMO.Publisher.Internal.PublisherBinaryData(bytes, "Contents");
             var context = new OfficeIMO.Publisher.Internal.PublisherParseContext(new PublisherLoadOptions(), default);
@@ -128,7 +128,7 @@ public sealed class PublisherFrameCreationTests {
         }, "NativeComparison/Newsletter/native-newsletter.pub");
         PublisherDocument unlinked = PublisherDocument.Load(unresolved);
         var pages = unlinked.Pages;
-        Assert.Throws<NotSupportedException>(() => unlinked.AddLinkedTextFrame(298, unlinked.Pages[1].Id, 72, 72, 100, 100));
+        Assert.Throws<NotSupportedException>(() => unlinked.AddLinkedTextFrame(298, unlinked.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)));
         Assert.Same(pages, unlinked.Pages);
     }
 
@@ -139,7 +139,7 @@ public sealed class PublisherFrameCreationTests {
         PublisherPicture beforePicture = Assert.Single(document.Pages[0].Pictures);
         Assert.Equal(beforeFrame.Id, beforePicture.Id); Assert.False(beforePicture.CanEdit);
         string text = Assert.Single(document.TextStories).Text;
-        document.SetTextFrameBounds(beforeFrame.Id, 100, 110, 200, 80);
+        document.SetTextFrameBounds(beforeFrame.Id, OfficeLength.Points(100), OfficeLength.Points(110), OfficeLength.Points(200), OfficeLength.Points(80));
         PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
         PublisherPicture picture = Assert.Single(document.Pages[0].Pictures);
         Assert.Equal((frame.X, frame.Y, frame.Width, frame.Height), (picture.X, picture.Y, picture.Width, picture.Height));
@@ -152,7 +152,7 @@ public sealed class PublisherFrameCreationTests {
         Assert.Equal(200, image.Projection.Placement.Width); Assert.Equal(80, image.Projection.Placement.Height);
         Assert.False(picture.CanEdit);
         Assert.Throws<NotSupportedException>(() => document.ReplacePictureImage(picture.Id, PublisherPictureEditingFixture.Image(OfficeColor.Black)));
-        Assert.Throws<NotSupportedException>(() => document.AddLinkedTextFrame(frame.Id, document.Pages[1].Id, 72, 72, 100, 100));
+        Assert.Throws<NotSupportedException>(() => document.AddLinkedTextFrame(frame.Id, document.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)));
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public sealed class PublisherFrameCreationTests {
         var fixture = PublisherFrameCreationFixture.Load(danglingReference: true);
         PublisherDocument document = fixture.Document;
         PublisherTextFrame first = Assert.Single(document.Pages[0].TextFrames);
-        PublisherTextFrame added = document.AddLinkedTextFrame(first.Id, document.Pages[0].Id, 72, 200, 360, 72);
+        PublisherTextFrame added = document.AddLinkedTextFrame(first.Id, document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(200), OfficeLength.Points(360), OfficeLength.Points(72));
         Assert.NotEqual(fixture.ReservedId, added.Id);
         Assert.Equal(new[] { fixture.ReservedId }, Assert.Single(document.Pages[0].TextFrames, frame => frame.Id == first.Id).WrapObjectIds);
         Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_WRAP_REFERENCE_UNRESOLVED"
@@ -178,13 +178,13 @@ public sealed class PublisherFrameCreationTests {
         PublisherTextFrame frame = Assert.Single(full.Pages[0].TextFrames);
         Assert.Equal(itemLimit, full.ReadReport.CurrentObjectCount);
         var fullPages = full.Pages;
-        Assert.Throws<InvalidDataException>(() => full.AddLinkedTextFrame(frame.Id, full.Pages[1].Id, 72, 72, 100, 100));
+        Assert.Throws<InvalidDataException>(() => full.AddLinkedTextFrame(frame.Id, full.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)));
         Assert.Same(fullPages, full.Pages);
 
         var boundedOptions = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = itemLimit, MaxTextCharacters = 512 } };
         PublisherDocument bounded = Load(boundedOptions);
         PublisherTextFrame first = Assert.Single(bounded.Pages[0].TextFrames);
-        bounded.SetTextFrameBounds(first.Id, 72, 72, 40, 32);
+        bounded.SetTextFrameBounds(first.Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(40), OfficeLength.Points(32));
         // The complete 432-character paragraph is measured once by the narrow
         // original frame. Measuring its remainder in another frame exceeds the
         // same operation's 512-character work ceiling, without changing limits.
@@ -193,18 +193,18 @@ public sealed class PublisherFrameCreationTests {
         bounded.ReplaceStoryParagraphs(first.StoryId, new[] { new OfficeRichTextParagraph(runs) });
         Assert.True(Assert.Single(bounded.Pages[0].TextFrames).HasOverflow);
         var pages = bounded.Pages; var report = bounded.ReadReport; string before = bounded.ToSvg();
-        var failure = Assert.Throws<InvalidDataException>(() => bounded.AddLinkedTextFrame(first.Id, bounded.Pages[1].Id, 72, 72, 100, 100));
+        var failure = Assert.Throws<InvalidDataException>(() => bounded.AddLinkedTextFrame(first.Id, bounded.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)));
         Assert.Contains("text layout character work limit", failure.Message);
         Assert.Same(pages, bounded.Pages); Assert.Same(report, bounded.ReadReport); Assert.Equal(before, bounded.ToSvg());
         bounded.ReplaceStoryParagraphs(first.StoryId, new[] {
             new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Short", 11, OfficeColor.Black, fontFamily: "Arial") })
         });
-        PublisherTextFrame emptyContinuation = bounded.AddLinkedTextFrame(first.Id, bounded.Pages[1].Id, 72, 72, 100, 100);
+        PublisherTextFrame emptyContinuation = bounded.AddLinkedTextFrame(first.Id, bounded.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100));
         Assert.Equal(0, emptyContinuation.TextLength);
         Assert.Equal(2, bounded.ReadReport.CurrentObjectCount);
         PublisherDocument control = Load(boundedOptions);
         PublisherTextFrame controlFrame = Assert.Single(control.Pages[0].TextFrames);
-        Assert.Equal(control.AddLinkedTextFrame(controlFrame.Id, control.Pages[1].Id, 72, 72, 100, 100).Id, emptyContinuation.Id);
+        Assert.Equal(control.AddLinkedTextFrame(controlFrame.Id, control.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100)).Id, emptyContinuation.Id);
     }
 
     private static PublisherDocument Load(PublisherLoadOptions? options = null) =>

@@ -25,13 +25,7 @@ public sealed class AsciiDocPdfExportOptions {
     }
 
     internal AsciiDocPdfExportOptions CloneForConversion() => new AsciiDocPdfExportOptions {
-        ProjectionOptions = new AsciiDocMarkdownExportOptions {
-            IncludeDocumentAttributesAsFrontMatter = ProjectionOptions.IncludeDocumentAttributesAsFrontMatter,
-            PreserveUnsupportedAsSource = ProjectionOptions.PreserveUnsupportedAsSource,
-            PreserveCommentsAsSource = ProjectionOptions.PreserveCommentsAsSource,
-            ExpandDocumentAttributes = ProjectionOptions.ExpandDocumentAttributes,
-            UndefinedAttributeBehavior = ProjectionOptions.UndefinedAttributeBehavior
-        },
+        ProjectionOptions = ProjectionOptions.Clone(),
         MarkdownOptions = MarkdownOptions.Clone()
     };
 

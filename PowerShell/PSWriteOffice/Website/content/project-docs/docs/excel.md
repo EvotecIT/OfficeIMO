@@ -11,7 +11,7 @@ Excel is the largest PSWriteOffice family with 159 exported commands. It covers 
 Use the pipeline when the job is simply PowerShell objects to a worksheet:
 
 ```powershell
-$records | Export-OfficeExcel -Path '.\Revenue.xlsx' -WorksheetName 'Sales' -TableName 'Sales'
+$records | Export-OfficeExcel -Path '.\Revenue.xlsx' -Sheet 'Sales' -TableName 'Sales'
 ```
 
 Use the object or DSL surface when you need several sheets, formulas, charts, pivots, or precise formatting.
@@ -28,8 +28,8 @@ $records = @(
 
 New-OfficeExcel -Path '.\Output\Revenue.xlsx' {
     Add-OfficeExcelSheet -Name 'Sales' {
-        Add-OfficeExcelTable -InputObject $records -TableName 'Sales' -AutoFit
-        Add-OfficeExcelChart -TableName 'Sales' -Row 2 -Column 5 -Type ColumnClustered -Title 'Revenue by region'
+        Add-OfficeExcelTable -InputObject $records -Name 'Sales'
+        Add-OfficeExcelChart -Table 'Sales' -Address E2 -Type ColumnClustered -Title 'Revenue by region'
     }
 }
 ```
@@ -63,10 +63,12 @@ The read surface can return used ranges, tables, named ranges, formulas, comment
 
 ## Validate before delivery
 
-- `Get-OfficeExcelPreflight` and `Get-OfficeExcelRuntimePreflight` report readiness before an operation.
-- `Test-OfficeExcelWorkbook` checks workbook integrity.
-- `Test-OfficeExcelAccessibility` supports accessible-delivery gates.
-- `Compare-OfficeExcelWorkbook` and `Compare-OfficeExcelRange` make change evidence explicit.
-- `Repair-OfficeExcelWorkbook` is a deliberate repair path, not an implicit side effect of reading.
+- `Test-OfficeDocument` checks workbook integrity; `New-OfficeExcelTestOptions` selects capabilities and repair hints.
+- `Import-OfficeExcel -WarningAction Stop` surfaces runtime import warnings before downstream processing.
+- `Test-OfficeDocument -Check Accessibility` supports accessible-delivery gates.
+- `Compare-OfficeDocument` and `Compare-OfficeExcelRange` make change evidence explicit.
+- `Repair-OfficeDocument` applies deliberate workbook repairs and returns its native evidence with `-PassThru`.
 
-Templates, joins, merges, sheet ordering, workbook copying, HTML review, and delimited import/export cover the surrounding pipeline. Search the [command reference](/api/powershell/) for `OfficeExcel`; use the [Excel examples](https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Excel) for end-to-end patterns.
+Validation reports expose `IsValid`, `Diagnostics`, and `NativeReports`. Detailed inspection uses `Get-OfficeDocumentInfo -Detailed`; its native workbook snapshot is in `Details`.
+
+Templates, joins, merges, sheet ordering, workbook copying, HTML review, and delimited import/export cover the surrounding pipeline. Search the [command reference](/api/powershell/) for `OfficeExcel`; use the [Excel examples](https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Excel) for complete workflows.

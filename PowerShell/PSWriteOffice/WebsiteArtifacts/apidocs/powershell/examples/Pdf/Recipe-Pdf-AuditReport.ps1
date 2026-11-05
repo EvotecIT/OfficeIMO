@@ -5,8 +5,7 @@ $findings = @(
     [pscustomobject]@{ Id = 'A-03'; Severity = 'Low'; Finding = 'Inconsistent evidence naming'; Owner = 'Operations'; Due = '2026-09-11' }
 )
 
-New-OfficePdf -Path $path {
-    PdfTheme Report
+New-OfficePdf -Path $path -Theme Modern {
     PdfMetadata -Title 'Quarterly access audit' -Author 'Internal Audit' -Subject 'Synthetic access review example'
     PdfPageSetup -PageSize A4 -Margin 40
     PdfHeader 'Quarterly Access Audit'
@@ -21,21 +20,25 @@ New-OfficePdf -Path $path {
     PdfList -Items 'Privileged directory roles', 'Dormant accounts', 'Quarterly owner attestations', 'Evidence retention'
 
     PdfHeading 'Findings' -Level 2
-    PdfTable -InputObject $findings -Property Id,Severity,Finding,Owner,Due -HeaderFill '#334155' -HeaderTextColor '#FFFFFF' -RowStripeFill '#F8FAFC' -AutoFitColumns -KeepWithNext
+    PdfTable -InputObject $findings -Property Id,Severity,Finding,Owner,Due -HeaderBackgroundColor '#334155' -HeaderColor '#FFFFFF' -BandColor '#F8FAFC' -AutoFit -KeepWithNext
 
     PdfPageBreak
     PdfBookmark 'actions'
     PdfHeading 'Remediation plan' -Level 1
     foreach ($finding in $findings) {
         PdfHeading "$($finding.Id): $($finding.Finding)" -Level 2
-        PdfText -Run @{
-            Text = 'Owner: ', $finding.Owner, '    Due: ', $finding.Due, '    Severity: ', $finding.Severity
-            Bold = $true, $false, $true, $false, $true, $false
+        PdfParagraph {
+            PdfText 'Owner: ' -Bold
+            PdfText $finding.Owner
+            PdfText '    Due: ' -Bold
+            PdfText $finding.Due
+            PdfText '    Severity: ' -Bold
+            PdfText $finding.Severity
         }
         PdfFormField -Name "response-$($finding.Id)" -Type Text -Value 'Record the agreed action and evidence location.' -Width 480 -Height 42
     }
 
     PdfHeading 'Approval' -Level 2
     PdfFormField -Name 'audit-owner' -Type Text -Value 'Audit owner' -Width 230
-    PdfFormField -Name 'review-status' -Type Choice -Options 'Draft', 'Ready for review', 'Approved' -Value 'Draft' -Width 230
+    PdfFormField -Name 'review-status' -Type Choice -Option 'Draft', 'Ready for review', 'Approved' -Value 'Draft' -Width 230
 }

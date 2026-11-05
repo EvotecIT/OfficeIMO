@@ -1,3 +1,5 @@
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using System.Management.Automation;
 using OfficeIMO.Visio.Stencils;
 using PSWriteOffice.Services.Visio;
@@ -12,15 +14,19 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// $gallery | Select-Object PackagePath, IndexPath, BrowserRenderableCount, ThumbnailCount</code>
 ///   <para>Extracts preview artwork from package-backed masters and writes preview files plus an HTML index.</para>
 /// </example>
-[Cmdlet(VerbsData.Export, "OfficeVisioStencilPreviewGallery", SupportsShouldProcess = true)]
-[Alias("Export-VisioStencilPreviewGallery")]
+[Cmdlet(VerbsData.Export, "OfficeVisioStencilPreviewGallery", SupportsShouldProcess = true, DefaultParameterSetName = "Path")]
 [OutputType(typeof(VisioStencilPreviewGallery))]
 public sealed class ExportOfficeVisioStencilPreviewGalleryCommand : PSCmdlet
 {
     /// <summary>Visio package path, such as .vsdx, .vssx, or .vstx.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    [Alias("FilePath", "LiteralPath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path")]
+    [Alias("FilePath")]
     public string Path { get; set; } = string.Empty;
+
+    /// <summary>Literal Visio package path.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("FullName", "PSPath")]
+    public string LiteralPath { get; set; } = string.Empty;
 
     /// <summary>Directory that receives preview payloads, thumbnails, and the HTML index.</summary>
     [Parameter(Mandatory = true, Position = 1)]
@@ -71,12 +77,12 @@ public sealed class ExportOfficeVisioStencilPreviewGalleryCommand : PSCmdlet
     public int ThumbnailHeight { get; set; } = 160;
 
     /// <summary>Default width for package-backed stencils when dimensions cannot be learned.</summary>
-    [Parameter]
-    public double DefaultWidth { get; set; } = 1.8;
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength DefaultWidth { get; set; } = OfficeLength.Inches(1.8);
 
     /// <summary>Default height for package-backed stencils when dimensions cannot be learned.</summary>
-    [Parameter]
-    public double DefaultHeight { get; set; } = 0.9;
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength DefaultHeight { get; set; } = OfficeLength.Inches(0.9);
 
     /// <summary>Emit the structured gallery result after the files are written.</summary>
     [Parameter]
@@ -85,7 +91,9 @@ public sealed class ExportOfficeVisioStencilPreviewGalleryCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var path = VisioCommandUtilities.ResolvePath(this, Path);
+        var sources = OfficePath.ResolveInput(SessionState, ParameterSetName == "LiteralPath" ? LiteralPath : Path, ParameterSetName == "LiteralPath");
+        if (sources.Count != 1) throw new PSArgumentException("A stencil gallery requires one package.");
+        var path = sources[0];
         var outputDirectory = VisioCommandUtilities.ResolvePath(this, OutputDirectory);
         if (!ShouldProcess(outputDirectory, "Export Visio stencil preview gallery"))
         {
@@ -101,8 +109,8 @@ public sealed class ExportOfficeVisioStencilPreviewGalleryCommand : PSCmdlet
             NoLearnMasterDimensions.IsPresent,
             noPreviewImageMetadata: false,
             noConnectionPointMetadata: true,
-            DefaultWidth,
-            DefaultHeight);
+            DefaultWidth.ToInches(),
+            DefaultHeight.ToInches());
 
         var galleryOptions = new VisioStencilPreviewGalleryOptions
         {

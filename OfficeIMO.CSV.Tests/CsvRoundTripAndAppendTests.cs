@@ -58,7 +58,7 @@ public class CsvRoundTripAndAppendTests
         {
             File.WriteAllText(path, "A,B\n東京,2", encoding);
             var options = new CsvSaveOptions { Append = true, IncludeHeader = false, NewLine = "\n", Encoding = encoding };
-            var document = new CsvDocument().WithHeader("A", "B").AddRow("Łódź", 4);
+            var document = CsvDocument.Create().WithHeader("A", "B").AddRow("Łódź", 4);
             if (asynchronous) await document.SaveAsync(path, options);
             else document.Save(path, options);
             string expected = "A,B\n東京,2\nŁódź,4\n";
@@ -106,7 +106,7 @@ public class CsvRoundTripAndAppendTests
         {
             File.WriteAllText(path, "A,B\n1,2");
             byte[] expected = File.ReadAllBytes(path);
-            var document = new CsvDocument().WithHeader("A", "B");
+            var document = CsvDocument.Create().WithHeader("A", "B");
             var options = new CsvSaveOptions { Append = true, IncludeHeader = false };
             if (asynchronous) await document.SaveAsync(path, options);
             else document.Save(path, options);

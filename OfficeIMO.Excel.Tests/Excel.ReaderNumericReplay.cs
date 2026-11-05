@@ -148,7 +148,7 @@ public partial class Excel {
         sheet.Cell(1, 1).SetValue("Value");
         sheet.Cell(2, 1).SetValue(1.5d);
         sheet.Cell(3, 1).SetValue(60.5d);
-        sheet.ColumnStyleByHeader("Value").NumberFormat(format);
+        sheet.ColumnStyleByHeader("Value").SetNumberFormat(format);
         document.Save();
         return path;
     }

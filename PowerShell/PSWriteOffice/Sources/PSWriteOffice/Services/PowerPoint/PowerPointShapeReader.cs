@@ -96,8 +96,8 @@ internal static class PowerPointShapeReader
                 info.PlaceholderIndex = textBox.PlaceholderIndex;
                 break;
             case PowerPointTable table:
-                info.RowCount = table.Rows;
-                info.ColumnCount = table.Columns;
+                info.RowCount = table.Rows.Count;
+                info.ColumnCount = table.Columns.Count;
                 break;
             case PowerPointImage picture:
                 info.MimeType = picture.MimeType;

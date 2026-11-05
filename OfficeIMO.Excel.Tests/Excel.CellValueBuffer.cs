@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
                 styled.Cell(1, 1).SetBold();
                 WriteBufferedRows(styled, firstRow: 2, rows: 200);
                 styled.Cell(150, 2).SetNumberFormat("0.000");
-                styled.Cell(150, 3).SetFillColor("#DDEBF7");
+                styled.Cell(150, 3).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#DDEBF7"));
                 styled.Cell(160, 1).SetBold();
                 styled.Cell(160, 1).SetValue("overwritten");
                 WriteBufferedRows(plain, firstRow: 1, rows: 100);

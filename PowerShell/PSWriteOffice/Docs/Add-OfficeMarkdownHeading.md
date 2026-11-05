@@ -11,12 +11,12 @@ Adds a Markdown heading.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficeMarkdownHeading [[-Level] <int>] [-Text] <string> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownHeading [-Text] <string> [-Level <int>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficeMarkdownHeading [[-Level] <int>] [-Text] <string> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownHeading [-Text] <string> -Document <MarkdownDocument> [-Level <int>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -64,7 +64,7 @@ Aliases: None
 Possible values:
 
 Required: False
-Position: 0
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -96,7 +96,7 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: 1
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

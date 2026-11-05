@@ -118,14 +118,14 @@ public static partial class RtfMarkdownConverterExtensions {
     /// <summary>Writes the converted output to a path and returns the conversion report.</summary>
     public static OfficeConversionReport SaveAsRtf(this MarkdownDocument markdown, string path, MarkdownRtfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport report, cancellationToken);
+        using RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport report, cancellationToken);
         return OfficeConversionOutput.Save(report, path, value.ToBytes(options?.SaveOptions, options?.Encoding));
     }
 
     /// <summary>Writes the converted output to a caller-owned stream, which stays open and returns the conversion report.</summary>
     public static OfficeConversionReport SaveAsRtf(this MarkdownDocument markdown, Stream stream, MarkdownRtfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport report, cancellationToken);
+        using RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport report, cancellationToken);
         return OfficeConversionOutput.Save(report, stream, value.ToBytes(options?.SaveOptions, options?.Encoding));
     }
 
@@ -135,7 +135,7 @@ public static partial class RtfMarkdownConverterExtensions {
         CancellationToken cancellationToken = default) {
         options = options?.Clone();
         var (bytes, report) = await Task.Run(() => {
-            RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport converted, cancellationToken);
+            using RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport converted, cancellationToken);
             return (value.ToBytes(options?.SaveOptions, options?.Encoding), converted);
         }, cancellationToken).ConfigureAwait(false);
         return await OfficeConversionOutput.SaveAsync(report, path, bytes, cancellationToken).ConfigureAwait(false);
@@ -147,7 +147,7 @@ public static partial class RtfMarkdownConverterExtensions {
         CancellationToken cancellationToken = default) {
         options = options?.Clone();
         var (bytes, report) = await Task.Run(() => {
-            RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport converted, cancellationToken);
+            using RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport converted, cancellationToken);
             return (value.ToBytes(options?.SaveOptions, options?.Encoding), converted);
         }, cancellationToken).ConfigureAwait(false);
         return await OfficeConversionOutput.SaveAsync(report, stream, bytes, cancellationToken).ConfigureAwait(false);

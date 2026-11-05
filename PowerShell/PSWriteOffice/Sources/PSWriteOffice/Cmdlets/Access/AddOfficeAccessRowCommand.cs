@@ -4,6 +4,7 @@ using System.Linq;
 using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.Access;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Access;
 namespace PSWriteOffice.Cmdlets.Access;
@@ -15,10 +16,11 @@ namespace PSWriteOffice.Cmdlets.Access;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeAccessRow", DefaultParameterSetName = "Table")]
 [OutputType(typeof(AccessTable))]
-public sealed class AddOfficeAccessRowCommand : PSCmdlet {
+[Alias("AccessRow") ]
+public sealed class AddOfficeAccessRowCommand : OfficeCmdlet {
     /// <summary>Destination table in a newly created model.</summary>
-    [Parameter(Mandatory = true)]
-    public AccessTable Table { get; set; } = null!;
+    [Parameter(ParameterSetName = "Table")]
+    public AccessTable? Table { get; set; }
 
     /// <summary>One row; omitted properties remain absent, and explicit null remains null.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
@@ -30,10 +32,11 @@ public sealed class AddOfficeAccessRowCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        var table = ResolveDocument(Table);
         foreach (var input in InputObject) {
-            var values = AccessPowerShellInput.ToRow(Table, input);
-            Table.AppendRow(values);
+            var values = AccessPowerShellInput.ToRow(table, input);
+            table.AppendRow(values);
         }
-        if (PassThru.IsPresent) WriteObject(Table);
+        if (PassThru.IsPresent) WriteObject(table);
     }
 }

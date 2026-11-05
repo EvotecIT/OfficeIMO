@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                styleInfo.Name = style.ToString();
+                styleInfo.Name = style == ExcelTableStyle.None ? null : new StringValue(style.ToString());
                 if (showFirstColumn.HasValue) styleInfo.ShowFirstColumn = showFirstColumn.Value;
                 if (showLastColumn.HasValue) styleInfo.ShowLastColumn = showLastColumn.Value;
                 if (showRowStripes.HasValue) styleInfo.ShowRowStripes = showRowStripes.Value;
@@ -790,7 +790,7 @@ namespace OfficeIMO.Excel {
                 table.Append(tableColumns);
 
                 table.Append(new TableStyleInfo {
-                    Name = style.ToString(),
+                    Name = style == ExcelTableStyle.None ? null : new StringValue(style.ToString()),
                     ShowFirstColumn = false,
                     ShowLastColumn = false,
                     ShowRowStripes = true,

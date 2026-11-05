@@ -93,23 +93,25 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets position with explicit lengths.
         /// </summary>
-        public void SetPosition(OfficeLength left, OfficeLength top) {
+        public PowerPointShape SetPosition(OfficeLength left, OfficeLength top) {
             Left = left;
             Top = top;
+            return this;
         }
 
         /// <summary>
         ///     Sets size with explicit lengths.
         /// </summary>
-        public void SetSize(OfficeLength width, OfficeLength height) {
+        public PowerPointShape SetSize(OfficeLength width, OfficeLength height) {
             Width = width;
             Height = height;
+            return this;
         }
 
         /// <summary>
         ///     Resizes the shape while keeping the specified anchor fixed.
         /// </summary>
-        public void Resize(OfficeLength width, OfficeLength height, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
+        public PowerPointShape Resize(OfficeLength width, OfficeLength height, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
             long widthValue = width.ToEmus();
             long heightValue = height.ToEmus();
             ArgumentOutOfRangeException.ThrowIfNegative(widthValue, nameof(width));
@@ -123,12 +125,15 @@ namespace OfficeIMO.PowerPoint {
             Height = OfficeLength.Emus(heightValue);
             Left = OfficeLength.Emus((long)Math.Round(anchorX - offsetX));
             Top = OfficeLength.Emus((long)Math.Round(anchorY - offsetY));
+            return this;
         }
 
         /// <summary>
         ///     Scales the shape uniformly using the specified anchor.
         /// </summary>
-        public void Scale(double scale, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.Center) {
+#pragma warning disable RS0026 // Existing uniform and per-axis Scale overloads; only the owner return type changed.
+        public PowerPointShape Scale(double scale, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.Center) {
+#pragma warning restore RS0026
             if (scale < 0) {
                 throw new ArgumentOutOfRangeException(nameof(scale));
             }
@@ -136,12 +141,15 @@ namespace OfficeIMO.PowerPoint {
             long newWidth = (long)Math.Round(Width.ToEmus() * scale);
             long newHeight = (long)Math.Round(Height.ToEmus() * scale);
             Resize(OfficeLength.Emus(newWidth), OfficeLength.Emus(newHeight), anchor);
+            return this;
         }
 
         /// <summary>
         ///     Scales the shape using separate X/Y factors and the specified anchor.
         /// </summary>
-        public void Scale(double scaleX, double scaleY, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.Center) {
+#pragma warning disable RS0026 // Existing uniform and per-axis Scale overloads; only the owner return type changed.
+        public PowerPointShape Scale(double scaleX, double scaleY, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.Center) {
+#pragma warning restore RS0026
             if (scaleX < 0) {
                 throw new ArgumentOutOfRangeException(nameof(scaleX));
             }
@@ -152,14 +160,16 @@ namespace OfficeIMO.PowerPoint {
             long newWidth = (long)Math.Round(Width.ToEmus() * scaleX);
             long newHeight = (long)Math.Round(Height.ToEmus() * scaleY);
             Resize(OfficeLength.Emus(newWidth), OfficeLength.Emus(newHeight), anchor);
+            return this;
         }
 
         /// <summary>
         ///     Moves the shape by the specified offsets with explicit lengths.
         /// </summary>
-        public void MoveBy(OfficeLength offsetX, OfficeLength offsetY) {
+        public PowerPointShape MoveBy(OfficeLength offsetX, OfficeLength offsetY) {
             Left += offsetX;
             Top += offsetY;
+            return this;
         }
 
         // Reading a position must not write an empty transform: a placeholder without one inherits its layout's

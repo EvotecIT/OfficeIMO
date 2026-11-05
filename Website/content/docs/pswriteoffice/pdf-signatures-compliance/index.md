@@ -8,7 +8,7 @@ A signature object is not the same as a trusted signature decision. PSWriteOffic
 
 ## Inspect before rewriting
 
-Use `Get-OfficePdfSignature`, `Get-OfficePdfCompliance`, `Get-OfficePdfDiagnostic`, and `Get-OfficePdfPreflight` to collect evidence. `Test-OfficePdfRewrite` helps assess whether a transformed candidate preserved the required document features.
+Use `Get-OfficePdfSignature`, `Get-OfficePdfCompliance`, `Get-OfficePdfDiagnostic`, and `Get-OfficePdfDiagnostic -Type Preflight` to collect evidence. `Test-OfficePdfRewrite` helps assess whether a transformed candidate preserved the required document features.
 
 ## External signing flow
 

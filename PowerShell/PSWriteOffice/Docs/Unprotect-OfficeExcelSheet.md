@@ -9,14 +9,9 @@ schema: 2.0.0
 Removes worksheet protection.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Unprotect-OfficeExcelSheet [-PassThru] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Unprotect-OfficeExcelSheet -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-PassThru] [<CommonParameters>]
+Unprotect-OfficeExcelSheet [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -26,23 +21,39 @@ Removes worksheet protection.
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Unprotect-OfficeExcelSheet }
+Open-OfficeExcel -Path .\Finance\Pricing-Model.xlsx {
+    Unprotect-OfficeExcelSheet -Sheet Inputs
+}
 ```
 
-Removes worksheet protection.
+Unprotects the Inputs sheet.
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Finance\Pricing-Model.xlsx {
+    ExcelSheet 'Rates' {
+        Unprotect-OfficeExcelSheet
+        ExcelCell B2 1.09
+        ExcelCell B3 0.86
+        Protect-OfficeExcelSheet -AllowSort
+    }
+}
+```
+
+Unprotects the price sheet, writes the new rates and restores protection with sorting allowed.
 
 ## PARAMETERS
 
 ### -Document
-Workbook to operate on outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -50,11 +61,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the worksheet after removing protection.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -66,27 +77,11 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name when using Document.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) when using Document.
-
-```yaml
-Type: Int32
-Parameter Sets: Document
+Type: OfficeSheetSelector
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

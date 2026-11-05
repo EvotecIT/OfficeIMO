@@ -418,7 +418,7 @@ internal static class PowerPointRoadmapVisualCorpus {
                 cell.FontFamily = "Arial";
                 if (row == 0) {
                     cell.Bold = true;
-                    cell.FillColor = "DBEAFE";
+                    cell.FillColor = OfficeColor.Parse("DBEAFE");
                 }
             }
         }
@@ -431,16 +431,16 @@ internal static class PowerPointRoadmapVisualCorpus {
             });
         PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(420), Top = global::OfficeIMO.OfficeLength.Points(110), Width = global::OfficeIMO.OfficeLength.Points(490), Height = global::OfficeIMO.OfficeLength.Points(340) });
         chart.SetTitle("Quarterly trajectory")
-            .SetTitleTextStyle(fontName: "Arial")
-            .SetLegendTextStyle(fontName: "Arial")
-            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
-            .SetValueAxisLabelTextStyle(fontName: "Arial");
+            .SetTitleTextStyle(fontFamily: "Arial")
+            .SetLegendTextStyle(fontFamily: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontFamily: "Arial")
+            .SetValueAxisLabelTextStyle(fontFamily: "Arial");
         AddFooter(slide, "Typed table and shared chart data · editable after reopen");
         return slide;
     }
 
     private static void SetSlideBackground(PowerPointSlide slide) {
-        slide.BackgroundColor = "F8FAFC";
+        slide.BackgroundColor = OfficeColor.Parse("F8FAFC");
     }
 
     private static void AddTitle(PowerPointSlide slide, string text) {

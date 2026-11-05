@@ -16,8 +16,8 @@ public class PowerPointChartImportedTextFormattingTests {
         using var source = PowerPointDocument.Create();
         PowerPointChart chart = source.AddSlide().AddChart().SetTitle("Imported title")
             .SetLegend(OfficeChartLegendPosition.Right)
-            .SetTitleTextStyle(fontName: "Aptos")
-            .SetLegendTextStyle(fontName: "Aptos");
+            .SetTitleTextStyle(fontFamily: "Aptos")
+            .SetLegendTextStyle(fontFamily: "Aptos");
         C.Chart chartElement = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .ChartParts.Single().ChartSpace.GetFirstChild<C.Chart>()!;
         A.TextCharacterPropertiesType properties = legend
@@ -31,8 +31,8 @@ public class PowerPointChartImportedTextFormattingTests {
         input.Position = 0;
         using var imported = PowerPointDocument.Load(input);
         PowerPointChart actualChart = imported.Slides.Single().Charts.Single();
-        if (legend) actualChart.SetLegendTextStyle(color: "123456", fontName: replaceFont ? "Arial" : null);
-        else actualChart.SetTitleTextStyle(color: "123456", fontName: replaceFont ? "Arial" : null);
+        if (legend) actualChart.SetLegendTextStyle(color: OfficeColor.Parse("123456"), fontFamily: replaceFont ? "Arial" : null);
+        else actualChart.SetTitleTextStyle(color: OfficeColor.Parse("123456"), fontFamily: replaceFont ? "Arial" : null);
         using var output = new MemoryStream();
         imported.Save(output);
         output.Position = 0;

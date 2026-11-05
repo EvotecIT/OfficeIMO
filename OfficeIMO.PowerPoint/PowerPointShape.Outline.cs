@@ -8,12 +8,12 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
         /// <summary>
-        ///     Gets or sets the outline color for the shape in hex format (e.g. "FF0000").
+        ///     Gets or sets the local outline color, retaining native theme slots and opacity.
         /// </summary>
-        public string? OutlineColor {
+        public OfficeColor? OutlineColor {
             get {
                 A.Outline? outline = GetOutline();
-                return outline?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
+                return PowerPointDrawingColor.Read(outline?.GetFirstChild<A.SolidFill>());
             }
             set {
                 A.Outline? outline = GetOutline(create: value != null);
@@ -27,7 +27,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 RemoveFillChoiceChildren(outline);
-                InsertOutlineChild(outline, new A.SolidFill(new A.RgbColorModelHex { Val = value }));
+                InsertOutlineChild(outline, PowerPointDrawingColor.Fill(value, OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(RelationshipOwnerPart)));
             }
         }
 

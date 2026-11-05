@@ -1,130 +1,135 @@
-using System.Linq;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Applies a friendly AutoFilter condition by header name.</summary>
+/// <summary>Adds an AutoFilter to a range and applies filter conditions.</summary>
 /// <example>
-///   <summary>Filter a worksheet by header.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Set-OfficeExcelAutoFilter -Range A1:D200 -Header Status -Value Open,Hold }</code>
-///   <para>Ensures an AutoFilter range exists and filters the Status column.</para>
+/// <summary>Add filter buttons to a range</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+///     ExcelSheet 'Servers' {
+///         ExcelAutoFilter A1:F500
+///     }
+/// }</code>
+/// <para>Adds AutoFilter drop-downs to the header row of A1:F500.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelAutoFilter", DefaultParameterSetName = ParameterSetContext)]
-[Alias("ExcelAutoFilterSet")]
-public sealed class SetOfficeExcelAutoFilterCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
+/// <example>
+/// <summary>Open a sheet filtered to the open work</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Helpdesk.xlsx {
+///     ExcelSheet 'Tickets' {
+///         ExcelAutoFilter -Header Status -Value 'Open', 'On hold'
+///         ExcelAutoFilter -Header AgeDays -GreaterThanOrEqual 3
+///     }
+/// }</code>
+/// <para>Filters the ticket list to the Open and On hold statuses with at least three days of age, so the sheet opens on the work that needs attention.</para>
+/// </example>
+/// <example>
+/// <summary>Filter a new range by header names</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Helpdesk.xlsx {
+///     ExcelSheet 'Tickets' {
+///         ExcelAutoFilter A1:H900 -Criteria @{ Status = 'Open', 'On hold'; Region = 'EMEA' }
+///     }
+/// }</code>
+/// <para>Adds filter buttons and immediately shows only open EMEA tickets.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Set, "OfficeExcelAutoFilter", DefaultParameterSetName = "Range")]
+[Alias("ExcelAutoFilter")]
+public sealed class SetOfficeExcelAutoFilterCommand : PSCmdlet {
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Workbook to operate on outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
-    /// <summary>Worksheet name when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public string? Sheet { get; set; }
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter()]
+    public SwitchParameter PassThru { get; set; }
 
-    /// <summary>Worksheet index (0-based) when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public int? SheetIndex { get; set; }
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter(ParameterSetName = "Range", Mandatory = true, Position = 0)]
+    [Parameter(ParameterSetName = "Condition")]
+    public string Range { get; set; } = null!;
 
-    /// <summary>Optional A1 AutoFilter range to create or replace before applying the condition.</summary>
-    [Parameter]
-    public string? Range { get; set; }
+    /// <summary>Maps header names to filter values, value lists or comparison criteria.</summary>
+    [Parameter(ParameterSetName = "Range")]
+    public Hashtable? Criteria { get; set; }
 
-    /// <summary>Header name to filter.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    [Alias("HeaderName", "ColumnName")]
-    public string Header { get; set; } = string.Empty;
+    /// <summary>Header text identifying the target column.</summary>
+    [Parameter(ParameterSetName = "Condition", Mandatory = true, Position = 0)]
+    public string Header { get; set; } = null!;
 
-    /// <summary>Allowed values for an equals filter.</summary>
-    [Parameter]
-    [Alias("Values")]
+    /// <summary>Value or values consumed by the selected operation.</summary>
+    [Parameter(ParameterSetName = "Condition")]
     public string[]? Value { get; set; }
 
     /// <summary>Text that the column value must contain.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Condition")]
     public string? Contains { get; set; }
 
     /// <summary>Text that the column value must not contain.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Condition")]
     public string? DoesNotContain { get; set; }
 
     /// <summary>Text that the column value must start with.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Condition")]
     public string? StartsWith { get; set; }
 
     /// <summary>Text that the column value must end with.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Condition")]
     public string? EndsWith { get; set; }
 
     /// <summary>Numeric greater-than-or-equal condition.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Condition")]
     public double? GreaterThanOrEqual { get; set; }
 
     /// <summary>Numeric less-than-or-equal condition.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Condition")]
     public double? LessThanOrEqual { get; set; }
 
     /// <summary>Numeric not-equal condition.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Condition")]
     public double? NotEqual { get; set; }
 
     /// <summary>Inclusive numeric range condition. Provide exactly two values: minimum, maximum.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Condition")]
     public double[]? Between { get; set; }
 
     /// <summary>Outside numeric range condition. Provide exactly two values: minimum, maximum.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Condition")]
     public double[]? NotBetween { get; set; }
 
-    /// <summary>Emit the worksheet after applying the filter.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        if (string.IsNullOrWhiteSpace(Header))
-        {
-            throw new PSArgumentException("Header cannot be empty.");
-        }
-
-        ValidateSingleCondition();
-
-        var sheet = ResolveSheet();
-        string range = !string.IsNullOrWhiteSpace(Range)
-            ? Range!
-            : sheet.GetAutoFilters().FirstOrDefault(filter => !filter.IsTableFilter)?.Range ?? sheet.UsedRange.Address;
-
-        ApplyFilter(sheet.Range(range).AutoFilter().Column(Header));
-
-        if (PassThru.IsPresent)
-        {
-            WriteObject(sheet);
-        }
-    }
-
-    private ExcelSheet ResolveSheet()
-    {
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            if (Document == null)
-            {
-                throw new PSArgumentException("Provide an Excel document.");
+    protected override void ProcessRecord() {
+        if (ParameterSetName == "Condition") ValidateSingleCondition();
+        var sheet = ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
+        string target = Range ?? sheet.GetAutoFilters().FirstOrDefault(filter => !filter.IsTableFilter)?.Range ?? sheet.UsedRange.Address;
+        var filter = sheet.Range(target).AutoFilter();
+        if (ParameterSetName == "Range") {
+            if (Criteria != null) foreach (DictionaryEntry item in Criteria) {
+                object? value = OfficeArgumentValue.Unwrap(item.Value);
+                var values = value is IEnumerable items && value is not string
+                    ? items.Cast<object?>().Select(item => Convert.ToString(OfficeArgumentValue.Unwrap(item), CultureInfo.InvariantCulture) ?? string.Empty).ToArray()
+                    : new[] { Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty };
+                filter.Column(Convert.ToString(item.Key)!).Equals(values);
             }
-
-            return ExcelSheetResolver.Resolve(Document, Sheet, SheetIndex);
-        }
-
-        var context = ExcelDslContext.Require(this);
-        return context.RequireSheet();
+        } else ApplyFilter(filter.Column(Header!));
+        if (PassThru) WriteObject(sheet);
     }
-
     private void ApplyFilter(ExcelAutoFilterColumn column)
     {
         if (Value is { Length: > 0 })
@@ -198,4 +203,5 @@ public sealed class SetOfficeExcelAutoFilterCommand : PSCmdlet
             throw new PSArgumentException("NotBetween requires exactly two numeric values: minimum, maximum.");
         }
     }
+
 }

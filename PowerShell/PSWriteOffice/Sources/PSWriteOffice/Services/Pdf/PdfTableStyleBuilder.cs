@@ -41,14 +41,14 @@ internal sealed class PdfTableStyleOptions
     internal double[]? ColumnMaxWidthPoints { get; set; }
     internal double[]? ColumnWidthWeights { get; set; }
     internal OfficeAlignment[]? ColumnAlign { get; set; }
-    internal bool AutoFitColumns { get; set; }
-    internal bool RightAlignNumeric { get; set; }
-    internal bool ShrinkTextToFit { get; set; }
-    internal bool KeepTogether { get; set; }
-    internal bool KeepWithNext { get; set; }
-    internal bool NoBorder { get; set; }
-    internal bool NoHeaderFill { get; set; }
-    internal bool NoRowStripeFill { get; set; }
+    internal bool? AutoFitColumns { get; set; }
+    internal bool? RightAlignNumeric { get; set; }
+    internal bool? ShrinkTextToFit { get; set; }
+    internal bool? KeepTogether { get; set; }
+    internal bool? KeepWithNext { get; set; }
+    internal bool? NoBorder { get; set; }
+    internal bool? NoHeaderFill { get; set; }
+    internal bool? NoRowStripeFill { get; set; }
     internal int? HeaderRowCount { get; set; }
     internal int? RepeatHeaderRowCount { get; set; }
     internal int? FooterRowCount { get; set; }
@@ -85,14 +85,14 @@ internal sealed class PdfTableStyleOptions
         HasValues(ColumnMaxWidthPoints) ||
         HasValues(ColumnWidthWeights) ||
         HasValues(ColumnAlign) ||
-        AutoFitColumns ||
-        RightAlignNumeric ||
-        ShrinkTextToFit ||
-        KeepTogether ||
-        KeepWithNext ||
-        NoBorder ||
-        NoHeaderFill ||
-        NoRowStripeFill ||
+        AutoFitColumns.HasValue ||
+        RightAlignNumeric.HasValue ||
+        ShrinkTextToFit.HasValue ||
+        KeepTogether.HasValue ||
+        KeepWithNext.HasValue ||
+        NoBorder.HasValue ||
+        NoHeaderFill.HasValue ||
+        NoRowStripeFill.HasValue ||
         HeaderRowCount.HasValue ||
         RepeatHeaderRowCount.HasValue ||
         FooterRowCount.HasValue;
@@ -141,19 +141,19 @@ internal static class PdfTableStyleBuilder
         if (options.ColumnMaxWidthPoints is { Length: > 0 }) style.ColumnMaxWidths = options.ColumnMaxWidthPoints.Select(value => (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(value)).ToList();
         if (options.ColumnWidthWeights is { Length: > 0 }) style.ColumnWidthWeights = options.ColumnWidthWeights.ToList();
         if (options.ColumnAlign is { Length: > 0 }) style.Alignments = options.ColumnAlign.ToList();
-        if (options.AutoFitColumns) style.AutoFitColumns = true;
-        if (options.RightAlignNumeric) style.RightAlignNumeric = true;
-        if (options.ShrinkTextToFit) style.ShrinkTextToFit = true;
-        if (options.KeepTogether) style.KeepTogether = true;
-        if (options.KeepWithNext) style.KeepWithNext = true;
-        if (options.NoBorder)
+        if (options.AutoFitColumns.HasValue) style.AutoFitColumns = options.AutoFitColumns.Value;
+        if (options.RightAlignNumeric.HasValue) style.RightAlignNumeric = options.RightAlignNumeric.Value;
+        if (options.ShrinkTextToFit.HasValue) style.ShrinkTextToFit = options.ShrinkTextToFit.Value;
+        if (options.KeepTogether.HasValue) style.KeepTogether = options.KeepTogether.Value;
+        if (options.KeepWithNext.HasValue) style.KeepWithNext = options.KeepWithNext.Value;
+        if (options.NoBorder == true)
         {
             style.BorderColor = null;
             style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0);
         }
 
-        if (options.NoHeaderFill) style.HeaderFill = null;
-        if (options.NoRowStripeFill) style.RowStripeFill = null;
+        if (options.NoHeaderFill == true) style.HeaderFill = null;
+        if (options.NoRowStripeFill == true) style.RowStripeFill = null;
         if (options.HeaderRowCount.HasValue) style.HeaderRowCount = options.HeaderRowCount.Value;
         if (options.RepeatHeaderRowCount.HasValue) style.RepeatHeaderRowCount = options.RepeatHeaderRowCount.Value;
         if (options.FooterRowCount.HasValue) style.FooterRowCount = options.FooterRowCount.Value;

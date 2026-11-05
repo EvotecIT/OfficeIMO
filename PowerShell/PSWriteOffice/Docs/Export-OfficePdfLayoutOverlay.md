@@ -6,35 +6,50 @@ schema: 2.0.0
 ---
 # Export-OfficePdfLayoutOverlay
 ## SYNOPSIS
-Exports PDF word, line, region, and reading-order diagnostics as PNG or SVG.
+Exports native PDF word, line, region and reading-order diagnostics as PNG or SVG.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Export-OfficePdfLayoutOverlay [-Path] <string> [-OutputPath] <string> [-Page <int>] [-Format <OfficeImageExportFormat>] [-Scale <double>] [-Options <PdfLayoutDebugOverlayOptions>] [-LayoutOptions <PdfTextLayoutOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficePdfLayoutOverlay [-Path] <string[]> -OutputPath <string> [-Page <int>] [-Format <OfficeImageExportFormat>] [-Scale <double>] [-Options <Object[]>] [-LayoutOptions <PdfTextLayoutOptions>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathDirectory
+```powershell
+Export-OfficePdfLayoutOverlay [-Path] <string[]> -OutputDirectory <string> [-Page <int>] [-Format <OfficeImageExportFormat>] [-Scale <double>] [-Options <Object[]>] [-LayoutOptions <PdfTextLayoutOptions>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Export-OfficePdfLayoutOverlay -OutputPath <string> -LiteralPath <string[]> [-Page <int>] [-Format <OfficeImageExportFormat>] [-Scale <double>] [-Options <Object[]>] [-LayoutOptions <PdfTextLayoutOptions>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathDirectory
+```powershell
+Export-OfficePdfLayoutOverlay -OutputDirectory <string> -LiteralPath <string[]> [-Page <int>] [-Format <OfficeImageExportFormat>] [-Scale <double>] [-Options <Object[]>] [-LayoutOptions <PdfTextLayoutOptions>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Exports PDF word, line, region, and reading-order diagnostics as PNG or SVG.
+Exports native PDF word, line, region and reading-order diagnostics as PNG or SVG.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $result = Export-OfficePdfLayoutOverlay -Path .\Report.pdf -OutputPath .\Report-layout.svg -Page 1 -Format Svg -PassThru
+Export-OfficePdfLayoutOverlay -LiteralPath './Report[1].pdf' -OutputPath ./Report-layout.svg -Page 1 -Format Svg -PassThru
 ```
 
 
 ## PARAMETERS
 
 ### -Format
-Output image format. Layout overlays support only PNG and SVG.
+Format setting.
 
 ```yaml
 Type: OfficeImageExportFormat
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
-Possible values: Png, Svg
+Possible values: Png, Svg, Jpeg, Tiff, Webp, Bmp, Pbm, Tga, Icon
 
 Required: False
 Position: named
@@ -44,11 +59,11 @@ Accept wildcard characters: False
 ```
 
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed extraction restrictions.
+IgnorePermissionRestrictions setting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -60,11 +75,59 @@ Accept wildcard characters: False
 ```
 
 ### -LayoutOptions
-Optional text layout settings.
+LayoutOptions setting.
 
 ```yaml
 Type: PdfTextLayoutOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal input PDF paths; accepts FileInfo.FullName.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath, LiteralPathDirectory
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+Native parsing, authentication and resource policy.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoClobber
+NoClobber setting.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -76,11 +139,11 @@ Accept wildcard characters: False
 ```
 
 ### -Options
-Optional overlay elements, colors, and limits.
+Options setting.
 
 ```yaml
-Type: PdfLayoutDebugOverlayOptions
-Parameter Sets: __AllParameterSets
+Type: Object[]
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -91,28 +154,44 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -OutputPath
-Destination PNG or SVG path.
+### -OutputDirectory
+Batch destination retaining source names.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: PathDirectory, LiteralPathDirectory
 Aliases: None
 Possible values:
 
 Required: True
-Position: 1
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -OutputPath
+Single-file destination.
+
+```yaml
+Type: String
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Page
-One-based page number.
+Page setting.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -124,11 +203,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the structured image export result.
+Return native annotation edit reports.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -140,11 +219,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to authenticate an encrypted PDF.
+Password setting.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -156,11 +235,11 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Source PDF path.
+Input PDF paths with wildcard expansion.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: String[]
+Parameter Sets: Path, PathDirectory
 Aliases: None
 Possible values:
 
@@ -168,31 +247,15 @@ Required: True
 Position: 0
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ReadOptions
-Optional bounded PDF parsing settings.
-
-```yaml
-Type: PdfLoadOptions
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -Scale
-Output scale.
+Scale setting.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -208,7 +271,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `System.String[]`
 
 ## OUTPUTS
 

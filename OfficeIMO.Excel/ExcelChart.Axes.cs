@@ -43,24 +43,24 @@ namespace OfficeIMO.Excel {
         /// Sets the category axis title text style.
         /// </summary>
         public ExcelChart SetCategoryAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null,
-            bool? italic = null, OfficeColor? color = null, string? fontName = null,
+            bool? italic = null, OfficeColor? color = null, string? fontFamily = null,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            return SetAxisTitleTextStyle(axisGroup, AxisKind.Category, fontSize, bold, italic, color, fontName);
+            return SetAxisTitleTextStyle(axisGroup, AxisKind.Category, fontSize, bold, italic, color, fontFamily);
         }
 
         /// <summary>
         /// Sets the value axis title text style.
         /// </summary>
         public ExcelChart SetValueAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null,
-            bool? italic = null, OfficeColor? color = null, string? fontName = null,
+            bool? italic = null, OfficeColor? color = null, string? fontFamily = null,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            return SetAxisTitleTextStyle(axisGroup, AxisKind.Value, fontSize, bold, italic, color, fontName);
+            return SetAxisTitleTextStyle(axisGroup, AxisKind.Value, fontSize, bold, italic, color, fontFamily);
         }
 
         /// <summary>
         /// Sets category axis gridlines visibility and optional styling.
         /// </summary>
-        public ExcelChart SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false,
+        public ExcelChart SetCategoryAxisGridlines(bool? showMajor = null, bool? showMinor = null,
             OfficeColor? lineColor = null, OfficeLength? lineWidth = null,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisGridlines(axisGroup, AxisKind.Category, showMajor, showMinor, lineColor, lineWidth);
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets value axis gridlines visibility and optional styling.
         /// </summary>
-        public ExcelChart SetValueAxisGridlines(bool showMajor = true, bool showMinor = false,
+        public ExcelChart SetValueAxisGridlines(bool? showMajor = null, bool? showMinor = null,
             OfficeColor? lineColor = null, OfficeLength? lineWidth = null,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisGridlines(axisGroup, AxisKind.Value, showMajor, showMinor, lineColor, lineWidth);
@@ -95,18 +95,18 @@ namespace OfficeIMO.Excel {
         /// Sets the category axis label text style.
         /// </summary>
         public ExcelChart SetCategoryAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null,
-            bool? italic = null, OfficeColor? color = null, string? fontName = null,
+            bool? italic = null, OfficeColor? color = null, string? fontFamily = null,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            return SetAxisLabelTextStyle(axisGroup, AxisKind.Category, fontSize, bold, italic, color, fontName);
+            return SetAxisLabelTextStyle(axisGroup, AxisKind.Category, fontSize, bold, italic, color, fontFamily);
         }
 
         /// <summary>
         /// Sets the value axis label text style.
         /// </summary>
         public ExcelChart SetValueAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null,
-            bool? italic = null, OfficeColor? color = null, string? fontName = null,
+            bool? italic = null, OfficeColor? color = null, string? fontFamily = null,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            return SetAxisLabelTextStyle(axisGroup, AxisKind.Value, fontSize, bold, italic, color, fontName);
+            return SetAxisLabelTextStyle(axisGroup, AxisKind.Value, fontSize, bold, italic, color, fontFamily);
         }
 
         /// <summary>
@@ -652,8 +652,8 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelChart SetAxisTitleTextStyle(OfficeChartAxisGroup axisGroup, AxisKind axisKind,
-            OfficeLength? fontSize, bool? bold, bool? italic, OfficeColor? color, string? fontName) {
-            ValidateDataLabelTextStyle(fontSize, color, fontName);
+            OfficeLength? fontSize, bool? bold, bool? italic, OfficeColor? color, string? fontFamily) {
+            ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -683,14 +683,14 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSize, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSize, bold, italic, color, fontFamily);
             Save();
             return this;
         }
 
         private ExcelChart SetAxisLabelTextStyle(OfficeChartAxisGroup axisGroup, AxisKind axisKind,
-            OfficeLength? fontSize, bool? bold, bool? italic, OfficeColor? color, string? fontName) {
-            ValidateDataLabelTextStyle(fontSize, color, fontName);
+            OfficeLength? fontSize, bool? bold, bool? italic, OfficeColor? color, string? fontFamily) {
+            ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -710,13 +710,13 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(axis), fontSize, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(axis), fontSize, bold, italic, color, fontFamily);
             Save();
             return this;
         }
 
         private ExcelChart SetAxisGridlines(OfficeChartAxisGroup axisGroup, AxisKind axisKind,
-            bool showMajor, bool showMinor, OfficeColor? lineColor, OfficeLength? lineWidth) {
+            bool? showMajor, bool? showMinor, OfficeColor? lineColor, OfficeLength? lineWidth) {
             ValidateAxisGridlinesStyle(lineColor, lineWidth);
 
             C.Chart chart = GetChart();

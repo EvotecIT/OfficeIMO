@@ -18,8 +18,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <para>Embeds a supporting JSON file in the generated PDF.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePdfAttachment", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfAttachment")]
 [OutputType(typeof(PdfDocument))]
+[Alias("PdfAttachment") ]
 public sealed class AddOfficePdfAttachmentCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -51,7 +51,7 @@ public sealed class AddOfficePdfAttachmentCommand : PSCmdlet
     public string? Description { get; set; }
 
     /// <summary>Accepted for compatibility. The replacement document is always emitted when -Document is used.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetDocument)]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />

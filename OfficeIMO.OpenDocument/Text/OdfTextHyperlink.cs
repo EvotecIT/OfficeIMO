@@ -2,6 +2,11 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>A native hyperlink whose target is preserved without network access.</summary>
 public sealed class OdfTextHyperlink : OdfTextContent {
+    /// <summary>Appends native text and returns this inline.</summary>
+    public new OdfTextHyperlink AddText(string text) { base.AddText(text); return this; }
+    /// <summary>Transforms stored text and returns the same native receiver.</summary>
+    public new OdfTextHyperlink TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) { base.TransformTextCase(textCase, culture); return this; }
+
     internal OdfTextHyperlink(OdfDocument document, XElement element, XElement graphic) : base(document, element, graphic, OdfStyleFamily.Text) { }
     /// <summary>Hyperlink target. Relative and absolute references remain as supplied.</summary>
     public string Href {

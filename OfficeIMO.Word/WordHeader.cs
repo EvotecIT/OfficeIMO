@@ -176,7 +176,6 @@ namespace OfficeIMO.Word {
         /// <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
         public WordShape AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height,
             OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) {
-            WordShape.ValidateVmlColors(fillColor, strokeColor);
             return AddParagraph(newRun: true).AddShape(shapeType, width, height, fillColor, strokeColor, strokeWeight, arcSize);
         }
 

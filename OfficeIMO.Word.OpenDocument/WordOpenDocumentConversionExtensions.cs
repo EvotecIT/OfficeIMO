@@ -547,7 +547,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
         target.Underline = source.Underline ? true : (bool?)null;
-        target.StrikeThrough = source.Strike ? true : (bool?)null;
+        target.Strikethrough = source.Strikethrough ? true : (bool?)null;
         ApplyWordDecoration(source, target);
         if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
@@ -560,7 +560,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
         target.Underline = source.Underline ? true : (bool?)null;
-        target.StrikeThrough = source.Strike ? true : (bool?)null;
+        target.Strikethrough = source.Strikethrough ? true : (bool?)null;
         ApplyWordDecoration(source, target);
         if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
@@ -583,8 +583,8 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static void ApplyWordDecoration(WordRunInfo source, OdtSpan target) {
         (target.UnderlineStyle, target.UnderlineType) = MapWordUnderline(source.UnderlineStyle);
-        target.LineThroughStyle = source.Strike || source.DoubleStrike ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
-        target.LineThroughType = source.DoubleStrike ? OdfTextDecorationType.Double : source.Strike ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
+        target.LineThroughStyle = source.Strikethrough || source.DoubleStrikethrough ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
+        target.LineThroughType = source.DoubleStrikethrough ? OdfTextDecorationType.Double : source.Strikethrough ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
         target.TextPosition = MapWordTextPosition(source.VerticalTextAlignment);
         target.TextTransform = string.Equals(source.CapsStyle, nameof(WordCapsStyle.Caps), StringComparison.OrdinalIgnoreCase)
             ? OdfTextTransform.Uppercase
@@ -594,8 +594,8 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static void ApplyWordDecoration(WordRunInfo source, OdtHyperlink target) {
         (target.UnderlineStyle, target.UnderlineType) = MapWordUnderline(source.UnderlineStyle);
-        target.LineThroughStyle = source.Strike || source.DoubleStrike ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
-        target.LineThroughType = source.DoubleStrike ? OdfTextDecorationType.Double : source.Strike ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
+        target.LineThroughStyle = source.Strikethrough || source.DoubleStrikethrough ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
+        target.LineThroughType = source.DoubleStrikethrough ? OdfTextDecorationType.Double : source.Strikethrough ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
         target.TextPosition = MapWordTextPosition(source.VerticalTextAlignment);
         target.TextTransform = string.Equals(source.CapsStyle, nameof(WordCapsStyle.Caps), StringComparison.OrdinalIgnoreCase)
             ? OdfTextTransform.Uppercase

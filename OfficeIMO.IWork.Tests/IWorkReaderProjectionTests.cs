@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_table_preserves_description_and_null_formula_cache() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.numbers"), IWorkDocumentKind.Numbers);
         var cells = new[] {
             new IWorkTableCell(1, 1, IWorkCellKind.Formula, null,
@@ -57,7 +57,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_table_reports_unrepresented_header_column_and_footer_row_roles() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.numbers"), IWorkDocumentKind.Numbers);
         var table = new IWorkTable("Results", 3, 2, new[] {
             new IWorkTableCell(1, 1, IWorkCellKind.Text, "Label"),
@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("First", 1, 1, 42d)
         }, textBox: "After table");
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers);
         IWorkNumbersProjection numbers = source.ReadNumbers();
         Assert.Collection(Assert.Single(numbers.Sheets).Drawables,
             drawable => Assert.Equal(IWorkNumbersDrawableKind.Table, drawable.Kind),
@@ -104,7 +104,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_table_exposes_profiles_and_recovered_geometry() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.numbers"), IWorkDocumentKind.Numbers);
         var table = new IWorkTable("Profiled", 2, 2, new[] {
             new IWorkTableCell(1, 1, IWorkCellKind.Number, 42d),
@@ -135,7 +135,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_table_reports_saturated_counts_for_large_sparse_geometry() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.numbers"), IWorkDocumentKind.Numbers);
         var table = new IWorkTable("Sparse", 1_048_576, 16_384, new[] {
             new IWorkTableCell(1, 1, IWorkCellKind.Number, 1d)

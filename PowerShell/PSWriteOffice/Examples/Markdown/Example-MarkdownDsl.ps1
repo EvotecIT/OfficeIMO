@@ -12,7 +12,7 @@ New-OfficeMarkdown -Path $path {
     MarkdownParagraph -Text 'Generated with PSWriteOffice.'
     MarkdownList -Items 'Alpha','Beta','Gamma'
     MarkdownTable -InputObject $data
-    MarkdownCode -Language 'powershell' -Content 'Get-Date'
+    MarkdownCode -Language 'powershell' -Text 'Get-Date'
     MarkdownHorizontalRule
     MarkdownQuote -Text 'Ship fast, learn faster.'
 }

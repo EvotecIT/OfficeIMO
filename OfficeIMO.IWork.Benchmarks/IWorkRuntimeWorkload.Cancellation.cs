@@ -18,7 +18,7 @@ public sealed partial class IWorkRuntimeWorkload {
         if (operation == "CancelDuringNativeCopy" && _kind == IWorkDocumentKind.Keynote && _nativeCopyDocument is null) {
             _nativeCopyDocument = IWorkKeynoteDocument.Create();
             _nativeCopyDocument.AddSlide().AddText(new string('a', 150_000), 0, 0, 960, 540);
-            byte[] bytes = _nativeCopyDocument.SaveBytes();
+            byte[] bytes = _nativeCopyDocument.ToBytes();
             NativeCopyInputBytes = bytes.LongLength;
             NativeCopyInputSha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
         }
@@ -40,13 +40,13 @@ public sealed partial class IWorkRuntimeWorkload {
         try {
             switch (operation) {
                 case "CancelDuringLoad":
-                    IWorkSourceDocument.Open(stream, _kind, null, cancellation.Token);
+                    IWorkSourceDocument.Load(stream, _kind, null, cancellation.Token);
                     break;
                 case "CancelDuringConvert":
                     using (IDisposable result = _kind switch {
-                        IWorkDocumentKind.Pages => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Pages, null, cancellation.Token).ToWordResult(cancellationToken: cancellation.Token),
-                        IWorkDocumentKind.Numbers => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, null, cancellation.Token).ToExcelResult(cancellationToken: cancellation.Token),
-                        IWorkDocumentKind.Keynote => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Keynote, null, cancellation.Token).ToPowerPointResult(cancellationToken: cancellation.Token),
+                        IWorkDocumentKind.Pages => IWorkSourceDocument.Load(stream, IWorkDocumentKind.Pages, null, cancellation.Token).ToWordResult(cancellationToken: cancellation.Token),
+                        IWorkDocumentKind.Numbers => IWorkSourceDocument.Load(stream, IWorkDocumentKind.Numbers, null, cancellation.Token).ToExcelResult(cancellationToken: cancellation.Token),
+                        IWorkDocumentKind.Keynote => IWorkSourceDocument.Load(stream, IWorkDocumentKind.Keynote, null, cancellation.Token).ToPowerPointResult(cancellationToken: cancellation.Token),
                         _ => throw new InvalidOperationException()
                     }) { }
                     break;

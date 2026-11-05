@@ -52,9 +52,13 @@ namespace OfficeIMO.Excel {
                     builder.Append("\"/>");
                 }
 
-                builder.Append("</tableColumns><tableStyleInfo name=\"");
-                builder.Append(sheet.TableStyle.ToString());
-                builder.Append("\" showFirstColumn=\"");
+                builder.Append("</tableColumns><tableStyleInfo");
+                if (sheet.TableStyle != ExcelTableStyle.None) {
+                    builder.Append(" name=\"");
+                    builder.Append(sheet.TableStyle.ToString());
+                    builder.Append('"');
+                }
+                builder.Append(" showFirstColumn=\"");
                 builder.Append(sheet.ShowFirstColumn ? "1" : "0");
                 builder.Append("\" showLastColumn=\"");
                 builder.Append(sheet.ShowLastColumn ? "1" : "0");

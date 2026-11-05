@@ -6,107 +6,33 @@ schema: 2.0.0
 ---
 # Set-OfficePdfPageSetup
 ## SYNOPSIS
-Sets PDF page size, orientation, and margins.
+Sets physical dimensions, orientation and margins in the enclosing PDF composition.
 
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Set-OfficePdfPageSetup [-PageSize <string>] [-Width <Double>] [-Height <Double>] [-Landscape] [-Margin <Double>] [-Left <Double>] [-Top <Double>] [-Right <Double>] [-Bottom <Double>] [-PassThru] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Set-OfficePdfPageSetup -Document <PdfDocument> [-PageSize <string>] [-Width <Double>] [-Height <Double>] [-Landscape] [-Margin <Double>] [-Left <Double>] [-Top <Double>] [-Right <Double>] [-Bottom <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfPageSetup [-PageSize <OfficePageSize>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Orientation <OfficePageOrientation>] [-Margin <OfficeLength>] [-MarginLeft <OfficeLength>] [-MarginTop <OfficeLength>] [-MarginRight <OfficeLength>] [-MarginBottom <OfficeLength>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets PDF page size, orientation, and margins.
+Sets physical dimensions, orientation and margins in the enclosing PDF composition.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePdf -Path .\Examples\Documents\PdfPageSetup.pdf {
-    Set-OfficePdfPageSetup -PageSize A4 -Margin 42
-    Add-OfficePdfHeading -Text 'A4 report'
-    Add-OfficePdfParagraph -Text 'The report uses custom margins.'
-}
+Set-OfficePdfPageSetup -Height 'Value'
 ```
 
-Applies page setup before adding generated PDF content.
 
 ## PARAMETERS
 
-### -Bottom
-Bottom margin in PDF points.
-
-```yaml
-Type: Double
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Document
-Compatibility parameter. Page composition is supported only inside New-OfficePdf.
-
-```yaml
-Type: PdfDocument
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -Height
-Custom page height in PDF points when -PageSize Custom is used.
+Custom page height.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Landscape
-Use landscape orientation.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Left
-Left margin in PDF points.
-
-```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -118,13 +44,93 @@ Accept wildcard characters: False
 ```
 
 ### -Margin
-Uniform margin in PDF points.
+Uniform margin.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MarginBottom
+Bottom margin.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Context
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MarginLeft
+Left margin.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Context
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MarginRight
+Right margin.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Context
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MarginTop
+Top margin.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Context
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Orientation
+Page orientation.
+
+```yaml
+Type: OfficePageOrientation
+Parameter Sets: Context
+Aliases: None
+Possible values: Portrait, Landscape
 
 Required: False
 Position: named
@@ -134,59 +140,11 @@ Accept wildcard characters: False
 ```
 
 ### -PageSize
-Page size name: A4, A5, Letter, Legal, or Custom.
+Named paper size or physical page dimensions.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PassThru
-Emit the updated document.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Right
-Right margin in PDF points.
-
-```yaml
-Type: Double
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Top
-Top margin in PDF points.
-
-```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficePageSize
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -198,11 +156,11 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Custom page width in PDF points when -PageSize Custom is used.
+Custom page width.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -218,11 +176,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## RELATED LINKS
 

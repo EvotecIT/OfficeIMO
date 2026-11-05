@@ -9,8 +9,8 @@ public sealed class IWorkNumbersCellEditingTests {
     public void Scalar_edits_compose_across_rows_and_tables_preserving_other_records_and_saved_Xlsx() {
         var source = Source(); var tables = Tables(source); var edit = source.BeginEdit();
         Apply(edit, tables);
-        var result = edit.SaveBytesResult(AcceptCaches()); var saved = IWorkSourceDocument.Open(result.GetPackageBytes());
-        Assert.Equal(File.ReadAllBytes(Fixture("numbers-preserved-scalars-v14.5.numbers")), result.GetPackageBytes());
+        var result = (Bytes: edit.ToBytes(out var nativeReport1, AcceptCaches()), Report: nativeReport1); var saved = IWorkSourceDocument.Load(result.Bytes);
+        Assert.Equal(File.ReadAllBytes(Fixture("numbers-preserved-scalars-v14.5.numbers")), result.Bytes);
         Assert.Equal(new ulong[] { 150, 175 }, result.Report.UpdatedRecords.Select(record => record.RecordIdentifier).Order());
         Assert.Equal(source.Records.Count, saved.Records.Count);
         foreach (var record in source.Records) {
@@ -29,7 +29,7 @@ public sealed class IWorkNumbersCellEditingTests {
         Assert.Equal(tables[0].GetCell(2, 2)!.NumberFormat!.DecimalPlaces, data.GetCell(2, 2)!.NumberFormat!.DecimalPlaces);
         Assert.Equal(tables[0].GetPadding(2, 2)!.LeftPoints, data.GetPadding(2, 2)!.LeftPoints);
         Assert.Equal(tables[0].GetPadding(2, 2)!.BottomPoints, data.GetPadding(2, 2)!.BottomPoints);
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(result.GetPackageBytes()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(result.Bytes), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(converted.Report.Diagnostics, item => item.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
         using var stream = new MemoryStream(); converted.Value.Save(stream); stream.Position = 0;
         using var reopened = ExcelDocument.Load(stream);
@@ -44,7 +44,7 @@ public sealed class IWorkNumbersCellEditingTests {
     public void Rejected_or_cancelled_requests_preserve_pending_edits_and_original_values_restore_exact_source_bytes() {
         var source = Source(); var table = Tables(source)[0]; var edit = source.BeginEdit(); var id = table.SourceIdentity!;
         edit.SetNumbersCellNumber(id, 2, 2, 42.125); edit.SetNumbersCellBoolean(id, 2, 3, false);
-        byte[] before = edit.SaveBytes(AcceptCaches());
+        byte[] before = edit.ToBytes(AcceptCaches());
         foreach (double value in new[] { double.NaN, double.NegativeInfinity, double.PositiveInfinity })
             Assert.Throws<ArgumentOutOfRangeException>(() => edit.SetNumbersCellNumber(id, 2, 2, value));
         Assert.Throws<ArgumentOutOfRangeException>(() => edit.SetNumbersCellNumber(id, 0, 2, 1));
@@ -57,23 +57,23 @@ public sealed class IWorkNumbersCellEditingTests {
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => edit.SetNumbersCellNumber(id, 2, 2, 1, cancellation.Token));
         Assert.Throws<OperationCanceledException>(() => edit.SetNumbersCellBoolean(id, 2, 3, true, cancellation.Token));
-        Assert.Equal(before, edit.SaveBytes(AcceptCaches()));
+        Assert.Equal(before, edit.ToBytes(AcceptCaches()));
         using var output = new MemoryStream(); output.WriteByte(9);
         Assert.Throws<InvalidOperationException>(() => edit.Save(output)); Assert.Equal(new byte[] { 9 }, output.ToArray());
         edit.SetNumbersCellNumber(id, 2, 2, (double)table.GetCell(2, 2)!.Value!);
-        Assert.Single(edit.SaveBytesResult(AcceptCaches()).Report.UpdatedRecords);
+        Assert.Single((Bytes: edit.ToBytes(out var nativeReport2, AcceptCaches()), Report: nativeReport2).Report.UpdatedRecords);
         edit.SetNumbersCellBoolean(id, 2, 3, (bool)table.GetCell(2, 3)!.Value!);
-        var restored = edit.SaveBytesResult(); Assert.Empty(restored.Report.UpdatedRecords);
+        var restored = (Bytes: edit.ToBytes(out var nativeReport3), Report: nativeReport3); Assert.Empty(restored.Report.UpdatedRecords);
         Assert.Equal(source.ComputePackageContentHash(), restored.Report.OutputPackageContentHash);
     }
 
     [Fact]
     public void Formula_bearing_sources_are_rejected_before_any_cell_mutation() {
-        var source = IWorkSourceDocument.Open(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser", "test-10-formulas.numbers"));
+        var source = IWorkSourceDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser", "test-10-formulas.numbers"));
         var tables = Tables(source); Assert.Contains(tables.SelectMany(table => table.Cells), cell => cell.SourceFormulaIsDeclared);
         var edit = source.BeginEdit();
         Assert.Throws<NotSupportedException>(() => edit.SetNumbersCellNumber(tables[0].SourceIdentity!, 1, 1, 1));
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport4), Report: nativeReport4).Report.OutputPackageContentHash);
     }
 
     [Fact]
@@ -83,10 +83,10 @@ public sealed class IWorkNumbersCellEditingTests {
         // The native fixture's legacy B2 record starts at12; its empty type byte is at13.
         IWorkPreservingWireEdit.ReplaceBytesRange(payload, new[] { (5, 1), (3, -1) }, 13, new byte[] { 2 }, new(), default);
         var changed = IWorkPreservationPackageWriter.Write(original, new Dictionary<IWorkArchiveRecord, byte[]> { [tile] = payload }, AcceptCaches(), default);
-        var source = IWorkSourceDocument.Open(changed.GetPackageBytes()); Assert.True(source.ReadNumbers().HasEditableContent);
+        var source = IWorkSourceDocument.Load(changed.Bytes); Assert.True(source.ReadNumbers().HasEditableContent);
         var edit = source.BeginEdit();
         Assert.Throws<NotSupportedException>(() => edit.SetNumbersCellNumber(Tables(source)[0].SourceIdentity!, 2, 2, 42));
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport5), Report: nativeReport5).Report.OutputPackageContentHash);
     }
 
     [Theory]
@@ -94,7 +94,7 @@ public sealed class IWorkNumbersCellEditingTests {
     [InlineData(true)]
     public void Qualified_edited_sources_retain_typed_values_styles_and_all_tables(bool nativeEdited) {
         string name = "numbers-preserved-scalars" + (nativeEdited ? "-edited" : "") + "-v14.5.numbers";
-        var source = IWorkSourceDocument.Open(Fixture(name)); var projection = source.ReadNumbers();
+        var source = IWorkSourceDocument.Load(Fixture(name)); var projection = source.ReadNumbers();
         Assert.True(projection.HasEditableContent); Assert.Empty(projection.Diagnostics);
         Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         var tables = Tables(source); Assert.Equal(2, projection.Sheets.Count); Assert.Equal(3, tables.Length);
@@ -106,7 +106,7 @@ public sealed class IWorkNumbersCellEditingTests {
         // A second edit session over Apple's resave remains usable and restores the original encoding.
         var edit = source.BeginEdit(); edit.SetNumbersCellNumber(tables[0].SourceIdentity!, 2, 2, 44.125);
         edit.SetNumbersCellNumber(tables[0].SourceIdentity!, 2, 2, (double)tables[0].GetCell(2, 2)!.Value!);
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport6), Report: nativeReport6).Report.OutputPackageContentHash);
     }
 
     [Theory]
@@ -116,12 +116,12 @@ public sealed class IWorkNumbersCellEditingTests {
     public void Finite_decimal_values_round_trip_without_changing_the_original_scalar_on_reset(double value) {
         var model = IWorkNumbersDocument.Create();
         model.AddSheet("Numbers").AddTable(IWorkTableData.Create(1, 1).SetNumber(1, 1, 0.125), "Values");
-        var source = IWorkSourceDocument.Open(model.SaveBytes()); var table = Tables(source)[0]; var edit = source.BeginEdit();
+        var source = IWorkSourceDocument.Load(model.ToBytes()); var table = Tables(source)[0]; var edit = source.BeginEdit();
         edit.SetNumbersCellNumber(table.SourceIdentity!, 1, 1, value);
-        var saved = IWorkSourceDocument.Open(edit.SaveBytes(AcceptCaches()));
+        var saved = IWorkSourceDocument.Load(edit.ToBytes(AcceptCaches()));
         Assert.Equal(value, Tables(saved)[0].GetCell(1, 1)!.Value);
         edit.SetNumbersCellNumber(table.SourceIdentity!, 1, 1, 0.125);
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport7), Report: nativeReport7).Report.OutputPackageContentHash);
     }
 
     internal static void Apply(IWorkNativeEditSession edit, IReadOnlyList<IWorkTable> tables) {
@@ -132,7 +132,7 @@ public sealed class IWorkNumbersCellEditingTests {
         edit.SetNumbersCellNumber(totals, 1, 2, 123.75); edit.SetNumbersCellBoolean(totals, 2, 1, true);
     }
 
-    private static IWorkSourceDocument Source() => IWorkSourceDocument.Open(Fixture("numbers-created-edited-v14.5.numbers"));
+    private static IWorkSourceDocument Source() => IWorkSourceDocument.Load(Fixture("numbers-created-edited-v14.5.numbers"));
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports", name);
     private static IWorkTable[] Tables(IWorkSourceDocument source) => source.ReadNumbers().Sheets.SelectMany(sheet => sheet.Tables).ToArray();
     private static IWorkNativeSaveOptions AcceptCaches() => new() { AllowUnassessedVisualCaches = true };

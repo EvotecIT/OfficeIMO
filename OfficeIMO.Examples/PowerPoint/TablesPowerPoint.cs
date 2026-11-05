@@ -57,11 +57,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             table.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
             table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90));
             table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(28));
-            for (int r = 1; r < table.Rows; r++) {
+            for (int r = 1; r < table.RowCount; r++) {
                 table.SetRowHeight(r,global::OfficeIMO.OfficeLength.Points(24));
             }
 
-            for (int c = 0; c < table.Columns; c++) {
+            for (int c = 0; c < table.ColumnCount; c++) {
                 PowerPointTableCell header = table.GetCell(0, c);
                 header.Bold = true;
                 header.FontSize = global::OfficeIMO.OfficeLength.Points(12);
@@ -73,8 +73,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 header.PaddingBottom = global::OfficeIMO.OfficeLength.Points(3);
             }
 
-            for (int r = 1; r < table.Rows; r++) {
-                for (int c = 0; c < table.Columns; c++) {
+            for (int r = 1; r < table.RowCount; r++) {
+                for (int c = 0; c < table.ColumnCount; c++) {
                     PowerPointTableCell cell = table.GetCell(r, c);
                     cell.FontSize = global::OfficeIMO.OfficeLength.Points(11);
                     cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
@@ -96,7 +96,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             mergeTable.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(28));
 
             mergeTable.GetCell(0, 0).Text = "2025 Sales (Merged Header)";
-            mergeTable.MergeCells(0, 0, 0, mergeTable.Columns - 1);
+            mergeTable.MergeCells(0, 0, 0, mergeTable.ColumnCount - 1);
 
             mergeTable.GetCell(1, 0).Text = "Category";
             mergeTable.GetCell(1, 1).Text = "Q1";
@@ -112,8 +112,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             mergeTable.GetCell(3, 3).Text = "130";
             mergeTable.MergeCells(2, 0, 3, 0);
 
-            for (int r = 0; r < mergeTable.Rows; r++) {
-                for (int c = 0; c < mergeTable.Columns; c++) {
+            for (int r = 0; r < mergeTable.RowCount; r++) {
+                for (int c = 0; c < mergeTable.ColumnCount; c++) {
                     PowerPointTableCell cell = mergeTable.GetCell(r, c);
                     cell.FontSize = global::OfficeIMO.OfficeLength.Points(r == 0 ? 12 : 11);
                     cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
@@ -177,11 +177,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             double quarterWidthPoints = (compactWidthPoints - productWidthPoints) / 4;
             compactTable.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(productWidthPoints),global::OfficeIMO.OfficeLength.Points(quarterWidthPoints),global::OfficeIMO.OfficeLength.Points(quarterWidthPoints),                global::OfficeIMO.OfficeLength.Points(quarterWidthPoints),global::OfficeIMO.OfficeLength.Points(quarterWidthPoints));
             compactTable.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(20));
-            for (int r = 1; r < compactTable.Rows; r++) {
+            for (int r = 1; r < compactTable.RowCount; r++) {
                 compactTable.SetRowHeight(r,global::OfficeIMO.OfficeLength.Points(18));
             }
-            for (int r = 0; r < compactTable.Rows; r++) {
-                for (int c = 0; c < compactTable.Columns; c++) {
+            for (int r = 0; r < compactTable.RowCount; r++) {
+                for (int c = 0; c < compactTable.ColumnCount; c++) {
                     PowerPointTableCell cell = compactTable.GetCell(r, c);
                     cell.FontSize = global::OfficeIMO.OfficeLength.Points(r == 0 ? 10 : 9);
                     cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;

@@ -26,6 +26,24 @@ Protect-OfficeDocument -Path ./Budget.xlsx -Restriction ReadOnlyRecommended -Opt
 ```
 
 
+### EXAMPLE 2
+```powershell
+$modify = Read-Host -AsSecureString -Prompt 'Password to modify'
+Protect-OfficeDocument -Path .\Finance\Budget-2027.xlsx -Restriction ReadOnlyRecommended -RestrictionPassword $modify -Options (New-OfficeExcelProtectionOptions -ReservedBy 'Finance team')
+```
+
+Recommends read-only opening and records who reserved the workbook.
+
+### EXAMPLE 3
+```powershell
+$modify = Read-Host -AsSecureString -Prompt 'Password to modify'
+$excel = New-OfficeExcelProtectionOptions -ReservedBy 'Financial Planning'
+Get-ChildItem -Path .\Finance\Published -Filter *.xlsx |
+    Protect-OfficeDocument -Restriction Structure, ReadOnlyRecommended -RestrictionPassword $modify -Options $excel
+```
+
+Locks sheet structure in every published budget and names the reserving team, using one password read at the start.
+
 ## PARAMETERS
 
 ### -LegacyPasswordHash

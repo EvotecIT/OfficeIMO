@@ -13,11 +13,11 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///   <para>Adds a rectangle and registers a key for later connector commands.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeVisioRectangle", DefaultParameterSetName = "Page")]
-[Alias("VisioRectangle")]
 [OutputType(typeof(VisioShape))]
+[Alias("VisioRectangle") ]
 public sealed class AddOfficeVisioRectangleCommand : OfficeVisioShapeCmdlet {
     /// <summary>Text placed inside the shape.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(Position = 0, ParameterSetName = "Page")]
     public string? Text { get; set; }
 
     /// <inheritdoc />

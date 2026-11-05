@@ -22,7 +22,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         using WordDocument source = WordDocument.Create();
         WordParagraph run = source.AddParagraph("Styled");
         run.Underline = WordUnderlineStyle.WavyDouble;
-        run.DoubleStrike = true;
+        run.DoubleStrikethrough = true;
         run.VerticalTextAlignment = WordVerticalTextPosition.Superscript;
         run.CapsStyle = WordCapsStyle.SmallCaps;
 
@@ -39,7 +39,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         WordRunInfo converted = Assert.Single(Assert.Single(roundTrip.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>()).Runs);
         Assert.Equal(WordUnderlineStyle.WavyDouble, converted.UnderlineStyle);
-        Assert.True(converted.DoubleStrike);
+        Assert.True(converted.DoubleStrikethrough);
         Assert.Equal(nameof(WordVerticalTextPosition.Superscript), converted.VerticalTextAlignment);
         Assert.Equal(nameof(WordCapsStyle.SmallCaps), converted.CapsStyle);
     }
@@ -119,7 +119,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         OdsCell odsCell = persisted.Sheets.Single().Cell(0, 0);
         Assert.Equal(OdfTextDecorationStyle.Solid, odsCell.UnderlineStyle);
         Assert.Equal(OdfTextDecorationType.Double, odsCell.UnderlineType);
-        Assert.True(odsCell.StrikeThrough);
+        Assert.True(odsCell.Strikethrough);
         Assert.Equal(OdfTextPosition.Superscript, odsCell.TextPosition);
 
         odsCell.SetString("MiXeD");
@@ -185,8 +185,8 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         OdtDocument odt = OdtDocument.Create();
         OdtParagraph paragraph = odt.AddParagraph();
         paragraph.TextTransform = OdfTextTransform.Capitalize;
-        paragraph.AddSpan("he").Bold = true;
-        paragraph.AddSpan("llo world").Italic = true;
+        paragraph.AddRun("he").Bold = true;
+        paragraph.AddRun("llo world").Italic = true;
 
         using WordDocument word = odt.ToWord();
         WordParagraphInfo converted = Assert.Single(word.Inspect().Sections
@@ -204,8 +204,8 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         odt.Properties.Language = "el-GR";
         OdtParagraph paragraph = odt.AddParagraph();
         paragraph.TextTransform = OdfTextTransform.Lowercase;
-        paragraph.AddSpan("Ο").Bold = true;
-        paragraph.AddSpan("Σ").Italic = true;
+        paragraph.AddRun("Ο").Bold = true;
+        paragraph.AddRun("Σ").Italic = true;
 
         using WordDocument word = odt.ToWord();
         WordParagraphInfo converted = Assert.Single(word.Inspect().Sections
@@ -308,7 +308,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
     [Fact]
     public void OdfCapitalizePreservesExistingWordCasingAcrossWordExcelAndPowerPointImports() {
         OdtDocument odt = OdtDocument.Create();
-        OdtSpan odtSpan = odt.AddParagraph().AddSpan("iPhone eBOOK");
+        OdtSpan odtSpan = odt.AddParagraph().AddRun("iPhone eBOOK");
         odtSpan.TextTransform = OdfTextTransform.Capitalize;
         using WordDocument word = odt.ToWord();
         Assert.Equal("IPhone EBOOK", Assert.Single(word.Paragraphs).Text);

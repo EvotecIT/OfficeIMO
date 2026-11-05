@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [OutputType(typeof(PowerPointInspectionOptions))]
 public sealed class NewOfficePowerPointInspectionOptionsCommand : OfficeCmdlet {
     /// <summary>Gets or sets whether to omit Open XML package validation.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter NoPackageValidation { get; set; }
     /// <summary>Gets or sets whether to omit layout, text-fit and asset preflight.</summary>
     [Parameter]

@@ -14,13 +14,13 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// ) -join [Environment]::NewLine
 /// New-OfficeMarkdown -Path .\Cookbook.md {
 ///     Add-OfficeMarkdownHeading -Level 2 -Text 'Workbook summary'
-///     Add-OfficeMarkdownCode -Language 'powershell' -Content $script
+///     Add-OfficeMarkdownCode -Language 'powershell' -Text $script
 /// }</code>
 ///   <para>Appends a fenced code block with a language identifier.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownCode", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownCode")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownCode") ]
 public sealed class AddOfficeMarkdownCodeCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -36,7 +36,7 @@ public sealed class AddOfficeMarkdownCodeCommand : PSCmdlet
 
     /// <summary>Code content.</summary>
     [Parameter(Mandatory = true, Position = 1)]
-    public string Content { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
 
     /// <summary>Emit the Markdown document after appending the code block.</summary>
     [Parameter]
@@ -46,7 +46,7 @@ public sealed class AddOfficeMarkdownCodeCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var doc = ResolveDocument();
-        doc.Code(Language ?? string.Empty, Content ?? string.Empty);
+        doc.Code(Language ?? string.Empty, Text ?? string.Empty);
 
         if (PassThru.IsPresent)
         {

@@ -16,8 +16,8 @@ public sealed class WebpImageMediaTypeTests {
         });
         section.Pages.Add(page);
 
-        using var stream = new MemoryStream(OneNoteSectionWriter.Write(section));
-        OneNoteSection loaded = OneNoteSectionReader.Read(stream);
+        using var stream = new MemoryStream(section.ToBytes());
+        OneNoteSection loaded = OneNoteSection.Load(stream);
         OneNoteImage image = Assert.IsType<OneNoteImage>(
             Assert.Single(Assert.Single(Assert.Single(loaded.Pages).Outlines).Children));
         Assert.Equal("image/webp", image.MediaType);

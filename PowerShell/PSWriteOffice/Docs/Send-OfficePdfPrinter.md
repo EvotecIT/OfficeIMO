@@ -9,9 +9,14 @@ schema: 2.0.0
 Prepares PDF sheets and submits them to an explicitly named printer. Requires PowerShell 7.4 or newer.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Send-OfficePdfPrinter [-Path] <string> -PrinterName <string> [-Pages <string>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputFilePath <string>] [-Dpi <double>] [-Margin <double>] [-Orientation <string>] [-ScaleMode <string>] [-PaperSize <PdfPageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Send-OfficePdfPrinter [-Path] <string[]> -PrinterName <string> [-Page <PdfPageSelector>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Send-OfficePdfPrinter -LiteralPath <string[]> -PrinterName <string> [-Page <PdfPageSelector>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +26,7 @@ The returned receipt proves queue acceptance. It does not prove physical deliver
 
 ### EXAMPLE 1
 ```powershell
-PS> Send-OfficePdfPrinter -Path .\Report.pdf -PrinterName 'Office printer' -Pages '1-3' -PagesPerSheet 2 -Duplex LongEdge
+PS> Send-OfficePdfPrinter -Path .\Report.pdf -PrinterName 'Office printer' -Page '1-3' -PagesPerSheet 2 -Duplex LongEdge
 ```
 
 
@@ -32,7 +37,7 @@ Copies submitted to the queue.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -48,7 +53,7 @@ Prepared sheet resolution.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -64,7 +69,7 @@ Duplex setting.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values: PrinterDefault, SingleSided, LongEdge, ShortEdge
 
@@ -75,12 +80,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -LiteralPath
+Literal PDF sources, including FileInfo.FullName.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
 ### -Margin
 Printable margin in points.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -95,10 +116,10 @@ Accept wildcard characters: False
 Paper orientation.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: OfficePageOrientation
+Parameter Sets: Path, LiteralPath
 Aliases: None
-Possible values: Automatic, Portrait, Landscape
+Possible values: Portrait, Landscape
 
 Required: False
 Position: named
@@ -107,12 +128,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -OutputFilePath
+### -OutputPath
 New destination file for a Windows file printer.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -123,12 +144,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Pages
+### -Page
 Page selection such as 1-3,last.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: PdfPageSelector
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -144,7 +165,7 @@ Source pages per sheet.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values: 1, 2, 4
 
@@ -159,8 +180,8 @@ Accept wildcard characters: False
 PDF paper size, default A4.
 
 ```yaml
-Type: PdfPageSize
-Parameter Sets: __AllParameterSets
+Type: OfficePageSize
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -176,7 +197,7 @@ Paper source identifier reported for this queue.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -192,7 +213,7 @@ Password for an encrypted PDF; printing permissions remain enforced.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -207,8 +228,8 @@ Accept wildcard characters: False
 Local PDF source.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: String[]
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -216,7 +237,7 @@ Required: True
 Position: 0
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -PrinterName
@@ -224,7 +245,7 @@ Installed queue from Get-OfficePrinter.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -240,7 +261,7 @@ Scaling of source pages.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values: Fit, ActualSize, Fill
 
@@ -256,7 +277,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `System.String[]`
 
 ## OUTPUTS
 

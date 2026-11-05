@@ -1,113 +1,101 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Configures collapsible Excel outline grouping for worksheet columns.</summary>
+/// <summary>Groups columns into a collapsible outline, or clears grouping.</summary>
 /// <example>
-///   <summary>Group detail columns and collapse them.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Set-OfficeExcelColumnGroup -StartColumn B -EndColumn D -Collapsed }</code>
-///   <para>Applies Excel column outline metadata using OfficeIMO.</para>
+/// <summary>Group monthly columns</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Budget-2027.xlsx {
+///     ExcelSheet 'Departments' {
+///         ExcelColumnGroup B M
+///     }
+/// }</code>
+/// <para>Groups columns B to M, the monthly figures, next to the yearly total.</para>
+/// </example>
+/// <example>
+/// <summary>Collapse quarters into their totals</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Forecast.xlsx {
+///     ExcelSheet 'Forecast' {
+///         ExcelColumnGroup B D -Collapsed
+///         ExcelColumnGroup F H -Collapsed
+///         ExcelColumnGroup J L -Collapsed
+///         ExcelColumnGroup N P -Collapsed
+///     }
+/// }</code>
+/// <para>Groups each quarter's three months and collapses them, so the sheet shows the quarterly totals first.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelColumnGroup", DefaultParameterSetName = "Default")]
 [Alias("ExcelColumnGroup")]
-public sealed class SetOfficeExcelColumnGroupCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    /// <summary>First 1-based column in the group.</summary>
-    [Parameter(Position = 0)]
-    [Alias("Column")]
-    public object? StartColumn { get; set; }
+public sealed class SetOfficeExcelColumnGroupCommand : PSCmdlet {
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>First column letter in the group.</summary>
-    [Parameter]
-    [Alias("StartColumnLetter", "ColumnName", "ColumnLetter", "Letter")]
-    public string? StartColumnName { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
+
+    /// <summary>First 1-based column in the group.</summary>
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0)]
+    public object StartColumn { get; set; } = null!;
 
     /// <summary>Last 1-based column in the group. Defaults to the start column.</summary>
-    [Parameter(Position = 1)]
+    [Parameter(ParameterSetName = "Default", Position = 1)]
     public object? EndColumn { get; set; }
 
-    /// <summary>Last column letter in the group.</summary>
-    [Parameter]
-    [Alias("EndColumnLetter")]
-    public string? EndColumnName { get; set; }
-
     /// <summary>Excel outline level from 1 through 7.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateRange(1, 7)]
     public int OutlineLevel { get; set; } = 1;
 
     /// <summary>Hide the grouped columns and mark the following summary column as collapsed.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter Collapsed { get; set; }
 
     /// <summary>Hide the grouped columns without marking the group collapsed.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter Hidden { get; set; }
 
     /// <summary>Clear column grouping metadata from the target range.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter Clear { get; set; }
 
     /// <summary>Keep hidden columns hidden when clearing column grouping metadata.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter KeepHidden { get; set; }
 
-    /// <summary>Set whether column summary controls appear to the right of grouped columns.</summary>
-    [Parameter]
-    public bool? SummaryRight { get; set; }
+    /// <summary>Places outline summary columns to the left; explicit false places them to the right.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter SummaryLeft { get; set; }
+
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var context = ExcelDslContext.Require(this);
-        var sheet = context.RequireSheet();
-
-        var startColumn = ResolveColumn(StartColumn, StartColumnName, nameof(StartColumn));
-        var endColumn = EndColumn != null || !string.IsNullOrWhiteSpace(EndColumnName)
-            ? ResolveColumn(EndColumn, EndColumnName, nameof(EndColumn))
-            : startColumn;
-
-        if (OutlineLevel < 1 || OutlineLevel > 7) {
-            throw new PSArgumentOutOfRangeException(nameof(OutlineLevel), OutlineLevel, "Excel outline level must be between 1 and 7.");
-        }
-
-        if (SummaryRight.HasValue) {
-            sheet.SetOutlineSummary(summaryRight: SummaryRight.Value);
-        }
-
-        if (Clear.IsPresent) {
-            sheet.ClearColumnGroup(startColumn, endColumn, unhide: !KeepHidden.IsPresent);
-            WritePassThru(sheet);
-            return;
-        }
-
-        sheet.GroupColumns(startColumn, endColumn, (byte)OutlineLevel, Collapsed.IsPresent, Hidden.IsPresent);
-        WritePassThru(sheet);
+        var sheet = ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
+        int first = ExcelCommandTargets.Column(StartColumn);
+        int last = EndColumn == null ? first : ExcelCommandTargets.Column(EndColumn);
+        if (last < first) throw new PSArgumentException("The group end must follow its start.");
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(SummaryLeft))) sheet.SetOutlineSummary(summaryRight: !SummaryLeft);
+        if (Clear) sheet.ClearColumnGroup(first, last, unhide: !KeepHidden);
+        else sheet.GroupColumns(first, last, (byte)OutlineLevel, Collapsed, Hidden);
+        if (PassThru) WriteObject(sheet);
     }
 
-    private static int ResolveColumn(object? indexOrName, string? name, string parameterName) {
-        int? index = null;
-        string? columnName = name;
-
-        if (indexOrName is int intValue) {
-            index = intValue;
-        } else if (indexOrName is long longValue) {
-            index = checked((int)longValue);
-        } else if (indexOrName != null) {
-            var text = Convert.ToString(indexOrName, CultureInfo.InvariantCulture);
-            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)) {
-                index = parsed;
-            } else {
-                columnName = text;
-            }
-        }
-
-        try {
-            return ExcelHostExtensions.ResolveColumnIndex(index, columnName);
-        } catch (Exception exception) when (exception is ArgumentException or FormatException) {
-            throw new PSArgumentException(exception.Message, parameterName);
-        }
-    }
 }

@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Epub;
 [OutputType(typeof(EpubPublication))]
 public sealed class SetOfficeEpubMetadataCommand : OfficeDocumentCmdlet<EpubPublication> {
     /// <summary>New primary title.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public string? Title { get; set; }
 
     /// <summary>New BCP 47 language.</summary>

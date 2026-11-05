@@ -4,6 +4,7 @@ using System.Linq;
 using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.Access;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 
 namespace PSWriteOffice.Cmdlets.Access;
@@ -15,14 +16,19 @@ namespace PSWriteOffice.Cmdlets.Access;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeAccessTable", DefaultParameterSetName = "Document")]
 [OutputType(typeof(AccessTable))]
-public sealed class AddOfficeAccessTableCommand : PSCmdlet {
+[Alias("AccessTable") ]
+public sealed class AddOfficeAccessTableCommand : OfficeCmdlet {
     /// <summary>Live database document.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
-    public AccessDocument Document { get; set; } = null!;
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
+    public AccessDocument? Document { get; set; }
 
     /// <summary>Table name.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>Content block whose AccessColumn and AccessRow commands target the new table.</summary>
+    [Parameter(Position = 1)]
+    public ScriptBlock? Content { get; set; }
 
     /// <summary>Return the created or changed object.</summary>
     [Parameter]
@@ -30,7 +36,8 @@ public sealed class AddOfficeAccessTableCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var table = Document.Tables.Add(Name);
+        var table = ResolveDocument(Document).Tables.Add(Name);
+        if (Content != null) { using (OfficeDocumentContext.Push(table)) Content.InvokeReturnAsIs(); }
         if (PassThru.IsPresent) WriteObject(table);
     }
 }

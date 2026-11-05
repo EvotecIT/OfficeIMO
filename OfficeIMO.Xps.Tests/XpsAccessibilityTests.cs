@@ -102,7 +102,7 @@ public sealed class XpsAccessibilityTests {
     }
 
     internal static XpsDocument Described(XpsFormat format, bool canvas) {
-        var doc = XpsDocument.Create(format); var page = doc.AddPage(100, 80).AddPath("M10,10H70V60H10Z", "#FF336699");
+        var doc = XpsDocument.Create(format); var page = doc.AddPage(100, 80).AddPath("M10,10H70V60H10Z", "#FF336699").Page;
         var xml = page.GetMarkup(); XElement element = xml.Elements().Single();
         if (canvas) { element.Remove(); element = new XElement(xml.Name.Namespace + "Canvas", element); xml.Add(element); }
         element.SetAttributeValue("Name", "Graphic"); element.SetAttributeValue("AutomationProperties.Name", Short);

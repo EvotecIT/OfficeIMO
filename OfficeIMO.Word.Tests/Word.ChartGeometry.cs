@@ -14,7 +14,7 @@ public sealed class WordChartLengthTests {
     public void ChartFramesRetainExactNativeDimensionsThroughCreationResizeAndReload() {
         using var document = WordDocument.Create();
         var chart = document.AddChart("Exact geometry", width: OfficeLength.Emus(1234567), height: OfficeLength.Emus(2345678));
-        chart.AddCategories(new() { "A", "B" });
+        chart.AddCategories(new[] { "A", "B" });
         chart.AddBar("Values", new[] { 1, 2 }, OfficeColor.Blue);
         Assert.Equal(1234567, chart.Drawing!.Descendants<DW.Extent>().Single().Cx!.Value);
         chart.SetSize(OfficeLength.Emus(3456789));

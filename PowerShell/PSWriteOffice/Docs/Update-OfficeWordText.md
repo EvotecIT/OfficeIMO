@@ -9,19 +9,24 @@ schema: 2.0.0
 Replaces text in a Word document.
 
 ## SYNTAX
-### Auto (Default)
+### Context (Default)
 ```powershell
 Update-OfficeWordText -OldValue <string> -NewValue <string> [-CaseSensitive] [-IncludeHyperlinkText] [-IncludeHyperlinkUri] [-IncludeHyperlinkAnchor] [-IncludeHyperlinkTooltip] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Update-OfficeWordText -OldValue <string> -NewValue <string> [-Document <WordDocument>] [-CaseSensitive] [-IncludeHyperlinkText] [-IncludeHyperlinkUri] [-IncludeHyperlinkAnchor] [-IncludeHyperlinkTooltip] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Update-OfficeWordText -Document <WordDocument> -OldValue <string> -NewValue <string> [-CaseSensitive] [-IncludeHyperlinkText] [-IncludeHyperlinkUri] [-IncludeHyperlinkAnchor] [-IncludeHyperlinkTooltip] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Update-OfficeWordText [-Path] <string> -OldValue <string> -NewValue <string> [-CaseSensitive] [-IncludeHyperlinkText] [-IncludeHyperlinkUri] [-IncludeHyperlinkAnchor] [-IncludeHyperlinkTooltip] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Update-OfficeWordText [-Path] <string[]> -OldValue <string> -NewValue <string> [-CaseSensitive] [-IncludeHyperlinkText] [-IncludeHyperlinkUri] [-IncludeHyperlinkAnchor] [-IncludeHyperlinkTooltip] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Update-OfficeWordText -LiteralPath <string[]> -OldValue <string> -NewValue <string> [-CaseSensitive] [-IncludeHyperlinkText] [-IncludeHyperlinkUri] [-IncludeHyperlinkAnchor] [-IncludeHyperlinkTooltip] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -50,7 +55,7 @@ Use case-sensitive matching.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Auto, Document, Path
+Parameter Sets: Context, Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -70,7 +75,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -82,7 +87,7 @@ Also replace hyperlink anchors.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Auto, Document, Path
+Parameter Sets: Context, Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -98,7 +103,7 @@ Also replace hyperlink display text.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Auto, Document, Path
+Parameter Sets: Context, Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -114,7 +119,7 @@ Also replace hyperlink tooltips.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Auto, Document, Path
+Parameter Sets: Context, Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -130,7 +135,7 @@ Also replace hyperlink URIs.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Auto, Document, Path
+Parameter Sets: Context, Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -141,12 +146,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -LiteralPath
+Literal input files, including FileInfo.FullName.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
 ### -NewValue
 Replacement text.
 
 ```yaml
 Type: String
-Parameter Sets: Auto, Document, Path
+Parameter Sets: Context, Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -162,27 +183,11 @@ Text to find.
 
 ```yaml
 Type: String
-Parameter Sets: Auto, Document, Path
+Parameter Sets: Context, Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
 Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Open
-Open the file after saving when using -Path.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path
-Aliases: Show
-Possible values:
-
-Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -194,7 +199,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Auto, Document, Path
+Parameter Sets: Context, Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -209,13 +214,29 @@ Accept wildcard characters: False
 Path to the .docx file to update in place.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
 Aliases: InputPath, FilePath
 Possible values:
 
 Required: True
 Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Show
+Open the file after saving when using -Path.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -227,6 +248,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.Word.WordDocument`
+- `System.String[]`
 
 ## OUTPUTS
 

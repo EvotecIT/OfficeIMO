@@ -8,12 +8,13 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
         internal void ApplyAuthoredSeriesStyles(IReadOnlyList<ExcelChartSeries> seriesStyles,
-            IReadOnlyList<bool>? seriesLegendVisibility = null) {
+            IReadOnlyList<bool>? seriesLegendVisibility = null, IReadOnlyList<OfficeSeries>? authoredSeries = null) {
             bool changed = false;
             for (int seriesIndex = 0; seriesIndex < seriesStyles.Count; seriesIndex++) {
                 ExcelChartSeries style = seriesStyles[seriesIndex];
+                OfficeSeries? authored = authoredSeries?[seriesIndex];
                 changed |= ApplySeriesByChartIndex(seriesIndex,
-                    series => ApplyAuthoredSeriesStyle(series, style));
+                    series => ApplyAuthoredSeriesStyle(series, style, authored?.Color));
 
                 if (style.PointColorArgb != null) {
                     for (int pointIndex = 0; pointIndex < style.PointColorArgb.Count; pointIndex++) {
@@ -22,7 +23,7 @@ namespace OfficeIMO.Excel {
                             int currentPoint = pointIndex;
                             string currentColor = color!;
                             changed |= ApplySeriesByChartIndex(seriesIndex,
-                                series => ApplyPointFill(series, currentPoint, OfficeColor.ParseHex(NormalizeHexColor(currentColor))));
+                                series => ApplyPointFill(series, currentPoint, GetAuthoredColor(authored?.PointColors?[currentPoint], currentColor)));
                         }
                     }
                 }
@@ -31,8 +32,8 @@ namespace OfficeIMO.Excel {
                     marker,
                     style.ShowMarkers ? MapMarkerStyle(style.MarkerShape).ToOfficeEnum() : OfficeChartMarkerShape.None,
                     style.MarkerSize.HasValue ? OfficeChartStyleBounds.ClampNativeMarkerSize(style.MarkerSize.Value) : (OfficeLength?)null,
-                    style.ShowMarkers && style.SeriesColorArgb != null ? OfficeColor.Parse(NormalizeHexColor(style.SeriesColorArgb)) : (OfficeColor?)null,
-                    style.ShowMarkers && style.MarkerOutlineColorArgb != null ? OfficeColor.Parse(NormalizeHexColor(style.MarkerOutlineColorArgb)) : (OfficeColor?)null,
+                    style.ShowMarkers && style.SeriesColorArgb != null ? GetAuthoredColor(authored?.Color, style.SeriesColorArgb) : (OfficeColor?)null,
+                    style.ShowMarkers && style.MarkerOutlineColorArgb != null ? GetAuthoredColor(authored?.MarkerOutlineColor, style.MarkerOutlineColorArgb) : (OfficeColor?)null,
                     style.ShowMarkers ? style.MarkerOutlineWidth : null));
             }
 
@@ -86,7 +87,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyAuthoredSeriesStyle(OpenXmlCompositeElement series,
-            ExcelChartSeries style) {
+            ExcelChartSeries style, OfficeColor? authoredColor = null) {
             bool reenableLine = style.ConnectLine && (series is C.LineChartSeries || series is C.ScatterChartSeries || series is C.RadarChartSeries) &&
                 series.GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
             bool hasShapeStyle = !string.IsNullOrWhiteSpace(style.SeriesColorArgb) ||
@@ -97,7 +98,7 @@ namespace OfficeIMO.Excel {
             C.ChartShapeProperties properties = EnsureChartShapeProperties(series);
             if (reenableLine) properties.GetFirstChild<A.Outline>()!.RemoveAllChildren<A.NoFill>();
             if (!string.IsNullOrWhiteSpace(style.SeriesColorArgb)) {
-                OfficeColor color = OfficeColor.Parse(NormalizeHexColor(style.SeriesColorArgb!));
+                OfficeColor color = GetAuthoredColor(authoredColor, style.SeriesColorArgb!);
                 ApplySolidFill(properties, color);
                 ApplyOptionalLine(properties, color, style.SeriesLineWidth);
             } else if (style.SeriesLineWidth.HasValue) {
@@ -112,6 +113,11 @@ namespace OfficeIMO.Excel {
             if (!style.ConnectLine) ApplyNoLine(properties);
             if (style.SeriesStyle != null) OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.ApplySeriesPaint(properties, style.SeriesStyle);
         }
+
+        // Slots stay native; metadata already contains creation-theme-resolved status roles and literal ARGB.
+        private static OfficeColor GetAuthoredColor(OfficeColor? authored, string argb) =>
+            authored?.ThemeSlot != null ? authored.Value
+                : ExcelColor.FromSpreadsheetColor(null, argb)!.Value;
 
         private static C.MarkerStyleValues MapMarkerStyle(OfficeChartMarkerShape? shape) {
             switch (shape ?? OfficeChartMarkerShape.Circle) {

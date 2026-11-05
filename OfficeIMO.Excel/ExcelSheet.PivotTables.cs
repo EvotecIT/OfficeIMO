@@ -109,6 +109,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a basic pivot table based on a source range and places it at a destination cell.
         /// </summary>
+        /// <param name="sourceSheet">Worksheet containing source headers and values.</param>
         /// <param name="sourceRange">Source data range (including header row), e.g. "A1:D100".</param>
         /// <param name="destinationCell">Top-left cell for the pivot table (e.g. "F2").</param>
         /// <param name="name">Optional pivot table name. Defaults to "PivotTable1" style.</param>
@@ -142,6 +143,7 @@ namespace OfficeIMO.Excel {
         /// <param name="groupings">Optional date or numeric grouping metadata.</param>
         /// <param name="options">Optional pivot layout, cache and workbook-interaction settings.</param>
         private ExcelPivotTable AddPivotTableCore(
+            ExcelSheet sourceSheet,
             string sourceRange,
             string destinationCell,
             string? name = null,
@@ -187,9 +189,10 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException($"Invalid destination cell '{destinationCell}'.", nameof(destinationCell));
             }
 
-            _excelDocument.TryGetDeferredDirectTabularPivotSource(this, r1, c1, r2, c2, out var deferredPivotSource);
+            _excelDocument.TryGetDeferredDirectTabularPivotSource(sourceSheet, r1, c1, r2, c2, out var deferredPivotSource);
 
             WriteLockWorksheetPreparationOnly(() => {
+                if (!ReferenceEquals(sourceSheet.SheetElement, SheetElement)) sourceSheet.MaterializePendingDirectCellValues();
                 Stopwatch? pivotWatch = EffectiveExecution.OnTiming == null ? null : Stopwatch.StartNew();
                 void ReportPivotTiming(string operation) {
                     if (pivotWatch == null) {
@@ -202,7 +205,7 @@ namespace OfficeIMO.Excel {
 
                 var headers = deferredPivotSource != null
                     ? BuildPivotHeaders(deferredPivotSource, c1, c2)
-                    : BuildPivotHeaders(r1, c1, c2);
+                    : sourceSheet.BuildPivotHeaders(r1, c1, c2);
                 if (headers.Count == 0) {
                     throw new InvalidOperationException("Pivot source range must include at least one header column.");
                 }
@@ -296,7 +299,7 @@ namespace OfficeIMO.Excel {
 
                 var workbookPart = WorkbookPartRoot;
                 var workbook = workbookPart.Workbook ??= new Workbook();
-                _pivotStylesCache = null;
+                sourceSheet._pivotStylesCache = null;
                 bool canUseDeferredPivotValues = deferredPivotSource != null
                     && groupingMap.Count == 0
                     && generatedGroupingFields.Count == 0;
@@ -306,9 +309,9 @@ namespace OfficeIMO.Excel {
 
                 var fieldValueMap = canUseDeferredPivotValues
                     ? BuildPivotFieldValueMap(deferredPivotSource!, headers.Count, r1 + 1, r2, c1, sourceSharedItemRequirements)
-                    : BuildPivotFieldValueMap(headers.Count, r1 + 1, r2, c1, groupingMap, sourceSharedItemRequirements);
+                    : sourceSheet.BuildPivotFieldValueMap(headers.Count, r1 + 1, r2, c1, groupingMap, sourceSharedItemRequirements);
                 PrepareNativeDateGroupingFields(generatedGroupingFields, fieldValueMap);
-                var generatedFieldValueMap = BuildGeneratedPivotFieldValueMap(generatedGroupingFields, r1 + 1, r2, c1);
+                var generatedFieldValueMap = sourceSheet.BuildGeneratedPivotFieldValueMap(generatedGroupingFields, r1 + 1, r2, c1);
                 ReportPivotTiming("AddPivotTable.BuildFieldValueMap");
                 if (deferredPivotSource != null && canUseDeferredPivotValues) {
                     _excelDocument.PreserveDeferredDataSetFastSaveModelAndClearCandidate();
@@ -331,7 +334,7 @@ namespace OfficeIMO.Excel {
                     CacheSource = new CacheSource {
                         Type = SourceValues.Worksheet,
                         WorksheetSource = new WorksheetSource {
-                            Sheet = Name,
+                            Sheet = sourceSheet.Name,
                             Reference = sourceRange
                         }
                     },
@@ -404,7 +407,7 @@ namespace OfficeIMO.Excel {
                         generatedFieldValueMap,
                         calculatedFieldList.Count);
                 } else {
-                    cacheRecordsPart.PivotCacheRecords = BuildPivotCacheRecords(
+                    cacheRecordsPart.PivotCacheRecords = sourceSheet.BuildPivotCacheRecords(
                         headers.Count,
                         r1 + 1,
                         r2,

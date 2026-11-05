@@ -6,25 +6,42 @@ schema: 2.0.0
 ---
 # Set-OfficeExcelRowGroup
 ## SYNOPSIS
-Configures collapsible Excel outline grouping for worksheet rows.
+Groups rows into a collapsible outline, or clears grouping.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Set-OfficeExcelRowGroup [-StartRow] <int> [[-EndRow] <Int32>] [-OutlineLevel <int>] [-Collapsed] [-Hidden] [-Clear] [-KeepHidden] [-SummaryBelow <Boolean>] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelRowGroup [-StartRow] <int> [[-EndRow] <Int32>] [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-OutlineLevel <int>] [-Collapsed] [-Hidden] [-Clear] [-KeepHidden] [-SummaryAbove] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Configures collapsible Excel outline grouping for worksheet rows.
+Groups rows into a collapsible outline, or clears grouping.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Set-OfficeExcelRowGroup -StartRow 2 -EndRow 20 -Collapsed }
+Open-OfficeExcel -Path .\Reports\Budget-2027.xlsx {
+    ExcelSheet 'Departments' {
+        ExcelRowGroup 3 12
+    }
+}
 ```
 
-Applies Excel row outline metadata using OfficeIMO.
+Groups rows 3 to 12 so they can be collapsed under their summary row.
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Regional-Sales.xlsx {
+    ExcelSheet 'Detail' {
+        ExcelRowGroup 3 40 -Collapsed -SummaryAbove
+        ExcelRowGroup 42 77 -Collapsed -SummaryAbove
+        ExcelRowGroup 79 120 -Collapsed -SummaryAbove
+    }
+}
+```
+
+Groups and collapses the detail rows of each region with the summary row above them, so the sheet opens showing only the regional totals.
 
 ## PARAMETERS
 
@@ -57,6 +74,22 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Document
+Caller-owned workbook; omission uses the enclosing Excel content block.
+
+```yaml
+Type: ExcelDocument
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -125,10 +158,26 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Sheet
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
+
+```yaml
+Type: OfficeSheetSelector
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -156,11 +205,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SummaryBelow
-Set whether row summary controls appear below grouped rows.
+### -SummaryAbove
+Places outline summary rows above detail rows; explicit false places them below.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -177,7 +226,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 

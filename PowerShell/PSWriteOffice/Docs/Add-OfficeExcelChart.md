@@ -31,17 +31,38 @@ Table columns are selected by header. With no value selection, every numeric col
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Sales' { ExcelChart -Table Sales -Category Region -Value Revenue,Profit -Address F2 -Type ColumnClustered }
+New-OfficeExcel -Path .\Reports\Regions.xlsx {
+    ExcelSheet 'Summary' {
+        ExcelTable (Import-OfficeCsv -Path .\Data\Region-Revenue.csv) -Name RegionSummary
+        ExcelChart -Table RegionSummary -Category Region -Value Revenue -Address F2 -Type Column -Title 'Revenue by region'
+    }
+}
 ```
 
-Places a chart at F2 using only the named table's data rows.
+Adds a themed column chart of the RegionSummary table, anchored at F2.
 
 ### EXAMPLE 2
 ```powershell
-PS> $rows | Add-OfficeExcelChart -Document $book -Sheet Sales -Category Region -Value Revenue -Address F2 -Width 18cm -Height 9cm
+$trend = Import-OfficeCsv -Path .\Data\Ticket-Trend.csv
+New-OfficeExcel -Path .\Reports\Helpdesk-Trend.xlsx {
+    ExcelSheet 'Trend' {
+        ExcelChart -InputObject $trend -Category Week -Value Opened, Closed -Type Line -Address A1 -Title 'Tickets per week' -Width 18cm -Height 9cm
+    }
+}
 ```
 
-Writes a table on Sales and adds a native chart with length-based dimensions.
+Writes the weekly ticket trend into the sheet and draws a line chart of opened and closed tickets from it in one step.
+
+### EXAMPLE 3
+```powershell
+Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+    ExcelSheet 'Summary' {
+        ExcelChart B3:C15 -Address E3 -Type Bar -Title 'Budget by month'
+    }
+}
+```
+
+Charts the monthly budget in B3:C15 of an existing sheet as a clustered bar chart.
 
 ## PARAMETERS
 

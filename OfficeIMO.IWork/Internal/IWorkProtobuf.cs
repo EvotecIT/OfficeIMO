@@ -28,13 +28,13 @@ internal sealed class IWorkWireValue {
 internal sealed class IWorkWireMessage {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private readonly Dictionary<int, List<IWorkWireValue>> _fields;
-    private readonly IWorkReadOptions _options;
+    private readonly IWorkLoadOptions _options;
     private readonly int _depth;
     private readonly int _totalFieldCount;
     private readonly Dictionary<int, (IWorkWireMessage? Message, InvalidDataException? Error)> _nestedMessages = new();
     private readonly object _nestedMessageLock = new();
 
-    internal IWorkWireMessage(Dictionary<int, List<IWorkWireValue>> fields, IWorkReadOptions options, int depth,
+    internal IWorkWireMessage(Dictionary<int, List<IWorkWireValue>> fields, IWorkLoadOptions options, int depth,
         int totalFieldCount) {
         _fields = fields;
         _options = options;
@@ -282,7 +282,7 @@ internal static class IWorkProtobuf {
     }
 
     internal static IReadOnlyList<IWorkWireMessage> ParseRepeatedMessages(
-        byte[] data, int targetField, int maximumMatches, IWorkReadOptions options,
+        byte[] data, int targetField, int maximumMatches, IWorkLoadOptions options,
         out bool malformedTarget) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(targetField);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumMatches);
@@ -349,7 +349,7 @@ internal static class IWorkProtobuf {
         return result;
     }
 
-    internal static IWorkWireMessage Parse(byte[] data, IWorkReadOptions options, int depth = 0) {
+    internal static IWorkWireMessage Parse(byte[] data, IWorkLoadOptions options, int depth = 0) {
         if (depth > options.MaxProtobufDepth) {
             throw LimitException($"Protobuf nesting exceeds the configured depth of {options.MaxProtobufDepth}.");
         }

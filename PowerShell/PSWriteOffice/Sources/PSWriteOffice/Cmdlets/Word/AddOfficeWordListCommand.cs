@@ -1,3 +1,4 @@
+using System;
 using System.Management.Automation;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
@@ -12,17 +13,24 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordList -Style 'Numbered' { Add-OfficeWordListItem -Text 'Plan'; Add-OfficeWordListItem -Text 'Execute' }</code>
 ///   <para>Creates a numbered list with two steps.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordList")]
-[Alias("WordList")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordList", DefaultParameterSetName = "Content")]
+[OutputType(typeof(WordList))]
+[Alias("WordList") ]
 public sealed class AddOfficeWordListCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Built-in list style or custom numbering scheme.</summary>
-    [Parameter(Position = 1)]
-    [Alias("Type")]
+    [Parameter]
     public WordListStyle Style { get; set; } = WordListStyle.Bulleted;
 
     /// <summary>Scriptblock executed within the list scope.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(Position = 0, ParameterSetName = "Content")]
     public ScriptBlock? Content { get; set; }
+
+    /// <summary>Plain list items.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Items")]
+    public string[] Items { get; set; } = Array.Empty<string>();
+    /// <summary>Use the native numbered list style.</summary>
+    [Parameter]
+    public SwitchParameter Numbered { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
@@ -30,11 +38,16 @@ public sealed class AddOfficeWordListCommand : PSWriteOffice.Cmdlets.OfficeMutat
         var host = context.RequireParagraphHost();
         var anchor = host.AddParagraph();
 
-        var list = anchor.AddList(Style);
+        var list = anchor.AddList(Numbered ? WordListStyle.Numbered : Style);
         context.RegisterListAnchor(list, anchor);
 
         using (context.Push(list)) {
-            Content?.InvokeReturnAsIs();
+            if (Content != null) Content.InvokeReturnAsIs();
+            else foreach (string text in Items) {
+                var placeholder = context.ConsumeListAnchor(list);
+                var item = list.AddItem(text, 0, placeholder);
+                if (placeholder != null && string.IsNullOrWhiteSpace(placeholder.Text)) placeholder.Remove();
+            }
         }
 
         var leftoverAnchor = context.ConsumeListAnchor(list);

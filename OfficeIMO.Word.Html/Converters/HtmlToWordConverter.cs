@@ -83,7 +83,7 @@ namespace OfficeIMO.Word.Html {
             options ??= new HtmlWordExportOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
 
-            var wordDoc = WordDocument.Create();
+            var wordDoc = WordDocument.Create(new WordCreateOptions { Theme = options.Theme });
             try {
                 if (!string.IsNullOrEmpty(options.FontFamily)) {
                     var resolved = ResolveFontFamily(options.FontFamily) ?? options.FontFamily;

@@ -1,3 +1,4 @@
+using System;
 using System.Management.Automation;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
@@ -9,41 +10,43 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <summary>Add a positioned report callout.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>New-OfficeWord -Path .\Report.docx {
-///     WordTextBox -Text 'Executive summary' -WidthCentimeters 7 -HeightCentimeters 2 -HorizontalOffsetCentimeters 1.5 -VerticalOffsetCentimeters 1 -AutoFitToTextSize
+///     WordTextBox -Text 'Executive summary' -Width 7cm -Height 2cm -X 1.5cm -Y 1cm -AutoFitToTextSize
 /// }</code>
 ///   <para>Creates a native OfficeIMO Word text box and applies sizing/positioning through OfficeIMO's text-box API.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordTextBox", DefaultParameterSetName = "Default")]
-[Alias("WordTextBox")]
 [OutputType(typeof(WordTextBox))]
+[Alias("WordTextBox") ]
 public sealed class AddOfficeWordTextBoxCommand : PSCmdlet
 {
     /// <summary>Text to place inside the text box.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Default")]
     [AllowEmptyString]
     public string Text { get; set; } = string.Empty;
 
     /// <summary>Word text wrapping mode.</summary>
     [Parameter]
-    public WordImageTextWrapping WrapText { get; set; } = WordImageTextWrapping.Square;
+    public WordImageTextWrapping Wrap { get; set; } = WordImageTextWrapping.Square;
 
-    /// <summary>Width in centimeters.</summary>
+    /// <summary>Width; numbers mean points and unit suffixes are accepted.</summary>
     [Parameter]
-    [ValidateRange(0.1, double.MaxValue)]
-    public double? WidthCentimeters { get; set; }
+    [PSWriteOffice.Foundation.OfficeLengthTransformation]
+    public OfficeLength? Width { get; set; }
 
-    /// <summary>Height in centimeters.</summary>
+    /// <summary>Height; numbers mean points and unit suffixes are accepted.</summary>
     [Parameter]
-    [ValidateRange(0.1, double.MaxValue)]
-    public double? HeightCentimeters { get; set; }
+    [PSWriteOffice.Foundation.OfficeLengthTransformation]
+    public OfficeLength? Height { get; set; }
 
-    /// <summary>Horizontal offset in centimeters.</summary>
+    /// <summary>Horizontal offset; numbers mean points and unit suffixes are accepted.</summary>
     [Parameter]
-    public double? HorizontalOffsetCentimeters { get; set; }
+    [PSWriteOffice.Foundation.OfficeLengthTransformation]
+    public OfficeLength? X { get; set; }
 
-    /// <summary>Vertical offset in centimeters.</summary>
+    /// <summary>Vertical offset; numbers mean points and unit suffixes are accepted.</summary>
     [Parameter]
-    public double? VerticalOffsetCentimeters { get; set; }
+    [PSWriteOffice.Foundation.OfficeLengthTransformation]
+    public OfficeLength? Y { get; set; }
 
     /// <summary>Horizontal alignment for anchored text boxes.</summary>
     [Parameter]
@@ -72,30 +75,34 @@ public sealed class AddOfficeWordTextBoxCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
+        if (Width.HasValue && Width.Value <= OfficeLength.Zero)
+            throw new PSArgumentOutOfRangeException(nameof(Width), Width, "Text-box width must be positive.");
+        if (Height.HasValue && Height.Value <= OfficeLength.Zero)
+            throw new PSArgumentOutOfRangeException(nameof(Height), Height, "Text-box height must be positive.");
         var context = WordDslContext.Require(this);
         var paragraph = context.CurrentParagraph ?? context.RequireParagraphHost().AddParagraph();
-        var textBox = new WordTextBox(context.Document, paragraph, Text, WrapText);
+        var textBox = new WordTextBox(context.Document, paragraph, Text, Wrap);
 
-        if (WidthCentimeters.HasValue)
+        if (Width.HasValue)
         {
-            textBox.Width = OfficeLength.Centimeters(WidthCentimeters.Value);
+            textBox.Width = Width.Value;
             textBox.RelativeWidthPercentage = 0;
         }
 
-        if (HeightCentimeters.HasValue)
+        if (Height.HasValue)
         {
-            textBox.Height = OfficeLength.Centimeters(HeightCentimeters.Value);
+            textBox.Height = Height.Value;
             textBox.RelativeHeightPercentage = 0;
         }
 
-        if (HorizontalOffsetCentimeters.HasValue)
+        if (X.HasValue)
         {
-            textBox.HorizontalPositionOffset = OfficeLength.Centimeters(HorizontalOffsetCentimeters.Value);
+            textBox.HorizontalPositionOffset = X.Value;
         }
 
-        if (VerticalOffsetCentimeters.HasValue)
+        if (Y.HasValue)
         {
-            textBox.VerticalPositionOffset = OfficeLength.Centimeters(VerticalOffsetCentimeters.Value);
+            textBox.VerticalPositionOffset = Y.Value;
         }
 
         if (HorizontalAlignment.HasValue)

@@ -10,108 +10,56 @@ BeforeAll {
 }
 
 Describe 'Easy local OCR commands' {
-    It 'exposes discoverable typed language choices' {
-        $parameter = (Get-Command Get-OfficeImageText).Parameters['Language']
-        $parameter.ParameterType.FullName | Should -Be 'OfficeIMO.Ocr.Tesseract.TesseractOcrLanguage[]'
-        $languageType = $parameter.ParameterType.GetElementType()
-        $languageType.GetEnumNames() | Should -Contain 'English'
-        $languageType.GetEnumNames() | Should -Contain 'Polish'
-        (Get-Command New-OfficeOcrOptions).Parameters['Language'].ParameterType.FullName |
-            Should -Be 'OfficeIMO.Ocr.Tesseract.TesseractOcrLanguage[]'
-    }
-
-    It 'recognizes image text with runtime and word evidence' {
+    It 'recognizes image text with runtime and word evidence through the canonical reader' {
         $runtime = New-TestTesseractExecutable -Directory $TestDrive
-        $result = Get-OfficeImageText `
-            -Path (Join-Path $PSScriptRoot 'Assets\CellImage.png') `
-            -TesseractPath $runtime `
-            -Language English, Polish `
-            -NoLanguageDownload `
-            -PassThru
-
-        $result.Text | Should -Be 'OfficeIMO OCR'
-        $result.Provider | Should -Be 'tesseract-cli'
-        $result.Model | Should -Be 'tessdata:eng+pol'
-        @($result.Spans).Count | Should -BeGreaterThan 0
+        $options = New-OfficeOcrOptions -TesseractPath $runtime -Language English, Polish -NoLanguageDownload
+        $review = Read-OfficeDocument -Path (Join-Path $PSScriptRoot 'Assets\CellImage.png') -As Ocr -OcrOptions $options
+        $review.Ocr.Text | Should -Be 'OfficeIMO OCR'
+        $review.Ocr.Pages[0].Provider | Should -Be 'tesseract-cli'
+        $review.Ocr.Pages[0].Model | Should -Be 'tessdata:eng+pol'
+        @($review.Ocr.Pages[0].Words).Count | Should -BeGreaterThan 0
     }
 
-    It 'rejects unsupported image formats before discovering an OCR runtime' {
-        $unsupportedPath = Join-Path $TestDrive 'missing-image.txt'
-
-        {
-            Get-OfficeImageText `
-                -Path $unsupportedPath `
-                -TesseractPath 'definitely-missing-tesseract-for-pswriteoffice' `
-                -NoLanguageDownload `
-                -ErrorAction Stop
-        } | Should -Throw '*supports PNG, JPEG, TIFF, BMP, GIF, WebP, and JPEG 2000*'
+    It 'rejects unsupported OCR review input before starting an unavailable provider for <Extension>' -TestCases @(
+        @{ Extension = '.txt'; Content = 'Unsupported OCR review source' }
+        @{ Extension = '.svg'; Content = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect width='10' height='10'/></svg>" }
+    ) {
+        param($Extension, $Content)
+        $unsupportedPath = Join-Path $TestDrive ('unsupported-review' + $Extension)
+        Set-Content -LiteralPath $unsupportedPath -Value $Content
+        $options = New-OfficeOcrOptions -TesseractPath 'definitely-missing-tesseract-for-pswriteoffice' -NoLanguageDownload
+        { Read-OfficeDocument -Path $unsupportedPath -As Ocr -OcrOptions $options -ErrorAction Stop } |
+            Should -Throw '*Image content is not a supported image*'
+        $output = Join-Path $TestDrive ('unsupported-' + $Extension.TrimStart('.') + '.txt')
+        { Convert-OfficeDocument -Ocr -Path $unsupportedPath -To Text -OutputPath $output -OcrOptions $options -ErrorAction Stop } |
+            Should -Throw '*Image content is not a supported image*'
+        Test-Path -LiteralPath $output | Should -BeFalse
     }
 
     It 'validates OCR session options before opening input files' {
-        $missingImage = Join-Path $TestDrive 'missing-image.png'
         $missingPdf = Join-Path $TestDrive 'missing-input.pdf'
         $outputPdf = Join-Path $TestDrive 'missing-output.pdf'
-
-        {
-            Get-OfficeImageText `
-                -Path $missingImage `
-                -Language English `
-                -TesseractLanguageExpression 'eng' `
-                -NoLanguageDownload `
-                -ErrorAction Stop
-        } | Should -Throw '*Use -Language or the advanced -TesseractLanguageExpression parameter, not both*'
-
-        {
-            ConvertTo-OfficePdfSearchable `
-                -Path $missingPdf `
-                -OutputPath $outputPdf `
-                -Language English `
-                -TesseractLanguageExpression 'eng' `
-                -NoLanguageDownload `
-                -ErrorAction Stop
-        } | Should -Throw '*Use -Language or the advanced -TesseractLanguageExpression parameter, not both*'
+        { New-OfficeOcrOptions -Language English -LanguageExpression eng -NoLanguageDownload -ErrorAction Stop } |
+            Should -Throw '*Language*LanguageExpression*not both*'
+        { Update-OfficePdf -Searchable -Path $missingPdf -OutputPath $outputPdf -OcrOptions (
+                New-OfficeOcrOptions -Language English -LanguageExpression eng -NoLanguageDownload -ErrorAction Stop
+            ) -ErrorAction Stop } | Should -Throw '*Language*LanguageExpression*not both*'
+        Test-Path -LiteralPath $outputPdf | Should -BeFalse
     }
 
-    It 'preserves session options and lets friendly language parameters override them' {
+    It 'preserves captured session options and applies explicit language overrides independently' {
         $runtime = New-TestTesseractExecutable -Directory $TestDrive
-        $optionsType = (Get-Command Get-OfficeImageText).Parameters['Options'].ParameterType
-        $options = [Activator]::CreateInstance($optionsType)
-        $options.Engine.Language = 'pol'
-
-        $legacyResult = Get-OfficeImageText `
-            -Path (Join-Path $PSScriptRoot 'Assets\CellImage.png') `
-            -Options $options `
-            -TesseractPath $runtime `
-            -NoLanguageDownload `
-            -PassThru
-        $legacyResult.Model | Should -Be 'tessdata:pol'
-
-        $friendlyResult = Get-OfficeImageText `
-            -Path (Join-Path $PSScriptRoot 'Assets\CellImage.png') `
-            -Options $options `
-            -TesseractPath $runtime `
-            -Language English, Polish `
-            -NoLanguageDownload `
-            -PassThru
-        $friendlyResult.Model | Should -Be 'tessdata:eng+pol'
-
-        $rawResult = Get-OfficeImageText `
-            -Path (Join-Path $PSScriptRoot 'Assets\CellImage.png') `
-            -Options $options `
-            -TesseractPath $runtime `
-            -TesseractLanguageExpression 'eng+pol' `
-            -NoLanguageDownload `
-            -PassThru
-        $rawResult.Model | Should -Be 'tessdata:eng+pol'
-
-        {
-            Get-OfficeImageText `
-                -Path (Join-Path $PSScriptRoot 'Assets\CellImage.png') `
-                -TesseractPath $runtime `
-                -Language English `
-                -TesseractLanguageExpression 'eng+pol' `
-                -NoLanguageDownload
-        } | Should -Throw
+        $session = (New-OfficeOcrOptions).SessionOptions
+        $session.Engine.Language = 'pol'
+        $baseline = New-OfficeOcrOptions -SessionOptions $session -TesseractPath $runtime -NoLanguageDownload
+        $friendly = New-OfficeOcrOptions -SessionOptions $session -TesseractPath $runtime -Language English, Polish -NoLanguageDownload
+        $raw = New-OfficeOcrOptions -SessionOptions $session -TesseractPath $runtime -LanguageExpression 'eng+pol' -NoLanguageDownload
+        $image = Join-Path $PSScriptRoot 'Assets\CellImage.png'
+        (Read-OfficeDocument -Path $image -As Ocr -OcrOptions $baseline).Ocr.Pages[0].Model | Should -Be 'tessdata:pol'
+        (Read-OfficeDocument -Path $image -As Ocr -OcrOptions $friendly).Ocr.Pages[0].Model | Should -Be 'tessdata:eng+pol'
+        (Read-OfficeDocument -Path $image -As Ocr -OcrOptions $raw).Ocr.Pages[0].Model | Should -Be 'tessdata:eng+pol'
+        $session.Engine.Language | Should -Be 'pol'
+        $baseline.SessionOptions.Engine.Language | Should -Be 'pol'
     }
 
     It 'writes a searchable PDF whose OCR text is readable' {
@@ -124,17 +72,16 @@ Describe 'Easy local OCR commands' {
             PdfImage -Path $imagePath -Width 180 -Height 120
         }
 
-        $result = ConvertTo-OfficePdfSearchable `
+        $result = Update-OfficePdf -Searchable `
             -Path $inputPath `
             -OutputPath $outputPath `
-            -TesseractPath $runtime `
-            -NoLanguageDownload `
-            -PassThru
+            -PassThru `
+                -OcrOptions (New-OfficeOcrOptions -TesseractPath $runtime -NoLanguageDownload)
 
         $result.WasModified | Should -BeTrue
         $result.AddedWordCount | Should -Be 2
         Test-Path -LiteralPath $outputPath | Should -BeTrue
-        Get-OfficePdfText -Path $outputPath | Should -Match 'OfficeIMO OCR'
+        Read-OfficeDocument -As Text -Path $outputPath | Should -Match 'OfficeIMO OCR'
     }
 
     It 'loads password-encrypted PDFs for searchable OCR' {
@@ -148,25 +95,23 @@ Describe 'Easy local OCR commands' {
         }
 
         {
-            ConvertTo-OfficePdfSearchable `
+            Update-OfficePdf -Searchable `
                 -Path $inputPath `
                 -OutputPath $outputPath `
                 -Password 'wrong' `
-                -TesseractPath $runtime `
-                -NoLanguageDownload `
+                -OcrOptions (New-OfficeOcrOptions -TesseractPath $runtime -NoLanguageDownload) `
                 -ErrorAction Stop
         } | Should -Throw
 
-        $result = ConvertTo-OfficePdfSearchable `
+        $result = Update-OfficePdf -Searchable `
             -Path $inputPath `
             -OutputPath $outputPath `
             -Password 'open' `
-            -TesseractPath $runtime `
-            -NoLanguageDownload `
-            -PassThru
+            -PassThru `
+                -OcrOptions (New-OfficeOcrOptions -TesseractPath $runtime -NoLanguageDownload)
 
         $result.WasModified | Should -BeTrue
-        Get-OfficePdfText -Path $outputPath -Password 'open' | Should -Match 'OfficeIMO OCR'
+        Read-OfficeDocument -As Text -Path $outputPath -Password 'open' | Should -Match 'OfficeIMO OCR'
     }
 
     It 'fails instead of reporting output when the destination appears during OCR' {
@@ -180,18 +125,17 @@ Describe 'Easy local OCR commands' {
         }
 
         {
-            ConvertTo-OfficePdfSearchable `
+            Update-OfficePdf -Searchable -NoClobber `
                 -Path $inputPath `
                 -OutputPath $outputPath `
-                -TesseractPath $runtime `
-                -NoLanguageDownload `
+                -OcrOptions (New-OfficeOcrOptions -TesseractPath $runtime -NoLanguageDownload) `
                 -ErrorAction Stop
         } | Should -Throw
 
         [IO.File]::ReadAllText($outputPath).Trim() | Should -Be 'late destination'
     }
 
-    It 'preserves an existing searchable PDF destination unless Force is supplied' {
+    It 'preserves an existing searchable PDF destination with NoClobber and otherwise replaces it' {
         $runtime = New-TestTesseractExecutable -Directory $TestDrive
         $inputPath = Join-Path $TestDrive 'force-input.pdf'
         $outputPath = Join-Path $TestDrive 'force-output.pdf'
@@ -203,20 +147,18 @@ Describe 'Easy local OCR commands' {
         [IO.File]::WriteAllText($outputPath, 'caller-owned')
 
         {
-            ConvertTo-OfficePdfSearchable `
+            Update-OfficePdf -Searchable -NoClobber `
                 -Path $inputPath `
                 -OutputPath $outputPath `
-                -TesseractPath $runtime `
-                -NoLanguageDownload
+                -OcrOptions (New-OfficeOcrOptions -TesseractPath $runtime -NoLanguageDownload) `
+                -ErrorAction Stop
         } | Should -Throw
         [IO.File]::ReadAllText($outputPath) | Should -Be 'caller-owned'
 
-        ConvertTo-OfficePdfSearchable `
+        Update-OfficePdf -Searchable `
             -Path $inputPath `
             -OutputPath $outputPath `
-            -TesseractPath $runtime `
-            -NoLanguageDownload `
-            -Force
-        Get-OfficePdfText -Path $outputPath | Should -Match 'OfficeIMO OCR'
+                -OcrOptions (New-OfficeOcrOptions -TesseractPath $runtime -NoLanguageDownload)
+        Read-OfficeDocument -As Text -Path $outputPath | Should -Match 'OfficeIMO OCR'
     }
 }

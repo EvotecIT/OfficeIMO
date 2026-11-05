@@ -523,7 +523,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.BackgroundColor = "123456";
+            slide.BackgroundColor = OfficeColor.Parse("123456");
             slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
                 new[] { "Start", "Finish" },
                 OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20),
@@ -954,7 +954,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide offCanvas = presentation.AddSlide();
             PowerPointAutoShape offCanvasShape = offCanvas.AddRectangle(
                 OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
-            offCanvasShape.FillColor = "FF0000";
+            offCanvasShape.FillColor = OfficeColor.Parse("FF0000");
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(presentation, offCanvas));
 
@@ -973,7 +973,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide transparent = presentation.AddSlide();
             PowerPointAutoShape transparentShape = transparent
                 .AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
-            transparentShape.FillColor = "FF0000";
+            transparentShape.FillColor = OfficeColor.Parse("FF0000");
             transparentShape.FillTransparency = 100;
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(presentation, transparent));
@@ -981,7 +981,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide visible = presentation.AddSlide();
             PowerPointAutoShape visibleShape = visible.AddRectangle(
                 OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
-            visibleShape.FillColor = "FF0000";
+            visibleShape.FillColor = OfficeColor.Parse("FF0000");
             Assert.True(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(presentation, visible));
         }
@@ -995,9 +995,9 @@ namespace OfficeIMO.Tests {
             PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
                     new OfficeSeries("Actual", new[] { 10D, 20D })
                 }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(560), Height = global::OfficeIMO.OfficeLength.Points(280) });
-            chart.SetLegendTextStyle(fontName: "Arial")
-                .SetCategoryAxisLabelTextStyle(fontName: "Georgia")
-                .SetValueAxisLabelTextStyle(fontName: "Arial");
+            chart.SetLegendTextStyle(fontFamily: "Arial")
+                .SetCategoryAxisLabelTextStyle(fontFamily: "Georgia")
+                .SetValueAxisLabelTextStyle(fontFamily: "Arial");
 
             OfficeImageExportResult rendered = slide.ExportImage(
                 OfficeImageExportFormat.Png);

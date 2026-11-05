@@ -4,7 +4,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
 using Color = OfficeIMO.OfficeColor;
@@ -218,21 +217,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentDuplicateShapesKeepsCopiesAddressableForChaining() {
+        public void NativeDuplicateShapesKeepsCopiesAddressableForChaining() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
 
-            document.AsFluent()
-                .AddPage("Fluent copies", page => page
-                    .AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "API")
-                    .AddRectangle("db", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Database")
-                    .AddConnector("api", "db", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.Label("SQL"))
-                    .DuplicateShapes(new[] { "api", "db" }, duplicates => duplicates.ShapeData("Copied", "Yes"))
-                    .GetShape("api-copy", shape => shape.Text("API Copy"))
-                    .GetShape("db-copy", shape => shape.Text("Database Copy"))
-                    .AddConnector("api-copy", "db-copy", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.Label("copied route")))
-                .End()
-                .Save();
+            document.AddPage("Fluent copies", page => {
+                page.AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "API");
+                page.AddRectangle("db", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Database");
+                page.AddConnector("api", "db", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.SetLabel("SQL"));
+                page.DuplicateShapes(new[] {
+                    "api", "db"
+                }, duplicates => duplicates.ShapeData("Copied", "Yes"));
+                page.GetShape("api-copy", shape => shape.SetText("API Copy"));
+                page.GetShape("db-copy", shape => shape.SetText("Database Copy"));
+                page.AddConnector("api-copy", "db-copy", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.SetLabel("copied route"));
+            });
+            document.Save();
 
             Assert.Empty(VisioValidator.Validate(filePath));
             VisioPage page = Assert.Single(document.Pages);

@@ -21,8 +21,8 @@ internal static class OpenWorkshopAgenda {
         document.AddParagraph("Bring two anonymized requests: one routine case and one that needed several handoffs. Read the current service description before the session.");
         document.AddHeading("Capture before closing", 2);
         var close = document.AddParagraph();
-        close.AddSpan("Decision / owner / due date").Bold = true;
-        close.AddSpan(" — record all three for every action. Share the agenda and the resulting notes with participants.");
+        close.AddRun("Decision / owner / due date").Bold = true;
+        close.AddRun(" — record all three for every action. Share the agenda and the resulting notes with participants.");
         foreach (var paragraph in document.Paragraphs) {
             paragraph.FontFamily = "Carlito";
             paragraph.FontSize = OdfLength.Parse(paragraph.HeadingLevel == 1 ? "26pt" : paragraph.IsHeading ? "15pt" : "11pt");
@@ -35,10 +35,10 @@ internal static class OpenWorkshopAgenda {
 
         void Activity(string time, string title, string outcome) {
             var paragraph = document.AddParagraph();
-            var label = paragraph.AddSpan(time + "  " + title + ". ");
+            var label = paragraph.AddRun(time + "  " + title + ". ");
             label.Bold = true;
             label.Color = OdfColor.Parse("#2563eb");
-            paragraph.AddSpan(outcome);
+            paragraph.AddRun(outcome);
         }
     }
 }

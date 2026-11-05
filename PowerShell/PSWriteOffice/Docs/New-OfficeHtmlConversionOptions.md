@@ -11,7 +11,7 @@ Creates discoverable parsing, trust, and document settings for HTML conversion.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeHtmlConversionOptions [-Profile <HtmlConversionProfile>] [-Trust <HtmlInputTrust>] [-BaseUri <string>] [-UseBodyContentsOnly] [-IncludeNormalizedHtml] [<CommonParameters>]
+New-OfficeHtmlConversionOptions [-Profile <HtmlConversionProfile>] [-Trust <HtmlInputTrust>] [-BaseUri <string>] [-NoBodyContentsOnly] [-NoNormalizedHtml] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Creates discoverable parsing, trust, and document settings for HTML conversion.
 
 ### EXAMPLE 1
 ```powershell
-PS> $document = New-OfficeHtmlConversionOptions -BaseUri (Resolve-Path .\Assets) -UseBodyContentsOnly
+PS> $document = New-OfficeHtmlConversionOptions -BaseUri (Resolve-Path .\Assets) -NoBodyContentsOnly
 Export-OfficeHtmlImage -Path .\Report.html -OutputPath .\Report.svg -DocumentOptions $document
 ```
 
@@ -44,7 +44,23 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IncludeNormalizedHtml
+### -NoBodyContentsOnly
+Convert only body contents.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoNormalizedHtml
 Retain normalized HTML in the conversion document.
 
 ```yaml
@@ -84,22 +100,6 @@ Type: HtmlInputTrust
 Parameter Sets: Default
 Aliases: None
 Possible values: Untrusted, Trusted
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -UseBodyContentsOnly
-Convert only body contents.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
 
 Required: False
 Position: named

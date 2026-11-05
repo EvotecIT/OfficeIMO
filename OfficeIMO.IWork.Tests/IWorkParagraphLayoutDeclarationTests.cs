@@ -12,23 +12,23 @@ public sealed partial class IWorkBoundaryTests {
         using var package = ParagraphLayoutPackage(kind, Message(
             BytesField(13, Message(VarintField(1, 2), FloatField(2, 24))),
             BytesField(25, BytesField(1, Message(FloatField(1, 18), StringField(3, "."))))));
-        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells).RichText!;
+        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells).RichText!;
         Assert.Equal("Value", text.PlainText);
         Assert.False(text.IsFormattingComplete);
         package.Position = 0;
         if (kind == IWorkDocumentKind.Pages) {
-            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else {
-            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         }
         package.Position = 0;
         var report = ConvertUnitReport(package, kind, visual: true,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Equal(new[] { "12/13", "12/25" }, report.SourceDeclarationIssues.Select(issue => issue.FieldPath).OrderBy(path => path));
         Assert.All(report.SourceDeclarationIssues, issue => {
             Assert.Equal(19ul, issue.Owner.RecordIdentifier);
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(
                 ArchiveRecord(19, 2022, BytesField(12, Message(VarintField(12, 1), VarintField(24, 1)))),
                 ArchiveRecord(20, 2022, BytesField(12, BytesField(13, FloatField(2, 24))))));
-        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
+        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.True(text.IsFormattingComplete);
         package.Position = 0;
         Assert.Empty(ConvertUnitReport(package, IWorkDocumentKind.Numbers).SourceDeclarationIssues);
@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = ParagraphLayoutPackage(IWorkDocumentKind.Numbers,
             Message(BytesField(13, Message(VarintField(1, 2), FloatField(2, 24))),
                 BytesField(25, BytesField(1, Message(FloatField(1, 18), StringField(3, "."))))));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 });
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -86,7 +86,7 @@ public sealed partial class IWorkBoundaryTests {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-paragraph-layout.json")));
         string path = CorpusFixture(manifest.RootElement.GetProperty("source").GetString()!);
         Assert.Equal(manifest.RootElement.GetProperty("sourceSha256").GetString(), HashFile(path));
-        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         foreach (var style in manifest.RootElement.GetProperty("styles").EnumerateArray()) {
             ulong identifier = style.GetProperty("recordIdentifier").GetUInt64();
             foreach (var declaration in style.GetProperty("declarations").EnumerateArray()) {

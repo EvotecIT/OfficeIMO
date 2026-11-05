@@ -11,7 +11,7 @@ Exports CFX semantic visual-artifact input as a native editable VSDX diagram.
 ## SYNTAX
 ### InputObject (Default)
 ```powershell
-Export-OfficeVisioVisual [-InputObject] <Object> [-Path] <string> [-Open] [-PassThru] [-PageName <string>] [-UseNaturalPageSize] [-PixelsPerInch <double>] [-NoTitle] [-NoGroups] [-NoShapeData] [-NoHyperlinks] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeVisioVisual [-InputObject] <Object> [-Path] <string> [-Show] [-NoClobber] [-PassThru] [-PageName <string>] [-UseNaturalPageSize] [-PixelsPerInch <double>] [-NoTitle] [-NoGroups] [-NoShapeData] [-NoHyperlinks] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -41,6 +41,22 @@ Required: True
 Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -NoClobber
+Refuse to replace an existing VSDX destination.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: InputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -108,22 +124,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Open
-Open the generated VSDX after saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: InputObject
-Aliases: Show
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -PageName
 Name of the generated Visio page.
 
@@ -177,6 +177,22 @@ Pixel density used with -UseNaturalPageSize.
 
 ```yaml
 Type: Double
+Parameter Sets: InputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Show
+Show the generated VSDX after saving.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: InputObject
 Aliases: None
 Possible values:

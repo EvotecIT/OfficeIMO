@@ -11,7 +11,7 @@ Appends PowerShell objects or dictionaries using the declared field types.
 ## SYNTAX
 ### Table (Default)
 ```powershell
-Add-OfficeAccessRow [-InputObject] <psobject[]> -Table <AccessTable> [-PassThru] [<CommonParameters>]
+Add-OfficeAccessRow [-InputObject] <psobject[]> [-Table <AccessTable>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -68,7 +68,7 @@ Parameter Sets: Table
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False

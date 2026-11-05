@@ -8,10 +8,10 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Partial_rich_formula_cache_remains_editable_with_a_cached_value() {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true);
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
         package.Position = 0;
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions {
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
             });
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
@@ -54,7 +54,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true,
             includeFormulaRecord: false);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
             result.Projection.Sheets).Tables).Cells);
 
@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_rich_nonformula_cell_still_requires_visual_fallback() {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: false);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
             result.Projection.Sheets).Tables).Cells);
 
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true,
             includeUnusedRichEntry: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions {
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
             });
 
@@ -101,7 +101,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Visual_only_numbers_conversion_does_not_report_excel_rich_text_loss() {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
         Assert.True(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
@@ -112,7 +112,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Automatic_visual_fallback_does_not_report_unexported_rich_text_loss() {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: false);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
@@ -142,7 +142,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true,
             includeUnusedRichEntry: true, invalidUnusedWrapper: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions {
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
             });
 

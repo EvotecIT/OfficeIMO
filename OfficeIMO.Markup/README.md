@@ -2,8 +2,6 @@
 
 `OfficeIMO.Markup` is a Markdown-inspired authoring layer for OfficeIMO. It parses `.omd` or Markdown-like text into a semantic AST that can be validated, emitted as starter code, or exported to real Office files by target-specific renderers.
 
-This project is built from the OfficeIMO source tree and is not published as a standalone NuGet package.
-
 ## Authoring model
 
 The pipeline is intentionally staged:

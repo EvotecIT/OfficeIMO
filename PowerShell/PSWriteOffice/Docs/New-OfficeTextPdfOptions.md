@@ -11,7 +11,7 @@ Creates literal text decoding and PDF layout settings for Export-OfficeDocumentP
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeTextPdfOptions [-EncodingName <string>] [-TabSize <int>] [-MaximumCharacters <int>] [-MaximumPages <int>] [-PdfOptions <PdfCreateOptions>] [<CommonParameters>]
+New-OfficeTextPdfOptions [-Encoding <string>] [-TabSize <int>] [-MaximumCharacters <int>] [-MaximumPages <int>] [-PdfOptions <PdfCreateOptions>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -28,7 +28,7 @@ Export-OfficeDocumentPdf -InputPath .\Report.txt -Path .\Report.pdf -TextOptions
 
 ## PARAMETERS
 
-### -EncodingName
+### -Encoding
 Explicit encoding; otherwise use a Unicode BOM or strict UTF-8.
 
 ```yaml

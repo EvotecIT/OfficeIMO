@@ -1,6 +1,9 @@
 using System.Data;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Threading;
+using System.Threading.Tasks;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 
@@ -67,47 +70,70 @@ public static class ExcelDocumentCsvExtensions {
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
-    /// <summary>Creates a detached Excel workbook from a loaded CSV document.</summary>
-    public static ExcelDocument ToExcelDocument(
-        this CsvDocument csv,
-        ExcelCsvImportOptions? options = null,
-        ExcelCreateOptions? createOptions = null,
-        CancellationToken cancellationToken = default) {
+    /// <summary>Converts CSV into a detached editable workbook owned by the caller.</summary>
+    public static ExcelDocument ToExcel(this CsvDocument csv, CsvExcelExportOptions? options = null,
+        CancellationToken cancellationToken = default) => csv.ToExcel(options, out _, cancellationToken);
+
+    /// <summary>Converts CSV and returns the completed data-projection report.</summary>
+    public static ExcelDocument ToExcel(this CsvDocument csv, CsvExcelExportOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(csv);
-        ExcelDocument document = ExcelDocument.Create(createOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        CsvExcelExportOptions resolved = options ?? new CsvExcelExportOptions();
+        ArgumentNullException.ThrowIfNull(resolved.ImportOptions);
+        ExcelDocument document = ExcelDocument.Create(resolved.CreateOptions);
         try {
-            document.ImportCsv(csv, options, cancellationToken);
+            document.ImportCsv(csv, resolved.ImportOptions, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            var diagnostics = new List<OfficeDiagnostic>();
+            if (!resolved.ImportOptions.IncludeHeaders) diagnostics.Add(new OfficeDiagnostic(
+                "CSV_EXCEL_HEADERS_OMITTED", OfficeDiagnosticSeverity.Warning, "CSV field names are not written to the workbook.",
+                format: "Excel.Csv", lossKind: OfficeConversionLossKind.Omission));
+            if (resolved.ImportOptions.ReaderOptions.InferSchema || resolved.ImportOptions.ReaderOptions.Schema != null) diagnostics.Add(new OfficeDiagnostic(
+                "CSV_EXCEL_SCHEMA_PROJECTION", OfficeDiagnosticSeverity.Warning,
+                "CSV values use the requested typed schema projection; preservation of their original lexical spelling is not assessed.",
+                format: "Excel.Csv", lossKind: OfficeConversionLossKind.Unassessed));
+            report = new OfficeConversionReport("CSV", "Excel", diagnostics: diagnostics);
+            if (resolved.FailOnLoss) report.ThrowIfLoss();
             return document;
-        } catch {
-            document.Dispose();
-            throw;
-        }
+        } catch { document.Dispose(); throw; }
     }
 
-    /// <summary>Converts a loaded CSV document and saves it as an Excel workbook.</summary>
-    public static void SaveAsExcel(
-        this CsvDocument csv,
-        string path,
-        ExcelCsvImportOptions? importOptions = null,
-        ExcelSaveOptions? saveOptions = null,
-        CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(csv);
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        using ExcelDocument document = csv.ToExcelDocument(importOptions, cancellationToken: cancellationToken);
-        document.SaveAsync(path, saveOptions, cancellationToken).GetAwaiter().GetResult();
+    /// <summary>Converts CSV asynchronously and returns the workbook with its report.</summary>
+    public static Task<OfficeConversionResult<ExcelDocument>> ToExcelAsync(this CsvDocument csv,
+        CsvExcelExportOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeConversionOutput.RunAsync(() => (csv.ToExcel(options, out OfficeConversionReport report, cancellationToken), report), cancellationToken);
+
+    /// <summary>Writes CSV data as a workbook and returns the conversion report.</summary>
+    public static OfficeConversionReport SaveAsExcel(this CsvDocument csv, string path,
+        CsvExcelExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using ExcelDocument document = csv.ToExcel(options, out OfficeConversionReport report, cancellationToken);
+        OfficeConversionFailures.Run(report, () => document.SaveAsync(path, options?.SaveOptions, cancellationToken).GetAwaiter().GetResult());
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
     }
 
-    /// <summary>Converts a loaded CSV document and saves it to an Excel workbook stream.</summary>
-    public static void SaveAsExcel(
-        this CsvDocument csv,
-        Stream stream,
-        ExcelCsvImportOptions? importOptions = null,
-        ExcelSaveOptions? saveOptions = null,
-        CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(csv);
-        ArgumentNullException.ThrowIfNull(stream);
-        using ExcelDocument document = csv.ToExcelDocument(importOptions, cancellationToken: cancellationToken);
-        document.SaveAsync(stream, saveOptions, cancellationToken).GetAwaiter().GetResult();
+    /// <summary>Writes CSV data as a workbook and returns the conversion report.</summary>
+    public static OfficeConversionReport SaveAsExcel(this CsvDocument csv, Stream stream,
+        CsvExcelExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using ExcelDocument document = csv.ToExcel(options, out OfficeConversionReport report, cancellationToken);
+        OfficeConversionFailures.Run(report, () => document.SaveAsync(stream, options?.SaveOptions, cancellationToken).GetAwaiter().GetResult());
+        return report;
+    }
+
+    /// <summary>Asynchronously writes CSV data as a workbook and returns the conversion report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsExcelAsync(this CsvDocument csv, string path,
+        CsvExcelExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using ExcelDocument document = csv.ToExcel(options, out OfficeConversionReport report, cancellationToken);
+        await OfficeConversionFailures.RunAsync(report, () => document.SaveAsync(path, options?.SaveOptions, cancellationToken)).ConfigureAwait(false);
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
+    }
+
+    /// <summary>Asynchronously writes CSV data as a workbook and returns the conversion report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsExcelAsync(this CsvDocument csv, Stream stream,
+        CsvExcelExportOptions? options = null, CancellationToken cancellationToken = default) {
+        using ExcelDocument document = csv.ToExcel(options, out OfficeConversionReport report, cancellationToken);
+        await OfficeConversionFailures.RunAsync(report, () => document.SaveAsync(stream, options?.SaveOptions, cancellationToken)).ConfigureAwait(false);
+        return report;
     }
 
     private static ExcelCsvImportResult ImportIntoNewWorksheet(

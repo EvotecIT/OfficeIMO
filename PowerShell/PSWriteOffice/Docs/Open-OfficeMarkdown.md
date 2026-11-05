@@ -11,17 +11,17 @@ Opens native Markdown from a file or parses text; a file content block saves ato
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Open-OfficeMarkdown [-Path] <string> [[-Content] <scriptblock>] [-Options <Object[]>] [-WriteOptions <MarkdownSaveOptions>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Open-OfficeMarkdown [-Path] <string> [[-Content] <scriptblock>] [-PassThru] [-AllowLoss] [-Show] [-Options <Object[]>] [-WriteOptions <MarkdownSaveOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Open-OfficeMarkdown [[-Content] <scriptblock>] -LiteralPath <string> [-Options <Object[]>] [-WriteOptions <MarkdownSaveOptions>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Open-OfficeMarkdown [[-Content] <scriptblock>] -LiteralPath <string> [-PassThru] [-AllowLoss] [-Show] [-Options <Object[]>] [-WriteOptions <MarkdownSaveOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-Open-OfficeMarkdown [[-Content] <scriptblock>] -Text <string> [-Options <Object[]>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Open-OfficeMarkdown -Text <string> [-Options <Object[]>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -44,11 +44,11 @@ Open-OfficeMarkdown -Text '# Report' -Options (New-OfficeMarkdownReaderOptions -
 ## PARAMETERS
 
 ### -AllowLoss
-Gets or sets whether native-save loss is explicitly accepted.
+Explicitly accept native-save loss for an authoring block.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, Text
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -60,11 +60,11 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Gets or sets a content block; omission returns the live document.
+An optional authoring block; omission returns the live document.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: Path, LiteralPath, Text
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -108,11 +108,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Gets or sets whether a completed content block returns the saved FileInfo.
+Emit the FileInfo after a completed authoring block.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, Text
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -140,11 +140,11 @@ Accept wildcard characters: True
 ```
 
 ### -Show
-Gets or sets whether the saved file opens in the system default application.
+Open the saved document after a completed authoring block.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, Text
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 

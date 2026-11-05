@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Toggle italic text.</summary>
         public bool? Italic { get; set; }
         /// <summary>Font name.</summary>
-        public string? FontName { get; set; }
+        public string? FontFamily { get; set; }
         /// <summary>Text color.</summary>
         public OfficeColor? TextColor { get; set; }
 

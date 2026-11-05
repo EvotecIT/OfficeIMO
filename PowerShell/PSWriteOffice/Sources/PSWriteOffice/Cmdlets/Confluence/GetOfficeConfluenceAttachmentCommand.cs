@@ -39,7 +39,7 @@ public sealed class GetOfficeConfluenceAttachmentCommand : AsyncPSCmdlet
 
     /// <summary>Optional destination path. Without this parameter, the download is returned as one byte array.</summary>
     [Parameter(ParameterSetName = ParameterSetDownload)]
-    public string? OutFile { get; set; }
+    public string? OutputPath { get; set; }
 
     /// <summary>Overwrite an existing destination file.</summary>
     [Parameter(ParameterSetName = ParameterSetDownload)]
@@ -56,7 +56,7 @@ public sealed class GetOfficeConfluenceAttachmentCommand : AsyncPSCmdlet
 
     /// <summary>Return attachment batches rather than individual metadata objects.</summary>
     [Parameter(ParameterSetName = ParameterSetList)]
-    public SwitchParameter AsPage { get; set; }
+    public SwitchParameter AsBatch { get; set; }
 
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync()
@@ -64,14 +64,14 @@ public sealed class GetOfficeConfluenceAttachmentCommand : AsyncPSCmdlet
         using var client = Session.CreateClient();
         if (ParameterSetName == ParameterSetDownload)
         {
-            if (string.IsNullOrWhiteSpace(OutFile))
+            if (string.IsNullOrWhiteSpace(OutputPath))
             {
                 var downloadedBytes = await client.DownloadAttachmentAsync(PageId, AttachmentId, CancelToken).ConfigureAwait(false);
                 WriteObject(downloadedBytes, enumerateCollection: false);
                 return;
             }
 
-            var path = OfficeFileCommandUtilities.ResolvePath(this, OutFile);
+            var path = OfficeFileCommandUtilities.ResolvePath(this, OutputPath);
             if (File.Exists(path) && !Force.IsPresent)
             {
                 throw new IOException($"File '{path}' already exists. Use -Force to overwrite it.");
@@ -137,7 +137,7 @@ public sealed class GetOfficeConfluenceAttachmentCommand : AsyncPSCmdlet
         {
             var requestedCursor = cursor;
             var batch = await client.GetAttachmentsAsync(PageId, requestedCursor, Limit, CancelToken).ConfigureAwait(false);
-            if (AsPage.IsPresent)
+            if (AsBatch.IsPresent)
             {
                 WriteObject(batch);
             }

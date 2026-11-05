@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Visio;
 public sealed class ConvertToOfficeVisioVisualCommand : OfficeVisioVisualCommandBase
 {
     /// <summary>Typed CFX artifact, semantic envelope/JSON, ImagePlayground portable artifact, or prior conversion result.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0, ParameterSetName = "InputObject")]
     public object InputObject { get; set; } = null!;
 
     /// <inheritdoc />

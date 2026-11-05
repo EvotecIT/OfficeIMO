@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             Assert.True(run.Bold);
             Assert.True(run.Italic);
             Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Single, run.Underline);
-            Assert.True(run.Strike);
+            Assert.True(run.Strikethrough);
             Assert.Equal(16, run.FontSize?.ToPoints());
             Assert.Equal(OfficeColor.Parse("008000"), run.Color);
         }

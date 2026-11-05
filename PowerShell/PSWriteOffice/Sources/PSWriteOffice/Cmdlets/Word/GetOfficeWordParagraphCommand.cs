@@ -1,77 +1,91 @@
-using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Text.RegularExpressions;
+using OfficeIMO;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Gets paragraphs from a Word document or section.</summary>
-/// <example>
-///   <summary>Extract visible paragraph text.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$paragraphs = Get-OfficeWordParagraph -Path .\Report.docx
-/// $paragraphs |
-///     Where-Object { $_.Text } |
-///     Select-Object -Property Text |
-///     Set-Content -Path .\ReportParagraphs.txt</code>
-///   <para>Enumerates document paragraphs and writes their text for a lightweight review workflow.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordParagraph")]
-[OutputType(typeof(WordParagraph))]
+/// <summary>Gets paragraphs from a document or section, optionally only those matching a pattern.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficeWordParagraph", DefaultParameterSetName = "Document")]
+[OutputType(typeof(WordParagraph), typeof(WordSearchResult))]
 public sealed class GetOfficeWordParagraphCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetSection = "Section";
+    /// <summary>Document paths; supports wildcards.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
-    /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Optional regular expression, or literal text with SimpleMatch.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    public string? Pattern { get; set; }
 
-    /// <summary>Document to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public WordDocument Document { get; set; } = null!;
+    /// <summary>Treat Pattern as literal text.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    public SwitchParameter SimpleMatch { get; set; }
 
-    /// <summary>Section to enumerate.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetSection)]
-    public WordSection Section { get; set; } = null!;
+    /// <summary>Use case-sensitive matching.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    public SwitchParameter CaseSensitive { get; set; }
+
+    /// <summary>Emit native grouped match details; requires Pattern.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    public SwitchParameter AsResult { get; set; }
+
+    /// <summary>Exact document paths, including literal brackets.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+
+    /// <summary>Caller-owned document; omission uses the enclosing Word content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public WordDocument? Document { get; set; }
+
+    /// <summary>Caller-owned section to inspect.</summary>
+    [Parameter(ParameterSetName = "Section", Mandatory = true, ValueFromPipeline = true)]
+    public WordSection? Section { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WordDocument? document = null;
-        var dispose = false;
+        if (ParameterSetName == "Section") InspectSection(Section!);
+        else WordQuerySource.Visit(this, ParameterSetName, Path, LiteralPath, Document, InspectDocument);
+    }
 
-        try {
-            IEnumerable<WordParagraph> paragraphs;
-
-            if (ParameterSetName == ParameterSetSection) {
-                paragraphs = Section != null
-                    ? Section.Paragraphs
-                    : Array.Empty<WordParagraph>();
-            } else {
-                if (ParameterSetName == ParameterSetPath) {
-                    var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-                    document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
-                    dispose = true;
-                } else {
-                    document = Document;
-                }
-
-                if (document == null) {
-                    throw new InvalidOperationException("Word document was not provided.");
-                }
-
-                paragraphs = document.Paragraphs;
-            }
-
-            WriteObject(paragraphs, enumerateCollection: true);
-        } finally {
-            if (dispose) {
-                document?.Dispose();
-            }
+    private void InspectDocument(WordDocument document) {
+        if (Pattern == null) {
+            if (AsResult) throw new PSArgumentException("-AsResult requires -Pattern.");
+            WriteObject(document.Paragraphs, true);
+            return;
         }
+        var result = SimpleMatch ? document.Find(Pattern, new OfficeTextSearchOptions { MatchCase = CaseSensitive })
+            : document.Find(new Regex(Pattern, CaseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase, TimeSpan.FromSeconds(2)));
+        if (AsResult) WriteObject(result);
+        else WriteObject(result.Paragraphs, true);
+    }
+
+    private void InspectSection(WordSection section) {
+        if (Pattern == null) {
+            if (AsResult) throw new PSArgumentException("-AsResult requires -Pattern.");
+            WriteObject(section.Paragraphs, true);
+            return;
+        }
+        var result = SimpleMatch ? section.Find(Pattern, new OfficeTextSearchOptions { MatchCase = CaseSensitive })
+            : section.Find(new Regex(Pattern, CaseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase, TimeSpan.FromSeconds(2)));
+        if (AsResult) WriteObject(result);
+        else WriteObject(result.Paragraphs, true);
     }
 }

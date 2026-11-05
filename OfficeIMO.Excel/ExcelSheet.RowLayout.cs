@@ -54,8 +54,8 @@ namespace OfficeIMO.Excel {
                 || options.Italic.HasValue
                 || options.Underline.HasValue
                 || options.WrapText.HasValue
-                || !string.IsNullOrWhiteSpace(options.FontName)
-                || !string.IsNullOrWhiteSpace(options.BackgroundColor);
+                || !string.IsNullOrWhiteSpace(options.FontFamily)
+                || options.BackgroundColor.HasValue;
         }
 
         private (int FirstColumn, int LastColumn) ResolveRowLayoutColumnBounds(ExcelRowLayoutOptions options) {
@@ -106,12 +106,12 @@ namespace OfficeIMO.Excel {
                     CellWrapText(rowIndex, columnIndex, options.WrapText.Value);
                 }
 
-                if (!string.IsNullOrWhiteSpace(options.FontName)) {
-                    CellFontName(rowIndex, columnIndex, options.FontName!);
+                if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
+                    CellFontName(rowIndex, columnIndex, options.FontFamily!);
                 }
 
-                if (!string.IsNullOrWhiteSpace(options.BackgroundColor)) {
-                    CellBackground(rowIndex, columnIndex, options.BackgroundColor!);
+                if (options.BackgroundColor.HasValue) {
+                    CellBackground(rowIndex, columnIndex, options.BackgroundColor.Value);
                 }
             }
         }

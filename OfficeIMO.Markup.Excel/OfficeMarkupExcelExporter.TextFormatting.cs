@@ -11,12 +11,12 @@ internal sealed partial class OfficeMarkupExcelExporter {
         var fontColor = GetAttribute(attributes,
             "color", "font-color", "fontColor", "text-color", "textColor", "textcolor");
         if (!string.IsNullOrWhiteSpace(fontColor)) {
-            sheet.Cell(row, column).SetFontColor(fontColor!);
+            sheet.Cell(row, column).SetColor(OfficeColor.Parse(fontColor!));
         }
 
         var fontName = GetAttribute(attributes, "font", "font-name", "fontName", "font-family", "fontFamily");
         if (!string.IsNullOrWhiteSpace(fontName)) {
-            sheet.Cell(row, column).SetFontName(fontName!);
+            sheet.Cell(row, column).SetFontFamily(fontName!);
         }
 
         var fontSize = GetAttribute(attributes, "font-size", "fontSize", "fontsize", "size");

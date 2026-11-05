@@ -153,9 +153,9 @@ public sealed class OdtParagraph {
         ResolveStyleValue(style => style.UsesNonSolidUnderlineStyle) == true;
 
     /// <summary>Explicit or inherited strike-through state.</summary>
-    public bool? StrikeThrough {
-        get => ResolveStyleValue(style => style.StrikeThrough);
-        set => EnsureStyle().StrikeThrough = value;
+    public bool? Strikethrough {
+        get => ResolveStyleValue(style => style.Strikethrough);
+        set => EnsureStyle().Strikethrough = value;
     }
     /// <summary>Explicit or inherited native line-through style.</summary>
     public OdfTextDecorationStyle? LineThroughStyle {
@@ -294,7 +294,7 @@ public sealed class OdtParagraph {
     }
 
     /// <summary>Appends a styled text span.</summary>
-    public OdtSpan AddSpan(string? text = null) {
+    public OdtSpan AddRun(string? text = null) {
         EnsureMaterialized();
         var element = new XElement(OdfNamespaces.Text + "span");
         OdfTextCodec.Append(element, text);

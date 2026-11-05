@@ -14,7 +14,7 @@ public sealed class PdfAnnotation {
     private const int ToggleNoViewFlag = 256;
     private const int LockedContentsFlag = 512;
 
-    internal PdfAnnotation(int? objectNumber, int? pageNumber, string subtype, string? contents, double x1, double y1, double x2, double y2, bool hasNormalAppearance, string? actionType = null, IReadOnlyList<PdfAnnotationAdditionalAction>? additionalActions = null, IReadOnlyList<PdfAnnotationChainedAction>? chainedActions = null, int? flags = null, string? name = null, string? title = null, string? modified = null, IReadOnlyList<double>? color = null, string? defaultAppearance = null, string? defaultStyle = null, string? richContents = null, string? richContentsPlainText = null, double? effectiveFontSize = null, global::OfficeIMO.OfficeColor? effectiveTextColor = null, OfficeAlignment? effectiveTextAlign = null, IReadOnlyList<double>? interiorColor = null, double? opacity = null, double? borderWidth = null, string? borderStyle = null, IReadOnlyList<double>? borderDashPattern = null, string? borderEffectStyle = null, double? borderEffectIntensity = null, IReadOnlyList<double>? rectangleDifferences = null, IReadOnlyList<double>? calloutLine = null, string? calloutLineEnding = null, string? lineStartEnding = null, string? lineEndEnding = null, IReadOnlyList<double>? quadPoints = null, IReadOnlyList<double>? lineCoordinates = null, IReadOnlyList<double>? vertices = null, IReadOnlyList<IReadOnlyList<double>>? inkList = null, PdfAnnotationReviewInfo? review = null, PdfObject? normalAppearanceObject = null, string? appearanceState = null, PdfDictionary? sourceDictionary = null, bool hasReadableRectangle = true) {
+    internal PdfAnnotation(int? objectNumber, int? pageNumber, string subtype, string? contents, double x1, double y1, double x2, double y2, bool hasNormalAppearance, string? actionType = null, IReadOnlyList<PdfAnnotationAdditionalAction>? additionalActions = null, IReadOnlyList<PdfAnnotationChainedAction>? chainedActions = null, int? flags = null, string? name = null, string? title = null, string? modified = null, IReadOnlyList<double>? color = null, string? defaultAppearance = null, string? defaultStyle = null, string? richContents = null, string? richContentsPlainText = null, double? effectiveFontSize = null, global::OfficeIMO.OfficeColor? effectiveTextColor = null, OfficeAlignment? effectiveTextAlign = null, IReadOnlyList<double>? interiorColor = null, double? opacity = null, double? borderWidth = null, string? borderStyle = null, IReadOnlyList<double>? borderDashPattern = null, string? borderEffectStyle = null, double? borderEffectIntensity = null, IReadOnlyList<double>? rectangleDifferences = null, IReadOnlyList<double>? calloutLine = null, string? calloutLineEnding = null, string? lineStartEnding = null, string? lineEndEnding = null, IReadOnlyList<double>? quadPoints = null, IReadOnlyList<double>? lineCoordinates = null, IReadOnlyList<double>? vertices = null, IReadOnlyList<IReadOnlyList<double>>? inkList = null, PdfAnnotationReviewInfo? review = null, PdfObject? normalAppearanceObject = null, string? appearanceState = null, PdfDictionary? sourceDictionary = null, bool hasReadableRectangle = true, string? uri = null) {
         ObjectNumber = objectNumber;
         PageNumber = pageNumber;
         Subtype = subtype;
@@ -25,6 +25,7 @@ public sealed class PdfAnnotation {
         Y2 = y2;
         HasNormalAppearance = hasNormalAppearance;
         ActionType = actionType;
+        Uri = uri;
         AdditionalActions = additionalActions ?? Array.Empty<PdfAnnotationAdditionalAction>();
         ChainedActions = chainedActions ?? Array.Empty<PdfAnnotationChainedAction>();
         Flags = flags;
@@ -102,6 +103,9 @@ public sealed class PdfAnnotation {
 
     /// <summary>Primary annotation action type from /A /S, when present.</summary>
     public string? ActionType { get; }
+
+    /// <summary>URI target of the primary /A action when it has the URI action type and a readable valid target; otherwise null.</summary>
+    public string? Uri { get; }
 
     /// <summary>Additional annotation actions from the /AA dictionary, when present.</summary>
     public IReadOnlyList<PdfAnnotationAdditionalAction> AdditionalActions { get; }
@@ -279,7 +283,7 @@ public sealed class PdfAnnotation {
     internal PdfAnnotation WithPageNumber(int pageNumber) =>
         PageNumber == pageNumber
             ? this
-            : new PdfAnnotation(ObjectNumber, pageNumber, Subtype, Contents, X1, Y1, X2, Y2, HasNormalAppearance, ActionType, AdditionalActions, ChainedActions, Flags, Name, Title, Modified, Color, DefaultAppearance, DefaultStyle, RichContents, RichContentsPlainText, EffectiveFontSize, EffectiveTextColor, EffectiveTextAlign, InteriorColor, Opacity, BorderWidth, BorderStyle, BorderDashPattern, BorderEffectStyle, BorderEffectIntensity, RectangleDifferences, CalloutLine, CalloutLineEnding, LineStartEnding, LineEndEnding, QuadPoints, LineCoordinates, Vertices, InkList, Review, NormalAppearanceObject, AppearanceState, SourceDictionary, HasReadableRectangle);
+            : new PdfAnnotation(ObjectNumber, pageNumber, Subtype, Contents, X1, Y1, X2, Y2, HasNormalAppearance, ActionType, AdditionalActions, ChainedActions, Flags, Name, Title, Modified, Color, DefaultAppearance, DefaultStyle, RichContents, RichContentsPlainText, EffectiveFontSize, EffectiveTextColor, EffectiveTextAlign, InteriorColor, Opacity, BorderWidth, BorderStyle, BorderDashPattern, BorderEffectStyle, BorderEffectIntensity, RectangleDifferences, CalloutLine, CalloutLineEnding, LineStartEnding, LineEndEnding, QuadPoints, LineCoordinates, Vertices, InkList, Review, NormalAppearanceObject, AppearanceState, SourceDictionary, HasReadableRectangle, Uri);
 
     private bool HasFlag(int flag) {
         return Flags.HasValue && (Flags.Value & flag) != 0;

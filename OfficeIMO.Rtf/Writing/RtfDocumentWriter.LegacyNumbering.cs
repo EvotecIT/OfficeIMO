@@ -71,7 +71,7 @@ internal static partial class RtfDocumentWriter {
         AppendOptionalBinary(builder, @"\pncaps", numbering.AllCaps);
         AppendOptionalBinary(builder, @"\pnscaps", numbering.SmallCaps);
         WriteLegacyNumberingUnderline(builder, numbering.UnderlineStyle);
-        AppendOptionalBinary(builder, @"\pnstrike", numbering.Strike);
+        AppendOptionalBinary(builder, @"\pnstrike", numbering.Strikethrough);
         AppendOptionalTwips(builder, @"\pncf", numbering.ForegroundColorIndex);
     }
 

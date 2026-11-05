@@ -627,8 +627,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(19, runs.Length);
             Assert.Equal("plain ", runs[0].Text);
             Assert.Null(runs[0].Underline);
-            Assert.False(runs[0].Strike);
-            Assert.False(runs[0].DoubleStrike);
+            Assert.False(runs[0].Strikethrough);
+            Assert.False(runs[0].DoubleStrikethrough);
             Assert.False(runs[0].Outline);
             Assert.False(runs[0].Shadow);
             Assert.False(runs[0].Emboss);
@@ -647,9 +647,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("red ", runs[3].Text);
             Assert.Equal(OfficeColor.Parse("FF0000"), runs[3].Color);
             Assert.Equal("strike ", runs[4].Text);
-            Assert.True(runs[4].Strike);
+            Assert.True(runs[4].Strikethrough);
             Assert.Equal("double ", runs[5].Text);
-            Assert.True(runs[5].DoubleStrike);
+            Assert.True(runs[5].DoubleStrikethrough);
             Assert.Equal("outline ", runs[6].Text);
             Assert.True(runs[6].Outline);
             Assert.Equal("shadow ", runs[7].Text);
@@ -690,8 +690,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("LegacyDocInheritedRunStyle", run.StyleId);
             Assert.False(run.Bold);
             Assert.False(run.Italic);
-            Assert.False(run.Strike);
-            Assert.False(run.DoubleStrike);
+            Assert.False(run.Strikethrough);
+            Assert.False(run.DoubleStrikethrough);
             Assert.False(run.Outline);
             Assert.False(run.Shadow);
             Assert.False(run.Emboss);
@@ -5716,8 +5716,8 @@ namespace OfficeIMO.Tests {
                     paragraph.AddText("plain ");
                     paragraph.AddText("under ").SetUnderline(WordUnderlineStyle.Single);
                     paragraph.AddText("sized ").SetFontSize(global::OfficeIMO.OfficeLength.Points(14));
-                    paragraph.AddText("strike ").SetStrike();
-                    paragraph.AddText("double ").SetDoubleStrike();
+                    paragraph.AddText("strike ").SetStrikethrough();
+                    paragraph.AddText("double ").SetDoubleStrikethrough();
                     paragraph.AddText("outline ").SetOutline();
                     paragraph.AddText("shadow ").SetShadow();
                     paragraph.AddText("emboss ").SetEmboss();
@@ -5732,8 +5732,8 @@ namespace OfficeIMO.Tests {
                     proof._run.RunProperties.NoProof = new NoProof();
                     paragraph.AddText("caps ").SetCapsStyle(WordCapsStyle.Caps);
                     paragraph.AddText("small ").SetSmallCaps();
-                    paragraph.AddText("super ").SetSuperScript();
-                    paragraph.AddText("sub ").SetSubScript();
+                    paragraph.AddText("super ").SetSuperscript();
+                    paragraph.AddText("sub ").SetSubscript();
                     paragraph.AddText("mark ").SetHighlight(WordHighlightColor.Yellow);
                     WordParagraph spaced = paragraph.AddText("space ");
                     spaced.Spacing = OfficeLength.Emus((long)(80) * 635);
@@ -5755,8 +5755,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(18, runs.Length);
                 Assert.Equal("plain ", runs[0].Text);
                 Assert.Null(runs[0].Underline);
-                Assert.False(runs[0].Strike);
-                Assert.False(runs[0].DoubleStrike);
+                Assert.False(runs[0].Strikethrough);
+                Assert.False(runs[0].DoubleStrikethrough);
                 Assert.False(runs[0].Outline);
                 Assert.False(runs[0].Shadow);
                 Assert.False(runs[0].Emboss);
@@ -5771,9 +5771,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("sized ", runs[2].Text);
                 Assert.Equal(14, runs[2].FontSize?.ToPoints());
                 Assert.Equal("strike ", runs[3].Text);
-                Assert.True(runs[3].Strike);
+                Assert.True(runs[3].Strikethrough);
                 Assert.Equal("double ", runs[4].Text);
-                Assert.True(runs[4].DoubleStrike);
+                Assert.True(runs[4].DoubleStrikethrough);
                 Assert.Equal("outline ", runs[5].Text);
                 Assert.True(runs[5].Outline);
                 Assert.Equal("shadow ", runs[6].Text);

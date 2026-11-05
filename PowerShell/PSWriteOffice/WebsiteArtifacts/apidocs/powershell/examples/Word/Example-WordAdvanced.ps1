@@ -36,6 +36,6 @@ New-OfficeWord -Path $path {
 
         WordWatermark -Text 'CONFIDENTIAL'
     }
-} -Open
+} -Show
 
 Write-Host "Document saved to $path"

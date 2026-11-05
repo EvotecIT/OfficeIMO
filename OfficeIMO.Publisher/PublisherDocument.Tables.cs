@@ -41,25 +41,42 @@ public sealed partial class PublisherDocument {
         Commit(model.ReplaceTableCell(tableId, rowIndex, columnIndex, paragraphs, cancellationToken).Project(cancellationToken), cancellationToken);
     }
 
-    /// <summary>Moves and proportionally resizes a qualified table in page-local points, scaling its column and row tracks by the frame's width and height ratios.</summary>
+    /// <summary>Moves and proportionally resizes a qualified table using physical page-local bounds, scaling its column and row tracks by the frame's width and height ratios.</summary>
     /// <remarks>Dimensions must be positive and finite; finite negative offsets allow clipped bleed. Placement eligibility is independent of cell-text eligibility. Unsupported native graphics and transformed, hidden or unresolved placement reject bounds edits. Qualified native source saving supports direct movement and proportional fixed-track resizing with exact signed-EMU coordinates and dimensions. Resizing requires complete matching nominal and laid-out tracks; unsupported wrap relationships refuse saving. Native reflow remains unassessed and edited output requires explicit Allow. Complete text is retained on overflow. Failed edits leave the publication unchanged.</remarks>
-    public void SetTableBounds(uint tableId, double x, double y, double width, double height, CancellationToken cancellationToken = default) {
+    public void SetTableBounds(uint tableId, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable model.");
-        Commit(model.SetTableBounds(tableId, x, y, width, height).Project(cancellationToken), cancellationToken);
+        Commit(model.SetTableBounds(tableId, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints()).Project(cancellationToken), cancellationToken);
     }
 
-    /// <summary>Appends an empty, unmerged, borderless table to an existing qualified document or master page. Track sizes and offsets use points. Returns the current immutable snapshot.</summary>
+    /// <summary>Appends an empty, unmerged, borderless table to an existing qualified document or master page. Track sizes and offsets use physical lengths. Returns the current immutable snapshot.</summary>
     /// <remarks>Track lists are copied and must be nonempty, positive and finite. Populate cells through ReplaceTableCellParagraphs. A new complete story and the table use the publication's shared allocator. Validation, cancellation or projection failure consumes no identifiers. This is in-memory creation and does not provide native PUB saving or new publication/page creation.</remarks>
-    public PublisherTable AddTable(uint pageId, double x, double y, IReadOnlyList<double> columnWidths, IReadOnlyList<double> rowHeights,
+    public PublisherTable AddTable(uint pageId, OfficeLength x, OfficeLength y, IReadOnlyList<OfficeLength> columnWidths, IReadOnlyList<OfficeLength> rowHeights,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(columnWidths);
         ArgumentNullException.ThrowIfNull(rowHeights);
         cancellationToken.ThrowIfCancellationRequested();
         PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable model.");
-        PublisherDocument candidate = model.AddTable(pageId, x, y, columnWidths, rowHeights, cancellationToken, out uint id).Project(cancellationToken);
+        PublisherDocument candidate = model.AddTable(pageId, x.ToPoints(), y.ToPoints(),
+            new PointLengths(columnWidths, cancellationToken), new PointLengths(rowHeights, cancellationToken), cancellationToken, out uint id).Project(cancellationToken);
         PublisherTable result = candidate.Pages.Concat(candidate.MasterPages).SelectMany(page => page.Tables).Single(table => table.Id == id);
         Commit(candidate, cancellationToken);
         return result;
+    }
+
+    // Defer point conversion until the existing model has checked track-count budgets.
+    private sealed class PointLengths : IReadOnlyList<double> {
+        private readonly IReadOnlyList<OfficeLength> _lengths;
+        private readonly CancellationToken _token;
+        internal PointLengths(IReadOnlyList<OfficeLength> lengths, CancellationToken token) { _lengths = lengths; _token = token; }
+        public int Count => _lengths.Count;
+        public double this[int index] => _lengths[index].ToPoints();
+        public IEnumerator<double> GetEnumerator() {
+            for (int index = 0; index < Count; index++) {
+                _token.ThrowIfCancellationRequested();
+                yield return this[index];
+            }
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

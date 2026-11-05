@@ -9,8 +9,32 @@ namespace OfficeIMO.Excel;
 /// <remarks>Each table returns its observed row count and occupied range. Dispose completes the package; file destinations are published only after every table succeeds. Disposing before any table was written throws <see cref="InvalidOperationException"/> and leaves the destination untouched.</remarks>
 public sealed class ExcelWorkbookWriter : IDisposable {
     private readonly ExcelDocument.StreamingWorkbook _workbook;
+    private ExcelIncrementalTableWriter? _activeTable;
 
     internal ExcelWorkbookWriter(ExcelDocument.StreamingWorkbook workbook) => _workbook = workbook;
+
+    /// <summary>Begins a disk-spooled table whose final schema may grow as normalized rows arrive.</summary>
+    public ExcelIncrementalTableWriter BeginTable(string name, CancellationToken cancellationToken = default) {
+        EnsureNoActiveTable();
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Supply a worksheet name.", nameof(name));
+        cancellationToken.ThrowIfCancellationRequested();
+        return _activeTable = new ExcelIncrementalTableWriter(this, name, _workbook.MaximumTemporaryBytes, cancellationToken);
+    }
+
+    internal void AbortIncrementalTable(ExcelIncrementalTableWriter table) => _workbook.Abort();
+
+    internal ExcelDataSetImportResult CompleteIncrementalTable(ExcelIncrementalTableWriter table, string name,
+        IReadOnlyList<string> headers, IEnumerable<object?[]> rows, CancellationToken cancellationToken) {
+        if (!ReferenceEquals(_activeTable, table)) throw new InvalidOperationException("This table is not active on the workbook.");
+        _activeTable = null;
+        return WriteTable(name, rows, headers, (writer, values) => {
+            foreach (object? value in values) { if (value == null) writer.WriteBlank(); else writer.Write(value); }
+        }, cancellationToken);
+    }
+
+    private void EnsureNoActiveTable() {
+        if (_activeTable != null) throw new InvalidOperationException("Complete or dispose the current incremental table first.");
+    }
 
     /// <summary>Writes one worksheet and its table from the readable scalar properties of <typeparamref name="T"/>.</summary>
     public ExcelDataSetImportResult WriteTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
@@ -36,6 +60,7 @@ public sealed class ExcelWorkbookWriter : IDisposable {
     public ExcelDataSetImportResult WriteTable<T>(string name, IEnumerable<T> rows, IReadOnlyList<string> headers,
         Action<ExcelDocument.ExcelTabularRowWriter, T> writeRow, CancellationToken cancellationToken = default) {
         try {
+            EnsureNoActiveTable();
             ArgumentNullException.ThrowIfNull(rows);
             return _workbook.WriteTable(name, new SynchronousRows<T>(rows), headers, writeRow, cancellationToken).GetAwaiter().GetResult();
         } catch { _workbook.Abort(); throw; }
@@ -44,7 +69,13 @@ public sealed class ExcelWorkbookWriter : IDisposable {
     /// <summary>Writes an asynchronous single-pass sequence using an explicit schema and a row callback.</summary>
     public Task<ExcelDataSetImportResult> WriteTable<T>(string name, IAsyncEnumerable<T> rows, IReadOnlyList<string> headers,
         Action<ExcelDocument.ExcelTabularRowWriter, T> writeRow, CancellationToken cancellationToken = default) =>
-        _workbook.WriteTable(name, rows, headers, writeRow, cancellationToken);
+        WriteAsyncTable(name, rows, headers, writeRow, cancellationToken);
+
+    private Task<ExcelDataSetImportResult> WriteAsyncTable<T>(string name, IAsyncEnumerable<T> rows, IReadOnlyList<string> headers,
+        Action<ExcelDocument.ExcelTabularRowWriter, T> writeRow, CancellationToken cancellationToken) {
+        EnsureNoActiveTable();
+        return _workbook.WriteTable(name, rows, headers, writeRow, cancellationToken);
+    }
 
     /// <summary>Writes the rows and schema of an existing data table without copying its rows.</summary>
     public ExcelDataSetImportResult WriteTable(string name, DataTable table, CancellationToken cancellationToken = default) {
@@ -78,8 +109,19 @@ public sealed class ExcelWorkbookWriter : IDisposable {
         while (reader.Read()) yield return reader;
     }
 
+    /// <summary>Abandons pending output, including already completed tables. Dispose releases the writer without publishing its staged file.</summary>
+    public void Abort() {
+        _workbook.Abort();
+        _activeTable?.Dispose();
+        _activeTable = null;
+    }
+
     /// <summary>Completes and publishes a successful workbook, or discards a failed file export.</summary>
-    public void Dispose() => _workbook.Dispose();
+    public void Dispose() {
+        _activeTable?.Dispose();
+        _activeTable = null;
+        _workbook.Dispose();
+    }
 
     private sealed class SynchronousRows<T>(IEnumerable<T> source) : IAsyncEnumerable<T> {
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) =>

@@ -74,8 +74,8 @@ public sealed class PublisherNativeCreationTests {
         byte[] image = PublisherPictureEditingFixture.Image(OfficeColor.FromRgb(255, 0, 0));
         PublisherDocument document = AuthoredDocument(new PublisherLoadOptions());
         uint pageId = document.Pages[0].Id;
-        PublisherPicture first = document.AddImage(pageId, image, 72, 72, 40, 40);
-        PublisherPicture second = document.AddImage(pageId, first.ImageId!.Value, 144, 72, 40, 40);
+        PublisherPicture first = document.AddImage(pageId, image, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(40), OfficeLength.Points(40));
+        PublisherPicture second = document.AddImage(pageId, first.ImageId!.Value, OfficeLength.Points(144), OfficeLength.Points(72), OfficeLength.Points(40), OfficeLength.Points(40));
         Assert.Equal(first.ImageId, second.ImageId);
         PublisherNativeCreationPlan plan = PublisherNativeCreationProjection.SingleMasterContent(document);
         var options = new PublisherLoadOptions { MaxImageBytes = image.Length, MaxTotalImageBytes = image.Length };
@@ -98,13 +98,13 @@ public sealed class PublisherNativeCreationTests {
     public void Creation_marks_each_embedded_picture_placement_independently_of_names_and_shared_assets(bool includePictureNames) {
         byte[] image = PublisherPictureEditingFixture.Image(OfficeColor.Red);
         PublisherDocument document = AuthoredDocument(new PublisherLoadOptions());
-        PublisherPicture first = document.AddImage(document.Pages[0].Id, image, 72, 144, 96, 96);
-        document.AddImage(document.Pages[0].Id, first.ImageId!.Value, 216, 144, 96, 96);
-        PublisherPicture master = document.AddImage(document.MasterPages[0].Id, first.ImageId.Value, 24, 24, 48, 48);
+        PublisherPicture first = document.AddImage(document.Pages[0].Id, image, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(96), OfficeLength.Points(96));
+        document.AddImage(document.Pages[0].Id, first.ImageId!.Value, OfficeLength.Points(216), OfficeLength.Points(144), OfficeLength.Points(96), OfficeLength.Points(96));
+        PublisherPicture master = document.AddImage(document.MasterPages[0].Id, first.ImageId.Value, OfficeLength.Points(24), OfficeLength.Points(24), OfficeLength.Points(48), OfficeLength.Points(48));
         var crop = new OfficeImageSourceCrop(.25, .125, .0625, .1875);
         document.SetPictureCrop(master.Id, crop);
-        document.AddShape(document.MasterPages[0].Id, OfficeShape.Rectangle(40, 12), 72, 24);
-        document.AddTextFrame(document.Pages[0].Id, 72, 72, 120, 24, new[] { Paragraph("Caption") });
+        document.AddShape(document.MasterPages[0].Id, OfficeShape.Rectangle(40, 12), OfficeLength.Points(72), OfficeLength.Points(24));
+        document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(120), OfficeLength.Points(24), new[] { Paragraph("Caption") });
 
         byte[] generated = PublisherNativeCreationCodec.Create(
             PublisherNativeCreationProjection.SingleMasterContent(document, includePictureNames),
@@ -173,7 +173,7 @@ public sealed class PublisherNativeCreationTests {
     public void Creation_observes_cancellation_before_entry_and_after_plan_access(bool afterEntry) {
         var options = new PublisherLoadOptions();
         PublisherDocument document = FrameDocument(options);
-        document.AddTextFrame(document.Pages[0].Id, 72, 216, 288, 108, new[] { Paragraph("Second frame") });
+        document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(216), OfficeLength.Points(288), OfficeLength.Points(108), new[] { Paragraph("Second frame") });
         PublisherNativeCreationPlan original = PublisherNativeCreationProjection.FrameLayouts(document);
         using var cancellation = new CancellationTokenSource();
         var objects = new CancelingObjects(original.Objects, cancellation);
@@ -191,20 +191,25 @@ public sealed class PublisherNativeCreationTests {
     private static PublisherDocument FrameDocument(PublisherLoadOptions options) {
         PublisherDocument document = AuthoredDocument(options);
         var tabs = new OfficeTextTabStops(new[] { new OfficeTextTabStop(36), new OfficeTextTabStop(72) });
-        document.AddTextFrame(document.Pages[0].Id, 72, 72, 288, 108,
+        document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(288), OfficeLength.Points(108),
             new[] { Paragraph("A\tB\tC").WithTabStops(tabs) });
         return document;
     }
 
     private static PublisherDocument TableDocument(PublisherLoadOptions options) {
         PublisherDocument document = AuthoredDocument(options);
-        PublisherTable table = document.AddTable(document.Pages[0].Id, 72, 144, new[] { 120D }, new[] { 42D });
+        PublisherTable table = document.AddTable(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(144), new OfficeLength[] { OfficeLength.Points(120D) }, new OfficeLength[] { OfficeLength.Points(42D) });
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] { Paragraph("Cell") });
         return document;
     }
 
     private static PublisherDocument AuthoredDocument(PublisherLoadOptions options) {
-        PublisherDocument document = PublisherDocument.Create(612, 792, options);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792), new PublisherCreateOptions {
+            Limits = options.Limits, MaxPages = options.MaxPages, MaxNestingDepth = options.MaxNestingDepth,
+            MaxImageBytes = options.MaxImageBytes, MaxTotalImageBytes = options.MaxTotalImageBytes,
+            ImageCodec = options.ImageCodec, Fonts = options.Fonts, MaxRasterPixels = options.MaxRasterPixels,
+            MaxImageProcessingPixels = options.MaxImageProcessingPixels
+        });
         PublisherPage master = document.AddMasterPage("A");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         return document;

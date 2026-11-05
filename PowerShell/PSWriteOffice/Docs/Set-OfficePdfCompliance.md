@@ -11,7 +11,7 @@ Sets generated PDF compliance profile and readiness groundwork.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Set-OfficePdfCompliance -Profile <PdfComplianceProfile> [-Document <PdfDocument>] [-Groundwork] [-Language <string>] [<CommonParameters>]
+Set-OfficePdfCompliance [-Profile] <PdfComplianceProfile> [-Groundwork] [-Language <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -32,22 +32,6 @@ Get-OfficePdfCompliance -Path $path -Profile PdfA3B
 Applies OfficeIMO.Pdf compliance groundwork during composition, saves the PDF, then inspects the saved file.
 
 ## PARAMETERS
-
-### -Document
-Live generated PDF; omission uses the enclosing creation block.
-
-```yaml
-Type: PdfDocument
-Parameter Sets: Context
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
 
 ### -Groundwork
 Configure common PDF/A or PDF/UA groundwork for the selected profile.
@@ -91,7 +75,7 @@ Aliases: None
 Possible values: None, PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3U, PdfA3A, PdfUa1, FacturX, Zugferd, PdfA4, PdfA4E, PdfA4F, PdfUa2, PdfX1A2003, PdfX4
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -102,7 +86,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## OUTPUTS
 

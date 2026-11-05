@@ -12,6 +12,9 @@ namespace OfficeIMO.Word {
         private readonly Paragraph _paragraph;
         internal readonly SdtRun _sdtRun;
 
+        /// <summary>Gets the native content text using the same projection as a generic structured document tag; null means no ordinary text run.</summary>
+        public string? Text => WordStructuredDocumentTag.ReadText(_sdtRun);
+
         internal WordPictureControl(WordDocument document, Paragraph paragraph, SdtRun sdtRun) {
             _document = document;
             _paragraph = paragraph;

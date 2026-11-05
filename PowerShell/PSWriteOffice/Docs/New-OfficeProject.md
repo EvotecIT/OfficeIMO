@@ -9,9 +9,14 @@ schema: 2.0.0
 Creates a live project with an optional standard working calendar.
 
 ## SYNTAX
-### __AllParameterSets
+### Live (Default)
 ```powershell
-New-OfficeProject [[-Name] <string>] [-StartDate <DateTime>] [-NoStandardCalendar] [<CommonParameters>]
+New-OfficeProject [[-Path] <string>] [-Force] [-Name <string>] [-StartDate <DateTime>] [-NoStandardCalendar] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Content
+```powershell
+New-OfficeProject [-Path] <string> [-Content] <scriptblock> [-AllowLoss] [-PassThru] [-Force] [-Name <string>] [-StartDate <DateTime>] [-NoStandardCalendar] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -27,28 +32,12 @@ $project = New-OfficeProject -Name Delivery -StartDate '2026-10-20 08:00'
 
 ## PARAMETERS
 
-### -Name
-Project name.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoStandardCalendar
-Do not create a Monday-to-Friday working calendar.
+### -AllowLoss
+Accept reductions reported by native save.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -59,12 +48,108 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Content
+Authoring block completed before atomic publication.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Force
+Permit replacement of the associated destination.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Live, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Name
+Project name.
+
+```yaml
+Type: String
+Parameter Sets: Live, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoStandardCalendar
+Do not create a Monday-to-Friday working calendar.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Live, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PassThru
+Return the saved FileInfo after the block completes.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Path
+Optional live association; required for a completed content block.
+
+```yaml
+Type: String
+Parameter Sets: Live, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -StartDate
 Explicit project start; omitted dates remain unspecified.
 
 ```yaml
 Type: DateTime
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 

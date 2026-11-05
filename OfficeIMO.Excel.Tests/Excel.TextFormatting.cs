@@ -23,7 +23,7 @@ public class ExcelTextFormattingTests {
                     .SetBold().SetItalic()
                     .SetUnderline(ExcelUnderlineStyle.DoubleAccounting)
                     .SetStrikethrough().SetSuperscript()
-                    .SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
+                    .SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetColor(OfficeColor.Parse("336699"));
                 sheet.Range("A2:A3").SetUnderline(ExcelUnderlineStyle.Double)
                     .SetItalic().SetStrikethrough().SetSubscript().SetFontSize(global::OfficeIMO.OfficeLength.Pixels(18));
                 sheet.Cell(4, 1).SetFontSize(global::OfficeIMO.OfficeLength.Inches(0.25));
@@ -297,7 +297,7 @@ public class ExcelTextFormattingTests {
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
                 created.AddSheet("Text").Cell(1, 1).SetRichText(
-                    new ExcelRichTextRun("istanbul") { Bold = true, FontName = "Aptos" });
+                    new ExcelRichTextRun("istanbul") { Bold = true, FontFamily = "Aptos" });
                 created.Save();
             }
 
@@ -408,7 +408,7 @@ public class ExcelTextFormattingTests {
                         Strikethrough = true,
                     });
                 created.Sheets[0].Cell(3, 1).SetRichText(new ExcelRichTextRun("Physical"));
-                created.Sheets[0].Cell(4, 1).SetValue("Unspecified").SetFontName("Aptos");
+                created.Sheets[0].Cell(4, 1).SetValue("Unspecified").SetFontFamily("Aptos");
                 created.Save();
             }
 

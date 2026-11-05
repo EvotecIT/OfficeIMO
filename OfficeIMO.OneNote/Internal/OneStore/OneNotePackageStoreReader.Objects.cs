@@ -8,7 +8,7 @@ internal static partial class OneNotePackageStoreReader {
         IReadOnlyDictionary<PackageGuidKey, PackageDataElement> blobs,
         PackageGraph graph,
         HashSet<PackageGuidKey> seenObjects,
-        OneNoteReaderOptions options) {
+        OneNoteLoadOptions options) {
         FssHttpStreamObject declarationsNode = RequireExactlyOne(
             group.Node.Children,
             item => item.Type == 0x1D,
@@ -116,7 +116,7 @@ internal static partial class OneNotePackageStoreReader {
         }
     }
 
-    private static PackageObjectDeclaration ReadDeclaration(Stream stream, FssHttpStreamObject item, OneNoteReaderOptions options) {
+    private static PackageObjectDeclaration ReadDeclaration(Stream stream, FssHttpStreamObject item, OneNoteLoadOptions options) {
         byte[] data = FssHttpStreamObjectReader.ReadData(stream, item, 256, "object declaration");
         var cursor = new FssHttpDataCursor(data, item.DataOffset);
         OneNoteExtendedGuid objectId = cursor.ReadExtendedGuid();
@@ -132,7 +132,7 @@ internal static partial class OneNotePackageStoreReader {
         return new PackageObjectDeclaration(objectId, blobId, partition, dataSize, objectReferences, cellReferences, item.DataOffset);
     }
 
-    private static PackageObjectData ReadObjectData(Stream stream, FssHttpStreamObject item, OneNoteReaderOptions options) {
+    private static PackageObjectData ReadObjectData(Stream stream, FssHttpStreamObject item, OneNoteLoadOptions options) {
         ulong max = options.MaxInputBytes.HasValue ? (ulong)Math.Min(options.MaxInputBytes.Value, int.MaxValue) : int.MaxValue;
         byte[] raw = FssHttpStreamObjectReader.ReadData(stream, item, max, "object data");
         var cursor = new FssHttpDataCursor(raw, item.DataOffset);
@@ -152,7 +152,7 @@ internal static partial class OneNotePackageStoreReader {
         byte[] propertyData,
         IReadOnlyList<OneNoteExtendedGuid> objectReferences,
         IReadOnlyList<FssHttpCellId> cellReferences,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         long offset) {
         int position = 0;
         PackageCompactStream oids = ReadCompactStream(propertyData, ref position, options, offset);
@@ -181,7 +181,7 @@ internal static partial class OneNotePackageStoreReader {
         return mappings;
     }
 
-    private static PackageCompactStream ReadCompactStream(byte[] data, ref int position, OneNoteReaderOptions options, long offset) {
+    private static PackageCompactStream ReadCompactStream(byte[] data, ref int position, OneNoteLoadOptions options, long offset) {
         if (position > data.Length - 4) throw new OneNoteFormatException("ONENOTE_PACKAGE_OBJECT_STREAM", "A property reference stream is truncated.", offset + position);
         uint header = OneNoteBinary.ReadUInt32(data, position);
         position += 4;

@@ -42,7 +42,7 @@ public sealed class PowerPointBackgroundColorTests {
         var inherited = document.AddSlide().GetBackground();
         Action[] backgrounds = [
             () => slide.SetBackgroundColor(OfficeColor.Accent2),
-            () => slide.SetBackgroundGradient("112233", "445566"),
+            () => slide.SetBackgroundGradient(OfficeColor.Parse("112233"), OfficeColor.Parse("445566")),
             () => slide.SetBackgroundNoFill(),
             () => {
                 using var pixel = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));

@@ -25,7 +25,7 @@ public class CsvEscapingRegressionTests {
             QuoteMode = mode,
             FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape
         };
-        var document = new CsvDocument().WithHeader("Notes");
+        var document = CsvDocument.Create().WithHeader("Notes");
         using var textOutput = new StringWriter();
         using var objectOutput = new StringWriter();
         using (var textWriter = new CsvRowWriter(textOutput, options, leaveOpen: true))

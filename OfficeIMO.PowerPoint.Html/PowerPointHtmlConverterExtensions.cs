@@ -694,7 +694,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
 
         body.Append("><tbody>");
-        IReadOnlyList<PptCore.PowerPointTableRow> rowItems = table.RowItems;
+        IReadOnlyList<PptCore.PowerPointTableRow> rowItems = table.Rows;
         for (int rowIndex = 0; rowIndex < rowItems.Count; rowIndex++) {
             PptCore.PowerPointTableRow row = rowItems[rowIndex];
             body.Append("<tr>");

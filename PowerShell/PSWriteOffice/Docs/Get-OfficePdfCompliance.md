@@ -9,14 +9,19 @@ schema: 2.0.0
 Gets a generated PDF document compliance readiness report.
 
 ## SYNTAX
-### Document
+### Document (Default)
 ```powershell
 Get-OfficePdfCompliance [-Document <PdfDocument>] [-Profile <PdfComplianceProfile>] [-Proof] [-ExternalValidator <PdfExternalValidatorKind[]>] [-ExternalValidation <PdfExternalValidationResult[]>] [-ExternalStatus <PdfExternalValidationStatus>] [-ExternalProfile <string>] [-ExternalDiagnostic <string>] [-ExternalValidatorName <string>] [-ExternalValidatorVersion <string>] [-ExternalExitCode <Int32>] [-ExternalSuccessExitCode <int>] [-ExternalExecutablePath <string>] [-ExternalArguments <string>] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Get-OfficePdfCompliance [-Path] <string> -Profile <PdfComplianceProfile> [-Password <securestring>] [-IgnorePermissionRestrictions] [-Proof] [-ExternalValidator <PdfExternalValidatorKind[]>] [-ExternalValidation <PdfExternalValidationResult[]>] [-ExternalStatus <PdfExternalValidationStatus>] [-ExternalProfile <string>] [-ExternalDiagnostic <string>] [-ExternalValidatorName <string>] [-ExternalValidatorVersion <string>] [-ExternalExitCode <Int32>] [-ExternalSuccessExitCode <int>] [-ExternalExecutablePath <string>] [-ExternalArguments <string>] [<CommonParameters>]
+Get-OfficePdfCompliance [-Path] <string[]> [-LoadOptions <PdfLoadOptions>] [-Profile <PdfComplianceProfile>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-Proof] [-ExternalValidator <PdfExternalValidatorKind[]>] [-ExternalValidation <PdfExternalValidationResult[]>] [-ExternalStatus <PdfExternalValidationStatus>] [-ExternalProfile <string>] [-ExternalDiagnostic <string>] [-ExternalValidatorName <string>] [-ExternalValidatorVersion <string>] [-ExternalExitCode <Int32>] [-ExternalSuccessExitCode <int>] [-ExternalExecutablePath <string>] [-ExternalArguments <string>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficePdfCompliance -LiteralPath <string[]> [-LoadOptions <PdfLoadOptions>] [-Profile <PdfComplianceProfile>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-Proof] [-ExternalValidator <PdfExternalValidatorKind[]>] [-ExternalValidation <PdfExternalValidationResult[]>] [-ExternalStatus <PdfExternalValidationStatus>] [-ExternalProfile <string>] [-ExternalDiagnostic <string>] [-ExternalValidatorName <string>] [-ExternalValidatorVersion <string>] [-ExternalExitCode <Int32>] [-ExternalSuccessExitCode <int>] [-ExternalExecutablePath <string>] [-ExternalArguments <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -58,7 +63,7 @@ External validator command-line arguments recorded in the proof evidence.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -74,7 +79,7 @@ Human-readable external validation diagnostic.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -90,7 +95,7 @@ External validator executable path recorded in the proof evidence.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -106,7 +111,7 @@ External validator process exit code. When provided, status is inferred from -Ex
 
 ```yaml
 Type: Int32
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -122,7 +127,7 @@ Profile string reported by the external validator, for example PDF/A-3b.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -138,7 +143,7 @@ Unbound external validator status to attach when -ExternalValidator is provided.
 
 ```yaml
 Type: PdfExternalValidationStatus
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values: NotRun, Passed, Failed, Error
 
@@ -154,7 +159,7 @@ External validator process exit code that means success.
 
 ```yaml
 Type: Int32
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -171,7 +176,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
 
 ```yaml
 Type: PdfExternalValidationResult[]
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -187,7 +192,7 @@ External validator families whose result should be attached to the proof report.
 
 ```yaml
 Type: PdfExternalValidatorKind[]
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values: VeraPdf, PdfUaValidator, Mustang, Custom, PdfXValidator
 
@@ -203,7 +208,7 @@ Human-readable external validator name.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -219,7 +224,7 @@ External validator version recorded in the artifact-bound proof evidence.
 
 ```yaml
 Type: String
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -235,7 +240,39 @@ After successful password authentication, explicitly ignore owner-imposed usage 
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal input files.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+Native input loading policy.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -251,7 +288,7 @@ Password used to inspect a Standard password-encrypted PDF.
 
 ```yaml
 Type: SecureString
-Parameter Sets: Path
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -266,15 +303,15 @@ Accept wildcard characters: False
 Existing PDF file path to assess after generation.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -283,7 +320,7 @@ Compliance profile to assess. When omitted, the document's configured profile is
 
 ```yaml
 Type: PdfComplianceProfile
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values: None, PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3U, PdfA3A, PdfUa1, FacturX, Zugferd, PdfA4, PdfA4E, PdfA4F, PdfUa2, PdfX1A2003, PdfX4
 
@@ -299,7 +336,7 @@ Return a proof report that combines readiness with required external validator e
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Document, Path
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -316,7 +353,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.Pdf.PdfDocument`
-- `System.String`
+- `System.String[]`
 
 ## OUTPUTS
 

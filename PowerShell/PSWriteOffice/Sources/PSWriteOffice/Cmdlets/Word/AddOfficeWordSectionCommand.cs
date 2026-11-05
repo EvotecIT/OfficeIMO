@@ -20,8 +20,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Adds a section through the document pipeline and uses the returned section as the next explicit target.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordSection", DefaultParameterSetName = ParameterSetContext)]
-[Alias("WordSection")]
 [OutputType(typeof(WordSection))]
+[Alias("WordSection") ]
 public sealed class AddOfficeWordSectionCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";

@@ -409,7 +409,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 hasStyle = true;
             }
 
-            if (source.Strike) {
+            if (source.Strikethrough) {
                 style.Strikethrough = true;
                 hasStyle = true;
             }

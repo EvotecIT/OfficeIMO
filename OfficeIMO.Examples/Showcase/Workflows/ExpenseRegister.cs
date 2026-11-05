@@ -14,7 +14,7 @@ internal static class ExpenseRegister {
         sheet.Cell(1, 1).SetValue("September expense register");
         sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
         sheet.Cell(1, 1).SetBold(true);
-        sheet.Cell(1, 1).SetFontColor("17365D");
+        sheet.Cell(1, 1).SetColor(OfficeColor.Parse("17365D"));
         string[] headers = { "Date", "Description", "Category", "Amount (EUR)", "Status" };
         for (int column = 0; column < headers.Length; column++) {
             sheet.Cell(4, column + 1).SetValue(headers[column]);

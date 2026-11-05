@@ -15,6 +15,17 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <code>Merge-OfficeExcelSheet -Path ./Sales.xlsx -Sheet Year -SourceSheet October -MatchColumnsByHeader</code></example>
 /// <example><summary>Merge a literal source file at a chosen target cell.</summary>
 /// <code>Get-Item -LiteralPath './Combined[1].xlsx' | Merge-OfficeExcelSheet -Sheet Combined -Source (Get-Item -LiteralPath './Branch[1].xlsx') -SourceSheet Sales -Address B5 -HeaderRow 4 -MatchColumnsByHeader</code></example>
+/// <example>
+/// <summary>Append one sheet to another</summary>
+/// <code>Merge-OfficeExcelSheet -Path .\Reports\Sales-2026.xlsx -Sheet Year -SourceSheet October -NoSourceHeader</code>
+/// <para>Appends the rows of the October sheet to the Year sheet, below the rows already there.</para>
+/// </example>
+/// <example>
+/// <summary>Merge branch data by column header</summary>
+/// <code>Merge-OfficeExcelSheet -Path .\Reports\All-Branches.xlsx -Sheet Combined -Source .\Branches\Krakow.xlsx -SourceSheet Sales -MatchColumnsByHeader |
+///     Select-Object SourceSheetName, TargetSheetName, RowsCopied</code>
+/// <para>Adds the Krakow branch rows to the combined sheet, matching columns by header even when the branch orders them differently, and reports how many rows were copied.</para>
+/// </example>
 [Cmdlet("Merge", "OfficeExcelSheet", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
 [OutputType(typeof(ExcelWorksheetMergeResult))]
 public sealed class MergeOfficeExcelSheetCommand : OfficeCmdlet {

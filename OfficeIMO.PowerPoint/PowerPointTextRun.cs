@@ -263,13 +263,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the explicit RGB text color. Alpha below 255 is written as native DrawingML opacity.
+        /// Gets or sets the local text color, retaining native theme slots. Alpha below 255 is written as native DrawingML opacity.
         /// Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
         /// </summary>
         public global::OfficeIMO.OfficeColor? Color {
-            get => PowerPointTextPropertyFormatting.ReadColor(RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex);
+            get => PowerPointDrawingColor.Read(RunProperties?.GetFirstChild<A.SolidFill>());
             set {
-                PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value);
+                PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart));
                 SyncLineContinuation();
             }
         }
@@ -278,9 +278,9 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the run background (DrawingML highlight) color. Alpha below 255 is written as native opacity.
         /// </summary>
         public global::OfficeIMO.OfficeColor? BackgroundColor {
-            get => PowerPointTextPropertyFormatting.ReadColor(RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>());
+            get => PowerPointDrawingColor.Read(RunProperties?.GetFirstChild<A.Highlight>());
             set {
-                PowerPointTextPropertyFormatting.SetBackgroundColor(EnsureRunProperties(), value);
+                PowerPointTextPropertyFormatting.SetBackgroundColor(EnsureRunProperties(), value, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart));
                 SyncLineContinuation();
             }
         }
@@ -414,7 +414,7 @@ namespace OfficeIMO.PowerPoint {
             if (replacement != null) {
                 bool? colorChoice = previous.Select(PowerPointTextHyperlinkColor.ReadChoice)
                     .FirstOrDefault(choice => choice.HasValue);
-                if (colorChoice.HasValue || properties.GetFirstChild<A.SolidFill>()?.RgbColorModelHex != null) {
+                if (colorChoice.HasValue || properties.GetFirstChild<A.SolidFill>() != null) {
                     PowerPointTextHyperlinkColor.SetChoice(replacement, colorChoice ?? true);
                 }
                 A.HyperlinkSound? preservedSound = previous

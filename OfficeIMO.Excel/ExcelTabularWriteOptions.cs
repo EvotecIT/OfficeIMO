@@ -5,13 +5,55 @@ namespace OfficeIMO.Excel {
     public sealed class ExcelWriterOptions {
         /// <summary>
         /// Rejects settings that require materializing the source rows before writing.
-        /// For data readers, disable shared strings and automatic sizing; tables require headers.
-        /// The workbook writer always enforces bounded streaming, including tables with headers.
+        /// For data readers, disable shared strings and automatic sizing.
+        /// The workbook writer bounds row ingestion, including headerless tables. Explicit final save policies may require a resource-limited document finalization phase.
         /// </summary>
         public bool RequireStreaming { get; set; }
 
         /// <summary>Worksheet name.</summary>
         public string SheetName { get; set; } = "Data";
+
+        /// <summary>Top-left cell for streamed output, including an optional title. Defaults to A1.</summary>
+        public string Address { get; set; } = "A1";
+
+        /// <summary>Optional bold title placed immediately above the exported headers or data.</summary>
+        public string? Title { get; set; }
+
+        /// <summary>Uses a bold font for exported headers.</summary>
+        public bool BoldHeaders { get; set; }
+
+        /// <summary>Freezes rows through the exported header, accounting for placement and title.</summary>
+        public bool FreezeHeader { get; set; }
+
+        /// <summary>Freezes columns through the first exported column.</summary>
+        public bool FreezeFirstColumn { get; set; }
+
+        /// <summary>Rejects an existing file before consuming rows and atomically refuses a destination created during export.</summary>
+        public bool NoClobber { get; set; }
+
+        /// <summary>Native header-based number formats resolved against the final table schema.</summary>
+        public ExcelColumnFormatPlan? ColumnFormat { get; set; }
+
+        /// <summary>Skips number-format rules whose headers are absent from the final schema.</summary>
+        public bool IgnoreMissingColumnFormat { get; set; }
+
+        /// <summary>Supplied core or application document properties, including the Author and Application aliases.</summary>
+        public IReadOnlyDictionary<string, object?>? DocumentProperties { get; set; }
+
+        /// <summary>Final native save policy. Formula evaluation, validation and encryption may require a resource-limited finalization phase after bounded row ingestion.</summary>
+        public ExcelSaveOptions? SaveOptions { get; set; }
+
+        /// <summary>Optional first-column emphasis on a streamed table.</summary>
+        public bool ShowFirstColumn { get; set; }
+
+        /// <summary>Optional last-column emphasis on a streamed table.</summary>
+        public bool ShowLastColumn { get; set; }
+
+        /// <summary>Enables alternating table row stripes. Defaults to true.</summary>
+        public bool ShowRowStripes { get; set; } = true;
+
+        /// <summary>Enables alternating table column stripes.</summary>
+        public bool ShowColumnStripes { get; set; }
 
         /// <summary>Writes column names as the first worksheet row.</summary>
         public bool IncludeHeaders { get; set; } = true;

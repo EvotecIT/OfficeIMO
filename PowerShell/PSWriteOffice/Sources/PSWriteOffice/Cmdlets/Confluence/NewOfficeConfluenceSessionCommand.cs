@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.Management.Automation;
 using System.Runtime.InteropServices;
@@ -24,9 +25,12 @@ public sealed class NewOfficeConfluenceSessionCommand : PSCmdlet
     [Parameter(Mandatory = true, Position = 0)]
     public Uri SiteUri { get; set; } = null!;
 
-    /// <summary>Atlassian email and API token credential.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetBasic)]
-    public PSCredential Credential { get; set; } = null!;
+    /// <summary>Atlassian email for basic authentication.</summary>
+    [Parameter(ParameterSetName = ParameterSetBasic)]
+    public string? UserName { get; set; }
+    /// <summary>API token accepted through the common password binder.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetBasic), OfficePasswordTransformation(PreserveUserName = true)]
+    public SecureString Password { get; set; } = null!;
 
     /// <summary>OAuth access token stored as a secure string.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetBearer)]
@@ -55,9 +59,13 @@ public sealed class NewOfficeConfluenceSessionCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
+        if (ParameterSetName == ParameterSetBasic)
+            UserName = OfficePasswordTransformationAttribute.ResolveUserName(Password, UserName);
+        if (ParameterSetName == ParameterSetBasic && string.IsNullOrWhiteSpace(UserName))
+            throw new PSArgumentException("Supply -UserName with the API token for basic authentication.");
         IConfluenceCredentialSource credentialSource = ParameterSetName == ParameterSetBearer
             ? new ConfluenceBearerCredentialSource(ReadSecureString(AccessToken))
-            : new ConfluenceBasicCredentialSource(Credential.UserName, Credential.GetNetworkCredential().Password);
+            : new ConfluenceBasicCredentialSource(UserName!, Password.ToPlainText()!);
         WriteObject(new ConfluenceSession(credentialSource, new ConfluenceSessionOptions
         {
             SiteUri = SiteUri,

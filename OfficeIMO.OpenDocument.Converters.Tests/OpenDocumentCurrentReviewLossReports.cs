@@ -29,7 +29,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         PowerPointSlide slide = source.AddSlide();
         PowerPointTextBox text = slide.AddTextBox("Styled",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         text.Paragraphs[0].Runs[0].Bold = true;
-        text.FillColor = "112233";
+        text.FillColor = OfficeColor.Parse("112233");
         slide.Notes.Text = "Private note";
 
         OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence(
@@ -82,7 +82,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Decorated");
         paragraph.Underline = WordUnderlineStyle.Double;
-        paragraph.DoubleStrike = true;
+        paragraph.DoubleStrikethrough = true;
 
         WordRunInfo authored = Assert.Single(source.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>().Single().Runs);
@@ -90,9 +90,9 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdtSpan converted = Assert.Single(conversion.Value.Paragraphs.Single().Spans);
 
         Assert.Equal(WordUnderlineStyle.Double, authored.UnderlineStyle);
-        Assert.True(authored.DoubleStrike);
+        Assert.True(authored.DoubleStrikethrough);
         Assert.True(converted.Underline);
-        Assert.True(converted.StrikeThrough);
+        Assert.True(converted.Strikethrough);
         Assert.Equal(OdfTextDecorationType.Double, converted.UnderlineType);
         Assert.Equal(OdfTextDecorationType.Double, converted.LineThroughType);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting"
@@ -160,7 +160,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         WordParagraph paragraph = source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Decorated cell";
         paragraph.Underline = WordUnderlineStyle.Single;
-        paragraph.Strike = true;
+        paragraph.Strikethrough = true;
 
         OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtParagraph converted = conversion.Value.Tables.Single().Cell(0, 0).Paragraphs.Single();
@@ -168,7 +168,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         Assert.Equal("Decorated cell", span.Text);
         Assert.True(span.Underline);
-        Assert.True(span.StrikeThrough);
+        Assert.True(span.Strikethrough);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting" &&
             mapping.Status != OdfConversionMappingStatus.Converted);
     }
@@ -176,9 +176,9 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void OdtTableCellRunFormattingIsPreservedInsteadOfFlattened() {
         OdtDocument source = OdtDocument.Create();
-        OdtSpan span = source.AddTable(1, 1).Cell(0, 0).Paragraphs[0].AddSpan("Decorated cell");
+        OdtSpan span = source.AddTable(1, 1).Cell(0, 0).Paragraphs[0].AddRun("Decorated cell");
         span.Underline = true;
-        span.StrikeThrough = true;
+        span.Strikethrough = true;
 
         OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         WordParagraph converted = Assert.Single(conversion.Value.Tables.Single().Rows[0].Cells[0].Paragraphs,
@@ -186,7 +186,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         Assert.Equal("Decorated cell", converted.Text);
         Assert.Equal(WordUnderlineStyle.Single, converted.Underline);
-        Assert.True(converted.Strike);
+        Assert.True(converted.Strikethrough);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting" &&
             mapping.Status != OdfConversionMappingStatus.Converted);
     }
@@ -194,7 +194,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void OdtAndWordPreserveNativeHalfPointFontSizes() {
         OdtDocument source = OdtDocument.Create();
-        OdtSpan span = source.AddParagraph().AddSpan("Half point");
+        OdtSpan span = source.AddParagraph().AddRun("Half point");
         span.FontSize = OdfLength.Points(10.5D);
 
         OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
@@ -218,7 +218,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         paragraph.Alignment = OdtParagraphAlignment.Start;
         paragraph.WritingMode = "rl-tb";
         paragraph.LineHeight = OdfLength.Parse("200%");
-        OdtSpan span = paragraph.AddSpan("Logical layout");
+        OdtSpan span = paragraph.AddRun("Logical layout");
         span.FontFamily = "Liberation Sans";
 
         OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
@@ -239,7 +239,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void OdtFontFallbackListSelectsOneWordTypefaceAndReportsApproximation() {
         OdtDocument source = OdtDocument.Create();
-        source.AddParagraph().AddSpan("Fallback").FontFamily =
+        source.AddParagraph().AddRun("Fallback").FontFamily =
             "'Liberation Sans', Arial, sans-serif";
 
         OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
@@ -483,7 +483,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void OdtFontSizesFinerThanHalfAPointAreOmittedAndReported() {
         OdtDocument source = OdtDocument.Create();
-        OdtSpan span = source.AddParagraph().AddSpan("Quarter point");
+        OdtSpan span = source.AddParagraph().AddRun("Quarter point");
         span.FontSize = OdfLength.Points(10.25D);
 
         OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
@@ -575,7 +575,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdpParagraph paragraph = source.AddSlide("Styled")
             .AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2)).AddParagraph();
         paragraph.Underline = true;
-        paragraph.StrikeThrough = true;
+        paragraph.Strikethrough = true;
         paragraph.BackgroundColor = OdfColor.Parse("#AABBCC");
         paragraph.AddText("Plain");
         paragraph.AddHyperlink("Link", "#slide-2");
@@ -599,7 +599,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         paragraph.IndentStart = OdfLength.Parse("10%");
         paragraph.FontSize = OdfLength.Parse("120%");
         paragraph.Underline = true;
-        paragraph.StrikeThrough = true;
+        paragraph.Strikethrough = true;
         paragraph.TextBackgroundColor = OdfColor.Parse("#FFFF00");
 
         OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
@@ -608,7 +608,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         WordParagraph run = Assert.Single(target.Paragraphs.Single().GetRuns());
         Assert.Contains("Body", run.Text, StringComparison.Ordinal);
         Assert.Equal(WordUnderlineStyle.Single, run.Underline);
-        Assert.True(run.Strike);
+        Assert.True(run.Strikethrough);
         Assert.Equal(WordHighlightColor.Yellow, run.Highlight);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "relative-measurements"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
@@ -743,7 +743,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void OdtToWordPreservesHeaderInlineFormattingAndImages() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph header = source.PageLayout.Header.AddParagraph();
-        header.AddSpan("Styled").Bold = true;
+        header.AddRun("Styled").Bold = true;
         header.AddImage(TinyPng, "header.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
         OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
@@ -1381,7 +1381,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         child.TextBackgroundColor = OdfColor.Parse("#000000");
         child.Element.Element(OdfNamespaces.Style + "text-properties")!
             .SetAttributeValue(OdfNamespaces.Fo + "background-color", "transparent");
-        OdtSpan span = source.AddParagraph().AddSpan("Plain");
+        OdtSpan span = source.AddParagraph().AddRun("Plain");
         span.StyleName = child.Name;
 
         OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
@@ -1399,11 +1399,11 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdtDocument source = OdtDocument.Create();
         OdfStyle style = source.Styles.CreateNamed("WaveText", OdfStyleFamily.Text);
         style.Underline = true;
-        style.StrikeThrough = true;
+        style.Strikethrough = true;
         XElement properties = style.Element.Element(OdfNamespaces.Style + "text-properties")!;
         properties.SetAttributeValue(OdfNamespaces.Style + "text-underline-style", "wave");
         properties.SetAttributeValue(OdfNamespaces.Style + "text-line-through-style", "dotted");
-        OdtSpan span = source.AddParagraph().AddSpan("Decorated");
+        OdtSpan span = source.AddParagraph().AddRun("Decorated");
         span.StyleName = style.Name;
 
         OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();

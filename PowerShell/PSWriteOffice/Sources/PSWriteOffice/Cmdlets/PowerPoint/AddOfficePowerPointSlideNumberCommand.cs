@@ -9,10 +9,10 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example><summary>Show the current slide and total.</summary>
 /// <code>PowerPointFooter -Alignment Right { PowerPointSlideNumber -IncludeTotal }</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointSlideNumber", DefaultParameterSetName = "Default")]
-[Alias("PowerPointSlideNumber")]
+[Alias("PowerPointSlideNumber") ]
 public sealed class AddOfficePowerPointSlideNumberCommand : OfficeCmdlet {
     /// <summary>Append the physical slide count, refreshed when the deck is saved.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter IncludeTotal { get; set; }
 
     /// <inheritdoc />

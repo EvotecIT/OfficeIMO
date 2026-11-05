@@ -7,23 +7,23 @@ using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Creates discoverable Word-to-PDF conversion options for Export-OfficeDocumentPdf.</summary>
+/// <summary>Creates discoverable Word-to-PDF conversion options for Convert-OfficeDocument.</summary>
 /// <example>
 ///   <summary>Configure metadata, page numbers, and font embedding.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$options = New-OfficeWordPdfOptions -Title 'Service report' -Author 'Evotec' -IncludePageNumbers -AllowSystemFontEmbedding
-/// Export-OfficeDocumentPdf -InputPath .\Report.docx -Path .\Report.pdf -WordOptions $options</code>
+/// Convert-OfficeDocument -Path .\Report.docx -To Pdf -OutputPath .\Report.pdf -Options $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeWordPdfOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordPdfExportOptions))]
 public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Default font family used when the document does not specify one.</summary>
     [Parameter]
-    public string? FontFamily { get; set; }
+    public string? Font { get; set; }
 
     /// <summary>PDF page size.</summary>
     [Parameter]
@@ -34,33 +34,33 @@ public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
     [Parameter]
     public OfficePageOrientation? Orientation { get; set; }
 
-    /// <summary>Fallback Word page size for sections without page settings.</summary>
-    [Parameter]
-    public WordPageSize? DefaultPageSize { get; set; }
+    /// <summary>Fallback physical PDF page size for sections without page settings.</summary>
+    [Parameter, OfficePageSizeTransformation]
+    public PdfPageSize? FallbackPageSize { get; set; }
 
     /// <summary>Fallback page orientation for sections without page settings.</summary>
     [Parameter]
-    public OfficePageOrientation? DefaultOrientation { get; set; }
+    public OfficePageOrientation? FallbackOrientation { get; set; }
 
     /// <summary>Left page margin in PDF points.</summary>
     [Parameter]
-    [ValidateRange(0d, double.MaxValue)]
-    public double? MarginLeft { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? MarginLeft { get; set; }
 
     /// <summary>Top page margin in PDF points.</summary>
     [Parameter]
-    [ValidateRange(0d, double.MaxValue)]
-    public double? MarginTop { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? MarginTop { get; set; }
 
     /// <summary>Right page margin in PDF points.</summary>
     [Parameter]
-    [ValidateRange(0d, double.MaxValue)]
-    public double? MarginRight { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? MarginRight { get; set; }
 
     /// <summary>Bottom page margin in PDF points.</summary>
     [Parameter]
-    [ValidateRange(0d, double.MaxValue)]
-    public double? MarginBottom { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? MarginBottom { get; set; }
 
     /// <summary>PDF title metadata.</summary>
     [Parameter]
@@ -100,20 +100,22 @@ public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        foreach (OfficeLength? margin in new[] { MarginLeft, MarginTop, MarginRight, MarginBottom })
+            if (margin.HasValue && margin.Value < OfficeLength.Zero) throw new PSArgumentOutOfRangeException("Margin", margin, "Margins must not be negative.");
         var options = new WordPdfExportOptions();
         if (PdfOptions != null) options.PdfOptions = PdfOptions;
-        if (!string.IsNullOrWhiteSpace(FontFamily)) options.FontFamily = FontFamily;
+        if (!string.IsNullOrWhiteSpace(Font)) options.FontFamily = Font;
         if (PageSize.HasValue) options.PageSize = PageSize.Value;
         if (Orientation.HasValue) options.Orientation = Orientation.Value;
-        if (DefaultPageSize.HasValue) options.DefaultPageSize = DefaultPageSize.Value;
-        if (DefaultOrientation.HasValue) options.DefaultOrientation = DefaultOrientation.Value;
+        if (FallbackPageSize.HasValue) options.FallbackPageSize = FallbackPageSize.Value;
+        if (FallbackOrientation.HasValue) options.FallbackOrientation = FallbackOrientation.Value;
         if (HasMargins()) {
             PdfPageMargins defaults = PdfPageMargins.Normal;
             options.Margins = new PdfPageMargins(
-                MarginLeft.HasValue ? OfficeIMO.OfficeLength.Points(MarginLeft.Value) : defaults.Left,
-                MarginTop.HasValue ? OfficeIMO.OfficeLength.Points(MarginTop.Value) : defaults.Top,
-                MarginRight.HasValue ? OfficeIMO.OfficeLength.Points(MarginRight.Value) : defaults.Right,
-                MarginBottom.HasValue ? OfficeIMO.OfficeLength.Points(MarginBottom.Value) : defaults.Bottom);
+                MarginLeft.HasValue ? MarginLeft.Value : defaults.Left,
+                MarginTop.HasValue ? MarginTop.Value : defaults.Top,
+                MarginRight.HasValue ? MarginRight.Value : defaults.Right,
+                MarginBottom.HasValue ? MarginBottom.Value : defaults.Bottom);
         }
         if (!string.IsNullOrWhiteSpace(Title)) options.Title = Title;
         if (!string.IsNullOrWhiteSpace(Author)) options.Author = Author;

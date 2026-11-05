@@ -208,7 +208,7 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static bool HasOdtParagraphNoteReferenceFormatting(OdtParagraph paragraph) =>
         paragraph.Bold.HasValue || paragraph.Italic.HasValue || paragraph.Underline.HasValue ||
-        paragraph.StrikeThrough.HasValue || paragraph.SmallCaps.HasValue ||
+        paragraph.Strikethrough.HasValue || paragraph.SmallCaps.HasValue ||
         paragraph.FontSize.HasValue || paragraph.TextPosition.HasValue ||
         paragraph.TextTransform.HasValue || paragraph.Color.HasValue ||
         paragraph.TextBackgroundColor.HasValue || paragraph.FontFamily != null ||
@@ -318,7 +318,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         HasNonDefaultWordNoteStyle(paragraph, kind) ||
         paragraph.Runs.Any(run => run.NonTextBreaks?.Values.Any(kind => kind != WordBreakType.TextWrapping) == true ||
             run.Text.Length > 0 && (
-            run.Bold || run.Italic || run.Underline || run.Strike || run.DoubleStrike ||
+            run.Bold || run.Italic || run.Underline || run.Strikethrough || run.DoubleStrikethrough ||
             run.IsHyperlink ||
             run.FontSize.HasValue || run.FontFamily != null || run.Color?.ToRgbHex() != null ||
             run.HighlightColor != null || run.BackgroundColor?.ToRgbHex() != null ||

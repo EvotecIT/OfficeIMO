@@ -6,40 +6,49 @@ schema: 2.0.0
 ---
 # Get-OfficeExcelTemplateMarker
 ## SYNOPSIS
-Lists Excel template markers such as {{Name}} and optionally shows whether supplied values bind to them.
+Lists template markers and, with -Value, which are bound.
 
 ## SYNTAX
-### Context (Default)
+### Document (Default)
 ```powershell
-Get-OfficeExcelTemplateMarker [-Sheet <string>] [-SheetIndex <Int32>] [-Value <hashtable>] [-MissingOnly] [<CommonParameters>]
+Get-OfficeExcelTemplateMarker [-Sheet <OfficeSheetSelector[]>] [-Value <hashtable>] [-MissingOnly] [-Document <ExcelDocument>] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Get-OfficeExcelTemplateMarker [-Path] <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Value <hashtable>] [-MissingOnly] [<CommonParameters>]
+Get-OfficeExcelTemplateMarker [-Path] <string[]> [-Sheet <OfficeSheetSelector[]>] [-Value <hashtable>] [-MissingOnly] [<CommonParameters>]
 ```
 
-### Document
+### LiteralPath
 ```powershell
-Get-OfficeExcelTemplateMarker -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-Value <hashtable>] [-MissingOnly] [<CommonParameters>]
+Get-OfficeExcelTemplateMarker -LiteralPath <string[]> [-Sheet <OfficeSheetSelector[]>] [-Value <hashtable>] [-MissingOnly] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Lists Excel template markers such as {{Name}} and optionally shows whether supplied values bind to them.
+Lists template markers and, with -Value, which are bound.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficeExcelTemplateMarker -Path .\Invoice.xlsx -Sheet Invoice -Value @{ Number = 'INV-001'; Total = 123.45 }
+Get-OfficeExcelTemplateMarker -Path .\Templates\Service-Report.xltx
 ```
 
-Returns one object per marker with address, format, and binding metadata.
+Shows every {{Marker}} in the template with its sheet and cell.
+
+### EXAMPLE 2
+```powershell
+$values = @{ Client = 'Northwind Traders'; Month = 'October 2026' }
+Get-OfficeExcelTemplateMarker -Path .\Templates\Service-Report.xltx -Value $values -MissingOnly |
+    Select-Object SheetName, CellReference, Name
+```
+
+Compares the template with the values a script is about to supply and lists only the markers that would stay unfilled.
 
 ## PARAMETERS
 
 ### -Document
-Workbook to inspect outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
@@ -47,10 +56,26 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal workbook paths, including FileInfo.FullName and provider PSPath.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -59,7 +84,7 @@ Only returns markers that are not supplied by -Value.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -71,43 +96,27 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Workbook path to inspect.
+Workbook paths resolved with filesystem wildcard support.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name to inspect. Defaults to the current DSL sheet or all workbook sheets.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) to inspect. Defaults to the current DSL sheet or all workbook sheets.
-
-```yaml
-Type: Int32
-Parameter Sets: Context, Path, Document
+Type: OfficeSheetSelector[]
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -119,12 +128,12 @@ Accept wildcard characters: False
 ```
 
 ### -Value
-Optional marker values used to report which markers are bound and which are still missing.
+Value or values consumed by the selected operation.
 
 ```yaml
 Type: Hashtable
-Parameter Sets: Context, Path, Document
-Aliases: Values
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
 Possible values:
 
 Required: False
@@ -139,12 +148,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 
-- `System.Management.Automation.PSObject`
+- `None`
 
 ## RELATED LINKS
 

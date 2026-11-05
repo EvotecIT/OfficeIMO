@@ -26,7 +26,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         using var saved = PowerPointDocument.Load(path);
         Assert.Empty(saved.ValidateDocument());
         var table = Assert.Single(Assert.Single(saved.Slides).Tables);
-        Assert.Equal(2, table.Rows);
+        Assert.Equal(2, table.RowCount);
         Assert.Equal("Amount", table.GetCell(0, 0).Text);
         var amount = table.GetCell(1, 0);
         Assert.Equal("1,5", amount.Text);
@@ -62,7 +62,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.Equal(2, saved.Slides.Count);
         Assert.Empty(saved.Slides[0].Tables);
         var table = Assert.Single(saved.Slides[1].Tables);
-        Assert.Equal(2, table.Rows);
+        Assert.Equal(2, table.RowCount);
         Assert.Equal("{5940675A-B579-460E-94D1-54222C63F5DA}", table.StyleId, ignoreCase: true);
         Assert.Equal(1800000L, table.Top.ToEmus());
         Assert.True(table.Left.ToPoints() > saved.SlideSize.Width.ToPoints() / 2);

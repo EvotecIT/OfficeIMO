@@ -115,12 +115,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Optional heading font override applied to every generated alternative.
         /// </summary>
-        public string? HeadingFontName { get; private set; }
+        public string? HeadingFontFamily { get; private set; }
 
         /// <summary>
         ///     Optional body font override applied to every generated alternative.
         /// </summary>
-        public string? BodyFontName { get; private set; }
+        public string? BodyFontFamily { get; private set; }
 
         /// <summary>
         ///     Optional secondary accent override applied after recipe variations.
@@ -228,9 +228,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies font overrides while preserving the rest of the selected recipe or direction.
         /// </summary>
-        public PowerPointDesignBrief WithFonts(string? headingFontName = null, string? bodyFontName = null) {
-            HeadingFontName = headingFontName;
-            BodyFontName = bodyFontName;
+        public PowerPointDesignBrief WithFonts(string? headingFontFamily = null, string? bodyFontFamily = null) {
+            HeadingFontFamily = headingFontFamily;
+            BodyFontFamily = bodyFontFamily;
             return this;
         }
 
@@ -392,7 +392,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return ApplyBriefOverrides(recipe.CreateAlternativesFromBrand(AccentColor, Seed, count, Name,
-                Eyebrow, FooterLeft, FooterRight, HeadingFontName, BodyFontName));
+                Eyebrow, FooterLeft, FooterRight, HeadingFontFamily, BodyFontFamily));
         }
 
         /// <summary>
@@ -540,7 +540,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return PowerPointDeckDesign.CreateAlternativesFromBrand(AccentColor, Seed, selectedDirections, Name,
-                Eyebrow, FooterLeft, FooterRight, HeadingFontName, BodyFontName);
+                Eyebrow, FooterLeft, FooterRight, HeadingFontFamily, BodyFontFamily);
         }
 
         private bool HasDirectionPreferences =>
@@ -707,7 +707,7 @@ namespace OfficeIMO.PowerPoint {
             if (LayoutStrategy == null && PaletteStyle == null && TypographyStyle == null &&
                 SecondaryAccentColor == null &&
                 TertiaryAccentColor == null && WarmAccentColor == null && SurfaceColor == null &&
-                PanelBorderColor == null && HeadingFontName == null && BodyFontName == null) {
+                PanelBorderColor == null && HeadingFontFamily == null && BodyFontFamily == null) {
                 return alternatives;
             }
 
@@ -722,29 +722,29 @@ namespace OfficeIMO.PowerPoint {
                     design.Theme.ApplyTypographyStyle(TypographyStyle.Value, design.Seed);
                 }
                 if (SecondaryAccentColor != null) {
-                    design.Theme.Accent2Color = SecondaryAccentColor;
+                    design.Theme.Accent2Color = OfficeColor.ParseHex(SecondaryAccentColor);
                 }
                 if (TertiaryAccentColor != null) {
-                    design.Theme.Accent3Color = TertiaryAccentColor;
+                    design.Theme.Accent3Color = OfficeColor.ParseHex(TertiaryAccentColor);
                 }
                 if (WarmAccentColor != null) {
-                    design.Theme.WarningColor = WarmAccentColor;
+                    design.Theme.WarningColor = OfficeColor.ParseHex(WarmAccentColor);
                 }
                 if (SurfaceColor != null) {
-                    design.Theme.SurfaceColor = SurfaceColor;
+                    design.Theme.SurfaceColor = OfficeColor.ParseHex(SurfaceColor);
                 }
                 if (PanelBorderColor != null) {
-                    design.Theme.PanelBorderColor = PanelBorderColor;
+                    design.Theme.PanelBorderColor = OfficeColor.ParseHex(PanelBorderColor);
                 }
-                if (!string.IsNullOrWhiteSpace(HeadingFontName)) {
-                    design.Theme.HeadingFontName = HeadingFontName!;
+                if (!string.IsNullOrWhiteSpace(HeadingFontFamily)) {
+                    design.Theme.HeadingFontFamily = HeadingFontFamily!;
                 }
-                if (!string.IsNullOrWhiteSpace(BodyFontName)) {
-                    design.Theme.BodyFontName = BodyFontName!;
+                if (!string.IsNullOrWhiteSpace(BodyFontFamily)) {
+                    design.Theme.BodyFontFamily = BodyFontFamily!;
                 }
 
                 if (TypographyStyle == null &&
-                    (!string.IsNullOrWhiteSpace(HeadingFontName) || !string.IsNullOrWhiteSpace(BodyFontName))) {
+                    (!string.IsNullOrWhiteSpace(HeadingFontFamily) || !string.IsNullOrWhiteSpace(BodyFontFamily))) {
                     design.Theme.SyncTypographyStyleToFonts();
                 }
 
@@ -760,8 +760,8 @@ namespace OfficeIMO.PowerPoint {
             WarmAccentColor = null;
             SurfaceColor = null;
             PanelBorderColor = null;
-            HeadingFontName = null;
-            BodyFontName = null;
+            HeadingFontFamily = null;
+            BodyFontFamily = null;
             return this;
         }
 

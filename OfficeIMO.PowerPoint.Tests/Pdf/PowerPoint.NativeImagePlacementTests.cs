@@ -28,13 +28,13 @@ public partial class PowerPointSaveAsPdfTests {
         using var presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.BackgroundColor = "FFFFFF";
+        slide.BackgroundColor = OfficeColor.Parse("FFFFFF");
         byte[] svg = System.Text.Encoding.UTF8.GetBytes(
             "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>"
             + "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Visible HTML</div></foreignObject></svg>");
         slide.AddImage(new MemoryStream(svg), OfficeImageFormat.Svg, global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(0),
             global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
-        slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20)).FillColor = "D7263D";
+        slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20)).FillColor = OfficeColor.Parse("D7263D");
 
         PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
         byte[] pdf = result.ToBytes();

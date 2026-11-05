@@ -6,7 +6,7 @@ public sealed class OneNoteNotebookReaderOptions {
     public const int DefaultMaxSectionGroupDepth = 32;
 
     /// <summary>Limits used when reading each <c>.onetoc2</c> and <c>.one</c> revision store.</summary>
-    public OneNoteReaderOptions OneNoteOptions { get; set; } = new OneNoteReaderOptions();
+    public OneNoteLoadOptions OneNoteOptions { get; set; } = new OneNoteLoadOptions();
 
     /// <summary>Loads each section's pages and assets instead of returning TOC metadata only.</summary>
     public bool LoadSectionContent { get; set; } = true;
@@ -36,5 +36,5 @@ public sealed class OneNoteNotebookReaderOptions {
     public long MaxPackageExpandedBytes { get; set; } = 1024L * 1024L * 1024L;
 
     /// <summary>Maximum expanded size of one <c>.onepkg</c> entry.</summary>
-    public long MaxPackageEntryBytes { get; set; } = OneNoteReaderOptions.DefaultMaxInputBytes;
+    public long MaxPackageEntryBytes { get; set; } = OneNoteLoadOptions.DefaultMaxInputBytes;
 }

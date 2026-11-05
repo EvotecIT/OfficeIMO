@@ -24,32 +24,63 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [Cmdlet(VerbsCommon.Open, "OfficePdf", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(PdfDocument), typeof(FileInfo))]
 public sealed class OpenOfficePdfCommand : OfficeLifecycleCmdlet<PdfDocument> {
+    /// <summary>An optional authoring block; omission returns the live document.</summary>
+    [Parameter(ParameterSetName = "Content", Mandatory = true, Position = 1)]
+    [Parameter(ParameterSetName = "LiteralPathContent", Mandatory = true, Position = 0)]
+    [ValidateNotNull]
+    public override ScriptBlock? Content { get => base.Content; set => base.Content = value; }
+
+    /// <summary>Emit the FileInfo after a completed authoring block.</summary>
+    [Parameter(ParameterSetName = "Content")]
+    [Parameter(ParameterSetName = "LiteralPathContent")]
+    public override SwitchParameter PassThru { get => base.PassThru; set => base.PassThru = value; }
+
+    /// <summary>Open the saved document after a completed authoring block.</summary>
+    [Parameter(ParameterSetName = "Content")]
+    [Parameter(ParameterSetName = "LiteralPathContent")]
+    public override SwitchParameter Show { get => base.Show; set => base.Show = value; }
+
     private string? _contentInput;
     private int _contentInputCount;
     /// <summary>One or more PDF input paths, with FileSystem wildcard expansion.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Content")]
     [SupportsWildcards, ValidateNotNullOrEmpty]
     public string[] Path { get; set; } = Array.Empty<string>();
 
     /// <summary>Literal PDF paths; accepts FileInfo.FullName and provider PSPath.</summary>
     [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPathContent")]
     [Alias("FullName", "PSPath"), ValidateNotNullOrEmpty]
     public string[] LiteralPath { get; set; } = Array.Empty<string>();
 
     /// <summary>Optional destination for a content block; omission saves back to the input.</summary>
-    [Parameter, ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "Content")]
+    [Parameter(ParameterSetName = "LiteralPathContent")]
+    [ValidateNotNullOrEmpty]
     public string? OutputPath { get; set; }
 
     /// <summary>Source password as a SecureString, credential, or warned plaintext value.</summary>
-    [Parameter, OfficePasswordTransformation]
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "Content")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathContent")]
+    [OfficePasswordTransformation]
     public SecureString? Password { get; set; }
 
     /// <summary>After authentication, explicitly ignore owner-imposed usage restrictions.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "Content")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathContent")]
     public SwitchParameter IgnorePermissionRestrictions { get; set; }
 
     /// <summary>Native PDF parsing, resource-limit and authentication settings.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "Content")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathContent")]
+    [OfficeOptionsTransformation(typeof(PdfLoadOptions))]
     public PdfLoadOptions? LoadOptions { get; set; }
 
     /// <inheritdoc />
@@ -58,7 +89,7 @@ public sealed class OpenOfficePdfCommand : OfficeLifecycleCmdlet<PdfDocument> {
             InvalidArgument(new PSArgumentException("OutputPath requires a content block."), OutputPath);
             return;
         }
-        bool literal = ParameterSetName == "LiteralPath";
+        bool literal = ParameterSetName.StartsWith("LiteralPath", StringComparison.Ordinal);
         var inputs = new List<string>();
         foreach (string path in literal ? LiteralPath : Path)
             inputs.AddRange(OfficePath.ResolveInput(SessionState, path, literal));

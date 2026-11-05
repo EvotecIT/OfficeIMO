@@ -35,7 +35,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     /// <summary>Adds a footnote reference (e.g., [^id]).</summary>
     public InlineSequence FootnoteRef(string label) { _inlines.Add(new FootnoteRefInline(label)); return this; }
     /// <summary>Adds strikethrough text.</summary>
-    public InlineSequence Strike(string text) { _inlines.Add(new StrikethroughInline(text)); return this; }
+    public InlineSequence Strikethrough(string text) { _inlines.Add(new StrikethroughInline(text)); return this; }
     /// <summary>Adds highlighted text rendered as <c>==text==</c>.</summary>
     public InlineSequence Highlight(string text) { _inlines.Add(new HighlightInline(text)); return this; }
     /// <summary>Adds underlined text (HTML-only in Markdown).</summary>

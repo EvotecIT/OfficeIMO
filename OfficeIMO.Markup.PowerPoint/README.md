@@ -2,8 +2,6 @@
 
 `OfficeIMO.Markup.PowerPoint` exports the semantic `OfficeIMO.Markup` presentation model to editable PowerPoint `.pptx` files through `OfficeIMO.PowerPoint`.
 
-This project is built from the OfficeIMO source tree and is not published as a standalone NuGet package.
-
 ## Quick start
 
 ```csharp

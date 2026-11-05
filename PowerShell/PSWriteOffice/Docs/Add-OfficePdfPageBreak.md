@@ -11,7 +11,7 @@ Adds a page break to a PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfPageBreak [-PassThru] [<CommonParameters>]
+Add-OfficePdfPageBreak [<CommonParameters>]
 ```
 
 ### Document
@@ -59,7 +59,7 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

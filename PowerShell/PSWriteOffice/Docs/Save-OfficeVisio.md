@@ -11,7 +11,7 @@ Saves an OfficeIMO.Visio document.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Save-OfficeVisio [-Document] <VisioDocument> [[-Path] <string>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeVisio [-Document] <VisioDocument> [[-Path] <string>] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Saves an OfficeIMO.Visio document.
 
 ### EXAMPLE 1
 ```powershell
-PS> $diagram = Get-OfficeVisio -Path .\ServiceMap.vsdx
+PS> $diagram = Open-OfficeVisio -Path .\ServiceMap.vsdx
 $diagram | Save-OfficeVisio -Path .\ServiceMap-copy.vsdx -PassThru
 ```
 
@@ -42,22 +42,6 @@ Required: True
 Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -Open
-Open the document after saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Document
-Aliases: Show
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -88,6 +72,22 @@ Possible values:
 
 Required: False
 Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Show
+Open the document after saving.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

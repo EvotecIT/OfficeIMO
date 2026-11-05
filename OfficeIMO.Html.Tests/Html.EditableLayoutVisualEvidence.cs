@@ -71,7 +71,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         WriteEvidenceWhenRequested("editable-layout.pptx", pptx);
         WriteEvidenceWhenRequested("editable-layout-word.png", wordPng);
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OFFICEIMO_HTML_LAYOUT_EVIDENCE_DIR"))) {
-            WriteEvidenceWhenRequested("editable-layout-word.pdf", (word.ToPdf()).ToBytes());
+            WriteEvidenceWhenRequested("editable-layout-word.pdf", word.ToPdf().ToBytes());
             WriteEvidenceWhenRequested("editable-layout-word.svg", word.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Svg }));
         }
         WriteEvidenceWhenRequested("editable-layout-excel.png", excelPng);

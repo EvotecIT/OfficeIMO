@@ -144,7 +144,7 @@ public static class PowerPointExtractionExtensions {
             if (shape is PowerPointTextBox box) {
                 foreach (PowerPointParagraph paragraph in box.Paragraphs) text.AppendLine(RenderParagraphText(paragraph, renderMarkdown: false));
             } else if (options.IncludeTables && shape is PowerPointTable table) {
-                foreach (PowerPointTableRow row in table.RowItems) {
+                foreach (PowerPointTableRow row in table.Rows) {
                     token.ThrowIfCancellationRequested();
                     text.AppendLine(string.Join("\t", row.Cells.Select(cell => string.Join(" ", cell.Paragraphs.Select(paragraph => RenderParagraphText(paragraph, renderMarkdown: false))))));
                 }
@@ -337,7 +337,7 @@ public static class PowerPointExtractionExtensions {
     }
 
     private static void AppendTableMarkdown(StringBuilder markdown, PowerPointTable table, ref int tableIndex) {
-        List<IReadOnlyList<string>> rows = table.RowItems
+        List<IReadOnlyList<string>> rows = table.Rows
             .Select(row => (IReadOnlyList<string>)row.Cells.Select(RenderTableCellText).ToList())
             .ToList();
 

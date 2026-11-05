@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Drawing;
 using Color = OfficeIMO.OfficeColor;
 
@@ -15,27 +14,28 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Basic Visio.vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            document.AsFluent()
-                .Info(info => info.Title("Basic Visio").Author("OfficeIMO"))
-                .AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11), VisioMeasurementUnit.Inches, configure: p => p
-                    .AddRectangle("start", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle")
-                    .GetShape("start", s => s
-                        .Fill(Color.LightBlue)
-                        .Stroke(Color.DarkBlue, 0.02)
-                        .Font("Aptos")
-                        .FontSize(14)
-                        .TextColor(Color.DarkBlue)
-                        .Bold()
-                        .Italic()
-                        .Underline(OfficeTextDecorationStyle.Double)
-                        .Strikethrough(OfficeTextDecorationStyle.Single)
-                        .Baseline(OfficeTextBaseline.Superscript)
-                        .Capitalization(VisioTextCapitalization.AllCaps)
-                        .TransformTextCase(OfficeTextCase.TitleCase)))
-                .End();
+            document
+                .ConfigureProperties(info => { info.SetTitle("Basic Visio"); info.SetAuthor("OfficeIMO"); })
+                .AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11), VisioMeasurementUnit.Inches, configure: p => {
+                    p.AddRectangle("start", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle");
+                    p.GetShape("start", s => {
+                        s.SetFill(Color.LightBlue);
+                        s.SetStroke(Color.DarkBlue, 0.02);
+                        s.SetFont("Aptos");
+                        s.SetFontSize(14);
+                        s.SetTextColor(Color.DarkBlue);
+                        s.SetBold();
+                        s.SetItalic();
+                        s.SetUnderline(OfficeTextDecorationStyle.Double);
+                        s.SetStrikethrough(OfficeTextDecorationStyle.Single);
+                        s.SetBaseline(OfficeTextBaseline.Superscript);
+                        s.SetCapitalization(VisioTextCapitalization.AllCaps);
+                        s.TransformTextCase(OfficeTextCase.TitleCase);
+                    });
+                });
             document.Save();
             File.WriteAllText(Path.Combine(folderPath, "Basic Visio.svg"), document.ToSvg());
-            document.SaveAsPng(Path.Combine(folderPath, "Basic Visio.png"), new VisioPngSaveOptions { PixelsPerInch = 144 });
+            document.SaveAsImage(Path.Combine(folderPath, "Basic Visio.png"), new VisioImageExportOptions { TargetDpi = 144 });
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

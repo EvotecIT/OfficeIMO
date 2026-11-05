@@ -30,8 +30,8 @@ namespace OfficeIMO.Tests {
                     sharedPath, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(100), "Shared freeform");
                 Assert.Equal("Shared freeform", shape.Name);
                 Assert.Null(shape.ShapeType);
-                Assert.Equal("0EA5E9", shape.FillColor);
-                Assert.Equal("0C4A6E", shape.OutlineColor);
+                Assert.Equal(OfficeColor.Parse("0EA5E9"), shape.FillColor);
+                Assert.Equal(OfficeColor.Parse("0C4A6E"), shape.OutlineColor);
                 Assert.Equal(2.25D, shape.OutlineWidth?.ToPoints());
                 presentation.Save();
             }
@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointAutoShape shape = presentation.AddSlide().AddRectangle(
                 OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
-            shape.OutlineColor = "112233";
+            shape.OutlineColor = OfficeColor.Parse("112233");
             A.SolidFill solid = shape.Element.Descendants<A.Outline>().Single()
                 .GetFirstChild<A.SolidFill>()!;
             solid.RemoveAllChildren();
@@ -355,7 +355,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointAutoShape shape = presentation.AddSlide().AddRectangle(
                 OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
-            shape.FillColor = "112233";
+            shape.FillColor = OfficeColor.Parse("112233");
             A.SolidFill solid = shape.Element.Descendants<ShapeProperties>().Single()
                 .GetFirstChild<A.SolidFill>()!;
             solid.RemoveAllChildren();

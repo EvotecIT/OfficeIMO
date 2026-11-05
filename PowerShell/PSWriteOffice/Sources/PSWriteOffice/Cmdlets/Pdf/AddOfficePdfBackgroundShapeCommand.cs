@@ -1,3 +1,6 @@
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using PSWriteOffice.Foundation;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Services.Pdf;
@@ -20,72 +23,76 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <para>Creates a polished generated page background without hand-drawing PDF primitives.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePdfBackgroundShape", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfBackgroundShape")]
-[OutputType(typeof(PdfDocument))]
+[Alias("PdfBackgroundShape") ]
 public sealed class AddOfficePdfBackgroundShapeCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Compatibility parameter. Page composition is supported only inside New-OfficePdf.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public PdfDocument Document { get; set; } = null!;
 
     /// <summary>Shape type to add.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetContext)]
     public OfficePdfBackgroundShapeType Shape { get; set; }
 
     /// <summary>Shape left coordinate in PDF points for explicit shapes.</summary>
     [Parameter]
-    public double X { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength X { get; set; }
 
     /// <summary>Shape bottom coordinate in PDF points for explicit shapes.</summary>
     [Parameter]
-    public double Y { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength Y { get; set; }
 
     /// <summary>Shape width in PDF points, or band width for left/right bands.</summary>
     [Parameter]
-    public double? Width { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? Width { get; set; }
 
     /// <summary>Shape height in PDF points, or band height for top/bottom bands.</summary>
     [Parameter]
-    public double? Height { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? Height { get; set; }
 
     /// <summary>Rounded rectangle or band corner radius in PDF points.</summary>
     [Parameter]
-    public double CornerRadius { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength CornerRadius { get; set; }
 
     /// <summary>Horizontal inset for top/bottom bands in PDF points.</summary>
     [Parameter]
-    public double InsetX { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength InsetX { get; set; }
 
     /// <summary>Vertical inset for left/right bands in PDF points.</summary>
     [Parameter]
-    public double InsetY { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength InsetY { get; set; }
 
     /// <summary>Vertical offset for top/bottom bands in PDF points.</summary>
     [Parameter]
-    public double OffsetY { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength OffsetY { get; set; }
 
     /// <summary>Horizontal offset for left/right bands in PDF points.</summary>
     [Parameter]
-    public double OffsetX { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength OffsetX { get; set; }
 
     /// <summary>Fill color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? FillColor { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? FillColor { get; set; }
 
     /// <summary>Stroke color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? StrokeColor { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? StrokeColor { get; set; }
 
     /// <summary>Stroke width in PDF points.</summary>
     [Parameter]
-    public double StrokeWidth { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength StrokeWidth { get; set; }
 
     /// <summary>Fill opacity from 0 to 1.</summary>
     [Parameter]
@@ -97,57 +104,49 @@ public sealed class AddOfficePdfBackgroundShapeCommand : PSCmdlet
     [ValidateRange(0D, 1D)]
     public double? StrokeOpacity { get; set; }
 
-    /// <summary>Emit the updated document.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var fill = PdfCommandUtilities.ParseColor(FillColor);
-        var stroke = PdfCommandUtilities.ParseColor(StrokeColor);
-        var document = PdfCommandUtilities.ComposePage(this, Document, ParameterSetName, ParameterSetDocument, page =>
+        var fill = FillColor;
+        var stroke = StrokeColor;
+        PdfDslContext.Require(this).ConfigurePage( page =>
         {
             switch (Shape)
             {
                 case OfficePdfBackgroundShapeType.Rectangle:
-                    page.BackgroundRectangle(global::OfficeIMO.OfficeLength.Points(X), global::OfficeIMO.OfficeLength.Points(Y), global::OfficeIMO.OfficeLength.Points(RequireWidth()), global::OfficeIMO.OfficeLength.Points(RequireHeight()), fill, stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
+                    page.BackgroundRectangle(X, Y, RequireWidth(), RequireHeight(), fill, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.RoundedRectangle:
-                    page.BackgroundRoundedRectangle(global::OfficeIMO.OfficeLength.Points(X), global::OfficeIMO.OfficeLength.Points(Y), global::OfficeIMO.OfficeLength.Points(RequireWidth()), global::OfficeIMO.OfficeLength.Points(RequireHeight()), global::OfficeIMO.OfficeLength.Points(CornerRadius), fill, stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
+                    page.BackgroundRoundedRectangle(X, Y, RequireWidth(), RequireHeight(), CornerRadius, fill, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.Ellipse:
-                    page.BackgroundEllipse(global::OfficeIMO.OfficeLength.Points(X), global::OfficeIMO.OfficeLength.Points(Y), global::OfficeIMO.OfficeLength.Points(RequireWidth()), global::OfficeIMO.OfficeLength.Points(RequireHeight()), fill, stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
+                    page.BackgroundEllipse(X, Y, RequireWidth(), RequireHeight(), fill, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.TopBand:
-                    page.BackgroundTopBand(global::OfficeIMO.OfficeLength.Points(RequireHeight()), fill, global::OfficeIMO.OfficeLength.Points(InsetX), global::OfficeIMO.OfficeLength.Points(OffsetY), global::OfficeIMO.OfficeLength.Points(CornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
+                    page.BackgroundTopBand(RequireHeight(), fill, InsetX, OffsetY, CornerRadius, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.BottomBand:
-                    page.BackgroundBottomBand(global::OfficeIMO.OfficeLength.Points(RequireHeight()), fill, global::OfficeIMO.OfficeLength.Points(InsetX), global::OfficeIMO.OfficeLength.Points(OffsetY), global::OfficeIMO.OfficeLength.Points(CornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
+                    page.BackgroundBottomBand(RequireHeight(), fill, InsetX, OffsetY, CornerRadius, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.LeftBand:
-                    page.BackgroundLeftBand(global::OfficeIMO.OfficeLength.Points(RequireWidth()), fill, global::OfficeIMO.OfficeLength.Points(InsetY), global::OfficeIMO.OfficeLength.Points(OffsetX), global::OfficeIMO.OfficeLength.Points(CornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
+                    page.BackgroundLeftBand(RequireWidth(), fill, InsetY, OffsetX, CornerRadius, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.RightBand:
-                    page.BackgroundRightBand(global::OfficeIMO.OfficeLength.Points(RequireWidth()), fill, global::OfficeIMO.OfficeLength.Points(InsetY), global::OfficeIMO.OfficeLength.Points(OffsetX), global::OfficeIMO.OfficeLength.Points(CornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
+                    page.BackgroundRightBand(RequireWidth(), fill, InsetY, OffsetX, CornerRadius, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
                     break;
                 default:
                     throw new PSArgumentOutOfRangeException(nameof(Shape), Shape, "Unsupported PDF background shape type.");
             }
         });
 
-        if (PassThru.IsPresent && document != null)
-        {
-            WriteObject(document);
-        }
     }
 
-    private double RequireWidth()
+    private OfficeLength RequireWidth()
     {
         return Width ?? throw new PSArgumentException("-Width is required for this background shape.", nameof(Width));
     }
 
-    private double RequireHeight()
+    private OfficeLength RequireHeight()
     {
         return Height ?? throw new PSArgumentException("-Height is required for this background shape.", nameof(Height));
     }

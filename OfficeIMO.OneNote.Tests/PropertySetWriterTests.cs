@@ -66,7 +66,7 @@ public sealed class PropertySetWriterTests {
         OneNotePropertySet roundTrip = OneNotePropertySetReader.Read(
             data,
             globalIds.ToDictionary(item => item.Value, item => item.Key),
-            new OneNoteReaderOptions(),
+            new OneNoteLoadOptions(),
             0);
 
         Assert.Equal(objectId, Assert.Single(roundTrip.Properties[0].ReferencedIds));

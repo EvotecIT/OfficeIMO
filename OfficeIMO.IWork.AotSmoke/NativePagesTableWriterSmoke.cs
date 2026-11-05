@@ -14,11 +14,11 @@ internal static class NativePagesTableWriterSmoke {
         document.AddTable(data, "Values", 108, 48, "Arial", 12, "003366");
         document.AddTable(IWorkTableData.Create(2, 2), "Empty", 100, 28);
         document.AddParagraph("After", new IWorkPagesParagraphLayout(1.5f, 6, 9));
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         Require(bytes.Length == 17_157 && Convert.ToHexString(SHA256.HashData(bytes)) == AcceptedSha256,
             "NativeAOT Pages tables differ from the independently decoded Apple-accepted package.");
-        Require(bytes.SequenceEqual(document.SaveBytes()), "Pages table creation is not deterministic.");
-        var projection = IWorkSourceDocument.Open(bytes).ReadPages();
+        Require(bytes.SequenceEqual(document.ToBytes()), "Pages table creation is not deterministic.");
+        var projection = IWorkSourceDocument.Load(bytes).ReadPages();
         Require(projection.Tables.Count == 2 && projection.Diagnostics.Count == 0
             && projection.SourceDeclarationIssues.Count == 0 && projection.SourceReferenceIssues.Count == 0,
             "Pages table creation lost its supported graph.");
@@ -27,7 +27,7 @@ internal static class NativePagesTableWriterSmoke {
             && table.GetVerticalAlignment(3, 3) == IWorkCellVerticalAlignment.Top
             && table.GetCell(1, 2)?.Kind == IWorkCellKind.Text
             && Equals(table.GetCell(2, 1)?.Value, -1234.5), "Pages effective layout or scalar types were lost.");
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
@@ -45,14 +45,14 @@ internal static class NativePagesTableWriterSmoke {
             Require(output.CanWrite && before.SequenceEqual(output.ToArray()), "Pages budget rejection changed its caller stream.");
         }
         var only = IWorkPagesDocument.Create(); only.AddTable(IWorkTableData.Create(2, 2).SetText(1, 1, "Table only"));
-        using var tableOnly = IWorkSourceDocument.Open(new MemoryStream(only.SaveBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var tableOnly = IWorkSourceDocument.Load(new MemoryStream(only.ToBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         tableOnly.RequireCompleteEditableReconstruction();
         Require(tableOnly.Value.Tables.Count == 1 && only.Paragraphs.Count == 0, "Table-only Pages body was not editable.");
         Console.WriteLine($"PASS | native Pages inline scalar-table creation | {AcceptedSha256} | {bytes.Length} bytes | deterministic body order, typed Unicode cells, inherited layout, strict saved/reopened DOCX, table-only body and atomic grid bounds");
         byte[] nativeBytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "pages-created-tables-edited.pages"));
         const string nativeHash = "F8A50C0312377A099C4C520B8DCDD3657391D9831C9C85D15474BFA740ADE2CD";
         Require(Convert.ToHexString(SHA256.HashData(nativeBytes)) == nativeHash, "Native Pages table edit fixture changed.");
-        var native = IWorkSourceDocument.Open(nativeBytes);
+        var native = IWorkSourceDocument.Load(nativeBytes);
         var nativeProjection = native.ReadPages();
         Require(nativeProjection.Tables.Count == 2 && nativeProjection.Diagnostics.Count == 0
             && nativeProjection.SourceDeclarationIssues.Count == 0 && nativeProjection.SourceReferenceIssues.Count == 0

@@ -10,14 +10,14 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>New-OfficeMarkdown -Path .\ReleaseNotes.md {
 ///     Add-OfficeMarkdownHeading -Level 1 -Text 'Release notes'
-///     Add-OfficeMarkdownCallout -Kind 'note' -Title 'Validation' -Body 'Artifacts were generated from deterministic example data.'
-///     Add-OfficeMarkdownCallout -Kind 'warning' -Title 'Manual step' -Body 'Open the workbook in desktop Excel before publishing pivots.'
+///     Add-OfficeMarkdownCallout -Kind 'note' -Title 'Validation' -Text 'Artifacts were generated from deterministic example data.'
+///     Add-OfficeMarkdownCallout -Kind 'warning' -Title 'Manual step' -Text 'Open the workbook in desktop Excel before publishing pivots.'
 /// }</code>
 ///   <para>Appends callout blocks while composing a Markdown report.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownCallout", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownCallout")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownCallout") ]
 public sealed class AddOfficeMarkdownCalloutCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -38,7 +38,7 @@ public sealed class AddOfficeMarkdownCalloutCommand : PSCmdlet
 
     /// <summary>Callout body text.</summary>
     [Parameter(Mandatory = true, Position = 2)]
-    public string Body { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
 
     /// <summary>Emit the Markdown document after appending the callout.</summary>
     [Parameter]
@@ -48,7 +48,7 @@ public sealed class AddOfficeMarkdownCalloutCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var doc = ResolveDocument();
-        doc.Callout(Kind, Title, Body);
+        doc.Callout(Kind, Title, Text);
 
         if (PassThru.IsPresent)
         {

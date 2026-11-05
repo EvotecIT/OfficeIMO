@@ -13,9 +13,9 @@ public sealed class IWorkNativePreservationTests {
     [Theory]
     [MemberData(nameof(UnchangedSources))]
     public void Unchanged_save_retains_all_entries_unknown_payloads_native_ids_versions_and_references(string fixture, IWorkDocumentKind kind) {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture(fixture), kind, new() { PreserveSourceRecords = false });
-        IWorkNativeSaveResult result = source.BeginEdit().SaveBytesResult();
-        IWorkSourceDocument reopened = IWorkSourceDocument.Open(result.GetPackageBytes(), kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(Fixture(fixture), kind, new() { PreserveSourceRecords = false });
+        var result = (Bytes: source.BeginEdit().ToBytes(out var nativeReport0), Report: nativeReport0);
+        IWorkSourceDocument reopened = IWorkSourceDocument.Load(result.Bytes, kind);
         Assert.Equal(source.ComputePackageContentHash(), reopened.ComputePackageContentHash());
         Assert.Equal(result.Report.SourcePackageContentHash, result.Report.OutputPackageContentHash);
         Assert.Equal(source.Entries.Select(entry => entry.Path), reopened.Entries.Select(entry => entry.Path));
@@ -31,20 +31,20 @@ public sealed class IWorkNativePreservationTests {
             Assert.Equal(original.Versions, output.Versions); Assert.Equal(original.ObjectReferences, output.ObjectReferences);
             Assert.Equal(original.DataReferences, output.DataReferences); Assert.Equal(original.GetPayload(), output.GetPayload());
         }
-        byte[] defensive = result.GetPackageBytes(); defensive[0] = 0;
-        Assert.Equal((byte)'P', result.GetPackageBytes()[0]);
+        byte[] defensive = result.Bytes; defensive[0] = 0;
+        Assert.Equal((byte)'P', source.BeginEdit().ToBytes()[0]);
     }
 
     [Fact]
     public void Image_translation_preserves_other_native_records_resources_and_saved_PowerPoint_content() {
         string path = Fixture("native-exports/keynote-created-images-edited-v15.4.key");
-        byte[] originalBytes = File.ReadAllBytes(path); IWorkSourceDocument source = IWorkSourceDocument.Open(originalBytes);
+        byte[] originalBytes = File.ReadAllBytes(path); IWorkSourceDocument source = IWorkSourceDocument.Load(originalBytes);
         IWorkImageAsset image = Jpeg(source); var session = source.BeginEdit();
         float left = (float)image.Geometry!.LeftPoints + 20, top = (float)image.Geometry.TopPoints + 10;
         session.MoveKeynoteImage(image.SourceIdentity!, left, top);
-        Assert.Throws<InvalidOperationException>(() => session.SaveBytes());
-        var result = session.SaveBytesResult(AcceptCaches());
-        IWorkSourceDocument edited = IWorkSourceDocument.Open(result.GetPackageBytes());
+        Assert.Throws<InvalidOperationException>(() => session.ToBytes());
+        var result = (Bytes: session.ToBytes(out var nativeReport1, AcceptCaches()), Report: nativeReport1);
+        IWorkSourceDocument edited = IWorkSourceDocument.Load(result.Bytes);
         IWorkImageAsset moved = Jpeg(edited);
         Assert.Equal(left, moved.Geometry!.LeftPoints); Assert.Equal(top, moved.Geometry.TopPoints);
         Assert.Equal(image.Geometry.WidthPoints, moved.Geometry.WidthPoints); Assert.Equal(image.Geometry.HeightPoints, moved.Geometry.HeightPoints);
@@ -62,18 +62,18 @@ public sealed class IWorkNativePreservationTests {
             Assert.Equal(record.Versions, output.Versions); Assert.Equal(record.ObjectReferences, output.ObjectReferences); Assert.Equal(record.DataReferences, output.DataReferences);
             if (record.Identifier != image.SourceIdentity.RecordIdentifier) Assert.Equal(record.GetPayload(), output.GetPayload());
         }
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(result.GetPackageBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(result.Bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var outputStream = new MemoryStream(); converted.Value.Save(outputStream); outputStream.Position = 0;
         using var reopened = PowerPointDocument.Load(outputStream);
         Assert.Empty(reopened.ValidateDocument()); Assert.Equal(source.ReadKeynote().Slides.Count, reopened.Slides.Count);
         session.MoveKeynoteImage(image.SourceIdentity, (float)image.Geometry.LeftPoints, (float)image.Geometry.TopPoints);
-        Assert.Equal(source.ComputePackageContentHash(), session.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: session.ToBytes(out var nativeReport2), Report: nativeReport2).Report.OutputPackageContentHash);
     }
 
     [Fact]
     public void Nested_index_unchanged_save_preserves_physical_members_without_duplicating_expansion() {
-        IWorkSourceDocument original = IWorkSourceDocument.Open(Fixture("native-exports/keynote-created-images-v15.4.key"));
+        IWorkSourceDocument original = IWorkSourceDocument.Load(Fixture("native-exports/keynote-created-images-v15.4.key"));
         using var inner = new MemoryStream();
         using (var index = new ZipArchive(inner, ZipArchiveMode.Create, true))
             foreach (var entry in original.Entries.Where(entry => entry.Path.StartsWith("Index/", StringComparison.Ordinal)))
@@ -85,9 +85,9 @@ public sealed class IWorkNativePreservationTests {
             Write(archive, "Index.zip", inner.ToArray());
             Write(archive, "Index/outer-only.bin", new byte[] { 9, 8, 7 });
         }
-        IWorkSourceDocument source = IWorkSourceDocument.Open(outer.ToArray());
-        var session = source.BeginEdit(); IWorkNativeSaveResult saved = session.SaveBytesResult();
-        using var package = new ZipArchive(new MemoryStream(saved.GetPackageBytes()), ZipArchiveMode.Read);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(outer.ToArray());
+        var session = source.BeginEdit(); var saved = (Bytes: session.ToBytes(out var nativeReport3), Report: nativeReport3);
+        using var package = new ZipArchive(new MemoryStream(saved.Bytes), ZipArchiveMode.Read);
         Assert.NotNull(package.GetEntry("Index.zip")); Assert.NotNull(package.GetEntry("Index/outer-only.bin"));
         Assert.Null(package.GetEntry("Index/Document.iwa"));
         using var indexStream = package.GetEntry("Index.zip")!.Open(); using var copy = new MemoryStream(); indexStream.CopyTo(copy);
@@ -102,11 +102,11 @@ public sealed class IWorkNativePreservationTests {
         string directory = TemporaryFolder();
         try {
             string bundle = Path.Combine(directory, "source.key"); Directory.CreateDirectory(bundle);
-            var zip = IWorkSourceDocument.Open(Fixture("native-exports/keynote-created-images-v15.4.key"));
+            var zip = IWorkSourceDocument.Load(Fixture("native-exports/keynote-created-images-v15.4.key"));
             foreach (var entry in zip.Entries) {
                 string member = Path.Combine(bundle, entry.Path); Directory.CreateDirectory(Path.GetDirectoryName(member)!); File.WriteAllBytes(member, entry.GetBytes());
             }
-            IWorkSourceDocument source = IWorkSourceDocument.Open(bundle); var session = source.BeginEdit();
+            IWorkSourceDocument source = IWorkSourceDocument.Load(bundle); var session = source.BeginEdit();
             Assert.Throws<InvalidOperationException>(() => session.Save(Path.Combine(bundle, "copy.key")));
             Assert.Throws<InvalidOperationException>(() => session.Save(Path.Combine(bundle, "Index", "Document.iwa"), overwrite: true));
             if (!OperatingSystem.IsWindows()) {
@@ -117,7 +117,7 @@ public sealed class IWorkNativePreservationTests {
                 } finally { Directory.Delete(alias); }
             }
             string output = Path.Combine(directory, "copy.key"); var report = session.Save(output);
-            Assert.Equal(source.ComputePackageContentHash(), IWorkSourceDocument.Open(output).ComputePackageContentHash());
+            Assert.Equal(source.ComputePackageContentHash(), IWorkSourceDocument.Load(output).ComputePackageContentHash());
             Assert.Equal(source.ComputePackageContentHash(), report.OutputPackageContentHash);
             Assert.False(File.Exists(Path.Combine(bundle, "copy.key")));
         } finally { Directory.Delete(directory, true); }
@@ -129,7 +129,7 @@ public sealed class IWorkNativePreservationTests {
     [InlineData("records")]
     [InlineData("caches")]
     public void Save_rejections_preserve_existing_file_and_caller_stream(string boundary) {
-        var source = IWorkSourceDocument.Open(Fixture("native-exports/keynote-created-images-v15.4.key")); var session = source.BeginEdit();
+        var source = IWorkSourceDocument.Load(Fixture("native-exports/keynote-created-images-v15.4.key")); var session = source.BeginEdit();
         var images = source.ReadKeynote().Slides.SelectMany(slide => slide.Images).Take(2).ToArray();
         foreach (var image in images) session.MoveKeynoteImage(image.SourceIdentity!, (float)image.Geometry!.LeftPoints + 1, (float)image.Geometry.TopPoints);
         var limits = AcceptCaches();
@@ -152,7 +152,7 @@ public sealed class IWorkNativePreservationTests {
 
     [Fact]
     public void Rejected_image_edits_leave_the_session_and_source_unchanged() {
-        var source = IWorkSourceDocument.Open(Fixture("native-exports/keynote-created-images-v15.4.key"));
+        var source = IWorkSourceDocument.Load(Fixture("native-exports/keynote-created-images-v15.4.key"));
         var session = source.BeginEdit(); var image = Jpeg(source); var projection = source.ReadKeynote();
         Assert.Throws<ArgumentOutOfRangeException>(() => session.MoveKeynoteImage(image.SourceIdentity!, float.NaN, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => session.MoveKeynoteImage(image.SourceIdentity!, -1, 0));
@@ -160,13 +160,13 @@ public sealed class IWorkNativePreservationTests {
         Assert.Throws<ArgumentException>(() => session.MoveKeynoteImage(projection.Slides[0].SourceIdentity!, 0, 0));
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => session.MoveKeynoteImage(image.SourceIdentity!, 0, 0, cancellation.Token));
-        var saved = session.SaveBytesResult(); Assert.Empty(saved.Report.UpdatedRecords);
+        var saved = (Bytes: session.ToBytes(out var nativeReport4), Report: nativeReport4); Assert.Empty(saved.Report.UpdatedRecords);
         Assert.Equal(source.ComputePackageContentHash(), saved.Report.OutputPackageContentHash);
     }
 
     [Fact]
     public void Cancellation_after_copying_starts_leaves_the_caller_stream_open_and_reports_no_success() {
-        var source = IWorkSourceDocument.Open(Fixture("native-exports/keynote-created-images-edited-v15.4.key"));
+        var source = IWorkSourceDocument.Load(Fixture("native-exports/keynote-created-images-edited-v15.4.key"));
         byte[] before = source.Entries.Single(entry => entry.Path == "Index/Document.iwa").GetBytes();
         using var cancellation = new CancellationTokenSource(); using var stream = new CancelAfterWriteStream(cancellation);
         Assert.Throws<OperationCanceledException>(() => source.BeginEdit().Save(stream, cancellationToken: cancellation.Token));
@@ -176,7 +176,7 @@ public sealed class IWorkNativePreservationTests {
 
     [Fact]
     public void Output_carrier_overhead_is_bounded_after_all_input_entries_fit() {
-        var source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"));
+        var source = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.pages"));
         var limit = new IWorkNativeSaveOptions { MaxPackageBytes = (int)source.Entries.Sum(entry => (long)entry.Length) };
         using var destination = new MemoryStream(); destination.WriteByte(9);
         Assert.Throws<InvalidDataException>(() => source.BeginEdit().Save(destination, limit));
@@ -185,25 +185,25 @@ public sealed class IWorkNativePreservationTests {
 
     [Fact]
     public void Native_saved_translation_retains_the_edited_image_dimensions_resources_and_complete_saved_PowerPoint() {
-        var original = IWorkSourceDocument.Open(Fixture("native-exports/keynote-created-images-edited-v15.4.key"));
+        var original = IWorkSourceDocument.Load(Fixture("native-exports/keynote-created-images-edited-v15.4.key"));
         string path = Fixture("native-exports/keynote-preserved-translated-edited-v15.4.key");
-        var native = IWorkSourceDocument.Open(path); var moved = Jpeg(native);
+        var native = IWorkSourceDocument.Load(path); var moved = Jpeg(native);
         Assert.Equal(101, moved.Geometry!.LeftPoints); Assert.Equal(130, moved.Geometry.TopPoints);
         Assert.Equal(600, moved.Geometry.WidthPoints); Assert.Equal(240, moved.Geometry.HeightPoints);
         var originalImages = original.ReadKeynote().Slides.SelectMany(slide => slide.Images).ToArray();
         var nativeImages = native.ReadKeynote().Slides.SelectMany(slide => slide.Images).ToArray();
         Assert.Equal(originalImages.Length, nativeImages.Length);
         for (int i = 0; i < originalImages.Length; i++) Assert.Equal(originalImages[i].GetBytes(), nativeImages[i].GetBytes());
-        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var stream = new MemoryStream(); result.Value.Save(stream); stream.Position = 0;
         using var saved = PowerPointDocument.Load(stream); Assert.Equal(3, saved.Slides.Count); Assert.Empty(saved.ValidateDocument());
     }
 
     [Fact]
     public void Stream_position_cancellation_and_conflict_contracts_apply_to_native_preservation() {
-        var source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages")); var session = source.BeginEdit();
+        var source = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.pages")); var session = source.BeginEdit();
         using var stream = new MemoryStream(); stream.WriteByte(9); var report = session.Save(stream);
-        Assert.True(stream.CanWrite); Assert.Equal(session.SaveBytes(), stream.ToArray().Skip(1));
+        Assert.True(stream.CanWrite); Assert.Equal(session.ToBytes(), stream.ToArray().Skip(1));
         Assert.Equal(source.ComputePackageContentHash(), report.OutputPackageContentHash);
         using var canceled = new CancellationTokenSource(); canceled.Cancel(); byte[] before = stream.ToArray();
         Assert.Throws<OperationCanceledException>(() => session.Save(stream, cancellationToken: canceled.Token)); Assert.Equal(before, stream.ToArray());
@@ -221,7 +221,7 @@ public sealed class IWorkNativePreservationTests {
     [InlineData(true)]
     public void Saving_adapts_carrier_verification_to_valid_tight_read_bounds_without_relaxing_decompression(bool translate) {
         string path = Fixture("native-exports/keynote-created-images-edited-v15.4.key");
-        var source = IWorkSourceDocument.Open(path, options: new() {
+        var source = IWorkSourceDocument.Load(path, options: new() {
             MaxPackageBytes = new FileInfo(path).Length,
             MaxEntryBytes = 92_000, MaxTotalEntryBytes = 92_000,
             MaxIwaBytes = 32_768, MaxDecompressedIwaBytes = 32_768,
@@ -231,8 +231,8 @@ public sealed class IWorkNativePreservationTests {
         Assert.Equal(91_998, source.Entries.Sum(entry => entry.Length));
         var session = source.BeginEdit();
         if (translate) session.MoveKeynoteImage(Jpeg(source).SourceIdentity!, 100, 130);
-        var result = session.SaveBytesResult(translate ? AcceptCaches() : null);
-        var reopened = IWorkSourceDocument.Open(result.GetPackageBytes(), IWorkDocumentKind.Keynote);
+        var result = (Bytes: session.ToBytes(out var nativeReport5, translate ? AcceptCaches() : null), Report: nativeReport5);
+        var reopened = IWorkSourceDocument.Load(result.Bytes, IWorkDocumentKind.Keynote);
         Assert.Equal(205, reopened.Records.Count);
         if (translate) {
             Assert.Equal(93_320, reopened.Entries.Sum(entry => entry.Length));

@@ -13,14 +13,14 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///   <para>Adds a plain text annotation to the active page.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeVisioTextBox", DefaultParameterSetName = "Page")]
-[Alias("VisioTextBox")]
 [OutputType(typeof(VisioShape))]
+[Alias("VisioTextBox") ]
 public sealed class AddOfficeVisioTextBoxCommand : OfficeVisioShapeCmdlet {
     /// <summary>Retains the native textbox dimensions.</summary>
     public AddOfficeVisioTextBoxCommand() { Height = OfficeIMO.OfficeLength.Inches(0.5); }
 
     /// <summary>Text placed inside the shape.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Page")]
     public string Text { get; set; } = string.Empty;
 
     /// <inheritdoc />

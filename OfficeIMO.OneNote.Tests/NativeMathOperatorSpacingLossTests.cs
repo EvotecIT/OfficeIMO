@@ -25,7 +25,7 @@ public sealed class NativeMathOperatorSpacingLossTests {
                 : expression);
             page.DirectContent.Add(paragraph);
             if (entryPoint == "edited-preserved-inline") {
-                section = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+                section = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
                 var loadedParagraph = Assert.IsType<OneNoteParagraph>(Assert.Single(
                     Assert.Single(Assert.Single(section.Pages).Outlines).Children));
                 OneNoteTextRun loadedRun = Assert.Single(loadedParagraph.Runs);
@@ -41,7 +41,7 @@ public sealed class NativeMathOperatorSpacingLossTests {
         long position = destination.Position;
 
         OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, destination, new OneNoteWriterOptions { ValidateRoundTrip = false }));
+            section.Save(destination, new OneNoteSaveOptions { ValidateRoundTrip = false }));
 
         Assert.Equal("ONENOTE_WRITE_MATH_LOSS", error.Code);
         Assert.Equal(sentinel, destination.ToArray());

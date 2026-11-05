@@ -1,147 +1,67 @@
-using PSWriteOffice.Services;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Gets pivot tables defined in a workbook.</summary>
+/// <summary>Lists pivot tables in a workbook.</summary>
 /// <example>
-///   <summary>Read pivot table metadata from a workbook.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$pivots = Get-OfficeExcelPivotTable -Path .\report.xlsx -Sheet Summary
-/// $pivots |
-///     Select-Object -Property Name, Sheet, SourceRange, RowFields, DataFields |
-///     Format-List</code>
-///   <para>Returns pivot table metadata so generated reports can prove the pivot source and layout.</para>
+/// <summary>List pivot tables</summary>
+/// <code>Get-OfficeExcelPivotTable -Path .\Reports\Sales-2026.xlsx</code>
+/// <para>Shows every pivot table in the workbook with its location and source.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelPivotTable")]
-[Alias("ExcelPivotTables")]
-[OutputType(typeof(PSObject))]
+/// <example>
+/// <summary>Check where pivot tables read from</summary>
+/// <code>Get-OfficeExcelPivotTable -Path .\Reports\Sales-2026.xlsx |
+///     Select-Object Name, SheetName, Location, SourceSheet, SourceRange</code>
+/// <para>Lists the source range of each pivot table, to confirm they still point at the current data after the sheet was rebuilt.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Get, "OfficeExcelPivotTable", DefaultParameterSetName = "Document")]
 public sealed class GetOfficeExcelPivotTableCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Path to the workbook.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Workbook to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
     /// <summary>Optional pivot table name filter.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Name { get; set; }
 
-    /// <summary>Optional sheet name filter.</summary>
-    [Parameter]
-    public string? Sheet { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
-    /// <summary>Optional sheet index (0-based) filter.</summary>
-    [Parameter]
-    public int? SheetIndex { get; set; }
+    /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        ExcelDocument? document = null;
-        var dispose = false;
-
-        try {
-            if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-                if (!File.Exists(resolvedPath)) {
-                    throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
-                }
-                document = ExcelDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
-                dispose = true;
-            } else {
-                document = Document;
-            }
-
-            if (document == null) {
-                throw new InvalidOperationException("Excel workbook was not provided.");
-            }
-
-            var sheetFilter = ResolveSheetName(document);
-            var pivots = document.GetPivotTables();
-
-            foreach (var pivot in pivots) {
-                if (!string.IsNullOrWhiteSpace(sheetFilter) &&
-                    !string.Equals(pivot.SheetName, sheetFilter, StringComparison.OrdinalIgnoreCase)) {
-                    continue;
-                }
-
-                if (!string.IsNullOrWhiteSpace(Name) &&
-                    !string.Equals(pivot.Name, Name, StringComparison.OrdinalIgnoreCase)) {
-                    continue;
-                }
-
-                WriteObject(CreateRecord(pivot));
-            }
-        } finally {
-            if (dispose) {
-                document?.Dispose();
+        foreach (var scope in ExcelCommandTargets.Workbooks(this, ParameterSetName, Path, LiteralPath, Document, readOnly: true)) {
+            var document = scope.Document;
+            var current = Document == null && !scope.OwnsDocument ? ExcelDslContext.Current?.CurrentSheet : null;
+            foreach (var table in document.GetPivotTables()) {
+                if (Name != null && !new WildcardPattern(Name, WildcardOptions.IgnoreCase).IsMatch(table.Name)) continue;
+                if (Sheet != null && !string.Equals(Sheet.Resolve(document.Sheets, s => s.Name).Name, table.SheetName, StringComparison.OrdinalIgnoreCase)) continue;
+                WriteObject(table);
             }
         }
     }
 
-    private string? ResolveSheetName(ExcelDocument document) {
-        if (!string.IsNullOrWhiteSpace(Sheet)) {
-            return Sheet;
-        }
-
-        if (SheetIndex.HasValue) {
-            if (SheetIndex.Value < 0 || SheetIndex.Value >= document.Sheets.Count) {
-                throw new ArgumentOutOfRangeException(nameof(SheetIndex), "SheetIndex is out of range.");
-            }
-            return document.Sheets[SheetIndex.Value].Name;
-        }
-
-        return null;
-    }
-
-    private static PSObject CreateRecord(ExcelPivotTableInfo pivot) {
-        var record = new PSObject();
-        record.Properties.Add(new PSNoteProperty("Name", pivot.Name));
-        record.Properties.Add(new PSNoteProperty("Sheet", pivot.SheetName));
-        record.Properties.Add(new PSNoteProperty("SheetIndex", pivot.SheetIndex));
-        record.Properties.Add(new PSNoteProperty("Location", pivot.Location));
-        record.Properties.Add(new PSNoteProperty("SourceSheet", pivot.SourceSheet));
-        record.Properties.Add(new PSNoteProperty("SourceRange", pivot.SourceRange));
-        record.Properties.Add(new PSNoteProperty("CacheId", pivot.CacheId));
-        record.Properties.Add(new PSNoteProperty("PivotStyle", pivot.PivotStyle));
-        record.Properties.Add(new PSNoteProperty("Layout", pivot.Layout.ToString()));
-        record.Properties.Add(new PSNoteProperty("DataOnRows", pivot.DataOnRows));
-        record.Properties.Add(new PSNoteProperty("ShowHeaders", pivot.ShowHeaders));
-        record.Properties.Add(new PSNoteProperty("ShowEmptyRows", pivot.ShowEmptyRows));
-        record.Properties.Add(new PSNoteProperty("ShowEmptyColumns", pivot.ShowEmptyColumns));
-        record.Properties.Add(new PSNoteProperty("ShowDrill", pivot.ShowDrill));
-        record.Properties.Add(new PSNoteProperty("RefreshOnOpen", pivot.RefreshOnOpen));
-        record.Properties.Add(new PSNoteProperty("SaveSourceData", pivot.SaveSourceData));
-        record.Properties.Add(new PSNoteProperty("PreserveFormatting", pivot.PreserveFormatting));
-        record.Properties.Add(new PSNoteProperty("EnableDrill", pivot.EnableDrill));
-        record.Properties.Add(new PSNoteProperty("RowFields", pivot.RowFields.ToArray()));
-        record.Properties.Add(new PSNoteProperty("ColumnFields", pivot.ColumnFields.ToArray()));
-        record.Properties.Add(new PSNoteProperty("PageFields", pivot.PageFields.ToArray()));
-        record.Properties.Add(new PSNoteProperty("DataFields", CreateDataFieldRecords(pivot.DataFields)));
-        return record;
-    }
-
-    private static PSObject[] CreateDataFieldRecords(IReadOnlyList<ExcelPivotDataFieldInfo> dataFields) {
-        var list = new List<PSObject>(dataFields.Count);
-        foreach (var field in dataFields) {
-            var record = new PSObject();
-            record.Properties.Add(new PSNoteProperty("FieldName", field.FieldName));
-            record.Properties.Add(new PSNoteProperty("Function", field.Function.ToString()));
-            record.Properties.Add(new PSNoteProperty("DisplayName", field.DisplayName));
-            list.Add(record);
-        }
-        return list.ToArray();
-    }
 }

@@ -114,14 +114,14 @@ internal sealed class OfficeMarkupWordExporter {
 
     private static void ApplyTextStyle(WordParagraph paragraph, OfficeMarkupResolvedStyle? style) {
         if (style == null) return;
-        if (!string.IsNullOrWhiteSpace(style.FontName)) paragraph.FontFamily = style.FontName;
+        if (!string.IsNullOrWhiteSpace(style.FontFamily)) paragraph.FontFamily = style.FontFamily;
         if (style.FontSize != null) paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSize.Value);
         if (style.Bold != null) paragraph.Bold = style.Bold.Value;
         if (style.Italic != null) paragraph.Italic = style.Italic.Value;
         if (style.UnderlineStyle != null) paragraph.Underline = ToWordUnderline(style.UnderlineStyle.Value);
         if (style.StrikethroughStyle != null) {
-            paragraph.Strike = style.StrikethroughStyle is not OfficeTextDecorationStyle.None and not OfficeTextDecorationStyle.Double;
-            paragraph.DoubleStrike = style.StrikethroughStyle == OfficeTextDecorationStyle.Double;
+            paragraph.Strikethrough = style.StrikethroughStyle is not OfficeTextDecorationStyle.None and not OfficeTextDecorationStyle.Double;
+            paragraph.DoubleStrikethrough = style.StrikethroughStyle == OfficeTextDecorationStyle.Double;
         }
         if (style.Baseline != null) paragraph.VerticalTextAlignment = style.Baseline.Value switch {
             OfficeTextBaseline.Normal => WordVerticalTextPosition.Baseline,
@@ -281,7 +281,7 @@ internal sealed class OfficeMarkupWordExporter {
 
         switch (Normalize(chart.ChartType)) {
             case "line":
-                wordChart.AddChartAxisX(data.Categories);
+                wordChart.AddCategories(data.Categories);
                 for (var index = 0; index < data.Series.Count; index++) {
                     wordChart.AddLine(data.Series[index].Name, data.Series[index].Values, ChartColors[index % ChartColors.Length]);
                 }

@@ -8,16 +8,15 @@ Reader is the cross-format path for search, review, ingestion, migration, OCR, a
 
 ## What Reader returns
 
-- `Get-OfficeDocument` returns the normalized document envelope.
-- `Get-OfficeDocumentDetection` reports detected format and routing evidence.
-- `Get-OfficeDocumentCapability` explains the selected adapter's supported output.
-- `Get-OfficeDocumentHierarchy` exposes section and structural relationships.
-- `Get-OfficeDocumentChunk` returns bounded text/content chunks.
-- `Get-OfficeDocumentStructured` exposes structured content.
-- `Get-OfficeDocumentTable`, `Get-OfficeDocumentVisual`, and `Get-OfficeDocumentAsset` return non-text material explicitly.
-- `Get-OfficeDocumentBatch` and `Get-OfficeDocumentIngest` support pipeline-scale processing.
+- `Read-OfficeDocument` returns the normalized document envelope.
+- `Get-OfficeDocumentInfo` reports detected format and routing evidence.
+- `Get-OfficeDocumentCapability` explains the registered adapters' supported output.
+- `Read-OfficeDocument -As Hierarchy` exposes section and structural relationships.
+- `-As Chunks` returns bounded text/content chunks; `-As Structure` exposes structured content.
+- `-As Tables`, `-As Visuals`, and `-As Assets` return non-text material explicitly.
+- `Read-OfficeDocument -Path .\Knowledge -Recurse -As Ingest` returns a corpus ingestion summary.
 - `Search-OfficeDocument` searches the normalized result.
-- `Get-OfficeImageText` performs local image OCR and can return either plain text or the canonical typed OCR result.
+- `Read-OfficeDocument -Path .\scan.png -As Text -Ocr` performs local image OCR; OCR settings come from `New-OfficeOcrOptions`.
 
 ## Choose Reader versus a native family
 
