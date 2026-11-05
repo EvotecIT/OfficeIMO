@@ -8,12 +8,13 @@ const string marker = "AotMarker";
 const string html = "<style>body{margin:0}h1{color:#123456}</style><h1>AotMarker</h1><p><a href='https://example.test/'>Searchable PDF link</a></p>";
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 var imageOptions = new HtmlRenderOptions {
+    Format = OfficeImageExportFormat.Png,
     ViewportWidth = 320D,
     Margins = HtmlRenderMargins.All(12D)
 };
 
 string svg = source.ToSvg(imageOptions);
-byte[] png = source.ToPng(imageOptions);
+byte[] png = source.ToImage(imageOptions);
 using PdfDocument renderedPdf = source.ToPdf(new HtmlPdfExportOptions(imageOptions));
 using var pdfBytes = new MemoryStream(renderedPdf.ToBytes(), writable: false);
 using PdfDocument reopenedPdf = PdfDocument.Load(pdfBytes);
@@ -46,7 +47,9 @@ var standardsOptions = new HtmlRenderOptions {
     Margins = HtmlRenderMargins.All(32D),
     FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
 };
-string secondPageSvg = standardsSource.ToSvg(standardsOptions, pageIndex: 1);
+HtmlRenderOptions secondPageOptions = standardsOptions.Clone();
+secondPageOptions.PageIndex = 1;
+string secondPageSvg = standardsSource.ToSvg(secondPageOptions);
 using PdfDocument standardsPdf = standardsSource.ToPdf(new HtmlPdfExportOptions(standardsOptions));
 using var standardsBytes = new MemoryStream(standardsPdf.ToBytes(), writable: false);
 using PdfDocument standardsReadDocument = PdfDocument.Load(standardsBytes);
@@ -78,6 +81,7 @@ string advancedHtml = "<style>@page{size:4in 4in;margin:24px;bleed:4px;marks:cro
     + embeddedSvg.Replace("<svg ", "<svg aria-label='Advanced vector proof' style='width:160px;height:72px' ", StringComparison.Ordinal);
 HtmlConversionDocument advancedSource = HtmlConversionDocument.Parse(advancedHtml);
 var advancedOptions = new HtmlRenderOptions {
+    Format = OfficeImageExportFormat.Png,
     Mode = HtmlRenderMode.Paged,
     PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)),
     Margins = HtmlRenderMargins.All(24D),
@@ -111,7 +115,7 @@ if (advancedRender.Pages.Count != 1
         $"The NativeAOT advanced packet lost its one-page CSS production contract: pages={advancedRender.Pages.Count}, "
         + $"marks={advancedRender.Pages[0].PrintProduction?.Marks}, bleed={advancedRender.Pages[0].PrintProduction?.Bleed}.");
 }
-MarkerImageContract.Verify(advancedRender, advancedSvg, advancedSource.ToPng(advancedOptions), markerPng);
+MarkerImageContract.Verify(advancedRender, advancedSvg, advancedSource.ToImage(advancedOptions), markerPng);
 ParallelTablePaginationContract.Verify();
 
 if (OfficeProtectionCapabilityCatalog.Current.SchemaVersion != 2
