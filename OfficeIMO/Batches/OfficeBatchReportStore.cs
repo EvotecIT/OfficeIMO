@@ -88,7 +88,7 @@ internal static class OfficeBatchReportStore {
     internal static OfficeBatchReport ReadSnapshot(string path, out string sha256) {
         string fullPath = Path.GetFullPath(path);
         OfficeBatchExecutor.EnsureNoLinks(fullPath);
-        using var stream = OfficePathIdentity.OpenRegularFileForRead(fullPath, Path.GetDirectoryName(fullPath)!, 81920);
+        using var stream = OfficeBatchExecutor.OpenWithinRoot(fullPath, Path.GetDirectoryName(fullPath)!, 81920);
         if (stream.Length > MaximumReportBytes) throw new InvalidDataException("The report exceeds its 20 MiB limit.");
         using var bytes = new BoundedReportStream(MaximumReportBytes);
         stream.CopyTo(bytes);
@@ -115,7 +115,7 @@ internal static class OfficeBatchReportStore {
         OfficeBatchExecutor.EnsureNoLinks(path);
         _ = OfficeFileCommit.TryDeleteIfUnchanged(path, candidate => {
             OfficeBatchExecutor.EnsureNoLinks(candidate);
-            using var stream = OfficePathIdentity.OpenRegularFileForRead(candidate, Path.GetDirectoryName(candidate)!, 32);
+            using var stream = OfficeBatchExecutor.OpenWithinRoot(candidate, Path.GetDirectoryName(candidate)!, 32);
             if (stream.Length != 32) return false;
             byte[] owner = new byte[33];
             int count = OfficeRuntimeCompatibility.ReadAtLeast(stream, owner, 32, throwOnEndOfStream: false);

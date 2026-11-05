@@ -14,7 +14,7 @@ internal static partial class OfficeBatchExecutor {
     private static string Hash(string text) => OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(Encoding.UTF8.GetBytes(text)));
 
     private static async Task<string> HashFileAsync(string path, string root, long limit, CancellationToken token) {
-        using FileStream source = OfficePathIdentity.OpenRegularFileForRead(path, root, 81920);
+        using FileStream source = OpenWithinRoot(path, root, 81920);
         if (source.Length > limit) throw new InvalidDataException("Batch file exceeds its configured byte limit.");
         using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         var buffer = new byte[81920];
@@ -56,9 +56,19 @@ internal static partial class OfficeBatchExecutor {
 
     internal static void EnsureNoLinks(string path) {
         for (string? entry = Path.GetFullPath(path); entry != null; entry = Path.GetDirectoryName(entry))
-            if ((File.Exists(entry) || Directory.Exists(entry)) && (File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0)
+            if ((File.Exists(entry) || Directory.Exists(entry)) && (File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0 && !IsSystemRootLink(entry))
                 throw new InvalidDataException("Batch paths must not traverse symbolic links or junctions.");
     }
+
+    // On Unix only the superuser can create or retarget entries directly under "/", so links such as
+    // macOS /tmp and /var (the default temp location) cannot be swapped during a batch. Windows drive
+    // roots accept folders from ordinary users, so every Windows link stays rejected.
+    private static bool IsSystemRootLink(string entry) =>
+        Path.DirectorySeparatorChar == '/' && Path.GetDirectoryName(entry) == "/";
+
+    // The opened handle reports its physical location, so compare it with the root's physical location too.
+    internal static FileStream OpenWithinRoot(string path, string root, int bufferSize) =>
+        OfficePathIdentity.OpenRegularFileForRead(path, OfficePathIdentity.ResolvePhysicalPath(root), bufferSize);
 
     private static OfficeBatchOptions Snapshot(OfficeBatchOptions request, IReadOnlyList<OfficeConversionExecutionRoute> routes) {
         ArgumentNullException.ThrowIfNull(request);
