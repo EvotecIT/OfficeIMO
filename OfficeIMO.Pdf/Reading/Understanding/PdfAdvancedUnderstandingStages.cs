@@ -445,18 +445,28 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 for (int bin = start; bin <= end; bin++) coverage[bin]++;
             }
             int allowance = Math.Max(1, component.Length / 10);
-            int bestStart = -1, bestLength = 0, runStart = -1;
-            for (int bin = 0; bin <= bins; bin++) {
-                bool open = bin < bins && coverage[bin] <= allowance;
-                if (open) {
-                    if (runStart < 0) runStart = bin;
-                    continue;
+            int bestStart = -1, bestLength = 0;
+            // Prefer genuinely empty gutters. A strip that cuts through a few
+            // ragged line ends would turn those lines into spurious spanning bands.
+            for (int pass = 0; pass < 2; pass++) {
+                if (pass > 0) context.ConsumeWork(bins);
+                int permittedCrossings = pass == 0 ? 0 : allowance;
+                int runStart = -1;
+                bestStart = -1;
+                bestLength = 0;
+                for (int bin = 0; bin <= bins; bin++) {
+                    bool open = bin < bins && coverage[bin] <= permittedCrossings;
+                    if (open) {
+                        if (runStart < 0) runStart = bin;
+                        continue;
+                    }
+                    if (runStart >= 0 && runStart > 0 && bin < bins && bin - runStart > bestLength) {
+                        bestStart = runStart;
+                        bestLength = bin - runStart;
+                    }
+                    runStart = -1;
                 }
-                if (runStart >= 0 && runStart > 0 && bin < bins && bin - runStart > bestLength) {
-                    bestStart = runStart;
-                    bestLength = bin - runStart;
-                }
-                runStart = -1;
+                if (bestLength >= minimumGutter) break;
             }
             if (bestStart < 0 || bestLength < minimumGutter) {
                 yield return component;
@@ -854,8 +864,6 @@ internal static partial class PdfAdvancedUnderstandingStages {
             double verticalGap = Math.Abs(left.BaselineY - right.BaselineY);
             double allowedVertical = Math.Max(left.FontSize, right.FontSize) * 2.2D;
             double horizontalGap = left.XEnd < right.XStart ? right.XStart - left.XEnd : right.XEnd < left.XStart ? left.XStart - right.XEnd : 0D;
-            if (left.Words.Count >= 3 && right.Words.Count >= 3 &&
-                horizontalGap >= Math.Max(6D, Math.Max(left.FontSize, right.FontSize) * 0.8D)) return false;
             double allowedHorizontal = Math.Max(18D, Math.Max(left.FontSize, right.FontSize) * 2D);
             bool overlapsHorizontally = left.XStart <= right.XEnd + allowedHorizontal && right.XStart <= left.XEnd + allowedHorizontal;
             return verticalGap <= allowedVertical && overlapsHorizontally && horizontalGap <= allowedHorizontal;

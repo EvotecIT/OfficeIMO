@@ -8,6 +8,7 @@ public sealed class PdfBrowserColumnReadingTests {
     [Theory]
     [InlineData("two-columns-narrow-gutter.pdf", 6)]
     [InlineData("three-columns-wrapped-prose.pdf", 9)]
+    [InlineData("three-columns-ragged-gutter.pdf", 9)]
     public void ReadKeepsCompleteWrappedParagraphsInColumnOrder(string file, int paragraphCount) {
         string path = Path.Combine(AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "BrowserColumns", file);
         PdfDocumentReadResult result = PdfDocument.Load(path).Read();

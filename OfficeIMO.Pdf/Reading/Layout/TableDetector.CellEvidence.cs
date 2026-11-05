@@ -67,14 +67,17 @@ internal static partial class TableDetector {
 
     private static bool HasNarrativeColumnEvidence(PdfStructuredTable table) {
         if (table.Columns.Count < 2 || table.SourceRuns.Count < 2) return false;
+        bool columnMajor = HasColumnMajorSourceOrder(table);
+        if (!columnMajor && table.SourceRuns.All(static run => run.ContentOrderKey is not null)) return false;
         int sentenceCells = table.Rows.Sum(row => row.Count(value =>
             ContentStructureExtractor.EndsWithSentenceTerminal(value.Trim())));
         bool wrappedProse = table.Rows.Count >= 3 && sentenceCells >= table.Columns.Count - 1 &&
             !table.Rows[0].All(static value => value.Count(static character => character == ' ') < 2) &&
             table.Rows.SelectMany(static row => row)
                 .Count(static value => value.Count(static character => character == ' ') >= 2) * 2 >=
-            table.Rows.Sum(static row => row.Count(static value => !string.IsNullOrWhiteSpace(value)));
-        if (sentenceCells < table.Rows.Count && !wrappedProse) return false;
+            table.Rows.Sum(static row => row.Count(static value => !string.IsNullOrWhiteSpace(value))) &&
+            columnMajor;
+        if (!wrappedProse && (table.Columns.Count != 2 || sentenceCells < table.Rows.Count)) return false;
         double[] baselines = table.SourceRuns.Select(static run => run.Y).Distinct().OrderBy(static value => value).ToArray();
         double fontSize = table.SourceRuns.Select(static span => span.FontSize).DefaultIfEmpty(1D).Max();
         if (table.SourceRuns.Where(run => Math.Abs(run.Y - baselines[baselines.Length - 1]) <= 2D)
@@ -88,6 +91,26 @@ internal static partial class TableDetector {
         int populatedCells = table.Rows.Sum(static row => row.Count(static value => !string.IsNullOrWhiteSpace(value)));
         return wrappedProse || widelySpaced || (fontSize > 0D && populatedCells > 0 &&
             occupiedWidth > populatedCells * fontSize * MaximumAverageCompactCellWidthInFontSizes);
+    }
+
+    // Paragraph columns are painted down one column before the next. Row-major
+    // table cells can contain the same prose and must retain their table identity.
+    private static bool HasColumnMajorSourceOrder(PdfStructuredTable table) {
+        if (table.SourceRuns.Any(static run => run.ContentOrderKey is null)) return false;
+        var seen = new bool[table.Columns.Count];
+        int previous = -1, count = 0;
+        foreach (PdfTextSpan run in table.SourceRuns.OrderBy(static run => run.ContentOrderKey)) {
+            if (string.IsNullOrWhiteSpace(run.Text)) continue;
+            double center = run.X + Math.Max(0D, run.Advance) / 2D;
+            int column = table.Columns.FindIndex(value => center >= value.From && center <= value.To);
+            if (column < 0) return false;
+            if (column == previous) continue;
+            if (seen[column]) return false;
+            seen[column] = true;
+            count++;
+            previous = column;
+        }
+        return count == table.Columns.Count;
     }
 
     private static bool LooksLikeSparseFormGrid(PdfStructuredTable table) {

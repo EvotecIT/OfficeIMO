@@ -27,24 +27,31 @@ public sealed class PdfTableDetectionValidationTests {
         Assert.Contains("TABLE-MARKER", data.Columns.Concat(data.Rows.SelectMany(static row => row)));
     }
 
-    [Fact]
-    public void LogicalTables_RetainRegularFontProseHeavyTablesWithStableColumns() {
-        byte[] pdf = PdfDocument.Create()
-            .Table(new[] {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LogicalTables_RetainRegularFontProseHeavyTablesWithStableColumns(bool sentenceValues) {
+        string[][] rows = sentenceValues
+            ? new[] {
+                new[] { "Assigned regional coordinator", "Current regional workflow" },
+                new[] { "Orders are ready today.", "Documents stay available here." },
+                new[] { "Orders are ready today.", "Documents stay available here." }
+            }
+            : new[] {
                 new[] { "Assigned owner", "Current workflow" },
                 new[] { "North region coordinator", "Review pending requests" },
                 new[] { "South region coordinator", "Approve completed requests" }
-            }, style: new PdfTableStyle {
+            };
+        byte[] pdf = PdfDocument.Create(document => document.Content(content => content.AddTable(rows, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
                 ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
-            })
+            })))
             .ToBytes();
 
         PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
-        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
-        Assert.Contains("North region coordinator", data.Rows.SelectMany(static row => row));
-        Assert.Contains("Approve completed requests", data.Rows.SelectMany(static row => row));
+        Assert.Equal(rows.Length, table.Rows.Count);
+        for (int row = 0; row < rows.Length; row++) Assert.Equal(rows[row], table.Rows[row]);
     }
 
     [Fact]

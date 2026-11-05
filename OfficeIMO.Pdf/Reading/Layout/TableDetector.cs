@@ -125,7 +125,8 @@ internal static partial class TableDetector {
             RecoverCompactColumnRefinements(tables, recoveryLines, consumeWork, cancellationCheck);
         // Wrapped-row recovery can complete sentences that were not visible in
         // the initial bands. Recheck prose evidence on the final candidate.
-        tables.RemoveAll(table => table.Kind != "leaders" && HasNarrativeColumnEvidence(table));
+        tables.RemoveAll(table => table.Kind != "leaders" &&
+            HasNarrativeColumnEvidence(table) && HasColumnMajorSourceOrder(table));
         return tables;
     }
 
