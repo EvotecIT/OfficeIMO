@@ -1386,123 +1386,85 @@ jobs:
           }
           SH
 
-      - name: Restore test dependencies
+      - name: Restore and build test projects
+        # One restore and one build share the referenced libraries across the
+        # partition's affected test projects instead of re-evaluating them per project.
+        # The build project passes Configuration and TargetFramework to each test
+        # project exactly as `dotnet build <project> -c -f` does.
         run: |
+          projects=()
+          add_project() { if ci_project_selected "$1"; then projects+=("${GITHUB_WORKSPACE}/$1"); fi; }
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
-            if ci_project_selected "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj"; then dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj"; then dotnet restore OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj"; then dotnet restore OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj"; then dotnet restore OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj"; then dotnet restore OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj; fi
+            add_project OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
+            add_project OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj
+            add_project OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj
+            add_project OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj
+            add_project OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj
           fi
           if [[ "${{ matrix.partition }}" == markdown-* ]]; then
-            if ci_project_selected "OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj"; then dotnet restore OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj; fi
+            add_project OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj
           fi
           if [[ "${{ matrix.partition }}" == excel-* ]]; then
-            if ci_project_selected "OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj"; then dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj; fi
+            add_project OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
           fi
           if [[ "${{ matrix.partition }}" == "word-rtf-html" || "${{ matrix.partition }}" == "markdown-large" ]]; then
-            if ci_project_selected "OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj"; then dotnet restore OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj; fi
+            add_project OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
           fi
           if [ "${{ matrix.partition }}" = "word-rtf-html" ]; then
-            if ci_project_selected "OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj"; then dotnet restore OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj"; then dotnet restore OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj; fi
+            add_project OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj
+            add_project OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj
           fi
           if [ "${{ matrix.partition }}" = "email" ]; then
-            if ci_project_selected "OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj"; then dotnet restore OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj; fi
+            add_project OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj
           fi
           if [[ "${{ matrix.partition }}" == pdf-* ]]; then
-            if ci_project_selected "OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj"; then dotnet restore OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj; fi
+            add_project OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
-            if ci_project_selected "OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj"; then dotnet restore OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj"; then dotnet restore OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"; then dotnet restore OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj"; then dotnet restore OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj"; then dotnet restore OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj"; then dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj"; then dotnet restore OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj"; then dotnet restore OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj"; then dotnet restore OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj"; then dotnet restore OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj"; then dotnet restore OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj"; then dotnet restore OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj"; then dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj"; then dotnet restore OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj"; then dotnet restore OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj"; then dotnet restore OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj"; then dotnet restore OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"; then dotnet restore OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj"; then dotnet restore OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"; then dotnet restore OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj"; then dotnet restore OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj; fi
-            if ci_project_selected "OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj"; then dotnet restore OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj"; then dotnet restore OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj"; then dotnet restore OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj"; then dotnet restore OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj"; then dotnet restore OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj"; then dotnet restore OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj; fi
-            if ci_project_selected "OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj"; then dotnet restore OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj; fi
+            add_project OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj
+            add_project OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj
+            add_project OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj
+            add_project OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj
+            add_project OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj
+            add_project OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
+            add_project OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj
+            add_project OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj
+            add_project OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj
+            add_project OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
+            add_project OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj
+            add_project OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj
+            add_project OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
+            add_project OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
+            add_project OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj
+            add_project OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj
+            add_project OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj
+            add_project OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj
+            add_project OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj
+            add_project OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
+            add_project OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj
+            add_project OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj
+            add_project OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj
+            add_project OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj
+            add_project OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj
+            add_project OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj
+            add_project OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj
+            add_project OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj
           fi
-
-      - name: Build test projects
-        run: |
-          if [ "${{ matrix.partition }}" = "other-projects" ]; then
-            if ci_project_selected "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj"; then dotnet build OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj"; then dotnet build OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj"; then dotnet build OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj"; then dotnet build OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj"; then dotnet build OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
+          if [ "${#projects[@]}" -eq 0 ]; then
+            echo "No affected test projects in ${{ matrix.partition }}."
+            exit 0
           fi
-          if [[ "${{ matrix.partition }}" == markdown-* ]]; then
-            if ci_project_selected "OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj"; then dotnet build OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-          fi
-          if [[ "${{ matrix.partition }}" == excel-* ]]; then
-            if ci_project_selected "OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj"; then dotnet build OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-          fi
-          if [[ "${{ matrix.partition }}" == "word-rtf-html" || "${{ matrix.partition }}" == "markdown-large" ]]; then
-            if ci_project_selected "OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj"; then dotnet build OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-          fi
-          if [ "${{ matrix.partition }}" = "word-rtf-html" ]; then
-            if ci_project_selected "OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj"; then dotnet build OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj"; then dotnet build OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-          fi
-          if [ "${{ matrix.partition }}" = "email" ]; then
-            if ci_project_selected "OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj"; then dotnet build OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-          fi
-          if [[ "${{ matrix.partition }}" == pdf-* ]]; then
-            if ci_project_selected "OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj"; then dotnet build OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-          fi
-          if [ "${{ matrix.partition }}" = "other-projects" ]; then
-            if ci_project_selected "OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj"; then dotnet build OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj"; then dotnet build OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"; then dotnet build OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj"; then dotnet build OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj"; then dotnet build OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj"; then dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj"; then dotnet build OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj"; then dotnet build OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj"; then dotnet build OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj"; then dotnet build OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj"; then dotnet build OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj"; then dotnet build OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj"; then dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj"; then dotnet build OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj"; then dotnet build OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj"; then dotnet build OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj"; then dotnet build OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"; then dotnet build OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj"; then dotnet build OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"; then dotnet build OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj"; then dotnet build OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj"; then dotnet build OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj"; then dotnet build OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj"; then dotnet build OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj"; then dotnet build OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj"; then dotnet build OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj"; then dotnet build OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-            if ci_project_selected "OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj"; then dotnet build OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
-          fi
+          solution="${RUNNER_TEMP}/officeimo-ci-${{ matrix.partition }}.slnx"
+          { echo '<Solution>'; printf '  <Project Path="%s" />\n' "${projects[@]}"; echo '</Solution>'; } > "${solution}"
+          build="${RUNNER_TEMP}/officeimo-ci-${{ matrix.partition }}.proj"
+          {
+            echo '<Project><ItemGroup>'
+            printf '  <TestProject Include="%s" />\n' "${projects[@]}"
+            echo '</ItemGroup><Target Name="Build"><MSBuild Projects="@(TestProject)" Targets="Build" BuildInParallel="true" /></Target></Project>'
+          } > "${build}"
+          cat "${build}"
+          dotnet restore "${solution}"
+          dotnet build "${build}" --configuration "${BUILD_CONFIGURATION}" --framework "${{ matrix.framework }}" --no-restore
 
       - name: Run tests
         env:
