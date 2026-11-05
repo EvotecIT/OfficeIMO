@@ -7,6 +7,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Writes strongly typed values into the current package-native worksheet row.
         /// </summary>
+        /// <remarks>
+        /// XLS and XLSB store numeric cells as IEEE-754 doubles. Large integers and high-precision
+        /// decimals may lose digits; write a string when every digit must be retained.
+        /// </remarks>
         public sealed partial class ExcelTabularRowWriter {
             private readonly TextWriter _writer;
             private readonly ExcelTabularRowSink? _native;
