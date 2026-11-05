@@ -7,9 +7,9 @@
     "testProjectCount": 63,
     "benchmarkProjectCount": 37,
     "validationProjectCount": 69,
-    "apiReferenceCount": 122,
+    "apiReferenceCount": 125,
     "conceptualPageCount": 132,
-    "conceptualWordCount": 61243
+    "conceptualWordCount": 61263
   },
   "categories": [
     {
@@ -1521,10 +1521,10 @@
       "description": "Managed Microsoft Publisher reading, in-memory authoring, bounded native source saving and SVG rendering with fidelity reports.",
       "kind": "package",
       "projectPath": "OfficeIMO.Publisher/OfficeIMO.Publisher.csproj",
-      "sourceFileCount": 172,
+      "sourceFileCount": 173,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/publisher/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Publisher"
     },
     {
@@ -1537,7 +1537,7 @@
       "sourceFileCount": 2,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/publisher-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Publisher.Pdf"
     },
     {
@@ -1862,7 +1862,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-publisher/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Publisher"
     },
     {
