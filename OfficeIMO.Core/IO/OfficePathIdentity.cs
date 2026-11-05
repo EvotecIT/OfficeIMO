@@ -429,7 +429,7 @@ namespace OfficeIMO.Internal {
             return TrimEndingDirectorySeparators(Path.GetFullPath(current));
         }
 
-        private static bool TryReadLinkTarget(string path, out string? target) {
+        internal static bool TryReadLinkTarget(string path, out string? target) {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return TryReadWindowsLinkTarget(path, out target);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || IsDarwinFileSystem) {
                 return TryReadUnixLinkTarget(path, out target);
