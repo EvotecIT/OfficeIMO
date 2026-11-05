@@ -366,7 +366,43 @@
           ],
           "medianMs": 40.178062499999996
         }
-      ]
+      ],
+      "launchRecord": {
+        "run": "FFFF-before",
+        "pid": 96480,
+        "startedUtc": "2026-11-05T01:19:17.0353746+00:00",
+        "cwd": "<BASELINE_BIN>",
+        "affinity": "0xFFFF",
+        "observedPrioritySequence": [
+          "NORMAL"
+        ],
+        "accepted": "matched XLSX",
+        "argumentList": [
+          "./OfficeIMO.Excel.Benchmarks.dll",
+          "--filter",
+          "*.MarkPflug65KXlsxBenchmarks.OfficeIMO",
+          "*.MarkPflug65KXlsxBenchmarks.OfficeIMO_Prefetch",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelReaderNet",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelReaderNet_Prefetch",
+          "--inProcess",
+          "--warmupCount",
+          "12",
+          "--iterationCount",
+          "12",
+          "--invocationCount",
+          "16",
+          "--unrollFactor",
+          "1",
+          "--launchCount",
+          "1",
+          "--outliers",
+          "DontRemove",
+          "--artifacts",
+          "\"<RESULTS>/FFFF-before\"",
+          "--priority",
+          "Normal"
+        ]
+      }
     },
     {
       "group": "FFFF-after",
@@ -561,7 +597,43 @@
           ],
           "medianMs": 38.986378125
         }
-      ]
+      ],
+      "launchRecord": {
+        "run": "FFFF-after",
+        "pid": 154420,
+        "startedUtc": "2026-11-05T01:21:04.0391951+00:00",
+        "cwd": "<FROZEN_CANDIDATE_BIN>",
+        "affinity": "0xFFFF",
+        "observedPrioritySequence": [
+          "NORMAL"
+        ],
+        "accepted": "matched XLSX",
+        "argumentList": [
+          "./OfficeIMO.Excel.Benchmarks.dll",
+          "--filter",
+          "*.MarkPflug65KXlsxBenchmarks.OfficeIMO",
+          "*.MarkPflug65KXlsxBenchmarks.OfficeIMO_Prefetch",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelReaderNet",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelReaderNet_Prefetch",
+          "--inProcess",
+          "--warmupCount",
+          "12",
+          "--iterationCount",
+          "12",
+          "--invocationCount",
+          "16",
+          "--unrollFactor",
+          "1",
+          "--launchCount",
+          "1",
+          "--outliers",
+          "DontRemove",
+          "--artifacts",
+          "\"<RESULTS>/FFFF-after\"",
+          "--priority",
+          "Normal"
+        ]
+      }
     },
     {
       "group": "FFFF-csv",
@@ -756,7 +828,41 @@
           ],
           "medianMs": 20.544309375
         }
-      ]
+      ],
+      "launchRecord": {
+        "run": "FFFF-csv",
+        "pid": 152688,
+        "startedUtc": "2026-11-05T01:22:33.0281309+00:00",
+        "cwd": "<CANDIDATE_CSV_BIN>",
+        "affinity": "0xFFFF",
+        "observedPrioritySequence": [
+          "NORMAL"
+        ],
+        "accepted": "CSV",
+        "argumentList": [
+          "./OfficeIMO.CSV.Benchmarks.Modern.dll",
+          "--filter",
+          "*.MarkPflug65KModernCsvBenchmarks.OfficeIMO",
+          "*.MarkPflug65KModernCsvBenchmarks.Sep",
+          "*.MarkPflug65KModernCsvBenchmarks.CsvHelper",
+          "*.MarkPflug65KModernCsvBenchmarks.FourLambda",
+          "--inProcess",
+          "--warmupCount",
+          "12",
+          "--iterationCount",
+          "12",
+          "--invocationCount",
+          "16",
+          "--unrollFactor",
+          "1",
+          "--launchCount",
+          "1",
+          "--outliers",
+          "DontRemove",
+          "--artifacts",
+          "\"<RESULTS>/FFFF-csv\""
+        ]
+      }
     },
     {
       "group": "FFFF-workbook",
@@ -951,7 +1057,48 @@
           ],
           "medianMs": 332.76190625
         }
-      ]
+      ],
+      "launchRecord": {
+        "run": "FFFF-workbook",
+        "pid": 64520,
+        "startedUtc": "2026-11-05T01:23:09.9810722+00:00",
+        "cwd": "<CANDIDATE_EXCEL_BIN>",
+        "affinity": "0xFFFF",
+        "observedPrioritySequence": [
+          "HIGH",
+          "NORMAL"
+        ],
+        "accepted": "XLSX only",
+        "argumentList": [
+          "./OfficeIMO.Excel.Benchmarks.dll",
+          "--filter",
+          "*.MarkPflug65KXlsxBenchmarks.OfficeIMO",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelReaderNet",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelPrime",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelPrime_TypedStyles",
+          "*.MarkPflug65KXlsbBenchmarks.OfficeIMO",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelReaderNet",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelPrime",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelPrime_TypedStyles",
+          "--inProcess",
+          "--warmupCount",
+          "12",
+          "--iterationCount",
+          "12",
+          "--invocationCount",
+          "8",
+          "--unrollFactor",
+          "1",
+          "--launchCount",
+          "1",
+          "--outliers",
+          "DontRemove",
+          "--artifacts",
+          "\"<RESULTS>/FFFF-workbook\"",
+          "--priority",
+          "Normal"
+        ]
+      }
     },
     {
       "group": "FFFF-xlsb-normal",
@@ -1146,7 +1293,43 @@
           ],
           "medianMs": 94.23265
         }
-      ]
+      ],
+      "launchRecord": {
+        "run": "FFFF-xlsb-normal",
+        "pid": 100832,
+        "startedUtc": "2026-11-05T01:36:20.8230728+00:00",
+        "cwd": "<PATCHED_XLSB_BIN>",
+        "affinity": "0xFFFF",
+        "observedPrioritySequence": [
+          "NORMAL"
+        ],
+        "accepted": "XLSB only",
+        "argumentList": [
+          "./OfficeIMO.Excel.Benchmarks.dll",
+          "--filter",
+          "*.MarkPflug65KXlsbBenchmarks.OfficeIMO",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelReaderNet",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelPrime",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelPrime_TypedStyles",
+          "--inProcess",
+          "--warmupCount",
+          "12",
+          "--iterationCount",
+          "12",
+          "--invocationCount",
+          "8",
+          "--unrollFactor",
+          "1",
+          "--launchCount",
+          "1",
+          "--outliers",
+          "DontRemove",
+          "--artifacts",
+          "\"<RESULTS>/FFFF-xlsb-normal\"",
+          "--priority",
+          "Normal"
+        ]
+      }
     },
     {
       "group": "FFFF0000-before",
@@ -1341,7 +1524,43 @@
           ],
           "medianMs": 36.870653125000004
         }
-      ]
+      ],
+      "launchRecord": {
+        "run": "FFFF0000-before",
+        "pid": 148840,
+        "startedUtc": "2026-11-05T01:28:06.2424886+00:00",
+        "cwd": "<BASELINE_BIN>",
+        "affinity": "0xFFFF0000",
+        "observedPrioritySequence": [
+          "NORMAL"
+        ],
+        "accepted": "matched XLSX",
+        "argumentList": [
+          "./OfficeIMO.Excel.Benchmarks.dll",
+          "--filter",
+          "*.MarkPflug65KXlsxBenchmarks.OfficeIMO",
+          "*.MarkPflug65KXlsxBenchmarks.OfficeIMO_Prefetch",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelReaderNet",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelReaderNet_Prefetch",
+          "--inProcess",
+          "--warmupCount",
+          "12",
+          "--iterationCount",
+          "12",
+          "--invocationCount",
+          "16",
+          "--unrollFactor",
+          "1",
+          "--launchCount",
+          "1",
+          "--outliers",
+          "DontRemove",
+          "--artifacts",
+          "\"<RESULTS>/FFFF0000-before\"",
+          "--priority",
+          "Normal"
+        ]
+      }
     },
     {
       "group": "FFFF0000-after",
@@ -1536,7 +1755,43 @@
           ],
           "medianMs": 40.0463125
         }
-      ]
+      ],
+      "launchRecord": {
+        "run": "FFFF0000-after",
+        "pid": 89196,
+        "startedUtc": "2026-11-05T01:26:37.8903372+00:00",
+        "cwd": "<FROZEN_CANDIDATE_BIN>",
+        "affinity": "0xFFFF0000",
+        "observedPrioritySequence": [
+          "NORMAL"
+        ],
+        "accepted": "matched XLSX",
+        "argumentList": [
+          "./OfficeIMO.Excel.Benchmarks.dll",
+          "--filter",
+          "*.MarkPflug65KXlsxBenchmarks.OfficeIMO",
+          "*.MarkPflug65KXlsxBenchmarks.OfficeIMO_Prefetch",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelReaderNet",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelReaderNet_Prefetch",
+          "--inProcess",
+          "--warmupCount",
+          "12",
+          "--iterationCount",
+          "12",
+          "--invocationCount",
+          "16",
+          "--unrollFactor",
+          "1",
+          "--launchCount",
+          "1",
+          "--outliers",
+          "DontRemove",
+          "--artifacts",
+          "\"<RESULTS>/FFFF0000-after\"",
+          "--priority",
+          "Normal"
+        ]
+      }
     },
     {
       "group": "FFFF0000-csv",
@@ -1731,7 +1986,41 @@
           ],
           "medianMs": 24.25793125
         }
-      ]
+      ],
+      "launchRecord": {
+        "run": "FFFF0000-csv",
+        "pid": 105780,
+        "startedUtc": "2026-11-05T01:33:11.2157849+00:00",
+        "cwd": "<CANDIDATE_CSV_BIN>",
+        "affinity": "0xFFFF0000",
+        "observedPrioritySequence": [
+          "NORMAL"
+        ],
+        "accepted": "CSV",
+        "argumentList": [
+          "./OfficeIMO.CSV.Benchmarks.Modern.dll",
+          "--filter",
+          "*.MarkPflug65KModernCsvBenchmarks.OfficeIMO",
+          "*.MarkPflug65KModernCsvBenchmarks.Sep",
+          "*.MarkPflug65KModernCsvBenchmarks.CsvHelper",
+          "*.MarkPflug65KModernCsvBenchmarks.FourLambda",
+          "--inProcess",
+          "--warmupCount",
+          "12",
+          "--iterationCount",
+          "12",
+          "--invocationCount",
+          "16",
+          "--unrollFactor",
+          "1",
+          "--launchCount",
+          "1",
+          "--outliers",
+          "DontRemove",
+          "--artifacts",
+          "\"<RESULTS>/FFFF0000-csv\""
+        ]
+      }
     },
     {
       "group": "FFFF0000-workbook",
@@ -1926,7 +2215,48 @@
           ],
           "medianMs": 306.98141875
         }
-      ]
+      ],
+      "launchRecord": {
+        "run": "FFFF0000-workbook",
+        "pid": 99272,
+        "startedUtc": "2026-11-05T01:29:48.0259338+00:00",
+        "cwd": "<CANDIDATE_EXCEL_BIN>",
+        "affinity": "0xFFFF0000",
+        "observedPrioritySequence": [
+          "HIGH",
+          "NORMAL"
+        ],
+        "accepted": "XLSX only",
+        "argumentList": [
+          "./OfficeIMO.Excel.Benchmarks.dll",
+          "--filter",
+          "*.MarkPflug65KXlsxBenchmarks.OfficeIMO",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelReaderNet",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelPrime",
+          "*.MarkPflug65KXlsxBenchmarks.ExcelPrime_TypedStyles",
+          "*.MarkPflug65KXlsbBenchmarks.OfficeIMO",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelReaderNet",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelPrime",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelPrime_TypedStyles",
+          "--inProcess",
+          "--warmupCount",
+          "12",
+          "--iterationCount",
+          "12",
+          "--invocationCount",
+          "8",
+          "--unrollFactor",
+          "1",
+          "--launchCount",
+          "1",
+          "--outliers",
+          "DontRemove",
+          "--artifacts",
+          "\"<RESULTS>/FFFF0000-workbook\"",
+          "--priority",
+          "Normal"
+        ]
+      }
     },
     {
       "group": "FFFF0000-xlsb-normal",
@@ -2121,7 +2451,43 @@
           ],
           "medianMs": 105.0525625
         }
-      ]
+      ],
+      "launchRecord": {
+        "run": "FFFF0000-xlsb-normal",
+        "pid": 60716,
+        "startedUtc": "2026-11-05T01:37:22.9704843+00:00",
+        "cwd": "<PATCHED_XLSB_BIN>",
+        "affinity": "0xFFFF0000",
+        "observedPrioritySequence": [
+          "NORMAL"
+        ],
+        "accepted": "XLSB only",
+        "argumentList": [
+          "./OfficeIMO.Excel.Benchmarks.dll",
+          "--filter",
+          "*.MarkPflug65KXlsbBenchmarks.OfficeIMO",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelReaderNet",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelPrime",
+          "*.MarkPflug65KXlsbBenchmarks.ExcelPrime_TypedStyles",
+          "--inProcess",
+          "--warmupCount",
+          "12",
+          "--iterationCount",
+          "12",
+          "--invocationCount",
+          "8",
+          "--unrollFactor",
+          "1",
+          "--launchCount",
+          "1",
+          "--outliers",
+          "DontRemove",
+          "--artifacts",
+          "\"<RESULTS>/FFFF0000-xlsb-normal\"",
+          "--priority",
+          "Normal"
+        ]
+      }
     }
   ],
   "packages": {
@@ -2138,5 +2504,53 @@
     "XLSB replacements retain start/end load observations; intermediate host CPU samples are unavailable.",
     "FourLambda AVX2 scanner selected on this host. PRIME uses the managed forward-only reader and default/style conversion.",
     "Owned timing/sampling processes exited. Detached checkouts and task build/runtime/fixture outputs removed;2,741,630,351logical bytes removed, compact original evidence retained."
-  ]
+  ],
+  "sourceHeadMeaning": "Measured product and ordinary current harness source. XLSB Normal recheck uses the exact recorded source patch below on this revision; it is not an unmodified checkout.",
+  "harnessSources": {
+    "matchedXlsx": {
+      "source": "376ab595af920f1666b725400406cc544642fc47",
+      "overlay": "Only OfficeIMO.Excel.dll and PDB built from sourceHead; exact observed binary bindings retained."
+    },
+    "currentReaders": {
+      "source": "887a8591a6cfaae7bf97b1ecafdc5f8704fcbe61"
+    },
+    "xlsbNormalRecheck": {
+      "baseSource": "887a8591a6cfaae7bf97b1ecafdc5f8704fcbe61",
+      "file": "OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs",
+      "patch": "diff --git a/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs b/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs\nindex b13ae8121e..f2fa62112d 100644\n--- a/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs\n+++ b/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs\n@@ -404,6 +404,8 @@ public partial class MarkPflug65KXlsbBenchmarks {\n \n     [GlobalSetup]\n     public void Setup() {\n+        string? priority = Environment.GetEnvironmentVariable(\"OFFICEIMO_BENCHMARK_PROCESS_PRIORITY\");\n+        if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);\n         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);\n         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsbFileName);\n         _expected = MarkPflug65KXlsxBenchmarks.ExpectedObservation();",
+      "maintainedEquivalentFileCommit": "f3268067b6bd234958177a951a921b18194e02a7",
+      "originalGitBlob": "b13ae8121e1617f0c7e456e03b23a074eee500d1",
+      "patchedGitBlob": "f2fa62112d35209140c076f4eb05c080da517bea",
+      "originalSha256": "32f8f54ea5cd1c8e9b98101456a1afbff2f8b78fce00a871070ffd7825d90064",
+      "patchedSha256": "f2f1a52da8f18e43d0590a8e50c47856d22959673bc18e33a4f43330719b8766",
+      "fileHashProvenance": "Reconstructed from exact original Git blob and retained additions, UTF-8 without BOM and LF. Temporary working-file hash was not persisted. Actual runtime DLL/PDB bindings are observed records, not reconstructed.",
+      "overlay": "Only benchmark DLL/PDB replaced relative to the current workbook runtime. Product and comparison binaries unchanged."
+    }
+  },
+  "reproduction": {
+    "executable": "dotnet.exe resolved separately by the launcher; SDK/runtime identities retained in host.",
+    "argumentListSemantics": "Saved Windows PowerShell Start-Process ArgumentList arrays. Literal quotes around the artifact-path entry delimit the Windows command line; a native argv API passes that path without those quote characters.",
+    "affinity": "Launcher set its ProcessorAffinity before starting timing children; live timing-process samples verified effective masks. Launcher started at Normal; benchmark setup reapplied optional process priority. Original mixed workbook runs contain discarded High-priority XLSB legs; accepted XLSX and replacement XLSB phases run Normal.",
+    "environment": {
+      "OFFICEIMO_BENCHMARK_DATA": "<SCRATCH>/fixtures",
+      "OFFICEIMO_BENCHMARK_PROCESS_PRIORITY": "Normal",
+      "TEMP": "<SCRATCH>/temp",
+      "TMP": "<SCRATCH>/temp",
+      "MSBUILDDISABLENODEREUSE": "1",
+      "DOTNET_CLI_USE_MSBUILD_SERVER": "0"
+    },
+    "environmentLimit": "These variables are explicitly recorded in retained scripts; a complete inherited environment was not captured.",
+    "pathRoles": {
+      "<SCRATCH>": "Task-owned temporary root",
+      "<RESULTS>": "<SCRATCH>/results",
+      "<BASELINE_BIN>": "Baseline-built frozen Excel benchmark output",
+      "<FROZEN_CANDIDATE_BIN>": "Baseline runtime with measured candidate Excel DLL/PDB overlay",
+      "<CANDIDATE_CSV_BIN>": "Current modern CSV benchmark output",
+      "<CANDIDATE_EXCEL_BIN>": "Current unpatched Excel benchmark output",
+      "<PATCHED_XLSB_BIN>": "Current workbook runtime with only patched XLSB benchmark DLL/PDB overlay"
+    },
+    "buildValidationCommandTemplates": "# Run from detached source 376ab595af920f1666b725400406cc544642fc47\ndotnet build OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj -c Release -f net10.0 -m:2 -nodeReuse:false -p:UseSharedCompilation=false --artifacts-path <SCRATCH>/build/baseline\n\n# Run from detached source 887a8591a6cfaae7bf97b1ecafdc5f8704fcbe61\ndotnet build OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj -c Release -f net10.0 -m:2 -nodeReuse:false -p:UseSharedCompilation=false --artifacts-path <SCRATCH>/build/current\ndotnet build OfficeIMO.CSV.Benchmarks.Modern/OfficeIMO.CSV.Benchmarks.Modern.csproj -c Release -f net10.0 -m:2 -nodeReuse:false -p:UseSharedCompilation=false --artifacts-path <SCRATCH>/build/current\n\n# Run once on the first affinity domain before any accepted timing\ndotnet <CANDIDATE_CSV_BIN>/OfficeIMO.CSV.Benchmarks.Modern.dll --validate\ndotnet <CANDIDATE_EXCEL_BIN>/OfficeIMO.Excel.Benchmarks.dll --validate-prime-readers\n\n# Rebuild from the same candidate using the temporary XLSB setup patch below\ndotnet build OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj -c Release -f net10.0 -m:2 -nodeReuse:false -p:UseSharedCompilation=false --artifacts-path <SCRATCH>/build/current",
+    "buildValidationProvenance": "Expanded retained script templates and corresponding logs; these do not have the JSON process-launch records used for timing.",
+    "timingLaunchRecordsLocation": "processes[].launchRecord"
+  }
 }

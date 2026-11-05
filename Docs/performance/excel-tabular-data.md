@@ -1414,8 +1414,12 @@ High priority and are excluded; all eight XLSB rows above are Normal-priority
 replacements. Their harness reapplies the optional priority setting in XLSB setup,
 with every participant using the same harness. The maintained benchmark now does
 the same. Intermediate load samples are unavailable for these replacements;
-start/end observations remain in the evidence. The prefetched XLSX and current
-CSV gaps remain on both platforms.
+start/end observations remain in the evidence. The artifact now retains all ten
+recorded PowerShell argument arrays, environment overrides and the exact recheck
+source patch. Its file hashes are explicitly reconstructed from the original Git
+blob and retained additions; observed DLL/PDB hashes remain separate. Build and
+validation commands are expanded retained script templates. The prefetched XLSX
+and current CSV gaps remain on both platforms.
 
 ### Proof and remaining costs
 
