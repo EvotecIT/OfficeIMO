@@ -3298,7 +3298,7 @@
       "supportLevel":"Targeted",
       "supportEvidence":"Pinned Pages, Numbers, and Keynote fixtures verify bounded package inspection, typed projection, editable Office reconstruction, visual fallbacks, preserved records, and conversion reports.",
       "knownLimitations":"Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.",
-      "resultContract":"PagesToWordResult",
+      "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
       "agentDiscoverable":true
     },
@@ -3318,7 +3318,7 @@
       "supportLevel":"Targeted",
       "supportEvidence":"Pinned Pages, Numbers, and Keynote fixtures verify bounded package inspection, typed projection, editable Office reconstruction, visual fallbacks, preserved records, and conversion reports.",
       "knownLimitations":"Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.",
-      "resultContract":"NumbersToExcelResult",
+      "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
       "agentDiscoverable":true
     },
@@ -3338,7 +3338,7 @@
       "supportLevel":"Targeted",
       "supportEvidence":"Pinned Pages, Numbers, and Keynote fixtures verify bounded package inspection, typed projection, editable Office reconstruction, visual fallbacks, preserved records, and conversion reports.",
       "knownLimitations":"Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.",
-      "resultContract":"KeynoteToPowerPointResult",
+      "resultContract":"OfficeConversionReport",
       "browserAvailable":false,
       "agentDiscoverable":true
     },

@@ -542,17 +542,17 @@ public static partial class OfficeConversionCapabilityCatalog {
             "pages-docx", "Pages", "DOCX", OfficeConversionInputKind.File, new[] { ".pages" }, ".docx",
             "OfficeIMO.Word.IWork", "IWorkSourceDocument.Load(path, IWorkDocumentKind.Pages, readOptions).SaveAsWord(output, options)",
             "Reconstruct a bounded Pages source as an editable Word document with source and fallback evidence.",
-            OfficeConversionFidelityKind.Editable, "PagesToWordResult"));
+            OfficeConversionFidelityKind.Editable, "OfficeConversionReport"));
         routes.Add(Route(
             "numbers-xlsx", "Numbers", "XLSX", OfficeConversionInputKind.File, new[] { ".numbers" }, ".xlsx",
             "OfficeIMO.Excel.IWork", "IWorkSourceDocument.Load(path, IWorkDocumentKind.Numbers, readOptions).SaveAsExcel(output, options)",
             "Reconstruct a bounded Numbers source as an editable Excel workbook with source and fallback evidence.",
-            OfficeConversionFidelityKind.Editable, "NumbersToExcelResult"));
+            OfficeConversionFidelityKind.Editable, "OfficeConversionReport"));
         routes.Add(Route(
             "keynote-pptx", "Keynote", "PPTX", OfficeConversionInputKind.File, new[] { ".key" }, ".pptx",
             "OfficeIMO.PowerPoint.IWork", "IWorkSourceDocument.Load(path, IWorkDocumentKind.Keynote, readOptions).SaveAsPowerPoint(output, options)",
             "Reconstruct a bounded Keynote source as an editable PowerPoint presentation with source and fallback evidence.",
-            OfficeConversionFidelityKind.Editable, "KeynoteToPowerPointResult"));
+            OfficeConversionFidelityKind.Editable, "OfficeConversionReport"));
         AddPdf("pages-pdf", "Pages", ".pages");
         AddPdf("numbers-pdf", "Numbers", ".numbers");
         AddPdf("keynote-pdf", "Keynote", ".key");
