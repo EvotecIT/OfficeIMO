@@ -2280,9 +2280,8 @@ jobs:
     name: 'NativeAOT Windows / ${{ matrix.group }}'
     if: needs.changes.outputs.full == 'true'
     runs-on: windows-latest
-    # The previous serialized matrix reached profile 17 at the 90-minute limit.
-    # These groups retain every profile with a separate budget and fresh runner.
-    timeout-minutes: 90
+    # Windows surfaces reached Studio native compilation at 84 minutes.
+    timeout-minutes: ${{ matrix.group == 'surfaces' && 120 || 90 }}
     strategy:
       fail-fast: false
       matrix:

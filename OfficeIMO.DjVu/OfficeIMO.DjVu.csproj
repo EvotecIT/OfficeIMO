@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Managed DjVu document reading, stored text and scanned-page rendering for OfficeIMO.</Description>
-    <VersionPrefix>3.5.3</VersionPrefix>
+    <VersionPrefix>3.6.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <IsPackable>true</IsPackable>
