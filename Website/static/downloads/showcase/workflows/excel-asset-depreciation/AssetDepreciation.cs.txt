@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             for (int column = 2; column <= 5; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(18));
             sheet.Range("A1:F1").Merge(); sheet.Cell(1, 1).SetValue("Asset depreciation register");
-            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetFontColor("17365D");
+            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetColor(OfficeColor.Parse("17365D"));
             sheet.Range("A2:F2").Merge(); sheet.Cell(2, 1).SetValue("Straight-line planning schedule / illustrative EUR values");
             string[] headers = { "Asset", "Cost", "Residual", "Life (years)", "Annual charge", "Book after year 1" };
             for (int column = 1; column <= 6; column++) sheet.Cell(4, column).SetValue(headers[column - 1]);
@@ -40,9 +40,9 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             }
             sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             for (int column = 1; column <= 6; column++) {
-                sheet.Cell(4, column).SetFontColor("FFFFFF");
+                sheet.Cell(4, column).SetColor(OfficeColor.Parse("FFFFFF"));
                 sheet.Cell(4, column).SetBold(true);
-                sheet.Cell(4, column).SetFillColor("17365D");
+                sheet.Cell(4, column).SetFillColor(OfficeColor.Parse("17365D"));
             }
             document.Calculate();
             document.InspectFormulas().EnsureAllSupported().EnsureAllHaveCachedResults().EnsureNoDependencyIssues();

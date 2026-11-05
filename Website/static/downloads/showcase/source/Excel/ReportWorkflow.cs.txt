@@ -62,7 +62,7 @@ namespace OfficeIMO.Examples.Excel
                 sheet.Cell(totalRow, 6).SetNumberFormat("0.0%");
                 // Table style, a colour scale on margin %, and a frozen header.
                 sheet.AddTable($"A4:F{lastRow}", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
-                sheet.Range($"F5:F{lastRow}").ConditionalFormat().ColorScale("F8D7DA", "C9ECD3");
+                sheet.Range($"F5:F{lastRow}").ConditionalFormat().ColorScale(OfficeColor.Parse("F8D7DA"), OfficeColor.Parse("C9ECD3"));
                 sheet.View.Freeze(topRows: 4);
                 // A SUMIF summary by region feeds the chart; the pivot reads the same table.
                 string[] regions =
@@ -123,18 +123,18 @@ namespace OfficeIMO.Examples.Excel
             sheet.Cell(1, 1).SetValue("{{ReportTitle}}")
                 .SetFontSize(global::OfficeIMO.OfficeLength.Points(20))
                 .SetBold()
-                .SetFontColor("FFFFFF");
-            sheet.Range("A1:F1").SetFillColor("17365D");
+                .SetColor(OfficeColor.Parse("FFFFFF"));
+            sheet.Range("A1:F1").SetFillColor(OfficeColor.Parse("17365D"));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
             sheet.Range("A2:F2").Merge();
             sheet.Cell(2, 1).SetValue("Revenue, cost and margin by region and product line. Margin columns are formulas.");
-            sheet.Cell(2, 1).SetFontColor("5B6B7F");
+            sheet.Cell(2, 1).SetColor(OfficeColor.Parse("5B6B7F"));
             string[] headers = { "Region", "Product", "Revenue", "Cost", "Margin", "Margin %" };
             for (int column = 0; column < headers.Length; column++) sheet.Cell(4, column + 1).SetValue(headers[column]);
         }
 
         private static void StyleLayout(ExcelSheet sheet, int totalRow) {
-            sheet.Range(totalRow, 1, totalRow, 6).SetBold().SetFillColor("E8EEF7");
+            sheet.Range(totalRow, 1, totalRow, 6).SetBold().SetFillColor(OfficeColor.Parse("E8EEF7"));
             sheet.Range("I5:J8").SetNumberFormat("#,##0");
             foreach ((int column, double width) in new[] { (1, 12d), (2, 14d), (3, 14d), (4, 14d), (5, 14d), (6, 12d), (7, 3d), (8, 12d), (9, 14d), (10, 14d) }) {
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(width));

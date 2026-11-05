@@ -14,14 +14,14 @@ internal static class ProjectWorkbook {
         summary.Cell(1, 1).SetValue("Project workbook / weekly delivery");
         summary.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
         summary.Cell(1, 1).SetBold(true);
-        summary.Cell(1, 1).SetFontColor("17365D");
+        summary.Cell(1, 1).SetColor(OfficeColor.Parse("17365D"));
         string[] labels = { "Discovery", "Build", "Pilot", "Handover" };
         string[] headers = { "Workstream", "Planned days", "Used days", "Remaining" };
         for (int column = 0; column < headers.Length; column++) {
             delivery.Cell(1, column + 1).SetValue(headers[column]);
             summary.Cell(4, column + 1).SetValue(headers[column]);
-            summary.Cell(4, column + 1).SetFillColor("17365D");
-            summary.Cell(4, column + 1).SetFontColor("FFFFFF");
+            summary.Cell(4, column + 1).SetFillColor(OfficeColor.Parse("17365D"));
+            summary.Cell(4, column + 1).SetColor(OfficeColor.Parse("FFFFFF"));
             summary.SetColumnWidth(column + 1, ExcelColumnWidth.Characters(column == 0 ? 30 : 22));
             delivery.SetColumnWidth(column + 1, ExcelColumnWidth.Characters(column == 0 ? 30 : 22));
         }
@@ -36,7 +36,7 @@ internal static class ProjectWorkbook {
                 string letter = ((char)('A' + column - 1)).ToString();
                 summary.Cell(index + 5, column).SetFormula($"'Delivery'!{letter}{row}");
             }
-            summary.Cell(index + 5, 4).SetFillColor("E7F6ED");
+            summary.Cell(index + 5, 4).SetFillColor(OfficeColor.Parse("E7F6ED"));
         }
         delivery.AddTable("A1:D5", true, "DeliveryPlan", ExcelTableStyle.TableStyleMedium2);
         delivery.View.Freeze(topRows: 1);
