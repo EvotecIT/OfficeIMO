@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Merges a source workbook's styles into the target workbook for one worksheet copy. Each source entry maps to the
-        /// first target entry that renders the same, and is appended only when the target has none, so copying more sheets
+        /// first target entry with the same properties and color binding, and is appended only when the target has none, so copying more sheets
         /// from the same source, or from a source with the same styles, adds nothing. The target is indexed afresh for every
         /// copy, so changes to either stylesheet between copies are always seen, and entries are visited in index order,
         /// so equal inputs give equal output.
@@ -25,14 +25,12 @@ namespace OfficeIMO.Excel {
             private readonly Stylesheet _source;
             private readonly Stylesheet _target;
             private readonly WorkbookStyleColorResolver _sourceColors;
-            private readonly WorkbookStyleColorResolver _targetColors;
             private readonly NumberFormatRegistry _numberFormats;
 
-            internal StylesheetMerger(WorkbookPart sourceWorkbookPart, Stylesheet source, WorkbookPart targetWorkbookPart, Stylesheet target) {
+            internal StylesheetMerger(WorkbookPart sourceWorkbookPart, Stylesheet source, Stylesheet target) {
                 _source = source;
                 _target = target;
                 _sourceColors = WorkbookStyleColorResolver.Create(sourceWorkbookPart, source);
-                _targetColors = WorkbookStyleColorResolver.Create(targetWorkbookPart, target);
                 _numberFormats = NumberFormatRegistry.Create(target);
             }
 
@@ -89,8 +87,8 @@ namespace OfficeIMO.Excel {
             }
 
             /// <summary>
-            /// Indexes target fonts, fills, borders or dxfs both by their own XML and with their colors resolved through the
-            /// target's theme and palette, so a copied entry whose resolved colors match reuses the target's entry.
+            /// Indexes target fonts, fills, borders and dxfs by their stored properties. A theme or palette reference must
+            /// not alias a fixed RGB color: later theme or palette edits change only the referenced color.
             /// </summary>
             private StyleEntryIndex IndexEntries<TElement>(OpenXmlCompositeElement target, bool reservesFills)
                 where TElement : OpenXmlElement {
@@ -103,20 +101,10 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    index.Add(key, BuildResolvedColorKey(entry));
+                    index.Add(key);
                 }
 
                 return index;
-            }
-
-            private string? BuildResolvedColorKey(OpenXmlElement entry) {
-                if (!entry.Descendants<ColorType>().Any()) {
-                    return null;
-                }
-
-                OpenXmlElement resolved = entry.CloneNode(true);
-                _targetColors.NormalizeThemeAndIndexedColors(resolved);
-                return BuildStyleKey(resolved);
             }
 
             private Dictionary<uint, uint> MergeEntries<TElement>(
@@ -238,7 +226,7 @@ namespace OfficeIMO.Excel {
             }
 
             /// <summary>
-            /// Builds a key that is equal for two cell formats exactly when they render the same in the target. A cell style
+            /// Builds a key that is equal for two cell formats with the same referenced style identities. A cell style
             /// format has no parent format, so <paramref name="styleFormats"/> is null for those.
             /// </summary>
             internal string BuildKey(CellFormat format, StyleEntryIndex? styleFormats) {
@@ -270,8 +258,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Finds the first target style entry with a given key. Each target entry also records the first earlier entry that
-        /// renders the same, so cell formats can be compared by what their fonts, fills and borders render as.
+        /// Finds the first target style entry with a given key. Each target entry also records the first identical earlier
+        /// entry, so cell formats can compare equivalent references without losing their color bindings.
         /// </summary>
         private sealed class StyleEntryIndex {
             private readonly Dictionary<string, uint> _firstIndexes = new Dictionary<string, uint>(StringComparer.Ordinal);
@@ -279,21 +267,14 @@ namespace OfficeIMO.Excel {
 
             internal uint Count => (uint)_canonicalIndexes.Count;
 
-            /// <summary>Records the next entry and returns the index of the first entry that renders the same.</summary>
-            internal uint Add(string key, string? equivalentKey = null) {
+            /// <summary>Records the next entry and returns the index of the first entry with the same key.</summary>
+            internal uint Add(string key) {
                 uint canonical = Count;
                 if (_firstIndexes.TryGetValue(key, out uint first)) {
                     canonical = Math.Min(canonical, first);
                 }
 
-                if (equivalentKey != null && _firstIndexes.TryGetValue(equivalentKey, out first)) {
-                    canonical = Math.Min(canonical, first);
-                }
-
                 AddFirst(key, canonical);
-                if (equivalentKey != null) {
-                    AddFirst(equivalentKey, canonical);
-                }
 
                 _canonicalIndexes.Add(canonical);
                 return canonical;

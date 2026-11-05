@@ -428,7 +428,7 @@ namespace OfficeIMO.Excel {
             Stylesheet targetStylesheet = targetStylesPart.Stylesheet ??= CreateDefaultStylesheet();
             EnsureStylesheetPrimitives(targetStylesheet);
 
-            WorksheetStyleCopyMap styleMap = new StylesheetMerger(sourceWorkbookPart, sourceStylesheet, targetWorkbookPart, targetStylesheet).Merge();
+            WorksheetStyleCopyMap styleMap = new StylesheetMerger(sourceWorkbookPart, sourceStylesheet, targetStylesheet).Merge();
             IReadOnlyDictionary<uint, uint> cellFormatMap = styleMap.CellFormats;
             var inheritedStyleCells = BuildInheritedStyleCellSet(worksheet);
 
