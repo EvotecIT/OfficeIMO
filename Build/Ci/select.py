@@ -53,6 +53,7 @@ def select(root, changed, full=False):
     affected = set()
     directly_changed = set()
     wide = full
+    wide_paths = []
     for path in changed:
         linked_consumers = {project for pattern, consumers in linked_inputs.items()
                             if fnmatch.fnmatchcase(path, pattern) for project in consumers}
@@ -60,6 +61,7 @@ def select(root, changed, full=False):
         # Executable Markdown and other fixtures are inputs, regardless of suffix.
         if path.startswith(("OfficeIMO.TestAssets/", "OfficeIMO.SharedSource/")) or "/Fixtures/" in path:
             wide = True
+            wide_paths.append(path)
             continue
         # Exclude known prose only after accounting for linked build inputs.
         prose = path.endswith(".md") and (path.startswith("Docs/") or Path(path).name.lower() in
@@ -79,19 +81,25 @@ def select(root, changed, full=False):
         else:
             # Shared source, fixtures, build scripts, workflow and graph changes fail open.
             wide = True
+            wide_paths.append(path)
     routed_tests = set(sum(config["suites"].values(), []) + sum(config["partitions"].values(), []))
     routed_tests.update(Path(row["project"]).stem for row in config["windows"])
     unmapped_tests = {Path(p).stem for p in directly_changed if Path(p).stem.endswith("Tests")} - routed_tests
     if unmapped_tests:
         raise ValueError("Test projects need an executable CI route in pr-suites.json: " + ", ".join(sorted(unmapped_tests)))
-    if wide:
-        affected = set(graph)
-    else:
+    def with_consumers(projects):
+        projects = set(projects)
         while True:
-            consumers = {p for p, refs in graph.items() if refs & affected}
-            if consumers <= affected:
-                break
-            affected |= consumers
+            consumers = {p for p, refs in graph.items() if refs & projects}
+            if consumers <= projects:
+                return projects
+            projects |= consumers
+    matches = lambda patterns, paths=changed: any(fnmatch.fnmatchcase(path, pattern) for path in paths for pattern in patterns)
+    # Workflow and CI edits fail open for hosted Linux and Windows lanes, but
+    # scarce macOS lanes only follow the projects those edits actually touch.
+    ci_only = wide and not full and all(matches(config.get("ci_only_inputs", []), [p]) for p in wide_paths)
+    narrow = with_consumers(affected)
+    affected = set(graph) if wide else narrow
     names = {Path(p).stem for p in affected}
     selected = lambda roots: bool(names.intersection(roots))
     suites = {key: selected(roots) for key, roots in config["suites"].items()}
@@ -104,12 +112,15 @@ def select(root, changed, full=False):
     suites["website"] = full or any(fnmatch.fnmatchcase(path, pattern)
                                     for path in changed for pattern in config["website_inputs"])
     suites["powershell"] |= any(p.startswith("PowerShell/") for p in changed)
-    # Non-.NET lanes declare their own inputs. Shared CI and build inputs still
-    # select every one of them; full runs always do.
-    matches = lambda patterns: any(fnmatch.fnmatchcase(path, pattern) for path in changed for pattern in patterns)
+    # Non-.NET lanes declare their own inputs. The selector, SDK and NuGet
+    # configuration still select every one of them; full runs always do.
     shared = full or matches(config.get("shared_inputs", []))
     for key, patterns in config.get("path_suites", {}).items():
         suites[key] = shared or matches(patterns)
+    if ci_only:
+        narrow_names = {Path(p).stem for p in narrow}
+        for key in config.get("macos_suites", []):
+            suites[key] = shared or bool(narrow_names.intersection(config["suites"][key]))
     partitions = [p for p, roots in config["partitions"].items() if selected(roots)]
     frameworks = ["net8.0", "net10.0"] if full else ["net10.0"]
     ubuntu = [{"framework": f, "partition": p} for f in frameworks for p in partitions]

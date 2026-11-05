@@ -2,8 +2,13 @@ name: Controlled NuGet dependency graph
 
 on:
   pull_request:
+    # Adding or removing the full-ci label reevaluates the Apple restore selection.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
       - '.github/workflows/dependency-submission.yml'
+      - '.github/actions/contract-selection/**'
+      - 'Build/Ci/select.py'
+      - 'Build/Ci/pr-suites.json'
       - '**/*.csproj'
       - '**/*.props'
       - '**/*.targets'
@@ -34,26 +39,53 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' && github.run_attempt == 1 }}
 
 jobs:
+  changes:
+    name: Select dependency graph profiles
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      restore: ${{ steps.profiles.outputs.restore }}
+      profiles: ${{ steps.profiles.outputs.profiles }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: apple
+        uses: ./.github/actions/contract-selection
+        with:
+          suite: apple-dependency-graph
+      # macOS runners are scarce. Pull requests restore the Apple graph only
+      # when Apple projects or shared build inputs change; master pushes,
+      # manual runs and full-ci requests always restore and scan all profiles.
+      - id: profiles
+        env:
+          APPLE: ${{ steps.apple.outputs.selected }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          restore = [
+              {"profile": "linux", "runner": "ubuntu-latest",
+               "projects": json.dumps(["OfficeIMO.slnx", "Website/Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj"]),
+               "workloads": "wasm-tools", "workload-version": ""},
+              {"profile": "windows", "runner": "windows-latest",
+               "projects": json.dumps(["OfficeIMO.slnx"]), "workloads": "", "workload-version": ""},
+              {"profile": "apple", "runner": "macos-latest",
+               "projects": json.dumps(["OfficeIMO.slnx", "OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj"]),
+               "workloads": "wasm-tools ios", "workload-version": "10.0.112"},
+          ]
+          restore = [row for row in restore if row["profile"] != "apple" or os.environ["APPLE"] == "true"]
+          print(json.dumps(restore, indent=2))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("restore=" + json.dumps(restore) + "\n")
+              output.write("profiles=" + json.dumps([row["profile"] for row in restore]) + "\n")
+          PY
+
   restore:
+    needs: changes
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - profile: linux
-            runner: ubuntu-latest
-            projects: '["OfficeIMO.slnx", "Website/Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj"]'
-            workloads: wasm-tools
-            workload-version: ''
-          - profile: windows
-            runner: windows-latest
-            projects: '["OfficeIMO.slnx"]'
-            workloads: ''
-            workload-version: ''
-          - profile: apple
-            runner: macos-latest
-            projects: '["OfficeIMO.slnx", "OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj"]'
-            workloads: 'wasm-tools ios'
-            workload-version: '10.0.112'
+        include: ${{ fromJSON(needs.changes.outputs.restore) }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
@@ -75,11 +107,11 @@ jobs:
           retention-days: 1
 
   scan:
-    needs: restore
+    needs: [changes, restore]
     strategy:
       fail-fast: false
       matrix:
-        profile: [linux, windows, apple]
+        profile: ${{ fromJSON(needs.changes.outputs.profiles) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -101,13 +133,13 @@ jobs:
 
   submit:
     if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: scan
+    needs: [changes, scan]
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
-        profile: [linux, windows, apple]
+        profile: ${{ fromJSON(needs.changes.outputs.profiles) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

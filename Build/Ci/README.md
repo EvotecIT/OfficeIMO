@@ -65,11 +65,17 @@ contracts cover dependency propagation, conditional references, shared inputs,
 unmapped projects, docs/website/JavaScript changes and the full-matrix override.
 
 Lanes outside the .NET project graph declare their inputs in `path_suites`.
-They run when one of those paths changes, when a `shared_inputs` path (CI
-workflows and actions, `Build/Ci`, SDK, MSBuild and NuGet configuration)
-changes, and on every full run. Studio Apple uses this: its Swift sources,
-project and the one linked PDF fixture select the native qualification, while
-its `CI validation` job always reports.
+They run when one of those paths changes, when a `shared_inputs` path (the
+selector and its action, SDK, MSBuild and NuGet configuration) changes, and on
+every full run. Studio Apple uses this: its workflow, Swift sources, project and
+the one linked PDF fixture select the native qualification, while its
+`CI validation` job always reports. The Apple dependency-graph restore uses the
+same rule with the Apple project files, so other PRs skip its macOS runner.
+
+Hosted macOS runners are scarce. Other workflow and `Build/Ci` edits still fail
+open for the Linux and Windows lanes, but the `macos_suites` (the Apple ImageIO
+lane) then follow only the projects the PR actually changes. Master pushes, the
+schedule, manual runs and the `full-ci` label run every macOS lane.
 
 Website PR selection uses `website_inputs` rather than the managed dependency
 closure. Website assets, browser sources, PowerShell content, documentation,
