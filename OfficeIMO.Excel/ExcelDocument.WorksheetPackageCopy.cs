@@ -428,14 +428,8 @@ namespace OfficeIMO.Excel {
             Stylesheet targetStylesheet = targetStylesPart.Stylesheet ??= CreateDefaultStylesheet();
             EnsureStylesheetPrimitives(targetStylesheet);
 
-            var colorResolver = WorkbookStyleColorResolver.Create(sourceWorkbookPart, sourceStylesheet);
-            Dictionary<uint, uint> numberingMap = AppendNumberingFormats(sourceStylesheet, targetStylesheet);
-            Dictionary<uint, uint> fontMap = AppendStyleElements<Fonts, Font>(sourceStylesheet.Fonts, targetStylesheet.Fonts!, (container, count) => container.Count = count, colorResolver);
-            Dictionary<uint, uint> fillMap = AppendStyleElements<Fills, Fill>(sourceStylesheet.Fills, targetStylesheet.Fills!, (container, count) => container.Count = count, colorResolver);
-            Dictionary<uint, uint> borderMap = AppendStyleElements<Borders, Border>(sourceStylesheet.Borders, targetStylesheet.Borders!, (container, count) => container.Count = count, colorResolver);
-            Dictionary<uint, uint> styleFormatMap = AppendCellStyleFormats(sourceStylesheet.CellStyleFormats, targetStylesheet.CellStyleFormats!, numberingMap, fontMap, fillMap, borderMap);
-            Dictionary<uint, uint> cellFormatMap = AppendCellFormats(sourceStylesheet.CellFormats, targetStylesheet.CellFormats!, numberingMap, fontMap, fillMap, borderMap, styleFormatMap);
-            Dictionary<uint, uint> differentialFormatMap = AppendDifferentialFormats(sourceStylesheet.DifferentialFormats, targetStylesheet.DifferentialFormats!, colorResolver);
+            WorksheetStyleCopyMap styleMap = new StylesheetMerger(sourceWorkbookPart, sourceStylesheet, targetWorkbookPart, targetStylesheet).Merge();
+            IReadOnlyDictionary<uint, uint> cellFormatMap = styleMap.CellFormats;
             var inheritedStyleCells = BuildInheritedStyleCellSet(worksheet);
 
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
@@ -444,7 +438,8 @@ namespace OfficeIMO.Excel {
                     cell.StyleIndex = newStyleIndex;
                 } else if (cell.StyleIndex == null
                     && !CellHasInheritedRowOrColumnStyle(cell, inheritedStyleCells)
-                    && cellFormatMap.TryGetValue(0U, out uint newDefaultStyleIndex)) {
+                    && cellFormatMap.TryGetValue(0U, out uint newDefaultStyleIndex)
+                    && newDefaultStyleIndex != 0U) {
                     cell.StyleIndex = newDefaultStyleIndex;
                 }
             }
@@ -465,7 +460,7 @@ namespace OfficeIMO.Excel {
 
             EnsureStylesheetPrimitives(targetStylesheet);
             targetStylesheet.Save();
-            return new WorksheetStyleCopyMap(cellFormatMap, differentialFormatMap);
+            return styleMap;
         }
 
         // The attributes that hold dxf indexes in worksheets and table parts: conditional formats, color filters and
@@ -529,43 +524,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static Dictionary<uint, uint> AppendNumberingFormats(Stylesheet sourceStylesheet, Stylesheet targetStylesheet) {
-            var map = new Dictionary<uint, uint>();
-            if (sourceStylesheet.NumberingFormats == null) {
-                return map;
-            }
-
-            NumberingFormats targetFormats = targetStylesheet.NumberingFormats ?? InsertNumberingFormats(targetStylesheet);
-            uint nextCustomId = Math.Max(164U, targetFormats.Elements<NumberingFormat>()
-                .Select(format => format.NumberFormatId?.Value ?? 0U)
-                .DefaultIfEmpty(163U)
-                .Max() + 1U);
-
-            foreach (NumberingFormat sourceFormat in sourceStylesheet.NumberingFormats.Elements<NumberingFormat>()) {
-                uint oldId = sourceFormat.NumberFormatId?.Value ?? 0U;
-                if (oldId < 164U) {
-                    map[oldId] = oldId;
-                    continue;
-                }
-
-                string? sourceCode = sourceFormat.FormatCode?.Value;
-                NumberingFormat? existing = targetFormats.Elements<NumberingFormat>()
-                    .FirstOrDefault(format => string.Equals(format.FormatCode?.Value, sourceCode, StringComparison.Ordinal));
-                if (existing?.NumberFormatId?.Value is uint existingId) {
-                    map[oldId] = existingId;
-                    continue;
-                }
-
-                var copied = (NumberingFormat)sourceFormat.CloneNode(true);
-                copied.NumberFormatId = nextCustomId++;
-                targetFormats.Append(copied);
-                map[oldId] = copied.NumberFormatId!.Value;
-            }
-
-            targetFormats.Count = (uint)targetFormats.Elements<NumberingFormat>().Count();
-            return map;
-        }
-
         private static NumberingFormats InsertNumberingFormats(Stylesheet stylesheet) {
             var formats = new NumberingFormats();
             if (stylesheet.Fonts != null) {
@@ -575,128 +533,6 @@ namespace OfficeIMO.Excel {
             }
 
             return formats;
-        }
-
-        private static Dictionary<uint, uint> AppendStyleElements<TContainer, TElement>(
-            TContainer? source,
-            TContainer target,
-            Action<TContainer, uint> setCount,
-            WorkbookStyleColorResolver colorResolver)
-            where TContainer : OpenXmlCompositeElement
-            where TElement : OpenXmlElement {
-            var map = new Dictionary<uint, uint>();
-            uint offset = (uint)target.Elements<TElement>().Count();
-            if (source == null) {
-                return map;
-            }
-
-            uint index = 0;
-            foreach (TElement element in source.Elements<TElement>()) {
-                uint newIndex = offset + index;
-                var copied = element.CloneNode(true);
-                colorResolver.NormalizeThemeAndIndexedColors(copied);
-                target.Append(copied);
-                map[index] = newIndex;
-                index++;
-            }
-
-            setCount(target, (uint)target.Elements<TElement>().Count());
-            return map;
-        }
-
-        private static Dictionary<uint, uint> AppendCellFormats(
-            CellFormats? source,
-            CellFormats target,
-            IReadOnlyDictionary<uint, uint> numberingMap,
-            IReadOnlyDictionary<uint, uint> fontMap,
-            IReadOnlyDictionary<uint, uint> fillMap,
-            IReadOnlyDictionary<uint, uint> borderMap,
-            IReadOnlyDictionary<uint, uint>? formatMap) {
-            var map = new Dictionary<uint, uint>();
-            if (source == null) {
-                return map;
-            }
-
-            uint offset = (uint)target.Elements<CellFormat>().Count();
-            uint index = 0;
-            foreach (CellFormat sourceFormat in source.Elements<CellFormat>()) {
-                uint newIndex = offset + index;
-                var copied = (CellFormat)sourceFormat.CloneNode(true);
-                copied.NumberFormatId = MapValue(copied.NumberFormatId?.Value, numberingMap);
-                copied.FontId = MapValue(copied.FontId?.Value, fontMap);
-                copied.FillId = MapValue(copied.FillId?.Value, fillMap);
-                copied.BorderId = MapValue(copied.BorderId?.Value, borderMap);
-                if (formatMap != null) {
-                    copied.FormatId = MapValue(copied.FormatId?.Value, formatMap);
-                }
-
-                target.Append(copied);
-                map[index] = newIndex;
-                index++;
-            }
-
-            target.Count = (uint)target.Elements<CellFormat>().Count();
-            return map;
-        }
-
-        private static Dictionary<uint, uint> AppendCellStyleFormats(
-            CellStyleFormats? source,
-            CellStyleFormats target,
-            IReadOnlyDictionary<uint, uint> numberingMap,
-            IReadOnlyDictionary<uint, uint> fontMap,
-            IReadOnlyDictionary<uint, uint> fillMap,
-            IReadOnlyDictionary<uint, uint> borderMap) {
-            var map = new Dictionary<uint, uint>();
-            if (source == null) {
-                return map;
-            }
-
-            uint offset = (uint)target.Elements<CellFormat>().Count();
-            uint index = 0;
-            foreach (CellFormat sourceFormat in source.Elements<CellFormat>()) {
-                uint newIndex = offset + index;
-                var copied = (CellFormat)sourceFormat.CloneNode(true);
-                copied.NumberFormatId = MapValue(copied.NumberFormatId?.Value, numberingMap);
-                copied.FontId = MapValue(copied.FontId?.Value, fontMap);
-                copied.FillId = MapValue(copied.FillId?.Value, fillMap);
-                copied.BorderId = MapValue(copied.BorderId?.Value, borderMap);
-
-                target.Append(copied);
-                map[index] = newIndex;
-                index++;
-            }
-
-            target.Count = (uint)target.Elements<CellFormat>().Count();
-            return map;
-        }
-
-        private static Dictionary<uint, uint> AppendDifferentialFormats(DifferentialFormats? source, DifferentialFormats target, WorkbookStyleColorResolver colorResolver) {
-            var map = new Dictionary<uint, uint>();
-            if (source == null) {
-                return map;
-            }
-
-            uint offset = (uint)target.Elements<DifferentialFormat>().Count();
-            uint index = 0;
-            foreach (DifferentialFormat sourceFormat in source.Elements<DifferentialFormat>()) {
-                uint newIndex = offset + index;
-                var copied = sourceFormat.CloneNode(true);
-                colorResolver.NormalizeThemeAndIndexedColors(copied);
-                target.Append(copied);
-                map[index] = newIndex;
-                index++;
-            }
-
-            target.Count = (uint)target.Elements<DifferentialFormat>().Count();
-            return map;
-        }
-
-        private static uint MapValue(uint? value, IReadOnlyDictionary<uint, uint> map) {
-            if (!value.HasValue) {
-                return 0U;
-            }
-
-            return map.TryGetValue(value.Value, out uint mapped) ? mapped : value.Value;
         }
 
         private sealed class WorksheetStyleCopyMap {
