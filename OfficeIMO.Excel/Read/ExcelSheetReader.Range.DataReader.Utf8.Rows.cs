@@ -7,8 +7,8 @@ namespace OfficeIMO.Excel {
             // Unusual references retain the general XML reader's decoding path.
             private bool TryInferImplicitRowIndex(int position, int fallback, CancellationToken ct, out int rowIndex) {
                 rowIndex = fallback;
+                const int MaximumReferenceLength = 32;
                 int depth = 0;
-                Span<char> reference = stackalloc char[32];
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
                     ct.ThrowIfCancellationRequested();
                     if (tag.IsEnd) {
@@ -19,13 +19,13 @@ namespace OfficeIMO.Excel {
                     if (depth == 0 && IsIndexedTag(tag) && LocalNameEquals(tag, "c")) {
                         if (!TryGetAttribute(tag, "r", out bool found, out int start, out int length)) return false;
                         if (found && length > 0) {
-                            if (length > reference.Length) return false;
-                            for (int index = 0; index < length; index++) {
-                                byte value = _buffer![start + index];
+                            if (length > MaximumReferenceLength) return false;
+                            ReadOnlySpan<byte> reference = _buffer!.AsSpan(start, length);
+                            for (int index = 0; index < reference.Length; index++) {
+                                byte value = reference[index];
                                 if (value > 127 || value == (byte)'&') return false;
-                                reference[index] = (char)value;
                             }
-                            if (ExcelA1.TryParseCellReferenceFast(reference.Slice(0, length), out int referencedRow, out _)) {
+                            if (ExcelA1.TryParseCellReferenceFast(reference, out int referencedRow, out _)) {
                                 rowIndex = referencedRow;
                                 return true;
                             }

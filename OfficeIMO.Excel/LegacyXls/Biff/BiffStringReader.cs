@@ -1,3 +1,4 @@
+using System.Buffers;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 
@@ -25,13 +26,80 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal static string ReadByteString(byte[] bytes, ref int offset) {
+            return ReadByteString(new ArraySegment<byte>(bytes), ref offset);
+        }
+
+        /// <summary>
+        /// Reads a two-byte-length 8-bit string from a record slice without copying the
+        /// record. <paramref name="offset"/> is relative to the slice.
+        /// </summary>
+        internal static string ReadByteString(ArraySegment<byte> record, ref int offset) {
+            ReadOnlySpan<byte> bytes = record.AsSpan();
             int charCount = BiffRecordReader.ReadUInt16(bytes, offset);
             offset += 2;
-            return ReadByteStringBody(bytes, ref offset, charCount);
+            if (offset + charCount > bytes.Length) {
+                throw new InvalidDataException("Unexpected end of BIFF byte string characters.");
+            }
+
+            string value = CompressedUnicodeEncoding.GetString(record.Array!, record.Offset + offset, charCount);
+            offset += charCount;
+            return value;
         }
 
         internal static string ReadUnicodeString(byte[] bytes, ref int offset) {
-            return ReadUnicodeStringValue(bytes, ref offset).Text;
+            return ReadUnicodeString(new ArraySegment<byte>(bytes), ref offset);
+        }
+
+        /// <summary>
+        /// Reads the text of an XLUnicodeString from a record slice without copying the
+        /// record. Formatting runs and extension data are bounds-checked and skipped.
+        /// <paramref name="offset"/> is relative to the slice.
+        /// </summary>
+        internal static string ReadUnicodeString(ArraySegment<byte> record, ref int offset) {
+            ReadOnlySpan<byte> bytes = record.AsSpan();
+            int charCount = BiffRecordReader.ReadUInt16(bytes, offset);
+            offset += 2;
+            if (offset >= bytes.Length) throw new InvalidDataException("Unexpected end of BIFF string options.");
+            byte options = bytes[offset++];
+            bool isUtf16 = (options & 0x01) != 0;
+            ushort richTextRuns = 0;
+            uint extendedSize = 0;
+
+            if ((options & 0x08) != 0) {
+                richTextRuns = BiffRecordReader.ReadUInt16(bytes, offset);
+                offset += 2;
+            }
+
+            if ((options & 0x04) != 0) {
+                extendedSize = BiffRecordReader.ReadUInt32(bytes, offset);
+                offset += 4;
+            }
+
+            int byteCount = checked(charCount * (isUtf16 ? 2 : 1));
+            if (offset + byteCount > bytes.Length) {
+                throw new InvalidDataException("Unexpected end of BIFF string characters.");
+            }
+
+            string value = DecodeCharacters(record.Array!, record.Offset + offset, byteCount, isUtf16);
+            offset += byteCount;
+
+            int formattingBytes = checked(richTextRuns * 4);
+            if (offset + formattingBytes > bytes.Length) {
+                throw new InvalidDataException("Unexpected end of BIFF string formatting data.");
+            }
+
+            offset += formattingBytes;
+            if (offset + extendedSize > bytes.Length) {
+                throw new InvalidDataException("Unexpected end of BIFF string extension data.");
+            }
+
+            offset += checked((int)extendedSize);
+            return value;
+        }
+
+        private static string DecodeCharacters(byte[] bytes, int offset, int byteCount, bool isUtf16) {
+            if (isUtf16) return Encoding.Unicode.GetString(bytes, offset, byteCount);
+            return CompressedUnicodeEncoding.GetString(bytes, offset, byteCount);
         }
 
         internal static BiffStringValue ReadUnicodeStringValue(byte[] bytes, ref int offset) {
@@ -195,7 +263,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static string ReadSegmentedUnicodeString(BiffStringSegmentReader reader) {
             int charCount = reader.ReadUInt16Raw();
-            return ReadSegmentedUnicodeStringValueBody(reader, charCount).Text;
+            return ReadSegmentedUnicodeTextBody(reader, charCount);
         }
 
         private static BiffStringValue ReadSegmentedUnicodeStringValue(BiffStringSegmentReader reader) {
@@ -375,13 +443,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return runs;
         }
 
+        // Compressed BIFF characters are the low bytes of UTF-16 code units, which is
+        // exactly ISO-8859-1. The encoding widens directly into the result string.
         private static string ReadCompressedUnicode(byte[] bytes, int offset, int byteCount) {
-            char[] chars = new char[byteCount];
-            for (int i = 0; i < byteCount; i++) {
-                chars[i] = (char)bytes[offset + i];
-            }
-
-            return new string(chars);
+            return CompressedUnicodeEncoding.GetString(bytes, offset, byteCount);
         }
 
         internal sealed class BiffStringValue {
@@ -454,35 +519,37 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return text;
                 }
 
-                // Only strings crossing a CONTINUE boundary need incremental assembly.
-                var builder = new StringBuilder(charCount);
-                int remaining = charCount;
-                while (remaining > 0) {
-                    EnsureStringVariableDataAvailable(ref currentUtf16);
-                    byte[] segment = _segments[_segmentIndex];
-                    int availableBytes = segment.Length - _offset;
-                    if (currentUtf16) {
-                        int availableChars = availableBytes / 2;
-                        if (availableChars <= 0) {
-                            throw new InvalidDataException("A continued BIFF Unicode string split a double-byte character.");
-                        }
+                // Only strings crossing a CONTINUE boundary need incremental assembly. Each
+                // segment decodes independently, as before, into one pooled buffer.
+                char[] characters = ArrayPool<char>.Shared.Rent(charCount);
+                try {
+                    int written = 0;
+                    while (written < charCount) {
+                        EnsureStringVariableDataAvailable(ref currentUtf16);
+                        byte[] segment = _segments[_segmentIndex];
+                        int availableBytes = segment.Length - _offset;
+                        int remaining = charCount - written;
+                        if (currentUtf16) {
+                            int availableChars = availableBytes / 2;
+                            if (availableChars <= 0) {
+                                throw new InvalidDataException("A continued BIFF Unicode string split a double-byte character.");
+                            }
 
-                        int take = Math.Min(remaining, availableChars);
-                        builder.Append(Encoding.Unicode.GetString(segment, _offset, checked(take * 2)));
-                        _offset += checked(take * 2);
-                        remaining -= take;
-                    } else {
-                        int take = Math.Min(remaining, availableBytes);
-                        for (int i = 0; i < take; i++) {
-                            builder.Append((char)segment[_offset + i]);
+                            int take = Math.Min(remaining, availableChars);
+                            int byteCount = checked(take * 2);
+                            written += Encoding.Unicode.GetChars(segment, _offset, byteCount, characters, written);
+                            _offset += byteCount;
+                        } else {
+                            int take = Math.Min(remaining, availableBytes);
+                            written += CompressedUnicodeEncoding.GetChars(segment, _offset, take, characters, written);
+                            _offset += take;
                         }
-
-                        _offset += take;
-                        remaining -= take;
                     }
-                }
 
-                return builder.ToString();
+                    return new string(characters, 0, written);
+                } finally {
+                    ArrayPool<char>.Shared.Return(characters);
+                }
             }
 
             internal void SkipStringVariableBytes(int byteCount) {
