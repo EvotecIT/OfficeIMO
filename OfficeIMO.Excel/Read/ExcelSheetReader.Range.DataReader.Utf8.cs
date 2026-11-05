@@ -49,8 +49,6 @@ namespace OfficeIMO.Excel {
             private int _repeatedRowSuffixLength;
             private bool _repeatedRowIsEmpty;
             private bool _sheetDataSupportsFastValidation = true;
-            private int _lastDateStyleIndex = -1;
-            private bool _lastDateStyleResult;
             private bool _cellsFitWithinRange = true;
             private bool _parseFailed;
             private bool _disposed;
@@ -985,13 +983,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                if (styleIndex == _lastDateStyleIndex) {
-                    return _lastDateStyleResult;
-                }
-
-                _lastDateStyleIndex = styleIndex;
-                _lastDateStyleResult = _owner.Styles.HasDateStyles && _owner.Styles.IsDateLike((uint)styleIndex);
-                return _lastDateStyleResult;
+                return _owner.Styles.IsDateLike((uint)styleIndex);
             }
 
             private string DecodeString(int start, int length) {

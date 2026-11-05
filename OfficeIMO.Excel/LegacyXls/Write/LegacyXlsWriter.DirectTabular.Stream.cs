@@ -64,6 +64,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 if (exclusiveEnd > _clearLength) _clearLength = exclusiveEnd;
             }
 
+            /// <summary>Commits initialized bytes within a previously registered direct-write region.</summary>
+            internal void CommitDirectWrite(int exclusiveEnd) {
+                ThrowIfDisposed();
+                if (exclusiveEnd < _position || exclusiveEnd > _clearLength) {
+                    throw new ArgumentOutOfRangeException(nameof(exclusiveEnd));
+                }
+                _position = exclusiveEnd;
+                if (exclusiveEnd > _length) _length = exclusiveEnd;
+            }
+
             internal byte[] ToArray() {
                 var bytes = new byte[_length];
                 System.Buffer.BlockCopy(Buffer, 0, bytes, 0, _length);
