@@ -91,7 +91,8 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
         uint address = GetAddress(reference);
         using Stream? owned = _openSource?.Invoke();
         Stream input = owned ?? _source!;
-        using Stream message = OpenIndexedMessage(input, address, cancellationToken, out uint? flags);
+        using Stream message = OpenIndexedMessage(input, address, cancellationToken, out uint? flags,
+            out DateTimeOffset? receivedDate);
         var diagnostics = new List<EmailDiagnostic>();
         EmailDocument document;
         try {
@@ -101,6 +102,7 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
             throw EmailStoreMessageReader.ConvertLimit(exception);
         }
         _guard.Validate(input, cancellationToken, verifyFingerprint: !_bulkReadActive);
+        document.ReceivedDate ??= receivedDate;
         CopyDiagnostics(diagnostics, reference.Id);
         bool? hasAttachments = flags.HasValue ? (flags.Value & AttachmentFlag) != 0 : null;
         bool? isRead = flags.HasValue ? (flags.Value & ReadFlag) != 0 : document.MessageMetadata.IsRead;
@@ -117,7 +119,8 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
 
     private EmailStoreItem ReadItem(Stream input, uint address, EmailStoreItemReference reference,
         EmailStoreItemReadOptions options, CancellationToken cancellationToken) {
-        using Stream message = OpenIndexedMessage(input, address, cancellationToken, out uint? flags);
+        using Stream message = OpenIndexedMessage(input, address, cancellationToken, out uint? flags,
+            out DateTimeOffset? receivedDate);
         bool includeAttachments = options.Includes(EmailStoreItemReadParts.AttachmentContent);
         bool includeEmbedded = options.Includes(EmailStoreItemReadParts.EmbeddedItems);
 
@@ -130,6 +133,7 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
         CopyDiagnostics(result.Diagnostics, reference.Id);
 
         EmailDocument document = result.Document;
+        document.ReceivedDate ??= receivedDate;
         document.Properties["EmailStore:Format"] = Format.ToString();
         document.Properties["EmailStore:FolderId"] = FolderId;
         document.Properties["EmailStore:ItemId"] = reference.Id;
@@ -144,13 +148,28 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
         return new EmailStoreItem(reference.Id, FolderId, document, loadedParts: loaded, format: Format);
     }
 
-    private Stream OpenIndexedMessage(Stream input, uint address, CancellationToken cancellationToken, out uint? flags) {
+    private Stream OpenIndexedMessage(Stream input, uint address, CancellationToken cancellationToken, out uint? flags,
+        out DateTimeOffset? receivedDate) {
         _guard.Validate(input, cancellationToken, verifyFingerprint: !_bulkReadActive);
         var database = new DbxDatabase(input, _options);
         DbxIndexedRecord record = database.ReadIndexedRecord(address, cancellationToken);
         flags = record.ReadUInt32(0x01, cancellationToken);
+        receivedDate = ReadReceivedDate(record, address, cancellationToken);
         uint firstFragment = record.ReadUInt32(0x04, cancellationToken) ?? 0;
         return database.OpenMessage(firstFragment, cancellationToken);
+    }
+
+    private DateTimeOffset? ReadReceivedDate(DbxIndexedRecord record, uint address,
+        CancellationToken cancellationToken) {
+        ulong? value = record.ReadUInt64(0x12, cancellationToken);
+        if (!value.HasValue || value.Value == 0) return null;
+        if (value.Value <= (ulong)DateTimeOffset.MaxValue.ToFileTime())
+            return new DateTimeOffset(DateTime.FromFileTimeUtc((long)value.Value));
+        _diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_DBX_RECEIVED_TIME_INVALID",
+            "The indexed DBX received time is outside the supported date range.",
+            EmailStoreDiagnosticSeverity.Warning,
+            MessageIdPrefix + address.ToString("x8", CultureInfo.InvariantCulture)));
+        return null;
     }
 
     private void CopyDiagnostics(IEnumerable<EmailDiagnostic> diagnostics, string itemId) {

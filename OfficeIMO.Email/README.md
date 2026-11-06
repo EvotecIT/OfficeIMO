@@ -634,6 +634,12 @@ chains. EML export serializes the projected message. DBX writing, deleted-item
 carving, remote account recovery, and earlier Outlook Express mailbox formats
 are outside this profile.
 
+Native DBX received times fill missing MIME arrival metadata. An existing MIME
+`Received` timestamp takes precedence. Directory export appends `ReceivedAtUtc`
+to the preservation manifest, retaining arrival metadata beside EML files.
+EMLX metadata stores whole-second arrival times. With the manifest disabled,
+export reports an omitted arrival time or loss of sub-second EMLX precision.
+
 ### Apple Mail and Outlook for Mac
 
 Open an exported Apple Mail `.mbox` package, its containing folder, or a copied Mail directory

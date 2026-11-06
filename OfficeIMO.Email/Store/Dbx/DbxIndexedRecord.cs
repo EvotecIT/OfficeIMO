@@ -26,6 +26,18 @@ internal sealed class DbxIndexedRecord {
         return DbxDatabase.UInt32(bytes, 0);
     }
 
+    internal ulong? ReadUInt64(byte property, CancellationToken cancellationToken) {
+        int entry = Find(property);
+        if (entry < 0) return null;
+        uint value = DbxDatabase.UInt32(_table, entry) >> 8;
+        if ((_table[entry] & 0x80) != 0) return value;
+        if (EndOfValue(value) - value < 8)
+            throw DbxDatabase.Invalid("An indexed 64-bit integer extends beyond its value.");
+        var bytes = new byte[8];
+        _database.ReadAt(_dataOffset + value, bytes, 0, bytes.Length, cancellationToken);
+        return DbxDatabase.UInt32(bytes, 0) | (ulong)DbxDatabase.UInt32(bytes, 4) << 32;
+    }
+
     internal string? ReadString(byte property, CancellationToken cancellationToken) {
         int entry = Find(property);
         if (entry < 0) return null;

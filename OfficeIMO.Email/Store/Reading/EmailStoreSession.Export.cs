@@ -205,8 +205,12 @@ public sealed partial class EmailStoreSession {
         string? destinationPath = null;
         long bytesWritten = 0;
         string? temporaryPath = null;
+        DateTimeOffset? receivedAt = null;
         try {
             EmailStoreItem item = ReadItem(reference, cancellationToken);
+            receivedAt = item.Document.ReceivedDate;
+            AddReceivedDateExportDiagnostic(item.Document, options.Format, options.WriteManifest,
+                reference.Id, diagnostics);
             string path = paths.GetItemPath(reference, item.Document.Subject, options.Format);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             if (File.Exists(path) && !options.OverwriteExisting) {
@@ -256,7 +260,7 @@ public sealed partial class EmailStoreSession {
         } finally {
             OfficeFileCommit.DeleteIfExists(temporaryPath);
         }
-        return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics);
+        return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics, receivedAt: receivedAt);
     }
 
     private EmailStoreMboxExportEntry AppendMboxEntry(EmailStoreItemReference reference,
@@ -368,7 +372,7 @@ public sealed partial class EmailStoreSession {
                 temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
             using (var writer = new StreamWriter(stream,
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))) {
-                writer.WriteLine("ItemId\tFolderId\tAssociated\tRecovered\tSucceeded\tBytes\tRelativePath\tMaildirFlags\tDiagnosticCount");
+                writer.WriteLine("ItemId\tFolderId\tAssociated\tRecovered\tSucceeded\tBytes\tRelativePath\tMaildirFlags\tDiagnosticCount\tReceivedAtUtc");
                 foreach (EmailStoreExportEntry entry in entries) {
                     string relativePath = entry.DestinationPath == null
                         ? string.Empty
@@ -390,6 +394,8 @@ public sealed partial class EmailStoreSession {
                     writer.Write(EscapeManifest(entry.MaildirFlags ?? string.Empty));
                     writer.Write('\t');
                     writer.Write(entry.Diagnostics.Count.ToString(CultureInfo.InvariantCulture));
+                    writer.Write('\t');
+                    writer.Write(entry.ReceivedAt?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture) ?? string.Empty);
                     writer.WriteLine();
                 }
             }
@@ -416,4 +422,26 @@ public sealed partial class EmailStoreSession {
 
     private static string EscapeManifest(string value) =>
         value.Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ');
+
+    private static void AddReceivedDateExportDiagnostic(EmailDocument document, EmailFileFormat format,
+        bool writeManifest, string itemId, ICollection<EmailStoreDiagnostic> diagnostics,
+        bool includeEmlxMetadata = false) {
+        if (writeManifest || !document.ReceivedDate.HasValue) return;
+        bool hasEmlxMetadata = format == EmailFileFormat.Emlx && includeEmlxMetadata;
+        if (hasEmlxMetadata && document.ReceivedDate.Value.UtcDateTime.Ticks % TimeSpan.TicksPerSecond == 0) return;
+        if (!hasEmlxMetadata && (format is not (EmailFileFormat.Eml or EmailFileFormat.Emlx) ||
+            MimeParser.ReadReceivedDate(document.Headers, new List<EmailDiagnostic>(), "export") != null)) return;
+        string code = hasEmlxMetadata
+            ? "EMAIL_STORE_EXPORT_RECEIVED_TIME_PRECISION"
+            : "EMAIL_STORE_EXPORT_RECEIVED_TIME_OMITTED";
+        string message = hasEmlxMetadata
+            ? "EMLX metadata stores whole-second received times and the preservation manifest is disabled."
+            : "The received time has no MIME Received timestamp and the preservation manifest is disabled.";
+        diagnostics.Add(new EmailStoreDiagnostic(code, message,
+            EmailStoreDiagnosticSeverity.Warning, string.Concat("item/", itemId),
+            format == EmailFileFormat.Emlx ? "export-emlx" : "export-eml", null,
+            null, null, null, hasEmlxMetadata ? EmailDiagnosticDisposition.Observed : EmailDiagnosticDisposition.Skipped,
+            EmailDataLossRisk.Possible,
+            "Enable the preservation manifest to retain the received time beside the exported artifact."));
+    }
 }

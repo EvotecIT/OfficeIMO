@@ -425,14 +425,20 @@ internal static partial class MimeParser {
             AddRecipients(document, headers, "Reply-To", EmailRecipientKind.ReplyTo, diagnostics, location);
         }
 
+        document.ReceivedDate = ReadReceivedDate(headers, diagnostics, location);
+    }
+
+    internal static DateTimeOffset? ReadReceivedDate(IEnumerable<EmailHeader> headers,
+        IList<EmailDiagnostic> diagnostics, string location) {
         string? received = MimeHeaderParser.GetValues(headers, "Received").FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(received)) {
             int separator = received!.LastIndexOf(';');
             if (separator >= 0) {
-                document.ReceivedDate = ParseDate(received.Substring(separator + 1), diagnostics,
+                return ParseDate(received.Substring(separator + 1), diagnostics,
                     string.Concat(location, "/Received"), false);
             }
         }
+        return null;
     }
 
     private static void AddRecipients(EmailDocument document, IEnumerable<EmailHeader> headers,
