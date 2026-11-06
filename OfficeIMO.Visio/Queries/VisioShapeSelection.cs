@@ -150,9 +150,7 @@ namespace OfficeIMO.Visio {
         /// <param name="key">Data key.</param>
         /// <param name="value">Data value.</param>
         public VisioShapeSelection Data(string key, string value) {
-            if (string.IsNullOrWhiteSpace(key)) {
-                throw new ArgumentException("Data key cannot be empty.", nameof(key));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
             foreach (VisioShape shape in _shapes) {
                 shape.SetShapeData(key, value);
@@ -214,9 +212,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="layerName">Layer name.</param>
         public VisioShapeSelection Layer(string layerName) {
-            if (string.IsNullOrWhiteSpace(layerName)) {
-                throw new ArgumentException("Layer name cannot be empty.", nameof(layerName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(layerName);
 
             foreach (VisioShape shape in _shapes) {
                 shape.LayerNames.Add(layerName);

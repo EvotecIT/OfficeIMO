@@ -71,7 +71,7 @@ public sealed class ProjectDataColumn {
     /// <summary>Creates an explicit mapping; header comparison is ordinal and case-sensitive.</summary>
     public ProjectDataColumn(ProjectDataField field, string header) {
         if (!Enum.IsDefined(typeof(ProjectDataField), field)) throw new ArgumentOutOfRangeException(nameof(field));
-        if (string.IsNullOrWhiteSpace(header)) throw new ArgumentException("A column header is required.", nameof(header));
+        ArgumentException.ThrowIfNullOrWhiteSpace(header);
         Field = field; Header = header;
     }
     /// <summary>Project field.</summary>

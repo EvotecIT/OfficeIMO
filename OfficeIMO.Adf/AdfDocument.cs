@@ -99,7 +99,7 @@ public sealed class AdfNode {
 
     /// <summary>Creates an ADF node.</summary>
     public AdfNode(string type) {
-        if (string.IsNullOrWhiteSpace(type)) throw new ArgumentException("ADF node type is required.", nameof(type));
+        ArgumentException.ThrowIfNullOrWhiteSpace(type);
         Type = type;
     }
 
@@ -150,14 +150,14 @@ public sealed class AdfNode {
 
     /// <summary>Sets a JSON-compatible attribute value.</summary>
     public AdfNode SetAttribute<T>(string name, T value) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Attribute name is required.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Attributes[name] = AdfJsonValue.Create(value);
         return this;
     }
 
     /// <summary>Sets a custom attribute using source-generated JSON metadata.</summary>
     public AdfNode SetAttribute<T>(string name, T value, JsonTypeInfo<T> typeInfo) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Attribute name is required.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(typeInfo);
         Attributes[name] = JsonSerializer.SerializeToElement(value, typeInfo).Clone();
         return this;
@@ -183,7 +183,7 @@ public sealed class AdfMark {
 
     /// <summary>Creates an ADF mark.</summary>
     public AdfMark(string type) {
-        if (string.IsNullOrWhiteSpace(type)) throw new ArgumentException("ADF mark type is required.", nameof(type));
+        ArgumentException.ThrowIfNullOrWhiteSpace(type);
         Type = type;
     }
 
@@ -212,14 +212,14 @@ public sealed class AdfMark {
 
     /// <summary>Sets a JSON-compatible mark attribute.</summary>
     public AdfMark SetAttribute<T>(string name, T value) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Attribute name is required.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Attributes[name] = AdfJsonValue.Create(value);
         return this;
     }
 
     /// <summary>Sets a custom mark attribute using source-generated JSON metadata.</summary>
     public AdfMark SetAttribute<T>(string name, T value, JsonTypeInfo<T> typeInfo) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Attribute name is required.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(typeInfo);
         Attributes[name] = JsonSerializer.SerializeToElement(value, typeInfo).Clone();
         return this;

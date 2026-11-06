@@ -14,7 +14,7 @@ namespace OfficeIMO.Visio {
         /// <summary>Creates a ShapeSheet cell.</summary>
         public VisioShapeSheetCell(string name, string? value = null,
             string? formula = null, string? unit = null) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Cell name cannot be empty.", nameof(name));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             Element = new XElement(VisioShapeSheetSection.VisioNamespace + "Cell",
                 new XAttribute("N", name));
             Value = value;
@@ -69,7 +69,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Creates a named ShapeSheet row.</summary>
         public VisioShapeSheetRow(string name) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Row name cannot be empty.", nameof(name));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             Element = new XElement(VisioShapeSheetSection.VisioNamespace + "Row",
                 new XAttribute("N", name));
             _cells = new List<VisioShapeSheetCell>();
@@ -143,7 +143,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Creates a named ShapeSheet section.</summary>
         public VisioShapeSheetSection(string name) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Section name cannot be empty.", nameof(name));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             Element = new XElement(VisioNamespace + "Section",
                 new XAttribute("N", name));
             _rows = new List<VisioShapeSheetRow>();

@@ -9,7 +9,7 @@ using Color = OfficeIMO.OfficeColor;
 namespace OfficeIMO.Examples.Visio {
     public static class ExternalStencilPack {
         public static void Example_ExternalStencilPack(string folderPath, bool openVisio, string stencilPackPath) {
-            if (string.IsNullOrWhiteSpace(stencilPackPath)) throw new ArgumentException("Stencil pack path cannot be null or whitespace.", nameof(stencilPackPath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(stencilPackPath);
             if (!File.Exists(stencilPackPath)) throw new FileNotFoundException("Stencil pack was not found.", stencilPackPath);
 
             Console.WriteLine("[*] Visio - External VSSX stencil pack");

@@ -15,10 +15,7 @@ internal static partial class CsvFile
     /// </summary>
     internal static TextReader OpenTextReader(string path, CsvParsingSettings? options = null, int bufferSize = 256 * 1024)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         options ??= new CsvParsingSettings();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
@@ -101,10 +98,7 @@ internal static partial class CsvFile
     /// </summary>
     internal static TextWriter CreateTextWriter(string path, CsvSaveOptions? options = null, bool append = false, int bufferSize = 256 * 1024)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         options ??= new CsvSaveOptions();
         if (append)

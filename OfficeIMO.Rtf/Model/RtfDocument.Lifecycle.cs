@@ -6,7 +6,7 @@ public sealed partial class RtfDocument : IDisposable {
 
     /// <summary>Creates an empty document associated with a path, without writing it.</summary>
     public static RtfDocument Create(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         RtfDocument document = Create();
         document.FilePath = Path.GetFullPath(path);
         return document;

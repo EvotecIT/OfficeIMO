@@ -10,9 +10,7 @@ internal static class ExcelWriteProfileRunner {
     private const int MeasuredIterations = 5;
 
     internal static string WriteProfile(string outputPath, int rowCount = DefaultRowCount) {
-        if (string.IsNullOrWhiteSpace(outputPath)) {
-            throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
 
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(rowCount);
         var profile = new ExcelWriteProfile {

@@ -9,10 +9,7 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
     internal static IEnumerable<string[]> ReadRecords(string path, CsvParsingSettings? options = null)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         options = CreateRawRecordOptions(options);
         var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
@@ -49,10 +46,7 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
     internal static void ReadRecordsReusable(string path, Action<IReadOnlyList<string>> recordAction, CsvParsingSettings? options = null)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         ArgumentNullException.ThrowIfNull(recordAction);
 

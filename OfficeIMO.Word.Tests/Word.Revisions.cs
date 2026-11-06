@@ -176,8 +176,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph().AddInsertedText("AddedByAlice", "Alice");
 
-                Assert.Throws<ArgumentException>(() => document.AcceptRevisions(authorName!));
-                Assert.Throws<ArgumentException>(() => document.RejectRevisions(authorName!));
+                ArgumentException acceptError = authorName is null
+                    ? Assert.Throws<ArgumentNullException>(() => document.AcceptRevisions(authorName!))
+                    : Assert.Throws<ArgumentException>(() => document.AcceptRevisions(authorName));
+                ArgumentException rejectError = authorName is null
+                    ? Assert.Throws<ArgumentNullException>(() => document.RejectRevisions(authorName!))
+                    : Assert.Throws<ArgumentException>(() => document.RejectRevisions(authorName));
+                Assert.Equal("authorName", acceptError.ParamName);
+                Assert.Equal("authorName", rejectError.ParamName);
                 Assert.Contains(document._document.Body!.Descendants<InsertedRun>(), run => run.Author?.Value == "Alice");
             }
         }

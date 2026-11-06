@@ -9,8 +9,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Creates a native section boundary that the next appended slide will occupy.</summary>
         internal PowerPointSectionInfo StartSectionAtNextSlide(string name) {
             ThrowIfDisposed();
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("Section name cannot be null or empty.", nameof(name));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             List<SlideId> slides = PresentationRoot?.SlideIdList?.Elements<SlideId>().ToList() ?? new List<SlideId>();
             P14.SectionList list = EnsureSectionList(slides);
             P14.Section section = CreateSection(name, Array.Empty<uint>());

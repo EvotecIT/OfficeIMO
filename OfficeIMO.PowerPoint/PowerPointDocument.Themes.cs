@@ -54,9 +54,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeColor(PowerPointThemeColor color, string hexValue, int masterIndex = 0) {
             ThrowIfDisposed();
-            if (string.IsNullOrWhiteSpace(hexValue)) {
-                throw new ArgumentException("Theme color value cannot be null or empty.", nameof(hexValue));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(hexValue);
 
             SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
             A.ColorScheme scheme = EnsureColorScheme(masterPart);
@@ -139,12 +137,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeLatinFonts(string majorLatin, string minorLatin, int masterIndex = 0) {
             ThrowIfDisposed();
-            if (string.IsNullOrWhiteSpace(majorLatin)) {
-                throw new ArgumentException("Major font cannot be null or empty.", nameof(majorLatin));
-            }
-            if (string.IsNullOrWhiteSpace(minorLatin)) {
-                throw new ArgumentException("Minor font cannot be null or empty.", nameof(minorLatin));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(majorLatin);
+            ArgumentException.ThrowIfNullOrWhiteSpace(minorLatin);
 
             SetThemeFonts(new PowerPointThemeFontSet(majorLatin, minorLatin, null, null, null, null),
                 masterIndex, keepExistingWhenNull: true);
@@ -211,9 +205,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeNameForAllMasters(string name) {
             ThrowIfDisposed();
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Theme name cannot be null or empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
                 ThemePart themePart = masterPart.ThemePart ?? masterPart.AddNewPart<ThemePart>();
                 themePart.Theme ??= new A.Theme { ThemeElements = new A.ThemeElements() };
@@ -226,7 +218,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="masterIndex">Zero-based master position.</param>
         public void SetThemeName(string name, int masterIndex = 0) {
             ThrowIfDisposed();
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Theme name cannot be empty.", nameof(name));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             A.Theme theme = EnsureTheme(GetSlideMasterPart(masterIndex));
             theme.Name = name;
         }
@@ -357,9 +349,7 @@ namespace OfficeIMO.PowerPoint {
                 // DrawingML requires all three font slots even when no typeface is specified.
                 return keepExistingWhenNull && existing != null ? existing : new TFont { Typeface = string.Empty };
             }
-            if (string.IsNullOrWhiteSpace(typeface)) {
-                throw new ArgumentException("Font name cannot be null or empty.", nameof(typeface));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(typeface);
 
             TFont font = existing ?? new TFont();
             if (font is A.LatinFont) {

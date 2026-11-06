@@ -84,7 +84,7 @@ public sealed class OdsValidationConditionSyntax {
         string? secondOperand = null) {
         if (valueKind == OdsValidationValueKind.List) throw new ArgumentException("Use CreateList for list validation.", nameof(valueKind));
         if (valueKind == OdsValidationValueKind.CustomFormula) throw new ArgumentException("Use CreateFormula for custom-formula validation.", nameof(valueKind));
-        if (string.IsNullOrWhiteSpace(firstOperand)) throw new ArgumentException("A first operand is required.", nameof(firstOperand));
+        ArgumentException.ThrowIfNullOrWhiteSpace(firstOperand);
         bool requiresSecond = comparison == OdsValidationComparison.Between || comparison == OdsValidationComparison.NotBetween;
         if (requiresSecond != !string.IsNullOrWhiteSpace(secondOperand)) {
             throw new ArgumentException(requiresSecond ? "This comparison requires two operands." : "This comparison accepts one operand.", nameof(secondOperand));
@@ -104,7 +104,7 @@ public sealed class OdsValidationConditionSyntax {
 
     /// <summary>Creates a portable OpenFormula local-cell comparison or supported Boolean combination whose expression must evaluate to true.</summary>
     public static OdsValidationConditionSyntax CreateFormula(string expression) {
-        if (string.IsNullOrWhiteSpace(expression)) throw new ArgumentException("A formula expression is required.", nameof(expression));
+        ArgumentException.ThrowIfNullOrWhiteSpace(expression);
         if (expression.Length > MaximumPortableFormulaLength)
             throw new ArgumentOutOfRangeException(nameof(expression), "Portable validation formulas are limited to 4096 characters.");
         string value = expression.Trim();

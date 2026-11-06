@@ -8,7 +8,7 @@ namespace OfficeIMO.Epub;
 public sealed partial class EpubDocument {
     /// <summary>Inspects C2PA and IPTC provenance in an EPUB package and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         options ??= new OfficeProvenanceOptions();
         string fullPath = Path.GetFullPath(filePath);
         byte[] data;

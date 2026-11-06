@@ -219,7 +219,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         }
 
         internal static string ResolveTarget(string sourcePartName, string target) {
-            if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("Relationship target cannot be empty.", nameof(target));
+            ArgumentException.ThrowIfNullOrWhiteSpace(target);
             string normalizedTarget = target.Replace('\\', '/');
             string combined;
             if (normalizedTarget.StartsWith("/", StringComparison.Ordinal)) {
@@ -296,7 +296,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         }
 
         private static string NormalizePartName(string partName) {
-            if (string.IsNullOrWhiteSpace(partName)) throw new ArgumentException("Package part name cannot be empty.", nameof(partName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(partName);
             string normalized = partName.Replace('\\', '/').TrimStart('/');
             if (normalized.Split('/').Any(segment => segment == "..")) {
                 throw new InvalidDataException($"The package part name '{partName}' is not safe.");

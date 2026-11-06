@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Destination XLSX, XLSM, XLTX, XLTM, XLAM, XLS, or XLSB path.</param>
         /// <param name="options">Optional save policy settings.</param>
         public void SaveCopy(string filePath, ExcelSaveOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
             ExcelFileFormat format = GetSaveCopyFormat(filePath);
 
@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
             string filePath,
             ExcelSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             ExcelFileFormat format = GetSaveCopyFormat(filePath);
             EnsureDestinationFileWritable(filePath);
             EnsureDirectoryWritable(filePath);

@@ -34,9 +34,7 @@ internal sealed class PdfExternalValidator {
         "Set OFFICEIMO_VERAPDF, OFFICEIMO_VERAPDF_PATH, OFFICEIMO_PDFUA_VALIDATOR, OFFICEIMO_PDFUA_VALIDATOR_PATH, OFFICEIMO_MUSTANG, OFFICEIMO_MUSTANG_PATH, OFFICEIMO_PDFX_VALIDATOR, or OFFICEIMO_PDFX_VALIDATOR_PATH as appropriate, or add the tool to PATH." + Environment.NewLine;
 
     internal static PdfExternalValidator VeraPdf(string flavor = "3b") {
-        if (string.IsNullOrWhiteSpace(flavor)) {
-            throw new ArgumentException("veraPDF validation flavor cannot be empty.", nameof(flavor));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(flavor);
 
         string? explicitPath = FirstNonEmpty(
             Environment.GetEnvironmentVariable("OFFICEIMO_VERAPDF"),
@@ -95,9 +93,7 @@ internal sealed class PdfExternalValidator {
     }
 
     internal static PdfExternalValidator PdfX(string profile) {
-        if (string.IsNullOrWhiteSpace(profile)) {
-            throw new ArgumentException("PDF/X validation profile cannot be empty.", nameof(profile));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(profile);
 
         string? explicitPath = FirstNonEmpty(
             Environment.GetEnvironmentVariable("OFFICEIMO_PDFX_VALIDATOR"),

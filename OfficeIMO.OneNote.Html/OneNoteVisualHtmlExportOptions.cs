@@ -43,6 +43,6 @@ public sealed class OneNoteVisualHtmlExportOptions {
 
     internal void Validate() {
         if (PageRendering == null) throw new InvalidOperationException("Page rendering options cannot be null.");
-        if (string.IsNullOrWhiteSpace(Language)) throw new ArgumentException("HTML document language cannot be empty.", nameof(Language));
+        ArgumentException.ThrowIfNullOrWhiteSpace(Language);
     }
 }

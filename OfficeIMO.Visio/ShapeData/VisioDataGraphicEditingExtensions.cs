@@ -79,8 +79,8 @@ namespace OfficeIMO.Visio {
             double width = 2.4D) {
             ArgumentNullException.ThrowIfNull(page);
             ArgumentNullException.ThrowIfNull(definition);
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Legend id cannot be empty.", nameof(id));
-            if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Legend title cannot be empty.", nameof(title));
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            ArgumentException.ThrowIfNullOrWhiteSpace(title);
             if (definition.Items.Count == 0) throw new ArgumentException("A legend requires at least one data-graphic item.", nameof(definition));
             if (width <= 0D || double.IsNaN(width) || double.IsInfinity(width)) throw new ArgumentOutOfRangeException(nameof(width));
 

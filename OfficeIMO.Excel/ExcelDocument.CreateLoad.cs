@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Creation and persistence options.</param>
         /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Create(string filePath, ExcelCreateOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             ExcelCreateOptions resolved = options ?? new ExcelCreateOptions();
             if (resolved.Template != null || resolved.TemplateStream != null) return CreateFromUnifiedOptions(filePath, null, resolved);
             bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;

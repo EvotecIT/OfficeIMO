@@ -259,7 +259,7 @@ namespace OfficeIMO.Excel {
             CancellationToken ct = default) {
             ArgumentNullException.ThrowIfNull(dataTable);
             ArgumentNullException.ThrowIfNull(tableName);
-            if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentException("Table name cannot be empty.", nameof(tableName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 _excelDocument.MaterializeDeferredDataSetImport(ct);

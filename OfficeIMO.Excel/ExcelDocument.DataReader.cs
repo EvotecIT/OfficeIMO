@@ -9,9 +9,7 @@ namespace OfficeIMO.Excel {
         /// Worksheets are exposed in workbook order through <see cref="DbDataReader.NextResult"/>.
         /// </summary>
         public static ExcelWorkbookDataReader OpenReader(string path, ExcelReaderOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("File path cannot be empty.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             if (effectiveOptions.Password is string password) return OpenEncryptedDataReader(path, password, effectiveOptions);
@@ -33,9 +31,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Workbook metadata read limits and cancellation.</param>
         /// <returns>Readable worksheet names in workbook order.</returns>
         internal static IReadOnlyList<string> GetSheetNames(string path, ExcelReaderOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("File path cannot be empty.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             return ExcelWorkbookDataReader.ReadSheetNames(path, effectiveOptions);

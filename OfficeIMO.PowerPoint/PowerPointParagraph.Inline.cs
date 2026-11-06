@@ -89,9 +89,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Adds a formatted dynamic DrawingML field with its current displayed text.</summary>
         public PowerPointParagraph AddField(string displayText, string fieldType, string? fieldId,
             Action<PowerPointTextRun>? configure) {
-            if (string.IsNullOrWhiteSpace(fieldType)) {
-                throw new ArgumentException("Field type cannot be empty.", nameof(fieldType));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(fieldType);
             var field = new A.Field(new A.Text(PowerPointTextContent.ToSingleLine(displayText))) {
                 Id = string.IsNullOrWhiteSpace(fieldId)
                     ? Guid.NewGuid().ToString("B").ToUpperInvariant()

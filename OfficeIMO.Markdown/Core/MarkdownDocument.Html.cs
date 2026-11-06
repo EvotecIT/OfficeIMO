@@ -57,7 +57,7 @@ public partial class MarkdownDocument {
     /// <summary>Writes HTML to a file, including an external CSS sidecar when requested.</summary>
     /// <remarks>Without options the file is a complete, styled HTML document; pass options to write a fragment.</remarks>
     public OfficeConversionReport SaveAsHtml(string path, MarkdownHtmlExportOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var timer = Stopwatch.StartNew();
         MarkdownHtmlExportOptions operation = (options ?? CreateFileDocumentOptions()).CloneForRender();
         if (operation.CssDelivery == MarkdownCssDelivery.ExternalFile) operation.ExternalCssOutputPath = Path.ChangeExtension(path, ".css");
@@ -81,7 +81,7 @@ public partial class MarkdownDocument {
     public async Task<OfficeConversionReport> SaveAsHtmlAsync(string path, MarkdownHtmlExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         options = (options ?? CreateFileDocumentOptions()).CloneForRender();
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         cancellationToken.ThrowIfCancellationRequested();
         var timer = Stopwatch.StartNew();
         MarkdownHtmlExportOptions operation = (options ?? new MarkdownHtmlExportOptions()).CloneForRender();

@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Google {
         }
 
         public static void WriteTo(string path) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An output path is required.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             string fullPath = Path.GetFullPath(path);
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
             File.WriteAllText(fullPath, ToMarkdown(), new UTF8Encoding(false));

@@ -16,12 +16,8 @@ namespace OfficeIMO.Excel {
         /// Creates a series range definition for scatter/bubble charts.
         /// </summary>
         public ExcelChartSeriesRange(string name, string xRangeA1, string yRangeA1, string? bubbleSizeRangeA1 = null) {
-            if (string.IsNullOrWhiteSpace(xRangeA1)) {
-                throw new ArgumentException("X range cannot be null or empty.", nameof(xRangeA1));
-            }
-            if (string.IsNullOrWhiteSpace(yRangeA1)) {
-                throw new ArgumentException("Y range cannot be null or empty.", nameof(yRangeA1));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(xRangeA1);
+            ArgumentException.ThrowIfNullOrWhiteSpace(yRangeA1);
             if (bubbleSizeRangeA1 != null && string.IsNullOrWhiteSpace(bubbleSizeRangeA1)) {
                 throw new ArgumentException("Bubble size range cannot be empty.", nameof(bubbleSizeRangeA1));
             }

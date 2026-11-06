@@ -23,9 +23,7 @@ public sealed class MarkdownBlockParserExtension {
         MarkdownBlockParserPlacement placement,
         IMarkdownBlockParser parser,
         Func<MarkdownLoadOptions, bool>? isEnabled = null) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Extension name cannot be null or whitespace.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name.Trim();
         Placement = placement;

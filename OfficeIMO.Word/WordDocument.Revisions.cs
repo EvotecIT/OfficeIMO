@@ -11,9 +11,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="authorName">Author whose revisions should be accepted.</param>
         public void AcceptRevisions(string authorName) {
-            if (string.IsNullOrWhiteSpace(authorName)) {
-                throw new ArgumentException("Author name cannot be null or whitespace.", nameof(authorName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(authorName);
 
             AcceptRevisions(new WordRevisionFilter { Author = authorName });
         }
@@ -88,9 +86,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="authorName">Author whose revisions should be rejected.</param>
         public void RejectRevisions(string authorName) {
-            if (string.IsNullOrWhiteSpace(authorName)) {
-                throw new ArgumentException("Author name cannot be null or whitespace.", nameof(authorName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(authorName);
 
             RejectRevisions(new WordRevisionFilter { Author = authorName });
         }

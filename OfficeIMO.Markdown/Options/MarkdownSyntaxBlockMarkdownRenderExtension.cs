@@ -18,9 +18,7 @@ public sealed class MarkdownSyntaxBlockMarkdownRenderExtension {
         MarkdownSyntaxKind kind,
         string? customKind,
         MarkdownSyntaxBlockMarkdownContextualRenderer renderMarkdown) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Extension name cannot be null or whitespace.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name.Trim();
         Kind = kind;

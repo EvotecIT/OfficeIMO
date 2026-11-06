@@ -61,9 +61,7 @@ public sealed partial class PdfPageCanvas {
 
     private PdfPageCanvas AddOutline(string title, int level, double y, PdfOutlineState state, int? documentOrder, double x = 0D, string? uri = null, string? structureElementKey = null) {
         Guard.NotNull(title, nameof(title));
-        if (string.IsNullOrWhiteSpace(title)) {
-            throw new ArgumentException("Canvas outline titles cannot be empty or whitespace.", nameof(title));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
 
         if (level <= 0 || level > MaximumOutlineLevel) {
             throw new ArgumentOutOfRangeException(nameof(level), "Canvas outline levels must be between 1 and " + MaximumOutlineLevel + ".");

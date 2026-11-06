@@ -22,7 +22,7 @@ public sealed partial class RtfDocument {
         string filePath,
         OfficeContentSafetyOptions? options = null,
         RtfLoadOptions? readOptions = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         return InspectContentSafety(OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective), effective, readOptions);
     }
@@ -64,8 +64,8 @@ public sealed partial class RtfDocument {
         OfficeContentCleanupOptions? options = null,
         RtfLoadOptions? readOptions = null,
         RtfSaveOptions? writeOptions = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         OfficeContentCleanupResult result = RemoveSelectedContent(OfficeContentSafetyInputGuard.ReadAllBytes(inputPath, options.Inspection), selection, options, readOptions, writeOptions);

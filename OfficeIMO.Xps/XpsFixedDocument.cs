@@ -18,7 +18,7 @@ public sealed partial class XpsFixedDocument {
     internal XpsPage InsertNewPage(int index, double width, double height, string language, bool attach = false) {
         XpsDocument.CheckIndex(index, Markup.Elements().Count(), true);
         XpsPage.ValidatePageDimension(width); XpsPage.ValidatePageDimension(height);
-        if (string.IsNullOrWhiteSpace(language)) throw new ArgumentException("A page language is required.", nameof(language));
+        ArgumentException.ThrowIfNullOrWhiteSpace(language);
         XNamespace ns = XpsPackage.Namespace(Owner.Format);
         string name = Owner.NewPartName(PartName.Substring(0, PartName.LastIndexOf('/') + 1) + "Pages/", ".fpage");
         var page = new XpsPage(Owner, name, new XElement(ns + "FixedPage", new XAttribute("Width", XpsPackage.N(width)), new XAttribute("Height", XpsPackage.N(height)), new XAttribute(XNamespace.Xml + "lang", language)));

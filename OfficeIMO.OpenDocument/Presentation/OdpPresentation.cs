@@ -93,7 +93,7 @@ public sealed partial class OdpPresentation : OdfDocument {
 
     /// <summary>Adds an empty master page using the default page size.</summary>
     public OdpMasterPage AddMasterPage(string name) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Master page name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (MasterPages.Any(master => string.Equals(master.Name, name, StringComparison.Ordinal))) throw new InvalidOperationException($"A master page named '{name}' already exists.");
         string pageLayoutName = EnsurePageLayout().Name;
         var element = new XElement(OdfNamespaces.Style + "master-page",
@@ -105,7 +105,7 @@ public sealed partial class OdpPresentation : OdfDocument {
 
     /// <summary>Adds an empty presentation layout.</summary>
     public OdpPresentationLayout AddLayout(string name) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Layout name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (Layouts.Any(layout => string.Equals(layout.Name, name, StringComparison.Ordinal))) throw new InvalidOperationException($"A layout named '{name}' already exists.");
         var element = new XElement(OdfNamespaces.Style + "presentation-page-layout", new XAttribute(OdfNamespaces.Style + "name", name));
         GetStylesContainer(OdfNamespaces.Office + "styles").Add(element); MarkPartDirty("styles.xml");

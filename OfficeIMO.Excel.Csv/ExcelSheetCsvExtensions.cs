@@ -32,7 +32,7 @@ public static class ExcelSheetCsvExtensions {
         ExcelCsvImportOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(sheet);
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options);
         using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
         using DbDataReader reader = CsvDocument.OpenReader(path, loadOptions);

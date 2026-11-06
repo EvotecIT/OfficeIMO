@@ -32,7 +32,7 @@ public sealed partial class EpubDocument {
         OfficeContentSafetyOptions? options = null,
         EpubLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         byte[] input = OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective, inspectZipPackage: true, cancellationToken);
         return InspectContentSafety(input, effective, readOptions, cancellationToken);
@@ -107,8 +107,8 @@ public sealed partial class EpubDocument {
         OfficeContentCleanupOptions? options = null,
         EpubLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         byte[] input = OfficeContentSafetyInputGuard.ReadAllBytes(inputPath, options.Inspection, inspectZipPackage: true, cancellationToken);

@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 public sealed partial class HtmlConversionDocument {
     /// <summary>Loads and parses an HTML file.</summary>
     public static HtmlConversionDocument Load(string path, HtmlConversionDocumentOptions? options = null, Encoding? encoding = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return Load(stream, WithPathBaseUri(path, options), encoding);
     }
@@ -24,7 +24,7 @@ public sealed partial class HtmlConversionDocument {
         HtmlConversionDocumentOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
         return await LoadAsync(stream, WithPathBaseUri(path, options), encoding, cancellationToken).ConfigureAwait(false);
     }

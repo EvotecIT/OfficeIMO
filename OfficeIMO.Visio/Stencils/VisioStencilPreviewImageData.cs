@@ -16,8 +16,8 @@ namespace OfficeIMO.Visio.Stencils {
         /// Initializes extracted preview image payload data.
         /// </summary>
         public VisioStencilPreviewImageData(string masterId, string masterNameU, string? masterName, VisioStencilPreviewImage previewImage, byte[] data) {
-            if (string.IsNullOrWhiteSpace(masterId)) throw new ArgumentException("Master id cannot be null or whitespace.", nameof(masterId));
-            if (string.IsNullOrWhiteSpace(masterNameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(masterNameU));
+            ArgumentException.ThrowIfNullOrWhiteSpace(masterId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(masterNameU);
             ArgumentNullException.ThrowIfNull(previewImage);
             ArgumentNullException.ThrowIfNull(data);
             if (data.Length == 0) throw new ArgumentException("Preview image payload cannot be empty.", nameof(data));
@@ -64,7 +64,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Saves the preview payload to a file.
         /// </summary>
         public void Save(string path) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             OfficeFileCommit.WriteAllBytes(path, _data);
         }
 
@@ -73,7 +73,7 @@ namespace OfficeIMO.Visio.Stencils {
 
         /// <summary>Saves the preview payload to a file asynchronously.</summary>
         public Task SaveAsync(string path, CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             return OfficeFileCommit.WriteAllBytesAsync(path, _data, cancellationToken: cancellationToken);
         }
 
@@ -85,7 +85,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Saves the preview payload to a directory using <see cref="SuggestedFileName"/>.
         /// </summary>
         public string SaveToDirectory(string directoryPath) {
-            if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Output directory cannot be null or whitespace.", nameof(directoryPath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
 
             Directory.CreateDirectory(directoryPath);
             string path = Path.Combine(directoryPath, SuggestedFileName);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Visio.Stencils {
         public async Task<string> SaveToDirectoryAsync(
             string directoryPath,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Output directory cannot be null or whitespace.", nameof(directoryPath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
 
             cancellationToken.ThrowIfCancellationRequested();
             Directory.CreateDirectory(directoryPath);

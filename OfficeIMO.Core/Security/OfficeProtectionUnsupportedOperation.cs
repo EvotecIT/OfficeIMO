@@ -40,9 +40,7 @@ public sealed class OfficeProtectionUnsupportedOperation {
         if (!Enum.IsDefined(typeof(OfficeProtectionUnsupportedDisposition), disposition)) {
             throw new ArgumentOutOfRangeException(nameof(disposition));
         }
-        if (string.IsNullOrWhiteSpace(rationale)) {
-            throw new ArgumentException("Unsupported-operation rationale cannot be empty.", nameof(rationale));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(rationale);
         string? normalizedReference = string.IsNullOrWhiteSpace(roadmapReference)
             ? null
             : roadmapReference!.Trim();

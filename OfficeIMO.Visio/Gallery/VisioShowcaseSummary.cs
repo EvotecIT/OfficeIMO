@@ -93,9 +93,7 @@ namespace OfficeIMO.Visio {
             IEnumerable<string>? previewFiles = null,
             DateTimeOffset? generatedAt = null,
             IEnumerable<string>? proofFiles = null) {
-            if (string.IsNullOrWhiteSpace(showcasePath)) {
-                throw new ArgumentException("Showcase path cannot be null or whitespace.", nameof(showcasePath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(showcasePath);
 
             ArgumentNullException.ThrowIfNull(packageFiles);
 
@@ -137,9 +135,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="path">Target Markdown file path.</param>
         public void SaveMarkdown(string path) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             OfficeFileCommit.WriteAllBytes(path, Encoding.UTF8.GetBytes(ToMarkdown()));
         }
@@ -149,9 +145,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="path">Target JSON file path.</param>
         public void SaveJson(string path) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             OfficeFileCommit.WriteAllBytes(path, Encoding.UTF8.GetBytes(ToJson()));
         }
@@ -161,9 +155,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="path">Target HTML file path.</param>
         public void SaveHtml(string path) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             OfficeFileCommit.WriteAllBytes(path, Encoding.UTF8.GetBytes(ToHtml()));
         }

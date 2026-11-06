@@ -72,9 +72,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void SetErrorCellValue(int row, int column, string errorText) {
-            if (string.IsNullOrWhiteSpace(errorText)) {
-                throw new ArgumentException("Error text must be provided.", nameof(errorText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(errorText);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();

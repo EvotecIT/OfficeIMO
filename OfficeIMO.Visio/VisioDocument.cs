@@ -238,7 +238,7 @@ namespace OfficeIMO.Visio {
         /// <param name="packagePath">Path to a `.vssx`, `.vsdx`, or `.vstx` package.</param>
         /// <param name="names">Optional filters matching master NameU, display name, relationship id, numeric id, or normalized slug.</param>
         public IReadOnlyList<VisioMaster> ImportStencilMastersAndGet(string packagePath, IEnumerable<string>? names = null) {
-            if (string.IsNullOrWhiteSpace(packagePath)) throw new ArgumentException("Package path cannot be null or whitespace.", nameof(packagePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(packagePath);
             if (!File.Exists(packagePath)) throw new FileNotFoundException("Visio package was not found.", packagePath);
 
             IEnumerable<string>? resolvedNames = ResolvePackageMasterNameFilters(packagePath, names);
@@ -398,7 +398,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="path">Path where the document will be saved.</param>
         public static VisioDocument Create(string path) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             return new VisioDocument {
                 _filePath = path,
                 _packageType = VisioPackageFormat.FromPath(path)
@@ -407,7 +407,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Creates a new document with an explicit package family and save path.</summary>
         public static VisioDocument Create(string path, VisioPackageType packageType) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             return new VisioDocument { _filePath = path, _packageType = packageType };
         }
 
@@ -634,7 +634,7 @@ namespace OfficeIMO.Visio {
         /// Registers a master blueprint under a NameU and returns the registered master.
         /// </summary>
         public VisioMaster RegisterMaster(string nameU, VisioShape shape, string? id = null) {
-            if (string.IsNullOrWhiteSpace(nameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(nameU));
+            ArgumentException.ThrowIfNullOrWhiteSpace(nameU);
             ArgumentNullException.ThrowIfNull(shape);
 
             VisioMaster master = new(id ?? Guid.NewGuid().ToString("N"), nameU, shape);

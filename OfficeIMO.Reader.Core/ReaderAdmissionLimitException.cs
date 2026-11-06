@@ -6,7 +6,7 @@ public sealed class ReaderAdmissionLimitException : IOException {
     /// <summary>Creates an admission failure retaining the native engine's structured cause.</summary>
     public ReaderAdmissionLimitException(string limitName, double? maximum, double? actual, Exception innerException)
         : base($"Reader admission exceeds {limitName}.", innerException) {
-        if (string.IsNullOrWhiteSpace(limitName)) throw new ArgumentException("A limit name is required.", nameof(limitName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(limitName);
         if (maximum.HasValue && (double.IsNaN(maximum.Value) || double.IsInfinity(maximum.Value) || maximum.Value < 0))
             throw new ArgumentOutOfRangeException(nameof(maximum));
         if (actual.HasValue && (double.IsNaN(actual.Value) || actual.Value < 0))

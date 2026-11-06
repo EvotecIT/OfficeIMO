@@ -2,7 +2,7 @@ namespace OfficeIMO.Epub;
 
 internal static class EpubBibliographicIdentifier {
     internal static string Normalize(string value, EpubIdentifierKind kind) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("An identifier value is required.", nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         XmlConvert.VerifyXmlChars(value);
         if (kind == EpubIdentifierKind.Unspecified) return value;
         if (kind == EpubIdentifierKind.Doi) {

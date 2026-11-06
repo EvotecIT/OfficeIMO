@@ -14,7 +14,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Creates a stencil gallery document at the supplied path.
         /// </summary>
         public static VisioDocument Create(string path, VisioStencilCatalog catalog, VisioStencilGalleryDocumentOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be null or whitespace.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             VisioDocument document = VisioDocument.Create(path);
             return Populate(document, catalog, options);
         }

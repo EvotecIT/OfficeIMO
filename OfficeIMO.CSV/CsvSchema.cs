@@ -99,10 +99,7 @@ public sealed class CsvSchemaBuilder
     /// </summary>
     public CsvColumnBuilder Column(string name)
     {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("Column name cannot be null or empty.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         var column = new CsvSchemaColumn(name);
         _columns.Add(column);

@@ -239,7 +239,7 @@ public static class TesseractLanguageData {
     }
 
     private static string[] ParseLanguageExpression(string expression) {
-        if (string.IsNullOrWhiteSpace(expression)) throw new ArgumentException("Tesseract language expression cannot be empty.", nameof(expression));
+        ArgumentException.ThrowIfNullOrWhiteSpace(expression);
         string[] values = expression.Split('+').Select(static value => value.Trim()).Where(static value => value.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
         if (values.Length == 0 || values.Any(static value => value.Any(character => !(character >= 'a' && character <= 'z') && !(character >= 'A' && character <= 'Z') && character != '_' && character != '-'))) {
             throw new ArgumentException("Tesseract language identifiers may contain only letters, underscores, and hyphens.", nameof(expression));

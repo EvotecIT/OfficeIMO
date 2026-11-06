@@ -8,8 +8,8 @@ public sealed class OdfConversionReport : OfficeConversionReport {
 
     /// <summary>Creates an empty conversion report.</summary>
     public OdfConversionReport(string sourceFormat, string targetFormat) {
-        if (string.IsNullOrWhiteSpace(sourceFormat)) throw new ArgumentException("Source format cannot be empty.", nameof(sourceFormat));
-        if (string.IsNullOrWhiteSpace(targetFormat)) throw new ArgumentException("Target format cannot be empty.", nameof(targetFormat));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFormat);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetFormat);
         SourceFormat = sourceFormat;
         TargetFormat = targetFormat;
     }
@@ -69,7 +69,7 @@ public sealed class OdfConversionReport : OfficeConversionReport {
 
     /// <summary>Returns all results for one stable feature identifier.</summary>
     public IReadOnlyList<OdfConversionMapping> ForFeature(string feature) {
-        if (string.IsNullOrWhiteSpace(feature)) throw new ArgumentException("Feature name cannot be empty.", nameof(feature));
+        ArgumentException.ThrowIfNullOrWhiteSpace(feature);
         return _mappings.Where(mapping => string.Equals(mapping.Feature, feature, StringComparison.Ordinal)).ToList();
     }
 }

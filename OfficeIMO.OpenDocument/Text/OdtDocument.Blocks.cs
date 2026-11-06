@@ -78,7 +78,7 @@ public sealed partial class OdtDocument {
 
     /// <summary>Adds a named section to the document body.</summary>
     public OdtSection AddSection(string name) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Section name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var element = new XElement(OdfNamespaces.Text + "section", new XAttribute(OdfNamespaces.Text + "name", name));
         TextBody.Add(element);
         MarkPartDirty("content.xml");

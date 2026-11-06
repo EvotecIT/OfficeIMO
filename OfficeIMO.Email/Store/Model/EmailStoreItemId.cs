@@ -6,7 +6,7 @@ public readonly struct EmailStoreItemId : IEquatable<EmailStoreItemId>, ICompara
 
     /// <summary>Creates an item identifier from the exact source value.</summary>
     public EmailStoreItemId(string value) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("An item identifier cannot be empty.", nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         _value = value;
     }
 

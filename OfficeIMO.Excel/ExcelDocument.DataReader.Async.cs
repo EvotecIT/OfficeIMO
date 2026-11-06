@@ -22,9 +22,7 @@ namespace OfficeIMO.Excel {
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (options?.Password is string password) return await OpenEncryptedDataReaderAsync(path, password, options, cancellationToken).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("File path cannot be empty.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             ExcelFileFormat format = Path.GetExtension(path).ToLowerInvariant() switch {
                 ".xls" => ExcelFileFormat.Xls,

@@ -139,9 +139,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the shared data label number format for all supported chart types.
         /// </summary>
         public PowerPointChart SetDataLabelNumberFormat(string formatCode, bool sourceLinked = false) {
-            if (string.IsNullOrWhiteSpace(formatCode)) {
-                throw new ArgumentException("Format code cannot be null or empty.", nameof(formatCode));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(formatCode);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();

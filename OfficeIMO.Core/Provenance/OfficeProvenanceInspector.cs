@@ -11,7 +11,7 @@ namespace OfficeIMO.Provenance;
 public static class OfficeProvenanceInspector {
     /// <summary>Inspects an asset file using bounded structural parsers.</summary>
     public static OfficeProvenanceReport InspectFile(string filePath, OfficeProvenanceOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         string fullPath = Path.GetFullPath(filePath);
         using var stream = File.OpenRead(fullPath);
         return Inspect(stream, fullPath, options);
@@ -445,8 +445,8 @@ public static class OfficeProvenanceRemover {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         string fullInputPath = Path.GetFullPath(inputPath);
         string fullOutputPath = Path.GetFullPath(outputPath);
         options ??= new OfficeProvenanceRemovalOptions();

@@ -70,7 +70,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Records evidence from an external Google Slides, Keynote, or other import lane.</summary>
         public PowerPointCompatibilityReport RecordExternal(string lane, PowerPointCompatibilityStatus status,
             string message, params string[] artifactPaths) {
-            if (string.IsNullOrWhiteSpace(lane)) throw new ArgumentException("Lane cannot be empty.", nameof(lane));
+            ArgumentException.ThrowIfNullOrWhiteSpace(lane);
             _lanes.RemoveAll(item => string.Equals(item.Lane, lane, StringComparison.OrdinalIgnoreCase));
             _lanes.Add(new PowerPointCompatibilityLaneResult(lane.Trim(), status, message, artifactPaths));
             return this;
@@ -109,9 +109,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Inspects a saved presentation through selected compatibility lanes.</summary>
         public static PowerPointCompatibilityReport Inspect(string presentationPath,
             PowerPointCompatibilityOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(presentationPath)) {
-                throw new ArgumentException("Presentation path cannot be empty.", nameof(presentationPath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(presentationPath);
             string fullPath = Path.GetFullPath(presentationPath);
             if (!File.Exists(fullPath)) throw new FileNotFoundException("Presentation was not found.", fullPath);
             options ??= new PowerPointCompatibilityOptions();

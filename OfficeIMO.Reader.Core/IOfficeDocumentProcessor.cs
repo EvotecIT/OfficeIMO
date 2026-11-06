@@ -34,9 +34,7 @@ public interface IAsyncOfficeDocumentProcessor : IOfficeDocumentProcessor {
 public abstract class OfficeDocumentProcessorBase : ISynchronousOfficeDocumentProcessor {
     /// <summary>Creates a processor with a stable identifier.</summary>
     protected OfficeDocumentProcessorBase(string id) {
-        if (string.IsNullOrWhiteSpace(id)) {
-            throw new ArgumentException("Processor id cannot be empty.", nameof(id));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         Id = id.Trim();
     }
 
@@ -60,7 +58,7 @@ public sealed class DelegateOfficeDocumentProcessor : ISynchronousOfficeDocument
     public DelegateOfficeDocumentProcessor(
         string id,
         Func<OfficeDocumentReadResult, OfficeDocumentProcessorContext, OfficeDocumentReadResult> process) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Processor id cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         Id = id.Trim();
         _process = process ?? throw new ArgumentNullException(nameof(process));
     }
@@ -85,7 +83,7 @@ public sealed class DelegateAsyncOfficeDocumentProcessor : IAsyncOfficeDocumentP
     public DelegateAsyncOfficeDocumentProcessor(
         string id,
         Func<OfficeDocumentReadResult, OfficeDocumentProcessorContext, Task<OfficeDocumentReadResult>> process) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Processor id cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         Id = id.Trim();
         _process = process ?? throw new ArgumentNullException(nameof(process));
     }

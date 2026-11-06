@@ -10,7 +10,7 @@ public static partial class PowerPointHtmlConverterExtensions {
     /// <summary>Saves a presentation as UTF-8 HTML and returns its completed-stage report.</summary>
     public static OfficeConversionReport SaveAsHtml(this PptCore.PowerPointDocument presentation, string path,
         PowerPointHtmlExportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string value = presentation.ToHtml(options, out OfficeConversionReport report, cancellationToken);
         OfficeConversionFailures.Run(report, () => HtmlTextIO.Write(path, value));
         return new OfficeConversionReport(report.Source, report.Target, path, report.ItemsWritten, report.Elapsed, report.Diagnostics);
@@ -28,7 +28,7 @@ public static partial class PowerPointHtmlConverterExtensions {
     /// <remarks>Conversion is CPU-bound and runs on the thread pool; the file is written asynchronously.</remarks>
     public static async Task<OfficeConversionReport> SaveAsHtmlAsync(this PptCore.PowerPointDocument presentation, string path,
         PowerPointHtmlExportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         OfficeConversionResult<string> converted = await presentation.ToHtmlAsync(options, cancellationToken).ConfigureAwait(false);
         OfficeConversionReport report = converted.Report;
         await OfficeConversionFailures.RunAsync(report, () => HtmlTextIO.WriteAsync(path, converted.Value, cancellationToken)).ConfigureAwait(false);

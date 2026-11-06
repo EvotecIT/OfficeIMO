@@ -19,9 +19,7 @@ namespace OfficeIMO.Excel {
                 Classify(code));
 
         internal static OfficeConversionLossKind Classify(string code) {
-            if (string.IsNullOrWhiteSpace(code)) {
-                throw new ArgumentException("Excel image-export diagnostics require a stable code.", nameof(code));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(code);
 
             switch (code) {
                 case ExcelImageExportDiagnosticCodes.PrintAreaMultipleAreasSplit:

@@ -32,9 +32,7 @@ namespace OfficeIMO.Visio {
         /// <param name="folderPath">Target folder.</param>
         /// <param name="options">Gallery generation options.</param>
         public static IReadOnlyList<VisioGalleryResult> Create(string folderPath, VisioGalleryOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(folderPath)) {
-                throw new ArgumentException("Folder path cannot be null or whitespace.", nameof(folderPath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(folderPath);
 
             Directory.CreateDirectory(folderPath);
             VisioGalleryOptions resolvedOptions = options ?? new VisioGalleryOptions();
@@ -53,13 +51,9 @@ namespace OfficeIMO.Visio {
         /// <param name="scenarioName">Scenario name from <see cref="ScenarioNames"/>.</param>
         /// <param name="options">Gallery generation options.</param>
         public static VisioGalleryResult CreateScenario(string folderPath, string scenarioName, VisioGalleryOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(folderPath)) {
-                throw new ArgumentException("Folder path cannot be null or whitespace.", nameof(folderPath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(folderPath);
 
-            if (string.IsNullOrWhiteSpace(scenarioName)) {
-                throw new ArgumentException("Scenario name cannot be null or whitespace.", nameof(scenarioName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(scenarioName);
 
             Directory.CreateDirectory(folderPath);
             VisioPremiumGalleryScenario scenario = FindScenario(scenarioName);

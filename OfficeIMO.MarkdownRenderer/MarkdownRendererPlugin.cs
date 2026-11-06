@@ -34,9 +34,7 @@ public sealed class MarkdownRendererPlugin {
         IEnumerable<IMarkdownDocumentTransform>? rendererDocumentTransforms = null,
         Action<MarkdownRendererOptions>? apply = null,
         Action<MarkdownLoadOptions>? applyReader = null) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Plugin name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         ArgumentNullException.ThrowIfNull(rendererFactories);
 
@@ -83,9 +81,7 @@ public sealed class MarkdownRendererPlugin {
         IEnumerable<IMarkdownDocumentTransform>? rendererDocumentTransforms = null,
         Action<MarkdownRendererOptions>? apply = null,
         Action<MarkdownLoadOptions>? applyReader = null) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Plugin name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         ArgumentNullException.ThrowIfNull(plugins);
 

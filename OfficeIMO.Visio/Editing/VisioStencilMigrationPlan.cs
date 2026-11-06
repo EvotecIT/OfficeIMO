@@ -74,9 +74,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="path">Destination path.</param>
         public void SaveText(string path) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             OfficeFileCommit.WriteAllBytes(path, new UTF8Encoding(false).GetBytes(ToText()));
         }
@@ -86,9 +84,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="path">Artifact path.</param>
         public static VisioStencilMigrationPlan LoadText(string path) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             return FromText(File.ReadAllText(path, Encoding.UTF8));
         }

@@ -83,15 +83,9 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointDesignDirection(string name, PowerPointDesignMood mood,
             PowerPointSlideDensity density, PowerPointVisualStyle visualStyle,
             string headingFontFamily, string bodyFontFamily, bool showDirectionMotif = true) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Direction name cannot be null or empty.", nameof(name));
-            }
-            if (string.IsNullOrWhiteSpace(headingFontFamily)) {
-                throw new ArgumentException("Heading font cannot be null or empty.", nameof(headingFontFamily));
-            }
-            if (string.IsNullOrWhiteSpace(bodyFontFamily)) {
-                throw new ArgumentException("Body font cannot be null or empty.", nameof(bodyFontFamily));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            ArgumentException.ThrowIfNullOrWhiteSpace(headingFontFamily);
+            ArgumentException.ThrowIfNullOrWhiteSpace(bodyFontFamily);
 
             Name = name;
             Mood = mood;

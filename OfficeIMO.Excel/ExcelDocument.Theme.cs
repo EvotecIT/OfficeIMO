@@ -40,9 +40,7 @@ namespace OfficeIMO.Excel {
         /// Replaces or creates the workbook theme part with caller-supplied DrawingML theme XML.
         /// </summary>
         public ExcelDocument SetWorkbookThemeXml(string themeXml) {
-            if (string.IsNullOrWhiteSpace(themeXml)) {
-                throw new ArgumentException("Theme XML cannot be null or empty.", nameof(themeXml));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(themeXml);
 
             XDocument.Parse(themeXml);
 
@@ -62,9 +60,7 @@ namespace OfficeIMO.Excel {
         /// Sets the workbook theme name while preserving the rest of the theme XML.
         /// </summary>
         public ExcelDocument SetWorkbookThemeName(string name) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Theme name cannot be null or empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             string xml = GetWorkbookThemeXml() ?? Encoding.UTF8.GetString(DefaultThemeBytes.Value);
             OfficeTheme? palette = _creationTheme;

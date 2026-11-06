@@ -24,7 +24,7 @@ namespace OfficeIMO.GoogleWorkspace {
         /// <param name="account">Provider-verified account identity.</param>
         /// <param name="scopes">Provider-verified granted OAuth scopes.</param>
         public GoogleWorkspaceCredentialBinding(string account, IReadOnlyList<string> scopes) {
-            if (string.IsNullOrWhiteSpace(account)) throw new ArgumentException("A verified account identity is required.", nameof(account));
+            ArgumentException.ThrowIfNullOrWhiteSpace(account);
             Account = account.Trim();
             Scopes = Array.AsReadOnly((scopes ?? throw new ArgumentNullException(nameof(scopes)))
                 .Where(scope => !string.IsNullOrWhiteSpace(scope))
@@ -74,7 +74,7 @@ namespace OfficeIMO.GoogleWorkspace {
             IReadOnlyList<string>? scopes,
             string? account,
             GoogleWorkspaceCredentialBinding? credentialBinding) {
-            if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
+            ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
             AccessToken = accessToken;
             ExpiresAt = expiresAt;
             Scopes = Array.AsReadOnly((scopes ?? Array.Empty<string>())

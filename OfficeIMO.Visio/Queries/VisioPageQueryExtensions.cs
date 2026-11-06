@@ -30,9 +30,7 @@ namespace OfficeIMO.Visio {
         public static VisioShape? FindShapeById(this VisioPage page, string id) {
             ArgumentNullException.ThrowIfNull(page);
 
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Shape id cannot be empty.", nameof(id));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
             foreach (VisioShape shape in page.Shapes) {
                 VisioShape? result = shape.FindDescendantById(id);
@@ -92,9 +90,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="key">Data key.</param>
         public static IReadOnlyList<VisioShape> ShapesWithData(this VisioPage page, string key) {
-            if (string.IsNullOrWhiteSpace(key)) {
-                throw new ArgumentException("Data key cannot be empty.", nameof(key));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
             return FilterShapes(page, shape => shape.FindShapeData(key) != null || shape.Data.ContainsKey(key));
         }
@@ -107,9 +103,7 @@ namespace OfficeIMO.Visio {
         /// <param name="value">Data value.</param>
         /// <param name="comparison">String comparison used for matching.</param>
         public static IReadOnlyList<VisioShape> ShapesWithData(this VisioPage page, string key, string value, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            if (string.IsNullOrWhiteSpace(key)) {
-                throw new ArgumentException("Data key cannot be empty.", nameof(key));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
             ArgumentNullException.ThrowIfNull(value);
 
@@ -123,9 +117,7 @@ namespace OfficeIMO.Visio {
         /// <param name="key">Data key.</param>
         /// <param name="predicate">Predicate that receives the current Shape Data value.</param>
         public static IReadOnlyList<VisioShape> ShapesWithData(this VisioPage page, string key, Func<string?, bool> predicate) {
-            if (string.IsNullOrWhiteSpace(key)) {
-                throw new ArgumentException("Data key cannot be empty.", nameof(key));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
             ArgumentNullException.ThrowIfNull(predicate);
 
@@ -169,9 +161,7 @@ namespace OfficeIMO.Visio {
         /// <param name="layerName">Layer name or universal name.</param>
         /// <param name="comparison">String comparison used for matching.</param>
         public static IReadOnlyList<VisioShape> ShapesInLayer(this VisioPage page, string layerName, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            if (string.IsNullOrWhiteSpace(layerName)) {
-                throw new ArgumentException("Layer name cannot be empty.", nameof(layerName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(layerName);
 
             return FilterShapes(page, shape => shape.LayerNames.Any(current => string.Equals(current, layerName, comparison)));
         }
@@ -198,9 +188,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="name">User cell row name.</param>
         public static IReadOnlyList<VisioShape> ShapesWithUserCell(this VisioPage page, string name) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("User cell name cannot be empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             return FilterShapes(page, shape => shape.FindUserCell(name) != null);
         }
@@ -213,9 +201,7 @@ namespace OfficeIMO.Visio {
         /// <param name="value">User cell value.</param>
         /// <param name="comparison">String comparison used for matching.</param>
         public static IReadOnlyList<VisioShape> ShapesWithUserCell(this VisioPage page, string name, string value, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("User cell name cannot be empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             ArgumentNullException.ThrowIfNull(value);
 
@@ -237,9 +223,7 @@ namespace OfficeIMO.Visio {
         /// <param name="address">Hyperlink address.</param>
         /// <param name="comparison">String comparison used for matching.</param>
         public static IReadOnlyList<VisioShape> ShapesWithHyperlink(this VisioPage page, string address, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            if (string.IsNullOrWhiteSpace(address)) {
-                throw new ArgumentException("Hyperlink address cannot be empty.", nameof(address));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(address);
 
             return FilterShapes(page, shape => shape.Hyperlinks.Any(hyperlink => string.Equals(hyperlink.Address, address, comparison)));
         }

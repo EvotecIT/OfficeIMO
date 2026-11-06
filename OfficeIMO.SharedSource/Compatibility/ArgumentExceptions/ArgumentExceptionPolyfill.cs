@@ -17,6 +17,17 @@ namespace Polyfills {
                     throw new ArgumentException("The value cannot be an empty string or composed entirely of whitespace.", paramName);
                 }
             }
+
+            //Link: https://learn.microsoft.com/en-us/dotnet/api/system.argumentexception.throwifnullorempty#system-argumentexception-throwifnullorempty(system-string-system-string)
+            public static void ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null) {
+                if (argument is null) {
+                    throw new ArgumentNullException(paramName);
+                }
+
+                if (argument.Length == 0) {
+                    throw new ArgumentException("The value cannot be an empty string.", paramName);
+                }
+            }
         }
     }
 }

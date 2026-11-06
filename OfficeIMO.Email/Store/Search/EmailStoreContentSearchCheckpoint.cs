@@ -24,7 +24,7 @@ public sealed class EmailStoreContentSearchCheckpoint {
 
     /// <summary>Parses and structurally validates a durable checkpoint.</summary>
     public static EmailStoreContentSearchCheckpoint Parse(string value) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A checkpoint cannot be empty.", nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         if (value.Length > MaxEncodedLength) throw new InvalidDataException("The checkpoint is too large.");
         try {
             string normalized = value.Replace('-', '+').Replace('_', '/');

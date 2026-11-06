@@ -34,7 +34,7 @@ internal static class HtmlTextIO {
 
     /// <summary>Writes HTML text to a file as UTF-8 without a byte-order mark.</summary>
     public static void Write(string path, string html) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An HTML output path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         OfficeFileCommit.WriteAllBytes(path, Utf8NoBom.GetBytes(html ?? throw new ArgumentNullException(nameof(html))));
     }
 
@@ -47,7 +47,7 @@ internal static class HtmlTextIO {
 
     /// <summary>Asynchronously writes HTML text to a file as UTF-8 without a byte-order mark.</summary>
     public static async Task WriteAsync(string path, string html, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An HTML output path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         byte[] bytes = Utf8NoBom.GetBytes(html ?? throw new ArgumentNullException(nameof(html)));
         await OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
     }

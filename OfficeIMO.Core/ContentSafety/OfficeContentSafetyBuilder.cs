@@ -27,7 +27,7 @@ internal sealed class OfficeContentSafetyBuilder {
     public OfficeContentSafetyBuilder(string format, OfficeContentSafetyOptions? options, CancellationToken cancellationToken) {
         CancellationToken = cancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException("A format name is required.", nameof(format));
+        ArgumentException.ThrowIfNullOrWhiteSpace(format);
         _format = format.Trim();
         _options = options ?? new OfficeContentSafetyOptions();
         _options.Validate();
@@ -127,7 +127,7 @@ internal sealed class OfficeContentSafetyBuilder {
         string location,
         string? text,
         OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.ReportOnly) {
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A logical location is required.", nameof(location));
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
         text ??= string.Empty;
         Charge(text.Length);
         return InspectTextIntegrity(location, text, cleanupCapability);
@@ -138,7 +138,7 @@ internal sealed class OfficeContentSafetyBuilder {
         string location,
         string? text,
         OfficeContentCleanupCapability cleanupCapability) {
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A logical location is required.", nameof(location));
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
         return InspectTextIntegrity(location, text ?? string.Empty, cleanupCapability);
     }
 
@@ -232,8 +232,8 @@ internal sealed class OfficeContentSafetyBuilder {
     }
 
     private static string ValidateFindingArguments(string location, string evidence, string? text) {
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A logical location is required.", nameof(location));
-        if (string.IsNullOrWhiteSpace(evidence)) throw new ArgumentException("Exact concealment evidence is required.", nameof(evidence));
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
+        ArgumentException.ThrowIfNullOrWhiteSpace(evidence);
         return text ?? string.Empty;
     }
 

@@ -7,9 +7,7 @@ namespace OfficeIMO.Core.Internal {
     internal static class OfficeFileLauncher {
         /// <summary>Opens an existing file through the operating system shell.</summary>
         public static void Open(string filePath) {
-            if (string.IsNullOrWhiteSpace(filePath)) {
-                throw new ArgumentException("File path cannot be empty.", nameof(filePath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) {
                 throw new FileNotFoundException("File not found.", fullPath);

@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Adds or replaces a VBA project from a file.</summary>
         public ExcelMacroProject AddMacro(string filePath) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("VBA project path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             if (!File.Exists(filePath)) throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             return AddMacro(File.ReadAllBytes(filePath));
         }

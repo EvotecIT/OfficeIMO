@@ -8,7 +8,7 @@ public sealed partial class IWorkKeynoteDocument : IDisposable {
 
     /// <summary>Creates a native authoring model associated with a path, without writing a file.</summary>
     public static IWorkKeynoteDocument Create(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var document = Create(); document.FilePath = Path.GetFullPath(path); return document;
     }
 

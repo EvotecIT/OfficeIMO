@@ -16,7 +16,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Initializes a new stencil catalog.
         /// </summary>
         public VisioStencilCatalog(string name, IEnumerable<VisioStencilShape> shapes) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Catalog name cannot be null or whitespace.", nameof(name));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             ArgumentNullException.ThrowIfNull(shapes);
 
             Name = name;

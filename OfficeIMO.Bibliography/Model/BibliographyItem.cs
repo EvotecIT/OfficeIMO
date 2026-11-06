@@ -67,7 +67,7 @@ public sealed class BibliographyItem {
 
     /// <summary>Sets or removes the first identifier matching a scheme.</summary>
     public void SetIdentifier(string scheme, string? value) {
-        if (string.IsNullOrWhiteSpace(scheme)) throw new ArgumentException("Identifier scheme cannot be empty.", nameof(scheme));
+        ArgumentException.ThrowIfNullOrWhiteSpace(scheme);
         string normalizedScheme = scheme.Trim();
         BibliographyIdentifier? existing = Identifiers.FirstOrDefault(identifier => string.Equals(identifier.Scheme, normalizedScheme, StringComparison.OrdinalIgnoreCase));
         if (string.IsNullOrWhiteSpace(value)) {

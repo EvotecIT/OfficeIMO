@@ -7,9 +7,7 @@ public sealed partial class EmailStoreSession {
     public EmailStorePstCompactionPlan PlanPstCompaction(string destinationPath,
         EmailStorePstCompactionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(destinationPath)) {
-            throw new ArgumentException("A destination path is required.", nameof(destinationPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         ThrowIfDisposed();
         EmailStorePstCompactionOptions effective = options ??
             new EmailStorePstCompactionOptions();

@@ -17,8 +17,8 @@ public static partial class ArchiveExtractor {
     /// <exception cref="IOException">The destination is occupied, contains links, or cannot be published.</exception>
     public static ArchiveExtractionResult Extract(string packagePath, string destinationDirectory,
         ArchiveExtractionOptions? options = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(packagePath)) throw new ArgumentException("A package path is required.", nameof(packagePath));
-        if (string.IsNullOrWhiteSpace(destinationDirectory)) throw new ArgumentException("A destination directory is required.", nameof(destinationDirectory));
+        ArgumentException.ThrowIfNullOrWhiteSpace(packagePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationDirectory);
         var limits = new ArchiveLimits(options ?? new ArchiveExtractionOptions());
         cancellationToken.ThrowIfCancellationRequested();
         string package = Path.GetFullPath(packagePath);

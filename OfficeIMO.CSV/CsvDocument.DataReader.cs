@@ -20,10 +20,7 @@ public sealed partial class CsvDocument
     /// <returns>A data reader suitable for DataTable loading and provider bulk-copy APIs.</returns>
     public static CsvDataReader OpenReader(string path, CsvReaderOptions? options = null)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         options = options?.Clone() ?? new CsvReaderOptions();
         // OpenReader is the forward-only entry point. Reader routing remains

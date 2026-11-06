@@ -319,7 +319,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static string NormalizePartName(string partName) {
-            if (string.IsNullOrWhiteSpace(partName)) throw new ArgumentException("Package part name cannot be empty.", nameof(partName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(partName);
             string normalized = partName.Replace('\\', '/').TrimStart('/');
             if (normalized.EndsWith("/", StringComparison.Ordinal)
                 || normalized.Split('/').Any(segment => segment.Length == 0 || segment == "." || segment == "..")) {

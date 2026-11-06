@@ -41,7 +41,7 @@ public sealed partial class AsciiDocDocument {
         AsciiDocParseOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         cancellationToken.ThrowIfCancellationRequested();
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
         return await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
@@ -74,7 +74,7 @@ public sealed partial class AsciiDocDocument {
 
     /// <summary>Saves the current document text to a file.</summary>
     public void Save(string path, AsciiDocWriterOptions? options = null, Encoding? encoding = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         byte[] bytes = ToBytes(options, encoding);
         OfficeFileCommit.WriteAtomically(path, stream => stream.Write(bytes, 0, bytes.Length));
     }
@@ -90,7 +90,7 @@ public sealed partial class AsciiDocDocument {
         AsciiDocWriterOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         cancellationToken.ThrowIfCancellationRequested();
         byte[] bytes = ToBytes(options, encoding);
         await OfficeFileCommit.WriteAtomicallyAsync(path,

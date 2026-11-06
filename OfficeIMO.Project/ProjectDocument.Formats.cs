@@ -49,7 +49,7 @@ public sealed partial class ProjectDocument {
     }
     private static bool IsNativeFormat(ProjectFileFormat format) => format != ProjectFileFormat.Automatic && format != ProjectFileFormat.Xml && format != ProjectFileFormat.Mpx4;
     private static ProjectFileFormat FormatFromPath(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A Project output path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         RejectGlobalTemplate(path);
         return System.IO.Path.GetExtension(path).ToLowerInvariant() switch {
             ".xml" => ProjectFileFormat.Xml, ".mpp" => ProjectFileFormat.Mpp14, ".mpt" => ProjectFileFormat.Mpt14,

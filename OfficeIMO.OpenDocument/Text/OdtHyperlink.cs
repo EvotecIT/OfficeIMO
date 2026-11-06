@@ -55,7 +55,7 @@ public sealed class OdtHyperlink {
         get => (string?)_element.Attribute(OdfNamespaces.XLink + "href") ?? string.Empty;
         set {
             EnsureMaterialized();
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(value));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             _element.SetAttributeValue(OdfNamespaces.XLink + "href", value);
             Dirty();
         }

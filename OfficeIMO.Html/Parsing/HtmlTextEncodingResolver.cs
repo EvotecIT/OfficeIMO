@@ -34,9 +34,7 @@ internal sealed class HtmlTextEncodingResolver {
 
     internal Encoding ResolveHtmlTransportEncoding(Stream stream, string transportCharset) {
         ArgumentNullException.ThrowIfNull(stream);
-        if (string.IsNullOrWhiteSpace(transportCharset)) {
-            throw new ArgumentException("A transport charset is required.", nameof(transportCharset));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(transportCharset);
         if (!stream.CanSeek) return NormalizeHtmlDeclaredEncoding(GetEncoding(transportCharset));
 
         long position = stream.Position;

@@ -27,7 +27,7 @@ internal sealed partial class PdfWorkspace {
 
     /// <summary>Uses the workspace's storage identity and write policy for any operation that promises a separate copy.</summary>
     internal string ValidateCopyDestination(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string destination = OfficeStorageIdentity.Normalize(path);
         if (OfficeStorageIdentity.AreEquivalent(destination, Path)) {
             throw new ArgumentException("A copy can't replace the document it was made from.", nameof(path));

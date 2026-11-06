@@ -26,7 +26,7 @@ public sealed partial class InvoicePdfLanguagePack {
     /// regional culture names use the matching language translation.
     /// </summary>
     public static InvoicePdfLanguagePack ForCulture(string cultureName) {
-        if (string.IsNullOrWhiteSpace(cultureName)) throw new ArgumentException("A culture name is required.", nameof(cultureName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(cultureName);
         CultureInfo culture = CultureInfo.GetCultureInfo(cultureName.Trim());
         IReadOnlyDictionary<InvoicePdfText, string> labels = culture.TwoLetterISOLanguageName switch {
             "en" => EnglishLabels,
@@ -48,7 +48,7 @@ public sealed partial class InvoicePdfLanguagePack {
     /// Creates a custom pack. Missing entries deliberately fall back to English so callers can override only the labels they own.
     /// </summary>
     public static InvoicePdfLanguagePack Create(string cultureName, IReadOnlyDictionary<InvoicePdfText, string> labels) {
-        if (string.IsNullOrWhiteSpace(cultureName)) throw new ArgumentException("A culture name is required.", nameof(cultureName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(cultureName);
         ArgumentNullException.ThrowIfNull(labels);
         var copy = new Dictionary<InvoicePdfText, string>();
         foreach (KeyValuePair<InvoicePdfText, string> entry in labels) {

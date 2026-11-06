@@ -166,8 +166,8 @@ public static partial class HtmlProvenance {
         string filePath,
         string logicalFilePath,
         OfficeProvenanceOptions? options) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
-        if (string.IsNullOrWhiteSpace(logicalFilePath)) throw new ArgumentException("A logical file path is required.", nameof(logicalFilePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(logicalFilePath);
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         byte[] data = ReadBounded(filePath, options.MaxAssetBytes, options.CancellationToken);
@@ -280,8 +280,8 @@ public static partial class HtmlProvenance {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeProvenanceRemovalOptions();
         byte[] input = ReadBounded(inputPath, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);
         string html = DecodeHtml(input, options.Limits.CancellationToken, out Encoding encoding, out bool hadPreamble);

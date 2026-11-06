@@ -51,7 +51,7 @@ internal sealed partial class PdfWorkspace {
         bool wholeWords,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) {
-        if (string.IsNullOrEmpty(search)) throw new ArgumentException("Find text is required.", nameof(search));
+        ArgumentException.ThrowIfNullOrEmpty(search);
         return MutateBytesAsync(
             PdfWorkspaceOperationKind.TextEdit,
             "Replaced all matching document text",

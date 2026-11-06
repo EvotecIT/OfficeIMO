@@ -81,9 +81,7 @@ public class MapiPropertyKey {
 
     private static string ValidateCanonicalName(string canonicalName) {
         ArgumentNullException.ThrowIfNull(canonicalName);
-        if (string.IsNullOrWhiteSpace(canonicalName)) {
-            throw new ArgumentException("A MAPI property key requires a canonical name.", nameof(canonicalName));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(canonicalName);
         return canonicalName;
     }
 

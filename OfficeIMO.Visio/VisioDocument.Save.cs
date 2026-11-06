@@ -31,7 +31,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Saves the document to a specified file path.</summary>
         public void Save(string filePath) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             ThrowIfInvalidForSave();
             SaveInternal(filePath);
             _filePath = filePath;
@@ -43,7 +43,7 @@ namespace OfficeIMO.Visio {
         /// callers cannot silently discard executable package content.
         /// </remarks>
         public void Save(string filePath, VisioPackageType packageType) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             VisioPackageType previous = _packageType;
             _packageType = packageType;
             try {
@@ -64,14 +64,14 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Saves an independent copy without changing the document's associated destination.</summary>
         public void SaveCopy(string filePath) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             ThrowIfInvalidForSave();
             OfficeFileCommit.WriteAllBytes(filePath, ToBytes());
         }
 
         /// <summary>Asynchronously saves an independent copy without changing the document's associated destination.</summary>
         public Task SaveCopyAsync(string filePath, CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfInvalidForSave();
             return OfficeFileCommit.WriteAllBytesAsync(filePath, ToBytes(), cancellationToken: cancellationToken);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Asynchronously saves to a file and associates it with subsequent saves.</summary>
         public async Task SaveAsync(string filePath, CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes = ToBytes();
             await OfficeFileCommit.WriteAllBytesAsync(filePath, bytes,

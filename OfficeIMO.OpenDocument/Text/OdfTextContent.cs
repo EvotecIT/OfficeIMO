@@ -74,7 +74,7 @@ public abstract class OdfTextContent {
     }
     /// <summary>Appends a hyperlink without fetching or resolving its target.</summary>
     public OdfTextHyperlink AddHyperlink(string text, string href) {
-        if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
+        ArgumentException.ThrowIfNullOrWhiteSpace(href);
         if (Element.AncestorsAndSelf().Any(e => e.Name == OdfNamespaces.Text + "a")) throw new NotSupportedException("ODF hyperlinks cannot be nested.");
         var link = new XElement(OdfNamespaces.Text + "a", new XAttribute(OdfNamespaces.XLink + "type", "simple"), new XAttribute(OdfNamespaces.XLink + "href", href));
         OdfTextCodec.Append(link, text); Element.Add(link); Dirty(); return new OdfTextHyperlink(Document, link, Graphic);

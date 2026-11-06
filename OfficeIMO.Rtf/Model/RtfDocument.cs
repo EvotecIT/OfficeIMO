@@ -143,7 +143,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Loads RTF from a file with lossless syntax and diagnostics.</summary>
     public static RtfReadResult LoadResult(string path, RtfLoadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         string fullPath = Path.GetFullPath(path);
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -310,7 +310,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Adds a font to the font table or returns the existing id.</summary>
     public int AddFont(string name) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Font name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         RtfFont? existing = _fonts.FirstOrDefault(font => string.Equals(font.Name, name, StringComparison.OrdinalIgnoreCase));
         if (existing != null) return existing.Id;
 
@@ -393,7 +393,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Adds an XML namespace declaration to the document namespace table.</summary>
     public RtfXmlNamespace AddXmlNamespace(int id, string uri) {
-        if (string.IsNullOrWhiteSpace(uri)) throw new ArgumentException("XML namespace URI cannot be empty.", nameof(uri));
+        ArgumentException.ThrowIfNullOrWhiteSpace(uri);
 
         RtfXmlNamespace? existing = _xmlNamespaces.FirstOrDefault(ns => ns.Id == id);
         if (existing != null) {
@@ -421,7 +421,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Saves the document to an RTF file.</summary>
     public void Save(string path, RtfSaveOptions? options = null, Encoding? encoding = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string fullPath = Path.GetFullPath(path);
         OfficeFileCommit.WriteAllBytes(fullPath, ToFileBytes(options, encoding));
         FilePath = fullPath;

@@ -305,7 +305,7 @@ public sealed class OdtParagraph {
 
     /// <summary>Appends a hyperlink without resolving or fetching its target.</summary>
     public OdtHyperlink AddHyperlink(string text, string href) {
-        if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
+        ArgumentException.ThrowIfNullOrWhiteSpace(href);
         EnsureMaterialized();
         var element = new XElement(OdfNamespaces.Text + "a",
             new XAttribute(OdfNamespaces.XLink + "type", "simple"),
@@ -435,7 +435,7 @@ public sealed class OdtParagraph {
     }
 
     private static void ValidateBookmarkName(string name) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Bookmark name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
     }
 
     private static OdtParagraphAlignment? ParseAlignment(string? value) {

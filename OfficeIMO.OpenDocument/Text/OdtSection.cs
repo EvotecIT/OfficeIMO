@@ -14,7 +14,7 @@ public sealed class OdtSection {
     public string Name {
         get => (string?)_element.Attribute(OdfNamespaces.Text + "name") ?? string.Empty;
         set {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Section name cannot be empty.", nameof(value));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             _element.SetAttributeValue(OdfNamespaces.Text + "name", value);
             Dirty();
         }

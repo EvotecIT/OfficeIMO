@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         /// <param name="templatePath">Existing workbook or template package.</param>
         /// <returns>A workbook that requires an explicit destination when saved.</returns>
         internal static ExcelDocument CreateFromTemplate(string templatePath) {
-            if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(templatePath);
             using var source = File.OpenRead(templatePath);
             return Load(source, new ExcelLoadOptions {
                 AccessMode = DocumentAccessMode.ReadWrite,

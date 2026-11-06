@@ -18,7 +18,7 @@ public sealed partial class PowerPointDocument {
     internal static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         return InspectContentSafety(OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective, inspectZipPackage: true), Path.GetFileName(filePath), effective);
     }
@@ -70,8 +70,8 @@ public sealed partial class PowerPointDocument {
         string outputPath,
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         OfficeContentCleanupResult result = RemoveSelectedContent(OfficeContentSafetyInputGuard.ReadAllBytes(inputPath, options.Inspection, inspectZipPackage: true), selection, Path.GetFileName(inputPath), options);

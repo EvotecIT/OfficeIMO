@@ -431,7 +431,7 @@ internal static partial class OfficeVbaSignatureService {
     }
 
     private static string NormalizePath(string filePath) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("An Office package path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         return Path.GetFullPath(filePath);
     }
 

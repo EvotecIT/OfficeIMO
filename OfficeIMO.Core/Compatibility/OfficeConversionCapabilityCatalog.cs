@@ -157,15 +157,15 @@ public sealed class OfficeConversionCapability {
         string knownLimitations,
         OfficeConversionTextFormattingKind textFormatting = OfficeConversionTextFormattingKind.Unspecified,
         string? textFormattingContract = null) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Route id cannot be empty.", nameof(id));
-        if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("Source label cannot be empty.", nameof(source));
-        if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("Target label cannot be empty.", nameof(target));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        ArgumentException.ThrowIfNullOrWhiteSpace(target);
         ArgumentNullException.ThrowIfNull(sourceExtensions);
-        if (string.IsNullOrWhiteSpace(targetExtension)) throw new ArgumentException("Target extension cannot be empty.", nameof(targetExtension));
-        if (string.IsNullOrWhiteSpace(packageId)) throw new ArgumentException("Package id cannot be empty.", nameof(packageId));
-        if (string.IsNullOrWhiteSpace(api)) throw new ArgumentException("API cannot be empty.", nameof(api));
-        if (string.IsNullOrWhiteSpace(description)) throw new ArgumentException("Description cannot be empty.", nameof(description));
-        if (string.IsNullOrWhiteSpace(resultContract)) throw new ArgumentException("Result contract cannot be empty.", nameof(resultContract));
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetExtension);
+        ArgumentException.ThrowIfNullOrWhiteSpace(packageId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(api);
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        ArgumentException.ThrowIfNullOrWhiteSpace(resultContract);
 
         string[] extensions = sourceExtensions
             .Select(NormalizeExtension)
@@ -239,7 +239,7 @@ public sealed class OfficeConversionCapability {
     public string TextFormattingContract { get; }
 
     private static string NormalizeExtension(string extension) {
-        if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("Extensions cannot be empty.", nameof(extension));
+        ArgumentException.ThrowIfNullOrWhiteSpace(extension);
         string value = extension.Trim();
         return (value.StartsWith(".", StringComparison.Ordinal) ? value : "." + value).ToLowerInvariant();
     }
@@ -690,7 +690,7 @@ public static partial class OfficeConversionCapabilityCatalog {
     }
 
     private static string NormalizeExtension(string extension) {
-        if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("Extension cannot be empty.", nameof(extension));
+        ArgumentException.ThrowIfNullOrWhiteSpace(extension);
         string value = extension.Trim();
         return (value.StartsWith(".", StringComparison.Ordinal) ? value : "." + value).ToLowerInvariant();
     }

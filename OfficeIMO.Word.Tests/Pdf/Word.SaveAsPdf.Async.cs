@@ -47,7 +47,7 @@ public partial class Word {
         using (var document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => document.SaveAsPdfAsync(path, cancellationToken: CancellationToken.None));
-            Assert.Contains("empty or whitespace", ex.Message);
+            Assert.Equal("path", ex.ParamName);
         }
     }
 

@@ -9,7 +9,7 @@ public sealed partial class OneNoteSection {
 
     /// <summary>Creates an empty section associated with a path without writing it.</summary>
     public static OneNoteSection Create(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A section path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return new OneNoteSection { FilePath = Path.GetFullPath(path) };
     }
 

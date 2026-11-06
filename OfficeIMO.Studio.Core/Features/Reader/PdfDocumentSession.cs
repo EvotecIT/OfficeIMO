@@ -139,9 +139,7 @@ internal sealed class PdfDocumentSession {
     }
 
     internal static async Task<PdfDocumentSession> OpenAsync(string path, CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(path)) {
-            throw new ArgumentException("A PDF path is required.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         string fullPath = System.IO.Path.GetFullPath(path);
         if (!File.Exists(fullPath)) {

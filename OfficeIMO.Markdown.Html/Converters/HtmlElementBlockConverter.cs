@@ -65,13 +65,9 @@ public sealed class MarkdownHtmlBlockConverter {
         string id,
         string name,
         Func<MarkdownHtmlBlockConversionContext, IReadOnlyList<IMarkdownBlock>?> convert) {
-        if (string.IsNullOrWhiteSpace(id)) {
-            throw new ArgumentException("Converter id is required.", nameof(id));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Converter name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Id = id.Trim();
         Name = name.Trim();

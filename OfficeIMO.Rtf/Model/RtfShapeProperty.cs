@@ -6,7 +6,7 @@ namespace OfficeIMO.Rtf;
 public sealed partial class RtfShapeProperty {
     /// <summary>Creates a named shape property.</summary>
     public RtfShapeProperty(string name, string? value = null) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Shape property name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name;
         Value = value ?? string.Empty;
     }

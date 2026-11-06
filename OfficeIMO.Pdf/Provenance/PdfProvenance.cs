@@ -63,7 +63,7 @@ public static partial class PdfProvenance {
         string filePath,
         OfficeProvenanceOptions? options = null,
         PdfLoadOptions? readOptions = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         options ??= new OfficeProvenanceOptions();
         byte[] pdf = ReadBounded(filePath, options.MaxAssetBytes, options.CancellationToken);
         return Inspect(pdf, options, readOptions);
@@ -204,8 +204,8 @@ public static partial class PdfProvenance {
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null,
         PdfLoadOptions? readOptions = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeProvenanceRemovalOptions();
         byte[] pdf = ReadBounded(inputPath, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);
         OfficeProvenanceRemovalResult result = Remove(pdf, options, readOptions);

@@ -6,8 +6,8 @@ public sealed class EpubContentEdit {
     private readonly XElement? _replacement;
     /// <summary>Creates an edit. XML is copied; a null replacement deletes the selected element.</summary>
     public EpubContentEdit(string manifestId, string elementId, XElement expected, XElement? replacement) {
-        if (string.IsNullOrWhiteSpace(manifestId)) throw new ArgumentException("A manifest identifier is required.", nameof(manifestId));
-        if (string.IsNullOrWhiteSpace(elementId)) throw new ArgumentException("An element identifier is required.", nameof(elementId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(manifestId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(elementId);
         ManifestId = manifestId; ElementId = elementId;
         _expected = new XElement(expected ?? throw new ArgumentNullException(nameof(expected)));
         _replacement = replacement == null ? null : new XElement(replacement);

@@ -27,7 +27,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// <param name="packagePath">Path to a Visio package.</param>
         /// <param name="options">Load options.</param>
         public static VisioStencilCatalog Load(string packagePath, VisioStencilPackageLoadOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(packagePath)) throw new ArgumentException("Package path cannot be null or whitespace.", nameof(packagePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(packagePath);
             if (!File.Exists(packagePath)) throw new FileNotFoundException("Visio package was not found.", packagePath);
 
             options ??= new VisioStencilPackageLoadOptions();
@@ -162,7 +162,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// <param name="packagePath">Path to a Visio package.</param>
         /// <param name="options">Load options used for master filtering and unsupported-master inclusion.</param>
         public static IReadOnlyList<VisioStencilPreviewImageData> ExtractPreviewImages(string packagePath, VisioStencilPackageLoadOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(packagePath)) throw new ArgumentException("Package path cannot be null or whitespace.", nameof(packagePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(packagePath);
             if (!File.Exists(packagePath)) throw new FileNotFoundException("Visio package was not found.", packagePath);
 
             options ??= new VisioStencilPackageLoadOptions();
@@ -209,7 +209,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// <param name="outputDirectory">Directory that receives extracted preview/icon files.</param>
         /// <param name="options">Load options used for master filtering and unsupported-master inclusion.</param>
         public static IReadOnlyList<string> ExtractPreviewImagesToDirectory(string packagePath, string outputDirectory, VisioStencilPackageLoadOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(outputDirectory)) throw new ArgumentException("Output directory cannot be null or whitespace.", nameof(outputDirectory));
+            ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
 
             return ExtractPreviewImages(packagePath, options)
                 .Select(image => image.SaveToDirectory(outputDirectory))
@@ -229,7 +229,7 @@ namespace OfficeIMO.Visio.Stencils {
             string outputDirectory,
             VisioStencilPackageLoadOptions? options = null,
             VisioStencilPreviewGalleryOptions? galleryOptions = null) {
-            if (string.IsNullOrWhiteSpace(outputDirectory)) throw new ArgumentException("Output directory cannot be null or whitespace.", nameof(outputDirectory));
+            ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
 
             galleryOptions ??= new VisioStencilPreviewGalleryOptions();
             VisioStencilPreviewGalleryWriter.ValidateOptions(galleryOptions);
@@ -243,7 +243,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// <param name="directoryPath">Directory containing Visio packages.</param>
         /// <param name="recursive">Whether to search subdirectories.</param>
         public static IReadOnlyList<string> EnumeratePackageFiles(string directoryPath, bool recursive = false) {
-            if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Directory path cannot be null or whitespace.", nameof(directoryPath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
             if (!Directory.Exists(directoryPath)) throw new DirectoryNotFoundException("Visio package directory was not found: " + directoryPath);
 
             SearchOption searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;

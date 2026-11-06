@@ -39,8 +39,8 @@ public sealed class OdfStyle {
 
     /// <summary>Adds a native ODF conditional style mapping.</summary>
     public OdfStyleMap AddConditionalMap(string condition, string applyStyleName, string? baseCellAddress = null) {
-        if (string.IsNullOrWhiteSpace(condition)) throw new ArgumentException("A condition is required.", nameof(condition));
-        if (string.IsNullOrWhiteSpace(applyStyleName)) throw new ArgumentException("An applied style name is required.", nameof(applyStyleName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(condition);
+        ArgumentException.ThrowIfNullOrWhiteSpace(applyStyleName);
         OdfStyleMap.ValidateBaseCellAddress(baseCellAddress);
         var element = new XElement(OdfNamespaces.Style + "map",
             new XAttribute(OdfNamespaces.Style + "condition", condition),

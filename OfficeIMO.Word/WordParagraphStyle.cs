@@ -104,7 +104,7 @@ namespace OfficeIMO.Word {
         /// ]]></code>
         /// </example>
         public static void RegisterCustomStyle(string styleId, WordParagraphStyleDefinition styleDefinition) {
-            if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(styleId);
             ArgumentNullException.ThrowIfNull(styleDefinition);
             if (!string.Equals(styleId, styleDefinition.StyleId, StringComparison.Ordinal)) {
                 throw new ArgumentException("The style ID must match the definition's StyleId.", nameof(styleId));
@@ -149,8 +149,8 @@ namespace OfficeIMO.Word {
         /// <param name="styleName">Optional friendly style name.</param>
         /// <returns>The created style.</returns>
         public static WordParagraphStyleDefinition CreateFontStyle(string styleId, string fontFamily, string? styleName = null) {
-            if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
-            if (string.IsNullOrWhiteSpace(fontFamily)) throw new ArgumentException("Font family cannot be empty", nameof(fontFamily));
+            ArgumentException.ThrowIfNullOrWhiteSpace(styleId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(fontFamily);
 
             return new WordParagraphStyleDefinition(styleId) {
                 Name = styleName ?? styleId,

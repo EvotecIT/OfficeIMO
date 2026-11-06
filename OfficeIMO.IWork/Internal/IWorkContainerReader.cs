@@ -31,7 +31,7 @@ internal static class IWorkContainerReader {
     internal static IWorkPackageData Read(string path, IWorkLoadOptions options,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A source path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (Directory.Exists(path)) return ReadDirectory(path, options, cancellationToken);
         using FileStream stream = OpenPackageFileForRead(path);
         return Read(stream, options, cancellationToken);
@@ -43,7 +43,7 @@ internal static class IWorkContainerReader {
         OpenPackageFileForRead(path, FileShare.ReadWrite | FileShare.Delete);
 
     private static FileStream OpenPackageFileForRead(string path, FileShare share) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A source path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (!File.Exists(path)) throw new FileNotFoundException("The iWork source was not found.", path);
 
         string fullPath = Path.GetFullPath(path);

@@ -56,9 +56,7 @@ internal static class ImageResamplingEvidence {
     }
 
     internal static void WritePreviews(string outputDirectory, TextWriter writer) {
-        if (string.IsNullOrWhiteSpace(outputDirectory)) {
-            throw new ArgumentException("A preview output directory is required.", nameof(outputDirectory));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
         string fullPath = Path.GetFullPath(outputDirectory);
         Directory.CreateDirectory(fullPath);
         foreach (string scenarioId in ImageBenchmarkScenarios.ResamplingIds) {

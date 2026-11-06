@@ -48,7 +48,7 @@ public sealed class OfficeProvenanceSignalResult {
         OfficeProvenanceSignalStatus status,
         IReadOnlyList<string>? findings,
         OfficeProvenanceSignalMeasurement? measurement) {
-        if (string.IsNullOrWhiteSpace(providerName)) throw new ArgumentException("A provider name is required.", nameof(providerName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerName);
         Measurement = measurement;
         ProviderName = providerName;
         SignalKind = signalKind;
@@ -165,7 +165,7 @@ public static class OfficeProvenanceAssessment {
         OfficeProvenanceAssessmentOptions? options = null,
         IOfficeProvenanceVerifier? verifier = null,
         IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         string fullPath = Path.GetFullPath(filePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to assess was not found.", fullPath);
         options ??= new OfficeProvenanceAssessmentOptions();
@@ -267,8 +267,8 @@ public static class OfficeProvenanceAssessment {
         Encoding? textEncoding = null,
         Action<Check, OfficeProvenanceCheckStatus>? checkStatus = null,
         Func<OfficeTextIntegrityReport>? inspectDocumentText = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
-        if (string.IsNullOrWhiteSpace(logicalFilePath)) throw new ArgumentException("A logical file path is required.", nameof(logicalFilePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(logicalFilePath);
         string fullPath = Path.GetFullPath(filePath);
         string logicalFullPath = Path.GetFullPath(logicalFilePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to assess was not found.", fullPath);

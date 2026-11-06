@@ -17,7 +17,7 @@ public sealed class OfficeDiagnostic {
     /// <summary>Creates a finding. Set lossKind explicitly for approximation, omission or unassessed content; warnings alone do not imply loss.</summary>
     public OfficeDiagnostic(string code, OfficeDiagnosticSeverity severity, string message, string? location = null,
         string? format = null, OfficeConversionLossKind lossKind = OfficeConversionLossKind.None) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("A diagnostic code is required.", nameof(code));
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
         if (!Enum.IsDefined(typeof(OfficeDiagnosticSeverity), severity)) throw new ArgumentOutOfRangeException(nameof(severity));
         if (!Enum.IsDefined(typeof(OfficeConversionLossKind), lossKind)) throw new ArgumentOutOfRangeException(nameof(lossKind));
         Code = code;

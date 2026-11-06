@@ -618,7 +618,7 @@ namespace OfficeIMO.Word {
             new WordMacroProjectSignatureFinding(code, state, message, profile);
 
         private static string NormalizePath(string filePath) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A Word package path is required.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             return Path.GetFullPath(filePath);
         }
 

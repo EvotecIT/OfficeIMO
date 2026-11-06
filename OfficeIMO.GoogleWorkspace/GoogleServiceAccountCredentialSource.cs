@@ -28,8 +28,8 @@ namespace OfficeIMO.GoogleWorkspace {
             string privateKeyPem,
             string? tokenEndpoint = null,
             GoogleWorkspaceSessionOptions? sessionOptions = null) {
-            if (string.IsNullOrWhiteSpace(clientEmail)) throw new ArgumentException("Client email is required.", nameof(clientEmail));
-            if (string.IsNullOrWhiteSpace(privateKeyPem)) throw new ArgumentException("Private key PEM is required.", nameof(privateKeyPem));
+            ArgumentException.ThrowIfNullOrWhiteSpace(clientEmail);
+            ArgumentException.ThrowIfNullOrWhiteSpace(privateKeyPem);
 
             ClientEmail = clientEmail;
             TokenEndpoint = string.IsNullOrWhiteSpace(tokenEndpoint) ? DefaultTokenEndpoint : tokenEndpoint!;
@@ -72,7 +72,7 @@ namespace OfficeIMO.GoogleWorkspace {
         public static GoogleServiceAccountCredentialSource FromJson(
             string serviceAccountJson,
             GoogleWorkspaceSessionOptions? sessionOptions = null) {
-            if (string.IsNullOrWhiteSpace(serviceAccountJson)) throw new ArgumentException("Service account JSON is required.", nameof(serviceAccountJson));
+            ArgumentException.ThrowIfNullOrWhiteSpace(serviceAccountJson);
 
             using JsonDocument document = JsonDocument.Parse(serviceAccountJson);
             JsonElement payload = document.RootElement;
@@ -97,7 +97,7 @@ namespace OfficeIMO.GoogleWorkspace {
         public static GoogleServiceAccountCredentialSource FromFile(
             string serviceAccountJsonPath,
             GoogleWorkspaceSessionOptions? sessionOptions = null) {
-            if (string.IsNullOrWhiteSpace(serviceAccountJsonPath)) throw new ArgumentException("Service account JSON path is required.", nameof(serviceAccountJsonPath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(serviceAccountJsonPath);
             return FromJson(File.ReadAllText(serviceAccountJsonPath), sessionOptions);
         }
 
@@ -249,7 +249,7 @@ namespace OfficeIMO.GoogleWorkspace {
 
     internal static class GoogleServiceAccountPemKeyLoader {
         internal static RSAParameters LoadRsaPrivateKey(string privateKeyPem) {
-            if (string.IsNullOrWhiteSpace(privateKeyPem)) throw new ArgumentException("Private key PEM is required.", nameof(privateKeyPem));
+            ArgumentException.ThrowIfNullOrWhiteSpace(privateKeyPem);
 
 #if NET8_0_OR_GREATER
             using RSA rsa = RSA.Create();

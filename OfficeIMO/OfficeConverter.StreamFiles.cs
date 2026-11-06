@@ -23,7 +23,7 @@ public static partial class OfficeConverter {
     /// <summary>Converts a caller-owned stream with bounded output, loss policy and atomic file publication. The source remains open and its seekable position is restored.</summary>
     public static async Task<OfficeConversionReport> ConvertAsync(Stream source, OfficeDocumentFormat sourceFormat, string destination,
         OfficeConversionOptions? options, CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(destination)) throw new ArgumentException("A destination file is required.", nameof(destination));
+        ArgumentException.ThrowIfNullOrWhiteSpace(destination);
         string outputPath = Path.GetFullPath(destination);
         if (source is FileStream file && IsSameFile(file, outputPath))
             throw new ArgumentException("The source and destination must be different files.", nameof(destination));
@@ -74,7 +74,7 @@ public static partial class OfficeConverter {
     /// <summary>Reads a bounded local file into a caller-owned output stream. This does not create a main output file; explicitly configured conversion sidecars retain their normal publication policy.</summary>
     public static async Task<OfficeConversionReport> ConvertAsync(string source, Stream destination, OfficeDocumentFormat target,
         OfficeConversionOptions? options, CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("A source file is required.", nameof(source));
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
         string inputPath = Path.GetFullPath(source);
         var settings = (options ?? new()).Snapshot();
         settings.SourceName = ConversionSourceName(inputPath, settings);

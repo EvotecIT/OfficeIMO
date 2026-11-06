@@ -25,9 +25,7 @@ namespace OfficeIMO.Core.Internal {
             int maxDirectoryEntries, CancellationToken cancellationToken,
             out bool contains, out string? error, bool preserveResourceLimits = false) {
             contains = false;
-            if (string.IsNullOrWhiteSpace(expectedPath)) {
-                throw new ArgumentException("A stream path is required.", nameof(expectedPath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(expectedPath);
 
             if (!TryInspectDirectory(stream, maxInputBytes, maxDirectoryEntries,
                 cancellationToken,

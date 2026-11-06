@@ -7,9 +7,7 @@ namespace OfficeIMO.Visio {
     public sealed class VisioSwimlaneLane {
         internal VisioSwimlaneLane(string id, VisioShape body, VisioShape? header,
             int order) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Lane id cannot be empty.", nameof(id));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
             Id = id;
             Body = body ?? throw new ArgumentNullException(nameof(body));

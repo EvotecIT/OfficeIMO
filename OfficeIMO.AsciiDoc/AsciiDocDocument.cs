@@ -80,7 +80,7 @@ public sealed partial class AsciiDocDocument {
 
     /// <summary>Loads a bounded AsciiDoc file and returns recovery diagnostics with cooperative cancellation.</summary>
     public static AsciiDocParseResult LoadResult(string path, AsciiDocParseOptions? options, Encoding? encoding, System.Threading.CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         cancellationToken.ThrowIfCancellationRequested();
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return LoadResult(stream, options, encoding, cancellationToken);

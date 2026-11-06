@@ -61,13 +61,13 @@ public sealed class OfficeOperationCapability {
         IEnumerable<string>? extensions = null,
         string? targetFormatId = null,
         string? limitation = null) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Operation id cannot be empty.", nameof(id));
-        if (string.IsNullOrWhiteSpace(packageId)) throw new ArgumentException("Package id cannot be empty.", nameof(packageId));
-        if (string.IsNullOrWhiteSpace(formatId)) throw new ArgumentException("Format id cannot be empty.", nameof(formatId));
-        if (string.IsNullOrWhiteSpace(capabilityId)) throw new ArgumentException("Capability id cannot be empty.", nameof(capabilityId));
-        if (string.IsNullOrWhiteSpace(publicApi)) throw new ArgumentException("Public API cannot be empty.", nameof(publicApi));
-        if (string.IsNullOrWhiteSpace(evidence)) throw new ArgumentException("Evidence cannot be empty.", nameof(evidence));
-        if (string.IsNullOrWhiteSpace(sourceCatalog)) throw new ArgumentException("Source catalog cannot be empty.", nameof(sourceCatalog));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(packageId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(capabilityId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(publicApi);
+        ArgumentException.ThrowIfNullOrWhiteSpace(evidence);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceCatalog);
 
         string[] normalizedExtensions = (extensions ?? Array.Empty<string>())
             .Select(NormalizeExtension)
@@ -115,7 +115,7 @@ public sealed class OfficeOperationCapability {
     public string Limitation { get; }
 
     private static string NormalizeExtension(string value) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Extensions cannot contain empty values.", nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         string normalized = value.Trim();
         return normalized[0] == '.' ? normalized.ToLowerInvariant() : "." + normalized.ToLowerInvariant();
     }
@@ -127,7 +127,7 @@ public sealed class OfficeOperationCatalog {
 
     /// <summary>Creates a versioned package-neutral operation catalog.</summary>
     public OfficeOperationCatalog(string id, int schemaVersion, IEnumerable<OfficeOperationCapability> capabilities) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Catalog id cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(schemaVersion);
         ArgumentNullException.ThrowIfNull(capabilities);
 
@@ -162,7 +162,7 @@ public sealed class OfficeOperationCatalog {
 
     /// <summary>Gets one row by exact stable identifier.</summary>
     public OfficeOperationCapability Get(string id) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Operation id cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         if (!_byId.TryGetValue(id.Trim(), out OfficeOperationCapability? row)) {
             throw new KeyNotFoundException($"Operation '{id}' is not present in catalog '{Id}'.");
         }
@@ -171,7 +171,7 @@ public sealed class OfficeOperationCatalog {
 
     /// <summary>Gets rows owned by one package.</summary>
     public IReadOnlyList<OfficeOperationCapability> FindByPackageId(string packageId) {
-        if (string.IsNullOrWhiteSpace(packageId)) throw new ArgumentException("Package id cannot be empty.", nameof(packageId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(packageId);
         return Capabilities.Where(row => string.Equals(row.PackageId, packageId.Trim(), StringComparison.Ordinal)).ToArray();
     }
 

@@ -16,8 +16,8 @@ public sealed class ConfluenceBasicCredentialSource : IConfluenceCredentialSourc
 
     /// <summary>Creates a Basic authentication source from an Atlassian account email and API token.</summary>
     public ConfluenceBasicCredentialSource(string email, string apiToken) {
-        if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Atlassian account email is required.", nameof(email));
-        if (string.IsNullOrWhiteSpace(apiToken)) throw new ArgumentException("Atlassian API token is required.", nameof(apiToken));
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+        ArgumentException.ThrowIfNullOrWhiteSpace(apiToken);
         _encodedCredential = Convert.ToBase64String(Encoding.UTF8.GetBytes(email + ":" + apiToken));
     }
 
@@ -35,7 +35,7 @@ public sealed class ConfluenceBearerCredentialSource : IConfluenceCredentialSour
 
     /// <summary>Creates a Bearer authentication source from the supplied access token.</summary>
     public ConfluenceBearerCredentialSource(string accessToken) {
-        if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
+        ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
         _accessToken = accessToken;
     }
 

@@ -141,7 +141,7 @@ public sealed partial class MhtmlDocument {
     /// <summary>Loads an MHTML archive from a file.</summary>
     public static MhtmlDocument Load(string path, EmailReaderOptions? mimeOptions = null,
         HtmlConversionDocumentOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         EmailReadResult result = new EmailDocumentReader(mimeOptions ?? EmailReaderOptions.Default)
             .ReadDocument(path, cancellationToken);
         return new MhtmlDocument(result, CreateFileBaseUri(path), htmlOptions);
@@ -158,7 +158,7 @@ public sealed partial class MhtmlDocument {
     /// <summary>Asynchronously loads an MHTML archive from a file.</summary>
     public static async Task<MhtmlDocument> LoadAsync(string path, EmailReaderOptions? mimeOptions = null,
         HtmlConversionDocumentOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         EmailReadResult result = await new EmailDocumentReader(mimeOptions ?? EmailReaderOptions.Default)
             .ReadDocumentAsync(path, cancellationToken).ConfigureAwait(false);
         return new MhtmlDocument(result, CreateFileBaseUri(path), htmlOptions);
@@ -288,7 +288,7 @@ public sealed partial class MhtmlDocument {
 
     /// <summary>Saves the archive to a file.</summary>
     public void Save(string path, EmailWriterOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         _mimeDocument.Save(path, EmailFileFormat.Eml, options);
     }
 

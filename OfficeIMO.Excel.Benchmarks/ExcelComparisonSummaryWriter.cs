@@ -16,9 +16,7 @@ internal static class ExcelComparisonSummaryWriter {
         IEnumerable<ExcelComparisonSummaryInput> artifacts,
         int warmupIterations,
         int measuredIterations) {
-        if (string.IsNullOrWhiteSpace(outputDirectory)) {
-            throw new ArgumentException("Output directory must not be empty.", nameof(outputDirectory));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
 
         var rows = new List<ComparisonSummaryRow>();
         foreach (var artifact in artifacts) {

@@ -92,7 +92,7 @@ public sealed class PdfUnderstandingTableCandidate {
         Guard.NotNull(columns, nameof(columns));
         Guard.NotNull(rows, nameof(rows));
         Guard.NotNull(sourceLines, nameof(sourceLines));
-        if (string.IsNullOrWhiteSpace(detectionKind)) throw new ArgumentException("Detection kind cannot be empty.", nameof(detectionKind));
+        ArgumentException.ThrowIfNullOrWhiteSpace(detectionKind);
         if (!IsFinite(yTop)) throw new ArgumentOutOfRangeException(nameof(yTop));
         if (!IsFinite(yBottom)) throw new ArgumentOutOfRangeException(nameof(yBottom));
         if (columns.Count < 2) throw new ArgumentException("A table candidate requires at least two columns.", nameof(columns));

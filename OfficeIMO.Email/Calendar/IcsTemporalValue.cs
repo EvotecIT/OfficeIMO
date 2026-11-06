@@ -55,7 +55,7 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
 
     /// <summary>Creates a TZID-local DATE-TIME value without resolving the identifier through the host OS.</summary>
     public static IcsTemporalValue Zoned(DateTime localValue, string timeZoneId) {
-        if (string.IsNullOrWhiteSpace(timeZoneId)) throw new ArgumentException("TZID cannot be empty.", nameof(timeZoneId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(timeZoneId);
         return new IcsTemporalValue(DateTime.SpecifyKind(localValue, DateTimeKind.Unspecified),
             IcsTemporalValueKind.ZonedDateTime, timeZoneId);
     }

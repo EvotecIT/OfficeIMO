@@ -222,10 +222,7 @@ public sealed partial class CsvDocument : IDisposable
         CsvSaveOptions? options,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(reader);
 
         options ??= new CsvSaveOptions();
@@ -290,10 +287,7 @@ public sealed partial class CsvDocument : IDisposable
     [RequiresUnreferencedCode("This compatibility overload discovers properties from runtime objects. For NativeAOT, write typed rows with explicit columns or add values directly.")]
     public static void SaveObjects(string path, IEnumerable<object?> items, CsvSaveOptions? options = null)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         ArgumentNullException.ThrowIfNull(items);
 
@@ -387,8 +381,7 @@ public sealed partial class CsvDocument : IDisposable
     /// <summary>Sets a complete single- or multi-character delimiter for subsequent saves.</summary>
     public CsvDocument WithDelimiter(string delimiter)
     {
-        if (string.IsNullOrEmpty(delimiter))
-            throw new ArgumentException("Delimiter cannot be empty.", nameof(delimiter));
+        ArgumentException.ThrowIfNullOrEmpty(delimiter);
         _delimiter = delimiter[0];
         _delimiterText = delimiter;
         return this;
@@ -481,10 +474,7 @@ public sealed partial class CsvDocument : IDisposable
     public CsvDocument AddColumn(string name, Func<CsvRow, object?> valueFactory)
     {
         EnsureInMemory();
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("Column name cannot be null or empty.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         ArgumentNullException.ThrowIfNull(valueFactory);
 

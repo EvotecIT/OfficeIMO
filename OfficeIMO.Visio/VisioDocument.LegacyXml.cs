@@ -12,7 +12,7 @@ public partial class VisioDocument {
     /// <summary>Imports a Visio 2002/2003 VDX drawing, VSX stencil, or VTX template into the editable model with a fidelity report.</summary>
     /// <remarks>This explicit conversion does not associate the XML source with ordinary Save, which writes Open XML packages.</remarks>
     public static OfficeConversionResult<VisioDocument, VisioXmlConversionReport> LoadLegacyXml(string path, VisioLoadOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string extension = Path.GetExtension(path);
         VisioPackageType family = extension.Equals(".vsx", StringComparison.OrdinalIgnoreCase) ? VisioPackageType.Stencil
             : extension.Equals(".vtx", StringComparison.OrdinalIgnoreCase) ? VisioPackageType.Template : VisioPackageType.Drawing;

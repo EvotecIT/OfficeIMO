@@ -18,9 +18,7 @@ namespace OfficeIMO.Visio {
             VisioPackageType packageType, bool includeVbaProject, string? vbaProjectContentType,
             Uri vbaProjectPartUri,
             IEnumerable<PreservedVbaPart> preservedVbaParts) {
-            if (string.IsNullOrWhiteSpace(filePath)) {
-                throw new ArgumentException("File path cannot be null or whitespace.", nameof(filePath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
             ArgumentNullException.ThrowIfNull(pagePartNames);
 

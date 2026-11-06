@@ -26,7 +26,7 @@ public sealed partial class EpubDocument {
         string path,
         EpubLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("EPUB path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(
             path,
             FileMode.Open,

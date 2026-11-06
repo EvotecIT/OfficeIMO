@@ -19,7 +19,7 @@ internal static partial class DocumentReaderEngine {
         long? lengthBytes,
         bool computeHashes) {
         ArgumentNullException.ThrowIfNull(result);
-        if (string.IsNullOrWhiteSpace(sourceId)) throw new ArgumentException("Source ID cannot be empty.", nameof(sourceId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceId);
 
         result.Source ??= new OfficeDocumentSource();
         result.Source.SourceId = sourceId;

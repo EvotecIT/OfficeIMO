@@ -12,7 +12,7 @@ public sealed partial class CsvDocument {
 
     /// <summary>Creates an empty document associated with a path without writing a file.</summary>
     public static CsvDocument Create(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return new CsvDocument { FilePath = Path.GetFullPath(path) };
     }
 

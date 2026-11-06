@@ -3,7 +3,7 @@ namespace OfficeIMO.Email.Store;
 /// <summary>Typed field that can participate in Store filters, sorting, and table projections.</summary>
 public abstract class EmailStoreField {
     internal EmailStoreField(string key, string displayName, Type valueType) {
-        if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException("A field key cannot be empty.", nameof(key));
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
         Key = key;
         DisplayName = string.IsNullOrWhiteSpace(displayName) ? key : displayName;
         ValueType = valueType ?? throw new ArgumentNullException(nameof(valueType));

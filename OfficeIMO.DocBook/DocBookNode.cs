@@ -80,7 +80,7 @@ public sealed class DocBookNode {
     }
     /// <summary>Adds an external link.</summary>
     public DocBookNode AddLink(string text, string href) {
-        if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("A nonblank link target is required.", nameof(href));
+        ArgumentException.ThrowIfNullOrWhiteSpace(href);
         DocBookNode inlineParent = this;
         if (!_document.CanContainInlineContent(Element)) {
             if (!_document.CanContainParagraphContent(Element)) {
@@ -108,9 +108,7 @@ public sealed class DocBookNode {
     public DocBookNode AddImage(string fileReference, string? caption = null) => AddImage(fileReference, caption, null);
     /// <summary>Adds an image media object with distinct caption and alternative text.</summary>
     public DocBookNode AddImage(string fileReference, string? caption, string? alternateText) {
-        if (string.IsNullOrWhiteSpace(fileReference)) {
-            throw new ArgumentException("A nonblank image reference is required.", nameof(fileReference));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileReference);
         DocBookNode media = Add(DocBookNodeKind.MediaObject);
         DocBookNode imageObject = media.Add(DocBookNodeKind.ImageObject);
         DocBookNode data = imageObject.Add(DocBookNodeKind.ImageData);

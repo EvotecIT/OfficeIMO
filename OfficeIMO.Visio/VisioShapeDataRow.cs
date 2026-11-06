@@ -16,9 +16,7 @@ namespace OfficeIMO.Visio {
         /// <param name="name">ShapeSheet row name.</param>
         /// <param name="value">Initial value.</param>
         public VisioShapeDataRow(string name, string? value = null) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Shape data name cannot be empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             Name = name;
             Value = value;

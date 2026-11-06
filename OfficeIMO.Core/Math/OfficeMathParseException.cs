@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeMathParseException : FormatException {
     /// <summary>Creates a parse exception with a stable code.</summary>
     public OfficeMathParseException(string code, string message) : base(message) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("A parse error code is required.", nameof(code));
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
         Code = code;
     }
 

@@ -88,9 +88,7 @@ namespace OfficeIMO.Word {
         /// <param name="saveOptions">Optional save policy settings.</param>
         internal void SaveEncrypted(string filePath, string password, WordSaveOptions? saveOptions = null) {
             ArgumentNullException.ThrowIfNull(password);
-            if (string.IsNullOrWhiteSpace(filePath)) {
-                throw new ArgumentException("File path cannot be empty.", nameof(filePath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             string target = filePath;
             EnsureDestinationFileWritable(target);
 
@@ -165,9 +163,7 @@ namespace OfficeIMO.Word {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
-            if (string.IsNullOrEmpty(filePath)) {
-                throw new ArgumentException("File path cannot be empty", nameof(filePath));
-            }
+            ArgumentException.ThrowIfNullOrEmpty(filePath);
 
             EnsureSignedDocumentSaveAllowed(options, "SaveCopy");
             PreSaving();
@@ -201,9 +197,7 @@ namespace OfficeIMO.Word {
             string filePath,
             WordSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(filePath)) {
-                throw new ArgumentException("File path cannot be empty", nameof(filePath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
@@ -329,9 +323,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void EnsureExplicitFilePath(string filePath) {
-            if (string.IsNullOrWhiteSpace(filePath)) {
-                throw new ArgumentException("File path cannot be empty.", nameof(filePath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         }
 
         /// <summary>

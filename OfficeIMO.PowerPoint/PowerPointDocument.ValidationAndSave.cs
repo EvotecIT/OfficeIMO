@@ -102,7 +102,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Saves to a file with an explicit conversion-loss policy.</summary>
         public void Save(string filePath, PowerPointSaveOptions? options) {
             ArgumentNullException.ThrowIfNull(filePath);
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             EnsureDestinationFileWritable(filePath);
             byte[] packageBytes = CreateUnifiedBytesForPath(filePath, options);
             OfficeFileCommit.WriteAllBytes(filePath, packageBytes);
@@ -119,7 +119,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Saves an independent copy with an explicit conversion-loss policy.</summary>
         public void SaveCopy(string filePath, PowerPointSaveOptions? options) {
             ArgumentNullException.ThrowIfNull(filePath);
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             EnsureDestinationFileWritable(filePath);
             OfficeFileCommit.WriteAllBytes(filePath, CreateUnifiedBytesForPath(filePath, options));
             _discardChangesOnDispose = false;
@@ -133,7 +133,7 @@ namespace OfficeIMO.PowerPoint {
         public async Task SaveCopyAsync(string filePath, PowerPointSaveOptions? options,
             CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(filePath);
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             EnsureDestinationFileWritable(filePath);
             cancellationToken.ThrowIfCancellationRequested();
             byte[] packageBytes = CreateUnifiedBytesForPath(filePath, options);
@@ -200,7 +200,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointSaveOptions? options,
             CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(filePath);
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             EnsureDestinationFileWritable(filePath);
             cancellationToken.ThrowIfCancellationRequested();
             byte[] packageBytes = CreateUnifiedBytesForPath(filePath, options);
@@ -397,7 +397,7 @@ namespace OfficeIMO.PowerPoint {
         public void ExportSlide(int slideIndex, string filePath) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(filePath);
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
             ValidateSlideIndex(slideIndex);
             using var stream = new MemoryStream();

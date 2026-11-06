@@ -129,7 +129,7 @@ public sealed class OdsDataPilotTable {
         Dictionary<string, int> headers = ReadSourceHeaderCounts();
         if (Fields.Any(field => !headers.TryGetValue(field.SourceFieldName, out int count) || count != 1))
             throw new InvalidOperationException("Fields cannot be edited while an existing source header binding is missing.");
-        if (string.IsNullOrWhiteSpace(sourceFieldName)) throw new ArgumentException("Source field name cannot be empty.", nameof(sourceFieldName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFieldName);
         if (orientation != "row" && orientation != "column" && orientation != "data" && orientation != "page") {
             throw new ArgumentException("Orientation must be row, column, data, or page.", nameof(orientation));
         }

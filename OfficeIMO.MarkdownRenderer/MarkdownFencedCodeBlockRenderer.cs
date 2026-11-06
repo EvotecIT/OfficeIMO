@@ -28,9 +28,7 @@ public sealed class MarkdownFencedCodeBlockRenderer {
     /// Creates a new fenced code block renderer.
     /// </summary>
     public MarkdownFencedCodeBlockRenderer(string name, IEnumerable<string> languages, MarkdownFencedCodeBlockHtmlRenderer renderHtml) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Renderer name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         ArgumentNullException.ThrowIfNull(languages);
 

@@ -64,7 +64,7 @@ public static class OfficeMath {
 
     /// <summary>Creates a large operator with content and optional limits.</summary>
     public static OfficeMathExpression Nary(string character, OfficeMathExpression content, OfficeMathExpression? lower = null, OfficeMathExpression? upper = null) {
-        if (string.IsNullOrEmpty(character)) throw new ArgumentException("An n-ary operator character is required.", nameof(character));
+        ArgumentException.ThrowIfNullOrEmpty(character);
         var children = new List<OfficeMathExpression> { content ?? throw new ArgumentNullException(nameof(content)) };
         if (lower != null) children.Add(lower);
         if (upper != null) children.Add(upper);
@@ -93,7 +93,7 @@ public static class OfficeMath {
 
     /// <summary>Creates a named function application.</summary>
     public static OfficeMathExpression Function(string name, OfficeMathExpression argument) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A function name is required.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return Create(OfficeMathKind.Function, text: name, children: Required(argument));
     }
 

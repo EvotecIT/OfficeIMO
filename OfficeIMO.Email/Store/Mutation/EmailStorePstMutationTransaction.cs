@@ -42,9 +42,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
     public static EmailStorePstMutationTransaction Open(string path,
         EmailStorePstMutationOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) {
-            throw new ArgumentException("An existing PST path is required.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string sourcePath = EmailStorePathIdentity.ResolvePhysicalPath(path);
         if (!File.Exists(sourcePath)) throw new FileNotFoundException("The PST does not exist.", sourcePath);
         var effective = options ?? new EmailStorePstMutationOptions();
@@ -157,7 +155,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
 
     /// <summary>Reads one source item by its stable source identifier.</summary>
     public EmailStoreItem ReadItem(string itemId, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(itemId)) throw new ArgumentException("An item identifier is required.", nameof(itemId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(itemId);
         ThrowIfUnavailable();
         ItemState item = GetItem(itemId, cancellationToken);
         if (item.Source == null) {
@@ -229,9 +227,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
     }
 
     private FolderState GetFolder(string folderId) {
-        if (string.IsNullOrWhiteSpace(folderId)) {
-            throw new ArgumentException("A folder identifier is required.", nameof(folderId));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(folderId);
         if (!_folders.TryGetValue(folderId, out FolderState? folder) || folder.Deleted) {
             throw new KeyNotFoundException("The folder does not exist in the active transaction.");
         }

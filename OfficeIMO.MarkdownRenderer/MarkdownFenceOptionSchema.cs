@@ -24,13 +24,9 @@ public sealed class MarkdownFenceOptionSchema {
         string name,
         IEnumerable<string> languages,
         IEnumerable<MarkdownFenceOptionDefinition> definitions) {
-        if (string.IsNullOrWhiteSpace(id)) {
-            throw new ArgumentException("Schema id is required.", nameof(id));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Schema name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         ArgumentNullException.ThrowIfNull(languages);
 

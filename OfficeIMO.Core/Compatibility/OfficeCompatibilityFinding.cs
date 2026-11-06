@@ -15,8 +15,8 @@ public sealed class OfficeCompatibilityFinding {
         bool representsLoss = false,
         string? sourceLocation = null,
         string? fallbackArtifact = null) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Finding code cannot be empty.", nameof(code));
-        if (string.IsNullOrWhiteSpace(category)) throw new ArgumentException("Finding category cannot be empty.", nameof(category));
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
+        ArgumentException.ThrowIfNullOrWhiteSpace(category);
 
         Code = code.Trim();
         Category = category.Trim();

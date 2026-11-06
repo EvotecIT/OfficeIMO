@@ -10,8 +10,8 @@ namespace OfficeIMO.Excel {
         /// <remarks>Storage preserves expressions outside the calculation subset. Calculation reports those expressions as unsupported.</remarks>
         public void SetNamedFormula(string name, string formula, ExcelSheet? scope = null, bool save = true,
             bool hidden = false, ExcelDefinedNameValidationMode validationMode = ExcelDefinedNameValidationMode.Sanitize) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A defined name is required.", nameof(name));
-            if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentException("A formula is required.", nameof(formula));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            ArgumentException.ThrowIfNullOrWhiteSpace(formula);
             string expression = Utilities.ExcelSanitizer.SanitizeFormula(formula, qualifyArrayFunctions: true);
             if (string.IsNullOrWhiteSpace(expression)) throw new ArgumentException("A formula is required.", nameof(formula));
             StoreDefinedName(NormalizeDefinedName(name, validationMode), expression, scope, save, hidden);

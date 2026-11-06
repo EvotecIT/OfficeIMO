@@ -601,7 +601,7 @@ namespace OfficeIMO.Excel {
 
         private static string? GetOpenXmlAttributeValue(OpenXmlElement element, string localName) {
             ArgumentNullException.ThrowIfNull(element);
-            if (string.IsNullOrWhiteSpace(localName)) throw new ArgumentException("Attribute name is required.", nameof(localName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(localName);
 
             var attribute = element.GetAttributes().FirstOrDefault(a => string.Equals(a.LocalName, localName, StringComparison.OrdinalIgnoreCase));
             return string.IsNullOrWhiteSpace(attribute.Value) ? null : attribute.Value;

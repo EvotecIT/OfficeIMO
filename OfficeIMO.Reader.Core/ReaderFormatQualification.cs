@@ -20,8 +20,8 @@ public sealed class ReaderFormatQualification {
     public ReaderFormatQualification(string extension, string formatId, ReaderFormatSupport support = ReaderFormatSupport.Unqualified,
         string? profile = null, IEnumerable<string>? preservation = null, IEnumerable<string>? limitations = null,
         IEnumerable<string>? evidence = null) {
-        if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("An extension is required.", nameof(extension));
-        if (string.IsNullOrWhiteSpace(formatId)) throw new ArgumentException("A format identifier is required.", nameof(formatId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(extension);
+        ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
         if (!Enum.IsDefined(typeof(ReaderFormatSupport), support)) throw new ArgumentOutOfRangeException(nameof(support));
         Extension = extension.Trim().ToLowerInvariant();
         if (!Extension.StartsWith(".", StringComparison.Ordinal)) Extension = "." + Extension;

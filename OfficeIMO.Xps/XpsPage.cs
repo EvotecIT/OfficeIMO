@@ -31,7 +31,7 @@ public sealed partial class XpsPage {
     internal void ApplyMarkup(XElement markup) { _markup.ReplaceAttributes(markup.Attributes()); _markup.ReplaceNodes(markup.Nodes()); _namedTargets = null; _visuals.Clear(); }
     /// <summary>Appends native path geometry; paint strings follow the XPS color syntax.</summary>
     public XpsVisual AddPath(string data, string? fill = "#FF000000", string? stroke = null, double strokeThickness = 1) {
-        if (string.IsNullOrWhiteSpace(data)) throw new ArgumentException("Path geometry is required.", nameof(data));
+        ArgumentException.ThrowIfNullOrWhiteSpace(data);
         if (strokeThickness < 0 || double.IsNaN(strokeThickness) || double.IsInfinity(strokeThickness)) throw new ArgumentOutOfRangeException(nameof(strokeThickness));
         var element = new XElement(_markup.Name.Namespace + "Path", new XAttribute("Data", data));
         if (fill != null) element.Add(new XAttribute("Fill", fill));

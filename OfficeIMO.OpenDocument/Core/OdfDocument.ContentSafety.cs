@@ -23,7 +23,7 @@ public abstract partial class OdfDocument {
         string filePath,
         OfficeContentSafetyOptions? options = null,
         OdfLoadOptions? loadOptions = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         return InspectContentSafety(OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective, inspectZipPackage: true), effective, loadOptions);
     }
@@ -74,8 +74,8 @@ public abstract partial class OdfDocument {
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
         OdfLoadOptions? loadOptions = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         OfficeContentCleanupResult result = RemoveSelectedContent(OfficeContentSafetyInputGuard.ReadAllBytes(inputPath, options.Inspection, inspectZipPackage: true), selection, options, loadOptions);

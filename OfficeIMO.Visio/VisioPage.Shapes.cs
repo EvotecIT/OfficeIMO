@@ -310,9 +310,7 @@ namespace OfficeIMO.Visio {
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created text box shape.</returns>
         internal VisioShape AddTextBoxInches(string id, double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
             VisioShape shape = AddTextBoxCore(id, x, y, width, height, text, unit);
             Shapes.Add(shape);

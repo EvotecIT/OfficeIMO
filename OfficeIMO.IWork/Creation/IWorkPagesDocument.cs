@@ -157,7 +157,7 @@ public sealed partial class IWorkPagesDocument {
     public void Save(string path, bool overwrite = false, IWorkPagesSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(path);
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         byte[] bytes = ToBytes(options, cancellationToken);
         OfficeFileCommit.WriteAtomically(path, stream => IWorkNativePackageWriter.Copy(bytes, stream, cancellationToken),
             cancellationToken, overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);

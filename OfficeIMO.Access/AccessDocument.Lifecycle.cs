@@ -89,7 +89,7 @@ namespace OfficeIMO.Access {
         private AccessFileFormat ResolveTarget(string? path, AccessSaveOptions options) {
             options.Validate();
             if (path == null) return options.Format ?? Format;
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An Access destination path is required.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             string extension = Path.GetExtension(path);
             AccessFileFormat target = extension.ToLowerInvariant() switch {
                 ".mdb" => AccessFileFormat.Mdb, ".accdb" => AccessFileFormat.Accdb,

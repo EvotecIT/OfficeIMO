@@ -37,9 +37,7 @@ public sealed class PdfExternalSignatureOptions : IPdfOperationCancellation {
     public string FieldName {
         get => _fieldName;
         set {
-            if (string.IsNullOrWhiteSpace(value)) {
-                throw new ArgumentException("Signature field name cannot be empty.", nameof(value));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
 
             _fieldName = value;
         }

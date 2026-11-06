@@ -70,7 +70,7 @@ public sealed class OfficeProvenanceEvidence {
         long payloadLength = 0,
         string? value = null,
         OfficeProvenanceDigitalSourceKind digitalSourceKind = OfficeProvenanceDigitalSourceKind.Unknown) {
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A carrier location is required.", nameof(location));
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
         ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
         Carrier = carrier;
         Location = location;

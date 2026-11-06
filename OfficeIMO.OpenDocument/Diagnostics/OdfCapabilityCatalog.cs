@@ -57,7 +57,7 @@ public static class OdfCapabilityCatalog {
 
     /// <summary>Finds one capability by stable identifier.</summary>
     public static OdfCapability? Find(string id) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Capability identifier cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         return Capabilities.FirstOrDefault(capability => string.Equals(capability.Id, id, StringComparison.Ordinal));
     }
 }

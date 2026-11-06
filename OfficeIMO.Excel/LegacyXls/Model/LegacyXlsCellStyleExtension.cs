@@ -122,9 +122,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int recordOffset,
             ushort recordType,
             int payloadLength) {
-            if (string.IsNullOrWhiteSpace(recordName)) {
-                throw new ArgumentException("The style extension record name cannot be empty.", nameof(recordName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(recordName);
 
             ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 

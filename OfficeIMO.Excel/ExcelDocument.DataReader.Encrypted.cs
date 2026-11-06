@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         internal static ExcelWorkbookDataReader OpenEncryptedDataReader(
             string path, string password, ExcelReaderOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             ArgumentNullException.ThrowIfNull(password);
             ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();

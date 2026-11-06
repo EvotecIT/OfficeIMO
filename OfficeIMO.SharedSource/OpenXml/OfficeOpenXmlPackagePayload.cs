@@ -60,7 +60,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static OfficeOpenXmlPayloadHandle FindEmbeddedPayload(OpenXmlPackage package, string id) {
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Payload id cannot be empty.", nameof(id));
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
             return FindEmbeddedPayloads(package)
                 .FirstOrDefault(handle => string.Equals(handle.Id, id, StringComparison.Ordinal))
                 ?? throw new KeyNotFoundException($"Embedded package payload '{id}' was not found.");
@@ -91,7 +91,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static void SaveBytes(OpenXmlPart part, string filePath, long? maxBytes = null) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("Destination path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             OfficeFileCommit.WriteAllBytes(filePath, ReadBytes(part, maxBytes));
         }
 

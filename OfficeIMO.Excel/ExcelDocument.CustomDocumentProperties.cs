@@ -7,9 +7,7 @@ namespace OfficeIMO.Excel {
         /// Sets or replaces a custom workbook property.
         /// </summary>
         public void SetCustomDocumentProperty(string name, ExcelCustomProperty property) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Custom property name is required.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             ArgumentNullException.ThrowIfNull(property);
 

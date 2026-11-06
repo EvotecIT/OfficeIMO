@@ -27,9 +27,7 @@ namespace OfficeIMO.Tests {
         }
 
         internal static VisioDesktopValidationResult Validate(string vsdxPath, VisioDesktopValidationOptions? options) {
-            if (string.IsNullOrWhiteSpace(vsdxPath)) {
-                throw new ArgumentException("VSDX path cannot be null or whitespace.", nameof(vsdxPath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(vsdxPath);
 
             string fullPath = Path.GetFullPath(vsdxPath);
             if (!File.Exists(fullPath)) {

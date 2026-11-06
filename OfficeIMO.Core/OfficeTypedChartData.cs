@@ -42,7 +42,7 @@ internal static class OfficeTypedChartData {
     }
 
     private static PropertyInfo Property([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type type, string name) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Supply a readable property name.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var property = type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
         if (property?.GetMethod == null || property.GetIndexParameters().Length != 0)
             throw new ArgumentException($"'{name}' is not a readable scalar property of {type.Name}.", nameof(name));

@@ -29,7 +29,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
     /// access open for the duration of each call that reads or writes the file.
     /// </summary>
     internal static async Task<StudioNativeDocument> OpenAsync(string path, string? password, CancellationToken cancellationToken, string? recoveryIdentity = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A document path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         PdfWorkspace workspace = await PdfWorkspace.OpenAsync(path, cancellationToken, StudioNativeEngine.CreateRecoveryStore(), password,
             recoveryIdentity: recoveryIdentity).ConfigureAwait(false);
         return new StudioNativeDocument(workspace);
@@ -118,7 +118,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
 
     /// <summary>Writes pages to a new PDF at <paramref name="path"/>; the open document is unchanged.</summary>
     internal Task ExtractPagesAsync(IReadOnlyList<int> pageNumbers, string path, CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         // The local path keeps the workflow runner, and the conversions it roots, out of the NativeAOT library.
         return RunAsync(() => _workspace.ExtractToLocalFileAsync(RequirePages(pageNumbers, preserveDuplicates: true), path, cancellationToken), cancellationToken);
     }

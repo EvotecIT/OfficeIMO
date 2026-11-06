@@ -32,7 +32,7 @@ public enum SecurityFindingSeverity {
 public sealed class SecurityFinding {
     /// <summary>Creates a finding.</summary>
     public SecurityFinding(SecurityFindingSeverity severity, string code, string message, int? signerIndex = null) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Finding code cannot be empty.", nameof(code));
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
         Severity = severity;
         Code = code;
         Message = message ?? string.Empty;

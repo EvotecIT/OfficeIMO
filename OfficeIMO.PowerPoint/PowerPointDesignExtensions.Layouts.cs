@@ -252,7 +252,7 @@ namespace OfficeIMO.PowerPoint {
             string title, string? subtitle, PowerPointExecutiveSummaryContent content,
             PowerPointDesignTheme? theme = null, PowerPointExecutiveSummarySlideOptions? options = null) {
             ArgumentNullException.ThrowIfNull(presentation);
-            if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
+            ArgumentException.ThrowIfNullOrWhiteSpace(title);
             ArgumentNullException.ThrowIfNull(content);
             PowerPointExecutiveSummarySlideOptions resolved = options ?? new PowerPointExecutiveSummarySlideOptions();
             PowerPointLayoutSlide slide;
@@ -284,7 +284,7 @@ namespace OfficeIMO.PowerPoint {
             string title, string? subtitle, PowerPointChartStoryContent content,
             PowerPointDesignTheme? theme = null, PowerPointChartStorySlideOptions? options = null) {
             ArgumentNullException.ThrowIfNull(presentation);
-            if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
+            ArgumentException.ThrowIfNullOrWhiteSpace(title);
             ArgumentNullException.ThrowIfNull(content);
             PowerPointChartStorySlideOptions resolved = options ?? new PowerPointChartStorySlideOptions();
             var chart = new PowerPointLayoutChart(content.ChartKind, content.SharedData) {
@@ -365,7 +365,7 @@ namespace OfficeIMO.PowerPoint {
             string title, string? subtitle, PowerPointImageAsset image, IEnumerable<string>? narrative = null,
             PowerPointDesignTheme? theme = null, PowerPointScreenshotStorySlideOptions? options = null) {
             ArgumentNullException.ThrowIfNull(presentation);
-            if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
+            ArgumentException.ThrowIfNullOrWhiteSpace(title);
             ArgumentNullException.ThrowIfNull(image);
             image.Validate();
             PowerPointScreenshotStorySlideOptions resolved = options ?? new PowerPointScreenshotStorySlideOptions();
@@ -394,7 +394,7 @@ namespace OfficeIMO.PowerPoint {
             string title, string? subtitle, PowerPointArchitectureContent content,
             PowerPointDesignTheme? theme = null, PowerPointArchitectureSlideOptions? options = null) {
             ArgumentNullException.ThrowIfNull(presentation);
-            if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
+            ArgumentException.ThrowIfNullOrWhiteSpace(title);
             ArgumentNullException.ThrowIfNull(content);
             PowerPointArchitectureSlideOptions resolved = options ?? new PowerPointArchitectureSlideOptions();
             PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.TitleAndContent);
@@ -406,7 +406,7 @@ namespace OfficeIMO.PowerPoint {
             string title, PowerPointClosingContent content, PowerPointDesignTheme? theme = null,
             PowerPointClosingSlideOptions? options = null) {
             ArgumentNullException.ThrowIfNull(presentation);
-            if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
+            ArgumentException.ThrowIfNullOrWhiteSpace(title);
             ArgumentNullException.ThrowIfNull(content);
             PowerPointClosingSlideOptions resolved = options ?? new PowerPointClosingSlideOptions();
             PowerPointLayoutSlide slide = Content(presentation, title, Join(content.Statement, content.Contact, "\n"), resolved, PowerPointLayout.Closing);

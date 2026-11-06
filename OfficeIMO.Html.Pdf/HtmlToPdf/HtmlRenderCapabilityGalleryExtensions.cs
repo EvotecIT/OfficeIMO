@@ -29,7 +29,7 @@ public static class HtmlRenderCapabilityGalleryExtensions {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(document);
-        if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Gallery output path cannot be empty.", nameof(directoryPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentNullException.ThrowIfNull(options);
         if (options.RenderOptions == null) throw new ArgumentException("Gallery render options cannot be null.", nameof(options));
         if (options.PdfProofOptions == null) throw new ArgumentException("Gallery PDF proof options cannot be null.", nameof(options));

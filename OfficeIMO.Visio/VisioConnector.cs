@@ -255,9 +255,7 @@ namespace OfficeIMO.Visio {
         /// <param name="subAddress">Optional internal sub-address.</param>
         /// <returns>The created hyperlink row.</returns>
         public VisioHyperlink AddHyperlink(string address, string? description = null, string? subAddress = null) {
-            if (string.IsNullOrWhiteSpace(address)) {
-                throw new ArgumentException("Hyperlink address cannot be empty.", nameof(address));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(address);
 
             VisioHyperlink hyperlink = new(address, description, subAddress);
             Hyperlinks.Add(hyperlink);
@@ -284,9 +282,7 @@ namespace OfficeIMO.Visio {
         /// <param name="description">Optional display description.</param>
         /// <returns>The created hyperlink row.</returns>
         public VisioHyperlink AddPageHyperlink(string pageName, string? description = null) {
-            if (string.IsNullOrWhiteSpace(pageName)) {
-                throw new ArgumentException("Target page name cannot be empty.", nameof(pageName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(pageName);
 
             VisioHyperlink hyperlink = new(null, description, pageName);
             Hyperlinks.Add(hyperlink);
@@ -298,9 +294,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="name">Shape Data row name.</param>
         public VisioShapeDataRow? FindShapeData(string name) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Shape data name cannot be empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             foreach (VisioShapeDataRow row in ShapeData) {
                 if (string.Equals(row.Name, name, StringComparison.OrdinalIgnoreCase)) {

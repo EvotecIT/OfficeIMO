@@ -100,7 +100,7 @@ namespace OfficeIMO.Word {
             string templatePath,
             IEnumerable<IDictionary<string, string>> records,
             Func<int, IDictionary<string, string>, string> outputPathFactory) {
-            if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(templatePath);
             if (!File.Exists(templatePath)) throw new FileNotFoundException("Template document was not found.", templatePath);
             ArgumentNullException.ThrowIfNull(records);
             ArgumentNullException.ThrowIfNull(outputPathFactory);

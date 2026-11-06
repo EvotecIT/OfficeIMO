@@ -46,7 +46,7 @@ public sealed partial class CsvDocument
         CsvWriteParallelOptions? parallelOptions = null,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(reader);
         options ??= new CsvSaveOptions();
         cancellationToken.ThrowIfCancellationRequested();

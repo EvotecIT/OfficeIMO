@@ -14,7 +14,7 @@ public static class ArchiveInspector {
     /// <exception cref="NotSupportedException">The input uses an unsupported container or metadata profile.</exception>
     public static ArchiveInspection Open(string packagePath, ArchiveInspectionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(packagePath)) throw new ArgumentException("A package path is required.", nameof(packagePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(packagePath);
         using var source = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         return Open(source, options, cancellationToken);
     }

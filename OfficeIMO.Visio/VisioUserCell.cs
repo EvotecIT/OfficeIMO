@@ -17,9 +17,7 @@ namespace OfficeIMO.Visio {
         /// <param name="name">Row name.</param>
         /// <param name="value">Value cell contents.</param>
         public VisioUserCell(string name, string? value = null) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("User cell name cannot be empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             Name = name;
             Value = value;

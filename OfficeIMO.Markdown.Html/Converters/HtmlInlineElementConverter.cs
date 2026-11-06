@@ -67,13 +67,9 @@ public sealed class MarkdownHtmlInlineConverter {
         string id,
         string name,
         Func<MarkdownHtmlInlineConversionContext, IReadOnlyList<IMarkdownInline>?> converter) {
-        if (string.IsNullOrWhiteSpace(id)) {
-            throw new ArgumentException("Converter id is required.", nameof(id));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Converter name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         _converter = converter ?? throw new ArgumentNullException(nameof(converter));
         Id = id.Trim();

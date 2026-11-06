@@ -171,7 +171,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Writes the JSON report to disk, creating the destination directory when needed.</summary>
         public void SaveJson(string path, bool indented = true) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be empty.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             string fullPath = Path.GetFullPath(path);
             string? directory = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory!);

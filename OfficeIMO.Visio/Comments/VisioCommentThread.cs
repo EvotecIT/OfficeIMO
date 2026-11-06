@@ -8,8 +8,8 @@ namespace OfficeIMO.Visio {
         /// <summary>Creates a comment author.</summary>
         public VisioCommentAuthor(string name, string initials,
             string? resolutionId = null) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Author name cannot be empty.", nameof(name));
-            if (string.IsNullOrWhiteSpace(initials)) throw new ArgumentException("Author initials cannot be empty.", nameof(initials));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            ArgumentException.ThrowIfNullOrWhiteSpace(initials);
             Name = name;
             Initials = initials;
             ResolutionId = resolutionId;

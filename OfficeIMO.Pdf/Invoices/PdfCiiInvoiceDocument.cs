@@ -35,7 +35,7 @@ public sealed partial class PdfCiiInvoiceDocument {
     public byte[] ToBytes() => _source.ToBytes();
     /// <summary>Replaces one existing, unambiguous plaintext invoice identifier. Other fields and visible PDF content are retained. Signed, structured or missing fields are rejected.</summary>
     public PdfCiiInvoiceDocument WithDocumentId(string documentId) {
-        if (string.IsNullOrWhiteSpace(documentId)) throw new ArgumentException("An invoice identifier is required.", nameof(documentId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(documentId);
         if (documentId.Length > MaximumXmlBytes) throw new ArgumentException("The invoice identifier exceeds the XML size limit.", nameof(documentId));
         XmlConvert.VerifyXmlChars(documentId);
         return Apply(InvoiceSourceField.DocumentId, documentId);

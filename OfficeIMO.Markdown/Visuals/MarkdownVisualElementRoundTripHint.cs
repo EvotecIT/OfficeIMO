@@ -97,13 +97,9 @@ public sealed class MarkdownVisualElementRoundTripHint {
         string id,
         string name,
         Func<MarkdownVisualElementRoundTripContext, SemanticFencedBlock?> transform) {
-        if (string.IsNullOrWhiteSpace(id)) {
-            throw new ArgumentException("Hint id is required.", nameof(id));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Hint name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Id = id.Trim();
         Name = name.Trim();

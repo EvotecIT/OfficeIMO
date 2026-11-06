@@ -12,10 +12,7 @@ public sealed partial class CsvDocument
     /// </summary>
     public void Save(string path, CsvSaveOptions? options = null)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         options = ResolveSaveOptions(options);
 
@@ -83,7 +80,7 @@ public sealed partial class CsvDocument
     /// <summary>Asynchronously saves the document to a path.</summary>
     public async Task SaveAsync(string path, CsvSaveOptions? options = null, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         options = ResolveSaveOptions(options);
         cancellationToken.ThrowIfCancellationRequested();
         string fullPath = Path.GetFullPath(path);

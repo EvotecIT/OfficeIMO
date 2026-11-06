@@ -28,7 +28,7 @@ public static partial class HtmlContentSafety {
 
     /// <summary>Inspects a UTF-8 HTML file.</summary>
     public static OfficeContentSafetyReport InspectFile(string filePath, OfficeContentSafetyOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         return Inspect(OfficeContentSafetyInputGuard.ReadUtf8Text(filePath, effective), effective);
     }
@@ -66,8 +66,8 @@ public static partial class HtmlContentSafety {
         string outputPath,
         OfficeContentCleanupSelection selection,
         OfficeContentSafetyOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         byte[] input = OfficeContentSafetyInputGuard.ReadAllBytes(inputPath, effective);
         string html = OfficeContentSafetyInputGuard.DecodeText(input, effective);

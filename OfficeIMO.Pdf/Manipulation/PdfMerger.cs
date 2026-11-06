@@ -469,9 +469,7 @@ internal static partial class PdfMerger {
 
     private static string ValidateOutputPath(string outputPath) {
         Guard.NotNull(outputPath, nameof(outputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) {
-            throw new ArgumentException("Output path cannot be empty or whitespace.", nameof(outputPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
 
         string fullPath;
         try {

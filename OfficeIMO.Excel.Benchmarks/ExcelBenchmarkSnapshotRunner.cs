@@ -13,9 +13,7 @@ internal static class ExcelBenchmarkSnapshotRunner {
     private const int MeasuredIterations = 5;
 
     internal static string WriteSnapshot(string outputPath, int rowCount = DefaultRowCount, string? websiteBenchmarkDataPath = null) {
-        if (string.IsNullOrWhiteSpace(outputPath)) {
-            throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(rowCount);

@@ -430,9 +430,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets display units for the scatter chart X-axis with custom label text.
         /// </summary>
         public PowerPointChart SetScatterXAxisDisplayUnits(OfficeChartDisplayUnit unit, string labelText, bool showLabel = true) {
-            if (string.IsNullOrWhiteSpace(labelText)) {
-                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
             if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
                 return this;
             }
@@ -469,9 +467,7 @@ namespace OfficeIMO.PowerPoint {
             if (!IsFinite(customUnit) || customUnit <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(customUnit));
             }
-            if (string.IsNullOrWhiteSpace(labelText)) {
-                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
             if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
                 return this;
             }
@@ -513,9 +509,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets display units for the scatter chart Y-axis with custom label text.
         /// </summary>
         public PowerPointChart SetScatterYAxisDisplayUnits(OfficeChartDisplayUnit unit, string labelText, bool showLabel = true) {
-            if (string.IsNullOrWhiteSpace(labelText)) {
-                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
             if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
                 return this;
             }
@@ -552,9 +546,7 @@ namespace OfficeIMO.PowerPoint {
             if (!IsFinite(customUnit) || customUnit <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(customUnit));
             }
-            if (string.IsNullOrWhiteSpace(labelText)) {
-                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
             if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
                 return this;
             }
@@ -592,9 +584,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets display units for the value axis with custom label text.
         /// </summary>
         public PowerPointChart SetValueAxisDisplayUnits(OfficeChartDisplayUnit unit, string labelText, bool showLabel = true) {
-            if (string.IsNullOrWhiteSpace(labelText)) {
-                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
 
             return SetValueAxisDisplayUnitsCore(displayUnits => {
                 displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
@@ -625,9 +615,7 @@ namespace OfficeIMO.PowerPoint {
             if (!IsFinite(customUnit) || customUnit <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(customUnit));
             }
-            if (string.IsNullOrWhiteSpace(labelText)) {
-                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
 
             return SetValueAxisDisplayUnitsCore(displayUnits => {
                 displayUnits.RemoveAllChildren<C.BuiltInUnit>();

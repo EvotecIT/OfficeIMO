@@ -21,7 +21,7 @@ public static partial class OfficeDocument {
     /// <summary>Returns bounded content, native inspection metadata and explicit coverage findings without modifying the source.</summary>
     public static OfficeDocumentInfo Inspect(string path, OfficeInspectOptions? options,
         CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A document path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         OfficeInspectOptions settings = options ?? new();
         if (settings.Formats == null || ((settings.IncludeContent || settings.IncludeSummary) && settings.Reader == null)) throw new ArgumentException("Reader and format settings are required.", nameof(options));
         string source = Path.GetFullPath(path);

@@ -21,7 +21,7 @@ internal static class OfficeContentSafetyInputGuard {
         OfficeContentSafetyOptions options,
         bool inspectZipPackage,
         CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
         options.Validate();

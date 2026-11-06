@@ -11,7 +11,7 @@ public abstract partial class OdfDocument {
     private const string ProvenanceManifestPath = "META-INF/content_credential.c2pa";
     /// <summary>Inspects C2PA and IPTC provenance in an ODF package and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         options ??= new OfficeProvenanceOptions();
         string fullPath = Path.GetFullPath(filePath);
         byte[] data;
@@ -25,8 +25,8 @@ public abstract partial class OdfDocument {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeProvenanceRemovalOptions();
         byte[] data;
         using (Stream stream = File.OpenRead(Path.GetFullPath(inputPath))) data = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);

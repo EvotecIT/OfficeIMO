@@ -105,7 +105,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
     internal string AddFolder(string name, string? parentFolderId, string? containerClass,
         EmailStoreSpecialFolderKind specialFolderKind) {
         ThrowIfUnavailable();
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A folder name is required.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (_userFolderCount >= _options.MaxFolderCount) {
             throw new InvalidOperationException("The configured PST folder limit has been reached.");
         }
@@ -130,9 +130,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
 
     internal void ConfigureFolderMetadata(string folderId, string name, string? containerClass) {
         ThrowIfUnavailable();
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("A folder name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         FolderState folder = _folders[ParseFolderId(folderId)];
         folder.Name = name;
         folder.ContainerClass = containerClass;

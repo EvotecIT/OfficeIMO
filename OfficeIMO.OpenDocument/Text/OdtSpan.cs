@@ -88,7 +88,7 @@ public sealed class OdtSpan {
 
     /// <summary>Appends a hyperlink inside this span without fetching its target.</summary>
     public OdtHyperlink AddHyperlink(string text, string href) {
-        if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
+        ArgumentException.ThrowIfNullOrWhiteSpace(href);
         var element = new XElement(OdfNamespaces.Text + "a",
             new XAttribute(OdfNamespaces.XLink + "type", "simple"),
             new XAttribute(OdfNamespaces.XLink + "href", href));

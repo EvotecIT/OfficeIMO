@@ -56,9 +56,7 @@ namespace OfficeIMO.PowerPoint {
         public bool TryApplyStyleByName(string styleName, bool ignoreCase = true,
             bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null,
             bool? bandedRows = null, bool? bandedColumns = null) {
-            if (string.IsNullOrWhiteSpace(styleName)) {
-                throw new ArgumentException("Style name cannot be null or empty.", nameof(styleName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(styleName);
 
             string? styleId = ResolveStyleId(styleName, ignoreCase);
             if (string.IsNullOrWhiteSpace(styleId)) {

@@ -40,7 +40,7 @@ public sealed partial class HtmlDocument : HtmlNode {
     /// <summary>Creates a detached element in this mutable document.</summary>
     public HtmlElement CreateElement(string localName, string namespaceUri = HtmlElement.HtmlNamespace, string? prefix = null) {
         EnsureMutable();
-        if (string.IsNullOrWhiteSpace(localName)) throw new ArgumentException("An element name is required.", nameof(localName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(localName);
         ArgumentNullException.ThrowIfNull(namespaceUri);
         if (namespaceUri == HtmlElement.HtmlNamespace) localName = HtmlNames.LowerAscii(localName);
         return Register(new HtmlElement(this, NextId(), localName, namespaceUri, prefix));

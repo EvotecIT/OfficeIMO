@@ -439,7 +439,7 @@ namespace OfficeIMO.Word {
                     vbaLength, vbaHash, Array.Empty<WordMacroProjectSignaturePartInfo>(), findings);
 
         private static string NormalizePath(string filePath) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A Word package path is required.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             return Path.GetFullPath(filePath);
         }
 

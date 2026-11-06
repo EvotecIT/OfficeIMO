@@ -82,9 +82,7 @@ public sealed class MarkdownInlineTransformExtension {
         string name,
         MarkdownInlineTransform transform,
         Func<MarkdownLoadOptions, bool>? isEnabled = null) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Extension name cannot be null or whitespace.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name.Trim();
         Transform = transform ?? throw new ArgumentNullException(nameof(transform));

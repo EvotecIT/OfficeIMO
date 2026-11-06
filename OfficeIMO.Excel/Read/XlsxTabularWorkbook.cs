@@ -185,9 +185,7 @@ namespace OfficeIMO.Excel {
             string path,
             ExcelReaderOptions options,
             bool metadataOnly) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("File path cannot be empty.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             ArgumentNullException.ThrowIfNull(options);
 
             SharedReadOnlyFileSnapshot? snapshot = null;

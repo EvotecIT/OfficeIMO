@@ -56,7 +56,7 @@ public sealed partial class ProjectDocument {
 
     /// <summary>Loads bounded XML or a qualified MPP14 document without calculating its schedule.</summary>
     public static ProjectDocument Load(string path, ProjectLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An input path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         RejectGlobalTemplate(path);
         options ??= new ProjectLoadOptions(); options.ValidateLimits();
         using var stream = File.OpenRead(path);

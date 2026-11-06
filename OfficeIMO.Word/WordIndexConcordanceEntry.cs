@@ -9,13 +9,9 @@ namespace OfficeIMO.Word {
         /// <param name="searchText">Text to find in the target document.</param>
         /// <param name="indexText">Index entry text to write into an <c>XE</c> field. Use colons for subentries, for example <c>Policy:Alpha</c>.</param>
         public WordIndexConcordanceEntry(string searchText, string indexText) {
-            if (string.IsNullOrWhiteSpace(searchText)) {
-                throw new ArgumentException("Concordance search text cannot be empty.", nameof(searchText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(searchText);
 
-            if (string.IsNullOrWhiteSpace(indexText)) {
-                throw new ArgumentException("Concordance index text cannot be empty.", nameof(indexText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(indexText);
 
             SearchText = searchText.Trim();
             IndexText = indexText.Trim();

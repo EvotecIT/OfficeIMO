@@ -14,7 +14,7 @@ public partial class ExcelDocument {
     /// <summary>Creates a row writer for the selected Excel format. Dispose publishes the file atomically.</summary>
     /// <remarks>XLSX and XLSB stream rows. XLS stages native BIFF records and its required shared-string table.</remarks>
     public static ExcelWorkbookWriter CreateWriter(ExcelFileFormat format, string path, ExcelWriterOptions? options = null, OfficeTheme? theme = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Supply an Excel destination path.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string fullPath = Path.GetFullPath(path);
         var snapshot = CreateStreamingOptions(options, format);
         if (snapshot.NoClobber && File.Exists(fullPath)) throw new IOException("The destination file already exists.");
@@ -129,7 +129,7 @@ public partial class ExcelDocument {
                 if (headers.Count == 0 || headers.Count > (_format == ExcelFileFormat.Xls ? 256 : ExcelA1.MaxColumns))
                     throw new ArgumentException(_format == ExcelFileFormat.Xls ? "Supply between one and 256 column headers." : "Supply between one and 16384 column headers.", nameof(headers));
                 ValidateTabularHeaders(headers);
-                if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Supply a worksheet name.", nameof(name));
+                ArgumentException.ThrowIfNullOrWhiteSpace(name);
                 cancellationToken.ThrowIfCancellationRequested();
                 string sheetName = DirectDataSetWorkbookModel.SanitizeSheetName(name);
                 if (!_names.Add(sheetName)) throw new ArgumentException("Worksheet names must be unique after sanitizing.", nameof(name));

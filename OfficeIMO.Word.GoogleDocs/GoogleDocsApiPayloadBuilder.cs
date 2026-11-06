@@ -45,7 +45,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris) {
             ArgumentNullException.ThrowIfNull(segment);
             ArgumentNullException.ThrowIfNull(report);
-            if (string.IsNullOrWhiteSpace(segmentId)) throw new ArgumentException("Segment id is required.", nameof(segmentId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
             foreach (var request in segment.Requests.Reverse()) {
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris) {
             ArgumentNullException.ThrowIfNull(footnote);
             ArgumentNullException.ThrowIfNull(report);
-            if (string.IsNullOrWhiteSpace(footnoteId)) throw new ArgumentException("Footnote id is required.", nameof(footnoteId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(footnoteId);
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
             foreach (var paragraph in footnote.Paragraphs.Reverse()) {
@@ -151,7 +151,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             ArgumentNullException.ThrowIfNull(segment);
             ArgumentNullException.ThrowIfNull(documentState);
             ArgumentNullException.ThrowIfNull(report);
-            if (string.IsNullOrWhiteSpace(segmentId)) throw new ArgumentException("Segment id is required.", nameof(segmentId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
             var tableRequests = segment.Requests.OfType<GoogleDocsInsertTableRequest>().ToList();
@@ -272,7 +272,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             ArgumentNullException.ThrowIfNull(segment);
             ArgumentNullException.ThrowIfNull(documentState);
             ArgumentNullException.ThrowIfNull(report);
-            if (string.IsNullOrWhiteSpace(segmentId)) throw new ArgumentException("Segment id is required.", nameof(segmentId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
             var tableRequests = segment.Requests.OfType<GoogleDocsInsertTableRequest>().ToList();
@@ -303,7 +303,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             ArgumentNullException.ThrowIfNull(segment);
             ArgumentNullException.ThrowIfNull(documentState);
             ArgumentNullException.ThrowIfNull(report);
-            if (string.IsNullOrWhiteSpace(segmentId)) throw new ArgumentException("Segment id is required.", nameof(segmentId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
             var tableRequests = segment.Requests.OfType<GoogleDocsInsertTableRequest>().ToList();

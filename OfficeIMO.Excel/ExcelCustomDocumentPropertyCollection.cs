@@ -163,9 +163,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string NormalizeKey(string key) {
-            if (string.IsNullOrWhiteSpace(key)) {
-                throw new ArgumentException("Custom property name is required.", nameof(key));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
             return key.Trim();
         }

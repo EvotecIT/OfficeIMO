@@ -186,9 +186,7 @@ internal static partial class OfficeSvgImageRenderer {
         string clipPathId,
         OfficeImagePlacement viewport,
         string? preserveAspectRatio = null) {
-        if (string.IsNullOrEmpty(clipPathId)) {
-            throw new ArgumentException("A clip path identifier is required for viewport image rendering.", nameof(clipPathId));
-        }
+        ArgumentException.ThrowIfNullOrEmpty(clipPathId);
 
         return AppendImage(
             builder,
@@ -335,9 +333,7 @@ internal static partial class OfficeSvgImageRenderer {
         OfficeImagePlacement viewport,
         string? preserveAspectRatio = null,
         Action<XmlWriter>? writeAdditionalAttributes = null) {
-        if (string.IsNullOrEmpty(clipPathId)) {
-            throw new ArgumentException("A clip path identifier is required for viewport image rendering.", nameof(clipPathId));
-        }
+        ArgumentException.ThrowIfNullOrEmpty(clipPathId);
 
         WriteImage(
             writer,
@@ -357,9 +353,7 @@ internal static partial class OfficeSvgImageRenderer {
     /// <param name="bytes">Image bytes.</param>
     /// <returns>SVG data URI image reference.</returns>
     public static string CreateDataUri(string contentType, byte[] bytes) {
-        if (string.IsNullOrWhiteSpace(contentType)) {
-            throw new ArgumentException("Content type is required.", nameof(contentType));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
 
         ArgumentNullException.ThrowIfNull(bytes);
 

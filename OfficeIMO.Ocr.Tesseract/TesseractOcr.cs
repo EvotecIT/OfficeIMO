@@ -51,7 +51,7 @@ public static class TesseractOcr {
         string imagePath,
         TesseractOcrSessionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(imagePath)) throw new ArgumentException("Image path cannot be empty.", nameof(imagePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(imagePath);
         string fullPath = Path.GetFullPath(imagePath);
         TesseractOcrSessionOptions effective = options ?? new TesseractOcrSessionOptions();
         if (effective.Engine == null) throw new ArgumentException("Tesseract engine options cannot be null.", nameof(options));

@@ -35,7 +35,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         /// <param name="value">URL-safe checkpoint value returned by <see cref="Value"/>.</param>
         /// <returns>The validated checkpoint.</returns>
         public static GoogleDriveDownloadCheckpoint Parse(string value) {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A checkpoint is required.", nameof(value));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             if (value.Length > 64 * 1024) throw new InvalidDataException("The download checkpoint is too large.");
             try {
                 string normalized = value.Replace('-', '+').Replace('_', '/'); if (normalized.Length % 4 == 2) normalized += "=="; else if (normalized.Length % 4 == 3) normalized += "=";
@@ -85,8 +85,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             Func<GoogleDriveDownloadCheckpoint, CancellationToken, Task>? checkpointSink = null,
             int chunkSize = 8 * 1024 * 1024, TranslationReport? report = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(fileId)) throw new ArgumentException("File id is required.", nameof(fileId));
-            if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentException("Destination path is required.", nameof(destinationPath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(fileId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
             if (chunkSize < 256 * 1024) throw new ArgumentOutOfRangeException(nameof(chunkSize));
             string fullPath = Path.GetFullPath(destinationPath); string destinationIdentity = HashText(fullPath);
             report ??= new TranslationReport(); GoogleDriveFile metadata = await GetFileAsync(fileId, DefaultFileFields, report, cancellationToken).ConfigureAwait(false);

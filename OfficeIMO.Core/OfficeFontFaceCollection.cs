@@ -107,12 +107,8 @@ public sealed partial class OfficeFontFaceCollection {
     /// <param name="sourceFamilyName">Existing family whose faces and unicode ranges are reused.</param>
     /// <returns>This collection for fluent configuration.</returns>
     public OfficeFontFaceCollection AddAlias(string aliasFamilyName, string sourceFamilyName) {
-        if (string.IsNullOrWhiteSpace(aliasFamilyName)) {
-            throw new ArgumentException("A font alias family name is required.", nameof(aliasFamilyName));
-        }
-        if (string.IsNullOrWhiteSpace(sourceFamilyName)) {
-            throw new ArgumentException("A source font family name is required.", nameof(sourceFamilyName));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(aliasFamilyName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFamilyName);
 
         string normalizedAlias = aliasFamilyName.Trim();
         string normalizedSource = sourceFamilyName.Trim();
@@ -153,9 +149,7 @@ public sealed partial class OfficeFontFaceCollection {
     /// <param name="familyName">Registered family or resource family name to append.</param>
     /// <returns>This collection for fluent configuration.</returns>
     public OfficeFontFaceCollection AddFallbackFamily(string familyName) {
-        if (string.IsNullOrWhiteSpace(familyName)) {
-            throw new ArgumentException("A fallback font family name is required.", nameof(familyName));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(familyName);
 
         string normalizedFamily = familyName.Trim();
         bool registered = false;

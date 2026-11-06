@@ -9,7 +9,7 @@ namespace OfficeIMO.Drawing;
 
 internal static class OfficeImageExportPath {
     internal static string NormalizeFile(string path, OfficeImageExportFormat format) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         string expectedExtension = format.GetFileExtension();
         string resolved = Path.GetFullPath(path);

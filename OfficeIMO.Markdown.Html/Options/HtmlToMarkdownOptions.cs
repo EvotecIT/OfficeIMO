@@ -228,9 +228,7 @@ public sealed class HtmlMarkdownExportOptions {
     /// Marks a renderer plugin's HTML-ingestion contract as applied to these options.
     /// </summary>
     internal bool TryMarkPluginApplied(string pluginId) {
-        if (string.IsNullOrWhiteSpace(pluginId)) {
-            throw new ArgumentException("Plugin id is required.", nameof(pluginId));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(pluginId);
 
         return _appliedPluginIds.Add(pluginId.Trim());
     }
@@ -240,9 +238,7 @@ public sealed class HtmlMarkdownExportOptions {
     /// applied as an HTML-ingestion contract to these options.
     /// </summary>
     internal bool HasPluginId(string pluginId) {
-        if (string.IsNullOrWhiteSpace(pluginId)) {
-            throw new ArgumentException("Plugin id is required.", nameof(pluginId));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(pluginId);
 
         return _appliedPluginIds.Contains(pluginId.Trim());
     }
@@ -251,9 +247,7 @@ public sealed class HtmlMarkdownExportOptions {
     /// Marks a renderer feature pack's HTML-ingestion contract as applied to these options.
     /// </summary>
     internal bool TryMarkFeaturePackApplied(string featurePackId) {
-        if (string.IsNullOrWhiteSpace(featurePackId)) {
-            throw new ArgumentException("Feature pack id is required.", nameof(featurePackId));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(featurePackId);
 
         return _appliedFeaturePackIds.Add(featurePackId.Trim());
     }
@@ -263,9 +257,7 @@ public sealed class HtmlMarkdownExportOptions {
     /// applied as an HTML-ingestion contract to these options.
     /// </summary>
     internal bool HasFeaturePackId(string featurePackId) {
-        if (string.IsNullOrWhiteSpace(featurePackId)) {
-            throw new ArgumentException("Feature pack id is required.", nameof(featurePackId));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(featurePackId);
 
         return _appliedFeaturePackIds.Contains(featurePackId.Trim());
     }

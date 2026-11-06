@@ -327,9 +327,7 @@ namespace OfficeIMO.Visio {
     /// </summary>
     public sealed class VisioDataGraphicItem {
         internal VisioDataGraphicItem(string fieldName, VisioDataGraphicItemKind kind) {
-            if (string.IsNullOrWhiteSpace(fieldName)) {
-                throw new ArgumentException("Shape Data field name cannot be empty.", nameof(fieldName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
 
             FieldName = fieldName;
             Kind = kind;

@@ -84,7 +84,7 @@ namespace OfficeIMO.Visio.Stencils {
             string? catalogName) {
             ArgumentNullException.ThrowIfNull(page);
             ArgumentNullException.ThrowIfNull(stencil);
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
             VisioMeasurementUnit placementUnit = unit ?? page.DefaultUnit;
             VisioMeasurementUnit sizeUnit = useStencilDefaultSize

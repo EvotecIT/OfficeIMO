@@ -27,7 +27,7 @@ namespace OfficeIMO.Word {
         public WordTemplateImage(byte[] content, string fileName, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null, string altText = "") {
             ArgumentNullException.ThrowIfNull(content);
             if (content.Length == 0) throw new ArgumentException("Image content cannot be empty.", nameof(content));
-            if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Image file name cannot be empty.", nameof(fileName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
             if (width <= global::OfficeIMO.OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width), "Image width must be positive.");
             if (height <= global::OfficeIMO.OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height), "Image height must be positive.");
 

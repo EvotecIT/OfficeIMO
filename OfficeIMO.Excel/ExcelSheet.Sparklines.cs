@@ -47,8 +47,8 @@ namespace OfficeIMO.Excel {
             OfficeColor? lowColor = null,
             OfficeColor? firstColor = null,
             OfficeColor? lastColor = null) {
-            if (string.IsNullOrWhiteSpace(dataRange)) throw new ArgumentException("DataRange is required.", nameof(dataRange));
-            if (string.IsNullOrWhiteSpace(locationRange)) throw new ArgumentException("LocationRange is required.", nameof(locationRange));
+            ArgumentException.ThrowIfNullOrWhiteSpace(dataRange);
+            ArgumentException.ThrowIfNullOrWhiteSpace(locationRange);
 
             ExcelSparklineGroup? created = null;
             WriteLock(() => {

@@ -58,7 +58,7 @@ public sealed class EmailStoreAssociatedDataCatalog {
     /// </summary>
     public EmailStoreAssociatedItem? FindEffectiveConfiguration(string messageClass,
         EmailStoreFolderId? folderId = null) {
-        if (string.IsNullOrWhiteSpace(messageClass)) throw new ArgumentException("Message class is required.", nameof(messageClass));
+        ArgumentException.ThrowIfNullOrWhiteSpace(messageClass);
         return Configurations
             .Where(item => string.Equals(item.Document.MessageClass, messageClass,
                 StringComparison.OrdinalIgnoreCase) &&

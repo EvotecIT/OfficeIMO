@@ -13,9 +13,7 @@ public sealed class HtmlTagSequenceInline : MarkdownInline, IRenderableMarkdownI
 
     /// <summary>Creates a new HTML-tag inline wrapper.</summary>
     public HtmlTagSequenceInline(string tagName, InlineSequence? inlines = null) {
-        if (string.IsNullOrWhiteSpace(tagName)) {
-            throw new ArgumentException("Tag name is required.", nameof(tagName));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
 
         TagName = tagName.Trim().ToLowerInvariant();
         Inlines = inlines ?? new InlineSequence();

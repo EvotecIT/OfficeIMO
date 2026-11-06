@@ -22,7 +22,7 @@ internal sealed partial class PdfWorkspace {
         return await ApplyImportAsync(preparation, selections, insertBeforePageNumber, cancellationToken, progress).ConfigureAwait(false);
     }
     private string ValidateSourcePdfPath(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("PDF source paths cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string fullPath = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
         string name = _storage.Describe(fullPath).Name;
         if (!string.Equals(System.IO.Path.GetExtension(name), ".pdf", StringComparison.OrdinalIgnoreCase)) {

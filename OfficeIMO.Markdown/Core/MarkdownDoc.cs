@@ -39,7 +39,7 @@ public partial class MarkdownDocument : MarkdownObject {
 
     /// <summary>Creates a Markdown document associated with a path, without writing the file.</summary>
     public static MarkdownDocument Create(string filePath, MarkdownCreateOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         MarkdownDocument document = Create(options);
         document._filePath = System.IO.Path.GetFullPath(filePath);
         return document;

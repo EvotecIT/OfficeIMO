@@ -136,9 +136,7 @@ namespace OfficeIMO.Visio {
         public static VisioSwimlaneLane? FindSwimlaneLane(this VisioPage page, string laneId) {
             ArgumentNullException.ThrowIfNull(page);
 
-            if (string.IsNullOrWhiteSpace(laneId)) {
-                throw new ArgumentException("Lane id cannot be empty.", nameof(laneId));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(laneId);
 
             return page.GetSwimlaneLanes().FirstOrDefault(lane => string.Equals(lane.Id, laneId, StringComparison.Ordinal));
         }
@@ -149,9 +147,7 @@ namespace OfficeIMO.Visio {
         public static VisioSwimlanePhase? FindSwimlanePhase(this VisioPage page, string phaseId) {
             ArgumentNullException.ThrowIfNull(page);
 
-            if (string.IsNullOrWhiteSpace(phaseId)) {
-                throw new ArgumentException("Phase id cannot be empty.", nameof(phaseId));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(phaseId);
 
             return page.GetSwimlanePhases().FirstOrDefault(phase => string.Equals(phase.Id, phaseId, StringComparison.Ordinal));
         }
@@ -162,17 +158,11 @@ namespace OfficeIMO.Visio {
         public static VisioPage MoveSwimlaneActivity(this VisioPage page, string activityId, string laneId, string phaseId, VisioSwimlaneRelayoutOptions? options = null) {
             ArgumentNullException.ThrowIfNull(page);
 
-            if (string.IsNullOrWhiteSpace(activityId)) {
-                throw new ArgumentException("Activity id cannot be empty.", nameof(activityId));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(activityId);
 
-            if (string.IsNullOrWhiteSpace(laneId)) {
-                throw new ArgumentException("Lane id cannot be empty.", nameof(laneId));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(laneId);
 
-            if (string.IsNullOrWhiteSpace(phaseId)) {
-                throw new ArgumentException("Phase id cannot be empty.", nameof(phaseId));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(phaseId);
 
             VisioShape? activity = page.Shapes.FirstOrDefault(shape => string.Equals(shape.Id, activityId, StringComparison.Ordinal));
             if (activity == null || !IsActivityShape(activity)) {

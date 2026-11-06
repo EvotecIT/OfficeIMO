@@ -56,10 +56,10 @@ public sealed class OfficeProtectionCapability {
         OfficeProtectionCoverageState mutate, OfficeProtectionCoverageState remove,
         string api, string limitation,
         IEnumerable<OfficeProtectionUnsupportedOperation>? unsupportedOperations) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Capability id cannot be empty.", nameof(id));
-        if (string.IsNullOrWhiteSpace(formatId)) throw new ArgumentException("Format id cannot be empty.", nameof(formatId));
-        if (string.IsNullOrWhiteSpace(packageId)) throw new ArgumentException("Package id cannot be empty.", nameof(packageId));
-        if (string.IsNullOrWhiteSpace(api)) throw new ArgumentException("Capability API cannot be empty.", nameof(api));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(packageId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(api);
         Id = id.Trim();
         FormatId = formatId.Trim();
         PackageId = packageId.Trim();

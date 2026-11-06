@@ -14,7 +14,7 @@ public sealed partial class OfficeVbaProject {
     /// <summary>Exports UTF-8 source files and a typed XML manifest to a new directory for version control.</summary>
     /// <remarks>The destination must not exist. Numbered file names avoid untrusted or platform-reserved module names.</remarks>
     public void ExportSources(string directory) {
-        if (string.IsNullOrWhiteSpace(directory)) throw new ArgumentException("A source directory is required.", nameof(directory));
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         string destination = Path.GetFullPath(directory);
         if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("The export destination already exists.");
         string parent = Path.GetDirectoryName(destination) ?? throw new ArgumentException("The source directory must have a parent.", nameof(directory));
@@ -43,7 +43,7 @@ public sealed partial class OfficeVbaProject {
     /// <remarks>Missing modules may be added only for standard/class kinds. Omitted modules are retained; deletions are explicit.</remarks>
     public void ImportSources(string directory, int maximumSourceBytes = 64 * 1024 * 1024) {
         EnsureEditable();
-        if (string.IsNullOrWhiteSpace(directory)) throw new ArgumentException("A source directory is required.", nameof(directory));
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumSourceBytes);
         string root = Path.GetFullPath(directory);
         RejectLinkedSource(root);

@@ -28,7 +28,7 @@ public static partial class OfficeMathMarkup {
 
     /// <summary>Parses presentation MathML with a hard nesting-depth limit.</summary>
     public static OfficeMathExpression FromMathMl(string mathMl, int maximumDepth) {
-        if (string.IsNullOrWhiteSpace(mathMl)) throw new ArgumentException("MathML is required.", nameof(mathMl));
+        ArgumentException.ThrowIfNullOrWhiteSpace(mathMl);
         ArgumentOutOfRangeException.ThrowIfLessThan(maximumDepth, 1);
         ValidateXmlDepth(mathMl, maximumDepth);
         XDocument document;

@@ -8,7 +8,7 @@ namespace OfficeIMO.Visio {
         /// <remarks>The binary source is never associated with Save. Save writes a modern package of the imported family.</remarks>
         public static OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> LoadLegacyBinary(string path,
             VisioLegacyBinaryImportOptions? options = null, CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             VisioPackageType family = Path.GetExtension(path).ToLowerInvariant() switch {
                 ".vsd" => VisioPackageType.Drawing, ".vss" => VisioPackageType.Stencil, ".vst" => VisioPackageType.Template,
                 _ => throw new NotSupportedException("Legacy binary import supports .vsd, .vss and .vst paths.")

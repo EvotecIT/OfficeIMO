@@ -112,7 +112,7 @@ public sealed class OdpParagraph {
     }
     /// <summary>Adds a hyperlink without resolving or fetching its target.</summary>
     public OdpHyperlink AddHyperlink(string text, string href) {
-        if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
+        ArgumentException.ThrowIfNullOrWhiteSpace(href);
         var element = new XElement(OdfNamespaces.Text + "a",
             new XAttribute(OdfNamespaces.XLink + "type", "simple"),
             new XAttribute(OdfNamespaces.XLink + "href", href));
@@ -183,7 +183,7 @@ public sealed class OdpRun {
 
     /// <summary>Appends a hyperlink inside this run without fetching its target.</summary>
     public OdpHyperlink AddHyperlink(string text, string href) {
-        if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
+        ArgumentException.ThrowIfNullOrWhiteSpace(href);
         var element = new XElement(OdfNamespaces.Text + "a",
             new XAttribute(OdfNamespaces.XLink + "type", "simple"),
             new XAttribute(OdfNamespaces.XLink + "href", href));

@@ -181,7 +181,7 @@ internal static class PdfLogicalTableTextExportExtensions {
     /// <param name="options">Optional table export settings.</param>
     /// <returns>Markdown containing only detected PDF tables.</returns>
     public static string ExtractMarkdownTables(string pdfPath, PdfLogicalTableTextExportOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(pdfPath)) throw new ArgumentException("PDF path cannot be empty.", nameof(pdfPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(pdfPath);
 
         options ??= new PdfLogicalTableTextExportOptions();
         return LoadPdf(pdfPath, options).ToMarkdownTables(options);
@@ -220,7 +220,7 @@ internal static class PdfLogicalTableTextExportExtensions {
     /// <param name="options">Optional table export settings.</param>
     /// <returns>HTML containing only detected PDF tables.</returns>
     public static string ExtractHtmlTables(string pdfPath, PdfLogicalTableTextExportOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(pdfPath)) throw new ArgumentException("PDF path cannot be empty.", nameof(pdfPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(pdfPath);
 
         options ??= new PdfLogicalTableTextExportOptions();
         return LoadPdf(pdfPath, options).ToHtmlTables(options);

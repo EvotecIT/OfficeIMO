@@ -81,9 +81,7 @@ namespace OfficeIMO.Word {
         /// <param name="name">Element name within the coverPageProps namespace.</param>
         /// <param name="value">Value to store.</param>
         public void Set(string name, string? value) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Property name cannot be null or empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             var part = EnsureCoverPagePropsPart();
             var document = LoadXml(part);

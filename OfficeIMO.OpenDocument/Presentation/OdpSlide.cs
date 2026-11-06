@@ -109,7 +109,7 @@ public sealed class OdpSlide {
         ArgumentNullException.ThrowIfNull(target);
         if (!ReferenceEquals(target.Presentation, _presentation)) throw new ArgumentException("Animation target must belong to this presentation.", nameof(target));
         if (!Element.DescendantsAndSelf().Contains(target.Element)) throw new ArgumentException("Animation target must belong to this slide.", nameof(target));
-        if (string.IsNullOrWhiteSpace(attributeName)) throw new ArgumentException("Animated attribute cannot be empty.", nameof(attributeName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(attributeName);
         ArgumentNullException.ThrowIfNull(from);
         ArgumentNullException.ThrowIfNull(to);
         if (duration <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(duration));
