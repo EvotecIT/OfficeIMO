@@ -837,11 +837,19 @@ internal static partial class PdfTextDiagnostics {
         // and must not execute an arbitrary provider or apply its features.
         bool scalarCoverage = shapingMode == PdfTextShapingMode.UnicodeScalar;
         if (scalarCoverage && font.HasVerifiedScalarCoverage(text)) return new List<PdfTextEncodingDiagnostic>();
-        PdfGlyphRun glyphRun = font.ShapeText(text, PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode));
-        if (scalarCoverage && glyphRun.Diagnostics.Count == 0) font.RememberVerifiedScalarCoverage(text);
-        return glyphRun.Diagnostics.Count == 0
-            ? new List<PdfTextEncodingDiagnostic>()
-            : glyphRun.Diagnostics.ToList();
+        PdfTextShapingOptions raw = PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode);
+        List<PdfTextEncodingDiagnostic> diagnostics;
+        if (shapingMode is PdfTextShapingMode.UnicodeScalar or PdfTextShapingMode.LatinLigatures) {
+            // These raw modes cannot select a provider; coverage needs no glyph run.
+            diagnostics = PdfUnicodeScalarTextShaper.AnalyzeRawDiagnostics(text, font, raw);
+        } else {
+            // OpenType/default-managed paths retain their shaping and coverage decisions.
+            PdfGlyphRun glyphRun = font.ShapeText(text, raw);
+            diagnostics = glyphRun.Diagnostics.Count == 0
+                ? new List<PdfTextEncodingDiagnostic>() : glyphRun.Diagnostics.ToList();
+        }
+        if (scalarCoverage && diagnostics.Count == 0) font.RememberVerifiedScalarCoverage(text);
+        return diagnostics;
     }
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextCore(string text, PdfOpenTypeCffFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, PdfTextShapingOptions? shapingOptions = null) {
