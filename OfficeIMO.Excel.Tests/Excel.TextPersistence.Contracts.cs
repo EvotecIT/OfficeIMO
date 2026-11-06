@@ -65,7 +65,7 @@ public class ExcelTextPersistenceContractTests {
         XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         var texts = XDocument.Load(xmlStream, LoadOptions.PreserveWhitespace).Descendants(ns + "t").ToArray();
         foreach (string value in values) {
-            var text = Assert.Single(texts.Where(item => item.Value == value));
+            var text = Assert.Single(texts, item => item.Value == value);
             Assert.Equal("preserve", (string?)text.Attribute(XNamespace.Xml + "space"));
         }
     }

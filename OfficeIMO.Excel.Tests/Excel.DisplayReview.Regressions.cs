@@ -61,7 +61,7 @@ public class ExcelDisplayReviewRegressionTests {
         using var output = SpreadsheetDocument.Open(new MemoryStream(loaded.ToBytes()), false);
         var outputWorkbook = output.WorkbookPart!;
         Worksheet GetWorksheet(string name) => ((WorksheetPart)outputWorkbook.GetPartById(
-            outputWorkbook.Workbook.Sheets!.Elements<Sheet>().Single(sheet => sheet.Name!.Value == name).Id!.Value!)).Worksheet;
+            outputWorkbook.Workbook.Sheets!.Elements<Sheet>().Single(sheet => sheet.Name!.Value == name).Id!.Value!)).Worksheet!;
         var actual = GetWorksheet("Inherited");
         var expected = GetWorksheet("Explicit");
         for (uint column = 1; column <= 4; column++) {
