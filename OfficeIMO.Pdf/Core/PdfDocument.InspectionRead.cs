@@ -4,10 +4,12 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>
-    /// Reads supported selected pages while retaining structural facts and explicit outcomes for unmappable
-    /// text and unsupported content-stream filters. Existing <see cref="Read"/> remains fail-fast.
+    /// Reads selected pages while retaining structural facts and explicit outcomes for unmappable text,
+    /// unsupported content-stream filters, and opt-in recovery from damaged page streams.
+    /// <see cref="Read"/> remains fail-fast.
     /// Pass <see cref="PdfLoadOptions.RecoverDecodableTextForInspection"/> to retain readable text on
-    /// a page with a font-mapping failure when using the built-in glyph decoder.
+    /// a page with a font-mapping failure when using the built-in glyph decoder, or from leading page
+    /// content streams before a later stream fails to decode.
     /// Cancellation, resource admission, authentication, permissions, structural parsing, and unexpected
     /// stage failures remain terminal and are never converted to partial success.
     /// </summary>

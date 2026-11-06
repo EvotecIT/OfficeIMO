@@ -39,6 +39,13 @@ public sealed class PdfReverseConversionQualityTests {
         Assert.True(rightStart > leftEnd, markdown);
         Assert.True(rightHeading > rightStart, markdown);
         Assert.True(markdown.IndexOf("Building Resilient Supply Chains", StringComparison.Ordinal) < leftStart);
+
+        string normalized = markdown.Replace("\r\n", "\n");
+        string image = Assert.Single(normalized.Split('\n'), static line => line.StartsWith("[Image: ", StringComparison.Ordinal));
+        Assert.Contains(image + "\n\nFigure 1. Recovery time by network type (weeks).\n\n## Three habits of resilient operators",
+            normalized, StringComparison.Ordinal);
+        string withoutImage = result.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false }).Replace("\r\n", "\n");
+        Assert.Equal(withoutImage, normalized.Replace(image + "\n\n", string.Empty));
     }
 
     [Fact]

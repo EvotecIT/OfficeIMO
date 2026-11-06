@@ -41,6 +41,22 @@ public partial class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void StructuredRead_RetainsNestedListLevelsFromNativePagesExport() {
+        string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents",
+            "IWorkCorpus", "native-exports", "list-counter-explicit-v15.4-pages.pdf");
+        using PdfDocument document = PdfDocument.Load(path);
+        PdfLogicalPage page = Assert.Single(document.Read().Pages);
+
+        Assert.Equal(new[] {
+            ("7.", "Value", 1),
+            ("5.", "Child five", 2),
+            ("8.", "Parent eight", 1),
+            ("1.", "Child reset", 2),
+            ("2.", "Child second", 2)
+        }, page.ListItems.Select(static item => (item.Marker, item.Text, item.Level)));
+    }
+
+    [Fact]
     public void StructuredRead_PreservesHeadingProjectionInsideAListAssociation() {
         PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf(heading: true))).Read();
         PdfLogicalPage page = Assert.Single(result.Pages);

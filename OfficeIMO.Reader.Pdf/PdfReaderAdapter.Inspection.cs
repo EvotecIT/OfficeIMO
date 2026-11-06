@@ -78,7 +78,11 @@ internal static partial class PdfReaderAdapter {
                 evidence.Add("pdf.page-outcome", "NativeText", outcome.Status.ToString(), "outcome", location, attributes: attributes);
                 if (!outcome.Succeeded) {
                     diagnostics.Add(new OfficeDocumentDiagnostic {
-                        Code = outcome.Status == PdfPageReadStatus.UnmappableText ? "pdf-page-unmappable-text" : "pdf-page-unsupported-content-filter",
+                        Code = outcome.Status switch {
+                            PdfPageReadStatus.UnmappableText => "pdf-page-unmappable-text",
+                            PdfPageReadStatus.DamagedContentStream => "pdf-page-damaged-content-stream",
+                            _ => "pdf-page-unsupported-content-filter"
+                        },
                         Severity = outcome.Page is null ? OfficeDocumentDiagnosticSeverity.Error : OfficeDocumentDiagnosticSeverity.Warning,
                         Message = GetInspectionFailureMessage(outcome),
                         IsRecoverable = true,
@@ -191,5 +195,7 @@ internal static partial class PdfReaderAdapter {
     private static string GetInspectionFailureMessage(PdfPageReadOutcome outcome) =>
         "PDF source page " + outcome.PageNumber.ToString(CultureInfo.InvariantCulture) +
         (outcome.Page is null ? " was not read: " : " was partially read: ") +
-        (outcome.MappingFailure?.Message ?? "unsupported content-stream filters " + string.Join(", ", outcome.UnsupportedFilters)) + ".";
+        (outcome.Status == PdfPageReadStatus.DamagedContentStream
+            ? "a page content stream failed to decode"
+            : outcome.MappingFailure?.Message ?? "unsupported content-stream filters " + string.Join(", ", outcome.UnsupportedFilters)) + ".";
 }

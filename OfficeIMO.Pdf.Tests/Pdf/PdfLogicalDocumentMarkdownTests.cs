@@ -58,6 +58,17 @@ public partial class PdfDocumentReadResultTests {
     }
 
     [Fact]
+    public void ToMarkdown_IndentsNestedItemsUnderTheirOrderedParents() {
+        string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents",
+            "IWorkCorpus", "native-exports", "list-counter-explicit-v15.4-pages.pdf");
+        using PdfDocument document = PdfDocument.Load(path);
+        string markdown = document.Read().ExtractMarkdown().Replace("\r\n", "\n");
+
+        Assert.Contains("7. Value\n\n   5. Child five\n8. Parent eight\n   1. Child reset\n   2. Child second",
+            markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToMarkdown_RightAlignsNumericTableColumns() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageSetup = {

@@ -29,6 +29,30 @@ public sealed class DrawingJpegColorConversionTests {
         Assert.Equal(expected, actual);
     }
 
+    [Fact]
+    public void PackedNearestRgbMatchesRgbaForOddWidthSubsampledJpeg() {
+        var source = new OfficeRasterImage(35, 19);
+        for (int y = 0; y < source.Height; y++) {
+            for (int x = 0; x < source.Width; x++) {
+                source.SetPixel(x, y, OfficeColor.FromRgb(
+                    (byte)(x * 6 + y), (byte)(y * 11 + x), (byte)(235 - x * 4 - y * 3)));
+            }
+        }
+        byte[] jpeg = OfficeJpegCodec.Encode(source,
+            new OfficeJpegEncodeOptions { Quality = 85, Subsampling = OfficeJpegSubsampling.Y420 });
+        byte[] rgba = OfficeJpegCodec.Decode(jpeg).GetPixels();
+        var expected = new byte[source.Width * source.Height * 3];
+        for (int pixel = 0; pixel < source.Width * source.Height; pixel++) {
+            Buffer.BlockCopy(rgba, pixel * 4, expected, pixel * 3, 3);
+        }
+
+        Assert.True(OfficeJpegCodec.TryDecodeColorComponents(
+            jpeg, requestedColorTransform: null, usePdfColorTransformDefault: true,
+            out byte[] rgb, out int width, out int height, out int components));
+        Assert.Equal((source.Width, source.Height, 3), (width, height, components));
+        Assert.Equal(expected, rgb);
+    }
+
     private static OfficeRasterImage CreateTiles(int width, int height) {
         var image = new OfficeRasterImage(width, height);
         OfficeColor[] colors = { OfficeColor.FromRgb(33, 81, 171), OfficeColor.FromRgb(181, 35, 93),

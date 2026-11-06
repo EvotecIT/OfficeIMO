@@ -1896,6 +1896,10 @@ internal static partial class ResourceResolver {
         PdfImageColorConversionBuffer? colorComponents = colorNormalization.RequiresColorConversion
             ? colorNormalization.CreateConversionBuffer()
             : null;
+        // A fixed image transform maps repeated RGB samples to the same output color.
+        bool reuseRgb = sourceColorCount == 3 && colorNormalization.Kind == PdfPageColorSpaceKind.DeviceRgb;
+        int previousRgb = -1;
+        OfficeColor previousColor = default;
         for (int row = 0; row < height; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             int outputRow = row * (1 + outputRowLength);
@@ -1905,7 +1909,17 @@ internal static partial class ResourceResolver {
                 for (int pixel = 0; pixel < width; pixel++) {
                     int sourcePixel = sourceRow + pixel * sourceColorCount;
                     int targetPixel = outputRow + 1 + pixel * outputChannels;
-                    if (!colorNormalization.TryConvertPixel(pixels, sourcePixel, decodeTransform, colorComponents!, out OfficeColor color)) return false;
+                    OfficeColor color;
+                    if (reuseRgb) {
+                        int rgb = (pixels[sourcePixel] << 16) | (pixels[sourcePixel + 1] << 8) | pixels[sourcePixel + 2];
+                        if (rgb != previousRgb) {
+                            if (!colorNormalization.TryConvertPixel(pixels, sourcePixel, decodeTransform, colorComponents!, out previousColor)) return false;
+                            previousRgb = rgb;
+                        }
+                        color = previousColor;
+                    } else if (!colorNormalization.TryConvertPixel(pixels, sourcePixel, decodeTransform, colorComponents!, out color)) {
+                        return false;
+                    }
                     scanlines[targetPixel] = color.R;
                     scanlines[targetPixel + 1] = color.G;
                     scanlines[targetPixel + 2] = color.B;

@@ -842,7 +842,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         int? pageObjectNumber = null;
         string? alternativeText = null;
         int? listOwner = null;
-        int listLevel = 0;
+        int listItemDepth = 0;
+        int listContainerDepth = 0;
         bool listLabel = false;
         while (current is not null && visited.Add(current.ObjectNumber)) {
             workBudget.Consume();
@@ -850,9 +851,11 @@ internal static partial class PdfDocumentSemanticEnricher {
             if (!string.IsNullOrWhiteSpace(current.StructureType)) {
                 string candidate = ResolveRole(tagged, current.StructureType!);
                 if (!listOwner.HasValue && string.Equals(candidate, "Lbl", StringComparison.OrdinalIgnoreCase)) listLabel = true;
+                // Some producers nest an L directly under another L, without an intervening LI.
+                if (string.Equals(candidate, "L", StringComparison.OrdinalIgnoreCase)) listContainerDepth++;
                 if (string.Equals(candidate, "LI", StringComparison.OrdinalIgnoreCase)) {
                     listOwner ??= current.ObjectNumber;
-                    listLevel++;
+                    listItemDepth++;
                 }
                 if (!roles.Contains(candidate, StringComparer.OrdinalIgnoreCase)) roles.Add(candidate);
                 if (alternativeText is null &&
@@ -869,7 +872,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         return roles.Count == 0
             ? null
             : new TaggedStructureBinding(roles.AsReadOnly(), pageObjectNumber, alternativeText,
-                listOwner.HasValue ? new TaggedListContent(listOwner.Value, listLevel, listLabel) : null);
+                listOwner.HasValue ? new TaggedListContent(listOwner.Value, Math.Max(listItemDepth, listContainerDepth), listLabel) : null);
     }
 
     private static TaggedRole? TryMapTaggedRole(string role) {

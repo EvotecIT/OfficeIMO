@@ -260,7 +260,8 @@ internal static partial class OfficeJpegReader {
         int firstRow = (y * first.Component.V / maximumVerticalSampling) * first.Stride;
         int secondRow = (y * second.Component.V / maximumVerticalSampling) * second.Stride;
         int thirdRow = (y * third.Component.V / maximumVerticalSampling) * third.Stride;
-        int target = y * width * (outputRgba ? 4 : 3);
+        int outputComponents = outputRgba ? 4 : 3;
+        int target = y * width * outputComponents;
         int firstX = 0;
         int secondX = 0;
         int thirdX = 0;
@@ -269,19 +270,25 @@ internal static partial class OfficeJpegReader {
         int thirdXAccumulator = 0;
         int startX = 0;
 
-#if NET8_0_OR_GREATER
-        if (transformYccToRgb && outputRgba && width >= 8 && Avx2.IsSupported && Ssse3.IsSupported &&
+        if (transformYccToRgb &&
             first.SampleMaximum == 255 && second.SampleMaximum == 255 && third.SampleMaximum == 255 &&
             first.Component.H == maximumHorizontalSampling &&
             second.Component.H * 2 == maximumHorizontalSampling &&
             third.Component.H * 2 == maximumHorizontalSampling) {
-            startX = ComposeYccToRgbaHalfChromaVector(first.Buffer, firstRow,
-                second.Buffer, secondRow, third.Buffer, thirdRow, output, target, width);
+            if (!outputRgba) {
+                startX = ComposeYccToRgbHalfChromaPairs(first.Buffer, firstRow,
+                    second.Buffer, secondRow, third.Buffer, thirdRow, output, target, width);
+            }
+#if NET8_0_OR_GREATER
+            else if (width >= 8 && Avx2.IsSupported && Ssse3.IsSupported) {
+                startX = ComposeYccToRgbaHalfChromaVector(first.Buffer, firstRow,
+                    second.Buffer, secondRow, third.Buffer, thirdRow, output, target, width);
+            }
+#endif
             firstX = startX;
             secondX = thirdX = startX / 2;
-            target += startX * 4;
+            target += startX * outputComponents;
         }
-#endif
 
         for (int x = startX; x < width; x++) {
             byte firstValue = ProjectSampleToByte(first, first.ReadSample(firstRow + firstX));
@@ -317,6 +324,31 @@ internal static partial class OfficeJpegReader {
                 thirdXAccumulator -= maximumHorizontalSampling;
             }
         }
+    }
+
+    // Packed RGB uses the same chroma sample for both pixels in each complete pair.
+    // Return the even width so the general row loop can handle an odd final pixel.
+    private static int ComposeYccToRgbHalfChromaPairs(
+        byte[] luma, int lumaOffset, byte[] cb, int cbOffset, byte[] cr, int crOffset,
+        byte[] output, int target, int width) {
+        int pairedWidth = width & ~1;
+        for (int x = 0; x < pairedWidth; x += 2) {
+            int chromaX = x / 2;
+            byte cbSample = cb[cbOffset + chromaX];
+            byte crSample = cr[crOffset + chromaX];
+            int redOffset = CrToR[crSample];
+            int greenOffset = (CbToG[cbSample] + CrToG[crSample]) >> 16;
+            int blueOffset = CbToB[cbSample];
+            int firstLuma = luma[lumaOffset + x];
+            int secondLuma = luma[lumaOffset + x + 1];
+            output[target++] = ClampToByte(firstLuma + redOffset);
+            output[target++] = ClampToByte(firstLuma + greenOffset);
+            output[target++] = ClampToByte(firstLuma + blueOffset);
+            output[target++] = ClampToByte(secondLuma + redOffset);
+            output[target++] = ClampToByte(secondLuma + greenOffset);
+            output[target++] = ClampToByte(secondLuma + blueOffset);
+        }
+        return pairedWidth;
     }
 
     private static void WriteGrayPixel(byte[] output, int pixel, byte gray, bool outputRgba) {

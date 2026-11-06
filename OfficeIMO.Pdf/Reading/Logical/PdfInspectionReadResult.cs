@@ -7,7 +7,9 @@ public enum PdfPageReadStatus {
     /// <summary>Shown composite text had no usable Unicode mapping.</summary>
     UnmappableText,
     /// <summary>A page or invoked Form XObject declared an unsupported content-stream filter.</summary>
-    UnsupportedContentStreamFilter
+    UnsupportedContentStreamFilter,
+    /// <summary>A recognized filter could not decode a stream in the page's content array. The page may contain readable text from earlier streams.</summary>
+    DamagedContentStream = 3
 }
 
 /// <summary>One selected page occurrence. A failed page is never represented as successful empty text.</summary>

@@ -893,3 +893,4 @@ OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode.MissingFontResource = 13 -> Office
 OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode.UnmappableText = 14 -> OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode
 OfficeIMO.Pdf.PdfLoadOptions.RecoverDecodableTextForInspection.get -> bool
 OfficeIMO.Pdf.PdfLoadOptions.RecoverDecodableTextForInspection.init -> void
+OfficeIMO.Pdf.PdfPageReadStatus.DamagedContentStream = 3 -> OfficeIMO.Pdf.PdfPageReadStatus

@@ -796,39 +796,6 @@ public sealed partial class PdfReadPage {
         return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();
     }
 
-    internal List<string> GetUnsupportedContentStreamFilters(System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        var unsupported = new List<string>();
-        var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        var activeForms = new HashSet<PdfStream>();
-        var pageContentBudget = new PageContentBudget(this, cancellationToken);
-        bool mayContainForms = MayContainFormXObjects(pageResources);
-        System.Text.StringBuilder? content = mayContainForms ? new System.Text.StringBuilder() : null;
-        bool canInspectFormInvocations = mayContainForms;
-        foreach (PageContentStreamEntry entry in GetContentStreamObjects()) {
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfStream stream = entry.Stream;
-            if (AddUnsupportedFilters(stream, unsupported)) {
-                canInspectFormInvocations = false;
-                continue;
-            }
-
-            if (content is null) {
-                pageContentBudget.Validate(stream);
-            } else {
-                byte[] decoded = pageContentBudget.Decode(stream);
-                if (content.Length > 0) content.Append(PdfContentStreamSequenceDecoder.Separator);
-                content.Append(PdfEncoding.Latin1GetString(decoded));
-            }
-        }
-
-        if (canInspectFormInvocations && content is { Length: > 0 }) {
-            CollectUnsupportedFormFilters(content.ToString(), pageResources, unsupported, activeForms, pageContentBudget);
-        }
-
-        return unsupported;
-    }
-
     private bool MayContainFormXObjects(PdfDictionary? resources) {
         if (resources is null || !resources.Items.TryGetValue("XObject", out var xObjectValue)) {
             return false;
@@ -2367,13 +2334,8 @@ public sealed partial class PdfReadPage {
     private List<PageContentStreamEntry> GetContentStreamObjects() {
         var result = new List<PageContentStreamEntry>();
         var contents = _pageDict.Items.TryGetValue("Contents", out var obj) ? obj : null;
-        if (contents is PdfReference r) {
-            if (PdfObjectLookup.TryGet(_objects, r, out var ind) && ind.Value is PdfStream s) {
-                result.Add(new PageContentStreamEntry(s, r.ObjectNumber));
-                return result;
-            }
-        } else if (contents is PdfStream directStream) {
-            result.Add(new PageContentStreamEntry(directStream, null));
+        if (TryResolvePageContentStream(contents, out PageContentStreamEntry stream)) {
+            result.Add(stream);
             return result;
         }
 
@@ -2383,16 +2345,27 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (var item in contentArray.Items) {
-            if (item is PdfReference rr &&
-                PdfObjectLookup.TryGet(_objects, rr, out var ind2) &&
-                ind2.Value is PdfStream s2) {
-                result.Add(new PageContentStreamEntry(s2, rr.ObjectNumber));
-            } else if (item is PdfStream directStream) {
-                result.Add(new PageContentStreamEntry(directStream, null));
+            if (TryResolvePageContentStream(item, out stream)) {
+                result.Add(stream);
             }
         }
 
         return result;
+    }
+
+    private bool TryResolvePageContentStream(PdfObject? item, out PageContentStreamEntry entry) {
+        if (item is PdfReference reference &&
+            PdfObjectLookup.TryGet(_objects, reference, out var indirect) &&
+            indirect.Value is PdfStream referencedStream) {
+            entry = new PageContentStreamEntry(referencedStream, reference.ObjectNumber);
+            return true;
+        }
+        if (item is PdfStream stream) {
+            entry = new PageContentStreamEntry(stream, null);
+            return true;
+        }
+        entry = default;
+        return false;
     }
 
     internal bool IsPageContentStreamObjectNumber(int? objectNumber) {

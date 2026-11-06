@@ -65,20 +65,26 @@ public static class PdfLogicalMarkdownExtensions {
         items.Sort(CompareMarkdownItems);
 
         for (int i = 0; i < items.Count; i++) {
-            // Consecutive list items form one tight list; a blank line between them would make every item a paragraph.
             bool continuesList = i > 0 && items[i].IsListItem && items[i - 1].IsListItem;
-            AppendBlock(builder, items[i].Markdown, continuesList);
+            AppendBlock(builder, items[i].Markdown, tight: continuesList && !items[i].RequiresBlankLine,
+                preserveIndent: continuesList);
         }
     }
 
     private static List<MarkdownItem> BuildPageItems(PdfLogicalPage page, PdfLogicalMarkdownOptions options) {
         var items = new List<MarkdownItem>();
         int sequence = 0;
+        HashSet<PdfImagePlacement>? figurePlacements = options.IncludeImagePlaceholders
+            ? CollectFigurePlacements(page.Images)
+            : null;
+        HashSet<int>? emittedImages = null;
+        Stack<(int Level, int ContentIndent)>? listParents = null;
 
         IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder =
             PdfLogicalReadingOrderAnalysis.Analyze(page, PdfLogicalReadingOrderScope.PageContent);
         foreach (PdfLogicalReadingOrderItem item in readingOrder) {
             string markdown;
+            bool requiresBlankLine = false;
             switch (item.Kind) {
                 case PdfLogicalReadingOrderKind.Heading:
                     PdfLogicalHeading heading = page.Headings[item.SourceIndex];
@@ -90,8 +96,8 @@ public static class PdfLogicalMarkdownExtensions {
                     break;
                 case PdfLogicalReadingOrderKind.ListItem:
                     PdfLogicalListItem listItem = page.ListItems[item.SourceIndex];
-                    string indent = new string(' ', Math.Max(listItem.Level - 1, 0) * 2);
-                    markdown = indent + FormatListMarker(listItem.Marker) + " " + EscapeInline(listItem.Text);
+                    listParents ??= new Stack<(int Level, int ContentIndent)>();
+                    markdown = RenderListItem(listItem, listParents, out requiresBlankLine);
                     break;
                 case PdfLogicalReadingOrderKind.Table:
                     markdown = RenderTable(page.Tables[item.SourceIndex], options);
@@ -99,10 +105,20 @@ public static class PdfLogicalMarkdownExtensions {
                 case PdfLogicalReadingOrderKind.TextBlock:
                     markdown = EscapeInline(page.TextBlocks[item.SourceIndex].Text);
                     break;
+                case PdfLogicalReadingOrderKind.Image when figurePlacements is not null &&
+                    item.HasGeometry && !item.IsClipped && item.PlacementIndex >= 0:
+                    PdfLogicalImage image = page.Images[item.SourceIndex];
+                    if (!figurePlacements.Contains(image.Placements[item.PlacementIndex]) ||
+                        !(emittedImages ??= new HashSet<int>()).Add(item.SourceIndex)) continue;
+                    markdown = FormatImagePlaceholder(image);
+                    break;
                 default: continue;
             }
-            if (markdown.Length > 0) items.Add(new MarkdownItem(null, 0, sequence++, markdown, canonical: true,
-                isListItem: item.Kind == PdfLogicalReadingOrderKind.ListItem));
+            if (markdown.Length == 0) continue;
+            bool isListItem = item.Kind == PdfLogicalReadingOrderKind.ListItem;
+            if (!isListItem) listParents?.Clear();
+            items.Add(new MarkdownItem(null, 0, sequence++, markdown, canonical: true,
+                isListItem: isListItem, requiresBlankLine: requiresBlankLine));
         }
 
         IReadOnlyList<IPdfLogicalElement> leaderRows = page.GetElements(PdfLogicalElementKind.LeaderRow);
@@ -118,15 +134,8 @@ public static class PdfLogicalMarkdownExtensions {
 
         if (options.IncludeImagePlaceholders) {
             for (int i = 0; i < page.Images.Count; i++) {
-                PdfLogicalImage image = page.Images[i];
-                string description = "[Image: page " + image.PageNumber + ", resource " + EscapeInline(image.ResourceName) + ", " + image.Width + "x" + image.Height;
-                string? mimeType = image.MimeType;
-                if (!string.IsNullOrEmpty(mimeType)) {
-                    description += ", " + EscapeInline(mimeType!);
-                }
-
-                description += "]";
-                items.Add(new MarkdownItem(null, 0, sequence++, description));
+                if (emittedImages?.Contains(i) == true) continue;
+                items.Add(new MarkdownItem(null, 0, sequence++, FormatImagePlaceholder(page.Images[i])));
             }
         }
 
@@ -158,6 +167,23 @@ public static class PdfLogicalMarkdownExtensions {
         }
 
         return items;
+    }
+
+    private static HashSet<PdfImagePlacement>? CollectFigurePlacements(IReadOnlyList<PdfLogicalImage> images) {
+        HashSet<PdfImagePlacement>? placements = null;
+        foreach (PdfLogicalImage image in images) {
+            foreach (PdfUnderstandingImageRegion region in image.Regions) {
+                if (region.IsFigure) (placements ??= new HashSet<PdfImagePlacement>()).Add(region.Placement);
+            }
+        }
+
+        return placements;
+    }
+
+    private static string FormatImagePlaceholder(PdfLogicalImage image) {
+        string description = "[Image: page " + image.PageNumber + ", resource " + EscapeInline(image.ResourceName) + ", " + image.Width + "x" + image.Height;
+        if (!string.IsNullOrEmpty(image.MimeType)) description += ", " + EscapeInline(image.MimeType!);
+        return description + "]";
     }
 
     private static bool IsLeaderRowRepresentedByTable(PdfLogicalLeaderRow leaderRow, IReadOnlyList<PdfLogicalTable> tables) {
@@ -203,7 +229,7 @@ public static class PdfLogicalMarkdownExtensions {
         return left.Sequence.CompareTo(right.Sequence);
     }
 
-    private static void AppendBlock(StringBuilder builder, string markdown, bool tight = false) {
+    private static void AppendBlock(StringBuilder builder, string markdown, bool tight = false, bool preserveIndent = false) {
         if (string.IsNullOrWhiteSpace(markdown)) {
             return;
         }
@@ -213,8 +239,7 @@ public static class PdfLogicalMarkdownExtensions {
             if (!tight) builder.AppendLine();
         }
 
-        // Keep leading indentation: it carries list nesting.
-        builder.Append(tight ? markdown.TrimEnd() : markdown.Trim());
+        builder.Append(preserveIndent ? markdown.TrimEnd() : markdown.Trim());
     }
 
     private static string RenderTable(PdfLogicalTable table, PdfLogicalMarkdownOptions options) {
@@ -255,6 +280,25 @@ public static class PdfLogicalMarkdownExtensions {
         for (int i = 0; i < data.Structure.ColumnCount; i++) {
             builder.Append(alignNumericColumns && data.IsNumericColumn(i) ? " ---: |" : " --- |");
         }
+    }
+
+    private static string RenderListItem(PdfLogicalListItem item, Stack<(int Level, int ContentIndent)> parents,
+        out bool requiresBlankLine) {
+        int level = Math.Max(item.Level, 1);
+        string marker = FormatListMarker(item.Marker);
+        bool startsNestedList = parents.Count > 0 && parents.Peek().Level < level;
+        // A non-one ordered list needs a blank line after its parent's paragraph to preserve its start number.
+        requiresBlankLine = startsNestedList && marker is not ("-" or "1." or "1)");
+
+        while (parents.Count > 0 && parents.Peek().Level >= level) parents.Pop();
+        int indent = (level - 1) * 2;
+        if (parents.Count > 0) {
+            (int parentLevel, int parentContentIndent) = parents.Peek();
+            indent = parentContentIndent + (level - parentLevel - 1) * 2;
+        }
+
+        parents.Push((level, indent + marker.Length + 1));
+        return new string(' ', indent) + marker + " " + EscapeInline(item.Text);
     }
 
     private static string FormatListMarker(string marker) {
@@ -523,16 +567,19 @@ public static class PdfLogicalMarkdownExtensions {
     }
 
     private sealed class MarkdownItem {
-        public MarkdownItem(double? y, double x, int sequence, string markdown, bool canonical = false, bool isListItem = false) {
+        public MarkdownItem(double? y, double x, int sequence, string markdown, bool canonical = false,
+            bool isListItem = false, bool requiresBlankLine = false) {
             Y = y;
             X = x;
             Sequence = sequence;
             Markdown = markdown;
             Canonical = canonical;
             IsListItem = isListItem;
+            RequiresBlankLine = requiresBlankLine;
         }
 
         public bool IsListItem { get; }
+        public bool RequiresBlankLine { get; }
 
         public double? Y { get; }
 
