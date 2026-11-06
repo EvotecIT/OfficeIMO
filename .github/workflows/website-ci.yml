@@ -32,7 +32,7 @@ jobs:
   website-build:
     needs: changes
     if: github.event_name == 'pull_request' && needs.changes.outputs.selected == 'true'
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@2c29156fc471bc8d1d5b80035084866ceb44e2c8
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@b48450ea1c26584aa5d531b3e65eae1b153c2bcb
     with:
       website_root: Website
       authenticate_public_github_data: true
@@ -43,8 +43,10 @@ jobs:
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       dotnet_version: "10.0.x"
       dotnet_workloads: wasm-tools
+      # Three extra Linux jobs share the API docs block with this one.
+      apidocs_shards: 4
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 5767e6953d1f9839244c90faa0f8f96934f8ad92
+      powerforge_ref: b48450ea1c26584aa5d531b3e65eae1b153c2bcb
       report_artifact_name: powerforge-website-reports
 
   website-build-manual:
@@ -56,7 +58,7 @@ jobs:
       actions: read
       contents: read
       packages: read
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-run.yml@2c29156fc471bc8d1d5b80035084866ceb44e2c8
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-run.yml@b48450ea1c26584aa5d531b3e65eae1b153c2bcb
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
@@ -65,8 +67,10 @@ jobs:
       timeout_minutes: 120
       dotnet_version: "10.0.x"
       dotnet_workloads: wasm-tools
+      # Three extra Linux jobs share the API docs block with this one.
+      apidocs_shards: 4
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 5767e6953d1f9839244c90faa0f8f96934f8ad92
+      powerforge_ref: b48450ea1c26584aa5d531b3e65eae1b153c2bcb
       report_artifact_name: powerforge-website-reports
       pipeline_mode: ci
       credential_mode: standard
