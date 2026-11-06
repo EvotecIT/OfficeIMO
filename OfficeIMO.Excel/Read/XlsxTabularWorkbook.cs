@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
         // independent archive. Explicit sequential policies and diagnostic callbacks
         // retain their existing execution and callback-thread behavior.
         private static bool CanPipelineWorksheetIndex(ExcelReaderOptions options) =>
-            options.A1Range == null && options.Execution.AllowsBackgroundRead;
+            options.A1Range == null && options.Execution.AllowsBackgroundProcessing;
 
         internal static XlsxTabularWorkbook Open(string path, ExcelReaderOptions options) {
             return Open(path, options, metadataOnly: false);
