@@ -23,6 +23,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool isTemplate = false) {
             ArgumentNullException.ThrowIfNull(document);
 
+            if (document.IsWord69Source) {
+                throw new NotSupportedException("Word 6/95 sources support migration to DOCX. Saving them as binary DOC is unavailable.");
+            }
+
             ThrowIfUnsupportedLegacyDocImportState(document, options);
             var fieldStyles = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
             if (fieldStyles != null) FieldComparisonStyles.Remove(fieldStyles);

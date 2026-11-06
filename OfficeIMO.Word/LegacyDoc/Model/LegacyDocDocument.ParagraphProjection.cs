@@ -25,7 +25,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocSection> sections,
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
-            bool reportUnsupportedFeatures) {
+            bool reportUnsupportedFeatures,
+            bool orderedFormattingRanges = false) {
             var bodyText = new System.Text.StringBuilder(characters.Count);
             var currentRuns = new List<LegacyDocTextRun>();
             var runText = new System.Text.StringBuilder();
@@ -50,7 +51,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 if (LegacyDocPictureReader.TryCreatePictureRun(
                     textCharacter,
                     picturesByCharacterPosition,
-                    GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset),
+                    GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset, orderedFormattingRanges),
                     out LegacyDocTextRun? pictureRun)) {
                     FlushRun();
                     currentRuns.Add(pictureRun!);
@@ -152,8 +153,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 if (textCharacter.Character == '\a') {
-                    LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
-                    LegacyDocCharacterFormat paragraphMarkFormat = GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset);
+                    LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset, orderedFormattingRanges);
+                    LegacyDocCharacterFormat paragraphMarkFormat = GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset, orderedFormattingRanges);
                     if (paragraphMarkFormat.HasFormatting) {
                         paragraphFormat = paragraphFormat.WithParagraphMarkFormat(paragraphMarkFormat);
                     }
@@ -164,7 +165,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             // The next paragraph's table depth ends a real table.
                             // Its content, including an empty body paragraph, belongs outside it.
                             bool followingTableParagraph = characterIndex + 1 < characters.Count &&
-                                GetParagraphFormatForFileOffset(paragraphFormattingRanges, characters[characterIndex + 1].FileOffset).IsInTable == true;
+                                GetParagraphFormatForFileOffset(paragraphFormattingRanges, characters[characterIndex + 1].FileOffset, orderedFormattingRanges).IsInTable == true;
                             if (!followingTableParagraph) {
                                 FlushTable(LegacyDocParagraphFormat.Default, textCharacter.CharacterPosition + 1);
                                 currentParagraphStartCharacter = textCharacter.CharacterPosition + 1;
@@ -191,9 +192,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset);
+                LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset, orderedFormattingRanges);
                 if (normalized.Value == '\r') {
-                    LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
+                    LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset, orderedFormattingRanges);
                     if (format.HasFormatting) {
                         paragraphFormat = paragraphFormat.WithParagraphMarkFormat(format);
                     }
@@ -201,7 +202,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     if (paragraphFormat.IsInTable == true && paragraphFormat.IsTableTerminatingParagraph != true) {
                         AddCurrentTextAsTableCellParagraph(paragraphFormat);
                     } else if (inTable) {
-                        FlushTable(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset), textCharacter.CharacterPosition + 1);
+                        FlushTable(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset, orderedFormattingRanges), textCharacter.CharacterPosition + 1);
                     } else if (!isSectionMark || currentRuns.Count > 0 || runText.Length > 0 ||
                         !paragraphFormat.Equals(LegacyDocParagraphFormat.Default) &&
                         !paragraphFormat.Equals(new LegacyDocParagraphFormat(null, styleIndex: 0)) ||
@@ -296,7 +297,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             char? normalizedEquationCharacter = NormalizeBodyCharacter(equationCharacter.Character);
                             if (normalizedEquationCharacter == null) continue;
                             if (equationPositions.Count == 0) {
-                                equationFormat = GetFormatForFileOffset(formattingRanges, equationCharacter.FileOffset);
+                                equationFormat = GetFormatForFileOffset(formattingRanges, equationCharacter.FileOffset, orderedFormattingRanges);
                             }
                             equationText.Append(normalizedEquationCharacter.Value);
                             equationPositions.Add(equationCharacter.CharacterPosition);
@@ -328,7 +329,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             LegacyDocTextCharacter visibleCharacter = characters[visibleResultIndex];
                             char? normalizedVisibleCharacter = NormalizeBodyCharacter(visibleCharacter.Character);
                             if (normalizedVisibleCharacter == null) continue;
-                            LegacyDocCharacterFormat visibleFormat = GetFormatForFileOffset(formattingRanges, visibleCharacter.FileOffset);
+                            LegacyDocCharacterFormat visibleFormat = GetFormatForFileOffset(formattingRanges, visibleCharacter.FileOffset, orderedFormattingRanges);
                             AppendRunCharacter(normalizedVisibleCharacter.Value, visibleFormat, visibleCharacter.CharacterPosition, hyperlinkTarget);
                             bodyText.Append(normalizedVisibleCharacter.Value);
                         }
@@ -342,7 +343,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         continue;
                     }
 
-                    LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
+                    LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset, orderedFormattingRanges);
                     AppendRunCharacter(normalized.Value, format, resultCharacter.CharacterPosition, hyperlinkTarget);
                     bodyText.Append(normalized.Value);
                 }
@@ -360,7 +361,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         continue;
                     }
 
-                    LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
+                    LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset, orderedFormattingRanges);
                     AppendRunCharacter(normalized.Value, format, resultCharacter.CharacterPosition);
                     bodyText.Append(normalized.Value);
                 }
@@ -379,7 +380,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     if (positions.Count == 0) {
-                        format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
+                        format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset, orderedFormattingRanges);
                     }
 
                     resultText.Append(normalized.Value);
@@ -714,7 +715,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private static LegacyDocCharacterFormat GetFormatForFileOffset(IReadOnlyList<LegacyDocCharacterFormatRange> ranges, int fileOffset) {
+        private static LegacyDocCharacterFormat GetFormatForFileOffset(
+            IReadOnlyList<LegacyDocCharacterFormatRange> ranges, int fileOffset, bool orderedFormattingRanges) {
+            if (orderedFormattingRanges) {
+                int index = FindOrderedRange(ranges, fileOffset, static range => range.FileOffsetStart, static range => range.FileOffsetEnd);
+                return index >= 0 ? ranges[index].Format : LegacyDocCharacterFormat.Default;
+            }
+
             for (int i = 0; i < ranges.Count; i++) {
                 if (ranges[i].Contains(fileOffset)) {
                     return ranges[i].Format;
@@ -724,7 +731,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return LegacyDocCharacterFormat.Default;
         }
 
-        private static LegacyDocParagraphFormat GetParagraphFormatForFileOffset(IReadOnlyList<LegacyDocParagraphFormatRange> ranges, int fileOffset) {
+        private static LegacyDocParagraphFormat GetParagraphFormatForFileOffset(
+            IReadOnlyList<LegacyDocParagraphFormatRange> ranges, int fileOffset, bool orderedFormattingRanges) {
+            if (orderedFormattingRanges) {
+                int index = FindOrderedRange(ranges, fileOffset, static range => range.FileOffsetStart, static range => range.FileOffsetEnd);
+                return index >= 0 ? ranges[index].Format : LegacyDocParagraphFormat.Default;
+            }
+
             for (int i = 0; i < ranges.Count; i++) {
                 if (ranges[i].Contains(fileOffset)) {
                     return ranges[i].Format;
@@ -732,6 +745,26 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             return LegacyDocParagraphFormat.Default;
+        }
+
+        // Word 6/95 validates increasing, disjoint file offsets before projection.
+        private static int FindOrderedRange<T>(IReadOnlyList<T> ranges, int fileOffset,
+            Func<T, int> startOf, Func<T, int> endOf) {
+            int first = 0;
+            int last = ranges.Count - 1;
+            while (first <= last) {
+                int middle = first + (last - first) / 2;
+                T range = ranges[middle];
+                if (fileOffset < startOf(range)) {
+                    last = middle - 1;
+                } else if (fileOffset >= endOf(range)) {
+                    first = middle + 1;
+                } else {
+                    return middle;
+                }
+            }
+
+            return -1;
         }
 
     }

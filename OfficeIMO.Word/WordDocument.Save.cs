@@ -146,6 +146,7 @@ namespace OfficeIMO.Word {
 
             if (ResolveSavePassword(options) is string password) {
                 if (IsLegacyDocPath(filePath)) throw new NotSupportedException("Password-protected DOC output is not supported.");
+                EnsureDestinationFileWritable(filePath);
                 OfficeFileCommit.WriteAllBytes(filePath, OfficeEncryption.EncryptPackage(ToWordBytes(WordFileFormat.Docx, options), password));
                 return;
             }
@@ -515,7 +516,12 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static void EnsureDestinationFileWritable(string filePath) {
+        private void EnsureDestinationFileWritable(string filePath) {
+            if (IsWord69Source && _legacyDocSourcePath != null
+                && OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(_legacyDocSourcePath, filePath)) {
+                throw new NotSupportedException("Saving would replace the Word 6/95 source. Choose a separate DOCX destination.");
+            }
+
             if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
                 throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
             }

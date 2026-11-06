@@ -434,3 +434,4 @@ OfficeIMO.Word.WordDocumentStatisticsInfo.Tables.get -> int
 OfficeIMO.Word.WordDocumentStatisticsInfo.Words.get -> int
 OfficeIMO.Word.WordSearchResult.EndnoteParagraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordParagraph!>!
 OfficeIMO.Word.WordSearchResult.FootnoteParagraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordParagraph!>!
+OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind.Formatting = 20 -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind

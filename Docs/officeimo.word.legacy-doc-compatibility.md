@@ -6,9 +6,20 @@ This document is the current capability contract.
 
 Native DOC uses the legacy behavior for a manual page break at the end of a paragraph: the paragraph mark moves onto the next page and consumes its line height and after spacing. Import projects this behavior through `CompatibilitySettings.SplitPageBreakAndParagraphMark = true` and Word 2003 compatibility mode, so DOCX and PDF conversion retain it. Native DOC saving rejects an explicitly disabled value. Use DOCX to retain `false`; Word 2013 compatibility mode ignores this stored setting during layout.
 
+## Import Word 6 and Word 95 documents
+
+Load an unencrypted, non-fast-saved Windows-1252 Word 6 or Word 95 document with `WordDocument.Load`. The supported File Information Block versions are 101 and 104. Import projects body paragraphs, supported paragraph styles and character formatting, simple tables, supported field results, tracked text revisions, and the default tab stop into editable Word content. Edit-protected files are rejected.
+
+    using OfficeIMO.Word;
+
+    using WordDocument document = WordDocument.Load("archive.doc");
+    document.Save("editable.docx");
+
+Save to a separate DOCX path. Word 6/95 sources have no associated save path and binary DOC output is unavailable for those documents. Review `LegacyDocUnsupportedFeatures` before conversion. Strict DOCX saving blocks when the reader reports lost content, such as unprojected running stories, embedded objects, unsupported formatting, or text that uses another font code page. Set `WordSaveOptions.AllowLoss` to `true` only when those reported losses are acceptable.
+
 ## Normal API
 
-Use the same `WordDocument` surface for both formats:
+Use `WordDocument` for modern DOCX and Word 97–2003 binary DOC:
 
 ```csharp
 using OfficeIMO.Word;
