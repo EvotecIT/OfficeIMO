@@ -12,6 +12,9 @@ internal sealed partial class WordMl2003Projection {
     private readonly Dictionary<string, string> _imageRelationships = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _hyperlinkRelationships = new(StringComparer.Ordinal);
     private int _relationshipCount;
+    private int _packageEntryCount = 1; // [Content_Types].xml
+    private readonly HashSet<OpenXmlPartContainer> _relationshipOwners = new();
+    private bool _corePropertiesReserved;
     private static readonly HashSet<string> VmlElements = Names("shape shapetype imagedata stroke formulas f path fill");
     private static readonly Dictionary<string, string> VmlAttributes = new(StringComparer.Ordinal) {
         ["shape"] = "id type style alt title coordsize coordorigin wrapcoords filled fillcolor stroked strokecolor strokeweight insetpen spid spt preferrelative allowincell allowoverlap behindDoc",
@@ -25,7 +28,6 @@ internal sealed partial class WordMl2003Projection {
     private OfficePackageSecurityOptions _resourcePolicy = null!;
 
     private void IndexImages(XElement root, OfficePackageSecurityOptions policy) {
-        _resourcePolicy = policy;
         _remainingImageBytes = Math.Min(WordXmlInterchange.MaximumXmlBytes, policy.MaxTotalUncompressedBytes);
         foreach (XElement data in root.Descendants(Word + "binData")) {
             CheckAttributes(data, "name");
@@ -50,7 +52,7 @@ internal sealed partial class WordMl2003Projection {
             } else {
                 string key = _story.Uri.OriginalString + "|" + destination;
                 if (!_hyperlinkRelationships.TryGetValue(key, out string? id)) {
-                    ReserveRelationship();
+                    ReserveRelationship(_story);
                     id = _story.AddHyperlinkRelationship(uri, true).Id;
                     _hyperlinkRelationships.Add(key, id);
                 }
@@ -123,10 +125,12 @@ internal sealed partial class WordMl2003Projection {
                         throw new InvalidDataException("WordML 2003 exceeds the decoded image resource limit.");
                     OfficeImageInfo info = OfficeImageReader.Identify(bytes);
                     image = (bytes, info.MimeType);
-                    _remainingImageBytes -= bytes.LongLength;
                     _decodedImages.Add(name, image);
                 }
-                ReserveRelationship();
+                if (image.Bytes.LongLength > _remainingImageBytes)
+                    throw new InvalidDataException("WordML 2003 exceeds the written image resource limit.");
+                ReserveRelationship(_story, createsPart: true);
+                _remainingImageBytes -= image.Bytes.LongLength;
                 ImagePart part = _story switch {
                     MainDocumentPart main => main.AddImagePart(image.ContentType),
                     HeaderPart header => header.AddImagePart(image.ContentType),
@@ -147,8 +151,14 @@ internal sealed partial class WordMl2003Projection {
         return result;
     }
 
-    private void ReserveRelationship() {
-        if (++_relationshipCount > _resourcePolicy.MaxRelationships || _relationshipCount > _resourcePolicy.MaxPartCount)
+    private void ReserveRelationship(OpenXmlPartContainer owner, bool createsPart = false) {
+        bool firstRelationship = !_relationshipOwners.Contains(owner);
+        int entries = (createsPart ? 1 : 0) + (firstRelationship ? 1 : 0);
+        if (_relationshipCount >= _resourcePolicy.MaxRelationships ||
+            _packageEntryCount > _resourcePolicy.MaxPartCount - entries)
             throw new InvalidDataException("WordML 2003 exceeds the package relationship or part limit.");
+        _relationshipCount++;
+        _packageEntryCount += entries;
+        if (firstRelationship) _relationshipOwners.Add(owner);
     }
 }

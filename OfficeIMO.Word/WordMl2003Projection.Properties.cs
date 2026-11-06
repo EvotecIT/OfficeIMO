@@ -75,7 +75,7 @@ internal sealed partial class WordMl2003Projection {
 
     private static HashSet<string> Names(string words) => new(words.Split(' '), StringComparer.Ordinal);
 
-    private XElement MapProperties(XElement source, string context, string? parent = null) {
+    private XElement? MapProperties(XElement source, string context, string? parent = null) {
         _token.ThrowIfCancellationRequested();
         string name = ElementNames.TryGetValue(context, out string? mappedName) ? mappedName : context;
         var output = new XElement(ModernWord + name);
@@ -93,11 +93,11 @@ internal sealed partial class WordMl2003Projection {
                 continue;
             }
             string target = AttributeNames.TryGetValue(local, out string? mapped) ? mapped : local;
-            string value = attribute.Value;
-            if (context == "tblLayout" && local == "type") value = value.ToLowerInvariant();
-            if (context == "jc" && value is "distribute" or "thai-distribute") value = value == "distribute" ? "distribute" : "thaiDistribute";
-            if (context == "br" && local == "type" && value == "text-wrapping") value = "textWrapping";
-            if (context == "rFonts" && local == "hint" && value == "fareast") value = "eastAsia";
+            if (!TryMapPropertyValue(context, local, parent, attribute.Value, out string value)) {
+                string token = attribute.Value.Length <= 80 ? attribute.Value : attribute.Value.Substring(0, 80) + "...";
+                Omit(attribute.Name, context + " property with unsupported " + local + " enum value '" + token + "'");
+                return null;
+            }
             output.SetAttributeValue(ModernWord + target, value);
         }
         foreach (XElement child in source.Elements()) {

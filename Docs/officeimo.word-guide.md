@@ -762,6 +762,8 @@ The load report records unsupported elements and formatting attributes, includin
 unmapped list definitions, floating text frames, non-picture drawings, active
 content and unsupported document settings. `WordLoadOptions.FailOnLoss` rejects
 sources that require those omissions. Import never retrieves linked resources.
+Legacy enumeration spellings map to native values. An unsupported value omits
+its containing property and appears in the load report.
 
 ```csharp
 using var document = WordDocument.Load("source.xml", new WordLoadOptions(), out var report);

@@ -30,7 +30,7 @@ internal sealed partial class WordMl2003Projection {
         CheckAttributes(source, "");
         var styles = new Styles();
         if (defaultFonts != null) {
-            XElement mapped = MapProperties(defaultFonts, "rFonts");
+            XElement? mapped = MapProperties(defaultFonts, "rFonts");
             styles.DocDefaults = new DocDefaults(new RunPropertiesDefault(
                 new RunPropertiesBaseStyle(new XElement(ModernWord + "rPr", mapped).ToString(SaveOptions.DisableFormatting))));
         }
@@ -63,21 +63,24 @@ internal sealed partial class WordMl2003Projection {
                 else if (property.Name == Word + "next") style.NextParagraphStyle = new NextParagraphStyle { Val = ReadStyleReference(property) };
                 else if (property.Name == Word + "link") style.LinkedStyle = new LinkedStyle { Val = ReadStyleReference(property) };
                 else if (property.Name == Word + "pPr") style.StyleParagraphProperties =
-                    new StyleParagraphProperties(MapProperties(property, "pPr").ToString(SaveOptions.DisableFormatting));
+                    new StyleParagraphProperties(MapProperties(property, "pPr")!.ToString(SaveOptions.DisableFormatting));
                 else if (property.Name == Word + "rPr") style.StyleRunProperties =
-                    new StyleRunProperties(MapProperties(property, "rPr").ToString(SaveOptions.DisableFormatting));
+                    new StyleRunProperties(MapProperties(property, "rPr")!.ToString(SaveOptions.DisableFormatting));
                 else if (property.Name == Word + "tblPr") style.StyleTableProperties =
-                    new StyleTableProperties(MapProperties(property, "tblPr").ToString(SaveOptions.DisableFormatting));
+                    new StyleTableProperties(MapProperties(property, "tblPr")!.ToString(SaveOptions.DisableFormatting));
                 else if (property.Name == Word + "trPr") style.TableStyleConditionalFormattingTableRowProperties =
-                    new TableStyleConditionalFormattingTableRowProperties(MapProperties(property, "trPr").ToString(SaveOptions.DisableFormatting));
+                    new TableStyleConditionalFormattingTableRowProperties(MapProperties(property, "trPr")!.ToString(SaveOptions.DisableFormatting));
                 else if (property.Name == Word + "tcPr") style.StyleTableCellProperties =
-                    new StyleTableCellProperties(MapProperties(property, "tcPr").ToString(SaveOptions.DisableFormatting));
-                else if (property.Name == Word + "tblStylePr") style.AppendChild(
-                    new TableStyleProperties(MapProperties(property, "tblStylePr").ToString(SaveOptions.DisableFormatting)));
+                    new StyleTableCellProperties(MapProperties(property, "tcPr")!.ToString(SaveOptions.DisableFormatting));
+                else if (property.Name == Word + "tblStylePr") {
+                    XElement? conditional = MapProperties(property, "tblStylePr");
+                    if (conditional != null) style.AppendChild(new TableStyleProperties(conditional.ToString(SaveOptions.DisableFormatting)));
+                }
                 else Omit(property, "style properties");
             }
             styles.AppendChild(style);
         }
+        ReserveRelationship(_main, createsPart: true);
         _main.AddNewPart<StyleDefinitionsPart>().Styles = styles;
     }
 
@@ -96,17 +99,21 @@ internal sealed partial class WordMl2003Projection {
             CheckAttributes(child, "name");
             var font = new XElement(ModernWord + "font", new XAttribute(ModernWord + "name", (string?)child.Attribute(Word + "name") ?? string.Empty));
             foreach (XElement property in child.Elements()) {
-                XElement mapped = MapProperties(property, property.Name.LocalName);
+                XElement? mapped = MapProperties(property, property.Name.LocalName);
+                if (mapped == null) continue;
                 if (property.Name == Word + "panose-1") { mapped.Name = ModernWord + "panose1"; font.Add(mapped); }
                 else if (property.Name == Word + "charset") font.Add(mapped);
-                else if (property.Name == Word + "family") { mapped.SetAttributeValue(ModernWord + "val", ((string?)mapped.Attribute(ModernWord + "val"))?.ToLowerInvariant()); font.Add(mapped); }
+                else if (property.Name == Word + "family") font.Add(mapped);
                 else if (property.Name == Word + "pitch") font.Add(mapped);
                 else if (property.Name == Word + "sig") Omit(property, "font signature metadata");
                 else Omit(property, "font metadata");
             }
             fonts.AppendChild(new Font(font.ToString(SaveOptions.DisableFormatting)));
         }
-        if (fonts.HasChildren) _main.AddNewPart<FontTablePart>().Fonts = fonts;
+        if (fonts.HasChildren) {
+            ReserveRelationship(_main, createsPart: true);
+            _main.AddNewPart<FontTablePart>().Fonts = fonts;
+        }
     }
 
     private void ReadSettings(XElement source) {
@@ -118,22 +125,19 @@ internal sealed partial class WordMl2003Projection {
                 Omit(child, "document settings");
                 continue;
             }
-            XElement mapped = MapProperties(child, child.Name.LocalName);
+            XElement? mapped = MapProperties(child, child.Name.LocalName);
+            if (mapped == null) continue;
             if (child.Name == Word + "doNotEmbedSystemFonts" || child.Name == Word + "punctuationKerning") {
                 mapped.Name = ModernWord + (child.Name.LocalName == "doNotEmbedSystemFonts" ? "embedSystemFonts" : "noPunctuationKerning");
                 mapped.SetAttributeValue(ModernWord + "val", !IsTrue((string?)child.Attribute(Word + "val") ?? "on"));
             }
-            if (child.Name == Word + "characterSpacingControl" && mapped.Attribute(ModernWord + "val") is { } control)
-                control.Value = control.Value switch {
-                    "DontCompress" => "doNotCompress", "CompressPunctuation" => "compressPunctuation",
-                    "CompressPunctuationAndJapaneseKana" => "compressPunctuationAndJapaneseKana", _ => control.Value
-                };
             settings.Add(mapped);
         }
         if (settings.HasElements) {
             var parsed = new Settings(settings.ToString(SaveOptions.DisableFormatting));
             var ordered = new Settings();
             foreach (OpenXmlElement child in parsed.ChildElements) ordered.AddChild(child.CloneNode(true), true);
+            ReserveRelationship(_main, createsPart: true);
             _main.AddNewPart<DocumentSettingsPart>().Settings = ordered;
         }
     }
@@ -144,6 +148,10 @@ internal sealed partial class WordMl2003Projection {
             CheckAttributes(child, "", Office);
             if (child.HasElements || child.Name.Namespace != Office) { Omit(child, "document properties"); continue; }
             string value = child.Value;
+            if (ContainsName("Title Subject Author LastAuthor Keywords Description", child.Name.LocalName) && !_corePropertiesReserved) {
+                ReserveRelationship(_main.OpenXmlPackage, createsPart: true);
+                _corePropertiesReserved = true;
+            }
             switch (child.Name.LocalName) {
                 case "Title": _main.OpenXmlPackage.PackageProperties.Title = value; break;
                 case "Subject": _main.OpenXmlPackage.PackageProperties.Subject = value; break;
@@ -163,7 +171,7 @@ internal sealed partial class WordMl2003Projection {
             _ => throw new InvalidDataException("WordML 2003 contains an invalid header or footer type.")
         };
         OpenXmlPart previous = _story;
-        ReserveRelationship();
+        ReserveRelationship(_main, createsPart: true);
         try {
             if (source.Name == Word + "hdr") {
                 HeaderPart part = _main.AddNewPart<HeaderPart>();

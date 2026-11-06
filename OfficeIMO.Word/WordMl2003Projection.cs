@@ -19,12 +19,13 @@ internal sealed partial class WordMl2003Projection {
 
     internal static IReadOnlyList<OfficeDiagnostic> WritePackage(XElement root, Stream destination,
         OfficePackageSecurityOptions policy, CancellationToken token) {
-        var projection = new WordMl2003Projection(token);
+        var projection = new WordMl2003Projection(token) { _resourcePolicy = policy };
         XElement? body = root.Element(Word + "body");
         if (body == null || body.ElementsAfterSelf(Word + "body").Any())
             throw new InvalidDataException("WordML 2003 must contain exactly one Word body.");
         projection.AdmitSource(root, policy);
         using var document = WordprocessingDocument.Create(destination, WordprocessingDocumentType.Document);
+        projection.ReserveRelationship(document, createsPart: true);
         projection._main = document.AddMainDocumentPart();
         projection._story = projection._main;
         projection.ReadDocumentParts(root, policy);
@@ -86,7 +87,7 @@ internal sealed partial class WordMl2003Projection {
         var paragraph = new Paragraph();
         foreach (XElement child in source.Elements()) {
             if (child.Name == Word + "pPr") {
-                XElement mapped = MapProperties(child, "pPr");
+                XElement mapped = MapProperties(child, "pPr")!;
                 XElement? section = child.Element(Word + "sectPr");
                 var properties = new ParagraphProperties(mapped.ToString(SaveOptions.DisableFormatting));
                 if (section != null) {
@@ -114,11 +115,12 @@ internal sealed partial class WordMl2003Projection {
                     CheckAttributes(child, "");
                     run.AppendChild(new TabChar());
                 } else if (child.Name == Word + "br") {
-                    XElement mapped = MapProperties(child, "br");
+                    XElement? mapped = MapProperties(child, "br");
+                    if (mapped == null) continue;
                     var parsed = new Run(new XElement(ModernWord + "r", mapped).ToString(SaveOptions.DisableFormatting));
                     run.AppendChild(parsed.GetFirstChild<Break>()!.CloneNode(true));
                 } else if (child.Name == Word + "rPr") {
-                    run.RunProperties = new RunProperties(MapProperties(child, "rPr").ToString(SaveOptions.DisableFormatting));
+                    run.RunProperties = new RunProperties(MapProperties(child, "rPr")!.ToString(SaveOptions.DisableFormatting));
                 } else if (child.Name == Word + "pict") {
                     Picture? picture = ProjectPicture(child);
                     if (picture != null) run.AppendChild(picture);
@@ -126,7 +128,8 @@ internal sealed partial class WordMl2003Projection {
                     CheckAttributes(child, "");
                     run.AppendChild(new FieldCode(child.Value) { Space = SpaceProcessingModeValues.Preserve });
                 } else if (child.Name == Word + "fldChar") {
-                    run.AppendChild(new FieldChar(MapProperties(child, "fldChar").ToString(SaveOptions.DisableFormatting)));
+                    XElement? mapped = MapProperties(child, "fldChar");
+                    if (mapped != null) run.AppendChild(new FieldChar(mapped.ToString(SaveOptions.DisableFormatting)));
                 } else Omit(child, "run content");
             }
             target.AppendChild(run);
@@ -138,10 +141,10 @@ internal sealed partial class WordMl2003Projection {
         var table = new Table();
         XElement? properties = source.Element(Word + "tblPr");
         table.AppendChild(properties == null ? new TableProperties() :
-            new TableProperties(MapProperties(properties, "tblPr").ToString(SaveOptions.DisableFormatting)));
+            new TableProperties(MapProperties(properties, "tblPr")!.ToString(SaveOptions.DisableFormatting)));
         XElement? sourceGrid = source.Element(Word + "tblGrid");
         var grid = sourceGrid == null ? new TableGrid() :
-            new TableGrid(MapProperties(sourceGrid, "tblGrid").ToString(SaveOptions.DisableFormatting));
+            new TableGrid(MapProperties(sourceGrid, "tblGrid")!.ToString(SaveOptions.DisableFormatting));
         table.AppendChild(grid);
         foreach (XElement child in source.Elements()) {
             if (child.Name == Word + "tblPr" || child.Name == Word + "tblGrid") continue;
@@ -150,14 +153,14 @@ internal sealed partial class WordMl2003Projection {
             var row = new TableRow();
             foreach (XElement cell in child.Elements()) {
                 if (cell.Name == Word + "trPr") {
-                    row.AppendChild(new TableRowProperties(MapProperties(cell, "trPr").ToString(SaveOptions.DisableFormatting)));
+                    row.AppendChild(new TableRowProperties(MapProperties(cell, "trPr")!.ToString(SaveOptions.DisableFormatting)));
                 } else if (cell.Name == Word + "tblPrEx") {
-                    row.AppendChild(new TablePropertyExceptions(MapProperties(cell, "tblPrEx").ToString(SaveOptions.DisableFormatting)));
+                    row.AppendChild(new TablePropertyExceptions(MapProperties(cell, "tblPrEx")!.ToString(SaveOptions.DisableFormatting)));
                 } else if (cell.Name == Word + "tc") {
                     var outputCell = new TableCell();
                     XElement? cellProperties = cell.Element(Word + "tcPr");
                     if (cellProperties != null)
-                        outputCell.AppendChild(new TableCellProperties(MapProperties(cellProperties, "tcPr").ToString(SaveOptions.DisableFormatting)));
+                        outputCell.AppendChild(new TableCellProperties(MapProperties(cellProperties, "tcPr")!.ToString(SaveOptions.DisableFormatting)));
                     outputCell.Append(ProjectBlocks(cell, inTableCell: true));
                     if (outputCell.LastChild is not Paragraph) outputCell.AppendChild(new Paragraph());
                     row.AppendChild(outputCell);
@@ -179,7 +182,7 @@ internal sealed partial class WordMl2003Projection {
     }
 
     private SectionProperties ProjectSectionProperties(XElement source) {
-        var properties = new SectionProperties(MapProperties(source, "sectPr").ToString(SaveOptions.DisableFormatting));
+        var properties = new SectionProperties(MapProperties(source, "sectPr")!.ToString(SaveOptions.DisableFormatting));
         foreach (XElement child in source.Elements().Where(element => element.Name == Word + "hdr" || element.Name == Word + "ftr"))
             AppendHeaderFooter(properties, child);
         return properties;

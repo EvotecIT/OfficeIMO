@@ -9,6 +9,102 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class WordMl2003MigrationTests {
+    [Fact]
+    public void LegacyFormattingEnumsMigrateToValidNativePropertiesUnderStrictLoad() {
+        const string xml = """
+            <w:wordDocument xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml"><w:body>
+              <w:p><w:pPr><w:pBdr><w:top w:val="thin-thick-small-gap" w:sz="8"/></w:pBdr>
+                <w:shd w:val="pct-5" w:fill="DDEEFF"/><w:tabs><w:tab w:val="left" w:leader="middle-dot" w:pos="720"/></w:tabs>
+                <w:spacing w:line="300" w:line-rule="at-least"/><w:jc w:val="medium-kashida"/>
+                <w:textDirection w:val="tb-rl"/></w:pPr>
+                <w:r><w:rPr><w:u w:val="dash-long-heavy"/><w:effect w:val="ants-black"/><w:em w:val="under-dot"/></w:rPr><w:t>Qualified formatting</w:t></w:r>
+              </w:p><w:sectPr><w:type w:val="even-page"/><w:pgNumType w:fmt="upper-roman" w:chap-sep="em-dash"/>
+                <w:docGrid w:type="lines-and-chars" w:line-pitch="360"/></w:sectPr>
+            </w:body></w:wordDocument>
+            """;
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+        using WordDocument document = WordDocument.Load(input, new WordLoadOptions { FailOnLoss = true }, out OfficeConversionReport report);
+        Assert.False(report.HasLoss);
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(saved));
+        ParagraphProperties paragraph = saved.MainDocumentPart.Document.Body.Elements<Paragraph>().Single().ParagraphProperties;
+        Assert.Equal(LineSpacingRuleValues.AtLeast, paragraph.SpacingBetweenLines.LineRule.Value);
+        Assert.Equal(TextDirectionValues.TopToBottomRightToLeft, paragraph.TextDirection.Val.Value);
+        Assert.Equal(ShadingPatternValues.Percent5, paragraph.Shading.Val.Value);
+        Assert.Equal(BorderValues.ThinThickSmallGap, paragraph.ParagraphBorders.TopBorder.Val.Value);
+        Assert.Equal(TabStopLeaderCharValues.MiddleDot, paragraph.Tabs.GetFirstChild<TabStop>().Leader.Value);
+        Assert.Equal(JustificationValues.MediumKashida, paragraph.Justification.Val.Value);
+        RunProperties run = saved.MainDocumentPart.Document.Descendants<Run>().Single().RunProperties;
+        Assert.Equal(UnderlineValues.DashLongHeavy, run.Underline.Val.Value);
+        Assert.Equal(TextEffectValues.AntsBlack, run.TextEffect.Val.Value);
+        Assert.Equal(EmphasisMarkValues.UnderDot, run.Emphasis.Val.Value);
+        SectionProperties section = saved.MainDocumentPart.Document.Body.GetFirstChild<SectionProperties>();
+        Assert.Equal(SectionMarkValues.EvenPage, section.GetFirstChild<SectionType>().Val.Value);
+        Assert.Equal(NumberFormatValues.UpperRoman, section.GetFirstChild<PageNumberType>().Format.Value);
+        Assert.Equal(ChapterSeparatorValues.EmDash, section.GetFirstChild<PageNumberType>().ChapterSeparator.Value);
+        Assert.Equal(DocGridValues.LinesAndChars, section.GetFirstChild<DocGrid>().Type.Value);
+    }
+
+    [Theory]
+    [InlineData("<w:shd w:val=\"pct-6\"/>")]
+    [InlineData("<w:jc w:val=\"unqualified-alignment\"/>")]
+    public void UnqualifiedEnumValueIsOmittedAndRemainsAStrictLoss(string property) {
+        string xml = "<w:wordDocument xmlns:w=\"http://schemas.microsoft.com/office/word/2003/wordml\"><w:body><w:p><w:pPr>" +
+            property + "</w:pPr><w:r><w:t>Retained text</w:t></w:r></w:p></w:body></w:wordDocument>";
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+        using WordDocument document = WordDocument.Load(input, null, out OfficeConversionReport report);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Message.Contains("enum value"));
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(saved));
+        Assert.Equal("Retained text", saved.MainDocumentPart.Document.Body.InnerText);
+        Assert.Throws<OfficeConversionException>(() => WordDocument.Load(input, new WordLoadOptions { FailOnLoss = true, ReportUnsupportedContent = false }));
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(2, true)]
+    public void ReconstructionChargesEveryStoryImagePartAndRetainsPerStoryReuse(int imageBudget, bool succeeds) {
+        XElement source = XDocument.Parse(RichDocument()).Root;
+        using var output = new MemoryStream();
+        var policy = new OfficePackageSecurityOptions { MaxTotalUncompressedBytes = PixelBytes.Length * imageBudget };
+        if (!succeeds) {
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => WordMl2003Projection.WritePackage(source, output, policy, default));
+            Assert.Contains("written image resource limit", error.Message);
+            return;
+        }
+        WordMl2003Projection.WritePackage(source, output, policy, default);
+        output.Position = 0;
+        using WordprocessingDocument package = WordprocessingDocument.Open(output, false);
+        Assert.Equal(PixelBytes, ReadBytes(Assert.Single(package.MainDocumentPart.ImageParts)));
+        Assert.Equal(PixelBytes, ReadBytes(Assert.Single(Assert.Single(package.MainDocumentPart.HeaderParts).ImageParts)));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ReconstructionReservesNonImagePartsAndTheirRelationshipsBeforeCreation(bool parts) {
+        const string xml = """
+            <w:wordDocument xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml">
+            <w:styles><w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>
+            <w:body><w:p/></w:body></w:wordDocument>
+            """;
+        var policy = new OfficePackageSecurityOptions();
+        if (parts) policy.MaxPartCount = 4;
+        else policy.MaxRelationships = 1;
+        using var output = new MemoryStream();
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => WordMl2003Projection.WritePackage(XDocument.Parse(xml).Root, output, policy, default));
+        Assert.Contains("relationship or part limit", error.Message);
+        if (parts) policy.MaxPartCount++;
+        else policy.MaxRelationships++;
+        using var accepted = new MemoryStream();
+        WordMl2003Projection.WritePackage(XDocument.Parse(xml).Root, accepted, policy, default);
+        accepted.Position = 0;
+        using WordprocessingDocument package = WordprocessingDocument.Open(accepted, false);
+        Assert.Equal("Normal", Assert.Single(package.MainDocumentPart.StyleDefinitionsPart.Styles.Elements<Style>()).StyleId.Value);
+    }
+
     [Theory]
     [InlineData(true, "decoded image resource limit")]
     [InlineData(false, "relationship or part limit")]
