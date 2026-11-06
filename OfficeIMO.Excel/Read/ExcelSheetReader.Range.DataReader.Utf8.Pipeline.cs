@@ -25,6 +25,9 @@ namespace OfficeIMO.Excel {
                     bool attempted = owner._partBufferReader.TryReadPipelined(
                         owner._worksheetPartName, MaximumBufferSize, ct,
                         (bytes, total, progress) => {
+                            // A declined inflation attempt has already joined its worker.
+                            // Return its index metadata before fallback replaces the candidate.
+                            candidate?.Dispose();
                             candidate = new ExcelUtf8RangeRowSource(owner, bytes, total) {
                                 _ownsBuffer = false,
                                 _inflation = progress

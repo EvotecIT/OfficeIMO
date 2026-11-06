@@ -80,7 +80,7 @@ namespace OfficeIMO.Core.Internal {
                         break;
                     case 2:
                         if (!TryReadDynamicTables(reader, out HuffmanTable dynamicLiteralLength,
-                                out HuffmanTable dynamicDistance, cancellationToken) ||
+                                out HuffmanTable dynamicDistance, out _, cancellationToken) ||
                             !TryValidateCompressedBlock(reader, dynamicLiteralLength, dynamicDistance,
                                 ref outputCount, maximumOutputBytes, ref outputLimitExceeded,
                                 cancellationToken)) {
@@ -141,9 +141,13 @@ namespace OfficeIMO.Core.Internal {
             DeflateBitReader reader,
             out HuffmanTable literalLength,
             out HuffmanTable distance,
-            CancellationToken cancellationToken) {
+            out int distanceSymbolCount,
+            CancellationToken cancellationToken,
+            DeflateWorkspace? workspace = null,
+            bool buildValueLookups = true) {
             literalLength = default;
             distance = default;
+            distanceSymbolCount = 0;
             if (!reader.TryReadBits(5, out int literalCountValue) ||
                 !reader.TryReadBits(5, out int distanceCountValue) ||
                 !reader.TryReadBits(4, out int codeLengthCountValue)) {
@@ -152,18 +156,20 @@ namespace OfficeIMO.Core.Internal {
 
             int literalCount = literalCountValue + 257;
             int distanceCount = distanceCountValue + 1;
+            distanceSymbolCount = distanceCount;
             int codeLengthCount = codeLengthCountValue + 4;
             if (literalCount > 286 || distanceCount > 32) return false;
-            var codeLengthLengths = new int[19];
+            var codeLengthLengths = RentHeaderArray(19, workspace);
             for (int index = 0; index < codeLengthCount; index++) {
                 if (!reader.TryReadBits(3, out int length)) return false;
                 codeLengthLengths[CodeLengthOrder[index]] = length;
             }
-            if (!HuffmanTable.TryCreate(codeLengthLengths, out HuffmanTable codeLengthTable)) return false;
+            if (!HuffmanTable.TryCreate(codeLengthLengths, out HuffmanTable codeLengthTable, logicalCount: 19, workspace: workspace, requireComplete: true)) return false;
 
-            var lengths = new int[literalCount + distanceCount];
+            int totalLengths = literalCount + distanceCount;
+            var lengths = RentHeaderArray(totalLengths, workspace);
             int output = 0;
-            while (output < lengths.Length) {
+            while (output < totalLengths) {
                 if ((output & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (!codeLengthTable.TryDecode(reader, out int symbol)) return false;
                 if (symbol <= 15) {
@@ -188,17 +194,17 @@ namespace OfficeIMO.Core.Internal {
                 } else {
                     return false;
                 }
-                if (repeat > lengths.Length - output) return false;
+                if (repeat > totalLengths - output) return false;
                 for (int index = 0; index < repeat; index++) lengths[output++] = value;
             }
 
-            var literalLengths = new int[literalCount];
-            var distanceLengths = new int[distanceCount];
+            var literalLengths = RentHeaderArray(literalCount, workspace);
+            var distanceLengths = RentHeaderArray(distanceCount, workspace);
             Array.Copy(lengths, 0, literalLengths, 0, literalCount);
             Array.Copy(lengths, literalCount, distanceLengths, 0, distanceCount);
             return literalLengths[256] != 0 &&
-                   HuffmanTable.TryCreate(literalLengths, out literalLength) &&
-                   HuffmanTable.TryCreate(distanceLengths, out distance, allowEmpty: true);
+                   HuffmanTable.TryCreate(literalLengths, out literalLength, logicalCount: literalCount, workspace: workspace, buildLookup: buildValueLookups) &&
+                   HuffmanTable.TryCreate(distanceLengths, out distance, allowEmpty: true, logicalCount: distanceCount, workspace: workspace, buildLookup: buildValueLookups);
         }
 
         private static bool TryValidateCompressedBlock(
@@ -242,7 +248,7 @@ namespace OfficeIMO.Core.Internal {
             return false;
         }
 
-        private readonly struct HuffmanTable {
+        private readonly partial struct HuffmanTable {
             private readonly int[]? _counts;
             private readonly int[]? _firstCodes;
             private readonly int[]? _firstSymbols;
@@ -257,7 +263,7 @@ namespace OfficeIMO.Core.Internal {
                 int[] firstSymbols,
                 int[] symbols,
                 int maximumLength,
-                int[] lookup,
+                int[]? lookup,
                 int lookupBits) {
                 _counts = counts;
                 _firstCodes = firstCodes;
@@ -268,12 +274,15 @@ namespace OfficeIMO.Core.Internal {
                 _lookupBits = lookupBits;
             }
 
-            internal static bool TryCreate(int[] lengths, out HuffmanTable table, bool allowEmpty = false) {
+            /// <summary>Builds canonical codes while allowing the one-bit literal/distance and empty-distance alphabets.</summary>
+            internal static bool TryCreate(int[] lengths, out HuffmanTable table, bool allowEmpty = false,
+                int logicalCount = -1, DeflateWorkspace? workspace = null, bool buildLookup = true, bool requireComplete = false) {
                 table = default;
-                var counts = new int[16];
+                int lengthCount = logicalCount < 0 ? lengths.Length : logicalCount;
+                var counts = RentHeaderArray(16, workspace);
                 int symbolCount = 0;
                 int maximumLength = 0;
-                for (int symbol = 0; symbol < lengths.Length; symbol++) {
+                for (int symbol = 0; symbol < lengthCount; symbol++) {
                     int length = lengths[symbol];
                     if (length < 0 || length > 15) return false;
                     if (length == 0) continue;
@@ -288,9 +297,10 @@ namespace OfficeIMO.Core.Internal {
                     remaining = (remaining << 1) - counts[length];
                     if (remaining < 0) return false;
                 }
+                if (remaining != 0 && (requireComplete || maximumLength != 1)) return false;
 
-                var firstCodes = new int[16];
-                var firstSymbols = new int[16];
+                var firstCodes = RentHeaderArray(16, workspace);
+                var firstSymbols = RentHeaderArray(16, workspace);
                 int code = 0;
                 int firstSymbol = 0;
                 for (int length = 1; length <= 15; length++) {
@@ -300,15 +310,17 @@ namespace OfficeIMO.Core.Internal {
                     firstSymbol += counts[length];
                 }
 
-                var symbols = new int[symbolCount];
-                var nextSymbol = (int[])firstSymbols.Clone();
-                for (int symbol = 0; symbol < lengths.Length; symbol++) {
+                var symbols = RentHeaderArray(symbolCount, workspace);
+                var nextSymbol = RentHeaderArray(16, workspace);
+                Array.Copy(firstSymbols, nextSymbol, 16);
+                for (int symbol = 0; symbol < lengthCount; symbol++) {
                     int length = lengths[symbol];
                     if (length == 0) continue;
                     symbols[nextSymbol[length]++] = symbol;
                 }
-                int lookupBits = Math.Min(9, maximumLength);
-                var lookup = new int[1 << lookupBits];
+                int lookupBits = buildLookup ? Math.Min(9, maximumLength) : 0;
+                int lookupLength = buildLookup ? 1 << lookupBits : 0;
+                int[]? lookup = buildLookup ? RentHeaderArray(lookupLength, workspace) : null;
                 for (int length = 1; length <= lookupBits; length++) {
                     for (int codeOffset = 0; codeOffset < counts[length]; codeOffset++) {
                         int canonicalCode = firstCodes[length] + codeOffset;
@@ -317,8 +329,8 @@ namespace OfficeIMO.Core.Internal {
                             reversedCode = (reversedCode << 1) | ((canonicalCode >> bit) & 1);
                         }
                         int entry = (symbols[firstSymbols[length] + codeOffset] << 4) | length;
-                        for (int index = reversedCode; index < lookup.Length; index += 1 << length) {
-                            lookup[index] = entry;
+                        for (int index = reversedCode; index < lookupLength; index += 1 << length) {
+                            lookup![index] = entry;
                         }
                     }
                 }
@@ -353,7 +365,7 @@ namespace OfficeIMO.Core.Internal {
             }
         }
 
-        private sealed class DeflateBitReader {
+        private sealed partial class DeflateBitReader {
             private readonly byte[] _bytes;
             private readonly long _start;
             private readonly long _end;
@@ -449,6 +461,12 @@ namespace OfficeIMO.Core.Internal {
             internal void AlignToByte() {
                 if (_bitOffset == 0) return;
                 DropBits(8 - _bitOffset);
+            }
+
+            internal bool TryCopyBytes(byte[] destination, int offset, int count) {
+                if (_stream != null || _bitOffset != 0 || count < 0 || count > _end - _byteOffset) return false;
+                Buffer.BlockCopy(_bytes, checked((int)_byteOffset), destination, offset, count);
+                return TrySkipBytes(count);
             }
 
             internal bool TrySkipBytes(int count) {

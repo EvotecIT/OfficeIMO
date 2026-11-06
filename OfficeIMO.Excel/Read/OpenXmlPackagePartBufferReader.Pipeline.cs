@@ -37,6 +37,12 @@ namespace OfficeIMO.Excel {
             try {
                 ReadPartPrefix(input, prefix, 256, normalized, ct);
                 if (!ExcelSheetReader.CanBufferUtf8WorksheetPrefix(prefix, 256)) return false;
+#if NET8_0_OR_GREATER
+                if (TryReadManagedPipelined(entry, total, ct, consume, out buffer, out consumed)) {
+                    length = total;
+                    return true;
+                }
+#endif
                 output = OpenXmlPartBufferPool.Rent(total);
                 Buffer.BlockCopy(prefix, 0, output, 0, 256);
                 byte[] bytes = output;

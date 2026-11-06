@@ -174,6 +174,7 @@ internal static partial class OfficeArchiveSafety {
         ArgumentOutOfRangeException.ThrowIfNegative(entryLimit);
 
         long originalPosition = source.Position;
+        byte[]? tail = null;
         try {
             cancellationToken.ThrowIfCancellationRequested();
             if (archiveLength < 22) {
@@ -182,15 +183,19 @@ internal static partial class OfficeArchiveSafety {
             }
 
             int tailLength = checked((int)Math.Min(archiveLength, 22L + ushort.MaxValue));
-            var tail = new byte[tailLength];
+#if NET8_0_OR_GREATER
+            tail = System.Buffers.ArrayPool<byte>.Shared.Rent(tailLength);
+#else
+            tail = new byte[tailLength];
+#endif
             ReadExactlyAt(source, originalPosition + archiveLength - tailLength, tail, tailLength);
-            int endOfCentralDirectory = FindEndOfCentralDirectory(tail, 0, tail.Length);
+            int endOfCentralDirectory = FindEndOfCentralDirectory(tail, 0, tailLength);
             if (endOfCentralDirectory < 0) {
                 return ZipCentralDirectoryScanResult.Invalid(
                     "The ZIP end-of-central-directory record was not found.");
             }
             // Readers that take the last signature without checking the comment length would select a later record.
-            if (HasLaterEndOfCentralDirectorySignature(tail, endOfCentralDirectory)) {
+            if (HasLaterEndOfCentralDirectorySignature(tail, endOfCentralDirectory, tailLength)) {
                 return ZipCentralDirectoryScanResult.Invalid(
                     "The ZIP comment contains another end-of-central-directory signature.");
             }
@@ -376,6 +381,9 @@ internal static partial class OfficeArchiveSafety {
             }
             return ZipCentralDirectoryScanResult.Valid(actualEntries);
         } finally {
+#if NET8_0_OR_GREATER
+            if (tail != null) System.Buffers.ArrayPool<byte>.Shared.Return(tail, clearArray: true);
+#endif
             source.Position = originalPosition;
         }
     }
@@ -383,8 +391,8 @@ internal static partial class OfficeArchiveSafety {
     // Any signature overlapping the comment counts, including a prefix in the last three header bytes.
     // Numeric fields wholly inside the fixed header are not comments. .NET 10 also considers positions too close to the end for a complete record,
     // so such bytes would make readers disagree or fail on some targets. Rejecting them keeps every target consistent.
-    private static bool HasLaterEndOfCentralDirectorySignature(byte[] tail, int endOfCentralDirectory) {
-        for (int offset = endOfCentralDirectory + 19; offset <= tail.Length - 4; offset++) {
+    private static bool HasLaterEndOfCentralDirectorySignature(byte[] tail, int endOfCentralDirectory, int length) {
+        for (int offset = endOfCentralDirectory + 19; offset <= length - 4; offset++) {
             if (ReadZipUInt32(tail, offset) == EndOfCentralDirectorySignature) return true;
         }
         return false;
