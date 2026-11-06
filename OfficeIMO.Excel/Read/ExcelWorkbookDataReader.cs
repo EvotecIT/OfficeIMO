@@ -283,6 +283,9 @@ namespace OfficeIMO.Excel {
             byte[] bytes,
             string? sourcePath,
             ExcelReaderOptions options) {
+            if (CanReadEarlyBiffRows(options) && Legacy.EarlyBiffWorkbook.Identify(bytes) != null) {
+                return OpenEarlyBiffRows(bytes, options);
+            }
             LegacyXlsImportOptions importOptions = CreateLegacyImportOptions(options);
             ExcelDocument document = ExcelDocument.LoadLegacyXlsFromNormalFlow(
                 bytes,

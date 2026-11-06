@@ -110,6 +110,18 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        internal static string PrepareStrictWorksheetName(string? name, ISet<string> existing) {
+            string prepared = (name ?? string.Empty).Trim().Trim('\'', ' ');
+            if (string.IsNullOrEmpty(prepared)) throw new ArgumentException("Worksheet name cannot be empty.", nameof(name));
+            if (prepared.Length > 31) throw new ArgumentException("Worksheet name cannot exceed 31 characters.", nameof(name));
+            foreach (char character in prepared) {
+                if (character is ':' or '\\' or '/' or '?' or '*' or '[' or ']')
+                    throw new ArgumentException("Worksheet name contains invalid characters (: \\ / ? * [ ]).", nameof(name));
+            }
+            if (existing.Contains(prepared)) throw new ArgumentException($"Worksheet name '{prepared}' already exists.", nameof(name));
+            return prepared;
+        }
+
         private string ValidateOrSanitizeSheetName(string name, ExcelSheetNameValidationMode mode, string? currentSheetName) {
             // Collect existing names (case-insensitive)
             var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
@@ -126,27 +138,12 @@ namespace OfficeIMO.Excel {
                 return name;
             }
 
-            // Rules common to Sanitize/Strict
-            static bool ContainsInvalidChars(string s) {
-                foreach (char c in s) {
-                    if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') return true;
-                }
-                return false;
-            }
-
-            string baseName = name ?? string.Empty;
-            baseName = baseName.Trim();
-            baseName = baseName.Trim('\'', ' ');
-
             if (mode == ExcelSheetNameValidationMode.Strict) {
-                if (string.IsNullOrEmpty(baseName)) throw new System.ArgumentException("Worksheet name cannot be empty.", nameof(name));
-                if (baseName.Length > 31) throw new System.ArgumentException("Worksheet name cannot exceed 31 characters.", nameof(name));
-                if (ContainsInvalidChars(baseName)) throw new System.ArgumentException("Worksheet name contains invalid characters (: \\ / ? * [ ]).", nameof(name));
-                if (existing.Contains(baseName)) throw new System.ArgumentException($"Worksheet name '{baseName}' already exists.", nameof(name));
-                return baseName;
+                return PrepareStrictWorksheetName(name, existing);
             }
 
             // Sanitize
+            string baseName = (name ?? string.Empty).Trim().Trim('\'', ' ');
             var sb = new System.Text.StringBuilder(baseName.Length > 0 ? baseName.Length : 5);
             foreach (char c in baseName) {
                 if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') sb.Append('_');

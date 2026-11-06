@@ -5,7 +5,7 @@ using OfficeIMO.Reader.Excel;
 
 namespace OfficeIMO.LegacyImport.Tests;
 
-public sealed class EarlyBiffImportTests {
+public sealed partial class EarlyBiffImportTests {
     [Theory]
     [InlineData(2)]
     [InlineData(3)]
