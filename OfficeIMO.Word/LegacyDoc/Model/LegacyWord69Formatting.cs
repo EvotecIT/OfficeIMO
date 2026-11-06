@@ -37,24 +37,42 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private static List<FormattingRun> ReadRuns(
             LegacyWord69Bytes bytes, int usedEnd, LegacyWord69Bytes bin, bool paragraph, int maximumWork) {
             var runs = new List<FormattingRun>();
-            if (bin.IsEmpty) return runs;
-            if (bin.Length < 10 || (bin.Length - 4) % 6 != 0) {
+            if (!bin.IsEmpty && (bin.Length < 4 || (bin.Length - 4) % 6 != 0)) {
                 throw new InvalidDataException("A Word 6/95 formatting bin table has an invalid record length.");
             }
 
-            int pageCount = (bin.Length - 4) / 6;
+            int pageCount = bin.IsEmpty ? 0 : (bin.Length - 4) / 6;
             int pageIndex = (pageCount + 1) * 4;
+            int declaredPageCount = LegacyWord69Reader.U16(bytes, paragraph ? 0x190 : 0x18E);
+            bool recoverFromFib = declaredPageCount > pageCount;
+            int firstPage = 0;
+            if (recoverFromFib) {
+                // Word 6/95 can omit bin entries while retaining contiguous formatting pages.
+                firstPage = LegacyWord69Reader.U16(bytes, paragraph ? 0x18C : 0x18A);
+                int lastPage = firstPage + declaredPageCount - 1;
+                if (firstPage == 0 || lastPage > ushort.MaxValue || lastPage >= usedEnd / PageSize) {
+                    throw new InvalidDataException("The Word 6/95 FIB declares formatting pages outside the used stream.");
+                }
+
+                pageCount = declaredPageCount;
+            }
+            if (pageCount == 0) return runs;
             int stride = paragraph ? 7 : 1;
             int lastEnd = 0;
             var seen = new HashSet<int>();
             for (int i = 0; i < pageCount; i++) {
-                int pageOffset = LegacyWord69Reader.U16(bin, pageIndex + 2 * i) * PageSize;
+                int pageNumber = recoverFromFib ? firstPage + i : LegacyWord69Reader.U16(bin, pageIndex + 2 * i);
+                int pageOffset = pageNumber * PageSize;
                 if (pageOffset < PageSize || pageOffset > usedEnd - PageSize || !seen.Add(pageOffset)) {
                     throw new InvalidDataException("A Word 6/95 formatting bin contains a repeated or invalid page reference.");
                 }
 
                 LegacyWord69Bytes page = bytes.Slice(pageOffset, PageSize);
                 int count = page[PageSize - 1];
+                if (recoverFromFib && count == 0) {
+                    throw new InvalidDataException("The Word 6/95 FIB declares an empty formatting page.");
+                }
+
                 int positionsEnd = (count + 1) * 4;
                 int indexEnd = positionsEnd + count * stride;
                 if (indexEnd > PageSize - 1 || count > maximumWork / PageSize) {

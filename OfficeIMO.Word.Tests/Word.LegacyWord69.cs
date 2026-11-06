@@ -41,6 +41,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyWord69_IncompleteFormattingBins_RecoversEditableFormatting() {
+            using var input = new MemoryStream(CreateWord69Fixture(101, incompleteFormattingBins: true));
+            using WordDocument imported = WordDocument.Load(input);
+            using var output = new MemoryStream();
+            imported.Save(output);
+
+            output.Position = 0;
+            using WordDocument reopened = WordDocument.Load(output);
+            WordParagraph heading = Assert.Single(reopened.Paragraphs, paragraph => paragraph.Text == "Heading");
+            Assert.Equal(WordParagraphStyles.Heading1, heading.Style);
+            Assert.True(heading.Bold);
+            WordTableRow row = Assert.Single(Assert.Single(reopened.Tables).Rows);
+            Assert.Equal(new[] { "Left", "Right" }, row.Cells.Select(cell => Assert.Single(cell.Paragraphs).Text));
+            Assert.True(Assert.Single(row.Cells[1].Paragraphs).Italic);
+        }
+
+        [Fact]
         public void LegacyWord69_UnsupportedRunningStory_BlocksStrictDocxSave() {
             using var input = new MemoryStream(CreateWord69Fixture(104, hasRunningStory: true));
             using WordDocument imported = WordDocument.Load(input);
@@ -129,16 +146,17 @@ namespace OfficeIMO.Tests {
         }
         private static byte[] CreateWord69Fixture(ushort version, bool hasRunningStory = false, ushort flags = 0,
             int cyrillicFont = 0, byte revisionOperation = 0, ushort tabStop = 0, bool editProtection = false,
-            int cyrillicLanguage = 0, byte defaultCharset = 0) {
+            int cyrillicLanguage = 0, byte defaultCharset = 0, bool incompleteFormattingBins = false) {
             const int textStart = 0x300;
             const int characterBin = 0x200;
             const int paragraphBin = 0x210;
             const int styleSheet = 0x220;
             const int characterPage = 0x400;
             const int paragraphPage = 0x600;
+            const int secondParagraphPage = 0x800;
             byte[] text = Encoding.ASCII.GetBytes("Heading\rLeft\aRight\a\aAfter\r");
             if (cyrillicFont != 0 || cyrillicLanguage != 0) text[0] = 0xC0;
-            byte[] main = new byte[0x800];
+            byte[] main = new byte[0xA00];
             const int fontTable = 0x270;
             if (defaultCharset != byte.MaxValue) {
                 WriteInt(main, 0xD0, fontTable);
@@ -167,8 +185,16 @@ namespace OfficeIMO.Tests {
             WriteInt(main, 0x3C, hasRunningStory ? 1 : 0);
             text.CopyTo(main, textStart);
 
-            WriteBin(0xB8, characterBin, characterPage);
-            WriteBin(0xC0, paragraphBin, paragraphPage);
+            WriteWord(main, 0x18A, characterPage / 512);
+            WriteWord(main, 0x18C, paragraphPage / 512);
+            WriteWord(main, 0x18E, 1);
+            WriteWord(main, 0x190, 2);
+            if (incompleteFormattingBins) {
+                WriteBin(0xC0, paragraphBin, (0, paragraphPage));
+            } else {
+                WriteBin(0xB8, characterBin, (0, characterPage));
+                WriteBin(0xC0, paragraphBin, (0, paragraphPage), (8, secondParagraphPage));
+            }
             var headingFormatting = new List<byte> { 99, 0x2C, 1, 85, 1 };
             if (cyrillicFont == 1) headingFormatting.AddRange(new byte[] { 93, 1, 0 });
             if (cyrillicLanguage == 1) headingFormatting.AddRange(new byte[] { 97, 0x19, 0x04 });
@@ -176,9 +202,9 @@ namespace OfficeIMO.Tests {
             WritePage(characterPage, 1, new[] { 0, 7, 13, 18, text.Length },
                 new[] { headingFormatting.ToArray(), Array.Empty<byte>(), new byte[] { 86, 1 }, Array.Empty<byte>() },
                 paragraph: false);
-            WritePage(paragraphPage, 7, new[] { 0, 8, 13, 19, 20, text.Length },
+            WritePage(paragraphPage, 7, new[] { 0, 8 }, new[] { new byte[] { 1, 0 } }, paragraph: true);
+            WritePage(secondParagraphPage, 7, new[] { 8, 13, 19, 20, text.Length },
                 new[] {
-                    new byte[] { 1, 0 },
                     new byte[] { 0, 0, 24, 1 },
                     new byte[] { 0, 0, 24, 1 },
                     new byte[] { 0, 0, 24, 1, 25, 1, 190, 8, 0, 2, 0, 0, 104, 1, 208, 2 },
@@ -222,12 +248,14 @@ namespace OfficeIMO.Tests {
                 main[offset + 6] = (byte)name;
             }
 
-            void WriteBin(int fibPair, int bin, int page) {
+            void WriteBin(int fibPair, int bin, params (int TextOffset, int Page)[] pages) {
                 WriteInt(main, fibPair, bin);
-                WriteInt(main, fibPair + 4, 10);
-                WriteInt(main, bin, textStart);
-                WriteInt(main, bin + 4, textStart + text.Length);
-                WriteWord(main, bin + 8, (ushort)(page / 512));
+                WriteInt(main, fibPair + 4, 4 + 6 * pages.Length);
+                WriteInt(main, bin + 4 * pages.Length, textStart + text.Length);
+                for (int i = 0; i < pages.Length; i++) {
+                    WriteInt(main, bin + 4 * i, textStart + pages[i].TextOffset);
+                    WriteWord(main, bin + 4 * (pages.Length + 1) + 2 * i, (ushort)(pages[i].Page / 512));
+                }
             }
 
             void WritePage(int offset, int stride, int[] positions, byte[][] records, bool paragraph) {

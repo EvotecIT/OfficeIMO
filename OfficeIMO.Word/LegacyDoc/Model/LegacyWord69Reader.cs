@@ -2,7 +2,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>Decodes the bounded, non-complex Windows Word 6/95 FIB and its in-stream records.</summary>
     internal static class LegacyWord69Reader {
         private const ushort WesternSignature = 0xA5DC;
-        private const int FibSize = 0x18A;
+        private const int FibSize = 0x192;
         private const ushort HasPictures = 0x0008;
 
         internal static bool IsProfile(byte[] bytes) {
