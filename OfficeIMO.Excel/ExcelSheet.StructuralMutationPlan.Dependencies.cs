@@ -176,6 +176,7 @@ namespace OfficeIMO.Excel {
                 .Where(candidate => candidate.Parent is RowBreaks)) {
                 if (pageBreak.Id?.Value is uint rowId
                     && rowId > 0U
+                    && rowId <= ExcelA1.MaxRows
                     && rowId >= (uint)firstRow) {
                     affected.Add(pageBreak);
                 }

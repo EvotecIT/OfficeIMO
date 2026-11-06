@@ -249,7 +249,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbPooledPartStream part;
             XlsbWorksheetDiscovery? discovery = null;
 #if NET8_0_OR_GREATER
-            if (readOptions.A1Range == null && readOptions.Execution.AllowsBackgroundRead
+            if (readOptions.A1Range == null && readOptions.Execution.AllowsBackgroundProcessing
                 && _parts.TryReadPipelined(sheet.PartName, cancellationToken,
                     (bytes, progress) => XlsbTabularDataReader.DiscoverWorksheet(bytes, _limits,
                         _recordBudget, _cellBudget, _dateStyles, _sharedStrings.Count,

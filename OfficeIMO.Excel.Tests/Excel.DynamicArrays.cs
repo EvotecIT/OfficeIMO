@@ -38,6 +38,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("7", dependent);
                 Assert.Equal("G1:H2", Assert.Single(sheet.InspectFormulas().Formulas, f => f.Array?.IsDynamic == true).Array!.Range);
                 Assert.Throws<InvalidOperationException>(() => sheet.Cell(2, 8).SetValue(99));
+                Assert.Throws<InvalidOperationException>(() => sheet.Cell(2, 8).SetError("#N/A"));
                 Assert.Throws<InvalidOperationException>(() => sheet.Cell(2, 8).SetFormula("1+1"));
                 Assert.Throws<InvalidOperationException>(() => sheet.SetValues(new[] { (Row: 2, Column: 8, Value: (object)99) }));
                 Assert.Throws<InvalidOperationException>(() => sheet.Range("H2:H2").Clear(ExcelClearOptions.Values));

@@ -6,9 +6,6 @@ namespace OfficeIMO.CSV;
 internal static partial class CsvParser
 {
 #if NET8_0_OR_GREATER
-    private static readonly SearchValues<char> CommaTextFieldTerminators = SearchValues.Create(",\r\n\"");
-    private static readonly SearchValues<char> SemicolonTextFieldTerminators = SearchValues.Create(";\r\n\"");
-    private static readonly SearchValues<char> TabTextFieldTerminators = SearchValues.Create("\t\r\n\"");
     private static readonly System.Runtime.Intrinsics.Vector256<byte> QuoteByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'"');
     private static readonly System.Runtime.Intrinsics.Vector256<byte> CarriageReturnByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\r');
     private static readonly System.Runtime.Intrinsics.Vector256<byte> LineFeedByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\n');
@@ -502,6 +499,21 @@ internal static partial class CsvParser
                             ref scratch,
                             out fieldCount,
                             out firstFieldLength) ||
+                         TryReadTextQuoteAwareRecordFieldSpansAvx2(
+                             text,
+                             delimiter,
+                             trim: false,
+                             allowEmpty,
+                             emitFields,
+                             recordIndex,
+                             start,
+                             delimiterIndexCapacity,
+                             ref position,
+                             projectedFieldVisitor,
+                             ref fieldVisitor,
+                             ref scratch,
+                             out fieldCount,
+                             out firstFieldLength) ||
                          TryReadTextQuotedRecordFieldSpansFromPrefix(
                             text,
                             delimiter,
@@ -976,13 +988,7 @@ internal static partial class CsvParser
     {
         var start = position;
         var remaining = text.Slice(position);
-        var terminatorOffset = delimiter switch
-        {
-            ',' => remaining.IndexOfAny(CommaTextFieldTerminators),
-            ';' => remaining.IndexOfAny(SemicolonTextFieldTerminators),
-            '\t' => remaining.IndexOfAny(TabTextFieldTerminators),
-            _ => remaining.IndexOfAny(new[] { delimiter, '\r', '\n', '"' })
-        };
+        var terminatorOffset = IndexOfTextFieldTerminator(remaining, delimiter);
         if (terminatorOffset < 0)
         {
             nextPosition = text.Length;

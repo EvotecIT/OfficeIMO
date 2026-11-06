@@ -17,10 +17,25 @@ timing. This keeps string reads separate from raw span scans.
 The .NET 10 comparison uses the published MIT ExcelReader.NET 7.4.1 package;
 .NET 8 retains the compatible package pin as a separate cohort.
 The [opt-in current reader runner](../OfficeIMO.CSV.Benchmarks.Modern/README.md)
-adds the CsvHelper 34.0.0 API without changing this project's 33.1.0 comparison contract.
+adds CsvHelper 34.0.0 and FourLambda on the same generated UTF-8 input without
+changing this project's 33.1.0 comparison contract.
 
 ```sh
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvExcelReaderGeneratedBenchmarks*" --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove
+```
+
+## Quoted field positions
+
+`CsvQuotedFieldPositionBenchmarks` compares materialized text-field reads across
+OfficeIMO, Sep, Sylvan and CsvHelper. It uses the same fourteen-column UTF-16
+input for each library, with comma or pipe separators and one escaped quoted
+field near the start, middle or end of each row. Setup validates every decoded
+value at 5,000 and 50,000 rows; every timed read checks row count, field count,
+character count and an ordered checksum. The shared observation accumulator
+keeps this work consistent with the other CSV comparisons.
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvQuotedFieldPositionBenchmarks*" --inProcess --warmupCount 12 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove
 ```
 
 ## Typed CSV comparisons

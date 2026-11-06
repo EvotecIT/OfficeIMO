@@ -306,6 +306,7 @@ namespace OfficeIMO.Excel {
             string updatedRange = ExcelA1.CellReference(startRow, startColumn) + ":" + ExcelA1.CellReference(appendEndRow, endColumn);
             WriteLock(() => {
                 table.Reference = updatedRange;
+                table.InsertRow = null;
                 var autoFilter = table.GetFirstChild<AutoFilter>();
                 if (autoFilter != null) {
                     autoFilter.Reference = updatedRange;

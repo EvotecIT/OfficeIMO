@@ -202,6 +202,7 @@ public sealed class HtmlPdfWorkbenchContractTests {
     [Fact]
     [Trait("Category", "Live")]
     public async Task ChromiumConversion_ProducesBrowserEvidenceUnderOfflinePolicy() {
+        await HtmlBrowser.EnsureInstalledAsync(HtmlBrowserEngine.Chromium);
         await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(
             maximumBrowserInstances: 1,
             maximumQueuedCaptures: 0,
@@ -225,6 +226,7 @@ public sealed class HtmlPdfWorkbenchContractTests {
     [Fact]
     [Trait("Category", "Live")]
     public async Task ChromiumConversion_AppliesConfiguredDocumentLanguage() {
+        await HtmlBrowser.EnsureInstalledAsync(HtmlBrowserEngine.Chromium);
         await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(
             maximumBrowserInstances: 1,
             maximumQueuedCaptures: 0,
@@ -247,6 +249,7 @@ public sealed class HtmlPdfWorkbenchContractTests {
     [Fact]
     [Trait("Category", "Live")]
     public async Task ChromiumConversion_ReportsResourcesBlockedByOfflinePolicy() {
+        await HtmlBrowser.EnsureInstalledAsync(HtmlBrowserEngine.Chromium);
         await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(
             maximumBrowserInstances: 1,
             maximumQueuedCaptures: 0,

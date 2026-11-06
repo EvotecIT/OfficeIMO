@@ -269,7 +269,7 @@ namespace OfficeIMO.Excel {
                     actions.Add(new ExcelWorkbookRepairAction("View", "Normalized worksheet view, pane, and selection metadata.", sheet.Name));
                 }
                 if (options.PrintSettings) {
-                    sheet.CleanupPrintArtifacts();
+                    sheet.CleanupPrintArtifacts(repairPageBreaks: true);
                     actions.Add(new ExcelWorkbookRepairAction("Print", "Normalized print settings, page breaks, margins, and scale.", sheet.Name));
                 }
                 if (options.Protection) {

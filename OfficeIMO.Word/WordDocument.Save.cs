@@ -23,34 +23,6 @@ namespace OfficeIMO.Word {
             OfficeFileLauncher.Open(target!);
         }
 
-        /// <summary>
-        /// Copies package properties. Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
-        /// </summary>
-        /// <param name="src"></param>
-        /// <param name="dest"></param>
-        // IPackageProperties is currently marked as experimental (OOXML0001).
-        // There is no non-experimental alternative available yet.
-#pragma warning disable OOXML0001
-        private static void CopyPackageProperties(IPackageProperties src, IPackageProperties dest) {
-            dest.Category = src.Category;
-            dest.ContentStatus = src.ContentStatus;
-            dest.ContentType = src.ContentType;
-            dest.Created = src.Created;
-            dest.Creator = src.Creator;
-            dest.Description = src.Description;
-            dest.Identifier = src.Identifier;
-            dest.Keywords = src.Keywords;
-            dest.Language = src.Language;
-            dest.LastModifiedBy = src.LastModifiedBy;
-            dest.LastPrinted = src.LastPrinted;
-            dest.Modified = src.Modified;
-            dest.Revision = src.Revision;
-            dest.Subject = src.Subject;
-            dest.Title = src.Title;
-            dest.Version = src.Version;
-        }
-#pragma warning restore OOXML0001
-
         private void SaveFileCore(string? filePath, WordSaveOptions? options) {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
@@ -452,7 +424,7 @@ namespace OfficeIMO.Word {
             OfficeFileCommit.Write(filePath, stream => {
                 using (var clone = _wordprocessingDocument.Clone(stream)) {
                     AlignDocumentTypeWithFilePath(clone, filePath);
-                    CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                    OfficeOpenXmlPackagePayload.CopyCoreProperties(_wordprocessingDocument, clone);
                 }
 
                 stream.Seek(0, SeekOrigin.Begin);
@@ -482,7 +454,7 @@ namespace OfficeIMO.Word {
                 if (!string.IsNullOrEmpty(filePath)) {
                     AlignDocumentTypeWithFilePath(clone, filePath!);
                 }
-                CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                OfficeOpenXmlPackagePayload.CopyCoreProperties(_wordprocessingDocument, clone);
             }
 
             memoryStream.Seek(0, SeekOrigin.Begin);

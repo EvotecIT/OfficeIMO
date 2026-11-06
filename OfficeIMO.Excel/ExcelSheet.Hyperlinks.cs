@@ -173,25 +173,8 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string? target = null;
-                bool isExternal = false;
-                string? relationshipId = hyperlink.Id?.Value;
-                if (!string.IsNullOrWhiteSpace(relationshipId) && externalRelationships.TryGetValue(relationshipId!, out var relationship)) {
-                    target = relationship.Uri?.OriginalString;
-                    isExternal = true;
-                } else if (!string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) {
-                    target = hyperlink.Location!.Value!;
-                }
-
-                if (string.IsNullOrWhiteSpace(target)) {
-                    continue;
-                }
-
-                result[reference!] = new ExcelHyperlinkInfo {
-                    IsExternal = isExternal,
-                    Target = target!,
-                    Tooltip = string.IsNullOrWhiteSpace(hyperlink.Tooltip?.Value) ? null : hyperlink.Tooltip!.Value
-                };
+                ExcelHyperlinkInfo? snapshot = Utilities.ExcelWorksheetHyperlinkResolver.CreateSnapshot(hyperlink, externalRelationships);
+                if (snapshot != null) result[reference!] = snapshot;
             }
 
             return result;

@@ -43,7 +43,8 @@ namespace OfficeIMO.Excel {
                         : string.Empty;
                     return new ExcelCellData(ExcelCellDataKind.Text, shared, cachedText: shared);
                 case ExcelStoredCellType.String:
-                    return new ExcelCellData(ExcelCellDataKind.Text, cached, cachedText: cached);
+                    string decoded = Utilities.ExcelSanitizer.DecodeXString(cached);
+                    return new ExcelCellData(ExcelCellDataKind.Text, decoded, cachedText: decoded);
             }
 
             if (double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
@@ -81,7 +82,7 @@ namespace OfficeIMO.Excel {
             index = -1;
             if (!UsesCellStore) return false;
 
-            EnsureDynamicArrayCellWritable(row, column);
+            EnsureCellPayloadWritable(row, column);
             SheetData sheetData = GetOrCreateSheetData();
             Row rowElement = GetOrCreateRowForCell(sheetData, row, out _);
             // Row-by-row writes resume the row search here, as GetCell's cell cache lets them do.
@@ -173,7 +174,7 @@ namespace OfficeIMO.Excel {
                 containsLineBreak = sharedLineBreak;
             } else {
                 type = ExcelStoredCellType.String;
-                value = text;
+                value = Utilities.ExcelSanitizer.EncodeXString(text);
                 containsLineBreak = text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0;
             }
 

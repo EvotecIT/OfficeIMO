@@ -131,7 +131,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
         /// <param name="options">Comparison settings and scope. <c>null</c> matches ordinally, ignoring case, inside or across words, in textboxes and tables but not notes.</param>
         /// <returns>The number of replaced matches.</returns>
-        /// <remarks>Matching follows <see cref="PowerPointSlide.ReplaceAll"/>: each textbox or table match lies within one text run.</remarks>
+        /// <remarks>Matches in textboxes and tables can span adjacent runs within one paragraph. See <see cref="PowerPointSlide.ReplaceAll"/> for scope and formatting.</remarks>
         public int ReplaceAll(string text, string replacement, PowerPointTextSearchOptions? options = null) {
             ThrowIfDisposed();
             OfficeTextSearch.ValidateSearchText(text, nameof(text));

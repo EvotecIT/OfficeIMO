@@ -389,6 +389,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_PreservesBodyAndCellBlockContentControlsInOrder() {
+            using var document = WordDocument.Create();
+            WordParagraph before = document.AddParagraph("Before control");
+            WordTable table = document.AddTable(1, 1);
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.Paragraphs[0].Text = "Cell before";
+            cell._tableCell.Append(
+                new SdtBlock(new SdtContentBlock(new Paragraph(new Run(new Text("Controlled table"))))),
+                new Paragraph(new Run(new Text("Cell after"))));
+            document.AddParagraph("After control");
+            table._table.Remove();
+            before._paragraph.InsertAfterSelf(
+                new SdtBlock(new SdtContentBlock(
+                    new Paragraph(new Run(new Text("Controlled paragraph"))),
+                    new SdtBlock(
+                        new SdtProperties(new SdtContentDocPartObject(new DocPartGallery { Val = "Cover Pages" })),
+                        new SdtContentBlock(new Paragraph(new Run(new Text("Cached cover title"))))),
+                    new SdtBlock(new SdtContentBlock(table._table)))));
+
+            using var result = document.ToMarkdown(null, out OfficeConversionReport report);
+            Assert.Collection(result.Blocks,
+                block => Assert.IsType<ParagraphBlock>(block),
+                block => Assert.IsType<ParagraphBlock>(block),
+                block => Assert.Equal("Cached cover title", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => {
+                    var exportedCell = Assert.Single(Assert.IsType<TableBlock>(block).HeaderCells);
+                    Assert.Equal(new[] { "Cell before", "Controlled table", "Cell after" },
+                        exportedCell.ChildBlocks.Select(child => Assert.IsType<ParagraphBlock>(child).Inlines.RenderMarkdown()));
+                },
+                block => Assert.IsType<ParagraphBlock>(block));
+            string markdown = result.ToMarkdown();
+            int beforeIndex = markdown.IndexOf("Before control", StringComparison.Ordinal);
+            int paragraphIndex = markdown.IndexOf("Controlled paragraph", StringComparison.Ordinal);
+            int coverIndex = markdown.IndexOf("Cached cover title", StringComparison.Ordinal);
+            int tableIndex = markdown.IndexOf("Controlled table", StringComparison.Ordinal);
+            int afterIndex = markdown.IndexOf("After control", StringComparison.Ordinal);
+            Assert.True(beforeIndex >= 0 && paragraphIndex > beforeIndex && coverIndex > paragraphIndex &&
+                tableIndex > coverIndex && afterIndex > tableIndex, markdown);
+            Assert.Equal(2, report.Diagnostics.Count(diagnostic => diagnostic.Location == "BlockContentControl" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Approximation));
+        }
+
+        [Fact]
         public void WordToMarkdown_ProjectsEquationInsideInlineContentControl() {
             using var doc = WordDocument.Create();
             WordParagraph paragraph = doc.AddParagraph("Formula:");

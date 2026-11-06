@@ -113,8 +113,10 @@ public sealed partial class PdfContentBuilder {
     /// <summary>Adds a bulleted list whose items can contain rich inline text runs.</summary>
     public PdfContentBuilder AddList(System.Collections.Generic.IEnumerable<PdfListItem> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfListStyle? style = null) { _doc.AddList(items, align, color, style); return this; }
     /// <summary>Adds a numbered list of plain items.</summary>
+    /// <remarks>The start number must be non-negative and defaults to one.</remarks>
     public PdfContentBuilder AddNumberedList(System.Collections.Generic.IEnumerable<string> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.AddNumberedList(items, align, color, startNumber, style); return this; }
     /// <summary>Adds a numbered list whose items can contain rich inline text runs.</summary>
+    /// <remarks>The start number must be non-negative and defaults to one.</remarks>
     public PdfContentBuilder AddNumberedList(System.Collections.Generic.IEnumerable<PdfListItem> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.AddNumberedList(items, align, color, startNumber, style); return this; }
     /// <summary>Adds a table of plain text rows with the document table style.</summary>
     public PdfContentBuilder AddTable(System.Collections.Generic.IEnumerable<string[]> rows) { _doc.AddTable(rows); return this; }

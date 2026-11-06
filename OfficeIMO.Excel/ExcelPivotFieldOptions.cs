@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel {
             SubtotalCaption = subtotalCaption;
             HiddenItems = NormalizeItems(hiddenItems);
             VisibleItems = NormalizeItems(visibleItems);
-            SelectedItem = string.IsNullOrWhiteSpace(selectedItem) ? null : selectedItem!.Trim();
+            SelectedItem = selectedItem;
             if (HiddenItems.Count > 0 && VisibleItems.Count > 0) {
                 throw new ArgumentException("Specify either hiddenItems or visibleItems, not both.");
             }
@@ -147,17 +147,17 @@ namespace OfficeIMO.Excel {
         public string? SubtotalCaption { get; }
 
         /// <summary>
-        /// Gets source item captions to hide.
+        /// Gets source item captions to hide. An empty caption selects a blank; whitespace is literal.
         /// </summary>
         public IReadOnlyList<string> HiddenItems { get; }
 
         /// <summary>
-        /// Gets source item captions to show; other known items are hidden.
+        /// Gets source item captions to show; other known items are hidden. An empty caption selects a blank; whitespace is literal.
         /// </summary>
         public IReadOnlyList<string> VisibleItems { get; }
 
         /// <summary>
-        /// Gets the selected page-field item caption.
+        /// Gets the selected page-field item caption. Null leaves it unselected; an empty caption selects a blank.
         /// </summary>
         public string? SelectedItem { get; }
 
@@ -176,8 +176,7 @@ namespace OfficeIMO.Excel {
         private static IReadOnlyList<string> NormalizeItems(IEnumerable<string>? items) {
             if (items == null) return Array.Empty<string>();
             return items
-                .Where(item => !string.IsNullOrWhiteSpace(item))
-                .Select(item => item.Trim())
+                .Where(item => item != null)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
         }

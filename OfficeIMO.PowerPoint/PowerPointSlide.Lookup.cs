@@ -102,9 +102,8 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="options">Comparison settings and scope. <c>null</c> matches ordinally, ignoring case, inside or across words, in textboxes and tables but not notes.</param>
         /// <returns>The number of replaced matches.</returns>
         /// <remarks>
-        ///     In textboxes and table cells, each match lies within one text run; text split across runs with different
-        ///     formatting is not matched, and replacement keeps each run's formatting. Speaker notes are matched as one
-        ///     plain text and rewritten as plain text when they contain a match.
+        ///     In textboxes and table cells, a match can span adjacent runs within one paragraph, and the replacement
+        ///     takes the formatting of the run where the match starts. Speaker notes are matched and replaced as plain text.
         /// </remarks>
         public int ReplaceAll(string text, string replacement, PowerPointTextSearchOptions? options = null) {
             OfficeTextSearch.ValidateSearchText(text, nameof(text));

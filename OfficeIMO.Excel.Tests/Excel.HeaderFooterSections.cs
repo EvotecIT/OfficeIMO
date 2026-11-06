@@ -6,6 +6,52 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+    [Theory]
+    [InlineData("oddHeader", "&A", "&A", "")]
+    [InlineData("oddFooter", "&A", "&A", "")]
+    [InlineData("firstHeader", "&A", "&A", "")]
+    [InlineData("firstFooter", "&A", "&A", "")]
+    [InlineData("evenHeader", "&A", "&A", "")]
+    [InlineData("evenFooter", "&A", "&A", "")]
+    [InlineData("oddHeader", "&A && Ledger &\"A&L,Regular\" &P", "&A && Ledger &\"A&L,Regular\" &P", "")]
+    [InlineData("oddFooter", "&A&RAuthored", "&A", "Authored")]
+    public void UnsectionedHeaderFooterTextIsCenteredAndSurvivesAnotherSectionEdit(string element, string rawText, string centerText, string rightText) {
+        using var input = new MemoryStream();
+        using (var seed = ExcelDocument.Create(input)) {
+            seed.AddSheet("Report");
+            seed.Save();
+        }
+        input.Position = 0;
+        XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        using (var package = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(input, true)) {
+            var worksheet = package.WorkbookPart!.WorksheetParts.Single().Worksheet;
+            var xml = new XElement(ns + "headerFooter", new XElement(ns + element, rawText));
+            worksheet.Append(new DocumentFormat.OpenXml.Spreadsheet.HeaderFooter(xml.ToString(SaveOptions.DisableFormatting)));
+            worksheet.Save();
+        }
+        input.Position = 0;
+        using var document = ExcelDocument.Load(input);
+        ExcelSheetPageSetup setup = document["Report"].PageSetup;
+        ExcelHeaderFooter selected = element switch {
+            "oddHeader" => setup.Header,
+            "oddFooter" => setup.Footer,
+            "firstHeader" => setup.FirstPageHeader,
+            "firstFooter" => setup.FirstPageFooter,
+            "evenHeader" => setup.EvenPageHeader,
+            _ => setup.EvenPageFooter
+        };
+        Assert.Equal(centerText, selected.Center.Text);
+        Assert.Equal(rightText, selected.Right.Text);
+        selected.Left.Text = "Added left";
+        using var saved = new MemoryStream();
+        document.Save(saved);
+        saved.Position = 0;
+        using var zip = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
+        using var stream = zip.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var result = XDocument.Load(stream).Root!.Element(ns + "headerFooter")!;
+        Assert.Equal("&LAdded left&C" + centerText + (rightText.Length == 0 ? "" : "&R" + rightText), (string?)result.Element(ns + element));
+    }
+
     [Fact]
     public void HeaderFooterSectionEditsPreserveTheOtherHalfAndAuthoredPageVariants() {
         using var document = ExcelDocument.Create();

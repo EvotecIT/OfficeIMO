@@ -181,7 +181,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellKind == XmlCellKind.String) {
-                return rawText ?? inlineText;
+                return rawText != null ? Utilities.ExcelSanitizer.DecodeXString(rawText) : inlineText;
             }
 
             if (rawText == null) {
@@ -358,7 +358,7 @@ namespace OfficeIMO.Excel {
                         : rawText;
                     return true;
                 case XmlCellKind.String:
-                    value = rawText;
+                    value = Utilities.ExcelSanitizer.DecodeXString(rawText);
                     return true;
                 case XmlCellKind.InlineString:
                     return false;

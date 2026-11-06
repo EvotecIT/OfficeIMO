@@ -26,8 +26,8 @@ internal sealed class NumberedListBlock : PdfListBlock {
         System.Collections.Generic.IEnumerable<T> items,
         int startNumber) {
         Guard.NotNull(items, nameof(items));
-        if (startNumber < 1) {
-            throw new System.ArgumentOutOfRangeException(nameof(startNumber), "Numbered lists must start at 1 or greater.");
+        if (startNumber < 0) {
+            throw new System.ArgumentOutOfRangeException(nameof(startNumber), "Numbered lists must start at 0 or greater.");
         }
 
         return items;

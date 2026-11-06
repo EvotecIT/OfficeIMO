@@ -137,8 +137,10 @@ namespace OfficeIMO.Excel {
                 array = array.WithUnevaluatedFormulaCache();
             // These are formula-cell outputs, not source references. Publish zero
             // for every blank member so dependencies and serialized caches agree.
-            for (int index = 0; index < array.Values.Length; index++)
+            for (int index = 0; index < array.Values.Length; index++) {
                 array.Values[index] = NormalizeLookupResult(array.Values[index]);
+                if (!TryNormalizeFormulaResult(ref array.Values[index])) return false;
+            }
             if (_formulaEvaluationCache != null
                 && GetFixedArraySheetIndex().DynamicByCell.TryGetValue(cell, out FixedArrayOwner? dynamicOwner))
                 return TryPlanDynamicArray(dynamicOwner, array, out result);

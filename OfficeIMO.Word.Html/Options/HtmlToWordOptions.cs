@@ -155,9 +155,16 @@ namespace OfficeIMO.Word.Html {
         public WordHtmlImageProcessingMode ImageProcessing { get; set; } = WordHtmlImageProcessingMode.EmbedDataUriOnly;
 
         /// <summary>
-        /// Optional <see cref="HttpClient"/> used to download remote resources (images, SVG).
-        /// If not provided, a shared client instance is used.
+        /// Optional <see cref="HttpClient"/> used to download remote images and stylesheets.
+        /// The built-in client checks each redirect destination against the applicable resource policy
+        /// and scopes native HTTP cookies to a single conversion.
         /// </summary>
+        /// <remarks>
+        /// When supplying a client, configure its handler to enforce your cookie and redirect policies.
+        /// The converter checks the initial URI before handing it to the client.
+        /// In browsers, the runtime manages cookies and the built-in client skips redirects
+        /// because their destinations are unavailable.
+        /// </remarks>
         public HttpClient? HttpClient { get; set; }
 
         /// <summary>

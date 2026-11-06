@@ -476,7 +476,8 @@ namespace OfficeIMO.Word.Pdf {
                         !image._Image.Ancestors<W.SdtRun>().Any(IsNativePictureControl) &&
                         ReferenceEquals(image._Image.Ancestors<W.TextBoxContent>().FirstOrDefault(),
                             paragraphElement.Ancestors<W.TextBoxContent>().FirstOrDefault())) {
-                        if (TryCreateNativeCellInlineImage(image, out PdfCore.PdfTextRun? inline, options))
+                        if (TryCreateNativeCellInlineImage(image, out PdfCore.PdfTextRun? inline, options,
+                                linkUri: GetNativeTableCellImageLink(image)))
                             inlineImages[image._Image] = inline!;
                         return;
                     }
@@ -622,7 +623,10 @@ namespace OfficeIMO.Word.Pdf {
                     "The picture was preserved in table-cell flow; its wrapping and anchor are outside the rectangular source profile.");
             double width = image.Width?.ToPoints() ?? 144D;
             double height = image.Height?.ToPoints() ?? 144D;
-            images.Add(new PdfCore.PdfTableCellImage(preparedBytes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), CreateNativeImageStyle()));
+            string? linkUri = GetNativeTableCellImageLink(image);
+            string? linkContents = linkUri != null && !string.IsNullOrWhiteSpace(image.AltText) ? image.AltText : null;
+            images.Add(new PdfCore.PdfTableCellImage(preparedBytes, global::OfficeIMO.OfficeLength.Points(width),
+                global::OfficeIMO.OfficeLength.Points(height), CreateNativeImageStyle(), linkUri, linkContents));
         }
 
         private static void AddNativeParagraphContent(

@@ -187,6 +187,11 @@ namespace OfficeIMO.Word.Html {
                     AddDiagnostic(options, "image-content-type-rejected", "Image resource content type is not allowed and was replaced with alt text when available.", src, ex);
                     InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
+                } catch (HtmlResourcePolicyException ex) {
+                    ReleaseImageBytes(reservedBytes, options);
+                    AddDiagnostic(options, "image-resource-rejected-by-policy", "Image resource was skipped because its redirect destination is not allowed by the current image policy.", src, ex);
+                    InsertAltText(currentParagraph, headerFooter, doc, alt);
+                    return;
                 } catch (Exception ex) {
                     ReleaseImageBytes(reservedBytes, options);
                     AddDiagnostic(options, "image-load-failed", "Image resource could not be loaded and was replaced with alt text when available.", src, ex);
@@ -323,6 +328,10 @@ namespace OfficeIMO.Word.Html {
             } catch (HtmlResourceContentTypeException ex) {
                 ReleaseImageBytes(reservedBytes, options);
                 AddDiagnostic(options, "image-content-type-rejected", "SVG image resource content type is not allowed and was replaced with alt text when available.", src, ex);
+                InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
+            } catch (HtmlResourcePolicyException ex) {
+                ReleaseImageBytes(reservedBytes, options);
+                AddDiagnostic(options, "image-resource-rejected-by-policy", "SVG image resource was skipped because its redirect destination is not allowed by the current image policy.", src, ex);
                 InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
             } catch (Exception ex) {
                 ReleaseImageBytes(reservedBytes, options);
@@ -967,11 +976,9 @@ namespace OfficeIMO.Word.Html {
                     cts.CancelAfter(_resourceTimeout.Value);
                 }
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                using var response = await _httpClient.SendAsync(
-                    request,
-                    HttpCompletionOption.ResponseHeadersRead,
-                    token).ConfigureAwait(false);
+                using var response = await FetchRemoteResourceAsync(
+                    uri, options.AllowedImageUriSchemes, options.AllowedImageHosts,
+                    token, options.ResourceUrlPolicy).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
                 EnsureImageContentTypeAllowed(response.Content.Headers.ContentType?.MediaType, options);
                 (long? limit, bool totalBudgetLimit) = GetRemoteImagePrefetchReadLimit(options);

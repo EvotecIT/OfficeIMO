@@ -76,6 +76,12 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            // A nonzero leading digit leaves room for at most fifteen digits and
+            // one point. Longer literals already require the general parser.
+            if (value.Length - index > 16 && value[index] is >= (byte)'1' and <= (byte)'9') {
+                return false;
+            }
+
             ulong mantissa = 0;
             int significantDigits = 0;
             int fractionalDigits = 0;
@@ -121,6 +127,48 @@ namespace OfficeIMO.Excel {
             }
 
             result = negative ? -parsed : parsed;
+            return true;
+        }
+
+        /// <summary>
+        /// Rounds bounded fixed-point literals with tails far from a fifteen-digit midpoint,
+        /// preserving the ordinary double-to-decimal coefficient, sign and scale.
+        /// </summary>
+        internal static bool TryParseRoundedFixedPointDecimal(ReadOnlySpan<byte> token, out decimal value) {
+            value = default;
+            if (token.IsEmpty) return false;
+            bool negative = token[0] == (byte)'-';
+            int index = negative ? 1 : 0;
+            if (token.Length <= (negative ? 17 : 16) || token.Length > (negative ? 20 : 19)
+                || (uint)(token[index] - (byte)'1') > 8) return false;
+
+            ulong prefix = 0;
+            int digits = 0, scale = 0, firstDropped = -1;
+            bool point = false;
+            for (; index < token.Length; index++) {
+                uint digit = (uint)(token[index] - (byte)'0');
+                if (digit <= 9) {
+                    if (++digits > 18) return false;
+                    if (digits <= 15) prefix = prefix * 10 + digit;
+                    else if (digits == 16) firstDropped = (int)digit;
+                    if (point) scale++;
+                } else if (token[index] == (byte)'.' && !point && digits > 0 && index < token.Length - 1) {
+                    point = true;
+                } else return false;
+            }
+
+            // These tails are at least 0.4 units from a fifteen-digit midpoint.
+            // Within these bounds, binary parsing and decimal scaling together
+            // introduce less than 0.334 units of rounding error.
+            if (digits <= 15 || firstDropped is not (0 or 9)) return false;
+            scale -= digits - 15;
+            if (scale < 0) return false;
+            if (firstDropped == 9) prefix++;
+            while (scale > 0 && prefix % 10 == 0) {
+                prefix /= 10;
+                scale--;
+            }
+            value = new decimal(unchecked((int)prefix), (int)(prefix >> 32), 0, negative, (byte)scale);
             return true;
         }
 

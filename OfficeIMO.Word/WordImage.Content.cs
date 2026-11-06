@@ -270,17 +270,7 @@ namespace OfficeIMO.Word {
             double? width = null,
             double? height = null
         ) {
-            return Helpers.UseSeekableImageStream(imageStream, preparedImageStream => {
-                using MemoryStream? convertedRaster = ConvertRasterForWord(preparedImageStream);
-                Stream embeddedStream = convertedRaster ?? preparedImageStream;
-                string embeddedFileName = convertedRaster == null ? fileName : System.IO.Path.ChangeExtension(fileName, ".png");
-                // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
-                // if widht/height are not set we check ourselves
-                // but probably will need better way
-                var imageCharacteristics = Helpers.GetImageCharacteristics(embeddedStream, embeddedFileName);
-                if (imageCharacteristics.Width <= 0 || imageCharacteristics.Height <= 0) {
-                    throw new InvalidDataException("The stream does not contain a supported image payload.");
-                }
+            return WithEmbeddableImage(imageStream, fileName, (embeddedStream, embeddedFileName, imageCharacteristics) => {
                 if (width == null || height == null) {
                     if (width != null) {
                         height = imageCharacteristics.Height * width.Value / imageCharacteristics.Width;
@@ -336,6 +326,27 @@ namespace OfficeIMO.Word {
                     Height = height.Value,
                     ImageName = imageName
                 };
+            });
+        }
+
+        internal static void ValidateImagePayload(Stream imageStream, string fileName) =>
+            WithEmbeddableImage(imageStream, fileName, static (_, _, _) => true);
+
+        private static TResult WithEmbeddableImage<TResult>(
+            Stream imageStream,
+            string fileName,
+            Func<Stream, string, ImageCharacteristics, TResult> action
+        ) {
+            return Helpers.UseSeekableImageStream(imageStream, preparedImageStream => {
+                using MemoryStream? convertedRaster = ConvertRasterForWord(preparedImageStream);
+                Stream embeddedStream = convertedRaster ?? preparedImageStream;
+                string embeddedFileName = convertedRaster == null ? fileName : System.IO.Path.ChangeExtension(fileName, ".png");
+                ImageCharacteristics imageCharacteristics = Helpers.GetImageCharacteristics(embeddedStream, embeddedFileName);
+                if (imageCharacteristics.Width <= 0 || imageCharacteristics.Height <= 0) {
+                    throw new InvalidDataException("The stream does not contain a supported image payload.");
+                }
+
+                return action(embeddedStream, embeddedFileName, imageCharacteristics);
             });
         }
 

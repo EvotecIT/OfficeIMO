@@ -10,9 +10,9 @@ internal static partial class CsvParser
 {
 #if NET8_0_OR_GREATER
     /// <summary>
-    /// Scans the unquoted prefix of a record with portable 128-bit SIMD. Late quoted fields reuse
-    /// the delimiter prefix in the shared quoted parsers; early quotes continue in the general
-    /// quote-aware SIMD path.
+    /// Scans the unquoted prefix of a record with portable 128-bit SIMD. Final quoted fields reuse
+    /// the delimiter prefix; other quoted records use the quote-aware SIMD path before
+    /// falling back to the shared quoted parsers.
     /// </summary>
     private static bool TryReadTextRecordFieldSpansVector128<TVisitor>(
         ReadOnlySpan<char> text,
@@ -99,6 +99,20 @@ internal static partial class CsvParser
                             recordIndex,
                             delimiterIndexes.Slice(0, delimiterCount),
                             quoteIndex,
+                            ref position,
+                            projectedFieldVisitor,
+                            ref fieldVisitor,
+                            ref scratch,
+                            out fieldCount,
+                            out firstFieldLength) ||
+                        TryReadTextQuoteAwareRecordFieldSpansVector128(
+                            text,
+                            delimiter,
+                            allowEmpty,
+                            emitFields,
+                            recordIndex,
+                            start,
+                            delimiterIndexCapacity,
                             ref position,
                             projectedFieldVisitor,
                             ref fieldVisitor,

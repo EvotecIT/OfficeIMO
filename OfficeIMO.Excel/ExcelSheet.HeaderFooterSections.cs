@@ -137,7 +137,8 @@ public partial class ExcelSheet {
         var left = new StringBuilder();
         var center = new StringBuilder();
         var right = new StringBuilder();
-        char section = '\0';
+        // Excel treats text before the first section marker as centered content.
+        char section = 'C';
         int start = 0;
         void Append(int end) {
             StringBuilder? target = section == 'L' ? left : section == 'C' ? center : section == 'R' ? right : null;
