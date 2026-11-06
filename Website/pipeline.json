@@ -3427,7 +3427,12 @@
     {
       "task": "exec",
       "id": "test-browser-converter",
-      "dependsOn": "verify-optimized-presentation",
+      "dependsOn": [
+        "build-api-net8-0-optional",
+        "build-api-net8-0",
+        "build-api-net10-0"
+      ],
+      "splitPhase": "prepare",
       "command": "dotnet",
       "argsList": [
         "test",
@@ -3449,6 +3454,7 @@
       "dependsOn": [
         "test-browser-converter"
       ],
+      "splitPhase": "prepare",
       "project": "./Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj",
       "out": "./_temp/converter-publish",
       "clean": true,
