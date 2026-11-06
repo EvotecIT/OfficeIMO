@@ -50,6 +50,10 @@ namespace OfficeIMO.Excel {
             private void OpenRow() {
                 if (_rowOpened) return;
                 if (_native != null) { _native.BeginRow(_rowIndex); _rowOpened = true; return; }
+                OpenXmlRow();
+            }
+
+            private void OpenXmlRow() {
                 if (_includeCellReferences) {
                     if (_rowStyle == null) {
                         WriteReferenceStart("<row r=\"", "\">");
