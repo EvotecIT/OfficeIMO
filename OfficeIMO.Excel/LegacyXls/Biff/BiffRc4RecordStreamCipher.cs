@@ -1,26 +1,31 @@
+using System.Threading;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffRc4RecordStreamCipher {
         private const int EncryptionBlockSize = 1024;
 
-        internal static byte[] Transform(byte[] workbookStream, Func<uint, byte[]> deriveBlockKey, bool requireCompleteRecords = false) {
+        internal static byte[] Transform(byte[] workbookStream, Func<uint, byte[]> deriveBlockKey,
+            bool requireCompleteRecords = false, CancellationToken cancellationToken = default) {
             return TransformBlocks(workbookStream, block => {
                 var pad = new byte[EncryptionBlockSize];
                 BiffRc4Transform.Xor(deriveBlockKey(block), pad, 0, pad.Length);
                 return pad;
-            }, requireCompleteRecords);
+            }, requireCompleteRecords, cancellationToken);
         }
 
-        internal static byte[] Transform(byte[] workbookStream, OfficeBinaryRc4CryptoApiSession session) =>
+        internal static byte[] Transform(byte[] workbookStream, OfficeBinaryRc4CryptoApiSession session,
+            CancellationToken cancellationToken = default) =>
             TransformBlocks(workbookStream, block => {
                 var pad = new byte[EncryptionBlockSize];
                 session.TransformInPlace(pad, 0, pad.Length, block);
                 return pad;
-            }, false);
+            }, false, cancellationToken);
 
-        private static byte[] TransformBlocks(byte[] workbookStream, Func<uint, byte[]> createPad, bool requireCompleteRecords) {
-            if (requireCompleteRecords) ValidateRecordStream(workbookStream);
+        private static byte[] TransformBlocks(byte[] workbookStream, Func<uint, byte[]> createPad,
+            bool requireCompleteRecords, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (requireCompleteRecords) ValidateRecordStream(workbookStream, cancellationToken);
             byte[] transformed = new byte[workbookStream.Length];
             Buffer.BlockCopy(workbookStream, 0, transformed, 0, workbookStream.Length);
 
@@ -28,6 +33,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int currentBlock = -1;
             int offset = 0;
             while (offset + 4 <= transformed.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ushort recordType = BiffRecordReader.ReadUInt16(transformed, offset);
                 ushort length = BiffRecordReader.ReadUInt16(transformed, offset + 2);
                 int recordEnd = offset + 4 + length;
@@ -38,6 +44,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 for (int position = offset; position < recordEnd; position++) {
                     int block = position / EncryptionBlockSize;
                     if (block != currentBlock) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         currentBlock = block;
                         pad = createPad(checked((uint)block));
                     }
@@ -51,12 +58,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 offset = recordEnd;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             return transformed;
         }
 
-        internal static void ValidateRecordStream(byte[] bytes) {
+        internal static void ValidateRecordStream(byte[] bytes, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             int offset = 0;
             while (offset <= bytes.Length - 4) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int length = BiffRecordReader.ReadUInt16(bytes, offset + 2);
                 if (length > bytes.Length - offset - 4)
                     throw new InvalidDataException("The BIFF record stream ends inside an encrypted record payload.");

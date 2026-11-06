@@ -681,16 +681,18 @@ namespace OfficeIMO.Excel {
             return LoadEncryptedInput(encryptedBytes, password, resolved, sourcePath: null, cancellationToken);
         }
 
-        private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password, bool readOnly, ExcelLoadOptions options) {
+        private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password, bool readOnly,
+            ExcelLoadOptions options, CancellationToken cancellationToken = default) {
             if (!options.AllowBinaryProjection) throw new NotSupportedException("This load profile accepts XML workbook packages only; encrypted XLS projection is disabled.");
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, new LegacyXlsImportOptions {
                 Password = password,
-                ReportUnsupportedContent = true
+                ReportUnsupportedContent = true,
+                CancellationToken = cancellationToken
             });
             if (!workbook.WasEncryptedSource) {
                 throw new InvalidDataException("LoadEncrypted requires a password-encrypted legacy XLS workbook.");
             }
-            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null, readOnly);
+            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null, readOnly, cancellationToken);
         }
 
     }

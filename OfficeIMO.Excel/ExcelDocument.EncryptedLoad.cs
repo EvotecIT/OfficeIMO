@@ -14,7 +14,7 @@ public partial class ExcelDocument {
         ExcelDocument document;
         if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, sourcePath)) {
             document = LoadEncryptedLegacyXls(encryptedBytes, password,
-                options.AccessMode == DocumentAccessMode.ReadOnly, options);
+                options.AccessMode == DocumentAccessMode.ReadOnly, options, cancellationToken);
         } else {
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
