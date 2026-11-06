@@ -253,7 +253,7 @@ public sealed class PdfReverseConversionQualityTests {
     [InlineData("Revenue grew 12%", false)]
     [InlineData("2026 annual report", false)]
     public void PageNumberTextIsRecognizedWithoutVocabulary(string text, bool expected) {
-        Assert.Equal(expected, PdfDocumentSemanticEnricher.IsPageNumberText(text));
+        Assert.Equal(expected, PdfTextSimilarity.IsPageNumberText(text));
     }
 
     [Fact]

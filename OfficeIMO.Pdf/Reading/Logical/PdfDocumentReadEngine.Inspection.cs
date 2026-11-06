@@ -63,7 +63,7 @@ internal static partial class PdfDocumentReadEngine {
             int[] projectedNumbers = numbers.ToArray();
             PdfReadDocument inspectionDocument = inspectionPages is null ? document : document.WithInspectionPages(inspectionPages);
             IReadOnlyList<PdfUnderstandingPageResult> enriched = options.Profile == PdfReadProfile.Structured
-                ? PdfDocumentSemanticEnricher.Enrich(inspectionDocument, projectedNumbers, analyses,
+                ? PdfDocumentSemanticEnricher.Enrich(inspectionDocument, projectedNumbers, analyses, options.LayoutOptions,
                     pipelineOptions.MaxRegionsPerPage, pipelineOptions.MaxDocumentWorkUnits, cancellationToken)
                 : analyses;
             PdfDocumentReadResult result = PdfDocumentReadResult.FromPageNumbers(inspectionDocument, options.LayoutOptions,

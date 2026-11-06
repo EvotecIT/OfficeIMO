@@ -10,9 +10,7 @@ public sealed class PdfTaggedParagraphReadingOrderTests {
     [InlineData("WrapObjectOrderLayout", 4, "sigma tau.")]
     [InlineData("WrapObjectOrderLargerColumns", 5, "ma tau.")]
     public void TaggedStoryRetainsParagraphOrderAcrossColumns(string fixtureName, int continuedParagraph, string tail) {
-        string fixture = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Publisher.Tests", "Fixtures", "NativeComparison",
-            fixtureName, "native-" + fixtureName.ToLowerInvariant() + ".pdf");
-        using PdfDocument document = PdfDocument.Load(fixture);
+        using PdfDocument document = LoadPublisherFixture(fixtureName);
         PdfDocumentReadResult result = document.Read();
         PdfLogicalPage page = Assert.Single(result.Pages);
 
@@ -24,4 +22,22 @@ public sealed class PdfTaggedParagraphReadingOrderTests {
         PdfLogicalParagraph continued = page.Paragraphs[continuedParagraph - 1];
         Assert.Equal(tail, continued.Lines[continued.Lines.Count - 1].Text);
     }
+
+    [Theory]
+    [InlineData(true, PdfReadingDirection.Auto)]
+    [InlineData(false, PdfReadingDirection.RightToLeft)]
+    public void TaggedStoryRespectsExplicitReadingOrder(bool forceSingleColumn, PdfReadingDirection direction) {
+        using PdfDocument document = LoadPublisherFixture("WrapObjectOrderLayout");
+        PdfDocumentReadResult result = document.Read(new PdfLoadOptions {
+            LayoutOptions = new PdfTextLayoutOptions { ForceSingleColumn = forceSingleColumn, ReadingDirection = direction }
+        });
+
+        int higherParagraph = result.Text.IndexOf("Paragraph 5.", StringComparison.Ordinal);
+        int lowerParagraph = result.Text.IndexOf("Paragraph 4.", StringComparison.Ordinal);
+        Assert.InRange(higherParagraph, 0, lowerParagraph - 1);
+    }
+
+    private static PdfDocument LoadPublisherFixture(string fixtureName) =>
+        PdfDocument.Load(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Publisher.Tests", "Fixtures",
+            "NativeComparison", fixtureName, "native-" + fixtureName.ToLowerInvariant() + ".pdf"));
 }

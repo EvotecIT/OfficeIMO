@@ -1486,6 +1486,7 @@ public partial class PdfUnderstandingPipelineTests {
                 document,
                 new[] { 1 },
                 new[] { page },
+                new PdfTextLayoutOptions(),
                 1,
                 10_000,
                 CancellationToken.None));
@@ -2035,6 +2036,7 @@ public partial class PdfUnderstandingPipelineTests {
                 document,
                 new[] { 1 },
                 new[] { PdfUnderstandingPageResult.Empty(1) },
+                new PdfTextLayoutOptions(),
                 10,
                 1,
                 CancellationToken.None));

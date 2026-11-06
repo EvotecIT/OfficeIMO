@@ -68,7 +68,7 @@ internal static partial class TableDetector {
         anchors.Sort(static (left, right) => right.Row.Y.CompareTo(left.Row.Y));
         if (anchors.Count < 2) return;
 
-        AddWrappedPositionedCellGroups(result, anchors, boundedLines, consumeWork, cancellationCheck);
+        AddWrappedPositionedCellGroups(result, anchors, boundedLines, pageHeight, consumeWork, cancellationCheck);
     }
 
     private static void TryAddWrappedPositionedCellTable(

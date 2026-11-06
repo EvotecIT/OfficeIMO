@@ -46,8 +46,10 @@ public sealed class PdfCaptionedTableTests {
         Assert.All(groups, group => Assert.Single(group.Segments));
     }
 
-    [Fact]
-    public void RepeatedRunningHeaderKeepsOneWrappedTableAcrossPages() {
+    [Theory]
+    [InlineData("Quality register")]
+    [InlineData("Page {page} of {pages}")]
+    public void RunningHeadersKeepOneWrappedTableAcrossPages(string headerFormat) {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = OfficeLength.Points(9),
@@ -55,7 +57,7 @@ public sealed class PdfCaptionedTableTests {
                 Size = new PdfPageSize(OfficeLength.Points(380), OfficeLength.Points(215)),
                 Margins = { Left = OfficeLength.Points(30), Right = OfficeLength.Points(30), Top = OfficeLength.Points(34), Bottom = OfficeLength.Points(10) },
                 Header = {
-                    Format = "Quality register",
+                    Format = headerFormat,
                     Show = true,
                     Alignment = OfficeAlignment.Left,
                     StandardFont = PdfStandardFont.Helvetica,

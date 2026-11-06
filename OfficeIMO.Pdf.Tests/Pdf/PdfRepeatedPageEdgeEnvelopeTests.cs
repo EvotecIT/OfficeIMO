@@ -21,7 +21,7 @@ public sealed class PdfRepeatedPageEdgeEnvelopeTests {
         // This is a caller-enforced work limit, not a timing or allocation budget.
         // Slight geometry drift must not require all-pairs comparisons across pages.
         IReadOnlyList<PdfUnderstandingPageResult> enriched = PdfDocumentSemanticEnricher.Enrich(
-            document, pageNumbers, pages, 10, 4_000, CancellationToken.None);
+            document, pageNumbers, pages, new PdfTextLayoutOptions(), 10, 4_000, CancellationToken.None);
 
         PdfUnderstandingSemanticKind expected = footer
             ? PdfUnderstandingSemanticKind.Footer : PdfUnderstandingSemanticKind.Header;
@@ -46,7 +46,7 @@ public sealed class PdfRepeatedPageEdgeEnvelopeTests {
         };
 
         IReadOnlyList<PdfUnderstandingPageResult> enriched = PdfDocumentSemanticEnricher.Enrich(
-            document, new[] { 1, 2 }, pages, 10, 1_000, CancellationToken.None);
+            document, new[] { 1, 2 }, pages, new PdfTextLayoutOptions(), 10, 1_000, CancellationToken.None);
 
         Assert.All(enriched, page => Assert.Equal(
             repeated ? PdfUnderstandingSemanticKind.Header : PdfUnderstandingSemanticKind.Paragraph,
@@ -62,7 +62,7 @@ public sealed class PdfRepeatedPageEdgeEnvelopeTests {
             pageNumber, Element("Running operations", leftPositions[pageNumber - 1], 120D, 950D))).ToArray();
 
         IReadOnlyList<PdfUnderstandingPageResult> enriched = PdfDocumentSemanticEnricher.Enrich(
-            document, pageNumbers, pages, 10, 1_000, CancellationToken.None);
+            document, pageNumbers, pages, new PdfTextLayoutOptions(), 10, 1_000, CancellationToken.None);
 
         // Six pages require three distinct pages in one compatible neighborhood.
         Assert.All(enriched, page => Assert.Equal(PdfUnderstandingSemanticKind.Paragraph,
@@ -78,7 +78,7 @@ public sealed class PdfRepeatedPageEdgeEnvelopeTests {
                 pageNumber == 1 ? 950D : 500D))).ToArray();
 
         IReadOnlyList<PdfUnderstandingPageResult> enriched = PdfDocumentSemanticEnricher.Enrich(
-            document, pageNumbers, pages, 10, 1_000, CancellationToken.None);
+            document, pageNumbers, pages, new PdfTextLayoutOptions(), 10, 1_000, CancellationToken.None);
 
         Assert.Equal(pageNumbers, enriched.Select(page => page.PageNumber));
         Assert.All(enriched, page => Assert.Equal(PdfUnderstandingSemanticKind.Paragraph,

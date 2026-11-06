@@ -5,6 +5,7 @@ internal static partial class TableDetector {
         List<PdfStructuredTable> result,
         List<(TextLayoutEngine.TextLine Line, PositionedRow Row)> anchors,
         List<TextLayoutEngine.TextLine> boundedLines,
+        double? pageHeight,
         Action<long>? consumeWork,
         Action? cancellationCheck) {
         var group = new List<(TextLayoutEngine.TextLine Line, PositionedRow Row)>();
@@ -53,8 +54,13 @@ internal static partial class TableDetector {
             int end = FindPositionedLineAtOrBelow(boundedLines, bottom, consumeWork);
             consumeWork?.Invoke(end - start);
             List<TextLayoutEngine.TextLine> groupLines = boundedLines.GetRange(start, end - start);
-            TryAddWrappedPositionedCellTable(result, group, groupLines, consumeWork, cancellationCheck,
-                leadingCaption: groupCaption?.Text.Trim());
+            string? leadingCaption = groupCaption?.Text.Trim();
+            // A running page number bounds the rows without identifying the table.
+            if (groupCaption != null && pageHeight is double height && groupCaption.Y >= height * 0.85D &&
+                PdfTextSimilarity.IsPageNumberText(leadingCaption)) {
+                leadingCaption = null;
+            }
+            TryAddWrappedPositionedCellTable(result, group, groupLines, consumeWork, cancellationCheck, leadingCaption: leadingCaption);
         }
     }
 

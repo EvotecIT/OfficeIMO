@@ -134,6 +134,7 @@ internal static partial class PdfOcrLogicalDocumentBuilder {
                 sourceDocument,
                 pageNumbers,
                 analyses,
+                layoutOptions,
                 pipelineOptions.MaxRegionsPerPage,
                 pipelineOptions.MaxDocumentWorkUnits,
                 cancellationToken)

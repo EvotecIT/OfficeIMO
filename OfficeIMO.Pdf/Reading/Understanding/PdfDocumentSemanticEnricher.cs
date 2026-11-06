@@ -8,6 +8,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         PdfReadDocument document,
         int[] pageNumbers,
         IReadOnlyList<PdfUnderstandingPageResult> pages,
+        PdfTextLayoutOptions layout,
         int maxElementsPerPage,
         long maxWorkUnits,
         CancellationToken cancellationToken) {
@@ -55,7 +56,9 @@ internal static partial class PdfDocumentSemanticEnricher {
         ApplyHeadingFontTierEvidence(elements, workBudget);
 
         Dictionary<int, Dictionary<int, int>?>? paragraphStories =
-            IndexTaggedParagraphStories(document, taggedGraph, workBudget);
+            !layout.ForceSingleColumn && layout.ReadingDirection == PdfReadingDirection.Auto
+                ? IndexTaggedParagraphStories(document, taggedGraph, workBudget)
+                : null;
         var result = new PdfUnderstandingPageResult[pages.Count];
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             workBudget.Consume();
@@ -203,7 +206,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                     ? PdfTextSimilarity.NormalizeSignaturePreservingDigits(region.Text)
                     : PdfTextSimilarity.NormalizeSignature(region.Text);
                 if (edge == PageEdge.None || signature.Length == 0) continue;
-                if (IsPageNumberText(region.Text)) {
+                if (PdfTextSimilarity.IsPageNumberText(region.Text)) {
                     // A page number at the page edge is running content even on a single page, and its digits
                     // change from page to page, so it never forms a repeated signature.
                     elements[pageIndex][elementIndex] = WithEvidence(
@@ -247,16 +250,6 @@ internal static partial class PdfDocumentSemanticEnricher {
                     "Normalized geometry and exact digit-insensitive text signatures repeat across document pages.",
                     0.95D));
         }
-    }
-
-    private static readonly System.Text.RegularExpressions.Regex PageNumberPattern = new System.Text.RegularExpressions.Regex(
-        @"^(?:[\(\[\-\u2013\u2014]?\s*\d{1,5}\s*(?:(?:/|\||\p{L}{1,4})\s*\d{1,5})?\s*[\)\]\-\u2013\u2014]?|\p{L}{1,8}\.?\s*\d{1,5}\s*(?:/|\||\p{L}{1,4})\s*\d{1,5})$",
-        System.Text.RegularExpressions.RegexOptions.CultureInvariant,
-        TimeSpan.FromSeconds(1));
-
-    internal static bool IsPageNumberText(string? text) {
-        string value = text?.Trim() ?? string.Empty;
-        return value.Length > 0 && value.Length <= 24 && PageNumberPattern.IsMatch(value);
     }
 
     private static bool[] FindRepeatedPageEdgeCandidates(

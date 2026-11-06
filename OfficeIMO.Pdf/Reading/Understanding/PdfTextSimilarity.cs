@@ -3,12 +3,22 @@ using System.Globalization;
 using System.Buffers;
 #endif
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Pdf;
 
 /// <summary>Bounded normalization and edit-distance evidence shared by semantic reconstruction stages.</summary>
 internal static class PdfTextSimilarity {
     private const int MaximumSignatureLength = 256;
+    private static readonly Regex PageNumberPattern = new Regex(
+        @"^(?:[\(\[\-\u2013\u2014]?\s*\d{1,5}\s*(?:(?:/|\||\p{L}{1,4})\s*\d{1,5})?\s*[\)\]\-\u2013\u2014]?|\p{L}{1,8}\.?\s*\d{1,5}\s*(?:/|\||\p{L}{1,4})\s*\d{1,5})$",
+        RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
+
+    internal static bool IsPageNumberText(string? text) {
+        string value = text?.Trim() ?? string.Empty;
+        return value.Length > 0 && value.Length <= 24 && PageNumberPattern.IsMatch(value);
+    }
 
     internal static string NormalizeSignature(string? text) => NormalizeSignature(text, collapseDigitRuns: true);
 
