@@ -16,6 +16,7 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly List<uint> _records;
     private readonly HashSet<uint> _recordAddresses;
     private readonly EmailStoreDiagnosticCollection _diagnostics = new EmailStoreDiagnosticCollection();
+    private bool _bulkReadActive;
 
     internal DbxStoreSessionBackend(Stream source, string? sourceName, EmailStoreReaderOptions options,
         CancellationToken cancellationToken, bool isSnapshot = false)
@@ -58,6 +59,19 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
     public IReadOnlyList<EmailStoreFolderInfo> Folders { get; }
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
 
+    internal IDisposable BeginBulkRead(CancellationToken cancellationToken) {
+        if (_bulkReadActive) throw new InvalidOperationException("A DBX bulk read is already active.");
+        ValidateBulkSource(cancellationToken);
+        var scope = new BulkReadScope(this, cancellationToken);
+        _bulkReadActive = true;
+        return scope;
+    }
+
+    private void ValidateBulkSource(CancellationToken cancellationToken) {
+        using Stream? owned = _openSource?.Invoke();
+        _guard.Validate(owned ?? _source!, cancellationToken);
+    }
+
     public IEnumerable<EmailStoreItemReference> EnumerateItems(EmailStoreEnumerationOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -86,7 +100,7 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
         } catch (EmailLimitExceededException exception) {
             throw EmailStoreMessageReader.ConvertLimit(exception);
         }
-        _guard.Validate(input, cancellationToken);
+        _guard.Validate(input, cancellationToken, verifyFingerprint: !_bulkReadActive);
         CopyDiagnostics(diagnostics, reference.Id);
         bool? hasAttachments = flags.HasValue ? (flags.Value & AttachmentFlag) != 0 : null;
         bool? isRead = flags.HasValue ? (flags.Value & ReadFlag) != 0 : document.MessageMetadata.IsRead;
@@ -111,7 +125,7 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
             includeAttachments, options.MaxDecodedPropertyBytes, includeEmbedded, options.PreferStreamingAttachmentContent);
         if (result.Document.Format != EmailFileFormat.Eml)
             throw DbxDatabase.Invalid("The indexed payload is not an RFC message.");
-        _guard.Validate(input, cancellationToken);
+        _guard.Validate(input, cancellationToken, verifyFingerprint: !_bulkReadActive);
         _resources.Adopt(result);
         CopyDiagnostics(result.Diagnostics, reference.Id);
 
@@ -131,7 +145,7 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
     }
 
     private Stream OpenIndexedMessage(Stream input, uint address, CancellationToken cancellationToken, out uint? flags) {
-        _guard.Validate(input, cancellationToken);
+        _guard.Validate(input, cancellationToken, verifyFingerprint: !_bulkReadActive);
         var database = new DbxDatabase(input, _options);
         DbxIndexedRecord record = database.ReadIndexedRecord(address, cancellationToken);
         flags = record.ReadUInt32(0x01, cancellationToken);
@@ -155,6 +169,24 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
     }
 
     public void Dispose() { if (_ownsResources) _resources.Dispose(); }
+
+    private sealed class BulkReadScope : IDisposable {
+        private readonly DbxStoreSessionBackend _owner;
+        private readonly CancellationToken _cancellationToken;
+        private bool _disposed;
+
+        internal BulkReadScope(DbxStoreSessionBackend owner, CancellationToken cancellationToken) {
+            _owner = owner;
+            _cancellationToken = cancellationToken;
+        }
+
+        public void Dispose() {
+            if (_disposed) return;
+            _disposed = true;
+            _owner._bulkReadActive = false;
+            _owner.ValidateBulkSource(_cancellationToken);
+        }
+    }
 
     private uint GetAddress(EmailStoreItemReference reference) {
         if (!string.Equals(reference.FolderId, FolderId, StringComparison.Ordinal) ||

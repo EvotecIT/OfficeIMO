@@ -5,7 +5,30 @@ namespace OfficeIMO.Email.Store;
 internal sealed partial class MailboxDirectoryStoreSessionBackend {
     private EmailStoreSourceGuard? _dbxCatalogGuard;
     private bool _dbxFileSetInvalid;
+    private bool _dbxBulkReadActive;
     private readonly List<string> _dbxMissingFiles = new List<string>();
+    private readonly List<DbxStoreSessionBackend> _dbxMailboxes = new List<DbxStoreSessionBackend>();
+
+    internal IDisposable? BeginDbxBulkRead(CancellationToken cancellationToken) {
+        if (_dbxCatalogPath == null) return null;
+        if (_dbxBulkReadActive) throw new InvalidOperationException("A DBX catalog bulk read is already active.");
+        ValidateDbxCatalog(cancellationToken);
+        var scopes = new List<IDisposable>(_dbxMailboxes.Count);
+        try {
+            foreach (DbxStoreSessionBackend mailbox in _dbxMailboxes) {
+                scopes.Add(mailbox.BeginBulkRead(cancellationToken));
+            }
+            var scope = new DbxBulkReadScope(this, scopes, cancellationToken);
+            _dbxBulkReadActive = true;
+            return scope;
+        } catch {
+            foreach (IDisposable scope in scopes) {
+                // Reset every admitted child while preserving the original admission failure.
+                try { scope.Dispose(); } catch { }
+            }
+            throw;
+        }
+    }
 
     // An Outlook Express catalog names sibling DBX files. The existing directory owner
     // enforces regular-file access, aggregate bounds, fingerprints and export containment.
@@ -80,6 +103,7 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend {
         RegisterDbxFile(path, folder.FileName, id, input.Length);
         var backend = new DbxStoreSessionBackend(input, () => OpenDbxFile(path), folder.FileName,
             _options, cancellationToken, _resources, _items.Count);
+        _dbxMailboxes.Add(backend);
         int count = 0;
         foreach (EmailStoreItemReference inner in backend.EnumerateItems(new EmailStoreEnumerationOptions(),
                      cancellationToken)) {
@@ -115,7 +139,7 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend {
     private void ValidateDbxCatalog(CancellationToken cancellationToken) {
         if (_dbxCatalogPath == null) return;
         using FileStream source = OpenDbxFile(_dbxCatalogPath);
-        _dbxCatalogGuard!.Validate(source, cancellationToken);
+        _dbxCatalogGuard!.Validate(source, cancellationToken, verifyFingerprint: !_dbxBulkReadActive);
         foreach (string missingPath in _dbxMissingFiles) {
             cancellationToken.ThrowIfCancellationRequested();
             if (File.Exists(missingPath))
@@ -175,6 +199,34 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend {
         5 => EmailStoreSpecialFolderKind.Drafts,
         _ => EmailStoreSpecialFolderKind.Unknown
     };
+
+    private sealed class DbxBulkReadScope : IDisposable {
+        private readonly MailboxDirectoryStoreSessionBackend _owner;
+        private readonly IReadOnlyList<IDisposable> _scopes;
+        private readonly CancellationToken _cancellationToken;
+        private bool _disposed;
+
+        internal DbxBulkReadScope(MailboxDirectoryStoreSessionBackend owner,
+            IReadOnlyList<IDisposable> scopes, CancellationToken cancellationToken) {
+            _owner = owner;
+            _scopes = scopes;
+            _cancellationToken = cancellationToken;
+        }
+
+        public void Dispose() {
+            if (_disposed) return;
+            _disposed = true;
+            _owner._dbxBulkReadActive = false;
+            Exception? failure = null;
+            foreach (IDisposable scope in _scopes) {
+                try { scope.Dispose(); }
+                catch (Exception exception) { failure ??= exception; }
+            }
+            try { _owner.ValidateDbxCatalog(_cancellationToken); }
+            catch (Exception exception) { failure ??= exception; }
+            if (failure != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+    }
 
     private sealed class DbxFolder {
         internal DbxFolder(uint id, uint parent, string name, string? fileName, uint? declaredCount,

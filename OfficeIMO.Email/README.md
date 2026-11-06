@@ -622,9 +622,11 @@ foreach (EmailStoreExportEntry entry in export.Entries) {
 ```
 
 Open a standalone message database such as `Inbox.dbx` from a path or a readable
-seekable stream. Use `EmailStoreSession.OpenSnapshot` for repeated reads from a
-standalone file. Stream-only catalog reads require a filesystem location before
-they can resolve the referenced files.
+seekable stream. Use `EmailStoreSession.OpenSnapshot` for repeated metadata
+searches or EML export from a standalone DBX file. It copies the source into
+private temporary storage once and reuses that stable copy. Keep the original
+source stable until snapshot capture returns. `Folders.dbx` uses the live
+path-based catalog and sibling validation.
 
 DBX import reads indexed local RFC messages and their MIME attachments. It
 supports Windows-1252 catalog names and reports malformed indexes and fragment

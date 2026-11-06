@@ -5,7 +5,7 @@ using OfficeIMO.Reader.Email;
 
 namespace OfficeIMO.Email.Tests;
 
-public sealed class DbxStoreReaderTests {
+public sealed partial class DbxStoreReaderTests {
     private const int RootNode = 0x2800;
     private const int LeftNode = 0x2b00;
     private const int FirstRecord = 0x3100;

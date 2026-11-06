@@ -179,7 +179,7 @@ public sealed partial class EmailStoreSession : IDisposable {
     /// </summary>
     public EmailStoreReadResult ReadAll(CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
-        using IDisposable? bulkRead = (_backend as MboxStoreSessionBackend)?.BeginBulkRead(cancellationToken);
+        using IDisposable? bulkRead = BeginBulkRead(cancellationToken);
         var store = new EmailStore { Format = Format, DisplayName = DisplayName };
         var folders = new Dictionary<string, EmailStoreFolder>(StringComparer.Ordinal);
         foreach (EmailStoreFolderInfo info in Folders) {
@@ -217,6 +217,17 @@ public sealed partial class EmailStoreSession : IDisposable {
             else folder.MutableItems.Add(item);
         }
         return new EmailStoreReadResult(store, Diagnostics.ToArray(), SourceLength);
+    }
+
+    // Eager consumers validate the complete source before their result can escape.
+    internal IDisposable? BeginBulkRead(CancellationToken cancellationToken) {
+        ThrowIfDisposed();
+        return _backend switch {
+            MboxStoreSessionBackend mbox => mbox.BeginBulkRead(cancellationToken),
+            DbxStoreSessionBackend dbx => dbx.BeginBulkRead(cancellationToken),
+            MailboxDirectoryStoreSessionBackend directory => directory.BeginDbxBulkRead(cancellationToken),
+            _ => null
+        };
     }
 
     /// <summary>Closes owned sources or restores the position of a caller-owned stream.</summary>
