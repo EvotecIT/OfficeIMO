@@ -1072,6 +1072,11 @@ foreach ($name in $selected) {
         '--filter', $definition.Filter,
         '--artifacts', $artifactsPath
     )
+    $isPdfComparison = $definition.Project -eq 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+    if ($isPdfComparison) {
+        # The generated benchmark project can exceed the default build timeout on one CPU domain.
+        $arguments += @('--buildTimeout', '600')
+    }
     if ($RunMode -eq 'quick') {
         $arguments += @('--job', 'Dry')
     }
@@ -1091,7 +1096,7 @@ foreach ($name in $selected) {
         if ($name -eq 'pdfcorpusread') {
             $env:OFFICEIMO_PDF_CORPUS_ROOT = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PdfCorpusRoot)
         }
-        if ($definition.Project -eq 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj') {
+        if ($isPdfComparison) {
             $env:HTMLTINKERX_PROJECT_PATH = $htmlTinkerXProjectPath
         }
         if ($name -in $questPdfWorkloads) {
