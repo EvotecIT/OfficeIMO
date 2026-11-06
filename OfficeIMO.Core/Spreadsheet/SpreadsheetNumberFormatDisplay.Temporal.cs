@@ -22,7 +22,7 @@ internal static partial class SpreadsheetNumberFormatDisplay {
             return null;
         }
         var calendar = DateTimeFormatInfo.GetInstance(provider).Calendar;
-        if (syntax.Tokens.Any(token => token.Kind == SpreadsheetNumberFormatTokenKind.DateTimeSymbol)
+        if (RequiresCalendarDate(syntax)
             && (date < calendar.MinSupportedDateTime || date > calendar.MaxSupportedDateTime)) return null;
         bool twelveHour = syntax.Tokens.Select((_, index) => index).Any(index =>
             TryReadMeridiem(syntax, index, out _, out _));
@@ -71,9 +71,23 @@ internal static partial class SpreadsheetNumberFormatDisplay {
         if (!syntax.IsValid) return null;
         var provider = ResolveTemporalProvider(syntax, CultureInfo.InvariantCulture);
         var calendar = DateTimeFormatInfo.GetInstance(provider).Calendar;
-        if (sample < calendar.MinSupportedDateTime) sample = calendar.MinSupportedDateTime;
-        else if (sample > calendar.MaxSupportedDateTime) sample = calendar.MaxSupportedDateTime;
+        if (RequiresCalendarDate(syntax)) {
+            if (sample < calendar.MinSupportedDateTime) sample = calendar.MinSupportedDateTime;
+            else if (sample > calendar.MaxSupportedDateTime) sample = calendar.MaxSupportedDateTime;
+        }
         return FormatDateTimeValue(sample, formatCode, sectionValue, provider);
+    }
+
+    private static bool RequiresCalendarDate(SpreadsheetNumberFormatSyntax syntax) {
+        for (int index = 0; index < syntax.Tokens.Count; index++) {
+            if (TryReadMeridiem(syntax, index, out _, out int lastIndex)) { index = lastIndex; continue; }
+            var token = syntax.Tokens[index];
+            if (token.Kind != SpreadsheetNumberFormatTokenKind.DateTimeSymbol) continue;
+            char unit = char.ToLowerInvariant(token.Text[0]);
+            if (unit == 'y' || unit == 'd' || unit == 'm'
+                && (token.Text.Length >= 3 || !IsTemporalMinute(syntax.Tokens, index))) return true;
+        }
+        return false;
     }
 
     private static IFormatProvider ResolveTemporalProvider(SpreadsheetNumberFormatSyntax syntax, IFormatProvider provider) {

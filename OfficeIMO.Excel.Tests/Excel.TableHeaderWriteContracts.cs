@@ -97,6 +97,46 @@ public partial class Excel {
         Assert.Equal("Sales", Assert.Single(reopened["Data"].GetTables()).DisplayName);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Test_CellWriteOwnership_AliasReservationsExcludeSelfAndRemovedWorksheets(bool rename) {
+        string path = Path.Combine(_directoryWithFiles, "TableAliasLifecycle.xlsx");
+        using (var document = ExcelDocument.Create(path)) {
+            var data = document.AddSheet("Data");
+            data.Cell(1, 1).SetValue("Value");
+            data.Cell(2, 1).SetValue(10);
+            data.AddTable("A1:A2", name: "Sales");
+            document.AddSheet("Other");
+            document.Save();
+        }
+        using (var package = SpreadsheetDocument.Open(path, true)) {
+            var table = package.WorkbookPart!.WorksheetParts.SelectMany(part => part.TableDefinitionParts).Single().Table!;
+            table.Name = "InternalSales";
+            table.DisplayName = "Sales";
+            table.Save();
+        }
+        using var loaded = ExcelDocument.Load(path);
+        var other = loaded["Other"];
+        other.Cell(1, 1).SetValue("Value");
+        other.Cell(2, 1).SetValue(20);
+        other.AddTable("A1:A2", name: "OtherTable");
+        if (rename) {
+            Assert.Equal("Sales", loaded["Data"].RenameTable("Sales", "Sales"));
+            Assert.Equal("Sales", Assert.Single(loaded["Data"].GetTables()).Name);
+        } else {
+            loaded.RemoveWorksheet("Data");
+        }
+        string available = rename ? "InternalSales" : "Sales";
+        other.Cell(4, 1).SetValue("Value");
+        other.Cell(5, 1).SetValue(30);
+        other.AddTable("A4:A5", name: available);
+        Assert.Contains(other.GetTables(), table => table.Name == available);
+        Assert.Contains(other.GetTables(), table => table.Name == "OtherTable");
+        using var reopened = ExcelDocument.Load(new MemoryStream(loaded.ToBytes()));
+        Assert.Contains(reopened["Other"].GetTables(), table => table.Name == available);
+    }
+
     private static ExcelSheet CreateHeaderReplacementTable(ExcelDocument document) {
         var sheet = document.AddSheet("Data");
         sheet.Cell(1, 1).SetValue("Region");

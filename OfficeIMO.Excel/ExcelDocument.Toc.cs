@@ -188,6 +188,10 @@ namespace OfficeIMO.Excel {
                 ValidateOwnedChartDataSheetRemoval(sheet.Name?.Value ?? sheetName);
                 DisqualifyDirectDataSetFastSaveState();
                 IReadOnlyList<uint> queryConnectionIds = GetWorksheetQueryConnectionIds(part);
+                string[] removedTableAliases = part.TableDefinitionParts
+                    .SelectMany(table => new[] { table.Table?.Name?.Value, table.Table?.DisplayName?.Value })
+                    .Where(alias => !string.IsNullOrWhiteSpace(alias)).Select(alias => alias!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
                 // The cleanup may touch shared caches, other worksheets, and drawings. Keep it
                 // under the same workbook write lock and one rollback boundary as the removal.
@@ -223,6 +227,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 _workBookPart.DeletePart(part);
+                foreach (string alias in removedTableAliases) RemoveReservedTableName(alias);
                 CompleteOwnedChartDataSheetRemoval(sheet.Name?.Value ?? sheetName);
                 RemoveUnusedAuthoredQueryConnections(queryConnectionIds);
                 wb.Save();

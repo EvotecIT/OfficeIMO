@@ -37,6 +37,13 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        /// <summary>Writes a literal header whose schema owner already validated its name and planned range.</summary>
+        private void WriteOwnedTableSchemaHeader(int row, int column, string name) {
+            _tableSchemaHeaderWriteDepth++;
+            try { CellValueCoreNoMaterialize(row, column, name); }
+            finally { _tableSchemaHeaderWriteDepth--; }
+        }
+
         private string SetTableHeaderValue(Table table, int index, object? value) {
             EnsureTableHeaderWritable(table, index);
             string[] names = table.TableColumns?.Elements<TableColumn>()

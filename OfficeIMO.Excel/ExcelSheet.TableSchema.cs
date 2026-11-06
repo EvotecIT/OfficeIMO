@@ -38,8 +38,8 @@ namespace OfficeIMO.Excel {
                     result = oldName;
                     return;
                 }
-                string resolved = stableNameMatches
-                    ? oldName
+                bool displayNameMatches = string.Equals(oldDisplayName, newName, StringComparison.OrdinalIgnoreCase);
+                string resolved = stableNameMatches ? oldName : displayNameMatches ? oldDisplayName
                     : EnsureValidUniqueTableName(newName, validationMode);
                 table.Name = resolved;
                 table.DisplayName = resolved;

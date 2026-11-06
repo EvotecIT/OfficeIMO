@@ -240,4 +240,21 @@ public class ExcelDisplayReviewRegressionTests {
 
     private static double ColumnWidth(Worksheet worksheet, uint index) => worksheet.GetFirstChild<Columns>()!
         .Elements<Column>().Single(column => column.Min!.Value <= index && column.Max!.Value >= index).Width!.Value;
+
+    [Theory]
+    [InlineData("h:mm", false, "12:00")]
+    [InlineData("[$-401]h:mm", true, "12:00")]
+    [InlineData("h:mm AM/PM", false, "12:00 PM")]
+    [InlineData("h:mm\" d\"", false, "12:00 d")]
+    public void TimeOnlyDisplayDoesNotRequireTheAnchorDateToFitTheLocaleCalendar(string format, bool invariant, string expected) {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Clock");
+        sheet.Cell(1, 1).SetValue(0.5).SetNumberFormat(format);
+        var provider = invariant ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo("ar-SA");
+        Assert.Equal(expected, sheet.Cell(1, 1).GetFormattedText(provider));
+        sheet.AutoFitColumns();
+        Assert.Equal(expected, sheet.Cell(1, 1).GetFormattedText(provider));
+        Assert.Equal(0.5, sheet.Cell(1, 1).GetValue<double>());
+    }
+
 }
