@@ -70,7 +70,10 @@ selector and its action, SDK, MSBuild and NuGet configuration) changes, and on
 every full run. Studio Apple uses this: its workflow, Swift sources, project and
 the one linked PDF fixture select the native qualification, while its
 `CI validation` job always reports. The Apple dependency-graph restore uses the
-same rule with the Apple project files, so other PRs skip its macOS runner.
+same rule with the Apple project files, so other PRs skip its macOS runner. The
+PSWriteOffice macOS lanes use `powershell-macos`: module sources, tests and
+examples, plus the batch, path, file-system and font-discovery code that differs
+on macOS (such as `/var` resolving to `/private/var`).
 
 Hosted macOS runners are scarce. Other workflow and `Build/Ci` edits still fail
 open for the Linux and Windows lanes, but the `macos_suites` (the Apple ImageIO

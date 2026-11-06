@@ -68,6 +68,27 @@
       "OfficeIMO.Studio/*.csproj",
       "OfficeIMO.Studio.iOS/*.csproj",
       "OfficeIMO.Studio.iOS/global.json"
+    ],
+    "powershell-macos": [
+      ".github/workflows/powershell-dotnet.yml",
+      ".github/workflows/powershell-tests.yml",
+      "PowerShell/PSWriteOffice/PSWriteOffice.*",
+      "PowerShell/PSWriteOffice/Build/**",
+      "PowerShell/PSWriteOffice/Examples/**",
+      "PowerShell/PSWriteOffice/Private/**",
+      "PowerShell/PSWriteOffice/Sources/**",
+      "PowerShell/PSWriteOffice/Tests/**",
+      "OfficeIMO/Batches/**",
+      "OfficeIMO.Core/IO/**",
+      "OfficeIMO.Core/Internal/OfficeRuntimeCompatibility.cs",
+      "OfficeIMO.Core/Internal/OfficeTemporaryFile.cs",
+      "OfficeIMO.Core/Internal/OfficeUnixFile.cs",
+      "OfficeIMO.Core/OfficeInstalledApplicationFonts.cs",
+      "OfficeIMO.Core/OfficeSystemFontFamilyAliases.cs",
+      "OfficeIMO.Core/OfficeTrueTypeFont*.cs",
+      "OfficeIMO.Pdf/Model/PdfEmbeddedFontFamily.System.cs",
+      "OfficeIMO.Reader.Core/ReaderFileSystemSemantics.cs",
+      "OfficeIMO.SharedSource/IO/**"
     ]
   },
   "suites": {
