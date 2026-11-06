@@ -101,6 +101,9 @@ public partial class Html {
         before._paragraph.InsertAfterSelf(
             new W.SdtBlock(new W.SdtContentBlock(
                 new W.Paragraph(new W.Run(new W.Text("Controlled paragraph"))),
+                new W.SdtBlock(
+                    new W.SdtProperties(new W.SdtContentDocPartObject(new W.DocPartGallery { Val = "Cover Pages" })),
+                    new W.SdtContentBlock(new W.Paragraph(new W.Run(new W.Text("Cached cover title"))))),
                 new W.SdtBlock(new W.SdtContentBlock(table._table)))));
 
         string html = document.ToHtml(null, out OfficeConversionReport report);
@@ -109,9 +112,11 @@ public partial class Html {
         string visibleContent = body.TextContent;
         int beforeIndex = visibleContent.IndexOf("Before control", StringComparison.Ordinal);
         int paragraphIndex = visibleContent.IndexOf("Controlled paragraph", StringComparison.Ordinal);
+        int coverIndex = visibleContent.IndexOf("Cached cover title", StringComparison.Ordinal);
         int tableIndex = visibleContent.IndexOf("Controlled table", StringComparison.Ordinal);
         int afterIndex = visibleContent.IndexOf("After control", StringComparison.Ordinal);
-        Assert.True(beforeIndex >= 0 && paragraphIndex > beforeIndex && tableIndex > paragraphIndex && afterIndex > tableIndex, visibleContent);
+        Assert.True(beforeIndex >= 0 && paragraphIndex > beforeIndex && coverIndex > paragraphIndex &&
+            tableIndex > coverIndex && afterIndex > tableIndex, visibleContent);
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "block-content-control-flattened" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }

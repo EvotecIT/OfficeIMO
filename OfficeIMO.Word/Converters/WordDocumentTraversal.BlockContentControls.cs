@@ -42,16 +42,22 @@ internal static partial class WordDocumentTraversal {
         void Append(IReadOnlyList<WordElement> source, int depth) {
             foreach (WordElement element in source) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (element is WordStructuredDocumentTag { SdtBlock: { } block } control) {
-                    if (depth >= MaximumBlockContentControlDepth) {
-                        throw new InvalidDataException(
-                            $"Structured document tag nesting exceeds the supported limit of {MaximumBlockContentControlDepth} levels.");
-                    }
-
-                    Append(GetBlockContentElements(control.Document, block, cancellationToken: cancellationToken), depth + 1);
-                } else {
+                (WordDocument Document, SdtBlock Block)? blockContent = element switch {
+                    WordStructuredDocumentTag { SdtBlock: { } block } control => (control.Document, block),
+                    WordCoverPage coverPage when depth > 0 => (coverPage.Document, coverPage.SdtBlock),
+                    _ => null
+                };
+                if (blockContent is not { } content) {
                     projected.Add(element);
+                    continue;
                 }
+
+                if (depth >= MaximumBlockContentControlDepth) {
+                    throw new InvalidDataException(
+                        $"Structured document tag nesting exceeds the supported limit of {MaximumBlockContentControlDepth} levels.");
+                }
+
+                Append(GetBlockContentElements(content.Document, content.Block, cancellationToken: cancellationToken), depth + 1);
             }
         }
     }

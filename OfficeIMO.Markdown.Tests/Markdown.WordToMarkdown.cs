@@ -403,12 +403,16 @@ namespace OfficeIMO.Tests {
             before._paragraph.InsertAfterSelf(
                 new SdtBlock(new SdtContentBlock(
                     new Paragraph(new Run(new Text("Controlled paragraph"))),
+                    new SdtBlock(
+                        new SdtProperties(new SdtContentDocPartObject(new DocPartGallery { Val = "Cover Pages" })),
+                        new SdtContentBlock(new Paragraph(new Run(new Text("Cached cover title"))))),
                     new SdtBlock(new SdtContentBlock(table._table)))));
 
             using var result = document.ToMarkdown(null, out OfficeConversionReport report);
             Assert.Collection(result.Blocks,
                 block => Assert.IsType<ParagraphBlock>(block),
                 block => Assert.IsType<ParagraphBlock>(block),
+                block => Assert.Equal("Cached cover title", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => {
                     var exportedCell = Assert.Single(Assert.IsType<TableBlock>(block).HeaderCells);
                     Assert.Equal(new[] { "Cell before", "Controlled table", "Cell after" },
@@ -418,9 +422,11 @@ namespace OfficeIMO.Tests {
             string markdown = result.ToMarkdown();
             int beforeIndex = markdown.IndexOf("Before control", StringComparison.Ordinal);
             int paragraphIndex = markdown.IndexOf("Controlled paragraph", StringComparison.Ordinal);
+            int coverIndex = markdown.IndexOf("Cached cover title", StringComparison.Ordinal);
             int tableIndex = markdown.IndexOf("Controlled table", StringComparison.Ordinal);
             int afterIndex = markdown.IndexOf("After control", StringComparison.Ordinal);
-            Assert.True(beforeIndex >= 0 && paragraphIndex > beforeIndex && tableIndex > paragraphIndex && afterIndex > tableIndex, markdown);
+            Assert.True(beforeIndex >= 0 && paragraphIndex > beforeIndex && coverIndex > paragraphIndex &&
+                tableIndex > coverIndex && afterIndex > tableIndex, markdown);
             Assert.Equal(2, report.Diagnostics.Count(diagnostic => diagnostic.Location == "BlockContentControl" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation));
         }

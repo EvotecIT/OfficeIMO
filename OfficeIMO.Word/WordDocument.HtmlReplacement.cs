@@ -27,7 +27,8 @@ namespace OfficeIMO.Word {
                 return 0;
             }
 
-            segments = segments.OrderByDescending(s => s.BeginIndex).ToList();
+            // Process later offsets first. Chunks inserted after the same paragraph then retain source order.
+            segments.Reverse();
 
             foreach (var seg in segments) {
                 InsertHtmlFragmentAfter(paragraphs[seg.BeginIndex], htmlContent, type);

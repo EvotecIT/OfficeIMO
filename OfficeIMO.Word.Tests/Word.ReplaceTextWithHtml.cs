@@ -6,23 +6,25 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
-        public void Test_ReplaceTextWithHtmlFragment_Simple() {
-            string filePath = Path.Combine(_directoryWithFiles, "ReplaceHtmlSimple.docx");
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph("Hello replaceTarget world.");
-                var count = document.ReplaceTextWithHtmlFragment("replaceTarget", "<html><p>Injected</p></html>");
-                Assert.Equal(1, count);
-                Assert.Single(document.EmbeddedDocuments);
-                Assert.DoesNotContain("replaceTarget", document.Paragraphs[0].Text);
-                var body = document._document.Body!;
-                Assert.IsType<Paragraph>(body.ChildElements[0]);
-                Assert.IsType<AltChunk>(body.ChildElements[1]);
-                Assert.IsType<SectionProperties>(body.ChildElements[2]);
-                document.Save();
+        public void ReplaceTextWithHtmlFragment_PreservesTextAndPlacementForMatchesInOneRun() {
+            using var output = new MemoryStream();
+            using (WordDocument document = WordDocument.Create()) {
+                document.AddParagraph("first TOKEN middle TTOKEN tail");
+                int count = document.ReplaceTextWithHtmlFragment("TOKEN", "<html><p>Injected</p></html>");
+
+                Assert.Equal(2, count);
+                document.Save(output);
             }
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Single(document.EmbeddedDocuments);
-            }
+
+            output.Position = 0;
+            using WordDocument reopened = WordDocument.Load(output, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            Assert.Equal("first  middle T tail", Assert.Single(reopened.Paragraphs).Text);
+            Assert.Equal(2, reopened.EmbeddedDocuments.Count);
+            var body = reopened._document.Body!;
+            Assert.IsType<Paragraph>(body.ChildElements[0]);
+            Assert.IsType<AltChunk>(body.ChildElements[1]);
+            Assert.IsType<AltChunk>(body.ChildElements[2]);
+            Assert.IsType<SectionProperties>(body.ChildElements[3]);
         }
 
         [Fact]

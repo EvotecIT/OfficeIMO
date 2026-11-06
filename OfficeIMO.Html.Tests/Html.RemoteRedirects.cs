@@ -56,6 +56,10 @@ public partial class Html {
 
         Assert.True(origin.WasRequested);
         Assert.Equal(allowed, destination.WasRequested);
+        if (!allowed) {
+            string code = stylesheet ? "stylesheet-resource-rejected-by-policy" : "image-resource-rejected-by-policy";
+            Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == code);
+        }
         if (allowed) {
             Assert.Equal($"localhost:{destination.Port}", destination.RequestHost);
         }

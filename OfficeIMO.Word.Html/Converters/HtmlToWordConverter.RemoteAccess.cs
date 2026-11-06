@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static readonly HttpClient _sharedHttpClient = new(new HttpClientHandler {
-            AllowAutoRedirect = false
-        });
+        private static readonly Lazy<HttpClient> _sharedHttpClient = new(() =>
+            new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }));
         private const int MaximumRemoteResourceRedirects = 50;
 
         private async Task<HttpResponseMessage> FetchRemoteResourceAsync(Uri uri,
@@ -22,11 +21,12 @@ namespace OfficeIMO.Word.Html {
             }
 
             // Preserve the shared client's timeout across the entire redirect chain.
+            HttpClient sharedClient = _sharedHttpClient.Value;
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(_sharedHttpClient.Timeout);
+            timeout.CancelAfter(sharedClient.Timeout);
             for (int redirects = 0; ; redirects++) {
                 using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                HttpResponseMessage response = await _sharedHttpClient.SendAsync(
+                HttpResponseMessage response = await sharedClient.SendAsync(
                     request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
                 int status = (int)response.StatusCode;
                 bool redirect = status is 300 or 301 or 302 or 303 or 307;
