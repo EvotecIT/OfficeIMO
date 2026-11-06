@@ -84,6 +84,28 @@ namespace OfficeIMO.OpenXml.Internal {
                 sha256);
         }
 
+        /// <summary>Copies core metadata, including edits that are not yet present in a package part.</summary>
+        internal static void CopyCoreProperties(OpenXmlPackage source, OpenXmlPackage destination) {
+            var src = source.PackageProperties;
+            var dest = destination.PackageProperties;
+            dest.Category = src.Category;
+            dest.ContentStatus = src.ContentStatus;
+            dest.ContentType = src.ContentType;
+            dest.Created = src.Created;
+            dest.Creator = src.Creator;
+            dest.Description = src.Description;
+            dest.Identifier = src.Identifier;
+            dest.Keywords = src.Keywords;
+            dest.Language = src.Language;
+            dest.LastModifiedBy = src.LastModifiedBy;
+            dest.LastPrinted = src.LastPrinted;
+            dest.Modified = src.Modified;
+            dest.Revision = src.Revision;
+            dest.Subject = src.Subject;
+            dest.Title = src.Title;
+            dest.Version = src.Version;
+        }
+
         internal static byte[] ReadBytes(OpenXmlPart part, long? maxBytes = null) {
             ArgumentNullException.ThrowIfNull(part);
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);

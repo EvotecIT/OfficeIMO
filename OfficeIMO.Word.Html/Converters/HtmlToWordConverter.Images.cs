@@ -967,11 +967,9 @@ namespace OfficeIMO.Word.Html {
                     cts.CancelAfter(_resourceTimeout.Value);
                 }
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                using var response = await _httpClient.SendAsync(
-                    request,
-                    HttpCompletionOption.ResponseHeadersRead,
-                    token).ConfigureAwait(false);
+                using var response = await FetchRemoteResourceAsync(
+                    uri, options.AllowedImageUriSchemes, options.AllowedImageHosts,
+                    token, options.ResourceUrlPolicy).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
                 EnsureImageContentTypeAllowed(response.Content.Headers.ContentType?.MediaType, options);
                 (long? limit, bool totalBudgetLimit) = GetRemoteImagePrefetchReadLimit(options);

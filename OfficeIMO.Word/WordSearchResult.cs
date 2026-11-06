@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Internal;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
@@ -83,12 +85,20 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            foreach (var paragraph in paragraphs) {
-                var matches = regex.Matches(paragraph.Text);
-                if (matches.Count > 0) {
-                    MatchCount += matches.Count;
-                    destination.Add(paragraph);
+            foreach (var group in paragraphs.GroupBy(paragraph => paragraph._paragraph, OfficeReferenceEqualityComparer<Paragraph>.Instance)) {
+                var matches = regex.Matches(string.Concat(group.Select(paragraph => paragraph.Text)));
+                if (matches.Count == 0) continue;
+
+                MatchCount += matches.Count;
+                int offset = matches[0].Index;
+                WordParagraph matchStart = group.First();
+                foreach (WordParagraph paragraph in group) {
+                    matchStart = paragraph;
+                    int length = paragraph.Text.Length;
+                    if (offset < length) break;
+                    offset -= length;
                 }
+                destination.Add(matchStart);
             }
         }
     }

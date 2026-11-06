@@ -21,8 +21,7 @@ namespace OfficeIMO.Word {
             }
 
             var paragraphs = this.Paragraphs;
-            var segments = SearchText(paragraphs, textToFind,
-                new WordPositionInParagraph { Paragraph = 0 }, stringComparison);
+            var segments = SearchText(paragraphs.Select(paragraph => paragraph.Text).ToArray(), textToFind, stringComparison);
 
             if (segments == null || segments.Count == 0) {
                 return 0;

@@ -23,10 +23,13 @@ internal static partial class PdfWriter {
             int? structure = RegisterStructureContainer(headerScope.Length != 0 ? "TH" : "TD", rowStructure,
                 headerScope, cell.ColumnSpan, 1, logicalOrder: cell.Column);
             TableCellContentFrame clip = GetTableCellInkClipFrame(geometry.Style, slice.Row, cell.Column, left, top, width, height);
+            int annotationStart = currentPage!.Annotations.Count;
             BeginRoundedClip(sb, clip.Left, clip.Top - clip.Height, clip.Width, clip.Height, 0D, false, false, false, false);
             PaintFootnoteUnits(prepared.Units, fragment.Start, fragment.Count, ref contentTop, fragment.Height,
                 fragment.Tables, fragment.StartTable != null, left + padLeft, structure, "P");
             EndRoundedClip(sb);
+            ClipLinkAnnotations(currentPage!.Annotations, annotationStart, clip.Left, clip.Top - clip.Height,
+                clip.Width, clip.Height, imagesOnly: true);
             string? uri = cell.LinkUri;
             string? destination = cell.LinkDestinationName;
             if (HasCellLinkTarget(uri, destination)) {

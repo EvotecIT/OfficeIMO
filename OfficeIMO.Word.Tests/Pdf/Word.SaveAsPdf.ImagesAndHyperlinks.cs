@@ -1,6 +1,9 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
+using A = DocumentFormat.OpenXml.Drawing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Word.Pdf;
 using System;
 using System.Globalization;
@@ -31,6 +34,54 @@ public partial class Word {
         string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("/URI (https://evotec.xyz", pdfContent);
+    }
+
+    [Theory]
+    [InlineData(WordImageTextWrapping.InLineWithText, false)]
+    [InlineData(WordImageTextWrapping.InLineWithText, true)]
+    [InlineData(WordImageTextWrapping.Square, false)]
+    [InlineData(WordImageTextWrapping.Square, true)]
+    public void WordToPdf_RetainsImageOnlyCellHyperlink(WordImageTextWrapping wrapping, bool drawingClick) {
+        const string target = "https://example.test/status-picture";
+        const string altText = "Red status picture";
+        using var source = new MemoryStream();
+        using (WordDocument document = WordDocument.Create()) {
+            WordTable table = document.AddTable(2, 1);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Status";
+            using var image = new MemoryStream(OfficePngWriter.Encode(new OfficeRasterImage(16, 12, OfficeColor.Red)));
+            WordImage picture = table.Rows[1].Cells[0].Paragraphs[0].AddImage(
+                image, "status.png", OfficeLength.Points(32), OfficeLength.Points(24),
+                new WordImageOptions {
+                    Wrapping = wrapping,
+                    AltText = altText,
+                    Hyperlink = drawingClick ? null : new Uri(target)
+                });
+            if (drawingClick) {
+                MainDocumentPart part = document._wordprocessingDocument.MainDocumentPart!;
+                HyperlinkRelationship relationship = part.AddHyperlinkRelationship(new Uri(target), true);
+                picture._Image!.Descendants<DW.DocProperties>().Single()
+                    .Append(new A.HyperlinkOnClick { Id = relationship.Id });
+            }
+            document.Save(source);
+        }
+
+        source.Position = 0;
+        using WordDocument loaded = WordDocument.Load(source);
+        using var destination = new MemoryStream();
+        loaded.SaveAsPdf(destination, new WordPdfExportOptions { IncludePageNumbers = false });
+        byte[] bytes = destination.ToArray();
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var page = pdf.GetPage(1);
+        var imageBounds = Assert.Single(page.GetImages()).BoundingBox;
+        using var readback = new MemoryStream(bytes, writable: false);
+        var link = Assert.Single(OfficeIMO.Pdf.PdfDocument.Load(readback).Read().GetLinksByUri(target));
+        Assert.Equal(altText, link.Contents);
+        Assert.DoesNotContain(altText, page.Text, StringComparison.Ordinal);
+        Assert.InRange(Math.Abs(link.X1 - imageBounds.Left), 0D, 0.05D);
+        Assert.InRange(Math.Abs(link.X2 - imageBounds.Right), 0D, 0.05D);
+        Assert.InRange(Math.Abs(link.Y1 - imageBounds.Bottom), 0D, 0.05D);
+        Assert.InRange(Math.Abs(link.Y2 - imageBounds.Top), 0D, 0.05D);
     }
 
     [Fact]

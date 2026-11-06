@@ -11,7 +11,6 @@ using OfficeIMO.Html;
 using OfficeIMO.Internal;
 using System.Collections.Concurrent;
 using System.Net;
-using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -61,8 +60,6 @@ namespace OfficeIMO.Word.Html {
         private int _suppressAutoLinksDepth;
         private int _figureSequence;
         private bool _pendingTopBookmark;
-        private static readonly HttpClient _sharedHttpClient = new();
-        private HttpClient _httpClient = _sharedHttpClient;
         private CancellationToken _cancellationToken = CancellationToken.None;
         private TimeSpan? _resourceTimeout;
         private long _imageBytesUsed;
@@ -211,7 +208,6 @@ namespace OfficeIMO.Word.Html {
             cancellationToken.ThrowIfCancellationRequested();
             ValidateResourceConcurrency(options);
             _cancellationToken = cancellationToken;
-            _httpClient = options.HttpClient ?? _sharedHttpClient;
             _resourceTimeout = options.ResourceTimeout;
             _options = options;
             _cssProcessingBudget = new HtmlCssProcessingBudget(options.Limits);
