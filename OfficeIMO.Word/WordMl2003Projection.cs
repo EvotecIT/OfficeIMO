@@ -69,31 +69,33 @@ internal sealed class WordMl2003Projection {
         }
     }
 
-    private IEnumerable<OpenXmlElement> ProjectBlocks(XElement container) {
+    private IEnumerable<OpenXmlElement> ProjectBlocks(XElement container, bool inTableCell = false) {
         foreach (XElement child in container.Elements()) {
             _token.ThrowIfCancellationRequested();
             if (child.Name == Word + "p") {
-                yield return ProjectParagraph(child);
+                yield return ProjectParagraph(child, inTableCell);
             } else if (child.Name == Word + "tbl") {
                 yield return ProjectTable(child);
             } else if (child.Name == Auxiliary + "sect" || child.Name == Auxiliary + "sub-section") {
-                foreach (OpenXmlElement block in ProjectBlocks(child)) yield return block;
+                foreach (OpenXmlElement block in ProjectBlocks(child, inTableCell)) yield return block;
             } else if (child.Name == Word + "sectPr") {
-                yield return ProjectSectionProperties(child);
+                if (inTableCell) Omit(child, "section properties inside a table cell");
+                else yield return ProjectSectionProperties(child);
             } else {
                 Omit(child, "block content");
             }
         }
     }
 
-    private Paragraph ProjectParagraph(XElement source) {
+    private Paragraph ProjectParagraph(XElement source, bool inTableCell) {
         var paragraph = new Paragraph();
         foreach (XElement child in source.Elements()) {
             if (child.Name == Word + "pPr") {
                 var properties = new ParagraphProperties();
                 foreach (XElement property in child.Elements()) {
                     if (property.Name == Word + "sectPr") {
-                        properties.SectionProperties = ProjectSectionProperties(property);
+                        if (inTableCell) Omit(property, "section properties inside a table cell");
+                        else properties.SectionProperties = ProjectSectionProperties(property);
                     } else if (property.Name == Word + "jc" && TryJustification((string?)property.Attribute(Word + "val"), out JustificationValues alignment)) {
                         properties.Justification = new Justification { Val = alignment };
                     } else {
@@ -171,7 +173,7 @@ internal sealed class WordMl2003Projection {
                     Omit(cell, "row formatting or non-cell content");
                     continue;
                 }
-                var outputCell = new TableCell(ProjectBlocks(cell).Where(block => block is not SectionProperties));
+                var outputCell = new TableCell(ProjectBlocks(cell, inTableCell: true));
                 if (outputCell.LastChild is not Paragraph) outputCell.AppendChild(new Paragraph());
                 row.AppendChild(outputCell);
             }

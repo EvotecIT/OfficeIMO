@@ -113,6 +113,8 @@ public sealed class WordXmlInterchangeTests {
     [InlineData("duplicate")]
     [InlineData("spreadsheet")]
     [InlineData("depth")]
+    [InlineData("part-uri")]
+    [InlineData("relationship-uri")]
     public void InvalidFlatOpcFailsAtWordLoad(string boundary) {
         string xml = boundary switch {
             "duplicate" => FlatOpc().Replace("</pkg:package>", """
@@ -122,6 +124,8 @@ public sealed class WordXmlInterchangeTests {
             "spreadsheet" => FlatOpc().Replace(
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"),
+            "part-uri" => FlatOpc().Replace("pkg:name=\"/word/document.xml\"", "pkg:name=\"/word/\""),
+            "relationship-uri" => FlatOpc().Replace("Target=\"word/document.xml\"", "Target=\"word/\""),
             _ => FlatOpc().Replace("Producer package", string.Concat(Enumerable.Repeat("<nested>", 130)) +
                 string.Concat(Enumerable.Repeat("</nested>", 130)))
         };
@@ -130,8 +134,24 @@ public sealed class WordXmlInterchangeTests {
         Assert.Contains(boundary switch {
             "duplicate" => "duplicate",
             "spreadsheet" => "Word main document part",
+            "part-uri" => "part name",
+            "relationship-uri" => "Word main",
             _ => "MaxDepth"
         }, error.Message);
+    }
+
+    [Theory]
+    [InlineData("<w:sectPr/>")]
+    [InlineData("<w:p><w:pPr><w:sectPr/></w:pPr></w:p>")]
+    public void WordMlReportsSectionPropertiesOmittedInsideTableCells(string block) {
+        string xml = "<w:wordDocument xmlns:w=\"http://schemas.microsoft.com/office/word/2003/wordml\">" +
+            "<w:body><w:tbl><w:tr><w:tc>" + block + "</w:tc></w:tr></w:tbl></w:body></w:wordDocument>";
+        byte[] bytes = Encoding.UTF8.GetBytes(xml);
+        using var source = new MemoryStream(bytes);
+        using WordDocument document = WordDocument.Load(source, new WordLoadOptions(), out OfficeConversionReport report);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission &&
+            diagnostic.Location?.EndsWith("}sectPr", StringComparison.Ordinal) == true);
+        Assert.Throws<OfficeConversionException>(() => WordDocument.Load(source, new WordLoadOptions { FailOnLoss = true }));
     }
 
     private static string FlatOpc() => """

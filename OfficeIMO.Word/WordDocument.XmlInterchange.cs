@@ -165,7 +165,12 @@ internal static class WordXmlInterchange {
                 !name.StartsWith("/", StringComparison.Ordinal) || name.IndexOfAny(new[] { '\\', '#', '?' }) >= 0) {
                 throw new InvalidDataException("Flat OPC contains an invalid part name or content type.");
             }
-            Uri partUri = PackUriHelper.CreatePartUri(uri);
+            Uri partUri;
+            try {
+                partUri = PackUriHelper.CreatePartUri(uri);
+            } catch (ArgumentException error) {
+                throw new InvalidDataException("Flat OPC contains an invalid package part name.", error);
+            }
             if (!string.Equals(name, partUri.OriginalString, StringComparison.Ordinal) ||
                 parts.ContainsKey(partUri.OriginalString)) {
                 throw new InvalidDataException("Flat OPC contains an invalid or duplicate package part name.");
@@ -239,8 +244,16 @@ internal static class WordXmlInterchange {
 
         string target = (string?)rootTargets[0].Attribute("Target") ?? string.Empty;
         if (!Uri.TryCreate(target, UriKind.Relative, out Uri? relativeTarget) ||
-            target.StartsWith("//", StringComparison.Ordinal) || target.IndexOfAny(new[] { '\\', '#', '?' }) >= 0 ||
-            !parts.TryGetValue(PackUriHelper.ResolvePartUri(new Uri("/", UriKind.Relative), relativeTarget).OriginalString, out XElement? main) ||
+            target.StartsWith("//", StringComparison.Ordinal) || target.IndexOfAny(new[] { '\\', '#', '?' }) >= 0) {
+            throw new InvalidDataException("Flat OPC contains an invalid Word main part target.");
+        }
+        Uri targetPart;
+        try {
+            targetPart = PackUriHelper.ResolvePartUri(new Uri("/", UriKind.Relative), relativeTarget);
+        } catch (ArgumentException error) {
+            throw new InvalidDataException("Flat OPC contains an invalid Word main part target.", error);
+        }
+        if (!parts.TryGetValue(targetPart.OriginalString, out XElement? main) ||
             (string?)main.Attribute(FlatOpc + "contentType") is not
             ("application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml" or
              "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml" or
