@@ -272,7 +272,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool hasCurrentRun = false;
             bool isFirstParagraph = true;
             bool atParagraphStart = true;
-            bool skipOptionalReferenceSpace = false;
             int currentParagraphStartCharacter = startCharacter;
             int pendingBookmarkStartCharacter = int.MaxValue;
             int pendingBookmarkEndCharacter = int.MinValue;
@@ -296,7 +295,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     hasCurrentRun = false;
                     currentHyperlinkTarget = default;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -367,7 +365,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                     index = fieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -381,7 +378,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldResult(LegacyDocFieldKind.Page, pageNumberInstruction, pageNumberResultStartIndex, pageNumberResultEndIndex);
                     index = pageNumberFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -395,7 +391,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldResult(LegacyDocFieldKind.NumPages, numberOfPagesInstruction, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
                     index = numberOfPagesFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -405,7 +400,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldResult(LegacyDocFieldKind.SectionPages, sectionPagesInstruction, sectionPagesResultStartIndex, sectionPagesResultEndIndex);
                     index = sectionPagesFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -420,7 +414,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldResult(dateTimeFieldKind, dateInstruction, dateResultStartIndex, dateResultEndIndex);
                     index = dateFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -434,7 +427,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldResult(LegacyDocFieldKind.DocumentProperty, documentPropertyInstruction, documentPropertyResultStartIndex, documentPropertyResultEndIndex);
                     index = documentPropertyFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -448,7 +440,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldResult(LegacyDocFieldKind.Equation, equationInstruction, equationResultStartIndex, equationResultEndIndex);
                     index = equationFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -461,21 +452,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldDisplayResult(fallbackFieldResultStartIndex, fallbackFieldResultEndIndex);
                     index = fallbackFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (isFirstParagraph && atParagraphStart && normalized == FootnoteReferenceCharacter) {
-                    skipOptionalReferenceSpace = true;
                     continue;
-                }
-
-                if (skipOptionalReferenceSpace) {
-                    skipOptionalReferenceSpace = false;
-                    if (normalized == ' ') {
-                        continue;
-                    }
                 }
 
                 atParagraphStart = false;
@@ -490,7 +472,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AddCurrentParagraph(paragraphFormat, character.CharacterPosition, isFinalParagraph: false);
                     isFirstParagraph = false;
                     atParagraphStart = true;
-                    skipOptionalReferenceSpace = false;
                     currentParagraphStartCharacter = character.CharacterPosition + 1;
                     preserveEmptyParagraph = false;
                     continue;

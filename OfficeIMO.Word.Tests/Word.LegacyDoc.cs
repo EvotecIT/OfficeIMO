@@ -2054,10 +2054,10 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        private static void AssertFormattedNoteRuns(IReadOnlyList<WordParagraph> paragraphs) {
+        private static void AssertFormattedNoteRuns(IReadOnlyList<WordParagraph> paragraphs, string expectedPrefix = "") {
             WordParagraph[] runs = paragraphs.Where(paragraph => paragraph.Text.Length > 0).ToArray();
             Assert.Equal(3, runs.Length);
-            Assert.Equal("plain ", runs[0].Text);
+            Assert.Equal(expectedPrefix + "plain ", runs[0].Text);
             Assert.False(runs[0].Bold);
             Assert.False(runs[0].Italic);
             Assert.Equal("bold ", runs[1].Text);
@@ -2260,30 +2260,32 @@ namespace OfficeIMO.Tests {
                 CreateTextRun(second)));
         }
 
-        private static void AssertNoteBookmarkContent(WordParagraph paragraph, string bookmarkName, string expectedText) {
+        private static void AssertNoteBookmarkContent(WordParagraph paragraph, string bookmarkName, string expectedText, string expectedPrefix = "") {
             OpenXmlElement[] content = paragraph._paragraph.ChildElements
                 .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
                 .ToArray();
-            Assert.Equal(3, content.Length);
-            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(content[0]);
+            int contentStart = AssertExpectedNotePrefix(content, expectedPrefix);
+            Assert.Equal(contentStart + 3, content.Length);
+            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(content[contentStart]);
             Assert.Equal(bookmarkName, bookmarkStart.Name?.Value);
-            Assert.Equal(expectedText, Assert.IsType<Text>(Assert.IsType<Run>(content[1]).FirstChild).Text);
-            BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(content[2]);
+            Assert.Equal(expectedText, Assert.IsType<Text>(Assert.IsType<Run>(content[contentStart + 1]).FirstChild).Text);
+            BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(content[contentStart + 2]);
             Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
         }
 
-        private static void AssertCrossParagraphBookmarkContent(WordParagraph firstParagraph, WordParagraph secondParagraph, string bookmarkName, string firstText, string secondText) {
+        private static void AssertCrossParagraphBookmarkContent(WordParagraph firstParagraph, WordParagraph secondParagraph, string bookmarkName, string firstText, string secondText, string expectedPrefix = "") {
             OpenXmlElement[] firstContent = firstParagraph._paragraph.ChildElements
                 .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
                 .ToArray();
             OpenXmlElement[] secondContent = secondParagraph._paragraph.ChildElements
                 .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
                 .ToArray();
-            Assert.Equal(2, firstContent.Length);
+            int contentStart = AssertExpectedNotePrefix(firstContent, expectedPrefix);
+            Assert.Equal(contentStart + 2, firstContent.Length);
             Assert.Equal(2, secondContent.Length);
-            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(firstContent[0]);
+            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(firstContent[contentStart]);
             Assert.Equal(bookmarkName, bookmarkStart.Name?.Value);
-            Assert.Equal(firstText, Assert.IsType<Text>(Assert.IsType<Run>(firstContent[1]).FirstChild).Text);
+            Assert.Equal(firstText, Assert.IsType<Text>(Assert.IsType<Run>(firstContent[contentStart + 1]).FirstChild).Text);
             Assert.Equal(secondText, Assert.IsType<Text>(Assert.IsType<Run>(secondContent[0]).FirstChild).Text);
             BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(secondContent[1]);
             Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
@@ -2291,18 +2293,19 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(secondContent, element => element is BookmarkStart);
         }
 
-        private static void AssertParagraphBoundaryBookmarkContent(WordParagraph firstParagraph, WordParagraph secondParagraph, string bookmarkName, string firstText, string secondText) {
+        private static void AssertParagraphBoundaryBookmarkContent(WordParagraph firstParagraph, WordParagraph secondParagraph, string bookmarkName, string firstText, string secondText, string expectedPrefix = "") {
             OpenXmlElement[] firstContent = firstParagraph._paragraph.ChildElements
                 .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
                 .ToArray();
             OpenXmlElement[] secondContent = secondParagraph._paragraph.ChildElements
                 .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
                 .ToArray();
-            Assert.Equal(2, firstContent.Length);
+            int contentStart = AssertExpectedNotePrefix(firstContent, expectedPrefix);
+            Assert.Equal(contentStart + 2, firstContent.Length);
             Assert.Equal(2, secondContent.Length);
-            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(firstContent[0]);
+            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(firstContent[contentStart]);
             Assert.Equal(bookmarkName, bookmarkStart.Name?.Value);
-            Assert.Equal(firstText, Assert.IsType<Text>(Assert.IsType<Run>(firstContent[1]).FirstChild).Text);
+            Assert.Equal(firstText, Assert.IsType<Text>(Assert.IsType<Run>(firstContent[contentStart + 1]).FirstChild).Text);
             BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(secondContent[0]);
             Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
             Assert.Equal(secondText, Assert.IsType<Text>(Assert.IsType<Run>(secondContent[1]).FirstChild).Text);
@@ -2322,17 +2325,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
         }
 
-        private static void AssertLeadingZeroLengthBookmarkContent(WordParagraph paragraph, string bookmarkName, string expectedText) {
+        private static void AssertLeadingZeroLengthBookmarkContent(WordParagraph paragraph, string bookmarkName, string expectedText, string expectedPrefix = "") {
             OpenXmlElement[] content = paragraph._paragraph.ChildElements
                 .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
                 .ToArray();
 
-            Assert.Equal(3, content.Length);
-            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(content[0]);
+            int contentStart = AssertExpectedNotePrefix(content, expectedPrefix);
+            Assert.Equal(contentStart + 3, content.Length);
+            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(content[contentStart]);
             Assert.Equal(bookmarkName, bookmarkStart.Name?.Value);
-            BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(content[1]);
+            BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(content[contentStart + 1]);
             Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
-            Assert.Equal(expectedText, Assert.IsType<Text>(Assert.IsType<Run>(content[2]).FirstChild).Text);
+            Assert.Equal(expectedText, Assert.IsType<Text>(Assert.IsType<Run>(content[contentStart + 2]).FirstChild).Text);
+        }
+
+        private static int AssertExpectedNotePrefix(OpenXmlElement[] content, string expectedPrefix) {
+            if (expectedPrefix.Length == 0) return 0;
+            Run prefixRun = Assert.IsType<Run>(content[0]);
+            Assert.Equal(expectedPrefix, Assert.Single(prefixRun.Elements<Text>()).Text);
+            Assert.Single(prefixRun.ChildElements, element => element is not RunProperties);
+            return 1;
         }
 
         private static WordParagraph AssertSingleParagraphWithBookmarkStart(IEnumerable<WordParagraph> paragraphs, string bookmarkName) {
@@ -4407,7 +4419,7 @@ namespace OfficeIMO.Tests {
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 IReadOnlyList<WordParagraph> footnoteRuns = footnote.Paragraphs!;
                 string footnoteText = string.Concat(footnoteRuns.Select(GetNoteRunText));
-                Assert.Equal("footnote site\ttab\vreturn\fpage", footnoteText);
+                Assert.Equal(" footnote site\ttab\vreturn\fpage", footnoteText);
                 Assert.DoesNotContain("HYPERLINK", footnoteText, StringComparison.Ordinal);
                 WordHyperLink? footnoteLink = footnoteRuns
                     .Where(run => run.IsHyperLink)
@@ -4424,7 +4436,7 @@ namespace OfficeIMO.Tests {
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 IReadOnlyList<WordParagraph> endnoteRuns = endnote.Paragraphs!;
                 string endnoteText = string.Concat(endnoteRuns.Select(GetNoteRunText));
-                Assert.Equal("endnote mail\vbreak\vreturn", endnoteText);
+                Assert.Equal(" endnote mail\vbreak\vreturn", endnoteText);
                 Assert.DoesNotContain("HYPERLINK", endnoteText, StringComparison.Ordinal);
                 WordHyperLink? endnoteLink = endnoteRuns
                     .Where(run => run.IsHyperLink)
@@ -4493,12 +4505,12 @@ namespace OfficeIMO.Tests {
 
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 string footnoteText = string.Concat(footnote.Paragraphs!.Select(GetNoteRunText));
-                Assert.Equal("FootnoteContentOneFootnoteContentNestedFootnoteContentTwo", footnoteText);
+                Assert.Equal(" FootnoteContentOneFootnoteContentNestedFootnoteContentTwo", footnoteText);
                 Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.FootnotesPart!.Footnotes!.Descendants<SdtBlock>());
 
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 string endnoteText = string.Concat(endnote.Paragraphs!.Select(GetNoteRunText));
-                Assert.Equal("EndnoteContentOneEndnoteContentNestedEndnoteContentTwo", endnoteText);
+                Assert.Equal(" EndnoteContentOneEndnoteContentNestedEndnoteContentTwo", endnoteText);
                 Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.EndnotesPart!.Endnotes!.Descendants<SdtBlock>());
             } finally {
                 DeleteIfExists(docPath);
@@ -4549,11 +4561,11 @@ namespace OfficeIMO.Tests {
 
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 WordParagraph footnoteParagraph = AssertSingleParagraphWithBookmarkStart(footnote.Paragraphs!, "FootnoteBookmarkOnlyContentControl");
-                AssertLeadingZeroLengthBookmarkContent(footnoteParagraph, "FootnoteBookmarkOnlyContentControl", "FootnoteAfterBookmark");
+                AssertLeadingZeroLengthBookmarkContent(footnoteParagraph, "FootnoteBookmarkOnlyContentControl", "FootnoteAfterBookmark", expectedPrefix: " ");
 
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 WordParagraph endnoteParagraph = AssertSingleParagraphWithBookmarkStart(endnote.Paragraphs!, "EndnoteBookmarkOnlyContentControl");
-                AssertLeadingZeroLengthBookmarkContent(endnoteParagraph, "EndnoteBookmarkOnlyContentControl", "EndnoteAfterBookmark");
+                AssertLeadingZeroLengthBookmarkContent(endnoteParagraph, "EndnoteBookmarkOnlyContentControl", "EndnoteAfterBookmark", expectedPrefix: " ");
 
                 Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.FootnotesPart!.Footnotes!.Descendants<SdtBlock>());
                 Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.EndnotesPart!.Endnotes!.Descendants<SdtBlock>());
@@ -4643,9 +4655,9 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(reloadedSection.PageSetup.Footer.Paragraphs, paragraph => paragraph.Text == "FooterInlineOneFooterInlineNestedFooterInlineTwo");
 
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
-                Assert.Equal("FootnoteInlineOneFootnoteInlineNestedFootnoteInlineTwo", string.Concat(footnote.Paragraphs!.Select(GetNoteRunText)));
+                Assert.Equal(" FootnoteInlineOneFootnoteInlineNestedFootnoteInlineTwo", string.Concat(footnote.Paragraphs!.Select(GetNoteRunText)));
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
-                Assert.Equal("EndnoteInlineOneEndnoteInlineNestedEndnoteInlineTwo", string.Concat(endnote.Paragraphs!.Select(GetNoteRunText)));
+                Assert.Equal(" EndnoteInlineOneEndnoteInlineNestedEndnoteInlineTwo", string.Concat(endnote.Paragraphs!.Select(GetNoteRunText)));
 
                 MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
                 Assert.Empty(mainPart.Document.Descendants<SdtRun>());
@@ -4695,14 +4707,14 @@ namespace OfficeIMO.Tests {
                 WordParagraph reloadedFootnoteParagraph = Assert.Single(
                     Assert.Single(reloaded.FootNotes).Paragraphs!,
                     paragraph => paragraph.Bookmark?.Name == "FootnoteBookmark");
-                Assert.Equal("FootnoteMarked", reloadedFootnoteParagraph._paragraph.InnerText);
-                AssertNoteBookmarkContent(reloadedFootnoteParagraph, "FootnoteBookmark", "FootnoteMarked");
+                Assert.Equal(" FootnoteMarked", reloadedFootnoteParagraph._paragraph.InnerText);
+                AssertNoteBookmarkContent(reloadedFootnoteParagraph, "FootnoteBookmark", "FootnoteMarked", expectedPrefix: " ");
 
                 WordParagraph reloadedEndnoteParagraph = Assert.Single(
                     Assert.Single(reloaded.EndNotes).Paragraphs!,
                     paragraph => paragraph.Bookmark?.Name == "EndnoteBookmark");
-                Assert.Equal("EndnoteMarked", reloadedEndnoteParagraph._paragraph.InnerText);
-                AssertNoteBookmarkContent(reloadedEndnoteParagraph, "EndnoteBookmark", "EndnoteMarked");
+                Assert.Equal(" EndnoteMarked", reloadedEndnoteParagraph._paragraph.InnerText);
+                AssertNoteBookmarkContent(reloadedEndnoteParagraph, "EndnoteBookmark", "EndnoteMarked", expectedPrefix: " ");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -4755,14 +4767,14 @@ namespace OfficeIMO.Tests {
                 WordParagraph secondFootnoteParagraph = AssertSingleParagraphWithBookmarkEnd(
                     footnote.Paragraphs!,
                     AssertBookmarkStartId(firstFootnoteParagraph, "FootnoteCrossBookmark"));
-                AssertCrossParagraphBookmarkContent(firstFootnoteParagraph, secondFootnoteParagraph, "FootnoteCrossBookmark", "FootnoteFirst", "FootnoteSecond");
+                AssertCrossParagraphBookmarkContent(firstFootnoteParagraph, secondFootnoteParagraph, "FootnoteCrossBookmark", "FootnoteFirst", "FootnoteSecond", expectedPrefix: " ");
 
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 WordParagraph firstEndnoteParagraph = AssertSingleParagraphWithBookmarkStart(endnote.Paragraphs!, "EndnoteCrossBookmark");
                 WordParagraph secondEndnoteParagraph = AssertSingleParagraphWithBookmarkEnd(
                     endnote.Paragraphs!,
                     AssertBookmarkStartId(firstEndnoteParagraph, "EndnoteCrossBookmark"));
-                AssertCrossParagraphBookmarkContent(firstEndnoteParagraph, secondEndnoteParagraph, "EndnoteCrossBookmark", "EndnoteFirst", "EndnoteSecond");
+                AssertCrossParagraphBookmarkContent(firstEndnoteParagraph, secondEndnoteParagraph, "EndnoteCrossBookmark", "EndnoteFirst", "EndnoteSecond", expectedPrefix: " ");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -4817,14 +4829,14 @@ namespace OfficeIMO.Tests {
                 WordParagraph secondReloadedFootnoteParagraph = AssertSingleParagraphWithBookmarkEnd(
                     reloadedFootnote.Paragraphs!,
                     AssertBookmarkStartId(firstReloadedFootnoteParagraph, "FootnoteLevelBookmark"));
-                AssertParagraphBoundaryBookmarkContent(firstReloadedFootnoteParagraph, secondReloadedFootnoteParagraph, "FootnoteLevelBookmark", "FootnoteFirst", "FootnoteSecond");
+                AssertParagraphBoundaryBookmarkContent(firstReloadedFootnoteParagraph, secondReloadedFootnoteParagraph, "FootnoteLevelBookmark", "FootnoteFirst", "FootnoteSecond", expectedPrefix: " ");
 
                 WordEndNote reloadedEndnote = Assert.Single(reloaded.EndNotes);
                 WordParagraph firstReloadedEndnoteParagraph = AssertSingleParagraphWithBookmarkStart(reloadedEndnote.Paragraphs!, "EndnoteLevelBookmark");
                 WordParagraph secondReloadedEndnoteParagraph = AssertSingleParagraphWithBookmarkEnd(
                     reloadedEndnote.Paragraphs!,
                     AssertBookmarkStartId(firstReloadedEndnoteParagraph, "EndnoteLevelBookmark"));
-                AssertParagraphBoundaryBookmarkContent(firstReloadedEndnoteParagraph, secondReloadedEndnoteParagraph, "EndnoteLevelBookmark", "EndnoteFirst", "EndnoteSecond");
+                AssertParagraphBoundaryBookmarkContent(firstReloadedEndnoteParagraph, secondReloadedEndnoteParagraph, "EndnoteLevelBookmark", "EndnoteFirst", "EndnoteSecond", expectedPrefix: " ");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5021,7 +5033,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Body with native note", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
-                Assert.Equal("Native footnote", footnote.Paragraphs![1].Text);
+                Assert.Equal(" Native footnote", footnote.Paragraphs![1].Text);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5061,7 +5073,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
-                AssertFormattedNoteRuns(footnote.Paragraphs!);
+                AssertFormattedNoteRuns(footnote.Paragraphs!, expectedPrefix: " ");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5105,7 +5117,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Body with native endnote", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
-                Assert.Equal("Native endnote", endnote.Paragraphs![1].Text);
+                Assert.Equal(" Native endnote", endnote.Paragraphs![1].Text);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5140,8 +5152,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
-                AssertNotePageFields(Assert.Single(reloaded.FootNotes).Paragraphs!, "Footnote page ");
-                AssertNotePageFields(Assert.Single(reloaded.EndNotes).Paragraphs!, "Endnote page ");
+                AssertNotePageFields(Assert.Single(reloaded.FootNotes).Paragraphs!, " Footnote page ");
+                AssertNotePageFields(Assert.Single(reloaded.EndNotes).Paragraphs!, " Endnote page ");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5180,8 +5192,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
-                AssertNotePageFields(Assert.Single(reloaded.FootNotes).Paragraphs!, "Footnote page ");
-                AssertNotePageFields(Assert.Single(reloaded.EndNotes).Paragraphs!, "Endnote page ");
+                AssertNotePageFields(Assert.Single(reloaded.FootNotes).Paragraphs!, " Footnote page ");
+                AssertNotePageFields(Assert.Single(reloaded.EndNotes).Paragraphs!, " Endnote page ");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5224,7 +5236,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
-                AssertFormattedNoteRuns(endnote.Paragraphs!);
+                AssertFormattedNoteRuns(endnote.Paragraphs!, expectedPrefix: " ");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5254,9 +5266,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
-                AssertNoteParagraphFormatting(footnote.Paragraphs!, "Centered footnote", WordParagraphAlignment.Center);
+                AssertNoteParagraphFormatting(footnote.Paragraphs!, " Centered footnote", WordParagraphAlignment.Center);
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
-                AssertNoteParagraphFormatting(endnote.Paragraphs!, "Right endnote", WordParagraphAlignment.Right);
+                AssertNoteParagraphFormatting(endnote.Paragraphs!, " Right endnote", WordParagraphAlignment.Right);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5289,12 +5301,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
 
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
-                Assert.Equal("Footnote first", footnote.Paragraphs![1].Text);
+                Assert.Equal(" Footnote first", footnote.Paragraphs![1].Text);
                 Assert.Equal(string.Empty, footnote.Paragraphs[2].Text);
                 Assert.Equal("Footnote last", footnote.Paragraphs[3].Text);
 
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
-                Assert.Equal("Endnote first", endnote.Paragraphs![1].Text);
+                Assert.Equal(" Endnote first", endnote.Paragraphs![1].Text);
                 Assert.Equal(string.Empty, endnote.Paragraphs[2].Text);
                 Assert.Equal("Endnote last", endnote.Paragraphs[3].Text);
             } finally {
@@ -5335,8 +5347,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
-                AssertNoteTextWrappingCarriageReturnAndColumnBreaks(Assert.Single(reloaded.FootNotes).Paragraphs![1], "Footnote first", "Footnote second", "Footnote return", "Footnote column");
-                AssertNoteTextWrappingCarriageReturnAndColumnBreaks(Assert.Single(reloaded.EndNotes).Paragraphs![1], "Endnote first", "Endnote second", "Endnote return", "Endnote column");
+                AssertNoteTextWrappingCarriageReturnAndColumnBreaks(Assert.Single(reloaded.FootNotes).Paragraphs![1], " Footnote first", "Footnote second", "Footnote return", "Footnote column");
+                AssertNoteTextWrappingCarriageReturnAndColumnBreaks(Assert.Single(reloaded.EndNotes).Paragraphs![1], " Endnote first", "Endnote second", "Endnote return", "Endnote column");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5367,8 +5379,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
-                AssertNotePageBreak(Assert.Single(reloaded.FootNotes).Paragraphs![1], "Footnote first", "Footnote page");
-                AssertNotePageBreak(Assert.Single(reloaded.EndNotes).Paragraphs![1], "Endnote first", "Endnote page");
+                AssertNotePageBreak(Assert.Single(reloaded.FootNotes).Paragraphs![1], " Footnote first", "Footnote page");
+                AssertNotePageBreak(Assert.Single(reloaded.EndNotes).Paragraphs![1], " Endnote first", "Endnote page");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -6164,8 +6176,8 @@ namespace OfficeIMO.Tests {
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 Assert.Equal($"Header{noBreak}NoBreak{soft}Soft", Assert.Single(reloadedSection.PageSetup.Header.Paragraphs)._paragraph.InnerText);
                 Assert.Equal($"Footer{noBreak}NoBreak{soft}Soft", Assert.Single(reloadedSection.PageSetup.Footer.Paragraphs)._paragraph.InnerText);
-                Assert.Equal($"Footnote{noBreak}NoBreak{soft}Soft", Assert.Single(reloaded.FootNotes).Paragraphs![1]._paragraph.InnerText);
-                Assert.Equal($"Endnote{noBreak}NoBreak{soft}Soft", Assert.Single(reloaded.EndNotes).Paragraphs![1]._paragraph.InnerText);
+                Assert.Equal($" Footnote{noBreak}NoBreak{soft}Soft", Assert.Single(reloaded.FootNotes).Paragraphs![1]._paragraph.InnerText);
+                Assert.Equal($" Endnote{noBreak}NoBreak{soft}Soft", Assert.Single(reloaded.EndNotes).Paragraphs![1]._paragraph.InnerText);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -6215,8 +6227,8 @@ namespace OfficeIMO.Tests {
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 Assert.Equal("HeaderAfter", Assert.Single(reloadedSection.PageSetup.Header.Paragraphs)._paragraph.InnerText);
                 Assert.Equal("FooterAfter", Assert.Single(reloadedSection.PageSetup.Footer.Paragraphs)._paragraph.InnerText);
-                Assert.Equal("FootnoteAfter", Assert.Single(reloaded.FootNotes).Paragraphs![1]._paragraph.InnerText);
-                Assert.Equal("EndnoteAfter", Assert.Single(reloaded.EndNotes).Paragraphs![1]._paragraph.InnerText);
+                Assert.Equal(" FootnoteAfter", Assert.Single(reloaded.FootNotes).Paragraphs![1]._paragraph.InnerText);
+                Assert.Equal(" EndnoteAfter", Assert.Single(reloaded.EndNotes).Paragraphs![1]._paragraph.InnerText);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -6306,14 +6318,14 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("link", footerHyperlink.Text);
                 Assert.Empty(footerHyperlink._hyperlink.Descendants<ProofError>());
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
-                Assert.Equal("FootnoteAfterlink", footnote.Paragraphs![1]._paragraph.InnerText);
+                Assert.Equal(" FootnoteAfterlink", footnote.Paragraphs![1]._paragraph.InnerText);
                 WordHyperLink footnoteHyperlink = Assert.Single(
                     DistinctHyperlinks(footnote.Paragraphs![1].GetRuns().Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
                     link => link?.Uri?.ToString() == "https://officeimo.net/footnote-proofing")!;
                 Assert.Equal("link", footnoteHyperlink.Text);
                 Assert.Empty(footnoteHyperlink._hyperlink.Descendants<ProofError>());
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
-                Assert.Equal("EndnoteAfterlink", endnote.Paragraphs![1]._paragraph.InnerText);
+                Assert.Equal(" EndnoteAfterlink", endnote.Paragraphs![1]._paragraph.InnerText);
                 WordHyperLink endnoteHyperlink = Assert.Single(
                     DistinctHyperlinks(endnote.Paragraphs![1].GetRuns().Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
                     link => link?.Uri?.ToString() == "mailto:endnote-proofing@example.org")!;
@@ -6379,11 +6391,11 @@ namespace OfficeIMO.Tests {
 
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 Assert.DoesNotContain(footnote.Paragraphs!, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
-                Assert.Contains(footnote.Paragraphs!, paragraph => paragraph.Text == "Footnote" && HasCachedPageField(paragraph));
+                Assert.Contains(footnote.Paragraphs!, paragraph => paragraph.Text == " Footnote" && HasCachedPageField(paragraph));
 
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 Assert.DoesNotContain(endnote.Paragraphs!, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
-                Assert.Contains(endnote.Paragraphs!, paragraph => paragraph.Text == "Endnote" && HasCachedPageField(paragraph));
+                Assert.Contains(endnote.Paragraphs!, paragraph => paragraph.Text == " Endnote" && HasCachedPageField(paragraph));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -10617,7 +10629,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
-                WordParagraph reloadedFootnoteBody = footnote.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Rich footnote");
+                WordParagraph reloadedFootnoteBody = footnote.Paragraphs!.Single(noteParagraph => noteParagraph.Text == " Rich footnote");
                 ParagraphMarkRunProperties paragraphMarkRunProperties = Assert.IsType<ParagraphMarkRunProperties>(
                     reloadedFootnoteBody._paragraphProperties?.GetFirstChild<ParagraphMarkRunProperties>());
                 Assert.NotNull(paragraphMarkRunProperties.GetFirstChild<Bold>());
@@ -11067,8 +11079,8 @@ namespace OfficeIMO.Tests {
                     new[] { "First comment", "Second comment" },
                     reloaded.Comments.Select(comment => comment.Text).ToArray());
                 Assert.Equal(new[] { "A1", "B2" }, reloaded.Comments.Select(comment => comment.Initials).ToArray());
-                Assert.Equal("Review footnote", Assert.Single(reloaded.FootNotes).Paragraphs![1].Text);
-                Assert.Equal("Review endnote", Assert.Single(reloaded.EndNotes).Paragraphs![1].Text);
+                Assert.Equal(" Review footnote", Assert.Single(reloaded.FootNotes).Paragraphs![1].Text);
+                Assert.Equal(" Review endnote", Assert.Single(reloaded.EndNotes).Paragraphs![1].Text);
                 Assert.Contains(
                     reloaded.Sections[0].PageSetup.Header.Paragraphs,
                     paragraph => paragraph.Text == "Review header");

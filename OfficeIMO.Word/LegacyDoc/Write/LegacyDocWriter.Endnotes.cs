@@ -42,7 +42,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
             builder.Append(LegacyDocFootnoteReader.FootnoteReferenceCharacter);
-            builder.Append(' ');
+            if (!HasExplicitNoteReferenceSeparator(endnote)) builder.Append(' ');
             bool hasBodyText = false;
             bool isFirstParagraph = true;
             foreach (OpenXmlElement child in endnote.ChildElements) {

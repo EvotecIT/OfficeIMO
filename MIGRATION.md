@@ -9544,6 +9544,10 @@ Loading a binary `.doc` file uses single line spacing and zero paragraph spacing
 
 Setting `WordParagraph.ParagraphAlignment` or `VerticalCharacterAlignmentOnLine` to `null` removes that direct paragraph setting and restores style inheritance. Set `WordParagraphAlignment.Left` or `WordVerticalCharacterAlignment.Auto` explicitly when an inherited setting should be overridden.
 
+### Native DOC note reference spaces
+
+Loading a binary `.doc` retains literal spaces after footnote and endnote reference markers. `WordParagraph.Text` for the first paragraph returned by `WordFootNote.Paragraphs` or `WordEndNote.Paragraphs` can now include the source separator space; previously the first space was discarded. Update exact text comparisons, offsets and saved-output snapshots that assumed this implicit trimming. The [DOC and DOCX compatibility contract](Docs/officeimo.word.legacy-doc-compatibility.md) describes the native output separator default separately.
+
 ## Upgrade checklist
 
 - Upgrade every OfficeIMO package in the application together.
