@@ -51,16 +51,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         case FieldChar fieldChar:
                             FieldCharValues? kind = fieldChar.FieldCharType?.Value;
-                            if (fieldChar.Dirty?.Value == true) {
-                                throw new NotSupportedException("Native DOC saving cannot preserve an invalidated field result (w:dirty=true) without a qualified invalidation mapping.");
-                            }
-                            if (kind != FieldCharValues.Begin && fieldChar.FieldLock?.Value == true) {
-                                throw new NotSupportedException("Native DOC saving supports complex field locks on the begin field character only.");
-                            }
                             if (kind == FieldCharValues.Begin) {
                                 if (sawBegin || index != childIndex) {
                                     throw new NotSupportedException($"Native DOC saving does not support nested complex fields in {SupportedFieldNames} field runs.");
                                 }
+                                // The begin character owns the lock. Public setters also repeat it on separator/end characters.
                                 result.FieldLocked = fieldChar.FieldLock?.Value == true;
                                 sawBegin = true;
                             } else if (kind == FieldCharValues.Separate && !sawSeparator) {

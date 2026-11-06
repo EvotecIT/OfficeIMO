@@ -3033,7 +3033,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    document.AddParagraph("ZaÅ¼Ã³Å‚Ä‡ gÄ™Å›lÄ… jaÅºÅ„");
+                    document.AddParagraph("Zażółć gęślą jaźń");
                     document.AddParagraph("Second plain paragraph");
 
                     document.Save(docPath);
@@ -3048,7 +3048,7 @@ namespace OfficeIMO.Tests {
                     .Select(paragraph => paragraph.Text)
                     .Where(text => !string.IsNullOrEmpty(text))
                     .ToArray();
-                Assert.Equal(new[] { "ZaÅ¼Ã³Å‚Ä‡ gÄ™Å›lÄ… jaÅºÅ„", "Second plain paragraph" }, paragraphs);
+                Assert.Equal(new[] { "Zażółć gęślą jaźń", "Second plain paragraph" }, paragraphs);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5030,7 +5030,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedFootnoteRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-            const string bodyText = "ZaÅ¼Ã³Å‚Ä‡ body with formatted footnote";
+            const string bodyText = "Zażółć body with formatted footnote";
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
@@ -5190,7 +5190,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedEndnoteRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-            const string bodyText = "ZaÅ¼Ã³Å‚Ä‡ body with formatted endnote";
+            const string bodyText = "Zażółć body with formatted endnote";
 
             try {
                 using (WordDocument document = WordDocument.Create()) {

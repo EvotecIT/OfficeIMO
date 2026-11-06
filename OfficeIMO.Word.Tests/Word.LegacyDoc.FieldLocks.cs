@@ -37,17 +37,35 @@ public partial class Word {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void LegacyDoc_FieldLocks_NativeSaveRejectsUnqualifiedInvalidationRatherThanDiscardingIt(bool complex) {
+    public void LegacyDoc_FieldLocks_PublicAuthoringRetainsCodeCacheAndLockAcrossStories(bool complex) {
         using WordDocument source = WordDocument.Create();
-        AppendLockedDateCache(source.AddParagraph()._paragraph, complex, true, "FIRST", "SECOND");
-        if (complex) source._wordprocessingDocument.MainDocumentPart!.Document.Descendants<W.FieldChar>()
-            .First(field => field.FieldCharType == W.FieldCharValues.Begin).Dirty = true;
-        else Assert.Single(source._wordprocessingDocument.MainDocumentPart!.Document.Descendants<W.SimpleField>()).Dirty = true;
+        _ = source.PageSetup.Header;
+        WordParagraph references = source.AddParagraph("References");
+        WordParagraph[] paragraphs = {
+            source.AddParagraph(), source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0],
+            source.Sections[0].PageSetup.Header.AddParagraph(), source.Sections[0].PageSetup.Footer.AddParagraph(),
+            references.AddFootNote("Footnote ").Paragraph.FootNote!.Paragraphs![1],
+            references.AddEndNote("Endnote ").Paragraph.EndNote!.Paragraphs![1]
+        };
+        foreach (WordParagraph paragraph in paragraphs) {
+            WordField field = paragraph.AddField(WordFieldType.Date, advanced: complex);
+            field.Text = "FIRSTSECOND";
+            field.LockField = true;
+            Assert.True(field.UpdateField);
+        }
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
         try {
-            NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.Save(path));
-            Assert.Contains("dirty", error.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.False(File.Exists(path));
+            source.Save(path);
+            using WordDocument reopened = WordDocument.Load(path);
+            W.SimpleField[] fields = EnumerateFieldFormattingRoots(reopened._wordprocessingDocument.MainDocumentPart!)
+                .SelectMany(root => root.Descendants<W.SimpleField>()).ToArray();
+            Assert.Equal(6, fields.Length);
+            Assert.All(fields, field => {
+                Assert.Equal("DATE", field.Instruction!.Value!.Trim());
+                Assert.Equal("FIRSTSECOND", field.InnerText);
+                Assert.True(field.FieldLock?.Value);
+            });
+            Assert.Empty(reopened.ValidateDocument());
         } finally { DeleteIfExists(path); }
     }
 

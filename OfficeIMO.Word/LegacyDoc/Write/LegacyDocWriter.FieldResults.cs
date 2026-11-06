@@ -52,9 +52,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             SimpleField field,
             bool allowHyperlinkRunStyle = false,
             LegacyDocWritableFormatting inheritedFormatting = default) {
-            if (field.Dirty?.Value == true) {
-                throw new NotSupportedException("Native DOC saving cannot preserve an invalidated field result (w:dirty=true) without a qualified invalidation mapping.");
-            }
             var result = new LegacyDocWritableFieldResult(inheritedFormatting, allowHyperlinkRunStyle) { FieldLocked = field.FieldLock?.Value == true };
             foreach (OpenXmlElement child in field.ChildElements) {
                 result.AppendChild(child);
