@@ -4,6 +4,10 @@ using OfficeIMO.Word.LegacyDoc.Model;
 namespace OfficeIMO.Word {
     public partial class WordDocument {
         private static void AddLegacyDocPageNumber(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
+            if (legacyRun.FieldResultRuns.Count > 0) {
+                AddLegacyDocPageCountField(paragraph, legacyRun, bookmarks, " PAGE ");
+                return;
+            }
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
             var run = new Run(new PageNumber());
             paragraph._paragraph.Append(run);
@@ -24,7 +28,7 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocPageCountField(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks, string instruction) {
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
             var simpleField = new SimpleField { Instruction = instruction };
-            AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, string.IsNullOrEmpty(legacyRun.Text) ? "1" : legacyRun.Text);
+            AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, string.IsNullOrEmpty(legacyRun.Text) ? "1" : legacyRun.Text, bookmarks);
             paragraph._paragraph.Append(simpleField);
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }

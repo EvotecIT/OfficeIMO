@@ -137,6 +137,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             var paragraphs = new List<LegacyDocHeaderFooterParagraph>();
             var currentRuns = new List<LegacyDocTextRun>();
+            LegacyDocFieldResultReader? fieldResultReader = null;
             var runText = new System.Text.StringBuilder(endCharacter - startCharacter);
             var runCharacterPositions = new List<int>();
             var pendingBookmarks = new List<LegacyDocBookmark>();
@@ -386,31 +387,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 int resultEndIndex,
                 LegacyDocHyperlinkTarget hyperlinkTarget = default) {
                 FlushRun();
-                LegacyDocCharacterFormat format = LegacyDocCharacterFormat.Default;
-                var positions = new List<int>();
-                var resultText = new System.Text.StringBuilder();
-                for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
-                    LegacyDocTextCharacter resultCharacter = storyCharacters[resultIndex];
-                    if (char.IsControl(resultCharacter.Character)
-                        && !LegacyDocSpecialCharacters.IsSupportedInlineControl(resultCharacter.Character)) {
-                        continue;
-                    }
-
-                    if (positions.Count == 0) {
-                        format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
-                    }
-
-                    resultText.Append(resultCharacter.Character);
-                    positions.Add(resultCharacter.CharacterPosition);
-                }
-
-                currentRuns.Add(LegacyDocTextRunFactory.CreateFieldRun(
-                    fieldKind == LegacyDocFieldKind.Page ? string.Empty : resultText.ToString(),
-                    fieldKind,
-                    fieldInstruction,
-                    format,
-                    positions,
-                    hyperlinkTarget));
+                fieldResultReader ??= new LegacyDocFieldResultReader(formattingRanges);
+                currentRuns.Add(fieldResultReader.Read(storyCharacters, resultStartIndex, resultEndIndex,
+                    fieldKind, fieldInstruction, LegacyDocFieldResultReader.NormalizeStoryCharacter, hyperlinkTarget));
             }
 
             void AddCurrentParagraph(LegacyDocParagraphFormat format, int paragraphEndCharacter, bool isFinalParagraph) {

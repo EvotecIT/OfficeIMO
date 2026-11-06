@@ -12,7 +12,9 @@ Load an unencrypted, non-fast-saved Windows-1252 Word 6 or Word 95 document with
 
 Section layout retains supported section starts, paper dimensions, orientation, margins, gutter, header/footer distances, columns, vertical alignment and page-number settings. Default, first-page and even-page headers and footers retain supported paragraphs, tables and fields. Running stories use the source document's formatting and font-code-page checks. Explicit paragraph tabs, spacing, and supported single, double, dotted and dashed paragraph/table borders remain editable. Paragraph border clears, border shadows, thick borders and range-based tab changes are reported as unsupported formatting.
 
-Supported page-count, date/time, document-property, `FILENAME` and `STYLEREF` fields retain their editable representation. Filename and style references retain the source instruction, switches and cached text. A style reference without a matching projected source style is reported explicitly. Unsupported or localized field instructions retain cached text under an explicit loss policy. Import does not evaluate fields.
+Supported page-count, date/time, document-property, `FILENAME` and `STYLEREF` fields retain their editable representation. Filename and style references retain the source instruction, switches and cached text. Cached result runs retain their formatting and revision marks in DOCX. A style reference without a matching projected source style is reported explicitly. Unsupported or localized field instructions retain cached text under an explicit loss policy. Import does not evaluate fields.
+
+`EQ` fields, including equations displayed inside hyperlinks, retain their source instructions and cached runs. Their native Word appearance is unqualified across regional settings: a fraction argument delimiter accepted on one system can display an error on another. Import reports `doc-word69-equation-appearance-unqualified` at the source character position, so saving requires `AllowLoss = true`. Import does not rewrite the equation instruction to match the target locale.
 
     using OfficeIMO.Word;
 

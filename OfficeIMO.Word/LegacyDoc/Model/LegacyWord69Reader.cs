@@ -101,6 +101,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 Report(LegacyDocUnsupportedFeatureKind.Formatting, "doc-word69-field-reference-unresolved",
                     "A Word 6/95 STYLEREF field has no matching qualified editable style.");
             }
+            int equationPosition = LegacyDocField.FindEquationFieldCharacterPosition(allCharacters);
+            if (equationPosition >= 0) {
+                findings.Add(new LegacyDocUnsupportedFeature(LegacyDocUnsupportedFeatureKind.Formatting,
+                    "doc-word69-equation-appearance-unqualified",
+                    $"The Word 6/95 EQ field at character position {equationPosition} retains its source instruction and cached result, but native Word appearance is not qualified across regional settings.",
+                    "WordDocument", "Field:EQ:NativeAppearance"));
+            }
 
             if (LegacyWord69Encoding.HasUnsupportedText(bytes.Slice(textStart, allCharacters.Length), textStart,
                 charsets, contextRanges, paragraphs, styleSheet, properties.StyleFonts, properties.StyleLanguages,

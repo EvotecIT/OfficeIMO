@@ -33,7 +33,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None,
             int? characterScalePercentage = null,
             string? hyperlinkTooltip = null,
-            string? hyperlinkTargetFrame = null)
+            string? hyperlinkTargetFrame = null,
+            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null)
             : this(
                 text,
                 bold,
@@ -69,7 +70,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 styleInverted: styleInverted,
                 characterScalePercentage: characterScalePercentage,
                 hyperlinkTooltip: hyperlinkTooltip,
-                hyperlinkTargetFrame: hyperlinkTargetFrame) {
+                hyperlinkTargetFrame: hyperlinkTargetFrame,
+                fieldResultRuns: fieldResultRuns) {
         }
 
         internal LegacyDocTextRun(
@@ -107,7 +109,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None,
             int? characterScalePercentage = null,
             string? hyperlinkTooltip = null,
-            string? hyperlinkTargetFrame = null) {
+            string? hyperlinkTargetFrame = null,
+            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -147,9 +150,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             StyleRelative = styleRelative;
             StyleInverted = styleInverted;
             Revision = revision;
+            FieldResultRuns = fieldResultRuns == null || fieldResultRuns.Count == 0
+                ? Array.Empty<LegacyDocTextRun>() : fieldResultRuns.ToArray();
         }
 
         internal string Text { get; }
+
+        internal IReadOnlyList<LegacyDocTextRun> FieldResultRuns { get; }
 
         internal bool Bold { get; }
 

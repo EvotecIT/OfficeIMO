@@ -1,12 +1,48 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
+using OfficeIMO.Core.Internal;
 using Xunit;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void LegacyDoc_FieldCaches_PreserveFormattingAcrossStories(int story) {
+        using var input = new MemoryStream(LegacyDocTestBuilder.CreateFieldCacheCarrier(story));
+        using WordDocument imported = WordDocument.Load(input);
+        using var output = new MemoryStream();
+        imported.Save(output);
+        output.Position = 0;
+        using WordDocument reopened = WordDocument.Load(output);
+        MainDocumentPart main = reopened._wordprocessingDocument.MainDocumentPart!;
+        W.SimpleField field = Assert.Single(EnumerateFieldFormattingRoots(main).SelectMany(root => root.Descendants<W.SimpleField>()));
+        W.Run first = Assert.Single(field.Descendants<W.Run>(), run => run.InnerText == "FIRST");
+        W.Run second = Assert.Single(field.Descendants<W.Run>(), run => run.InnerText == "SECOND");
+        Assert.Null(first.RunProperties?.Bold);
+        Assert.NotNull(second.RunProperties?.Bold);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
+    public void LegacyDoc_FieldCaches_PreserveOverlappingRangePriority() {
+        using var input = new MemoryStream(LegacyDocTestBuilder.CreateFieldCacheCarrier(0, overlapping: true));
+        using WordDocument imported = WordDocument.Load(input);
+        using var output = new MemoryStream();
+        imported.Save(output);
+        output.Position = 0;
+        using WordDocument reopened = WordDocument.Load(output);
+        W.SimpleField field = Assert.Single(reopened._wordprocessingDocument.MainDocumentPart!.Document.Descendants<W.SimpleField>());
+        Assert.Equal("FIRSTSECOND", field.InnerText);
+        Assert.NotEmpty(field.Descendants<W.Italic>());
+        Assert.Empty(field.Descendants<W.Bold>());
+    }
+
     [Theory]
     [InlineData(" FILENAME ", "old.doc")]
     [InlineData(" STYLEREF \"Heading 1\" ", "Heading")]
@@ -138,6 +174,45 @@ public partial class Word {
                 firstRun, secondRun, new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End }));
         } else {
             paragraph.Append(new W.SimpleField(firstRun, secondRun) { Instruction = " DOCPROPERTY Title " });
+        }
+    }
+
+    private static partial class LegacyDocTestBuilder {
+        internal static byte[] CreateFieldCacheCarrier(int story, bool overlapping = false) {
+            const string field = "\u0013 FILENAME \u0014FIRSTSECOND\u0015";
+            byte[] input = story switch {
+                0 => CreateSimpleDoc(field),
+                1 => CreateSimpleDocWithHeaderFooterStories("Body", field, string.Empty),
+                2 => CreateSimpleDocWithFootnoteStory("Body", field),
+                _ => CreateSimpleDocWithEndnoteStory("Body", field)
+            };
+            OfficeCompoundFileReader.TryRead(input, out OfficeCompoundFile? compound, out _);
+            byte[] main = compound!.Streams["WordDocument"];
+            byte[] table = compound.Streams["1Table"];
+            int textStart = (int)((uint)BitConverter.ToInt32(table, 15) & 0x3FFFFFFF) / 2;
+            int textEnd = textStart + BitConverter.ToInt32(table, 9);
+            int cache = System.Text.Encoding.ASCII.GetString(main).IndexOf("FIRSTSECOND", StringComparison.Ordinal);
+            int page = (main.Length + 511) & ~511;
+            Array.Resize(ref main, page + (overlapping ? 1024 : 512));
+            int bin = table.Length;
+            Array.Resize(ref table, bin + (overlapping ? 20 : 12));
+            WriteInt32(table, bin, textStart);
+            WriteInt32(table, bin + 4, overlapping ? cache + 5 : textEnd);
+            if (overlapping) {
+                WriteInt32(table, bin + 8, textEnd);
+                WriteInt32(table, bin + 12, page / 512);
+                WriteInt32(table, bin + 16, page / 512 + 1);
+                WriteChpxFkp(main, page, new[] { cache, cache + 11 }, -1, 0);
+                WriteChpxFkp(main, page + 512, new[] { cache + 5, cache + 11 }, 0, -1);
+            } else {
+                WriteInt32(table, bin + 8, page / 512);
+                WriteChpxFkp(main, page, new[] { textStart, cache, cache + 5, cache + 11, textEnd }, 2, -1);
+            }
+            WriteInt32(main, 0xFA, bin);
+            WriteInt32(main, 0xFE, overlapping ? 20 : 12);
+            return OfficeCompoundFileWriter.Write(new[] {
+                new OfficeCompoundStream("WordDocument", main), new OfficeCompoundStream("1Table", table)
+            });
         }
     }
 }

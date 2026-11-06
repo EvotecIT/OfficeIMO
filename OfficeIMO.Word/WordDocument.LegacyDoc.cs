@@ -946,6 +946,7 @@ namespace OfficeIMO.Word {
                 source.CharacterPositions,
                 fieldKind: source.FieldKind,
                 fieldInstruction: source.FieldInstruction,
+                fieldResultRuns: source.FieldResultRuns,
                 specified: source.Specified,
                 styleRelative: source.StyleRelative,
                 styleInverted: source.StyleInverted,
@@ -961,12 +962,21 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocStaticDisplayField(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
             var simpleField = new SimpleField { Instruction = string.IsNullOrWhiteSpace(legacyRun.FieldInstruction) ? GetLegacyDocStaticFieldInstruction(legacyRun.FieldKind) : legacyRun.FieldInstruction };
-            AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, legacyRun.Text);
+            AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, legacyRun.Text, bookmarks);
             paragraph._paragraph.Append(simpleField);
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }
 
-        private static void AppendLegacyDocFieldResultContent(SimpleField simpleField, WordParagraph paragraph, LegacyDocTextRun legacyRun, string resultText) {
+        private static void AppendLegacyDocFieldResultContent(SimpleField simpleField, WordParagraph paragraph, LegacyDocTextRun legacyRun, string resultText, LegacyDocBookmarkProjection bookmarks) {
+            if (legacyRun.FieldResultRuns.Count > 0) {
+                int originalChildren = paragraph._paragraph.ChildElements.Count;
+                AddLegacyDocRuns(paragraph, legacyRun.FieldResultRuns, LegacyDocNoteProjection.Empty, bookmarks);
+                foreach (OpenXmlElement child in paragraph._paragraph.ChildElements.Skip(originalChildren).ToArray()) {
+                    child.Remove();
+                    simpleField.Append(child);
+                }
+                return;
+            }
             int segmentStart = 0;
             for (int index = 0; index < resultText.Length; index++) {
                 char character = resultText[index];
@@ -1112,7 +1122,7 @@ namespace OfficeIMO.Word {
                         ? GetLegacyDocStaticFieldInstruction(legacyRun.FieldKind)
                         : legacyRun.FieldInstruction
                 };
-                AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, legacyRun.Text);
+                AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, legacyRun.Text, bookmarks);
                 hyperlink.Append(simpleField);
                 bookmarks.EmitAt(hyperlink, GetLegacyDocRunEndCharacterPosition(legacyRun));
                 return;

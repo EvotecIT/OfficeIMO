@@ -12,6 +12,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal static bool HasUnprojectedFields(IReadOnlyList<LegacyDocTextCharacter> characters) {
             for (int index = 0; index < characters.Count; index++) {
                 if (characters[index].Character != Begin) continue;
+                if (TryReadHyperlink(characters, index, out _, out int linkStart, out int linkEnd, out int linkFieldEnd)) {
+                    for (int nested = linkStart; nested < linkEnd; nested++) {
+                        if (characters[nested].Character != Begin) continue;
+                        if (!TryReadEquationField(characters, nested, out _, out _, out _, out int equationEnd)
+                            || equationEnd >= linkEnd) return true;
+                        nested = equationEnd;
+                    }
+                    index = linkFieldEnd;
+                    continue;
+                }
                 if (!TryReadField(characters, index, out string instruction, out int resultStart, out int resultEnd, out int end,
                     allowEmptyResult: true)) return true;
                 string trimmed = instruction.Trim();
@@ -19,11 +29,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 bool supported = IsPageNumberInstruction(instruction) || IsNumberOfPagesInstruction(instruction)
                     || IsInstruction(trimmed, "SECTIONPAGES") || TryReadDateTimeFieldKind(instruction, out _)
                     || IsDocumentPropertyInstruction(instruction) || IsTextReferenceInstruction(instruction)
-                    || IsInstruction(trimmed, "EQ") || TryReadHyperlinkInstruction(instruction, out _);
+                    || IsInstruction(trimmed, "EQ");
                 if (!supported) return true;
                 index = end;
             }
             return false;
+        }
+
+        /// <summary>Locates a retained equation whose native appearance needs regional-setting qualification.</summary>
+        internal static int FindEquationFieldCharacterPosition(IReadOnlyList<LegacyDocTextCharacter> characters) {
+            for (int index = 0; index < characters.Count; index++) {
+                if (characters[index].Character == Begin && TryReadEquationField(characters, index,
+                    out _, out _, out _, out _)) return characters[index].CharacterPosition;
+            }
+            return -1;
         }
 
         /// <summary>Reports style references whose source name has no editable paragraph-style target.</summary>
