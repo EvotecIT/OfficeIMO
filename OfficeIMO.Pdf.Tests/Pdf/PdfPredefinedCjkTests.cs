@@ -100,15 +100,22 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.ThrowsAny<NotSupportedException>(() => decoder(Encoding.BigEndianUnicode.GetBytes("AB"), 10));
         }
 
-        [Fact]
-        public void InspectionRecoversAnchoredTextWhenAnInvalidCjkCodeHasNoPaintedWidth() {
+        [Theory]
+        [InlineData("<D800> Tj", true, true)]
+        [InlineData("<30> Tj", true, false)]
+        [InlineData("<004130> Tj", true, false)]
+        [InlineData("[<00> 10 <41>] TJ", false, false)]
+        public void InspectionRecoversAnchoredTextWhenAnInvalidCjkCodeHasNoPaintedWidth(
+            string invalidShow, bool strictMappingFails, bool visualCountsUnavailable) {
             byte[] source = BuildInspectionRecoverySource(
-                "BT /F1 12 Tf 1 0 0 1 20 170 Tm (Readable before) Tj /F2 12 Tf <D800> Tj " +
+                "BT /F1 12 Tf 1 0 0 1 20 170 Tm (Readable before) Tj /F2 12 Tf " + invalidShow + " " +
                 "/F1 12 Tf (Position depends on malformed width) Tj 1 0 0 1 20 140 Tm (Readable after anchor) Tj ET " +
                 "q 1 0 0 1 20 20 cm /Im0 Do Q", includeImage: true);
             PdfDocument pdf = PdfDocument.Load(source);
-            Assert.Throws<PdfUnsupportedTextMappingException>(() => pdf.Read());
-            Assert.Null(Assert.Single(pdf.ReadForInspection().PageOutcomes).Page);
+            if (strictMappingFails) {
+                Assert.Throws<PdfUnsupportedTextMappingException>(() => pdf.Read());
+                Assert.Null(Assert.Single(pdf.ReadForInspection().PageOutcomes).Page);
+            }
 
             PdfInspectionReadResult inspection = pdf.ReadForInspection(
                 new PdfLoadOptions { RecoverDecodableTextForInspection = true });
@@ -120,11 +127,12 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.False(inspection.CompletedAllSelectedPages);
             Assert.Contains("Readable before", inspection.Document.Text);
             Assert.DoesNotContain("Position depends on malformed width", inspection.Document.Text);
+            Assert.DoesNotContain(page.TextBlocks.SelectMany(block => block.Spans), span => span.FontResource == "F2");
             PdfLogicalTextBlock reanchored = Assert.Single(page.TextBlocks, block => block.Text == "Readable after anchor");
             Assert.Equal(20D, reanchored.XStart, 5);
             Assert.EndsWith("/Font/F2", Assert.Single(inspection.Document.TextDecodingDiagnostics).ResourcePath);
             Assert.Single(page.Images);
-            Assert.False(page.HasVisualPrimitiveCounts);
+            if (visualCountsUnavailable) Assert.False(page.HasVisualPrimitiveCounts);
         }
 
         [Fact]

@@ -358,7 +358,7 @@ internal static partial class TextContentParser {
         Func<string, byte[], PdfTextDecodingEvidence>? decodingEvidenceForResource = null,
         bool mergeKernedTextArrays = true,
         Action<DrawingActualTextScope>? onCompletedDrawingActualText = null,
-        Func<string, bool>? usesTwoByteGlyphCodesForResource = null,
+        Func<string, PdfFontResource?>? twoByteFontForResource = null,
         int initialStrokeLineCap = 0,
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
@@ -1027,7 +1027,14 @@ internal static partial class TextContentParser {
             }
             // Declared fixed-width encodings remain two-byte even when their glyphs have no
             // advance or a prefix decodes as ordinary text. Other callers retain the heuristic.
-            bool twoByte = usesTwoByteGlyphCodesForResource?.Invoke(font) == true;
+            PdfFontResource? twoByteFont = twoByteFontForResource?.Invoke(font);
+            bool twoByte = twoByteFont is not null;
+            if (twoByteFont is not null && (bytes.Length & 1) != 0 &&
+                onUnmappableText is not null && useLogicalTextFilters && !requireMappedText) {
+                // The width provider also serves prefix probes. An actual truncated
+                // text operand has an unknown advance even if its prefix is decodable.
+                throw new PdfUnsupportedTextMappingException(twoByteFont);
+            }
             if (!twoByte && bytes.Length >= 2) {
                 string one = DecodeRun(new byte[] { bytes[0] }, probe: true);
                 string two = DecodeRun(new byte[] { bytes[0], bytes[1] }, probe: true);
@@ -1565,10 +1572,14 @@ internal static partial class TextContentParser {
             const double MaximumRestampTightening1000 = 200D;
             const double MaximumRestampLoosening1000 = 60D;
             bool restampable = true;
+            bool requireCompleteOperands = onUnmappableText is not null && twoByteFontForResource?.Invoke(font) is not null;
             int strings = 0, totalBytes = 0, first = -1, last = -1;
             for (int index = 0; index < list.Count; index++) {
                 if (list[index] is byte[] b) {
                     if (b.Length == 0) continue;
+                    // Keep incomplete codes in their own operands instead of
+                    // manufacturing a code from bytes of two adjacent strings.
+                    if (requireCompleteOperands && (b.Length & 1) != 0) return false;
                     strings++;
                     totalBytes = checked(totalBytes + b.Length);
                     if (first < 0) first = index;
