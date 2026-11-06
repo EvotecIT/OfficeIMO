@@ -7,9 +7,18 @@ namespace OfficeIMO.Word;
 internal sealed partial class WordMl2003Projection {
     private static readonly XNamespace Office = "urn:schemas-microsoft-com:office:office";
 
-    private void ReadDocumentParts(XElement root, OfficePackageSecurityOptions policy) {
+    private void ValidateDocumentSingletons(XElement root) {
+        foreach (XName name in new[] { Word + "styles", Word + "fonts", Word + "docPr", Office + "DocumentProperties" }) {
+            if (root.Elements(name).Skip(1).Any())
+                throw new InvalidDataException("WordML 2003 contains a duplicate " + name.LocalName + " declaration.");
+        }
+        if (root.Element(Word + "fonts")?.Elements(Word + "defaultFonts").Skip(1).Any() == true)
+            throw new InvalidDataException("WordML 2003 contains a duplicate defaultFonts declaration.");
+    }
+
+    private void ReadDocumentParts(XElement root) {
         CheckAttributes(root, "macrosPresent embeddedObjPresent ocxPresent");
-        IndexImages(root, policy);
+        IndexImages(root);
         foreach (XElement child in root.Elements()) {
             _token.ThrowIfCancellationRequested();
             if (child.Name == Word + "body") continue;

@@ -67,6 +67,7 @@ public sealed class WordMl2003MigrationTests {
     [InlineData(2, true)]
     public void ReconstructionChargesEveryStoryImagePartAndRetainsPerStoryReuse(int imageBudget, bool succeeds) {
         XElement source = XDocument.Parse(RichDocument()).Root;
+        source.Descendants(XName.Get("tbl", "http://schemas.microsoft.com/office/word/2003/wordml")).Remove();
         using var output = new MemoryStream();
         var policy = new OfficePackageSecurityOptions { MaxTotalUncompressedBytes = PixelBytes.Length * imageBudget };
         if (!succeeds) {

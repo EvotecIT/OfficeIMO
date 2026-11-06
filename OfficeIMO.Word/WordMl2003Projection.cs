@@ -23,12 +23,14 @@ internal sealed partial class WordMl2003Projection {
         XElement? body = root.Element(Word + "body");
         if (body == null || body.ElementsAfterSelf(Word + "body").Any())
             throw new InvalidDataException("WordML 2003 must contain exactly one Word body.");
+        projection.ValidateDocumentSingletons(root);
+        projection.InitializeReconstructionLimits(root, policy);
         projection.AdmitSource(root, policy);
         using var document = WordprocessingDocument.Create(destination, WordprocessingDocumentType.Document);
         projection.ReserveRelationship(document, createsPart: true);
         projection._main = document.AddMainDocumentPart();
         projection._story = projection._main;
-        projection.ReadDocumentParts(root, policy);
+        projection.ReadDocumentParts(root);
         var output = new Body();
         SectionProperties? pendingSection = null;
         foreach (OpenXmlElement block in projection.ProjectBlocks(body)) {
@@ -74,7 +76,8 @@ internal sealed partial class WordMl2003Projection {
             else if (child.Name == Auxiliary + "sect" || child.Name == Auxiliary + "sub-section") {
                 foreach (OpenXmlElement block in ProjectBlocks(child, inTableCell)) yield return block;
             } else if (child.Name == Word + "sectPr") {
-                if (inTableCell) Omit(child, "section properties inside a table cell");
+                if (inTableCell || _story != _main)
+                    Omit(child, inTableCell ? "section properties inside a table cell" : "section properties inside a header or footer");
                 else yield return ProjectSectionProperties(child);
             } else if (inTableCell && child.Name == Word + "tcPr") {
                 // Cell properties are projected by the containing table.
@@ -91,7 +94,8 @@ internal sealed partial class WordMl2003Projection {
                 XElement? section = child.Element(Word + "sectPr");
                 var properties = new ParagraphProperties(mapped.ToString(SaveOptions.DisableFormatting));
                 if (section != null) {
-                    if (inTableCell) Omit(section, "section properties inside a table cell");
+                    if (inTableCell || _story != _main)
+                        Omit(section, inTableCell ? "section properties inside a table cell" : "section properties inside a header or footer");
                     else properties.SectionProperties = ProjectSectionProperties(section);
                 }
                 if (properties.HasChildren) paragraph.ParagraphProperties = properties;
@@ -138,11 +142,12 @@ internal sealed partial class WordMl2003Projection {
 
     private Table ProjectTable(XElement source) {
         CheckAttributes(source, "");
+        XElement? sourceGrid = source.Element(Word + "tblGrid");
+        int columns = AdmitTableGrid(source, sourceGrid);
         var table = new Table();
         XElement? properties = source.Element(Word + "tblPr");
         table.AppendChild(properties == null ? new TableProperties() :
             new TableProperties(MapProperties(properties, "tblPr")!.ToString(SaveOptions.DisableFormatting)));
-        XElement? sourceGrid = source.Element(Word + "tblGrid");
         var grid = sourceGrid == null ? new TableGrid() :
             new TableGrid(MapProperties(sourceGrid, "tblGrid")!.ToString(SaveOptions.DisableFormatting));
         table.AppendChild(grid);
@@ -161,6 +166,8 @@ internal sealed partial class WordMl2003Projection {
                     XElement? cellProperties = cell.Element(Word + "tcPr");
                     if (cellProperties != null)
                         outputCell.AppendChild(new TableCellProperties(MapProperties(cellProperties, "tcPr")!.ToString(SaveOptions.DisableFormatting)));
+                    if (outputCell.TableCellProperties?.GridSpan?.Val?.Value == 0)
+                        outputCell.TableCellProperties.GridSpan.Val = 1;
                     outputCell.Append(ProjectBlocks(cell, inTableCell: true));
                     if (outputCell.LastChild is not Paragraph) outputCell.AppendChild(new Paragraph());
                     row.AppendChild(outputCell);
@@ -174,14 +181,17 @@ internal sealed partial class WordMl2003Projection {
             table.AppendChild(new TableRow(new TableCell(new Paragraph())));
         }
         if (!grid.HasChildren) {
-            int columns = table.Elements<TableRow>().Max(row => row.Elements<TableCell>()
-                .Sum(cell => cell.TableCellProperties?.GridSpan?.Val?.Value ?? 1));
             for (int i = 0; i < columns; i++) grid.AppendChild(new GridColumn());
         }
         return table;
     }
 
     private SectionProperties ProjectSectionProperties(XElement source) {
+        var stories = new HashSet<(XName Name, string? Type)>();
+        foreach (XElement child in source.Elements().Where(element => element.Name == Word + "hdr" || element.Name == Word + "ftr")) {
+            if (!stories.Add((child.Name, (string?)child.Attribute(Word + "type"))))
+                throw new InvalidDataException("WordML 2003 contains a duplicate header or footer type in a section.");
+        }
         var properties = new SectionProperties(MapProperties(source, "sectPr")!.ToString(SaveOptions.DisableFormatting));
         foreach (XElement child in source.Elements().Where(element => element.Name == Word + "hdr" || element.Name == Word + "ftr"))
             AppendHeaderFooter(properties, child);

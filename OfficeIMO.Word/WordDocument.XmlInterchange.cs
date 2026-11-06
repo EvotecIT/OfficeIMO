@@ -118,6 +118,7 @@ public partial class WordDocument {
 
 internal static class WordXmlInterchange {
     internal const long MaximumXmlBytes = 64L * 1024 * 1024;
+    internal const int MaximumXmlElements = 250_000;
     private static readonly XNamespace FlatOpc = "http://schemas.microsoft.com/office/2006/xmlPackage";
     internal static readonly XNamespace WordMl = "http://schemas.microsoft.com/office/word/2003/wordml";
     internal static readonly XName FlatOpcPackage = FlatOpc + "package";
@@ -134,7 +135,7 @@ internal static class WordXmlInterchange {
         };
         using var source = new MemoryStream(bytes, writable: false);
         using var reader = new OfficeXmlLimitingReader(XmlReader.Create(source, settings), "Word XML",
-            maxDepth: 128, maxElements: 250_000, maxAttributes: 1_000_000, cancellationToken: token);
+            maxDepth: 128, maxElements: MaximumXmlElements, maxAttributes: 1_000_000, cancellationToken: token);
         try {
             if (reader.MoveToContent() != XmlNodeType.Element) return null;
         } catch (XmlException) {

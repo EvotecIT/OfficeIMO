@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
@@ -11,6 +12,51 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PreferredWidths_PackageStateTransferHandlesSharedPartsWithoutLoadingUnrelatedRoots(bool authored) {
+        using WordDocument source = WordDocument.Create();
+        using WordDocument copy = WordDocument.Create();
+        WordTable sourceTable = source.AddTable(1, 2);
+        sourceTable.ColumnWidth = new List<WordTableWidth?> {
+            WordTableWidth.Length(OfficeLength.Points(72)), WordTableWidth.Length(OfficeLength.Points(144))
+        };
+        if (authored) sourceTable.GridColumnWidth = new List<OfficeLength> { OfficeLength.Points(105), OfficeLength.Points(135) };
+        WordTable placeholder = copy.AddTable(1, 2);
+        placeholder._table.Parent!.ReplaceChild(sourceTable._table.CloneNode(true), placeholder._table);
+        HeaderPart sourceHeader = AddSharedPartAndUnloadedHeader(source._wordprocessingDocument);
+        HeaderPart copiedHeader = AddSharedPartAndUnloadedHeader(copy._wordprocessingDocument);
+        Assert.False(sourceHeader.IsRootElementLoaded);
+        Assert.False(copiedHeader.IsRootElementLoaded);
+
+        WordTable.CopyGridNormalizationState(source._wordprocessingDocument, copy._wordprocessingDocument);
+
+        Assert.False(sourceHeader.IsRootElementLoaded);
+        Assert.False(copiedHeader.IsRootElementLoaded);
+        WordTable cloned = Assert.Single(copy.Tables);
+        cloned.Rows[0].Cells[0].Width = WordTableWidth.Length(OfficeLength.Points(90));
+        cloned.Rows[0].Cells[1].Width = WordTableWidth.Length(OfficeLength.Points(150));
+        copy.NormalizeTablesForOnline();
+        using var savedXml = new MemoryStream();
+        copy._wordprocessingDocument.MainDocumentPart!.Document.Save(savedXml);
+        using var readback = new MemoryStream(savedXml.ToArray());
+        XNamespace word = WordWidthNamespace;
+        Assert.Equal(authored ? new[] { "2100", "2700" } : new[] { "1800", "3000" },
+            XDocument.Load(readback).Descendants(word + "gridCol").Select(column => (string?)column.Attribute(word + "w")));
+
+        static HeaderPart AddSharedPartAndUnloadedHeader(WordprocessingDocument package) {
+            ExtendedPart shared = package.AddExtendedPart("urn:officeimo:test:shared", "application/octet-stream", ".bin", "rIdSharedRoot");
+            using (var content = new MemoryStream(new byte[] { 1, 2, 3 })) shared.FeedData(content);
+            package.MainDocumentPart!.AddPart(shared, "rIdSharedChild");
+            HeaderPart header = package.MainDocumentPart.AddNewPart<HeaderPart>();
+            using var headerContent = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+                "<w:hdr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" />"));
+            header.FeedData(headerContent);
+            return header;
+        }
+    }
+
     [Theory]
     [InlineData("table", false)]
     [InlineData("table", true)]

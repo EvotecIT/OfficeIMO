@@ -24,11 +24,10 @@ internal sealed partial class WordMl2003Projection {
         ["path"] = "v extrusionok gradientshapeok connecttype connectlocs connectangles textboxrect fillok strokeok shadowok arrowok",
         ["f"] = "eqn", ["formulas"] = "", ["fill"] = "on color color2 opacity opacity2 type angle focus focusposition focussize method"
     };
-    private long _remainingImageBytes;
+    private long _remainingReconstructionBytes;
     private OfficePackageSecurityOptions _resourcePolicy = null!;
 
-    private void IndexImages(XElement root, OfficePackageSecurityOptions policy) {
-        _remainingImageBytes = Math.Min(WordXmlInterchange.MaximumXmlBytes, policy.MaxTotalUncompressedBytes);
+    private void IndexImages(XElement root) {
         foreach (XElement data in root.Descendants(Word + "binData")) {
             CheckAttributes(data, "name");
             string? name = (string?)data.Attribute(Word + "name");
@@ -85,8 +84,17 @@ internal sealed partial class WordMl2003Projection {
         _token.ThrowIfCancellationRequested();
         if (source.Name.Namespace != Vml || !VmlElements.Contains(source.Name.LocalName)) {
             if (source.Name == Office + "lock") {
-                CheckAttributes(source, "ext aspectratio position selection grouping ungrouping rotation cropping verticies adjusthandles text shapetype", XNamespace.None);
-                return new XElement(source);
+                const string allowed = "ext aspectratio position selection grouping ungrouping rotation cropping verticies adjusthandles text shapetype";
+                CheckAttributes(source, allowed, XNamespace.None);
+                var locked = new XElement(source.Name);
+                foreach (XAttribute attribute in source.Attributes()) {
+                    if (IsMetadataAttribute(attribute) || attribute.Name.Namespace == XNamespace.None && ContainsName(allowed, attribute.Name.LocalName))
+                        locked.Add(new XAttribute(attribute));
+                }
+                foreach (XElement child in source.Elements()) Omit(child, "nested VML lock content");
+                if (source.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
+                    Omit(source, "VML lock text content");
+                return locked;
             }
             Omit(source, "VML picture structure");
             return null;
@@ -116,21 +124,21 @@ internal sealed partial class WordMl2003Projection {
                     foreach (char character in encoded)
                         if (character is not (' ' or '\t' or '\r' or '\n' or '=')) symbols++;
                     long decodedLength = symbols * 6 / 8;
-                    if (decodedLength > _resourcePolicy.MaxPartUncompressedBytes || decodedLength > _remainingImageBytes)
+                    if (decodedLength > _resourcePolicy.MaxPartUncompressedBytes || decodedLength > _remainingReconstructionBytes)
                         throw new InvalidDataException("WordML 2003 exceeds the decoded image resource limit.");
                     byte[] bytes;
                     try { bytes = Convert.FromBase64String(encoded); }
                     catch (FormatException error) { throw new InvalidDataException("WordML 2003 contains an invalid image payload.", error); }
-                    if (bytes.LongLength > _resourcePolicy.MaxPartUncompressedBytes || bytes.LongLength > _remainingImageBytes)
+                    if (bytes.LongLength > _resourcePolicy.MaxPartUncompressedBytes || bytes.LongLength > _remainingReconstructionBytes)
                         throw new InvalidDataException("WordML 2003 exceeds the decoded image resource limit.");
                     OfficeImageInfo info = OfficeImageReader.Identify(bytes);
                     image = (bytes, info.MimeType);
                     _decodedImages.Add(name, image);
                 }
-                if (image.Bytes.LongLength > _remainingImageBytes)
+                if (image.Bytes.LongLength > _remainingReconstructionBytes)
                     throw new InvalidDataException("WordML 2003 exceeds the written image resource limit.");
                 ReserveRelationship(_story, createsPart: true);
-                _remainingImageBytes -= image.Bytes.LongLength;
+                _remainingReconstructionBytes -= image.Bytes.LongLength;
                 ImagePart part = _story switch {
                     MainDocumentPart main => main.AddImagePart(image.ContentType),
                     HeaderPart header => header.AddImagePart(image.ContentType),

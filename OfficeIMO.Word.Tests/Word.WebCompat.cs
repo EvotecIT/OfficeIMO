@@ -10,6 +10,8 @@ namespace OfficeIMO.Tests {
         [InlineData("valid", "1800", "2400")]
         [InlineData("missing", "2100", "2100")]
         [InlineData("invalid", "2100", "2100")]
+        [InlineData("missing-before", "2100", "2100")]
+        [InlineData("missing-after", "2100", "2100")]
         public void NormalizeForOnline_PreservesCompletePhysicalGridAndRepairsMissingGeometry(string geometry, string first, string second) {
             using var document = WordDocument.Create();
             WordTable table = document.AddTable(1, 2);
@@ -23,6 +25,8 @@ namespace OfficeIMO.Tests {
                 .Select(width => global::OfficeIMO.OfficeLength.Emus((long)width * 635)).ToList();
             if (geometry == "missing") raw.GetFirstChild<TableGrid>().Remove();
             else if (geometry == "invalid") raw.GetFirstChild<TableGrid>().GetFirstChild<GridColumn>().Width = "-1";
+            else if (geometry == "missing-before") raw.Elements<TableRow>().Single().TableRowProperties = new TableRowProperties(new GridBefore());
+            else if (geometry == "missing-after") raw.Elements<TableRow>().Single().TableRowProperties = new TableRowProperties(new GridAfter());
 
             document.NormalizeTablesForOnline();
             using var stream = new MemoryStream(document.ToBytes());

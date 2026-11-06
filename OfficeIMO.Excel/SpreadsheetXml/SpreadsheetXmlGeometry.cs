@@ -56,7 +56,7 @@ internal static class SpreadsheetXmlGeometry {
             if (end > 256) { context.Omitted("column formatting beyond XML Spreadsheet column 256"); if (start > 256) continue; end = 256; }
             writer.WriteStartElement("Column", Ss.NamespaceName); Attribute(writer, "Index", start);
             if (end > start) Attribute(writer, "Span", end - start);
-            if (column.Width != null) Attribute(writer, "Width", column.Width.Value == 0
+            if (column.Width != null && (column.Width.Value != 0 || column.CustomWidth?.Value == true)) Attribute(writer, "Width", column.Width.Value == 0
                 ? 0 : ExcelColumnGeometry.GetWidthPixels(column, format, digit, true) * 72d / 96d);
             if (column.Hidden?.Value == true) Attribute(writer, "Hidden", 1);
             if (column.Style != null) {

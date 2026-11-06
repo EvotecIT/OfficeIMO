@@ -186,7 +186,8 @@ namespace OfficeIMO.Word {
                 int occupied = 0;
                 foreach (OpenXmlElement offset in row.TableRowProperties?.Elements() ?? Enumerable.Empty<OpenXmlElement>()) {
                     if (offset is not GridBefore && offset is not GridAfter) continue;
-                    if (!int.TryParse(offset.GetAttribute("val", "http://schemas.openxmlformats.org/wordprocessingml/2006/main").Value, out int count) || count < 0)
+                    string? value = offset is GridBefore before ? before.Val?.InnerText : ((GridAfter)offset).Val?.InnerText;
+                    if (!int.TryParse(value, out int count) || count < 0)
                         return false;
                     occupied += count;
                     if (occupied > columns) return false;
