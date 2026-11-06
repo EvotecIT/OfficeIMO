@@ -392,10 +392,13 @@ namespace OfficeIMO.Word {
             int lastStart = text.Length - searched.Length;
             int paragraphIndex = 0;
             int paragraphStart = 0;
+            bool ordinal = stringComparison is StringComparison.Ordinal or StringComparison.OrdinalIgnoreCase;
             int searchFrom = 0;
             while (searchFrom <= lastStart) {
-                int matchStart = text.IndexOf(searched, searchFrom, stringComparison);
-                if (matchStart < 0 || matchStart > lastStart) break;
+                int matchStart = ordinal
+                    ? text.IndexOf(searched, searchFrom, stringComparison)
+                    : FindFixedWidthMatch(searchFrom);
+                if (matchStart < 0) break;
 
                 int matchEnd = matchStart + searched.Length - 1;
                 int beginChar = ResolveParagraphOffset(matchStart);
@@ -410,6 +413,20 @@ namespace OfficeIMO.Word {
                 searchFrom = matchEnd + 1;
             }
             return segments;
+
+            int FindFixedWidthMatch(int start) {
+                // Culture-sensitive IndexOf can match a different number of UTF-16 code units.
+                // The existing HTML replacement contract compares one code unit at a time.
+                for (; start <= lastStart; start++) {
+                    int matched = 0;
+                    while (matched < searched.Length &&
+                        string.Compare(text, start + matched, searched, matched, 1, stringComparison) == 0) {
+                        matched++;
+                    }
+                    if (matched == searched.Length) return start;
+                }
+                return -1;
+            }
 
             int ResolveParagraphOffset(int offset) {
                 while (offset - paragraphStart >= paragraphTexts[paragraphIndex].Length) {

@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -25,6 +26,20 @@ namespace OfficeIMO.Tests {
             Assert.IsType<AltChunk>(body.ChildElements[1]);
             Assert.IsType<AltChunk>(body.ChildElements[2]);
             Assert.IsType<SectionProperties>(body.ChildElements[3]);
+        }
+
+        [Fact]
+        public void ReplaceTextWithHtmlFragment_CultureComparisonPreservesTextWithDifferentMatchWidth() {
+            using WordDocument document = WordDocument.Create();
+            const string text = "caf\u00e9 next";
+            WordParagraph paragraph = document.AddParagraph(text);
+
+            int count = document.ReplaceTextWithHtmlFragment("cafe\u0301", "<html><p>Injected</p></html>",
+                stringComparison: StringComparison.InvariantCulture);
+
+            Assert.Equal(0, count);
+            Assert.Equal(text, paragraph.Text);
+            Assert.Empty(document.EmbeddedDocuments);
         }
 
         [Fact]
