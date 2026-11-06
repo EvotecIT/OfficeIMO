@@ -72,6 +72,9 @@
     "powershell-macos": [
       ".github/workflows/powershell-dotnet.yml",
       ".github/workflows/powershell-tests.yml",
+      ".github/actions/powershell-modules/**",
+      "Build/Ci/Save-PowerShellTools.ps1",
+      "Build/Ci/powershell-tools.json",
       "PowerShell/PSWriteOffice/PSWriteOffice.*",
       "PowerShell/PSWriteOffice/Build/**",
       "PowerShell/PSWriteOffice/Examples/**",
