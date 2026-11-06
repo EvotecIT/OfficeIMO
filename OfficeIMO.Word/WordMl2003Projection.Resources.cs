@@ -17,7 +17,7 @@ internal sealed partial class WordMl2003Projection {
     private bool _corePropertiesReserved;
     private static readonly HashSet<string> VmlElements = Names("shape shapetype imagedata stroke formulas f path fill");
     private static readonly Dictionary<string, string> VmlAttributes = new(StringComparer.Ordinal) {
-        ["shape"] = "id type style alt title coordsize coordorigin wrapcoords filled fillcolor stroked strokecolor strokeweight insetpen spid spt preferrelative allowincell allowoverlap behindDoc",
+        ["shape"] = "id type style alt title coordsize coordorigin wrapcoords filled fillcolor stroked strokecolor strokeweight insetpen spid spt preferrelative allowincell allowoverlap",
         ["shapetype"] = "id coordsize coordorigin path filled stroked spt preferrelative",
         ["imagedata"] = "src title cropleft cropright croptop cropbottom blacklevel gain gamma grayscale bilevel chromakey embosscolor recolortarget detectmouseclick",
         ["stroke"] = "joinstyle endcap dashstyle color weight opacity on",
@@ -84,13 +84,8 @@ internal sealed partial class WordMl2003Projection {
         _token.ThrowIfCancellationRequested();
         if (source.Name.Namespace != Vml || !VmlElements.Contains(source.Name.LocalName)) {
             if (source.Name == Office + "lock") {
-                const string allowed = "ext aspectratio position selection grouping ungrouping rotation cropping verticies adjusthandles text shapetype";
-                CheckAttributes(source, allowed, XNamespace.None);
                 var locked = new XElement(source.Name);
-                foreach (XAttribute attribute in source.Attributes()) {
-                    if (IsMetadataAttribute(attribute) || attribute.Name.Namespace == XNamespace.None && ContainsName(allowed, attribute.Name.LocalName))
-                        locked.Add(new XAttribute(attribute));
-                }
+                AppendVmlAttributes(source, locked);
                 foreach (XElement child in source.Elements()) Omit(child, "nested VML lock content");
                 if (source.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
                     Omit(source, "VML lock text content");
@@ -100,16 +95,7 @@ internal sealed partial class WordMl2003Projection {
             return null;
         }
         var result = new XElement(source.Name);
-        foreach (XAttribute attribute in source.Attributes()) {
-            if (attribute.IsNamespaceDeclaration) { result.Add(new XAttribute(attribute)); continue; }
-            if (source.Name == Vml + "imagedata" && attribute.Name.LocalName == "src" && attribute.Name.Namespace == XNamespace.None) continue;
-            if (!(attribute.Name.Namespace == XNamespace.None || attribute.Name.Namespace == Office) ||
-                !ContainsName(VmlAttributes[source.Name.LocalName], attribute.Name.LocalName)) {
-                Omit(attribute.Name, "VML picture attribute " + attribute.Name.LocalName);
-                continue;
-            }
-            result.Add(new XAttribute(attribute));
-        }
+        AppendVmlAttributes(source, result);
         if (source.Name == Vml + "imagedata") {
             string? name = (string?)source.Attribute("src");
             if (name == null || !_binarySources.TryGetValue(name, out XElement? data)) {
