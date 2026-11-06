@@ -21,7 +21,7 @@ public sealed class ReaderEmailStoreModularTests {
             item.Id == OfficeDocumentReaderBuilderEmailStoreExtensions.HandlerId);
 
         Assert.Equal(ReaderInputKind.Email, capability.Kind);
-        Assert.Equal(new[] { ".emlx", ".olm", ".ost", ".pst" }, capability.Extensions);
+        Assert.Equal(new[] { ".dbx", ".emlx", ".olm", ".ost", ".pst" }, capability.Extensions);
         Assert.True(capability.SupportsPath);
         Assert.True(capability.SupportsStream);
         Assert.True(capability.SupportsDocumentPath);
