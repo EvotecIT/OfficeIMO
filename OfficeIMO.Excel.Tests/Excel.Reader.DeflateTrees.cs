@@ -58,7 +58,7 @@ public partial class Excel {
 
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.DeflateTree.{Guid.NewGuid():N}.xlsx");
         try {
-            File.WriteAllBytes(path, DeflateTreeWorkbook(expected, compressed));
+            File.WriteAllBytes(path, CreateRawDeflateWorkbook(expected, compressed));
             Exception? actual = Record.Exception(() => {
                 using var reader = ExcelDocument.OpenReader(path);
                 Assert.True(reader.Read());
@@ -86,7 +86,7 @@ public partial class Excel {
         _ => throw new ArgumentOutOfRangeException(nameof(kind))
     };
 
-    private static byte[] DeflateTreeWorkbook(byte[] xml, byte[] compressed) {
+    private static byte[] CreateRawDeflateWorkbook(byte[] xml, byte[] compressed, bool corruptChecksum = false) {
         const string main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         const string relationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
         const string package = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -135,6 +135,11 @@ public partial class Excel {
         BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(central + delta + 8), flags);
         BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(central + delta + 10), 8);
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(central + delta + 20), (uint)compressed.Length);
+        if (corruptChecksum) {
+            uint wrongChecksum = BinaryPrimitives.ReadUInt32LittleEndian(original.AsSpan(central + 16)) ^ 1U;
+            BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(local + 14), wrongChecksum);
+            BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(central + delta + 16), wrongChecksum);
+        }
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(result.Length - 6), (uint)(directory + delta));
         return result;
     }

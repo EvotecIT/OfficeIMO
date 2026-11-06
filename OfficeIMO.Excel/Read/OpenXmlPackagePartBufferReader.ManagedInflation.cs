@@ -15,6 +15,8 @@ internal sealed partial class OpenXmlPackagePartBufferReader {
         out byte[]? buffer, out bool consumed) {
         buffer = null;
         consumed = false;
+        // .NET 11 adds ZIP CRC validation during reads; retain its stream so that proof is not bypassed.
+        if (Environment.Version.Major >= 11) return false;
         if (!TryReadCompressedInput(entry, ct, out byte[]? compressed, out int compressedLength)) return false;
         byte[]? output = null;
         Task<bool>? consumer = null;
