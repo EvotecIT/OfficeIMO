@@ -142,6 +142,32 @@ pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfmerge -RunMode quick
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfselect -RunMode quick -Framework net10.0
 ```
 
+For a reader run whose generated PDFs must have the same byte hashes in every
+worker, prepare the fifteen producer/scale inputs once, then admit the manifest
+explicitly. Preparation uses the existing generators and validates every input;
+each benchmark worker checks the selected bytes and prints their SHA-256 before
+timing. The three readers share those bytes. This optional input mode leaves
+normal generation in `GlobalSetup` available when the variables are unset.
+
+```powershell
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- prepare-read-inputs --output Ignore/Benchmarks/PdfComparisons/read-inputs
+$env:OFFICEIMO_PDF_READ_INPUT_ROOT = (Resolve-Path Ignore/Benchmarks/PdfComparisons/read-inputs).Path
+$env:OFFICEIMO_PDF_READ_INPUT_MANIFEST_SHA256 = (Get-FileHash "$env:OFFICEIMO_PDF_READ_INPUT_ROOT/pdf-read-inputs.json" -Algorithm SHA256).Hash
+try {
+    pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode full -Framework net10.0
+} finally {
+    Remove-Item Env:OFFICEIMO_PDF_READ_INPUT_ROOT
+    Remove-Item Env:OFFICEIMO_PDF_READ_INPUT_MANIFEST_SHA256
+}
+```
+
+The manifest lists every producer and scale exactly once. A missing manifest,
+changed manifest or PDF hash, invalid input identity, or failed content validation
+rejects the run. Preserve the manifest and the worker markers with its raw
+BenchmarkDotNet output. Compare this explicit prepared-input cohort separately
+from historical runs that generated PDFs independently in each worker and did
+not retain their byte hashes.
+
 To validate a specific HtmlTinkerX source checkout, pass either its repository root or project path. The runner records the exact clean HtmlTinkerX commit and carries the project reference into BenchmarkDotNet child builds. Without this option, the benchmark uses the pinned package version:
 
 ```powershell
