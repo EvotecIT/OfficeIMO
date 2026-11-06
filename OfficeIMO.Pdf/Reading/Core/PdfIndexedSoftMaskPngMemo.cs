@@ -8,7 +8,7 @@ internal sealed class PdfIndexedSoftMaskPngMemo {
     internal byte[]? Find(PdfStream image, PdfStream mask, int decodeLimit, byte[] palette) {
         if (_last is not { } last || !ReferenceEquals(last.Image, image) ||
             !ReferenceEquals(last.Mask, mask) || last.DecodeLimit != decodeLimit ||
-            !palette.AsSpan().SequenceEqual(last.Palette)) return null;
+            !palette.SequenceEqual(last.Palette)) return null;
         return last.Png;
     }
 
