@@ -59,7 +59,7 @@
       "tier": "large",
       "expectedPages": 25,
       "minimumTokenRecall": 0.95,
-      "features": [ "tables", "chart", "image", "links", "headers-footers", "page-breaks", "smartart-source-unsupported", "conversion-diagnostics" ]
+      "features": [ "tables", "chart", "image", "links", "headers-footers", "page-breaks", "smartart-approximation", "conversion-diagnostics" ]
     },
     {
       "id": "officeimo-native-large-500-page",
@@ -149,6 +149,73 @@
       "expectedPages": 258,
       "minimumTokenRecall": 0.90,
       "features": [ "pdfa-1a", "images", "bookmarks", "long-form" ]
+    },
+    {
+      "id": "acl-2024-cscd-ns",
+      "sourceKind": "download",
+      "url": "https://aclanthology.org/2024.acl-long.10.pdf",
+      "sha256": "d39723d17f43ac159e709ae223c41ff7b167197ab0e7c366256ca07abdb195a4",
+      "producer": "Yong Hu, Fandong Meng, and Jie Zhou, ACL 2024",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://aclanthology.org/faq/copyright/",
+      "tier": "medium",
+      "expectedPages": 14,
+      "minimumTokenRecall": 0.95,
+      "features": [ "academic-paper", "two-columns", "mixed-script", "cjk", "tables" ],
+      "expectedText": [ "CSCD-NS", "错误", "错勿" ]
+    },
+    {
+      "id": "pdf-association-tagged-invoice",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-regression-tests/0fabb1c44f53911d0680c9d8743c5ec3c95dc52d/WCAG_2_2/1.7/PDFUA-Ref-2-02_Invoice.pdf",
+      "sha256": "fbae08464f192f532205833215505b78266e86df6283d9b0c439cb06927ce0b9",
+      "producer": "PDF Association PDF/UA Reference Suite",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://pdfa.org/resource/pdfua-reference-suite/",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.95,
+      "features": [ "invoice", "tagged", "tables" ],
+      "pageExpectations": [
+        {
+          "pageNumber": 1,
+          "expectedTables": 1,
+          "tables": [
+            { "rows": 9, "columns": 5, "requiredCells": [ "Super Kite", "Free Gift", "845.00" ] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tinytoolkit-filled-form",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/tinytoolkit-org/pdf-sample-files/4fd733c47ead5446b06372ab910cb78d1c7da55e/out/sample-form-filled.pdf",
+      "sha256": "17a5947607077aa0581cfc6c7f3158779b36b2c4c92e18cdeb9793bdbb2912fc",
+      "producer": "Tinytoolkit (pdf-lib)",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://github.com/tinytoolkit-org/pdf-sample-files/blob/4fd733c47ead5446b06372ab910cb78d1c7da55e/LICENSE",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.95,
+      "features": [ "acroform", "filled-form" ],
+      "expectedText": [ "Full name", "Notes (multiline)", "Contact via", "Country" ]
+    },
+    {
+      "id": "tinytoolkit-image-scan",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/tinytoolkit-org/pdf-sample-files/4fd733c47ead5446b06372ab910cb78d1c7da55e/out/sample-scanned.pdf",
+      "sha256": "d32a62e246778d856c85b03bfc6c91c36c9a071756b733f78daf46b4253de634",
+      "producer": "Tinytoolkit (pdf-lib)",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://github.com/tinytoolkit-org/pdf-sample-files/blob/4fd733c47ead5446b06372ab910cb78d1c7da55e/LICENSE",
+      "tier": "edge",
+      "expectedPages": 3,
+      "features": [ "image-only", "scanned-pdf" ],
+      "pageExpectations": [
+        { "pageNumber": 1, "expectedTables": 0, "expectedImages": 1 },
+        { "pageNumber": 2, "expectedTables": 0, "expectedImages": 1 },
+        { "pageNumber": 3, "expectedTables": 0, "expectedImages": 1 }
+      ]
     }
   ]
 }

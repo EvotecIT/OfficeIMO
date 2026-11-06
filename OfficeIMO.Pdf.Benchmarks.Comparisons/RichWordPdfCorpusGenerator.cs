@@ -47,7 +47,8 @@ internal static class RichWordPdfCorpusGenerator {
                 }
 
                 if (page == 1) {
-                    WordChart chart = document.AddChart("Quarterly delivery",false,OfficeIMO.OfficeLength.Pixels(400),OfficeIMO.OfficeLength.Pixels(180));
+                    WordChart chart = document.AddChart("Quarterly delivery", false,
+                        OfficeIMO.OfficeLength.Pixels(400), OfficeIMO.OfficeLength.Pixels(240));
                     chart.AddCategories(new List<string> { "Q1", "Q2", "Q3", "Q4" });
                     chart.AddBar("Completed", new List<int> { 12, 19, 26, 31 }, OfficeColor.Blue);
                     chart.AddBar("Pending", new List<int> { 6, 5, 4, 3 }, OfficeColor.Orange);
@@ -83,7 +84,7 @@ internal static class RichWordPdfCorpusGenerator {
             string[] allowedDiagnosticCodes = {
                 global::OfficeIMO.OfficeDiagnosticCodes.FontFamilySubstitution,
                 global::OfficeIMO.OfficeDiagnosticCodes.ChartQuality,
-                global::OfficeIMO.OfficeDiagnosticCodes.NativeBodySmartArtUnsupported,
+                global::OfficeIMO.OfficeDiagnosticCodes.NativeSmartArtLayoutApproximated,
                 "unsupported-font-ligature-substitution"
             };
             OfficeDiagnostic[] unexpectedWarnings = saveResult.Diagnostics
@@ -93,7 +94,8 @@ internal static class RichWordPdfCorpusGenerator {
             if (unexpectedWarnings.Length > 0) {
                 throw new InvalidOperationException(
                     "Rich Word PDF conversion reported an unexpected fidelity loss. " +
-                    string.Join(" ", unexpectedWarnings.Select(static warning => warning.ToString())));
+                    string.Join(" ", unexpectedWarnings.Select(static warning =>
+                        $"{warning.Code} ({warning.Location}): {warning.Message}")));
             }
             WriteConversionReport(conversionReportPath, saveResult);
         }
@@ -121,12 +123,15 @@ internal static class RichWordPdfCorpusGenerator {
                 $"Rich Word PDF has {readDocument.Pages.Count} pages; expected {PageCount}.");
         }
 
-        string text = string.Join("\n", readDocument.Pages.Select(static page => page.ExtractText()));
+        string[] pageTexts = readDocument.Pages.Select(static page => page.ExtractText()).ToArray();
+        string text = string.Join("\n", pageTexts);
         string[] requiredText = {
             "OfficeIMO rich interoperability corpus",
             "Generated benchmark fixture",
             "Quarterly delivery",
             "Q1",
+            "Q2",
+            "Q3",
             "Q4",
             "Project link",
             "OfficeIMO"
@@ -134,6 +139,12 @@ internal static class RichWordPdfCorpusGenerator {
         foreach (string marker in requiredText) {
             if (!text.Contains(marker, StringComparison.Ordinal)) {
                 throw new InvalidDataException($"Rich Word PDF did not preserve required content '{marker}'.");
+            }
+        }
+
+        foreach (string node in new[] { "Collect", "Validate", "Publish" }) {
+            if (!pageTexts[1].Contains(node, StringComparison.Ordinal)) {
+                throw new InvalidDataException($"Rich Word PDF did not preserve SmartArt node '{node}' on page 2.");
             }
         }
 
