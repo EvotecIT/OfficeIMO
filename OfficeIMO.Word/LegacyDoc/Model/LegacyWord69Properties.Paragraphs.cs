@@ -25,6 +25,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return true;
             }
             if (operation is >= 38 and <= 42) {
+                if ((LegacyWord69Reader.U16(operand, 0) & 0x1F) == 0) HasUnsupportedFormatting = true;
                 AppendCode(output, (ushort)(0x6424 + operation - 38));
                 AppendBorder(output, operand);
                 return true;

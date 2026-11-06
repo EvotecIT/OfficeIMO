@@ -80,6 +80,16 @@ public partial class Word {
     }
 
     [Fact]
+    public void LegacyWord69_ParagraphBorderClear_ReportsLoss() {
+        using var input = new MemoryStream(CreateWord69StructureFixture(104, clearParagraphBorder: true));
+        using WordDocument imported = WordDocument.Load(input);
+        Assert.Contains(imported.LegacyDocUnsupportedFeatures, feature => feature.Code == "doc-word69-formatting-unsupported");
+        using var output = new MemoryStream();
+        Assert.Throws<NotSupportedException>(() => imported.Save(output));
+        Assert.Equal(0, output.Length);
+    }
+
+    [Fact]
     public void LegacyWord69_HeaderRangeOutsideStory_FailsBeforeProjection() {
         using var input = new MemoryStream(CreateWord69StructureFixture(104, invalidHeaderRange: true));
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => WordDocument.Load(input));
@@ -88,7 +98,7 @@ public partial class Word {
     }
 
     private static byte[] CreateWord69StructureFixture(
-        ushort version, string? unsupportedInstruction = null, bool invalidHeaderRange = false) {
+        ushort version, string? unsupportedInstruction = null, bool invalidHeaderRange = false, bool clearParagraphBorder = false) {
         OfficeCompoundFileReader.TryRead(CreateWord69Fixture(version), out OfficeCompoundFile? compound, out _);
         byte[] main = new byte[0xB00];
         compound!.Streams["WordDocument"].CopyTo(main, 0);
@@ -126,8 +136,9 @@ public partial class Word {
         section2.CopyTo(main, 0xA42);
         WritePage(0x400, 1, new[] { 0, 7, 13, 18, bodyLength, textLength },
             new[] { new byte[] { 85, 1 }, Array.Empty<byte>(), new byte[] { 86, 1 }, Array.Empty<byte>(), new byte[] { 85, 1 } }, false);
+        byte paragraphBorder = clearParagraphBorder ? (byte)0 : (byte)9;
         WritePage(0x600, 7, new[] { 0, 8 },
-            new[] { new byte[] { 1, 0, 15, 5, 0, 1, 160, 5, 0, 38, 9, 0, 21, 240, 0, 22, 120, 0 } }, true);
+            new[] { new byte[] { 1, 0, 15, 5, 0, 1, 160, 5, 0, 38, paragraphBorder, 0, 21, 240, 0, 22, 120, 0 } }, true);
         byte[] inTable = { 0, 0, 24, 1 };
         byte[] rowEnd = { 0, 0, 24, 1, 25, 1, 190, 8, 0, 2, 0, 0, 104, 1, 208, 2 };
         int headerCell1End = bodyLength + cell1.Length;
