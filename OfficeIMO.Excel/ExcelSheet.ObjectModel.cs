@@ -179,8 +179,6 @@ namespace OfficeIMO.Excel {
 
                 if (options.HasFlag(ExcelClearOptions.Values) || options.HasFlag(ExcelClearOptions.Formulas))
                     EnsureDynamicArrayRangeWritable(r1, c1, r2, c2);
-                if (options.HasFlag(ExcelClearOptions.Values))
-                    EnsureTableHeaderValuesNotCleared(r1, c1, r2, c2);
 
                 if (clearCellFields) {
                     worksheetChanged |= ClearExistingCellFieldsInRange((r1, c1, r2, c2), options);
@@ -231,6 +229,17 @@ namespace OfficeIMO.Excel {
             bool clearFormulas = options.HasFlag(ExcelClearOptions.Formulas);
             bool clearStyles = options.HasFlag(ExcelClearOptions.Styles);
             bool changed = false;
+            HashSet<int>? tableHeaderRows = null;
+            if (clearValues && HasTableDefinitions) {
+                foreach (var part in _worksheetPart.TableDefinitionParts) {
+                    Table? table = part.Table;
+                    if (table == null || (table.HeaderRowCount?.Value ?? 1U) == 0U
+                        || !ExcelA1.TryParseRange(table.Reference?.Value ?? string.Empty,
+                            out int top, out int left, out _, out int right)
+                        || top < bounds.r1 || top > bounds.r2 || left > bounds.c2 || right < bounds.c1) continue;
+                    (tableHeaderRows ??= new HashSet<int>()).Add(top);
+                }
+            }
 
             foreach ((Cell cell, int rowIndex, int columnIndex) in EnumerateCellsWithEffectiveCoordinates()) {
                 if (rowIndex < bounds.r1
@@ -240,7 +249,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (clearValues && (ExcelWorksheetScan.FindValue(cell) != null
+                // Table labels belong to the retained schema, even when the selected data is cleared.
+                bool keepTableLabel = tableHeaderRows?.Contains(rowIndex) == true
+                    && TryGetTableHeader(rowIndex, columnIndex, out _, out _);
+                if (clearValues && !keepTableLabel && (ExcelWorksheetScan.FindValue(cell) != null
                     || cell.DataType != null
                     || cell.InlineString != null
                     || HasCellValueMetadata(cell))) {

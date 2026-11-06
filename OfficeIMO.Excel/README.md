@@ -114,11 +114,11 @@ record Order(string Customer, string Region, decimal Total, double Margin);
 
 `AddTable` writes a native Excel table: a header row from the property names, typed cells and the theme's table style. It returns the `ExcelTable`, and `AddChart` returns the `ExcelChart`, for further changes. `ExcelChartOptions.Row` and `Column` anchor the chart; `Width` and `Height` take an `OfficeLength`.
 
-A cell value written into a table header also renames the schema column and updates structured references. Header names must be nonempty, unique literal text. Exclude headers when clearing values or writing formulas. Use `SetTableSchema` to rename several columns together. A header-only table has no data records; the first append starts immediately below its headers. Explicit blank data rows remain records.
+A cell value written into a table header also renames the schema column and updates structured references. Header names must be nonempty, unique literal text. Clearing values retains those labels; write formulas to data rows. Use `SetTableSchema` to rename several columns together. A header-only table has no data records; the first append starts immediately below its headers. Explicit blank data rows remain records.
 
 ## Cells, formulas and formatting
 
-`GetFormattedText()` applies the cell's stored number format; raw and typed reads keep the stored value. Formula calculations retain double precision in numeric caches and use fifteen significant digits when a function converts a number to text. Numeric overflow is cached as `#NUM!`. Text results that cannot be stored as valid XML leave the formula for the spreadsheet application to calculate.
+`GetFormattedText()` applies the cell's stored number format; raw and typed reads keep the stored value. Formula calculations retain double precision in numeric caches and use fifteen significant digits when a function converts a number to text. Numeric overflow is cached as `#NUM!`. Calculated text containing XML control characters or isolated surrogate units remains deferred to the spreadsheet application.
 
 
 ```csharp

@@ -211,13 +211,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData("clear-cell")]
-        [InlineData("clear-range")]
         [InlineData("formula")]
         [InlineData("array")]
         [InlineData("dynamic")]
         [InlineData("error")]
-        public void Test_CellWriteOwnership_NonliteralOrEmptyHeaderWritesFailBeforeMutation(string route) {
+        public void Test_CellWriteOwnership_NonliteralHeaderWritesFailBeforeMutation(string route) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("outside");
@@ -228,8 +226,6 @@ namespace OfficeIMO.Tests {
             sheet.AddTable("A2:B3", true, "Sales", ExcelTableStyle.TableStyleMedium2);
             Action write = () => {
                 switch (route) {
-                    case "clear-cell": sheet.Cell(2, 1).Clear(ExcelClearOptions.Values); break;
-                    case "clear-range": sheet.Range("A1:B3").Clear(); break;
                     case "formula": sheet.Cell(2, 1).SetFormula("\"Net\""); break;
                     case "array": sheet.SetArrayFormula("A1:A2", "SEQUENCE(2)"); break;
                     case "dynamic": sheet.SetDynamicArrayFormula("A2", "SEQUENCE(2)"); break;
@@ -237,8 +233,7 @@ namespace OfficeIMO.Tests {
                 }
             };
 
-            if (route.StartsWith("clear", StringComparison.Ordinal)) Assert.Throws<ArgumentException>(write);
-            else Assert.Throws<InvalidOperationException>(write);
+            Assert.Throws<InvalidOperationException>(write);
 
             Assert.Equal("outside", sheet.Cell(1, 1).GetValue<string>());
             Assert.Equal("Region", sheet.Cell(2, 1).GetValue<string>());
@@ -246,6 +241,37 @@ namespace OfficeIMO.Tests {
             Assert.Equal(10d, sheet.Cell(3, 2).GetValue<double>());
             Assert.Equal(new[] { "Region", "Amount" }, Assert.Single(document.GetTables()).Columns.Select(column => column.Name));
             Assert.Empty(sheet.GetFormulaCells());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_CellWriteOwnership_ClearRetainsTableLabelsAndSchema(bool wholeRange) {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("outside");
+            sheet.Cell(2, 1).SetValue("Region");
+            sheet.Cell(2, 2).SetValue("Amount");
+            sheet.Cell(3, 1).SetValue("EU");
+            sheet.Cell(3, 2).SetValue(10);
+            sheet.AddTable("A2:B3", true, "Sales", ExcelTableStyle.TableStyleMedium2);
+            if (wholeRange) sheet.Range("A1:B3").Clear();
+            else sheet.Cell(2, 1).Clear(ExcelClearOptions.Values);
+            Assert.Equal("Region", sheet.Cell(2, 1).GetValue<string>());
+            Assert.Equal("Amount", sheet.Cell(2, 2).GetValue<string>());
+            Assert.Equal(new[] { "Region", "Amount" }, Assert.Single(document.GetTables()).Columns.Select(column => column.Name));
+            if (wholeRange) {
+                Assert.Null(sheet.Cell(1, 1).GetValue<object>());
+                Assert.Null(sheet.Cell(3, 1).GetValue<object>());
+                Assert.Null(sheet.Cell(3, 2).GetValue<object>());
+            } else {
+                Assert.Equal("outside", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal("EU", sheet.Cell(3, 1).GetValue<string>());
+                Assert.Equal(10d, sheet.Cell(3, 2).GetValue<double>());
+            }
+            using var reopened = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
+            Assert.Equal("Region", reopened["Data"].Cell(2, 1).GetValue<string>());
+            Assert.Equal(new[] { "Region", "Amount" }, Assert.Single(reopened.GetTables()).Columns.Select(column => column.Name));
         }
 
         [Theory]

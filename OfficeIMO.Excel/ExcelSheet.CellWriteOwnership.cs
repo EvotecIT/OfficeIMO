@@ -107,9 +107,10 @@ namespace OfficeIMO.Excel {
                 && RangeContainsTableHeader(top, left, bottom, right);
         }
 
+        /// <summary>Protects schema labels when removing a formula array cache.</summary>
         private void EnsureTableHeaderValuesNotCleared(int top, int left, int bottom, int right) {
             if (RangeContainsTableHeader(top, left, bottom, right))
-                throw new ArgumentException("Table column names cannot be empty. Clear data rows or use SetTableSchema to rename headers.");
+                throw new ArgumentException("An array cache cannot erase table column labels. Replace the table header with a literal name first.");
         }
 
         /// <summary>Renames the schema while retaining rich-run properties and canonical trimming.</summary>

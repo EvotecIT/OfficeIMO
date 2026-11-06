@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
         }
 
         // Legacy text indexing counts UTF-16 units. A slice through a surrogate pair
-        // cannot be cached in XML; leave that argument shape to the spreadsheet host.
+        // is not a supported calculated text result; leave that shape to the spreadsheet host.
         private static bool IsFormulaTextXmlSafe(string text) {
             for (int index = 0; index < text.Length; index++) {
                 char character = text[index];

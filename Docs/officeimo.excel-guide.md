@@ -1435,7 +1435,7 @@ OfficeIMO stores the native connection, table, and query-table relationship chai
 
 ### Formula inspection and calculation policy
 
-Numeric caches retain double precision. Numeric-to-text conversion uses fifteen significant digits. Numeric comparisons use the same significant-digit precision, and terminal near-zero addition/subtraction compensates for floating-point residue. Overflow produces typed `#NUM!` caches. Legacy text indexing counts UTF-16 units; a result containing an isolated surrogate or another character that cannot be stored in XML is left unevaluated for the spreadsheet application.
+Numeric caches retain double precision. Numeric-to-text conversion uses fifteen significant digits. Numeric comparisons use the same significant-digit precision, and terminal near-zero addition/subtraction compensates for floating-point residue. Overflow produces typed `#NUM!` caches. Legacy text indexing counts UTF-16 units; results containing isolated surrogate units or XML control characters remain unevaluated for the spreadsheet application.
 
 `RATE`, `IRR`, `XIRR` and `XNPV` calculate annuity rates and periodic or dated
 cash flows. Cash-flow vectors accept worksheet ranges, names, simple structured
