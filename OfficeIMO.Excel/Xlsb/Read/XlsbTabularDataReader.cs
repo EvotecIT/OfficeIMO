@@ -100,7 +100,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbRecordReadBudget recordBudget,
             XlsbCellReadBudget cellBudget,
             XlsbLogicalRowReadBudget logicalRowBudget,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            XlsbWorksheetDiscovery? prevalidated = null) {
             _sharedStrings = sharedStrings ?? throw new ArgumentNullException(nameof(sharedStrings));
             _dateStyles = dateStyles ?? throw new ArgumentNullException(nameof(dateStyles));
             _uses1904DateSystem = uses1904DateSystem;
@@ -119,7 +120,13 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int actualLastDataRow = -1;
             try {
                 AcquireSharedStringReference();
-                DiscoverDataColumns(
+                if (prevalidated is XlsbWorksheetDiscovery discovery) {
+                    actualFirstColumn = discovery.FirstColumn;
+                    actualLastColumn = discovery.LastColumn;
+                    actualFirstDataRow = discovery.FirstDataRow;
+                    actualLastDataRow = discovery.LastDataRow;
+                    _validatedRowPlan = discovery.RowPlan;
+                } else DiscoverDataColumns(
                     worksheetPart,
                     limits,
                     recordBudget,

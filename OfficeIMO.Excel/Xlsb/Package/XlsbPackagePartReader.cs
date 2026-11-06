@@ -90,39 +90,46 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             int length = checked((int)entry.Length);
             byte[] output = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
             try {
-                using Stream input = entry.Open();
-                int offset = 0;
-                while (offset < length) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    int read = input.Read(
-                        output,
-                        offset,
-                        Math.Min(PartReadBufferSize, length - offset));
-                    if (read == 0) {
-                        throw new EndOfStreamException(
-                            $"The XLSB package part '{normalized}' ended after {offset} of {length} declared bytes.");
-                    }
-
-                    _decompressedBytesRead = checked(_decompressedBytesRead + read);
-                    if (_decompressedBytesRead > _options.MaxPackageBytes) {
-                        throw new InvalidDataException(
-                            $"The XLSB package exceeds the configured aggregate decompression budget of {_options.MaxPackageBytes} bytes.");
-                    }
-
-                    offset += read;
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-                if (input.ReadByte() >= 0) {
-                    throw new InvalidDataException(
-                        $"The XLSB package part '{normalized}' exceeds its declared decompressed length of {length} bytes.");
-                }
-
+                ReadSeekablePartContents(entry, normalized, output, length, cancellationToken);
                 return new XlsbPooledPartStream(output, length);
             } catch {
                 ArrayPool<byte>.Shared.Return(output, clearArray: true);
                 throw;
             }
+        }
+
+        private void ReadSeekablePartContents(ZipArchiveEntry entry, string normalized, byte[] output,
+            int length, CancellationToken cancellationToken, Action<int>? publish = null) {
+            using Stream input = entry.Open();
+            int offset = 0;
+            int readBufferSize = publish == null ? PartReadBufferSize : 256 * 1024;
+            while (offset < length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = input.Read(
+                    output,
+                    offset,
+                    Math.Min(readBufferSize, length - offset));
+                if (read == 0) {
+                    throw new EndOfStreamException(
+                        $"The XLSB package part '{normalized}' ended after {offset} of {length} declared bytes.");
+                }
+
+                _decompressedBytesRead = checked(_decompressedBytesRead + read);
+                if (_decompressedBytesRead > _options.MaxPackageBytes) {
+                    throw new InvalidDataException(
+                        $"The XLSB package exceeds the configured aggregate decompression budget of {_options.MaxPackageBytes} bytes.");
+                }
+
+                offset += read;
+                publish?.Invoke(offset);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (input.ReadByte() >= 0) {
+                throw new InvalidDataException(
+                    $"The XLSB package part '{normalized}' exceeds its declared decompressed length of {length} bytes.");
+            }
+
         }
 
         internal Stream OpenPart(string partName) {

@@ -246,7 +246,22 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             cancellationToken.ThrowIfCancellationRequested();
             _loadValues?.Invoke();
             cancellationToken.ThrowIfCancellationRequested();
-            XlsbPooledPartStream part = _parts.ReadSeekablePart(sheet.PartName, cancellationToken);
+            XlsbPooledPartStream part;
+            XlsbWorksheetDiscovery? discovery = null;
+#if NET8_0_OR_GREATER
+            if (readOptions.A1Range == null && readOptions.Execution.AllowsBackgroundRead
+                && _parts.TryReadPipelined(sheet.PartName, cancellationToken,
+                    (bytes, progress) => XlsbTabularDataReader.DiscoverWorksheet(bytes, _limits,
+                        _recordBudget, _cellBudget, _dateStyles, _sharedStrings.Count,
+                        readOptions, cancellationToken, progress),
+                    out XlsbPooledPartStream? pipelinedPart, out XlsbWorksheetDiscovery validated)) {
+                part = pipelinedPart!;
+                discovery = validated;
+            } else
+#endif
+            {
+                part = _parts.ReadSeekablePart(sheet.PartName, cancellationToken);
+            }
             try {
                 return new XlsbTabularDataReader(
                     part,
@@ -259,7 +274,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     _recordBudget,
                     _cellBudget,
                     _logicalRowBudget,
-                    cancellationToken);
+                    cancellationToken,
+                    discovery);
             } catch {
                 part.Dispose();
                 throw;
