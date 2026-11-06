@@ -105,7 +105,8 @@ public sealed class OdtSpan {
         return this;
     }
 
-    private OdfStyle EnsureStyle() => _document.Styles.EnsureAutomaticStyle(
+    /// <summary>Materializes this span and resolves its copy-on-write style for one formatting batch.</summary>
+    internal OdfStyle EnsureStyle() => _document.Styles.EnsureAutomaticStyle(
         EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofT", _partPath);
 
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>

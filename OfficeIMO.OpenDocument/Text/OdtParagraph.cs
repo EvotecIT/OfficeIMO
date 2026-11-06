@@ -413,7 +413,8 @@ public sealed class OdtParagraph {
     private Func<XElement>? ChildEdit(XElement child) => OdfElementMutation.ForDescendant(
         _element, child, NeedsMaterialization ? EnsureMaterialized : null);
 
-    private OdfStyle EnsureStyle() => _document.Styles.EnsureAutomaticStyle(
+    /// <summary>Materializes this paragraph and resolves its copy-on-write style for one formatting batch.</summary>
+    internal OdfStyle EnsureStyle() => _document.Styles.EnsureAutomaticStyle(
         EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofP", _partPath);
 
     private T? ResolveStyleValue<T>(Func<OdfStyle, T?> selector) where T : struct {
