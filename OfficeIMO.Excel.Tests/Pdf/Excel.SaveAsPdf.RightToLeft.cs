@@ -99,6 +99,65 @@ public partial class Excel {
         Assert.Equal(12D, imageAfter.Height, precision: 3);
     }
 
+    [Fact]
+    public void SaveAsPdf_RightToLeftOversizedImageKeepsTheSameContinuationPageCount() {
+        using ExcelDocument workbook = ExcelDocument.Create();
+        ExcelSheet sheet = workbook.AddSheet("Report");
+        sheet.Cell(1, 1).SetValue("ColumnA");
+        sheet.Cell(1, 2).SetValue("ColumnB");
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14D));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14D));
+        sheet.AddImage(1, 1, CreateMinimalRgbPng(), new ExcelImageOptions {
+            ContentType = "image/png", Width = OfficeLength.Points(1000), Height = OfficeLength.Points(20)
+        });
+        var options = CreateDirectionPdfOptions(ExcelPdfWorksheetLayoutMode.WorksheetCanvas);
+        using PdfPigDocument leftToRight = PdfPigDocument.Open(workbook.ToPdf(options).ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true }));
+        sheet.View.RightToLeft = true;
+        using PdfPigDocument rightToLeft = PdfPigDocument.Open(workbook.ToPdf(options).ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true }));
+
+        Assert.Equal(2, leftToRight.NumberOfPages);
+        Assert.Equal(2, rightToLeft.NumberOfPages);
+        Assert.Contains("ColumnA", rightToLeft.GetPage(1).Text);
+        Assert.Contains("ColumnB", rightToLeft.GetPage(1).Text);
+    }
+
+    [Theory]
+    [InlineData(ExcelPdfWorksheetLayoutMode.WorksheetCanvas)]
+    [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable)]
+    public void SaveAsPdf_RightToLeftBoxedTableStyleKeepsVerticalBordersOnItsOutline(ExcelPdfWorksheetLayoutMode layout) {
+        using ExcelDocument workbook = ExcelDocument.Create();
+        ExcelSheet sheet = workbook.AddSheet("Report");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(1, 2).SetValue("Value");
+        sheet.Cell(2, 1).SetValue("Item");
+        sheet.Cell(2, 2).SetValue(1);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14D));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14D));
+        sheet.AddTable("A1:B2", hasHeader: true, name: "Values", style: ExcelTableStyle.TableStyleLight9);
+        ExcelPdfExportOptions options = CreateDirectionPdfOptions(layout);
+        // Flow tables can also have a report-wide grid. Isolate the worksheet
+        // table style's own outline in both directions.
+        options.PdfOptions = new PdfCore.PdfCreateOptions {
+            DefaultTableStyle = new PdfCore.PdfTableStyle { BorderColor = null }
+        };
+        using PdfPigDocument leftToRight = PdfPigDocument.Open(workbook.ToPdf(options).ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true }));
+        sheet.View.RightToLeft = true;
+        using PdfPigDocument rightToLeft = PdfPigDocument.Open(workbook.ToPdf(options).ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true }));
+        foreach (PdfPigDocument pdf in new[] { leftToRight, rightToLeft }) {
+            Assert.Equal(1, pdf.NumberOfPages);
+            var boxes = pdf.GetPage(1).Paths.Select(path => path.GetBoundingRectangle())
+                .Where(box => box.HasValue).Select(box => box!.Value).ToArray();
+            var horizontal = boxes.Where(box => box.Width > 5D && box.Height < 1.5D).ToArray();
+            var vertical = boxes.Where(box => box.Width < 1.5D && box.Height > 5D).ToArray();
+            Assert.NotEmpty(horizontal);
+            double left = horizontal.Min(box => box.Left);
+            double right = horizontal.Max(box => box.Right);
+            Assert.Contains(vertical, box => Math.Abs(box.Left - left) < 0.25D);
+            Assert.Contains(vertical, box => Math.Abs(box.Right - right) < 0.25D);
+            Assert.DoesNotContain(vertical, box => box.Left > left + 1D && box.Right < right - 1D);
+        }
+    }
+
     [Theory]
     [InlineData(ExcelPdfWorksheetLayoutMode.WorksheetCanvas)]
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable)]

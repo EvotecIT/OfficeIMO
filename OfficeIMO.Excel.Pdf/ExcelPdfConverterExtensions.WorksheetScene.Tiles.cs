@@ -70,9 +70,17 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<double> rowBreaks = options.UseWorksheetPageBreaks && !IsFitToHeight(plan.PageSetup)
                 ? GetUnmappedSceneBreakPositions(plan, chunk, columnWidths, rowHeights, columns: false)
                 : Array.Empty<double>();
-            if (plan.RightToLeft) columnBreaks = columnBreaks.Select(position => tableWidth - position).ToArray();
-            IReadOnlyList<(double Start, double Length)> horizontal = CreateSceneAxisWindows(bounds.Left, right, tileWidth, columnBreaks, scale);
-            if (plan.RightToLeft) horizontal = horizontal.Reverse().ToArray();
+            // Tile in source-column coordinates, whose page grid starts at the sheet's
+            // starting edge. Reflect each window afterward; a mirrored negative bound
+            // must not be rounded onto the left-to-right grid a second time.
+            double logicalLeft = plan.RightToLeft ? tableWidth - right : bounds.Left;
+            double logicalRight = plan.RightToLeft ? tableWidth - bounds.Left : right;
+            IReadOnlyList<(double Start, double Length)> horizontal = CreateSceneAxisWindows(
+                logicalLeft, logicalRight, tileWidth, columnBreaks, scale);
+            if (plan.RightToLeft) horizontal = horizontal.Select(window => {
+                double length = Math.Min(window.Length, logicalRight - window.Start);
+                return (tableWidth - window.Start - length, length);
+            }).ToArray();
             // A single column wider than the page prints once, cut at the page edge, as in a
             // spreadsheet application. Continuing it on another page would only show the cut
             // ends of words.

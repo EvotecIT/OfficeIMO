@@ -43,7 +43,8 @@ namespace OfficeIMO.Excel.Pdf {
                 source.ColumnWidths.WidthWeights.AsEnumerable().Reverse().ToList(), source.ColumnWidths.ApproximateWidthPoints);
             ConditionalFillData? conditional = source.ConditionalFills == null ? null : new ConditionalFillData(fills!, bars!, icons!);
             return new SheetExportData(values, styles, hyperlinks, references, merged, widths, source.RowHeights,
-                source.HeaderRowCount, source.FirstBodyRowNumber, source.StructuredTables, conditional);
+                source.HeaderRowCount, source.FirstBodyRowNumber,
+                source.StructuredTables.Select(table => table.WithRightToLeftLayout()).ToArray(), conditional);
         }
 
         private static T[,]? ReverseColumns<T>(T[,]? source) {
