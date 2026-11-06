@@ -67,9 +67,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return null;
         }
 
-        internal IEnumerable<LegacyDocUnsupportedFeature> UnprojectedLocks() {
+        internal IEnumerable<LegacyDocUnsupportedFeature> UnprojectedLocks(ISet<int>? excludedEndPositions = null) {
             foreach (var pair in _fieldsByEnd) {
-                if (pair.Value.Locked && !_projectedEnds.Contains(pair.Key)) {
+                if (pair.Value.Locked && !_projectedEnds.Contains(pair.Key)
+                    && excludedEndPositions?.Contains(pair.Key) != true) {
                     yield return new LegacyDocUnsupportedFeature(LegacyDocUnsupportedFeatureKind.Formatting,
                         "doc-field-lock-unprojected",
                         $"The locked field ending at global character position {pair.Key} in the {pair.Value.Story} story is not projected as an editable field. Its no-recalculation state cannot be preserved.",

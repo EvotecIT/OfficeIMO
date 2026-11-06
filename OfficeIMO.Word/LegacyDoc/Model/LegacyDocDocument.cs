@@ -304,7 +304,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     options.ReportUnsupportedContent);
             }
 
-            AddFieldMetadataDiagnostics(fieldMetadata, options.ReportUnsupportedContent);
+            AddFieldMetadataDiagnostics(fieldMetadata, options.ReportUnsupportedContent, textContent.AllCharacters, fib);
 
             ReportRemainingUnprojectedBookmarks(bookmarkProjection);
         }

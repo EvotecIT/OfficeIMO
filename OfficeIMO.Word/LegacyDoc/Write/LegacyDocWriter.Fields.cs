@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int storyStart) {
             var result = new LegacyDocWritableFieldResult();
             result.AppendText(WordMath.GetText(mathElement), LegacyDocWritableFormatting.Plain);
-            AppendSupportedField(text, runs, bookmarks, WordMath.ToEquationFieldInstruction(mathElement), result, "1", storyStart);
+            AppendSupportedField(text, runs, bookmarks, WordMath.ToEquationFieldInstruction(mathElement), result, GetSupportedFieldEmptyResultText(LegacyDocFieldKind.Equation), storyStart);
         }
 
         private static void AppendSupportedField(StringBuilder text, List<LegacyDocWritableRun> runs, string instruction, string resultText, LegacyDocWritableFormatting formatting) {
