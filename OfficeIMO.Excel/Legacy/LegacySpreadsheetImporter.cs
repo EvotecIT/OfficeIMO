@@ -80,20 +80,23 @@ public static class LegacySpreadsheetImporter {
         }
     }
 
-    private static ExcelDocument Project(LegacySpreadsheetModel model, CancellationToken cancellationToken) {
+    internal static ExcelDocument Project(LegacySpreadsheetModel model, CancellationToken cancellationToken) {
         ExcelDocument document = ExcelDocument.Create();
         try {
+            if (model.DateSystem is ExcelDateSystem dateSystem) document.DateSystem = dateSystem;
             foreach (LegacySpreadsheetSheet sourceSheet in model.Sheets) {
                 cancellationToken.ThrowIfCancellationRequested();
                 ExcelSheet target = document.AddSheet(sourceSheet.Name, model.PreserveSheetNames ? ExcelSheetNameValidationMode.Strict : ExcelSheetNameValidationMode.Sanitize);
                 var comments = new List<(int Row, int Column, string Text)>();
                 foreach (LegacySpreadsheetCell cell in sourceSheet.Cells) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (!string.IsNullOrWhiteSpace(cell.Formula)) {
+                    if (cell.IsError) {
+                        target.CellError(cell.Row, cell.Column, (string)cell.Value!);
+                    } else if (!string.IsNullOrWhiteSpace(cell.Formula)) {
                         target.CellValue(cell.Row, cell.Column, cell.Value);
                         target.CellFormula(cell.Row, cell.Column, cell.Formula!);
                     } else if (cell.Value != null) target.CellValue(cell.Row, cell.Column, cell.Value);
-                    else target.Cell(cell.Row, cell.Column);
+                    else if (model.PreserveBlankCoordinates) target.SetImportedBlank(cell.Row, cell.Column);
                     if (cell.Alignment.HasValue) target.CellAlign(cell.Row, cell.Column, cell.Alignment.Value);
                     if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) target.Cell(cell.Row, cell.Column).SetNumberFormat(cell.NumberFormat!);
                     if (!string.IsNullOrWhiteSpace(cell.Comment)) comments.Add((cell.Row, cell.Column, cell.Comment!));

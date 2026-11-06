@@ -266,7 +266,9 @@ namespace OfficeIMO.Excel {
             }
             if (detectedFormat == ExcelFileFormat.Xls) {
                 ExcelDocument document = LoadLegacyXlsFromNormalFlow(
-                    bytes, readOnly, saveOnDispose, filePath, CreateLegacyImportOptions(options));
+                    bytes, readOnly, saveOnDispose, filePath, CreateLegacyImportOptions(options),
+                    earlyBiffSecurityPolicy: options.PackageSecurity);
+                document.RememberEarlyBiffSource(originalStream);
                 return captureSourcePackageSecurity ? WithSourcePackageInspection(document, bytes, options) : document;
             }
 
@@ -340,20 +342,22 @@ namespace OfficeIMO.Excel {
 
         private static byte[] ReadAllBytes(Stream stream, ExcelLoadOptions options) {
             long? inputLimit = ResolveInputLimit(options);
+            var probeLimit = Legacy.EarlyBiffWorkbook.ProbeInputLimitFor(options.MaxLegacyInputBytes);
             return options.PackageSecurity != null
                 && inputLimit == options.PackageSecurity.MaxPackageBytes
-                ? OfficePackageSecurityInspector.ReadBounded(stream, options.PackageSecurity)
-                : OfficeStreamReader.ReadAllBytes(stream, inputLimit);
+                ? OfficePackageSecurityInspector.ReadBounded(stream, options.PackageSecurity, Legacy.EarlyBiffWorkbook.ProbeLength, probeLimit)
+                : OfficeStreamReader.ReadAllBytes(stream, options.XlsbImportOptions.CancellationToken, inputLimit, Legacy.EarlyBiffWorkbook.ProbeLength, probeLimit);
         }
 
         private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken,
             ExcelLoadOptions options) {
             long? inputLimit = ResolveInputLimit(options);
+            var probeLimit = Legacy.EarlyBiffWorkbook.ProbeInputLimitFor(options.MaxLegacyInputBytes);
             return options.PackageSecurity != null
                 && inputLimit == options.PackageSecurity.MaxPackageBytes
-                ? await OfficePackageSecurityInspector.ReadBoundedAsync(stream, options.PackageSecurity, cancellationToken)
+                ? await OfficePackageSecurityInspector.ReadBoundedAsync(stream, options.PackageSecurity, cancellationToken, Legacy.EarlyBiffWorkbook.ProbeLength, probeLimit)
                     .ConfigureAwait(false)
-                : await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, inputLimit)
+                : await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, inputLimit, Legacy.EarlyBiffWorkbook.ProbeLength, probeLimit)
                     .ConfigureAwait(false);
         }
 
@@ -374,6 +378,7 @@ namespace OfficeIMO.Excel {
             long? limit = ResolveInputLimit(options);
             LegacyXlsImportOptions legacy = options.CreateLegacyXlsOptions();
             if (limit.HasValue) legacy.MaxInputBytes = checked((int)Math.Min(legacy.MaxInputBytes, limit.Value));
+            legacy.CancellationToken = options.XlsbImportOptions.CancellationToken;
             return legacy;
         }
 
@@ -395,13 +400,18 @@ namespace OfficeIMO.Excel {
             bool saveOnDispose,
             string? filePath,
             LegacyXlsImportOptions? importOptions = null,
-            Action<LegacyXlsWorkbook>? beforeProjection = null) {
+            Action<LegacyXlsWorkbook>? beforeProjection = null,
+            OfficePackageSecurityOptions? earlyBiffSecurityPolicy = null) {
             if (!readOnly && saveOnDispose) {
                 throw new NotSupportedException("SaveOnDispose is not supported for imported XLS workbooks. Use an explicit Save operation.");
             }
 
             LegacyXlsImportOptions effectiveOptions = importOptions ?? new LegacyXlsImportOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+            if (Legacy.EarlyBiffWorkbook.Identify(bytes) != null) {
+                return LoadEarlyBiff(bytes, readOnly, filePath, effectiveOptions, earlyBiffSecurityPolicy);
+            }
+
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, effectiveOptions);
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             LegacyXlsImportDiagnostic[] errors = workbook.Diagnostics

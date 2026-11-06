@@ -14,6 +14,8 @@ internal sealed class LegacySpreadsheetModel {
     internal OfficeLegacyInertContentKind InertContent { get; set; }
     internal int RecoveredCellCount { get; set; }
     internal bool PreserveSheetNames { get; set; }
+    internal ExcelDateSystem? DateSystem { get; set; }
+    internal bool PreserveBlankCoordinates { get; set; }
 }
 
 internal sealed class LegacySpreadsheetSheet {
@@ -23,7 +25,7 @@ internal sealed class LegacySpreadsheetSheet {
 }
 
 internal sealed class LegacySpreadsheetCell {
-    internal LegacySpreadsheetCell(int row, int column, object? value, string? formula = null, byte sourceFormat = 0, string? numberFormat = null, string? comment = null, OfficeIMO.Excel.ExcelHorizontalAlignment? alignment = null) {
+    internal LegacySpreadsheetCell(int row, int column, object? value, string? formula = null, byte sourceFormat = 0, string? numberFormat = null, string? comment = null, OfficeIMO.Excel.ExcelHorizontalAlignment? alignment = null, bool isError = false) {
         Row = row;
         Column = column;
         Value = value;
@@ -32,10 +34,12 @@ internal sealed class LegacySpreadsheetCell {
         NumberFormat = numberFormat;
         Comment = comment;
         Alignment = alignment;
+        IsError = isError;
     }
     internal int Row { get; }
     internal int Column { get; }
     internal object? Value { get; }
+    internal bool IsError { get; }
     internal string? Formula { get; }
     internal byte SourceFormat { get; }
     internal string? NumberFormat { get; }

@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel {
         public static async Task<ExcelDocument> LoadAsync(Uri uri, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
             ExcelLoadOptions resolved = (options ?? new ExcelLoadOptions()).Snapshot();
             ValidateRemoteLoadLifecycle(resolved);
+            resolved.XlsbImportOptions.CancellationToken = cancellationToken;
             long? inputLimit = ResolveInputLimit(resolved);
             bool inputLimitIsPackageSize = resolved.PackageSecurity != null
                 && inputLimit == resolved.PackageSecurity.MaxPackageBytes;

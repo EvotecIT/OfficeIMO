@@ -257,6 +257,9 @@ namespace OfficeIMO.Excel {
             bool includeProjectedChartSheets = false,
             bool preserveLinkedVbaProject = false,
             bool preserveNativeRecords = false) {
+            if (EarlyBiffImportReport?.HasLoss == true && options?.LossPolicy != OfficeConversionLossPolicy.Allow) {
+                throw new NotSupportedException("Saving the early BIFF projection would omit source features. Review the load report and set ExcelSaveOptions.LossPolicy to OfficeConversionLossPolicy.Allow to accept that loss.");
+            }
             if (preserveNativeRecords && CanPreserveNativeLegacyXls(options)) return;
             if (SourceFormat != ExcelFileFormat.Xls
                 || !HasLossyLegacyXlsImportState(includeProjectedChartSheets, preserveLinkedVbaProject)

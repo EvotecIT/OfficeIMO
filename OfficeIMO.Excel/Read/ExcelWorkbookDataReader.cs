@@ -245,20 +245,23 @@ namespace OfficeIMO.Excel {
                         options);
                 } catch (LegacyXlsFastPathNotSupportedException) {
                     // Unsupported legacy variants retain the full import/projection path.
+                } catch (InvalidDataException) when (Legacy.EarlyBiffWorkbook.IsSource(path, options.CancellationToken)) {
+                    // Raw BIFF has no compound Workbook stream.
                 }
             }
 
             options.CancellationToken.ThrowIfCancellationRequested();
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            byte[] bytes = OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(
+            byte[] bytes = ExcelReadLimitFailure.ReadInput(() => OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(
                 stream,
                 options.CancellationToken,
+                options.MaxInputBytes, Legacy.EarlyBiffWorkbook.ProbeLength, Legacy.EarlyBiffWorkbook.ProbeInputLimit),
                 options.MaxInputBytes);
             return OpenLegacyCore(bytes, path, options);
         }
 
         internal static ExcelWorkbookDataReader OpenLegacy(byte[] bytes, ExcelReaderOptions options) {
-            if (CanUseLegacyFastPath(options)) {
+            if (CanUseLegacyFastPath(options) && Legacy.EarlyBiffWorkbook.Identify(bytes) == null) {
                 try {
                     return CreateLegacy(
                         LegacyXlsTabularWorkbook.Open(bytes, options, options.CancellationToken),
@@ -281,15 +284,19 @@ namespace OfficeIMO.Excel {
             string? sourcePath,
             ExcelReaderOptions options) {
             LegacyXlsImportOptions importOptions = CreateLegacyImportOptions(options);
-            return CreateLegacy(
-                ExcelDocument.LoadLegacyXlsFromNormalFlow(
-                    bytes,
-                    readOnly: true,
-                    saveOnDispose: false,
-                    sourcePath,
-                    importOptions,
-                    workbook => ValidateLegacyFormulaProjection(workbook, options)),
-                options);
+            ExcelDocument document = ExcelDocument.LoadLegacyXlsFromNormalFlow(
+                bytes,
+                readOnly: true,
+                saveOnDispose: false,
+                sourcePath,
+                importOptions,
+                workbook => ValidateLegacyFormulaProjection(workbook, options));
+            if (!options.UseCachedFormulaResult && document.EarlyBiffImportReport?.Findings.Any(
+                    finding => finding.Code == "early-biff-formula-cache") == true) {
+                document.Dispose();
+                throw new NotSupportedException("Early BIFF imports expose stored formula results only. Enable UseCachedFormulaResult.");
+            }
+            return CreateLegacy(document, options);
         }
 
         internal static void ValidateLegacyFormulaProjection(

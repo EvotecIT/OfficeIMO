@@ -201,9 +201,14 @@ namespace OfficeIMO.Excel {
             }
 
             if (options.LegacyXlsImportOptions != null) {
-                byte[] sourceBytes = await OfficeFileConversion.ReadAllBytesAsync(sourcePath, cancellationToken).ConfigureAwait(false);
+                using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                    8192, FileOptions.Asynchronous | FileOptions.SequentialScan);
+                byte[] sourceBytes = await OfficeStreamReader.ReadAllBytesAsync(sourceStream, cancellationToken,
+                    probeLength: Legacy.EarlyBiffWorkbook.ProbeLength,
+                    probeLimit: Legacy.EarlyBiffWorkbook.ProbeInputLimitFor(options.LegacyXlsImportOptions.MaxInputBytes)).ConfigureAwait(false);
                 if (ExcelDocumentLoadRouting.IsLegacyXls(sourceBytes, sourcePath)) {
                     LegacyXlsImportOptions importOptions = CreateConversionImportOptions(options.LegacyXlsImportOptions);
+                    importOptions.CancellationToken = cancellationToken;
                     return LoadLegacyXlsFromNormalFlow(
                         sourceBytes,
                         readOnly: false,
@@ -253,6 +258,24 @@ namespace OfficeIMO.Excel {
                     OfficeConversionDiagnosticSeverity.Warning,
                     $"The source extension declares {declaredFormat.Id}, but its package declares {detectedFormat.Id}. Package content was used.",
                     representsDataLoss: false));
+            }
+
+            if (document.EarlyBiffImportReport is OfficeLegacyImportReport early) {
+                diagnostics.Add(new OfficeConversionDiagnostic(
+                    early.SourceFormatId,
+                    OfficeConversionDiagnosticCategory.SourceFormat,
+                    OfficeConversionDiagnosticSeverity.Information,
+                    "Imported a raw Excel worksheet or workbook using the " + early.SourceFormatId + " profile.",
+                    representsDataLoss: false));
+                foreach (OfficeCompatibilityFinding finding in early.Findings) {
+                    diagnostics.Add(CreateExcelDataLossDiagnostic(
+                        finding.Code,
+                        finding.Message,
+                        compatibilityMode,
+                        preserveLossySource,
+                        finding.Impact,
+                        finding.SourceLocation));
+                }
             }
 
             foreach (LegacyXlsUnsupportedFeature feature in document.LegacyXlsUnsupportedFeatures) {

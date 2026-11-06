@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel {
         public void SaveCopy(string filePath, ExcelSaveOptions? options = null) {
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
+            EnsureEarlyBiffOutputPath(filePath);
             ExcelFileFormat format = GetSaveCopyFormat(filePath);
 
             EnsureDestinationFileWritable(filePath);
@@ -25,6 +26,7 @@ namespace OfficeIMO.Excel {
             ExcelSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+            EnsureEarlyBiffOutputPath(filePath);
             ExcelFileFormat format = GetSaveCopyFormat(filePath);
             EnsureDestinationFileWritable(filePath);
             EnsureDirectoryWritable(filePath);

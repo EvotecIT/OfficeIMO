@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
             ArgumentNullException.ThrowIfNull(uri);
 
             var snapshot = ExcelLoadOptionsSnapshot.Create(options, maximumBytes, sourceLimitIsPackageSize);
+            int legacyLimit = options?.MaxLegacyInputBytes ?? Legacy.EarlyBiffWorkbook.DefaultInputLimit;
             ValidateScheme(uri, snapshot.SchemePolicy);
             ValidateHost(uri, snapshot);
             ValidateLimits(snapshot);
@@ -43,10 +44,11 @@ namespace OfficeIMO.Excel {
                 response,
                 snapshot,
                 contentLength,
+                legacyLimit,
                 timeoutCts.Token).ConfigureAwait(false);
 
             if (snapshot.ValidateZipHeader && !LooksLikeSupportedWorkbook(bytes)) {
-                throw new InvalidDataException("Downloaded workbook does not look like a supported ZIP or BIFF8 compound-file workbook.");
+                throw new InvalidDataException("Downloaded workbook does not look like a supported ZIP, compound-file or early BIFF workbook.");
             }
 
             return bytes;
@@ -113,32 +115,53 @@ namespace OfficeIMO.Excel {
             HttpResponseMessage response,
             ExcelLoadOptionsSnapshot options,
             long? contentLength,
+            int legacyLimit,
             CancellationToken cancellationToken) {
             using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            byte[] chunk = new byte[BufferSize];
+            int probeSize = (int)Math.Min(Legacy.EarlyBiffWorkbook.ProbeLength, options.MaxBytes);
+            int prefixLength = 0;
+            while (prefixLength < probeSize) {
+                int read = await stream.ReadAsync(chunk, prefixLength, probeSize - prefixLength, cancellationToken).ConfigureAwait(false);
+                if (read == 0) break;
+                prefixLength += read;
+            }
+
+            long? earlyLimit = Legacy.EarlyBiffWorkbook.ProbeInputLimitFor(legacyLimit)(chunk, prefixLength);
+            long limit = Math.Min(earlyLimit ?? options.MaxBytes, options.MaxBytes);
+            if (contentLength > limit || prefixLength > limit) {
+                throw ByteLimitExceeded(options, limit, Math.Max(contentLength ?? 0, prefixLength));
+            }
+
             using var buffer = contentLength.HasValue && contentLength.Value <= int.MaxValue
                 ? new MemoryStream((int)contentLength.Value)
                 : new MemoryStream();
-
-            byte[] chunk = new byte[BufferSize];
-            long total = 0;
+            buffer.Write(chunk, 0, prefixLength);
+            long total = prefixLength;
+            if (total != 0) options.Progress?.Report(new ExcelHttpLoadProgress(total, contentLength));
 
             while (true) {
-                int read = await stream.ReadAsync(chunk, 0, chunk.Length, cancellationToken).ConfigureAwait(false);
+                long remaining = limit - total;
+                int request = remaining >= chunk.Length ? chunk.Length : (int)remaining + 1;
+                int read = await stream.ReadAsync(chunk, 0, request, cancellationToken).ConfigureAwait(false);
                 if (read == 0) {
                     break;
                 }
 
                 total += read;
-                if (total > options.MaxBytes) {
-                    throw ByteLimitExceeded(options, total,
-                        $"Remote workbook exceeded the configured limit of {options.MaxBytes} bytes.");
-                }
+                if (total > limit) throw ByteLimitExceeded(options, limit, total);
 
                 buffer.Write(chunk, 0, read);
                 options.Progress?.Report(new ExcelHttpLoadProgress(total, contentLength));
             }
 
             return buffer.ToArray();
+        }
+
+        private static IOException ByteLimitExceeded(ExcelLoadOptionsSnapshot options, long limit, long observedBytes) {
+            string message = $"Remote workbook exceeded the configured limit of {limit} bytes.";
+            return limit == options.MaxBytes ? ByteLimitExceeded(options, observedBytes, message)
+                : new OfficeInspectionResourceLimitException("excel", nameof(ExcelLoadOptions.MaxLegacyInputBytes), limit, new IOException(message));
         }
 
         private static IOException ByteLimitExceeded(ExcelLoadOptionsSnapshot options, long observedBytes, string message) =>
@@ -240,7 +263,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            return bytes.Length >= 8
+            return Legacy.EarlyBiffWorkbook.Identify(bytes) != null || bytes.Length >= 8
                 && bytes[0] == 0xD0
                 && bytes[1] == 0xCF
                 && bytes[2] == 0x11

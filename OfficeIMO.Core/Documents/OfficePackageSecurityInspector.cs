@@ -77,8 +77,9 @@ namespace OfficeIMO {
             return bytes;
         }
 
-        internal static byte[] ReadBounded(Stream source, OfficePackageSecurityOptions options) =>
-            ReadSource(source, options);
+        internal static byte[] ReadBounded(Stream source, OfficePackageSecurityOptions options,
+            int probeLength = 0, Func<byte[], int, long?>? probeLimit = null) =>
+            ReadSource(source, options, probeLength, probeLimit);
 
         internal static async Task<byte[]> ReadAndValidateAsync(Stream source,
             OfficePackageSecurityOptions options, CancellationToken cancellationToken) {
@@ -94,11 +95,12 @@ namespace OfficeIMO {
         }
 
         internal static async Task<byte[]> ReadBoundedAsync(Stream source,
-            OfficePackageSecurityOptions options, CancellationToken cancellationToken) {
+            OfficePackageSecurityOptions options, CancellationToken cancellationToken, int probeLength = 0,
+            Func<byte[], int, long?>? probeLimit = null) {
             ValidateOptions(options);
             try {
                 return await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken,
-                    options.MaxPackageBytes).ConfigureAwait(false);
+                    options.MaxPackageBytes, probeLength, probeLimit).ConfigureAwait(false);
             } catch (InvalidDataException exception) {
                 throw CreateSourceSizeException(source, options, exception);
             }
@@ -113,10 +115,11 @@ namespace OfficeIMO {
             }
         }
 
-        private static byte[] ReadSource(Stream source, OfficePackageSecurityOptions options) {
+        private static byte[] ReadSource(Stream source, OfficePackageSecurityOptions options, int probeLength = 0,
+            Func<byte[], int, long?>? probeLimit = null) {
             ValidateOptions(options);
             try {
-                return OfficeStreamReader.ReadAllBytes(source, options.MaxPackageBytes);
+                return OfficeStreamReader.ReadAllBytes(source, CancellationToken.None, options.MaxPackageBytes, probeLength, probeLimit);
             } catch (InvalidDataException exception) {
                 throw CreateSourceSizeException(source, options, exception);
             }
@@ -124,10 +127,11 @@ namespace OfficeIMO {
 
         private static OfficePackageSecurityException CreateSourceSizeException(Stream source,
             OfficePackageSecurityOptions options, InvalidDataException inner) {
-            double observed = source != null && source.CanSeek ? source.Length : options.MaxPackageBytes + 1D;
+            long limit = OfficeStreamReader.GetExceededSizeLimit(inner) ?? options.MaxPackageBytes;
+            double observed = source != null && source.CanSeek ? source.Length : limit + 1D;
             return new OfficePackageSecurityException(OfficePackageSecurityRule.PackageSize,
-                $"Package source exceeds the configured maximum of {options.MaxPackageBytes} bytes. {inner.Message}",
-                observed, options.MaxPackageBytes);
+                $"Package source exceeds the configured maximum of {limit} bytes. {inner.Message}",
+                observed, limit);
         }
 
         private static OfficePackageSecurityReport InspectZip(byte[] bytes,

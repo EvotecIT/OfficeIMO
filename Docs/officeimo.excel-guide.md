@@ -261,6 +261,14 @@ only after reviewing that loss. See
 the current capability matrix and safety contract. Use the
 [migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.
 
+### Recover Excel 2–4 worksheets
+
+Use `ExcelDocument.Load` to open raw BIFF2, BIFF3, and BIFF4 worksheets or an Excel 4 BIFF4 workbook. The returned Excel model can be inspected, edited, and saved to a separate XLSX. Use the load-report overload to review which records and features were omitted. The data reader accepts the same profiles from a workbook stream or an XLS path. Use an XLW path for a BIFF4 workbook.
+
+The supported cells include numbers, text, booleans, errors, explicit blanks, and stored formula results. Formula expressions are discarded after the stored value is decoded. BIFF4 workbook import reads the named, embedded worksheet records in source order. External workbook paths, chart sheets, Excel 4 macro sheets, and executable objects stay outside the projection. Number formats from supported XF and FORMAT records are mapped to the Excel model. Other formatting and controls carry loss diagnostics.
+
+The importer bounds source bytes, cells, records, and text. Truncated or inconsistent workbook boundaries fail before a result is returned. Save to a separate XLSX path or a separate stream using the XLSX format. The save options must explicitly allow reported loss. Password-encrypted XLSX uses the same destination and loss rules. The source stays detached and `SaveOnDispose` is unavailable.
+
 ### XML Spreadsheet 2003 data interchange
 
 Use the explicit XML APIs for standalone XML Spreadsheet 2003 files. They share

@@ -39,7 +39,7 @@ internal static partial class ExcelReaderAdapter {
         ReaderOptions readerOptions,
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
-        using ExcelDocument document = Load(path, readerOptions);
+        using ExcelDocument document = Load(path, readerOptions, cancellationToken);
         using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         options = ResolveSheet(options, reader);
         IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
@@ -63,7 +63,7 @@ internal static partial class ExcelReaderAdapter {
         ReaderOptions readerOptions,
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
-        using ExcelDocument document = Load(stream, sourceName, readerOptions);
+        using ExcelDocument document = Load(stream, sourceName, readerOptions, cancellationToken);
         using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         options = ResolveSheet(options, reader);
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "workbook.xlsx" : sourceName!;
@@ -141,7 +141,7 @@ internal static partial class ExcelReaderAdapter {
         }
     }
 
-    internal static ExcelDocument Load(string path, ReaderOptions options) {
+    internal static ExcelDocument Load(string path, ReaderOptions options, CancellationToken cancellationToken = default) {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowBinaryProjection = options.Projection == ReaderProjection.Full,
@@ -152,13 +152,13 @@ internal static partial class ExcelReaderAdapter {
                 : null
         };
         try {
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(path, loadOptions));
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(path, loadOptions, cancellationToken));
         } catch (Exception exception) when (OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
             return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.LoadEncrypted(path, options.OpenPassword!, loadOptions));
         }
     }
 
-    internal static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options) {
+    internal static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken = default) {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowBinaryProjection = options.Projection == ReaderProjection.Full,
@@ -170,7 +170,7 @@ internal static partial class ExcelReaderAdapter {
         };
         if (stream.CanSeek) stream.Position = 0;
         try {
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions));
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions, cancellationToken));
         } catch (Exception exception) when (stream.CanSeek && OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
             stream.Position = 0;
             return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.LoadEncrypted(stream, options.OpenPassword!, loadOptions));
@@ -243,6 +243,12 @@ internal static partial class ExcelReaderAdapter {
     }
 
     internal static IReadOnlyList<string>? BuildLegacyWarnings(ExcelDocument document) {
+        if (document.EarlyBiffImportReport is OfficeLegacyImportReport early) {
+            var earlyWarnings = new List<string> { "Early BIFF import profile: " + early.SourceFormatId + "." };
+            AddBounded(earlyWarnings, early.Diagnostics.Select(static item => item.Code + " - " + item.Message),
+                8, "Additional early BIFF import diagnostics were omitted.");
+            return earlyWarnings;
+        }
         if (document.SourceFormat != ExcelFileFormat.Xls) return null;
 
         var warnings = new List<string>();

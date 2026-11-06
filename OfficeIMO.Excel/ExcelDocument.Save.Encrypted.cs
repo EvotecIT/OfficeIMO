@@ -22,6 +22,7 @@ public partial class ExcelDocument {
         ArgumentNullException.ThrowIfNull(password);
         if (!destination.CanWrite) throw new ArgumentException("Destination must be writable.", nameof(destination));
         if (format == ExcelFileFormat.Xlsx) { SaveEncrypted(destination, password, saveOptions); return; }
+        EnsureEarlyBiffOutputStream(destination, format);
         EnsureWritableForSave();
         var prepared = BuildEncryptedBinaryWorkbook(format, password, saveOptions);
         WriteEncryptedWorkbookToStream(destination, prepared.Bytes);
