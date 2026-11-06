@@ -2318,9 +2318,16 @@ public sealed partial class PdfReadPage {
 
     private PageContentStreamSequence GetContentStreamSequence(PageContentBudget? pageContentBudget = null) {
         pageContentBudget ??= new PageContentBudget(this);
+        List<PageContentStreamEntry> streams = GetContentStreamObjects();
+        if (streams.Count == 1) {
+            PageContentStreamEntry entry = streams[0];
+            string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(entry.Stream));
+            return new PageContentStreamSequence(content, new[] { new PageContentStreamOffset(0, entry.ObjectNumber) });
+        }
+
         var builder = new System.Text.StringBuilder();
         var entries = new List<PageContentStreamOffset>();
-        foreach (PageContentStreamEntry entry in GetContentStreamObjects()) {
+        foreach (PageContentStreamEntry entry in streams) {
             // ISO 32000-2 Table 31 separates content-array streams with whitespace. Keep
             // operator identities in the same logical sequence used by content mutation.
             if (entries.Count > 0) builder.Append(PdfContentStreamSequenceDecoder.Separator);
