@@ -74,6 +74,7 @@ namespace OfficeIMO.Word {
                     }
 
                     var clone = (FootnoteEndnoteType)note.CloneNode(true);
+                    WordTable.CopyGridNormalizationState(note, clone);
                     newId = next++;
                     clone.Id = newId;
                     map[oldId] = newId;
@@ -131,6 +132,7 @@ namespace OfficeIMO.Word {
                     }
 
                     var clone = (Comment)comment.CloneNode(true);
+                    WordTable.CopyGridNormalizationState(comment, clone);
                     newId = (next++).ToString(CultureInfo.InvariantCulture);
                     clone.Id = newId;
                     map[oldId] = newId;
@@ -178,6 +180,7 @@ namespace OfficeIMO.Word {
                         }
 
                         var clone = (Comment)comment.CloneNode(true);
+                        WordTable.CopyGridNormalizationState(comment, clone);
                         string newId = (next++).ToString(CultureInfo.InvariantCulture);
                         clone.Id = newId;
                         map[oldId] = newId;

@@ -7,6 +7,53 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class WordXmlInterchangeTests {
+    [Theory]
+    [InlineData(WordFileFormat.FlatOpc, false)]
+    [InlineData(WordFileFormat.FlatOpc, true)]
+    [InlineData(WordFileFormat.WordMl2003, false)]
+    [InlineData(WordFileFormat.WordMl2003, true)]
+    public async Task EncryptedXmlCopyRejectsXmlDestinationsWithoutWritingAndAcceptsPackageDestinations(WordFileFormat format, bool useAsync) {
+        string xml = format == WordFileFormat.FlatOpc ? FlatOpc() : """
+            <w:wordDocument xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml">
+              <w:body><w:p><w:r><w:t>Producer package</w:t></w:r></w:p></w:body>
+            </w:wordDocument>
+            """;
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-word-xml-copy-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            using var input = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+            using WordDocument document = WordDocument.Load(input);
+            Assert.Equal(format, document.SourceFormat);
+            Assert.Single(document.Paragraphs).SetText("Edited encrypted copy");
+            const string password = "xml-copy-software-fixture";
+            var options = new WordSaveOptions { Password = password };
+            Task Copy(string destination) {
+                if (useAsync) return document.SaveCopyAsync(destination, options);
+                document.SaveCopy(destination, options);
+                return Task.CompletedTask;
+            }
+
+            string existing = Path.Combine(directory, "separate.xml");
+            byte[] sentinel = Encoding.UTF8.GetBytes("<sentinel>existing destination</sentinel>");
+            File.WriteAllBytes(existing, sentinel);
+            NotSupportedException existingError = await Assert.ThrowsAsync<NotSupportedException>(() => Copy(existing));
+            Assert.Contains("non-XML destination", existingError.Message);
+            Assert.Equal(sentinel, File.ReadAllBytes(existing));
+
+            string missing = Path.Combine(directory, "new.xml");
+            NotSupportedException missingError = await Assert.ThrowsAsync<NotSupportedException>(() => Copy(missing));
+            Assert.Contains("non-XML destination", missingError.Message);
+            Assert.False(File.Exists(missing));
+
+            string package = Path.Combine(directory, "copy.docx");
+            await Copy(package);
+            using WordDocument reopened = WordDocument.Load(package, new WordLoadOptions { Password = password });
+            Assert.Equal("Edited encrypted copy", Assert.Single(reopened.Paragraphs).Text);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public void WordMlSourceFormatDescribesMacroCapabilityWhileReportingDroppedCarrier() {
         const string xml = """

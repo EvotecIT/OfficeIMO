@@ -317,6 +317,7 @@ namespace OfficeIMO.Word {
                 }
                 grid.RemoveAllChildren<GridColumn>();
                 grid.Append(columns);
+                if (!_suppressGridRefresh) _table.RemoveAnnotations<DerivedGrid>();
             }
         }
 

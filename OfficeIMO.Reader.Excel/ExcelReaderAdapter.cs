@@ -123,7 +123,7 @@ internal static partial class ExcelReaderAdapter {
         long position = stream.Position;
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            using ExcelDocument document = Load(stream, sourceName, options);
+            using ExcelDocument document = Load(stream, sourceName, options, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return document.OpenXmlDocument.GetAllParts().Any(static part =>
                 string.Equals(part.Uri.OriginalString, "/xl/workbook.xml",
@@ -141,7 +141,7 @@ internal static partial class ExcelReaderAdapter {
         }
     }
 
-    internal static ExcelDocument Load(string path, ReaderOptions options) {
+    internal static ExcelDocument Load(string path, ReaderOptions options, CancellationToken cancellationToken = default) {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowBinaryProjection = options.Projection == ReaderProjection.Full,
@@ -152,13 +152,13 @@ internal static partial class ExcelReaderAdapter {
                 : null
         };
         try {
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(path, loadOptions));
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(path, loadOptions, cancellationToken));
         } catch (Exception exception) when (OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
             return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.LoadEncrypted(path, options.OpenPassword!, loadOptions));
         }
     }
 
-    internal static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options) {
+    internal static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken = default) {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowBinaryProjection = options.Projection == ReaderProjection.Full,
@@ -170,7 +170,7 @@ internal static partial class ExcelReaderAdapter {
         };
         if (stream.CanSeek) stream.Position = 0;
         try {
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions));
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions, cancellationToken));
         } catch (Exception exception) when (stream.CanSeek && OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
             stream.Position = 0;
             return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.LoadEncrypted(stream, options.OpenPassword!, loadOptions));

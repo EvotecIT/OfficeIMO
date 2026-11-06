@@ -147,7 +147,7 @@ namespace OfficeIMO.Word {
 
             if (ResolveSavePassword(options) is string password) {
                 if (IsLegacyDocPath(filePath)) throw new NotSupportedException("Password-protected DOC output is not supported.");
-                EnsureSeparateXmlDestination(filePath);
+                EnsureDestinationFileWritable(filePath);
                 OfficeFileCommit.WriteAllBytes(filePath, OfficeEncryption.EncryptPackage(ToWordBytes(WordFileFormat.Docx, options), password));
                 return;
             }

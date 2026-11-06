@@ -75,6 +75,11 @@ namespace OfficeIMO.Word {
         /// since its content refers to them by id.
         /// </summary>
         private void CopyPartRelationships(OpenXmlPart sourcePart, OpenXmlPart cloned) {
+            if (sourcePart is HeaderPart { Header: { } sourceHeader } && cloned is HeaderPart { Header: { } clonedHeader })
+                WordTable.CopyGridNormalizationState(sourceHeader, clonedHeader);
+            else if (sourcePart is FooterPart { Footer: { } sourceFooter } && cloned is FooterPart { Footer: { } clonedFooter })
+                WordTable.CopyGridNormalizationState(sourceFooter, clonedFooter);
+
             foreach (ExternalRelationship external in sourcePart.ExternalRelationships) {
                 if (!cloned.ExternalRelationships.Any(_ => _.Id == external.Id)) {
                     cloned.AddExternalRelationship(external.RelationshipType, external.Uri, external.Id);

@@ -156,9 +156,9 @@ namespace OfficeIMO.Word {
                 }
 
                 ConvertHorizontalMergesToGridSpan();
-                // A complete physical grid carries geometry independent of preferred cell widths.
+                // A complete source or explicitly authored grid carries geometry independent of preferences.
                 // A spanning cell cannot recover the individual columns it covers.
-                if (!HasCompletePhysicalGrid()) RefreshGrid();
+                if (HasDerivedGrid || !HasCompletePhysicalGrid()) RefreshGrid();
 
                 // Supply missing host cell margins without replacing direct authoring values.
                 if (IsNestedTable) EnsureHostCellVerticalMargins(72);
@@ -324,7 +324,8 @@ namespace OfficeIMO.Word {
         /// A bookmark stays with the original, as it does when Word copies a table: its id and name must be
         /// unique in the document.
         /// </summary>
-        private void PrepareCopy(OpenXmlElement copy) {
+        private void PrepareCopy(OpenXmlElement source, OpenXmlElement copy) {
+            CopyGridNormalizationState(source, copy);
             _document.AssignNewSdtIds(copy);
             foreach (OpenXmlElement bookmark in copy.Descendants().Where(element => element is BookmarkStart or BookmarkEnd).ToList()) {
                 bookmark.Remove();
@@ -350,7 +351,7 @@ namespace OfficeIMO.Word {
 
             // Clone the row to avoid the "part of a tree" error
             var clonedRow = (TableRow)row._tableRow.CloneNode(true);
-            PrepareCopy(clonedRow);
+            PrepareCopy(row._tableRow, clonedRow);
 
             // Insert the new row after the last row
             WordTableContent.InsertRowAfter(_table, lastRow, clonedRow);
@@ -567,6 +568,7 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
+            RefreshGrid();
             return this;
         }
 
@@ -591,6 +593,7 @@ namespace OfficeIMO.Word {
             }
             _tableProperties.TableWidth.Type = TableWidthUnitValues.Pct;
             _tableProperties.TableWidth.Width = (percentage * 50).ToString(); // Convert percentage to Word units (50 = 1%)
+            RefreshGrid();
             return this;
         }
 
@@ -682,6 +685,7 @@ namespace OfficeIMO.Word {
                     tcPr.TableCellWidth.Width = widths[columnIndex].ToString();
                 }
             }
+            RefreshGrid();
             return this;
         }
 
@@ -741,7 +745,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable CloneAfterSelf() {
             var clonedTable = (Table)_table.CloneNode(true);
-            PrepareCopy(clonedTable);
+            PrepareCopy(_table, clonedTable);
             _table.InsertAfterSelf(clonedTable);
             return new WordTable(_document, clonedTable);
         }
@@ -757,7 +761,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable CloneBeforeSelf() {
             var clonedTable = (Table)_table.CloneNode(true);
-            PrepareCopy(clonedTable);
+            PrepareCopy(_table, clonedTable);
             _table.InsertBeforeSelf(clonedTable);
             return new WordTable(_document, clonedTable);
         }
@@ -775,7 +779,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable Clone(WordParagraph paragraph, bool after = true) {
             var clonedTable = (Table)_table.CloneNode(true);
-            PrepareCopy(clonedTable);
+            PrepareCopy(_table, clonedTable);
             if (after) {
                 paragraph._paragraph.InsertAfterSelf(clonedTable);
             } else {
@@ -797,7 +801,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable Clone(WordTable table, bool after = true) {
             var clonedTable = (Table)_table.CloneNode(true);
-            PrepareCopy(clonedTable);
+            PrepareCopy(_table, clonedTable);
             if (after) {
                 table._table.InsertAfterSelf(clonedTable);
             } else {

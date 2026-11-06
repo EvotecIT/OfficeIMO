@@ -19,9 +19,10 @@ namespace OfficeIMO.Tests {
             cells[0].TableCellProperties.GridSpan = new GridSpan { Val = 2 };
             cells[0].TableCellProperties.TableCellWidth = new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "4200" };
             cells[1].TableCellProperties.TableCellWidth = new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "3000" };
-            raw.GetFirstChild<TableGrid>().Remove();
-            if (geometry != "missing") raw.InsertAt(new TableGrid(new GridColumn { Width = geometry == "invalid" ? "-1" : "1800" },
-                new GridColumn { Width = "2400" }, new GridColumn { Width = "3000" }), 1);
+            table.GridColumnWidth = new[] { 1800, 2400, 3000 }
+                .Select(width => global::OfficeIMO.OfficeLength.Emus((long)width * 635)).ToList();
+            if (geometry == "missing") raw.GetFirstChild<TableGrid>().Remove();
+            else if (geometry == "invalid") raw.GetFirstChild<TableGrid>().GetFirstChild<GridColumn>().Width = "-1";
 
             document.NormalizeTablesForOnline();
             using var stream = new MemoryStream(document.ToBytes());

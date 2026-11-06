@@ -9,6 +9,31 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderXmlModularTests {
     [Theory]
+    [InlineData(16)]
+    [InlineData(17)]
+    public void WordMlWarningsRetainTheLimitAndSignalOnlyActualTruncation(int diagnosticCount) {
+        string omitted = string.Concat(Enumerable.Range(0, diagnosticCount).Select(index => $"<w:unmapped{index}/>"));
+        string xml = "<w:wordDocument xmlns:w=\"http://schemas.microsoft.com/office/word/2003/wordml\">" + omitted +
+            "<w:body><w:p><w:r><w:t>Retained reader content</w:t></w:r></w:p></w:body></w:wordDocument>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().AddXmlHandler().Build();
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(xml), "warnings.xml",
+            new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Contains("Retained reader content", chunk.Text);
+        IReadOnlyList<string> warnings = Assert.IsAssignableFrom<IReadOnlyList<string>>(chunk.Warnings);
+        Assert.Equal(16, warnings.Count);
+        int retained = diagnosticCount > 16 ? 15 : 16;
+        for (int index = 0; index < retained; index++) Assert.Contains($"(unmapped{index})", warnings[index]);
+        if (diagnosticCount > 16) {
+            Assert.StartsWith("WORD_SOURCE_WARNINGS_TRUNCATED:", warnings[15]);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "content-truncated" &&
+                diagnostic.Message.StartsWith("WORD_SOURCE_WARNINGS_TRUNCATED:", StringComparison.Ordinal));
+        } else {
+            Assert.DoesNotContain(warnings, warning => warning.StartsWith("WORD_SOURCE_WARNINGS_TRUNCATED:", StringComparison.Ordinal));
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void PreferContentRoutesNativeXmlSpreadsheetToTheExcelProjection(bool useStream) {
@@ -48,7 +73,7 @@ public sealed class ReaderXmlModularTests {
     public void WordMlWarningsReachReaderWhenTheFirstBlockIsATable() {
         const string xml = """
             <w:wordDocument xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml">
-              <w:body><w:tbl><w:tblPr/><w:tr><w:tc><w:p><w:r><w:t>WordML table</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body>
+              <w:body><w:tbl><w:tblPr><w:unmapped/></w:tblPr><w:tr><w:tc><w:p><w:r><w:t>WordML table</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body>
             </w:wordDocument>
             """;
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().AddXmlHandler().Build();
