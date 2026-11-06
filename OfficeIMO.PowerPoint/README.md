@@ -122,6 +122,7 @@ Pass the original PPTX/PPTM package stream and an explicit security provider.
 The managed provider is available in the optional `OfficeIMO.Security` package:
 
 ```csharp
+using System.IO;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Security;
 

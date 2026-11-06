@@ -270,6 +270,7 @@ Pass the original XLSX/XLSM package stream and an explicit security provider.
 The managed provider is available in the optional `OfficeIMO.Security` package:
 
 ```csharp
+using System.IO;
 using OfficeIMO.Excel;
 using OfficeIMO.Security;
 
