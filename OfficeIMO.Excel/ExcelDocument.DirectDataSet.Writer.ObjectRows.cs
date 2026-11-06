@@ -186,19 +186,21 @@ namespace OfficeIMO.Excel {
             private void BeginCellCore(string? runtimeStyleAttribute) {
                 EnsureActiveRow();
                 if (_columnIndex >= _cellReferencePrefixes.Length) {
-                    throw new InvalidOperationException(
-                        "The row writer produced more than "
-                        + _cellReferencePrefixes.Length.ToString(CultureInfo.InvariantCulture) + " cells.");
+                    ThrowTooManyCells();
                 }
 
                 int columnIndex = _columnIndex++;
                 OpenRow();
                 if (_native != null) {
-                    _native.BeginCell(columnIndex, runtimeStyleAttribute switch {
+                    _native.BeginCell(columnIndex, runtimeStyleAttribute == null ? 0U : runtimeStyleAttribute switch {
                         " s=\"1\"" => 1U, " s=\"2\"" => 2U, " s=\"3\"" => 3U, " s=\"4\"" => 4U, _ => 0U
                     });
                     return;
                 }
+                WriteXmlCellStart(columnIndex, runtimeStyleAttribute);
+            }
+
+            private void WriteXmlCellStart(int columnIndex, string? runtimeStyleAttribute) {
                 if (_includeCellReferences) {
                     WriteReferenceStart(_cellReferencePrefixes[columnIndex], "\"");
                 } else {
@@ -215,6 +217,12 @@ namespace OfficeIMO.Excel {
 
                 if (styleAttribute != null) _writer.Write(styleAttribute);
             }
+
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+            private void ThrowTooManyCells() =>
+                throw new InvalidOperationException(
+                    "The row writer produced more than "
+                    + _cellReferencePrefixes.Length.ToString(CultureInfo.InvariantCulture) + " cells.");
 
             private void WriteReferenceStart(string prefix, string suffix) {
                 if (_bufferedWriter != null) {
