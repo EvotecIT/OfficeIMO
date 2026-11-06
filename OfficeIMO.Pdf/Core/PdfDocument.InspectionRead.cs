@@ -9,7 +9,7 @@ public sealed partial class PdfDocument {
     /// <see cref="Read"/> remains fail-fast.
     /// Pass <see cref="PdfLoadOptions.RecoverDecodableTextForInspection"/> to retain readable text on
     /// a page with a font-mapping failure when using the built-in glyph decoder, or from leading page
-    /// content streams before a later stream fails to decode.
+    /// content streams before a supported page content filter reports damaged data.
     /// Cancellation, resource admission, authentication, permissions, structural parsing, and unexpected
     /// stage failures remain terminal and are never converted to partial success.
     /// </summary>

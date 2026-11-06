@@ -48,8 +48,8 @@ public sealed partial class PdfReadPage {
             } catch (InvalidDataException) when (recoveryArray is not null && resolvedPrefix &&
                 !stream.DecodingFailed) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!Filters.StreamDecoder.TryGetDeclaredFilterNames(stream.Dictionary, _objects, out var filterNames) ||
-                    filterNames.Count == 0) throw;
+                // Image codecs can report decoder resource exhaustion as invalid data.
+                if (!Filters.StreamDecoder.CanRecoverPageContentDecodeFailure(stream.Dictionary, _objects)) throw;
                 // A content array is one operator sequence. Later streams can depend on state lost here.
                 inspectionPage = index == 0 ? null : WithInspectionContentPrefix(recoveryArray, index, cancellationToken);
                 break;

@@ -99,9 +99,9 @@ Console.WriteLine(inspection.Document.Text);
 
 Check `PageOutcomes` and `Document.TextDecodingDiagnostics` before relying on the
 result. A partially read page with an unsupported font mapping reports
-`UnmappableText` and retains the mapping failure. If a page content stream has a
-recognized filter but cannot be decoded, inspection can recover text from
-leading streams and reports `DamagedContentStream`. In either case,
+`UnmappableText` and retains the mapping failure. When a page content filter such
+as FlateDecode reports damaged data, inspection can recover text from leading
+streams and reports `DamagedContentStream`. In either case,
 `CompletedAllSelectedPages` is false.
 
 For files from outside your organization, pass `PdfLoadOptions` with read limits, as shown in the [guide](../Docs/officeimo.pdf-guide.md).

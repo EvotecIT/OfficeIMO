@@ -8,7 +8,7 @@ public enum PdfPageReadStatus {
     UnmappableText,
     /// <summary>A page or invoked Form XObject declared an unsupported content-stream filter.</summary>
     UnsupportedContentStreamFilter,
-    /// <summary>A recognized filter could not decode a stream in the page's content array. The page may contain readable text from earlier streams.</summary>
+    /// <summary>A supported page content filter could not decode a stream in the page's content array. The page may contain readable text from earlier streams.</summary>
     DamagedContentStream = 3
 }
 

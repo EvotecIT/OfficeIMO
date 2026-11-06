@@ -29,8 +29,9 @@ public sealed partial class PdfLoadOptions {
     public bool IncludeFormWidgets { get; init; } = true;
 
     /// <summary>
-    /// Retains decodable text on a partially unmappable page or from page content streams before the first
-    /// damaged stream during <see cref="PdfDocument.ReadForInspection"/>. The page remains incomplete.
+    /// Retains decodable text on a partially unmappable page or from leading page content streams
+    /// before a supported page content filter reports damaged data during <see cref="PdfDocument.ReadForInspection"/>.
+    /// The page remains incomplete.
     /// Default: false.
     /// </summary>
     public bool RecoverDecodableTextForInspection { get; init; }

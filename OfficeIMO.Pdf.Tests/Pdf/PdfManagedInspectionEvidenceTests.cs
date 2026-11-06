@@ -113,6 +113,30 @@ public sealed class PdfManagedInspectionEvidenceTests {
     }
 
     [Theory]
+    [InlineData(8000, 1, "/JBIG2Decode")]
+    [InlineData(128, 2, "[/ASCIIHexDecode /JBIG2Decode]")]
+    public void InspectionRecoveryKeepsJbig2AdmissionFailuresTerminal(int width, int height, string filters) {
+        byte[] bytes = BuildPdf(new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents [5 0 R 6 0 R] >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            Stream("BT /F1 12 Tf 20 100 Td (Verified leading text) Tj ET"),
+            Stream("", FormattableString.Invariant($"/Filter {filters} /Width {width} /Height {height}"))
+        });
+        PdfDocument pdf = PdfDocument.Load(bytes, new PdfLoadOptions {
+            ParsingMode = PdfParsingMode.Strict,
+            Limits = new PdfReadLimits { MaxDecodedStreamBytes = 128 }
+        });
+
+        Assert.Throws<InvalidDataException>(() => pdf.Read());
+        Assert.Throws<InvalidDataException>(() => pdf.ReadForInspection());
+        Assert.Throws<InvalidDataException>(() => pdf.ReadForInspection(new PdfLoadOptions {
+            RecoverDecodableTextForInspection = true
+        }));
+    }
+
+    [Theory]
     [InlineData("Type1", "WinAnsiEncoding")]
     [InlineData("Type0", "Identity-H")]
     public void DecodingEvidenceDistinguishesToUnicodeRawFallbackEncodingAndActualText(string fontSubtype, string encodingName) {

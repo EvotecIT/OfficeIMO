@@ -153,8 +153,19 @@ public sealed partial class PdfLogicalPage {
             pageActions.Add(readPageActions[i].WithPageNumber(pageNumber));
         }
 
-        (int vectorPrimitiveCount, int unrepresentedVectorPrimitiveCount) =
-            includeImages ? page.GetVisibleVisualPrimitiveCounts(structured.TablesDetailed) : (0, 0);
+        bool hasVisualPrimitiveCounts = includeImages;
+        int vectorPrimitiveCount = 0;
+        int unrepresentedVectorPrimitiveCount = 0;
+        if (includeImages) {
+            try {
+                (vectorPrimitiveCount, unrepresentedVectorPrimitiveCount) = page.GetVisibleVisualPrimitiveCounts(structured.TablesDetailed);
+            } catch (PdfUnsupportedTextMappingException) when (recoverDecodableText &&
+                pageAnalysis.TextDecodingDiagnostics.Any(static diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.UnmappableText)) {
+                // Keep the recovered text and image assets without certifying visual counts from a failed paint pass.
+                cancellationToken.ThrowIfCancellationRequested();
+                hasVisualPrimitiveCounts = false;
+            }
+        }
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup =
             CreateLogicalTextBlockLookup(textBlocks);
         LogicalTextBlockSourceIndex textBlockSourceIndex = LogicalTextBlockSourceIndex.Create(textBlocks);
@@ -181,7 +192,7 @@ public sealed partial class PdfLogicalPage {
             formWidgets.AsReadOnly(),
             pageActions.AsReadOnly(),
             page.HasOptionalContentUsage(cancellationToken),
-            pageAnalysis, hasVisualPrimitiveCounts: includeImages,
+            pageAnalysis, hasVisualPrimitiveCounts: hasVisualPrimitiveCounts,
             includesImages: includeImages, includesFormWidgets: includeFormWidgets);
         logicalPage.OmittedArtifactTextSpanCount = page.CountOmittedArtifactTextSpans(cancellationToken, recoverDecodableText);
         if (includeImages && unrepresentedVectorPrimitiveCount >= 6) {

@@ -516,6 +516,13 @@ internal static partial class StreamDecoder {
             HasValidDecodeParmsDeclaration(dictionary, filterCount: 0, objects);
     }
 
+    internal static bool CanRecoverPageContentDecodeFailure(PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject> objects) =>
+        TryGetDeclaredFilterNames(dictionary, objects, out IReadOnlyList<string> filters) &&
+        filters.Count > 0 && filters.All(static name => GetFilterKind(name) is
+            DecodeFilterKind.Flate or DecodeFilterKind.AsciiHex or DecodeFilterKind.Ascii85 or
+            DecodeFilterKind.RunLength or DecodeFilterKind.Lzw);
+
     internal static bool IsSupportedFilter(string filterName) {
         return GetFilterKind(filterName) != DecodeFilterKind.Unsupported;
     }

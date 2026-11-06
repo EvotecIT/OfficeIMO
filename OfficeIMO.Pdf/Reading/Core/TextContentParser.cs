@@ -435,6 +435,7 @@ internal static partial class TextContentParser {
         var pendingTextClipPaths = new List<PdfPageClipPath>();
         Matrix2D textMatrix = Matrix2D.Identity;
         Matrix2D lineMatrix = Matrix2D.Identity;
+        (PdfUnsupportedTextMappingException Failure, int? Stream)? unknownTextPosition = null;
         // Graphics state (CTM) and stack
         Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<TextGraphicsState>();
         // Operand buffer for the current operator.
@@ -478,7 +479,7 @@ internal static partial class TextContentParser {
                 else if (!inText && IsNonTextVisualConsumer(op)) MarkPendingPersistentStateAsUnsafe();
             }
             switch (op) {
-                case "BT": ApplyPendingTextClippingPath(); inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
+                case "BT": ApplyPendingTextClippingPath(); inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; unknownTextPosition = null; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
                 case "ET": ApplyPendingTextClippingPath(); QueueCurrentTextObjectPersistentState(); inText = false; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
                 case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
                 case "Tm": if (args.Count >= 6) { SetTextMatrix(args); args.Clear(); } break;
@@ -929,6 +930,7 @@ internal static partial class TextContentParser {
                 ToDouble(operands[operands.Count - 2]),
                 ToDouble(operands[operands.Count - 1]));
             textMatrix = lineMatrix;
+            unknownTextPosition = null;
             pendingGapPt = 0;
             pendingLineBreaks = 0;
         }
@@ -936,6 +938,7 @@ internal static partial class TextContentParser {
         void MoveTextLine(double tx, double ty) {
             lineMatrix = Matrix2D.Multiply(lineMatrix, Matrix2D.Translation(tx, ty));
             textMatrix = lineMatrix;
+            unknownTextPosition = null;
             pendingGapPt = 0;
             if (emittedTextInTextObject && Math.Abs(ty) > 0.000001D) {
                 pendingLineBreaks++;
@@ -945,6 +948,7 @@ internal static partial class TextContentParser {
         void MoveToNextTextLine() {
             lineMatrix = Matrix2D.Multiply(lineMatrix, Matrix2D.Translation(0, -leading));
             textMatrix = lineMatrix;
+            unknownTextPosition = null;
             pendingGapPt = 0;
             if (emittedTextInTextObject) {
                 pendingLineBreaks++;
@@ -966,8 +970,35 @@ internal static partial class TextContentParser {
             if (pendingGapPt >= threshold) sbOutGlobal.Append(' ');
             pendingGapPt = 0;
         }
-        void ShowTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp, double[]? kerningAfterByte = null) {
-            if (!inText || bytes == null || bytes.Length == 0) return;
+        bool ShowTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp, double[]? kerningAfterByte = null,
+            bool retryAsOperands = false) {
+            if (!inText || bytes == null || bytes.Length == 0) return true;
+            if (onUnmappableText is null || !useLogicalTextFilters || requireMappedText) {
+                return ProcessTextRun(bytes, paintOrder, forceCannotRestamp, kerningAfterByte, retryAsOperands: false);
+            }
+            if (unknownTextPosition is { } unknown) {
+                if (AddsTextToClippingPath(textRenderingMode)) throw unknown.Failure;
+                onUnmappableText(unknown.Failure, unknown.Stream);
+                return true;
+            }
+
+            int textLength = sbOutGlobal.Length;
+            try {
+                return ProcessTextRun(bytes, paintOrder, forceCannotRestamp, kerningAfterByte, retryAsOperands);
+            } catch (PdfUnsupportedTextMappingException failure) when (!AddsTextToClippingPath(textRenderingMode)) {
+                if (retryAsOperands) return false;
+                // A missing painted CID has no advance. The independent line matrix
+                // remains available to the next explicit text position or line move.
+                unknownTextPosition = (failure, currentContentStreamObjectNumber);
+                sbOutGlobal.Length = textLength;
+                pendingGapPt = 0;
+                onUnmappableText(failure, currentContentStreamObjectNumber);
+                return true;
+            }
+        }
+
+        bool ProcessTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp, double[]? kerningAfterByte,
+            bool retryAsOperands) {
             MaybeInsertSpaceBeforeRun();
             var actualTextState = useLogicalTextFilters && !ignoreActualText ? GetActiveActualTextState() : null;
             bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
@@ -1018,6 +1049,7 @@ internal static partial class TextContentParser {
             // A complete run is the mapping contract. Later glyph-width decoding can
             // supply fragments of a composite code and must not change that outcome.
             PdfUnsupportedTextMappingException? wholeRunMappingFailure = unsupportedMapping;
+            if (retryAsOperands && recoverRun && wholeRunMappingFailure is not null) return false;
             int decodedGlyphCharacters = 0;
             int decodedGlyphCount = 0;
             bool eachDecodedGlyphIsOneTextElement = true;
@@ -1078,7 +1110,7 @@ internal static partial class TextContentParser {
                 // A failed run still advances text and may participate in clipping.
                 ApplyTextClippingPath(advTotal);
                 textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
-                return;
+                return true;
             }
             if (!usedVisualEncoding && ((recoverRun && unsupportedMapping is not null) ||
                 ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded))) {
@@ -1095,7 +1127,7 @@ internal static partial class TextContentParser {
             bool usesVisibleFill = UsesFillTextPaint(textRenderingMode) && !fillColorSpace.SuppressesPaint;
             bool usesVisibleStroke = UsesStrokeTextPaint(textRenderingMode) && !strokeColorSpace.SuppressesPaint;
             bool isVisibleText = usesVisibleFill || usesVisibleStroke;
-            if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
+            if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return true;
             string textOut = sbOut.ToString();
             string paintedRun = textOut;
             var textOrigin = textMatrix.Transform(0, textRise);
@@ -1184,6 +1216,7 @@ internal static partial class TextContentParser {
             }
 
             textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
+            return true;
 
             void AddTextSpan(string rawText) {
                 bool logicalLeadingSpace = char.IsWhiteSpace(rawText[0]);
@@ -1564,11 +1597,20 @@ internal static partial class TextContentParser {
                     pending += -number / 1000.0 * size;
                 }
             }
+            Matrix2D previousTextMatrix = textMatrix;
+            double previousPendingGap = pendingGapPt;
+            int previousTextLength = sbOutGlobal.Length;
             for (int index = 0; index < first; index++) {
                 if (list[index] is double number) MoveByTextArrayAdjustment(number);
             }
-            ShowTextRun(bytes, paintOrder, forceCannotRestamp: !restampable || first > 0 || last < list.Count - 1,
-                kerningAfterByte: kerning);
+            if (!ShowTextRun(bytes, paintOrder, forceCannotRestamp: !restampable || first > 0 || last < list.Count - 1,
+                kerningAfterByte: kerning, retryAsOperands: true)) {
+                // The ordinary TJ loop replays the original strings and adjustments.
+                textMatrix = previousTextMatrix;
+                pendingGapPt = previousPendingGap;
+                sbOutGlobal.Length = previousTextLength;
+                return false;
+            }
             for (int index = last + 1; index < list.Count; index++) {
                 if (list[index] is double number) MoveByTextArrayAdjustment(number);
             }

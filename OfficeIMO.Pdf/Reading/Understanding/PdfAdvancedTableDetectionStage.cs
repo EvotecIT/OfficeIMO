@@ -29,7 +29,16 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             context.Height,
             context.ConsumeWork,
             context.ThrowIfCancellationRequested);
-        IReadOnlyList<PdfTableRuling> rulings = context.Page.GetTableRulings(context, out bool canRefineExistingGeometry);
+        IReadOnlyList<PdfTableRuling> rulings;
+        bool canRefineExistingGeometry;
+        try {
+            rulings = context.Page.GetTableRulings(context, out canRefineExistingGeometry);
+        } catch (PdfUnsupportedTextMappingException) when (context.InspectionTextRecovery?.FirstMappingFailure is not null) {
+            // Text-derived candidates remain available when the optional paint pass cannot resolve widths.
+            context.ThrowIfCancellationRequested();
+            rulings = Array.Empty<PdfTableRuling>();
+            canRefineExistingGeometry = false;
+        }
         if (rulings.Count > 0) {
             foreach (PdfStructuredTable ruled in TableDetector.RecoverClosedRulingTables(nativeLines, rulings, context)) {
                 context.ConsumeWork();
