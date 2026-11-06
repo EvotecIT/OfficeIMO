@@ -136,23 +136,24 @@ namespace OfficeIMO.Excel {
             using var buffer = contentLength.HasValue && contentLength.Value <= int.MaxValue
                 ? new MemoryStream((int)contentLength.Value)
                 : new MemoryStream();
-            buffer.Write(chunk, 0, prefixLength);
             long total = prefixLength;
-            if (total != 0) options.Progress?.Report(new ExcelHttpLoadProgress(total, contentLength));
-
+            // Count the format probe as part of the first download chunk.
+            int buffered = prefixLength;
             while (true) {
                 long remaining = limit - total;
-                int request = remaining >= chunk.Length ? chunk.Length : (int)remaining + 1;
-                int read = await stream.ReadAsync(chunk, 0, request, cancellationToken).ConfigureAwait(false);
-                if (read == 0) {
-                    break;
-                }
-
+                int capacity = chunk.Length - buffered;
+                int request = remaining >= capacity ? capacity : (int)remaining + 1;
+                int read = await stream.ReadAsync(chunk, buffered, request, cancellationToken).ConfigureAwait(false);
                 total += read;
                 if (total > limit) throw ByteLimitExceeded(options, limit, total);
 
-                buffer.Write(chunk, 0, read);
-                options.Progress?.Report(new ExcelHttpLoadProgress(total, contentLength));
+                buffered += read;
+                if (buffered != 0) {
+                    buffer.Write(chunk, 0, buffered);
+                    options.Progress?.Report(new ExcelHttpLoadProgress(total, contentLength));
+                }
+                if (read == 0) break;
+                buffered = 0;
             }
 
             return buffer.ToArray();
