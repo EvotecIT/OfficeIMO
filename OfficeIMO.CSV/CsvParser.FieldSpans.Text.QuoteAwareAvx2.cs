@@ -444,13 +444,13 @@ internal static partial class CsvParser
             }
         }
 
+        if (!AreTextQuoteAwareFieldSpansValid(text, fields))
+        {
+            return false;
+        }
+
         if (emitFields && (allowEmpty || fields[^1].End > recordStart))
         {
-            if (!AreTextQuoteAwareFieldSpansValid(text, fields))
-            {
-                return false;
-            }
-
             if (!VisitTextQuoteAwareFieldSpans(text, fields, recordIndex, projectedFieldVisitor, ref fieldVisitor, ref scratch, out firstFieldLength))
             {
                 return false;
