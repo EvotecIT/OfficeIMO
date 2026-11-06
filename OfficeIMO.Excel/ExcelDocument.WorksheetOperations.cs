@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Copies a worksheet within this workbook.
+        /// Self-qualified references in the copy target the new worksheet; references to other sheets remain unchanged.
         /// </summary>
         /// <param name="sourceSheetName">Name of the worksheet to copy.</param>
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
@@ -21,6 +22,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Copies a worksheet within this workbook.
+        /// Self-qualified references in the copy target the new worksheet; references to other sheets remain unchanged.
         /// </summary>
         /// <param name="sourceSheet">Worksheet to copy.</param>
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
@@ -59,8 +61,8 @@ namespace OfficeIMO.Excel {
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
                 CopyRelationshipBackedWorksheetFeatures(this, sourceSheet, copiedPart);
                 RemoveUnsupportedRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
-                Dictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart, rewriteCopiedTableReferences: true);
-                RewriteCopiedChartReferences(copiedPart, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                Dictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart);
+                RewriteCopiedWorksheetReferences(copiedPart, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
                     [sourceSheet.Name] = validatedName
                 }, tableNameMap, targetSheetName: validatedName);
                 copiedPart.Worksheet.Save();

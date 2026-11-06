@@ -110,7 +110,8 @@ namespace OfficeIMO.Excel {
                 var filterColumn = new FilterColumn { ColumnId = columnId };
                 var filters = new Filters();
                 foreach (string value in filterValues) {
-                    filters.Append(new Filter { Val = value });
+                    if (value.Length == 0) filters.Blank = true;
+                    else filters.Append(new Filter { Val = value });
                 }
                 filterColumn.Append(filters);
                 autoFilter.Append(filterColumn);
@@ -138,8 +139,12 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            bool includeBlanks = values.Contains(string.Empty);
+            if ((filtersNode.Blank?.Value == true) != includeBlanks) return false;
+
             int index = 0;
             foreach (var filter in filtersNode.Elements<Filter>()) {
+                while (index < values.Count && values[index].Length == 0) index++;
                 if ((uint)index >= (uint)values.Count || !string.Equals(filter.Val?.Value, values[index], StringComparison.Ordinal)) {
                     return false;
                 }
@@ -147,6 +152,7 @@ namespace OfficeIMO.Excel {
                 index++;
             }
 
+            while (index < values.Count && values[index].Length == 0) index++;
             return index == values.Count;
         }
 
@@ -325,7 +331,7 @@ namespace OfficeIMO.Excel {
                 || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String) {
                 text = cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString
                     ? ExtractReplaceableInlineString(cell)
-                    : cell.CellValue?.InnerText ?? string.Empty;
+                    : Utilities.ExcelSanitizer.DecodeXString(cell.CellValue?.InnerText ?? string.Empty);
                 return true;
             }
 
@@ -345,13 +351,13 @@ namespace OfficeIMO.Excel {
             }
 
             if (inline.Text != null) {
-                return inline.Text.Text ?? string.Empty;
+                return Utilities.ExcelSanitizer.DecodeXString(inline.Text.Text ?? string.Empty);
             }
 
             string? first = null;
             StringBuilder? builder = null;
             foreach (var run in inline.Elements<Run>()) {
-                string value = run.Text?.Text ?? string.Empty;
+                string value = Utilities.ExcelSanitizer.DecodeXString(run.Text?.Text ?? string.Empty);
                 if (builder != null) {
                     builder.Append(value);
                 } else if (first == null) {

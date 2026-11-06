@@ -10,7 +10,8 @@ namespace OfficeIMO.Excel {
             uint numberFormatId,
             string? formatCode,
             string fallback,
-            ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
+            ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred,
+            IFormatProvider? provider = null) {
             if (numberFormatId == 0U) {
                 return fallback;
             }
@@ -23,11 +24,11 @@ namespace OfficeIMO.Excel {
             string nonEmptyFormatCode = resolvedFormatCode!;
             string section = SelectNumberFormatSection(nonEmptyFormatCode, value < 0 ? 1 : value == 0 ? 2 : 0, value, out _);
             if (IsDateNumberFormat(numberFormatId, section)) {
-                return FormatDateValue(value, nonEmptyFormatCode, dateSystem);
+                return FormatDateValue(value, numberFormatId, nonEmptyFormatCode, dateSystem, provider);
             }
 
-            return numberFormatId == 49U ? value.ToString(CultureInfo.InvariantCulture)
-                : FormatNumericValue(value, nonEmptyFormatCode) ?? fallback;
+            return numberFormatId == 49U ? value.ToString(provider ?? CultureInfo.InvariantCulture)
+                : FormatNumericValue(value, nonEmptyFormatCode, provider) ?? fallback;
         }
 
         internal static bool IsDateNumberFormat(uint numberFormatId, string? formatCode)
@@ -83,12 +84,12 @@ namespace OfficeIMO.Excel {
             }
 
             var sampleDate = new DateTime(2099, 12, 31, 23, 59, 59);
-            string? formatted = FormatDateTimeValue(sampleDate, resolved, value ?? sampleDate.ToOADate());
+            string? formatted = FormatDateTimeSample(sampleDate, resolved, value ?? sampleDate.ToOADate());
             sample = formatted ?? string.Empty;
             return formatted != null;
         }
 
-        private static string FormatDateValue(double value, string formatCode, ExcelDateSystem dateSystem) {
+        private static string FormatDateValue(double value, uint numberFormatId, string formatCode, ExcelDateSystem dateSystem, IFormatProvider? provider = null) {
             if (TryFormatElapsedValue(value, formatCode, out string durationText)) return durationText;
             // An unsupported or out-of-range elapsed value must not become a calendar date.
             string section = SelectNumberFormatSection(formatCode, value < 0 ? 1 : value == 0 ? 2 : 0, value, out _);
@@ -101,7 +102,18 @@ namespace OfficeIMO.Excel {
             } catch (ArgumentException) {
                 return value.ToString(CultureInfo.InvariantCulture);
             }
-            return FormatDateTimeValue(date, formatCode, value) ?? value.ToString(CultureInfo.InvariantCulture);
+            return FormatDateTimeText(date, numberFormatId, formatCode, value, provider)
+                ?? value.ToString(provider ?? CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>Shares ISO-cell and numeric-date section selection and calendar-safe provider formatting.</summary>
+        internal static string? FormatDateTimeText(DateTime date, uint numberFormatId, string formatCode, double sectionValue, IFormatProvider? provider = null) {
+            if (numberFormatId == 14U && provider != null) {
+                var calendar = DateTimeFormatInfo.GetInstance(provider).Calendar;
+                if (date < calendar.MinSupportedDateTime || date > calendar.MaxSupportedDateTime) return null;
+                return date.ToString("d", provider);
+            }
+            return FormatDateTimeValue(date, formatCode, sectionValue, provider);
         }
     }
 }

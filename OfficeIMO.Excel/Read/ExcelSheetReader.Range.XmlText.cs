@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string text = ReadXmlTextElement(inlineReader);
+                string text = Utilities.ExcelSanitizer.DecodeXString(ReadXmlTextElement(inlineReader));
                 if (builder != null) {
                     builder.Append(text);
                 } else if (first == null) {

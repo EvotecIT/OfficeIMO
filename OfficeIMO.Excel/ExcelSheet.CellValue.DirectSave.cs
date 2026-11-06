@@ -78,6 +78,11 @@ namespace OfficeIMO.Excel {
 
         private bool TrySetPendingDirectCellLocked(int row, int column, in ExcelBufferedCell cell) {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
+            if (TryGetTableHeader(row, column, out Table table, out int headerIndex)) {
+                MaterializeDeferredDataSetImportIfNeeded();
+                SetTableHeaderValue(table, headerIndex, cell.ToValue());
+                return true;
+            }
             bool prepareDateTimeOffset = cell.Reference is DateTimeOffset;
             if (!CanAcceptPendingDirectCell()
                 || (!prepareDateTimeOffset && !CanBufferDirectCell(cell))) {
@@ -103,6 +108,7 @@ namespace OfficeIMO.Excel {
 
         private bool TrySetPendingDirectCellFormulaLocked(int row, int column, string formula) {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
+            EnsureCellPayloadWritable(row, column);
             if (!EnablePendingDirectCellValueBuffer
                 || _materializingPendingCellValueDirectSaveBuffer
                 || _excelDocument.HasDeferredDirectDataSetImport

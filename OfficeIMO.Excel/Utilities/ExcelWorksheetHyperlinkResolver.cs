@@ -47,7 +47,8 @@ namespace OfficeIMO.Excel.Utilities {
             return map;
         }
 
-        private static ExcelHyperlinkInfo? CreateSnapshot(Hyperlink hyperlink, IReadOnlyDictionary<string, HyperlinkRelationship> externalRelationships) {
+        /// <summary>Resolves both the external source and its optional document bookmark for public metadata.</summary>
+        internal static ExcelHyperlinkInfo? CreateSnapshot(Hyperlink hyperlink, IReadOnlyDictionary<string, HyperlinkRelationship> externalRelationships) {
             string? target = null;
             bool isExternal = false;
 
@@ -55,6 +56,11 @@ namespace OfficeIMO.Excel.Utilities {
             if (!string.IsNullOrWhiteSpace(relationshipId) && externalRelationships.TryGetValue(relationshipId!, out HyperlinkRelationship? relationship)) {
                 target = relationship.Uri?.OriginalString;
                 isExternal = true;
+                if (!string.IsNullOrEmpty(target) && !string.IsNullOrEmpty(hyperlink.Location?.Value)) {
+                    int fragment = target!.IndexOf('#');
+                    if (fragment >= 0) target = target.Substring(0, fragment);
+                    target += "#" + hyperlink.Location!.Value;
+                }
             } else if (!string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) {
                 target = hyperlink.Location!.Value!;
             }

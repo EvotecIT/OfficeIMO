@@ -46,6 +46,7 @@ namespace OfficeIMO.Excel {
                 table.Save();
                 SynchronizeQueryTableNames(table, resolved);
                 _excelDocument.RemoveReservedTableName(oldName);
+                _excelDocument.RemoveReservedTableName(oldDisplayName);
                 _excelDocument.ReserveTableName(resolved);
                 _excelDocument.RewriteTableNameReferences(
                     new[] { oldName, oldDisplayName },
@@ -96,6 +97,8 @@ namespace OfficeIMO.Excel {
                 : ValidateTableColumnNames(columnNames!);
             IReadOnlyList<ExcelTableColumnInfo>? result = null;
             WriteLock(() => {
+                // Replay admitted cells before changing the schema they were written against.
+                _excelDocument.MaterializeDeferredDataSetImport();
                 Table table = FindTableByRangeNameOrDisplayName(tableOrRange)
                     ?? throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
                 var currentBounds = ExcelA1.ParseRange(table.Reference?.Value
@@ -119,6 +122,8 @@ namespace OfficeIMO.Excel {
                 if (targetBounds.r2 - targetBounds.r1 + 1 < Math.Max(1, headerRows + totalsRows)) {
                     throw new InvalidOperationException("The resized table must retain its configured header and totals rows.");
                 }
+                if (headerRows > 0) EnsureDynamicArrayRangeWritable(
+                    targetBounds.r1, targetBounds.c1, targetBounds.r1, targetBounds.c2);
                 bool rangeChanged = targetBounds.r1 != currentBounds.r1
                     || targetBounds.c1 != currentBounds.c1
                     || targetBounds.r2 != currentBounds.r2
@@ -175,9 +180,26 @@ namespace OfficeIMO.Excel {
                         .Where(item => (item.ColumnId?.Value ?? uint.MaxValue) >= (uint)names.Length).ToList()) stale.Remove();
                 }
 
+                bool headerFormulaRemoved = false;
                 if (headerRows > 0) {
-                    for (int index = 0; index < names.Length; index++) {
-                        CellValueCoreNoMaterialize(targetBounds.r1, targetBounds.c1 + index, names[index]);
+                    _tableSchemaHeaderWriteDepth++;
+                    try {
+                        for (int index = 0; index < names.Length; index++) {
+                            int columnIndex = targetBounds.c1 + index;
+                            Cell? header = TryGetExistingCell(targetBounds.r1, columnIndex);
+                            if (header != null && ExcelWorksheetScan.FindFormula(header) == null
+                                && (header.DataType?.Value == CellValues.SharedString
+                                    || header.DataType?.Value == CellValues.InlineString
+                                    || header.DataType?.Value == CellValues.String)
+                                && string.Equals(GetCellText(header), names[index], StringComparison.Ordinal)) continue;
+                            if (header != null && ExcelWorksheetScan.FindFormula(header) != null) {
+                                header.CellFormula = null;
+                                headerFormulaRemoved = true;
+                            }
+                            CellValueCoreNoMaterialize(targetBounds.r1, columnIndex, names[index]);
+                        }
+                    } finally {
+                        _tableSchemaHeaderWriteDepth--;
                     }
                 }
                 SynchronizeQueryTableSchema(table, columns, names);
@@ -191,7 +213,8 @@ namespace OfficeIMO.Excel {
                 table.Save();
                 bool schemaChanged = rangeChanged
                     || existing.Count != names.Length
-                    || renames.Count > 0;
+                    || renames.Count > 0
+                    || headerFormulaRemoved;
                 if (schemaChanged) {
                     _excelDocument.CleanupCalculationArtifacts(
                         save: false,
@@ -420,12 +443,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static bool MatchesTableColumnReferenceOwner(string? name, string tableName, Table owner) =>
+            name != null && (string.Equals(name, tableName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, owner.Name?.Value, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, owner.DisplayName?.Value, StringComparison.OrdinalIgnoreCase));
+
         internal void RewriteTableColumnReferences(
             string tableName,
             IReadOnlyDictionary<string, string> renames,
             Table owner) {
             RewriteFormulaRoots(text => ExcelFormulaSyntaxTree.Parse(text).RewriteStructuredReferences((name, selector) => {
-                if (name != null && string.Equals(name, tableName, StringComparison.OrdinalIgnoreCase)) {
+                if (MatchesTableColumnReferenceOwner(name, tableName, owner)) {
                     return name + ReplaceStructuredColumns(selector, renames);
                 }
                 return (name ?? string.Empty) + selector;
@@ -444,7 +472,7 @@ namespace OfficeIMO.Excel {
         internal void InvalidateTableColumnReferences(string tableName, IReadOnlyCollection<string> removedNames, Table owner) {
             bool ContainsRemoved(string selector) => ExcelFormulaSyntaxTree.ContainsStructuredColumn(selector, removedNames);
             RewriteFormulaRoots(text => ExcelFormulaSyntaxTree.Parse(text).RewriteStructuredReferences((name, selector) =>
-                name != null && string.Equals(name, tableName, StringComparison.OrdinalIgnoreCase) && ContainsRemoved(selector)
+                MatchesTableColumnReferenceOwner(name, tableName, owner) && ContainsRemoved(selector)
                     ? null
                     : (name ?? string.Empty) + selector));
             RewriteOwnerWorksheetTableFormulas(owner, text =>

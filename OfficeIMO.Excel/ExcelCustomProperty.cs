@@ -10,6 +10,9 @@ namespace OfficeIMO.Excel {
         private object? _value;
         private ExcelCustomPropertyType _propertyType;
         private Action? _changed;
+        private CustomDocumentProperty? _sourceProperty;
+        private byte[]? _sourceBinary;
+        private bool _valueChanged;
 
         /// <summary>
         /// Gets or sets the raw value of the custom property.
@@ -48,9 +51,9 @@ namespace OfficeIMO.Excel {
         public int? NumberInteger => Value is int value ? value : null;
 
         /// <summary>
-        /// Gets the value as a double when the property type is a floating point number.
+        /// Gets a floating point value as a double. For decimal variants, <see cref="Value"/> retains the exact decimal.
         /// </summary>
-        public double? NumberDouble => Value is double value ? value : null;
+        public double? NumberDouble => Value is double value ? value : Value is decimal number ? (double)number : null;
 
         /// <summary>
         /// Gets the value as text when the property type is textual.
@@ -114,12 +117,27 @@ namespace OfficeIMO.Excel {
         public ExcelCustomProperty(byte[] value) : this(value == null ? throw new ArgumentNullException(nameof(value)) : (byte[])value.Clone(), ExcelCustomPropertyType.Binary) { }
 
         internal ExcelCustomProperty(CustomDocumentProperty property) {
+            _sourceProperty = (CustomDocumentProperty)property.CloneNode(true);
+            LoadValue(property);
+            _sourceBinary = _value is byte[] bytes ? (byte[])bytes.Clone() : null;
+        }
+
+        private void LoadValue(CustomDocumentProperty property) {
             if (property.VTInt32 != null) {
                 _value = int.Parse(property.VTInt32.Text, CultureInfo.InvariantCulture);
                 _propertyType = ExcelCustomPropertyType.NumberInteger;
             } else if (property.VTInt64 != null) {
                 long value = long.Parse(property.VTInt64.Text, CultureInfo.InvariantCulture);
                 _value = value >= int.MinValue && value <= int.MaxValue ? (int)value : value;
+                _propertyType = ExcelCustomPropertyType.NumberInteger;
+            } else if (property.VTShort != null) {
+                _value = (int)short.Parse(property.VTShort.Text, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberInteger;
+            } else if (property.VTByte != null) {
+                _value = (int)sbyte.Parse(property.VTByte.Text, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberInteger;
+            } else if (property.VTInteger != null) {
+                _value = int.Parse(property.VTInteger.Text, CultureInfo.InvariantCulture);
                 _propertyType = ExcelCustomPropertyType.NumberInteger;
             } else if (property.VTUnsignedByte != null) {
                 _value = byte.Parse(property.VTUnsignedByte.Text, CultureInfo.InvariantCulture);
@@ -148,8 +166,17 @@ namespace OfficeIMO.Excel {
             } else if (property.VTDouble != null) {
                 _value = double.Parse(property.VTDouble.Text, CultureInfo.InvariantCulture);
                 _propertyType = ExcelCustomPropertyType.NumberDouble;
+            } else if (property.VTDecimal != null) {
+                _value = decimal.Parse(property.VTDecimal.Text, NumberStyles.Float, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberDouble;
             } else if (property.VTLPWSTR != null) {
                 _value = property.VTLPWSTR.Text;
+                _propertyType = ExcelCustomPropertyType.Text;
+            } else if (property.VTLPSTR != null) {
+                _value = property.VTLPSTR.Text;
+                _propertyType = ExcelCustomPropertyType.Text;
+            } else if (property.VTBString != null) {
+                _value = property.VTBString.Text;
                 _propertyType = ExcelCustomPropertyType.Text;
             } else if (property.VTBool != null) {
                 _value = ParseBooleanProperty(property.VTBool.Text);
@@ -161,20 +188,38 @@ namespace OfficeIMO.Excel {
                 _value = ParseBinaryProperty(property.VTOBlob.Text);
                 _propertyType = ExcelCustomPropertyType.Binary;
             } else {
-                _value = string.Empty;
+                _value = property.InnerText;
                 _propertyType = ExcelCustomPropertyType.Text;
             }
+        }
+
+        /// <summary>Refreshes saved metadata without detaching the caller's live property object.</summary>
+        internal void ReloadFrom(ExcelCustomProperty property) {
+            _value = property._value;
+            _propertyType = property._propertyType;
+            _sourceProperty = property._sourceProperty;
+            _sourceBinary = property._sourceBinary;
+            _valueChanged = false;
         }
 
         internal void SetChangeHandler(Action? changed) {
             _changed = changed;
         }
 
-        internal CustomDocumentProperty ToOpenXml(string name) {
-            var property = new CustomDocumentProperty {
+        /// <summary>Retains native metadata and untouched variants; an explicit value edit replaces only the value payload.</summary>
+        internal CustomDocumentProperty ToOpenXml(string name, CustomDocumentProperty? replacedProperty = null) {
+            CustomDocumentProperty? metadata = _sourceProperty ?? replacedProperty;
+            var property = metadata != null ? (CustomDocumentProperty)metadata.CloneNode(true) : new CustomDocumentProperty {
                 FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
                 Name = name
             };
+            property.Name = name;
+            bool binaryChanged = _value is byte[] bytes && (_sourceBinary == null || !bytes.SequenceEqual(_sourceBinary));
+            if (_sourceProperty != null && !_valueChanged && !binaryChanged) {
+                return property;
+            }
+
+            property.RemoveAllChildren();
 
             switch (PropertyType) {
                 case ExcelCustomPropertyType.DateTime:
@@ -199,7 +244,11 @@ namespace OfficeIMO.Excel {
                     }
                     break;
                 case ExcelCustomPropertyType.NumberDouble:
-                    property.VTDouble = new VTDouble(InvariantNumberText.Get(Convert.ToDouble(Value, CultureInfo.InvariantCulture)));
+                    if (Value is decimal decimalValue) {
+                        property.VTDecimal = new VTDecimal(decimalValue.ToString(CultureInfo.InvariantCulture));
+                    } else {
+                        property.VTDouble = new VTDouble(InvariantNumberText.Get(Convert.ToDouble(Value, CultureInfo.InvariantCulture)));
+                    }
                     break;
                 case ExcelCustomPropertyType.YesNo:
                     property.VTBool = new VTBool(Convert.ToBoolean(Value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture).ToLowerInvariant());
@@ -240,6 +289,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void MarkChanged() {
+            _valueChanged = true;
             _changed?.Invoke();
         }
     }

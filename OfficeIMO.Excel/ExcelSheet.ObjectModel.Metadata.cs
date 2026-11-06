@@ -352,7 +352,8 @@ namespace OfficeIMO.Excel {
             foreach (RowBreaks rowBreaks in WorksheetRoot.MetadataDescendants<RowBreaks>().ToList()) {
                 bool changed = false;
                 foreach (Break pageBreak in rowBreaks.Elements<Break>().ToList()) {
-                    if (pageBreak.Id?.Value is not uint rowId || rowId == 0U) {
+                    // Preserve imported out-of-grid metadata without narrowing its UInt32 identifier.
+                    if (pageBreak.Id?.Value is not uint rowId || rowId == 0U || rowId > ExcelA1.MaxRows) {
                         continue;
                     }
 

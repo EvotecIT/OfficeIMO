@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
 
             /// <summary>Measures one serialized streaming cell with its resolved XF and canonical date sampling.</summary>
             internal double MeasureCell(Cell cell, ExcelDateSystem dateSystem, bool tableHeader, bool filterButton) {
-                uint style = cell.StyleIndex?.Value ?? 0U;
+                uint style = GetCellDisplayStyleIndex(cell);
                 string text = TryGetDateAutoFitSample(cell, textContext, out string sample)
                     ? sample : GetCellAutoFitText(cell, textContext, dateSystem);
                 double width = Measure(text, style, GetCellAutoFitRichTextRuns(cell, textContext));
@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
                 var style = ResolveStyleInfo(styleIndex);
                 float pixels = richTextRuns != null && richTextRuns.Count > 0
                     ? MeasureRichTextWidth(richTextRuns, style) : MeasureTextWidth(text, styleIndex, style);
-                return ToColumnWidth(pixels);
+                return ToColumnWidth(ApplyTextGeometry(text, pixels, styleIndex, style));
             }
 
             /// <summary>Includes table styling and the native filter-button allowance in a header measurement.</summary>
@@ -55,7 +55,18 @@ namespace OfficeIMO.Excel {
                 foreach (string line in text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None)) {
                     if (line.Length > 0) pixels = Math.Max(pixels, textMeasurer.MeasureWidthOrDefault(line, style, 0));
                 }
-                return ToColumnWidth(pixels, filterButton ? AutoFitFilterButtonPixels * style.Dpi / 96D : 0D);
+                return ToColumnWidth(ApplyTextGeometry(text, pixels, styleIndex, style), filterButton ? AutoFitFilterButtonPixels * style.Dpi / 96D : 0D);
+            }
+
+            private float ApplyTextGeometry(string text, float pixels, uint styleIndex, ExcelTextMeasurer.Style style) {
+                Alignment? alignment = cellFormats != null && styleIndex < cellFormats.Count
+                    ? cellFormats[(int)styleIndex].Alignment : null;
+                uint rotation = alignment?.TextRotation?.Value ?? 0U;
+                if (rotation == 0U && (alignment?.Indent?.Value ?? 0U) == 0U) return pixels;
+                double lineHeight = Math.Ceiling(textMeasurer.MeasureHeightOrDefault("Xg", style, 0) + 2D);
+                int lines = rotation == 255U ? 1 : text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None).Length;
+                var box = ProjectAutoFitTextBox(text, pixels, lineHeight * lines, rotation, textMeasurer, style);
+                return (float)(box.Width + GetAutoFitIndentPixels(alignment, textMeasurer, style));
             }
 
             private double ToColumnWidth(float pixels, double buttonPixels = 0D) =>

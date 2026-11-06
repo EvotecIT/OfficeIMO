@@ -215,6 +215,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void SetFontName(DocumentFormat.OpenXml.Spreadsheet.Font font, string fontName) {
+            font.RemoveAllChildren<FontScheme>();
             font.FontName = new FontName {
                 Val = fontName.Trim()
             };

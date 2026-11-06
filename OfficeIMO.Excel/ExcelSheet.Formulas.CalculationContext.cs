@@ -72,11 +72,34 @@ namespace OfficeIMO.Excel {
                 // qualifies every required input. It must never turn an unsupported
                 // expression into an error that IFERROR can silently replace.
                 if (evaluated && _formulaReferenceError.IsError) { result = _formulaReferenceError; return true; }
+                if (evaluated && !TryNormalizeFormulaResult(ref result)) return false;
                 return evaluated;
             } finally {
                 _formulaReferenceError = previousError;
                 _scalarFormulaEvaluationDepth--;
             }
+        }
+
+        private static bool TryNormalizeFormulaResult(ref FormulaArgumentValue result) {
+            if (result.Number.HasValue && (double.IsNaN(result.Number.Value) || double.IsInfinity(result.Number.Value)))
+                result = FormulaArgumentValue.Error("#NUM!");
+            return result.Text == null || IsFormulaTextXmlSafe(result.Text);
+        }
+
+        // Legacy text indexing counts UTF-16 units. A slice through a surrogate pair
+        // cannot be cached in XML; leave that argument shape to the spreadsheet host.
+        private static bool IsFormulaTextXmlSafe(string text) {
+            for (int index = 0; index < text.Length; index++) {
+                char character = text[index];
+                if ((character < ' ' && character != '\t' && character != '\n' && character != '\r')
+                    || character == '\uFFFE' || character == '\uFFFF') return false;
+                if (char.IsHighSurrogate(character)) {
+                    if (++index == text.Length || !char.IsLowSurrogate(text[index])) return false;
+                } else if (char.IsLowSurrogate(character)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
     }

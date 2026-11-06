@@ -50,10 +50,10 @@ public sealed class ExcelAutoFilterColumn {
     /// <summary>Gets the zero-based column offset inside the filter range.</summary>
     public uint Offset { get; }
 
-    /// <summary>Shows rows whose value equals one of <paramref name="values"/> (case-insensitive, duplicates ignored).</summary>
+    /// <summary>Shows rows whose value equals one of <paramref name="values"/> (case-insensitive, duplicates ignored). An empty string includes blanks; whitespace is literal.</summary>
     public ExcelAutoFilter Equals(params string[] values) => Equals((IEnumerable<string>)values);
 
-    /// <summary>Shows rows whose value equals one of <paramref name="values"/> (case-insensitive, duplicates ignored).</summary>
+    /// <summary>Shows rows whose value equals one of <paramref name="values"/> (case-insensitive, duplicates ignored). An empty string includes blanks; whitespace is literal.</summary>
     public ExcelAutoFilter Equals(IEnumerable<string> values) {
         Filter.Sheet.ApplyAutoFilterValueCriteria(Filter.Range, Offset, values);
         return Filter;

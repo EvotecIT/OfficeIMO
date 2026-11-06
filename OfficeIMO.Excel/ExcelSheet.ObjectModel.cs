@@ -104,11 +104,39 @@ namespace OfficeIMO.Excel {
 
         internal string GetCellFormattedText(int row, int column, IFormatProvider? provider) {
             var value = GetCellValueSnapshot(row, column);
+            provider ??= CultureInfo.CurrentCulture;
+            Cell? cell = ProbeCell(row, column, out ExcelStoredRow? storedRow, out int storedIndex);
+            uint? explicitStyle = cell?.StyleIndex?.Value;
+            if (storedRow != null) {
+                var stored = storedRow.CellAt(storedIndex);
+                explicitStyle = stored.HasStyle ? stored.Style : (uint?)null;
+            }
+            uint styleIndex = ResolveDisplayStyleIndex(explicitStyle, storedRow ?? cell?.Parent as Row ?? TryGetRowElement(row, column), column);
+            var stylesheet = WorkbookPartRoot?.WorkbookStylesPart?.Stylesheet;
+            var format = styleIndex <= int.MaxValue ? stylesheet?.CellFormats?.Elements<CellFormat>().ElementAtOrDefault((int)styleIndex) : null;
+            uint numberFormatId = format?.NumberFormatId?.Value ?? 0U;
+            string? formatCode = stylesheet != null ? GetNumberFormatCode(stylesheet, numberFormatId) : null;
+            if (cell?.DataType?.Value == CellValues.Date
+                && !string.IsNullOrWhiteSpace(formatCode) && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)
+                && DateTime.TryParse(cell.CellValue?.Text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date)) {
+                double serial = ExcelDateSystemConverter.ToSerialForDisplay(date, _excelDocument.DateSystem);
+                return ExcelNumberFormatDisplay.FormatDateTimeText(date, numberFormatId, formatCode!, serial, provider)
+                    ?? cell.CellValue!.Text;
+            }
+            if (value.Value is double number) {
+                string fallback = SpreadsheetNumberFormatDisplay.FormatGeneralValue(number, provider);
+                return ExcelNumberFormatDisplay.FormatNumericText(number, numberFormatId,
+                    formatCode, fallback, _excelDocument.DateSystem, provider);
+            }
+            if (value.Value is string text && value.Kind != ExcelCellDataKind.Error
+                && cell?.DataType?.Value != CellValues.Error) {
+                return SpreadsheetNumberFormatDisplay.FormatTextValue(text, formatCode);
+            }
             if (value.Value is IFormattable formattable) {
-                return formattable.ToString(null, provider ?? CultureInfo.CurrentCulture) ?? string.Empty;
+                return formattable.ToString(null, provider) ?? string.Empty;
             }
 
-            return Convert.ToString(value.Value, provider as CultureInfo ?? CultureInfo.CurrentCulture) ?? value.CachedText ?? string.Empty;
+            return Convert.ToString(value.Value, provider) ?? value.CachedText ?? string.Empty;
         }
 
         internal void FormatRange(string a1Range, string numberFormat) {
@@ -151,6 +179,8 @@ namespace OfficeIMO.Excel {
 
                 if (options.HasFlag(ExcelClearOptions.Values) || options.HasFlag(ExcelClearOptions.Formulas))
                     EnsureDynamicArrayRangeWritable(r1, c1, r2, c2);
+                if (options.HasFlag(ExcelClearOptions.Values))
+                    EnsureTableHeaderValuesNotCleared(r1, c1, r2, c2);
 
                 if (clearCellFields) {
                     worksheetChanged |= ClearExistingCellFieldsInRange((r1, c1, r2, c2), options);

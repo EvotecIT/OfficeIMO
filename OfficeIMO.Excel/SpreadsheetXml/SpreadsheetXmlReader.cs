@@ -147,7 +147,7 @@ internal static class SpreadsheetXmlReader {
         string text = source.Value;
         if (text.Length > 32767) throw new InvalidDataException("XML Spreadsheet cell text exceeds Excel's cell limit.");
         switch ((string?)source.Attribute(Ss + "Type")) {
-            case "String": cell.DataType = CellValues.InlineString; cell.InlineString = new InlineString(new Text(text) { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }); break;
+            case "String": cell.DataType = CellValues.InlineString; cell.InlineString = new InlineString(new Text(Utilities.ExcelSanitizer.EncodeXString(text)) { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }); break;
             case "Number":
                 if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number)) throw new InvalidDataException("Invalid XML Spreadsheet number.");
                 cell.DataType = CellValues.Number; cell.CellValue = new CellValue(number.ToString("R", CultureInfo.InvariantCulture)); break;

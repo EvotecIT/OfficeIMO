@@ -1,5 +1,5 @@
 namespace OfficeIMO.Excel.Utilities {
-    internal static class ExcelSanitizer {
+    internal static partial class ExcelSanitizer {
         // Excel (XML 1.0) allows: Tab (0x9), LF (0xA), CR (0xD), and 0x20..0xD7FF, 0xE000..0xFFFD, 0x10000..0x10FFFF
         // Strip other control characters that trigger "Repaired Records: Cell information".
         public static string SanitizeString(string? input, int maxLength = 32767) {

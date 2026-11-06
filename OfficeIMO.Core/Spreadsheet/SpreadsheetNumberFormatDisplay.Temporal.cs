@@ -8,17 +8,22 @@ namespace OfficeIMO.Spreadsheet;
 
 internal static partial class SpreadsheetNumberFormatDisplay {
     /// <summary>Formats an already resolved calendar value without imposing a workbook date system.</summary>
-    internal static string? FormatDateTimeValue(DateTime date, string formatCode, double sectionValue = 0) {
+    internal static string? FormatDateTimeValue(DateTime date, string formatCode, double sectionValue = 0, IFormatProvider? provider = null) {
+        provider ??= CultureInfo.InvariantCulture;
         string section = SelectNumberFormatSection(formatCode, sectionValue < 0 ? 1 : sectionValue == 0 ? 2 : 0,
             sectionValue, out _);
         var syntax = SpreadsheetNumberFormatSyntax.Parse(section);
         if (!syntax.IsValid) return null;
+        provider = ResolveTemporalProvider(syntax, provider);
         if (!TryRoundTemporalTicks(date.Ticks, syntax.Tokens, out long roundedDateTicks)) return null;
         try {
             date = new DateTime(roundedDateTicks, date.Kind);
         } catch (ArgumentOutOfRangeException) {
             return null;
         }
+        var calendar = DateTimeFormatInfo.GetInstance(provider).Calendar;
+        if (syntax.Tokens.Any(token => token.Kind == SpreadsheetNumberFormatTokenKind.DateTimeSymbol)
+            && (date < calendar.MinSupportedDateTime || date > calendar.MaxSupportedDateTime)) return null;
         bool twelveHour = syntax.Tokens.Select((_, index) => index).Any(index =>
             TryReadMeridiem(syntax, index, out _, out _));
         var builder = new StringBuilder(section.Length);
@@ -37,7 +42,7 @@ internal static partial class SpreadsheetNumberFormatDisplay {
                     case 'd': pattern = length >= 4 ? "dddd" : length == 3 ? "ddd" : length == 2 ? "dd" : "%d"; break;
                     case 'm':
                         if (length == 5) {
-                            builder.Append(date.ToString("MMMM", CultureInfo.InvariantCulture)[0]);
+                            builder.Append(date.ToString("MMMM", provider)[0]);
                             continue;
                         }
                         pattern = length >= 4 ? "MMMM" : length == 3 ? "MMM"
@@ -48,15 +53,39 @@ internal static partial class SpreadsheetNumberFormatDisplay {
                     case 's': pattern = length == 1 ? "%s" : "ss"; break;
                     default: return null;
                 }
-                builder.Append(date.ToString(pattern, CultureInfo.InvariantCulture));
+                builder.Append(date.ToString(pattern, provider));
             } else if (IsFractionalSecond(syntax.Tokens, index)) {
                 if (token.Text.Length > 7) return null;
-                builder.Append(date.ToString(token.Text.Length == 1 ? "%f" : new string('f', token.Text.Length), CultureInfo.InvariantCulture));
+                builder.Append(date.ToString(token.Text.Length == 1 ? "%f" : new string('f', token.Text.Length), provider));
             } else if (!AppendTemporalLiteral(builder, token)) {
                 return null;
             }
         }
         return builder.ToString();
+    }
+
+    /// <summary>Bounds a width sample to the calendar selected by the actual value's format section.</summary>
+    internal static string? FormatDateTimeSample(DateTime sample, string formatCode, double sectionValue) {
+        string section = SelectNumberFormatSection(formatCode, sectionValue < 0 ? 1 : sectionValue == 0 ? 2 : 0, sectionValue, out _);
+        var syntax = SpreadsheetNumberFormatSyntax.Parse(section);
+        if (!syntax.IsValid) return null;
+        var provider = ResolveTemporalProvider(syntax, CultureInfo.InvariantCulture);
+        var calendar = DateTimeFormatInfo.GetInstance(provider).Calendar;
+        if (sample < calendar.MinSupportedDateTime) sample = calendar.MinSupportedDateTime;
+        else if (sample > calendar.MaxSupportedDateTime) sample = calendar.MaxSupportedDateTime;
+        return FormatDateTimeValue(sample, formatCode, sectionValue, provider);
+    }
+
+    private static IFormatProvider ResolveTemporalProvider(SpreadsheetNumberFormatSyntax syntax, IFormatProvider provider) {
+        foreach (var token in syntax.Tokens) {
+            if (!int.TryParse(token.LocaleCode, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int locale)) continue;
+            try {
+                provider = CultureInfo.GetCultureInfo(locale);
+            } catch (CultureNotFoundException) {
+                // Preserve the caller's culture for unsupported system/calendar directives.
+            }
+        }
+        return provider;
     }
 
     /// <summary>Recognizes actual elapsed directives, excluding quoted or escaped bracket text.</summary>

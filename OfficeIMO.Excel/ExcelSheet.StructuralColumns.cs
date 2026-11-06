@@ -188,6 +188,7 @@ namespace OfficeIMO.Excel {
                 int maximumPageBreakColumn = InspectMutationPlanElements(
                         WorksheetRoot.MetadataDescendants<ColumnBreaks>().SelectMany(columnBreaks => columnBreaks.Elements<Break>()),
                         budget)
+                    .Where(pageBreak => pageBreak.Id?.Value <= ExcelA1.MaxColumns)
                     .Select(pageBreak => checked((int)(pageBreak.Id?.Value ?? 0U)))
                     .DefaultIfEmpty(0).Max();
                 int maximumDrawingColumn = InspectMutationPlanElements(
