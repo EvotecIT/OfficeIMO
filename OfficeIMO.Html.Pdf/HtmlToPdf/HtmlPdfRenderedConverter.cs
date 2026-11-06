@@ -132,7 +132,10 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfCreateOptions measurementOptions = options.PdfOptions.Clone();
         measurementOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
-        if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
+        if (options.FontFamily is { } fontFamily) {
+            measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, fontFamily);
+            RegisterExplicitCssFontFamily(measurementOptions, fontFamily);
+        }
         if (renderOptions.LibrarySelectedDefaultFontFamily != null) {
             measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica,
                 renderOptions.LibrarySelectedDefaultFontFamily);
@@ -341,8 +344,9 @@ internal static partial class HtmlPdfRenderedConverter {
                 if (rendered.Metadata.Direction == HtmlRenderTextDirection.RightToLeft) preferences.Direction = PdfCore.PdfViewerDirection.RightToLeft;
             });
         }
-        if (options.FontFamily != null) {
-            pdf.UseFontFamily(options.FontFamily);
+        if (options.FontFamily is { } fontFamily) {
+            pdf.UseFontFamily(fontFamily);
+            RegisterExplicitCssFontFamily(pdf.Options, fontFamily);
         }
 
         var imageResources = new PdfImageResourceCache(options, conversionReport, cancellationToken);

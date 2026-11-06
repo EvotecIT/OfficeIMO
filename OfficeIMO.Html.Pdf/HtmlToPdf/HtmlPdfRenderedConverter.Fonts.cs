@@ -13,6 +13,15 @@ internal static partial class HtmlPdfRenderedConverter {
         else fonts.EmbedDefaultFonts = false;
     }
 
+    private static void RegisterExplicitCssFontFamily(PdfCore.PdfCreateOptions options, PdfCore.PdfEmbeddedFontFamily family) {
+        // The compatibility slot is the default face. CSS resolves the supplied
+        // family by name before considering coverage from other named families.
+        if (!options.TryResolveNamedFontFace(OfficeFontFamilyParser.Quote(family.FamilyName),
+                bold: false, italic: false, out _, allowSubstitution: false)) {
+            options.TryRegisterNamedFontFamily(family);
+        }
+    }
+
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, HtmlTextFaceMetrics?>? CreateFallbackTextFaceMetrics(
         HtmlPdfExportOptions options,
         PdfCore.PdfCreateOptions measurementOptions) {

@@ -8,6 +8,33 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlPdf_AuthoredExplicitFamilyWinsOverNamedFallbackForCoveredMultilingualText() {
+        byte[] regular = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Regular.ttf"));
+        byte[] bold = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Bold.ttf"));
+        var options = new HtmlPdfExportOptions {
+            FontFamily = new PdfCore.PdfEmbeddedFontFamily("Carlito", regular, bold),
+            AllowSystemFontFallback = false,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
+        options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", regular, bold));
+        const string heading = "Ελληνικά";
+        const string body = "Zażółć gęślą jaźń · Русский · Čeština";
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<style>body{font:10pt 'Carlito',sans-serif}</style><h1>" + heading + "</h1><p>" + body + "</p>");
+
+        using PdfCore.PdfDocument pdf = source.ToPdf(options);
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf.ToBytes());
+        PdfCore.PdfFontInventory inventory = PdfCore.PdfFontInspector.Inspect(read);
+
+        Assert.Equal(new[] { "Carlito-Bold", "Carlito-Regular" },
+            inventory.Fonts.Where(font => font.IsEmbedded).Select(font => font.FamilyName)
+                .Distinct().OrderBy(name => name, StringComparer.Ordinal));
+        string extracted = read.ExtractText();
+        Assert.Contains(heading, extracted, StringComparison.Ordinal);
+        Assert.Contains(body, extracted, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("", 0)]
     [InlineData(":first", 0)]
