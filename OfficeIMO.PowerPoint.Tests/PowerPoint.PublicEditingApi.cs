@@ -57,5 +57,59 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, presentation.ReplaceAll("draft", "Final"));
             Assert.Equal("Final and Final", box.Text);
         }
+
+        [Fact]
+        public void ReplaceAllSavesSplitRunMatchesWithFormattingAndInlineBoundaries() {
+            using var stream = new MemoryStream();
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTextBox box = slide.AddTextBox("Hello ");
+                PowerPointParagraph paragraph = box.Paragraphs[0];
+                paragraph.AddFormattedText("{{na", bold: true);
+                paragraph.AddFormattedText("me}} tail", italic: true);
+
+                PowerPointParagraph withBreak = box.AddParagraph("{{na");
+                withBreak.AddLineBreak();
+                withBreak.AddText("me}}");
+
+                PowerPointParagraph withField = box.AddParagraph("{{na");
+                withField.AddField("1", "slidenum");
+                withField.AddText("me}}");
+
+                PowerPointParagraph withinWord = box.AddParagraph("prefix{{na");
+                withinWord.AddText("me}}");
+
+                PowerPointTableCell cell = slide.AddTable(1, 1).GetCell(0, 0);
+                cell.Text = "{{NA";
+                cell.AddText("ME}}");
+
+                Assert.Equal(2, presentation.ReplaceAll("{{name}}", "Alice",
+                    new PowerPointTextSearchOptions { WholeWords = true }));
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
+            PowerPointSlide edited = Assert.Single(reopened.Slides);
+            PowerPointTextBox editedBox = Assert.Single(edited.TextBoxes);
+            Assert.Collection(editedBox.Paragraphs[0].Runs,
+                run => Assert.Equal("Hello ", run.Text),
+                run => {
+                    Assert.Equal("Alice", run.Text);
+                    Assert.True(run.Bold);
+                    Assert.False(run.Italic);
+                },
+                run => {
+                    Assert.Equal(" tail", run.Text);
+                    Assert.True(run.Italic);
+                    Assert.False(run.Bold);
+                });
+            Assert.Equal("{{na" + Environment.NewLine + "me}}", editedBox.Paragraphs[1].Text);
+            Assert.Equal(PowerPointParagraphInlineKind.LineBreak, editedBox.Paragraphs[1].InlineNodes[1].Kind);
+            Assert.Equal("{{na1me}}", editedBox.Paragraphs[2].Text);
+            Assert.Equal("slidenum", editedBox.Paragraphs[2].InlineNodes[1].FieldType);
+            Assert.Equal("prefix{{name}}", editedBox.Paragraphs[3].Text);
+            Assert.Equal("Alice", Assert.Single(edited.Tables).GetCell(0, 0).Text);
+        }
     }
 }

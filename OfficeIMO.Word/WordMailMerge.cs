@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.CustomXmlDataProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Internal;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
@@ -57,17 +58,22 @@ namespace OfficeIMO.Word {
         /// <param name="outputPathFactory">Function that returns an output path for each zero-based record index and value set.</param>
         /// <param name="removeFields">Determines whether field codes are removed after replacement.</param>
         /// <returns>Output document paths in generation order.</returns>
+        /// <remarks>Each record is written before the next is requested. A destination that refers to the template or
+        /// an earlier output is rejected before it is written. Previously written outputs remain on failure.</remarks>
         public static IReadOnlyList<string> ExecuteBatch(string templatePath, IEnumerable<IDictionary<string, string>> records, Func<int, IDictionary<string, string>, string> outputPathFactory, bool removeFields = true) {
-            ValidateBatchArguments(templatePath, records, outputPathFactory);
+            string fullTemplatePath = ResolveBatchTemplatePath(templatePath, records, outputPathFactory);
+            var destinations = new BatchDestinations(fullTemplatePath);
             var outputPaths = new List<string>();
             int index = 0;
             foreach (IDictionary<string, string>? record in records) {
                 IDictionary<string, string> values = record ?? throw new ArgumentException("Records cannot contain null value dictionaries.", nameof(records));
-                string outputPath = PrepareBatchOutputPath(index, values, outputPathFactory);
-                using (WordDocument document = WordDocument.Load(templatePath)) {
+                string outputPath = outputPathFactory(index, values);
+                string fullOutputPath = destinations.Validate(outputPath, index);
+                using (WordDocument document = WordDocument.Load(fullTemplatePath)) {
                     Execute(document, values, removeFields);
-                    document.Save(outputPath);
+                    document.Save(fullOutputPath);
                 }
+                destinations.Remember(fullOutputPath, index);
                 outputPaths.Add(outputPath);
                 index++;
             }
@@ -75,20 +81,25 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>Creates one merged document per record and returns each output with its per-field execution report.</summary>
+        /// <remarks>A destination that refers to the template or an earlier output is rejected before it is written.
+        /// Previously written outputs remain on failure.</remarks>
         public static WordMailMergeBatchResult ExecuteBatchWithReport(string templatePath, IEnumerable<IDictionary<string, string>> records, Func<int, IDictionary<string, string>, string> outputPathFactory, bool removeFields = true) {
-            ValidateBatchArguments(templatePath, records, outputPathFactory);
+            string fullTemplatePath = ResolveBatchTemplatePath(templatePath, records, outputPathFactory);
+            var destinations = new BatchDestinations(fullTemplatePath);
 
             var recordList = records.ToList();
             var items = new List<WordMailMergeBatchItemResult>(recordList.Count);
             for (int index = 0; index < recordList.Count; index++) {
                 IDictionary<string, string> values = recordList[index] ?? throw new ArgumentException("Records cannot contain null value dictionaries.", nameof(records));
-                string outputPath = PrepareBatchOutputPath(index, values, outputPathFactory);
+                string outputPath = outputPathFactory(index, values);
+                string fullOutputPath = destinations.Validate(outputPath, index);
 
                 WordMailMergeExecutionReport execution;
-                using (WordDocument document = WordDocument.Load(templatePath)) {
+                using (WordDocument document = WordDocument.Load(fullTemplatePath)) {
                     execution = ExecuteWithReport(document, values, removeFields);
-                    document.Save(outputPath);
+                    document.Save(fullOutputPath);
                 }
+                destinations.Remember(fullOutputPath, index);
 
                 items.Add(new WordMailMergeBatchItemResult(index, outputPath, execution));
             }
@@ -96,7 +107,7 @@ namespace OfficeIMO.Word {
             return new WordMailMergeBatchResult(items);
         }
 
-        private static void ValidateBatchArguments(
+        private static string ResolveBatchTemplatePath(
             string templatePath,
             IEnumerable<IDictionary<string, string>> records,
             Func<int, IDictionary<string, string>, string> outputPathFactory) {
@@ -104,19 +115,53 @@ namespace OfficeIMO.Word {
             if (!File.Exists(templatePath)) throw new FileNotFoundException("Template document was not found.", templatePath);
             ArgumentNullException.ThrowIfNull(records);
             ArgumentNullException.ThrowIfNull(outputPathFactory);
+            return Path.GetFullPath(templatePath);
         }
 
-        private static string PrepareBatchOutputPath(
-            int index,
-            IDictionary<string, string> values,
-            Func<int, IDictionary<string, string>, string> outputPathFactory) {
-            string outputPath = outputPathFactory(index, values);
-            if (string.IsNullOrWhiteSpace(outputPath)) {
-                throw new InvalidOperationException($"Output path for record {index} cannot be empty.");
+        private sealed class BatchDestinations(string templatePath) {
+            private readonly Dictionary<string, int> _paths = new(StringComparer.Ordinal);
+            private readonly Dictionary<OfficePhysicalFileIdentity, int> _files = new();
+
+            internal string Validate(string outputPath, int index) {
+                if (string.IsNullOrWhiteSpace(outputPath)) {
+                    throw new InvalidOperationException($"Output path for record {index} cannot be empty.");
+                }
+
+                string fullPath = Path.GetFullPath(outputPath);
+                if (string.IsNullOrEmpty(Path.GetFileName(fullPath)) || Directory.Exists(fullPath)) {
+                    throw new InvalidOperationException($"Output path for record {index} must identify a file.");
+                }
+
+                if (string.Equals(templatePath, fullPath, StringComparison.Ordinal)) {
+                    throw new InvalidOperationException($"Output path for record {index} refers to the source template.");
+                }
+                if (_paths.TryGetValue(fullPath, out int previousIndex)) {
+                    throw DuplicateDestination(index, previousIndex);
+                }
+
+                if (OfficePathIdentity.SupportsPhysicalIdentity &&
+                    OfficePathIdentity.TryGetPathMetadata(fullPath, out OfficeFileMetadata destination, allowOpenedNameFallback: true)) {
+                    if (OfficePathIdentity.AreIdentitiesEquivalent(
+                        OfficePathIdentity.GetMetadata(templatePath, allowOpenedNameFallback: true).Identity, destination.Identity)) {
+                        throw new InvalidOperationException($"Output path for record {index} refers to the source template.");
+                    }
+                    if (_files.TryGetValue(destination.Identity, out previousIndex)) {
+                        throw DuplicateDestination(index, previousIndex);
+                    }
+                }
+                return fullPath;
             }
-            string? directory = Path.GetDirectoryName(outputPath);
-            if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory!);
-            return outputPath;
+
+            internal void Remember(string fullPath, int index) {
+                _paths.Add(fullPath, index);
+                if (OfficePathIdentity.SupportsPhysicalIdentity) {
+                    // Saving can create or replace the file, so capture the identity after publication.
+                    _files[OfficePathIdentity.GetMetadata(fullPath, allowOpenedNameFallback: true).Identity] = index;
+                }
+            }
+
+            private static InvalidOperationException DuplicateDestination(int index, int previousIndex) =>
+                new InvalidOperationException($"Output path for record {index} refers to the same destination as record {previousIndex}.");
         }
 
         /// <summary>

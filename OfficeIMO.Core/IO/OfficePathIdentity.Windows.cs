@@ -69,6 +69,8 @@ namespace OfficeIMO.Internal {
         private const uint FileAttributeDirectory = 0x00000010;
         private const int ErrorFileNotFound = 2;
         private const int ErrorPathNotFound = 3;
+        private const int WindowsErrorAccessDenied = 5;
+        private const uint FileNameOpened = 0x8;
         private const int ErrorInvalidFunction = 1;
         private const int ErrorNotSupported = 50;
         private const int ErrorInvalidParameter = 87;
@@ -86,11 +88,11 @@ namespace OfficeIMO.Internal {
             }
         }
 
-        private static bool TryGetWindowsMetadata(string path, out OfficeFileMetadata metadata) {
+        private static bool TryGetWindowsMetadata(string path, out OfficeFileMetadata metadata, bool allowOpenedNameFallback) {
             using (SafeFileHandle handle = OpenWindowsPathHandle(path)) {
                 if (!handle.IsInvalid) {
                     try {
-                        metadata = GetWindowsMetadata(path, handle);
+                        metadata = GetWindowsMetadata(path, handle, allowOpenedNameFallback);
                         return true;
                     } catch (FileNotFoundException) {
                         // A rename can temporarily remove the opened entry's final pathname.
@@ -107,11 +109,13 @@ namespace OfficeIMO.Internal {
             }
         }
 
-        private static OfficeFileMetadata GetWindowsMetadata(string path, SafeFileHandle handle) {
+        private static OfficeFileMetadata GetWindowsMetadata(string path, SafeFileHandle handle, bool allowOpenedNameFallback = false) {
             if (!GetFileInformationByHandle(handle, out ByHandleFileInformation legacy)) {
                 throw WindowsIdentityError(path, "read its link count");
             }
-            string authority = GetWindowsAuthority(GetWindowsFinalPath(handle));
+            // SMB may allow the file to be opened but deny normalized queries on its ancestors.
+            // The opened name is sufficient for authority; containment still uses the normalized path.
+            string authority = GetWindowsAuthority(GetWindowsFinalPath(handle, allowOpenedNameFallback));
             OfficePhysicalFileIdentity identity;
             ulong legacyFileIndex = ((ulong)legacy.FileIndexHigh << 32) | legacy.FileIndexLow;
             try {
@@ -198,17 +202,16 @@ namespace OfficeIMO.Internal {
                 ? @"\\?\UNC\" + fullPath.Substring(2) : @"\\?\" + fullPath;
         }
 
-        private static string GetWindowsFinalPath(SafeFileHandle handle) {
-            if (TryGetWindowsFinalPath(handle, out string path)) return path;
+        private static string GetWindowsFinalPath(SafeFileHandle handle, bool allowOpenedNameFallback = false) {
+            if (TryGetWindowsFinalPath(handle, out string path, allowOpenedNameFallback)) return path;
             throw new FileNotFoundException("The opened entry's physical Windows path no longer exists.");
         }
 
-        private static bool TryGetWindowsFinalPath(SafeFileHandle handle, out string path) {
+        private static bool TryGetWindowsFinalPath(SafeFileHandle handle, out string path, bool allowOpenedNameFallback = false) {
             var buffer = new StringBuilder(1024);
-            uint length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
-            if (length >= buffer.Capacity) {
-                buffer = new StringBuilder(checked((int)length + 1));
-                length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
+            uint length = ReadWindowsFinalPath(handle, ref buffer, flags: 0);
+            if (length == 0 && allowOpenedNameFallback && Marshal.GetLastWin32Error() == WindowsErrorAccessDenied) {
+                length = ReadWindowsFinalPath(handle, ref buffer, FileNameOpened);
             }
             if (length == 0 || length >= buffer.Capacity) {
                 int error = Marshal.GetLastWin32Error();
@@ -221,6 +224,13 @@ namespace OfficeIMO.Internal {
             }
             path = NormalizeWindowsFinalPath(buffer.ToString());
             return true;
+        }
+
+        private static uint ReadWindowsFinalPath(SafeFileHandle handle, ref StringBuilder buffer, uint flags) {
+            uint length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, flags);
+            if (length < buffer.Capacity) return length;
+            buffer = new StringBuilder(checked((int)length + 1));
+            return GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, flags);
         }
 
         private static string GetWindowsAuthority(string path) {
