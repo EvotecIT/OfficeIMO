@@ -9,7 +9,7 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Security.Tests;
 
-public sealed class OfficePackageSignatureIntegrationTests {
+public sealed partial class OfficePackageSignatureIntegrationTests {
     [Theory]
     [InlineData("docx")]
     [InlineData("xlsx")]

@@ -116,6 +116,24 @@ Console.WriteLine($"{pdf.ItemsWritten} slides, loss: {pdf.HasLoss}");
 File.WriteAllBytes("Regions-1.png", deck.Slides[0].ToImage());
 ```
 
+## Validate package signatures from a stream
+
+Pass the original PPTX/PPTM package stream and an explicit security provider.
+The managed provider is available in the optional `OfficeIMO.Security` package:
+
+```csharp
+using OfficeIMO.PowerPoint;
+using OfficeIMO.Security;
+
+static OfficePackageSignatureValidationReport ValidateUpload(Stream upload) =>
+    PowerPointDocument.ValidateSignatures(upload, OfficeSecurityProvider.Default);
+```
+
+The stream stays open on success and failure. Seekable streams are read from the
+beginning and their original position is restored; non-seekable streams are read
+from the current position. The existing validation options control certificate
+policy and package limits, including the maximum bytes buffered from the stream.
+
 ## More
 
 - [PowerPoint guide](../Docs/officeimo.powerpoint-guide.md): text and paragraph formatting, shapes, the full chart API, designer composition and deck plans, corporate templates, sections, transitions, review threads, SmartArt, accessibility checks, legacy `.ppt` and image export.

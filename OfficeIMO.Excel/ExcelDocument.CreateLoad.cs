@@ -627,15 +627,7 @@ namespace OfficeIMO.Excel {
 
             var encryptedBytes = await ReadAllBytesCompatAsync(filePath, cancellationToken, resolved)
                 .ConfigureAwait(false);
-            if (resolved.PackageSecurity != null) {
-                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
-            }
-            if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
-                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved), encryptedBytes, resolved, "encrypted-source-container");
-            }
-
-            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
+            return LoadEncryptedInput(encryptedBytes, password, resolved, filePath, cancellationToken);
         }
 
         /// <summary>
@@ -686,15 +678,7 @@ namespace OfficeIMO.Excel {
 
             var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken, resolved)
                 .ConfigureAwait(false);
-            if (resolved.PackageSecurity != null) {
-                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
-            }
-            if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
-                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved), encryptedBytes, resolved, "encrypted-source-container");
-            }
-
-            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
+            return LoadEncryptedInput(encryptedBytes, password, resolved, sourcePath: null, cancellationToken);
         }
 
         private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password, bool readOnly, ExcelLoadOptions options) {
