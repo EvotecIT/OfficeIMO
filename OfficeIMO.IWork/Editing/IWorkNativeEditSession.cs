@@ -64,5 +64,9 @@ public sealed partial class IWorkNativeEditSession {
 
 public sealed partial class IWorkSourceDocument {
     /// <summary>Starts a separate preservation-aware native edit session over this captured snapshot.</summary>
-    public IWorkNativeEditSession BeginEdit() => new(this);
+    public IWorkNativeEditSession BeginEdit() {
+        if (LegacyXml != null)
+            throw new NotSupportedException("Native edit and save are unavailable for iWork '09 XML packages.");
+        return new(this);
+    }
 }

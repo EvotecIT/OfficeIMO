@@ -20,6 +20,26 @@ The current level is **extended semantic reconstruction**. Normal document conte
 
 `OfficeIMO.Workflows.IWork` registers all three Apple-to-OOXML routes without adding iWork to the default workflow dependency graph. Local ZIP files, local directory packages, provider ZIP streams and provider directory packages use bounded captured inputs, destination reopen validation, source verification, and safe publication. Defaults reject explicitly partial editable reconstruction and visual previews without known complete coverage. `ConversionEvidence` retains typed fidelity categories and compact source/projection facts after destination disposal. Directory packages use a deterministic private ZIP transport snapshot, with package-root identity and file membership/content checked again before publication. Destinations inside the package or aliased to a package member are rejected. The snapshot checksum describes that transport archive. Provider directory intake uses `OfficeWorkflowDirectoryPackageInput` with a permission-aware identity/output-separation guard; the shared runner stages bounded member snapshots and verifies provider membership and bytes before publication. Native sandbox/bookmark acceptance remains separate. The CLI exposes these routes through `officeimo convert`. Studio uses the same runner for file-picker, drop, and startup intake, with per-job representation and acceptance settings, captured source SHA-256, retained fidelity evidence, and saved-output preview. These workflow settings are copied before asynchronous source capture.
 
+## iWork ’09 XML
+
+The read-only XML profile accepts Apple’s `92008102400` grammar in root
+`index.xml` and `index.apxl` entries, including `.gz` variants. The application
+comes from the XML namespace and root element. Package, XML size, nesting, node,
+and projection bounds apply. XML declarations of external entities are rejected.
+
+| Source | Recovered editable content | Omitted content |
+|---|---|---|
+| Pages ’09 | Flowing body paragraphs and their text | Styles, page layout, headers, footers and inline or positioned objects |
+| Numbers ’09 | Direct sheets and tables, selected text, numbers, checkbox values, dates and scalar formula caches | Formula expressions, charts, merges, styles and other cell types or controls |
+| Keynote ’09 | Ordered slides, directly referenced title and body placeholders, canvas size, selected placeholder geometry and notes | Masters, styles, other drawables and playback settings |
+
+Pages and Keynote text retains tabs and manual line breaks. Use
+`AllowPartialEditableReconstruction = true` on the existing OOXML conversion
+options to accept these omissions. The report identifies the legacy index and
+omitted content. Raw IWA records are empty for XML packages. `BeginEdit()` rejects
+legacy sources. Earlier XML generations, protected documents and complete editable
+PDF conversion are outside this profile.
+
 ## Supporting library owners
 
 | Capability | Owning libraries | Boundary |

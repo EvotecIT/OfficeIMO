@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Structural_probe_recognizes_modern_packages_without_consuming_them(string name) {
         using FileStream stream = File.OpenRead(Fixture(name));
 
-        Assert.True(IWorkContainerProbe.HasModernIndex(stream, stream.Length,
+        Assert.True(IWorkContainerProbe.HasSupportedIndex(stream, IWorkDocumentKind.Pages, stream.Length,
             8192, CancellationToken.None));
         Assert.Equal(0, stream.Position);
     }
@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
         using var stream = new MemoryStream(prefix.Concat(package).ToArray(), writable: false);
         stream.Position = prefix.Length;
 
-        Assert.True(IWorkContainerProbe.HasModernIndex(stream, package.LongLength,
+        Assert.True(IWorkContainerProbe.HasSupportedIndex(stream, IWorkDocumentKind.Pages, package.LongLength,
             8192, CancellationToken.None));
         Assert.Equal(prefix.Length, stream.Position);
     }
@@ -42,7 +42,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         stream.Position = 0;
 
-        Assert.False(IWorkContainerProbe.HasModernIndex(stream, stream.Length,
+        Assert.False(IWorkContainerProbe.HasSupportedIndex(stream, IWorkDocumentKind.Pages, stream.Length,
             8192, CancellationToken.None));
         Assert.Equal(0, stream.Position);
     }
@@ -56,16 +56,16 @@ public sealed partial class IWorkBoundaryTests {
         }
         stream.Position = 0;
 
-        Assert.False(IWorkContainerProbe.HasModernIndex(stream, stream.Length,
+        Assert.False(IWorkContainerProbe.HasSupportedIndex(stream, IWorkDocumentKind.Pages, stream.Length,
             1, CancellationToken.None));
-        Assert.True(IWorkContainerProbe.HasModernIndex(stream, stream.Length,
+        Assert.True(IWorkContainerProbe.HasSupportedIndex(stream, IWorkDocumentKind.Pages, stream.Length,
             2, CancellationToken.None));
         Assert.Equal(0, stream.Position);
 
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
         Assert.Throws<OperationCanceledException>(() =>
-            IWorkContainerProbe.HasModernIndex(stream, stream.Length, 2,
+            IWorkContainerProbe.HasSupportedIndex(stream, IWorkDocumentKind.Pages, stream.Length, 2,
                 cancelled.Token));
         Assert.Equal(0, stream.Position);
     }

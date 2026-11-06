@@ -5,7 +5,7 @@ using System.Xml;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>Bounded, read-only representation of a modern Pages, Numbers, or Keynote source package.</summary>
+/// <summary>Bounded, read-only representation of a Pages, Numbers, or Keynote source package.</summary>
 public sealed partial class IWorkSourceDocument {
     private readonly IWorkLoadOptions _options;
     private readonly IWorkObjectIndex _index;
@@ -13,8 +13,9 @@ public sealed partial class IWorkSourceDocument {
 
     private IWorkSourceDocument(IWorkDocumentKind kind, IWorkPackageData package,
         IReadOnlyList<IWorkArchiveRecord> records, IWorkLoadOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, IWorkLegacyXmlSource? legacyXml = null) {
         Kind = kind;
+        LegacyXml = legacyXml;
         ContainerKind = package.ContainerKind;
         ContainerLengthBytes = package.ContainerLengthBytes;
         Entries = Array.AsReadOnly(package.Entries.ToArray());
@@ -24,17 +25,21 @@ public sealed partial class IWorkSourceDocument {
         _options = options;
         _cancellationToken = cancellationToken;
         _index = new IWorkObjectIndex(Records, options, cancellationToken);
-        BuildVersions = Array.AsReadOnly(ReadBuildVersions(Entries, cancellationToken).ToArray());
+        BuildVersions = Array.AsReadOnly(ReadBuildVersions(Entries, cancellationToken, legacyXml != null).ToArray());
         Previews = Array.AsReadOnly(ReadPreviews(Entries, options.MaxDecodedImageBytes,
             cancellationToken).ToArray());
         Diagnostics = Array.AsReadOnly(new[] {
-            new IWorkDiagnostic(IWorkDiagnosticSeverity.Information, "IWORK_SOURCE_READ",
-                $"Read {records.Count} IWA payload records from {package.Entries.Count} package entries.")
+            legacyXml == null
+                ? new IWorkDiagnostic(IWorkDiagnosticSeverity.Information, "IWORK_SOURCE_READ",
+                    $"Read {records.Count} IWA payload records from {package.Entries.Count} package entries.")
+                : new IWorkDiagnostic(IWorkDiagnosticSeverity.Information, "IWORK_LEGACY_XML_SOURCE_READ",
+                    "Read an iWork ’09 XML source package.", legacyXml.EntryPath)
         });
     }
 
     private IWorkSourceDocument(IWorkSourceDocument source, CancellationToken cancellationToken) {
         Kind = source.Kind;
+        LegacyXml = source.LegacyXml;
         ContainerKind = source.ContainerKind;
         ContainerLengthBytes = source.ContainerLengthBytes;
         Entries = source.Entries;
@@ -174,6 +179,7 @@ public sealed partial class IWorkSourceDocument {
         return Load(stream, expectedKind, options, cancellationToken);
     }
 
+    internal IWorkLegacyXmlSource? LegacyXml { get; }
     internal IWorkObjectIndex Index => _index;
     internal IWorkLoadOptions Options => _options;
     internal CancellationToken CancellationToken => _cancellationToken;
@@ -225,11 +231,17 @@ public sealed partial class IWorkSourceDocument {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!package.Entries.Any(entry => IWorkArchiveParser.IsIndexArchivePath(entry.Path))) {
-            string[] legacyMarkers = { "index.xml", "index.apxl", "index.apxl.gz" };
-            if (package.Entries.Any(entry => legacyMarkers.Contains(entry.Path, StringComparer.OrdinalIgnoreCase))) {
-                throw new NotSupportedException("Pre-2013 iWork packages are not supported; this reader requires IWA archives.");
-            }
-            throw new InvalidDataException("The package does not contain modern iWork IWA archives.");
+            IWorkPackageEntry[] legacyIndexes = package.Entries
+                .Where(entry => IWorkLegacyXmlSource.IsIndexPath(entry.Path)).ToArray();
+            if (legacyIndexes.Length == 0)
+                throw new InvalidDataException("The package does not contain a supported iWork index.");
+            if (legacyIndexes.Length != 1)
+                throw new InvalidDataException("The iWork package declares conflicting legacy indexes.");
+            IWorkLegacyXmlSource legacy = IWorkLegacyXmlSource.Read(legacyIndexes[0], options, cancellationToken);
+            if (expectedKind.HasValue && expectedKind.Value != legacy.Kind)
+                throw new InvalidDataException($"The package is {legacy.Kind}, not the expected {expectedKind.Value} source.");
+            return new IWorkSourceDocument(legacy.Kind, package, Array.Empty<IWorkArchiveRecord>(), options,
+                cancellationToken, legacy);
         }
 
         IReadOnlyList<IWorkArchiveRecord> records = IWorkArchiveParser.Parse(package.Entries, options,
@@ -332,12 +344,12 @@ public sealed partial class IWorkSourceDocument {
     };
 
     private static IReadOnlyList<string> ReadBuildVersions(IReadOnlyList<IWorkPackageEntry> entries,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool legacyXml) {
         IWorkPackageEntry? entry = null;
+        string path = legacyXml ? "buildVersionHistory.plist" : "Metadata/BuildVersionHistory.plist";
         foreach (IWorkPackageEntry candidate in entries) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (string.Equals(candidate.Path, "Metadata/BuildVersionHistory.plist",
-                    StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(candidate.Path, path, StringComparison.OrdinalIgnoreCase)) {
                 entry = candidate;
                 break;
             }
