@@ -35,7 +35,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     _available.Add(_owned[i]);
                 }
                 _current = _available.Take();
-                _worker = Task.Run(Consume);
+                // Producers can fill a bounded pool while waiting for a free buffer.
+                _worker = Task.Factory.StartNew(Consume, CancellationToken.None,
+                    TaskCreationOptions.LongRunning, TaskScheduler.Default);
             } catch {
                 foreach (byte[] buffer in _owned) if (buffer != null) ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
                 _available.Dispose();
