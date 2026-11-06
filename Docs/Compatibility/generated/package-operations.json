@@ -381,6 +381,34 @@
       "limitation":"The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy."
     },
     {
+      "id":"conversion:word-xml-docx",
+      "packageId":"OfficeIMO",
+      "formatId":"Word XML",
+      "targetFormatId":"DOCX",
+      "capabilityId":"word-xml-docx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeConverter.Convert(source, destination, options)",
+      "evidence":"Word XML fixture controls cover standalone package admission, editable content and reopened DOCX.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".xml"],
+      "limitation":"DOCX output accepts ordinary Word documents. Macro-enabled and template Flat OPC packages require a matching native package destination through the Word API. Word 2003 XML import reports unsupported features."
+    },
+    {
+      "id":"conversion:spreadsheet-xml-xlsx",
+      "packageId":"OfficeIMO",
+      "formatId":"XML Spreadsheet 2003",
+      "targetFormatId":"XLSX",
+      "capabilityId":"spreadsheet-xml-xlsx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeConverter.Convert(source, destination, options)",
+      "evidence":"Native Excel XML Spreadsheet fixtures cover typed cells, styles, geometry and cached formula results in the supported profile.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".xml"],
+      "limitation":"Uses the bounded Excel XML Spreadsheet 2003 codec. Unsupported workbook features are reported and formula execution is outside import."
+    },
+    {
       "id":"conversion:adf-html",
       "packageId":"OfficeIMO.Adf",
       "formatId":"ADF",
@@ -8060,10 +8088,10 @@
       "capabilityId":"ods-xlsx",
       "operation":"Convert",
       "state":"Partial",
-      "publicApi":"OdsDocument.Load(stream).SaveAsExcel(output, options)",
+      "publicApi":"OdsDocument.Load(stream) or LoadFlatXml(stream).SaveAsExcel(output, options)",
       "evidence":"Reopen tests verify typed values, formulas, annotations, basic styles, tables, and validation subsets with diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".ods"],
+      "extensions":[".fods",".ods"],
       "limitation":"Advanced validation, conditional formatting, charts, pivots, external links, macros, and complex styles remain incomplete."
     },
     {
@@ -9530,10 +9558,10 @@
       "capabilityId":"odp-pdf",
       "operation":"Convert",
       "state":"Partial",
-      "publicApi":"OdpPresentation.Load(stream).SaveAsPdf(output, options)",
+      "publicApi":"OdpPresentation.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
       "evidence":"Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".odp"],
+      "extensions":[".fodp",".odp"],
       "limitation":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete."
     },
     {
@@ -9558,10 +9586,10 @@
       "capabilityId":"ods-pdf",
       "operation":"Convert",
       "state":"Partial",
-      "publicApi":"OdsDocument.Load(stream).SaveAsPdf(output, options)",
+      "publicApi":"OdsDocument.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
       "evidence":"Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".ods"],
+      "extensions":[".fods",".ods"],
       "limitation":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete."
     },
     {
@@ -9586,10 +9614,10 @@
       "capabilityId":"odt-pdf",
       "operation":"Convert",
       "state":"Partial",
-      "publicApi":"OdtDocument.Load(stream).SaveAsPdf(output, options)",
+      "publicApi":"OdtDocument.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
       "evidence":"Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".odt"],
+      "extensions":[".fodt",".odt"],
       "limitation":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete."
     },
     {
@@ -15368,10 +15396,10 @@
       "capabilityId":"odp-pptx",
       "operation":"Convert",
       "state":"Partial",
-      "publicApi":"OdpPresentation.Load(stream).SaveAsPowerPoint(output, options)",
+      "publicApi":"OdpPresentation.Load(stream) or LoadFlatXml(stream).SaveAsPowerPoint(output, options)",
       "evidence":"Reopen tests verify common slide text, tables, basic shapes, images, and page geometry with explicit approximation diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".odp"],
+      "extensions":[".fodp",".odp"],
       "limitation":"Masters, advanced DrawingML, SmartArt, media, transitions, animations, and theme inheritance remain incomplete."
     },
     {
@@ -19834,10 +19862,10 @@
       "capabilityId":"odt-docx",
       "operation":"Convert",
       "state":"Partial",
-      "publicApi":"OdtDocument.Load(stream).SaveAsWord(output, options)",
+      "publicApi":"OdtDocument.Load(stream) or LoadFlatXml(stream).SaveAsWord(output, options)",
       "evidence":"Reopen tests verify common paragraphs, runs, lists, tables, links, and basic images with explicit approximation diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".odt"],
+      "extensions":[".fodt",".odt"],
       "limitation":"Fields, notes, section-specific layout, advanced drawings, nested styles, and producer-specific extensions remain incomplete."
     },
     {

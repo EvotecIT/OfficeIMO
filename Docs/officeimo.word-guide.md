@@ -741,6 +741,38 @@ the control. Replacing a picture or repeating section also rejects locked nested
 controls that would be removed. Direct control setters remain authoring APIs for
 intentional document edits.
 
+### Word XML interchange
+
+Use `WordDocument.Load` to open Word Flat OPC and Word 2003 XML. The XML content
+identifies the format. Flat OPC reconstructs the Open XML package, including
+document and template parts. The import preserves XML part roots and their
+namespace bindings. Package signatures and XML declarations, processing
+instructions, and comments outside part roots do not travel through the
+standalone XML representation.
+
+Word 2003 XML projects paragraphs, basic run formatting, tables, and section page
+dimensions into an editable document. The load report records omitted features,
+such as unsupported styles, fields, drawing resources, and hyperlink behavior.
+Set `WordLoadOptions.FailOnLoss` to reject sources that require those omissions.
+
+```csharp
+using var document = WordDocument.Load("source.xml", new WordLoadOptions(), out var report);
+report.ThrowIfLoss();
+document.SaveCopy("converted.docx");
+```
+
+Word XML input is detached from the source. Save to an explicit Word destination.
+For a standalone XML consumer, call `ExportFlatOpc` on the Word document.
+
+```csharp
+using var document = WordDocument.Load("report.docx");
+File.WriteAllBytes("report.xml", document.ExportFlatOpc());
+```
+
+Word XML interchange has a 64 MiB input and reconstructed package limit. Flat OPC
+export follows the signed-document save policy and emits clear XML. Set the save
+password explicitly to null to export an encrypted source as clear XML.
+
 ### Legacy DOC files
 
 ```csharp

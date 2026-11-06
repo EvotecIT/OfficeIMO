@@ -88,6 +88,7 @@ namespace OfficeIMO.Word {
         internal void SaveEncrypted(Stream destination, string password, WordSaveOptions? saveOptions) {
             ArgumentNullException.ThrowIfNull(destination);
             ArgumentNullException.ThrowIfNull(password);
+            EnsureSeparateXmlDestination(destination);
             byte[] packageBytes = ToWordBytes(WordFileFormat.Docx, saveOptions);
             OfficeEncryption.EncryptPackageToStream(packageBytes, password, destination);
         }
@@ -146,6 +147,7 @@ namespace OfficeIMO.Word {
 
             if (ResolveSavePassword(options) is string password) {
                 if (IsLegacyDocPath(filePath)) throw new NotSupportedException("Password-protected DOC output is not supported.");
+                EnsureSeparateXmlDestination(filePath);
                 OfficeFileCommit.WriteAllBytes(filePath, OfficeEncryption.EncryptPackage(ToWordBytes(WordFileFormat.Docx, options), password));
                 return;
             }
@@ -200,6 +202,7 @@ namespace OfficeIMO.Word {
 
 
         private byte[] ToWordBytes(WordFileFormat format, WordSaveOptions? options) {
+            EnsureSupportedWordSaveFormat(format);
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
@@ -322,7 +325,9 @@ namespace OfficeIMO.Word {
         /// <param name="format">Physical DOCX or DOC format.</param>
         /// <param name="options">Optional save policy settings.</param>
         internal void Save(Stream outputStream, WordFileFormat format, WordSaveOptions? options = null) {
+            EnsureSupportedWordSaveFormat(format);
             ArgumentNullException.ThrowIfNull(outputStream);
+            EnsureSeparateXmlDestination(outputStream);
 
             if (!outputStream.CanWrite) {
                 throw new ArgumentException("Destination stream must be writable.", nameof(outputStream));
@@ -373,7 +378,9 @@ namespace OfficeIMO.Word {
             WordFileFormat format,
             WordSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
+            EnsureSupportedWordSaveFormat(format);
             ArgumentNullException.ThrowIfNull(outputStream);
+            EnsureSeparateXmlDestination(outputStream);
             if (!outputStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(outputStream));
             if (FileOpenAccess == FileAccess.Read) throw new InvalidOperationException("Document is read only, and cannot be saved.");
 
@@ -393,6 +400,12 @@ namespace OfficeIMO.Word {
                 bytes = OfficeEncryption.EncryptPackage(bytes, password);
             }
             await OfficeStreamWriter.WriteAllBytesAsync(outputStream, bytes, cancellationToken).ConfigureAwait(false);
+        }
+
+        private static void EnsureSupportedWordSaveFormat(WordFileFormat format) {
+            if (format is not (WordFileFormat.Doc or WordFileFormat.Docx)) {
+                throw new NotSupportedException("Save supports Word package or binary DOC output. Use ExportFlatOpc for Flat OPC XML.");
+            }
         }
 
         private static bool IsLegacyDocPath(string? filePath) {
@@ -515,7 +528,12 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static void EnsureDestinationFileWritable(string filePath) {
+        private void EnsureDestinationFileWritable(string filePath) {
+            EnsureSeparateXmlDestination(filePath);
+            if (SourceFormat is WordFileFormat.FlatOpc or WordFileFormat.WordMl2003 &&
+                string.Equals(Path.GetExtension(filePath), ".xml", StringComparison.OrdinalIgnoreCase)) {
+                throw new NotSupportedException("Word package save requires a non-XML destination. Use ExportFlatOpc for Flat OPC XML.");
+            }
             if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
                 throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
             }

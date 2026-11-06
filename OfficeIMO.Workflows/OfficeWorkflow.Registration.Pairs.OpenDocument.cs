@@ -28,6 +28,7 @@ public static partial class OfficeWorkflow {
                 excel.LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss;
                 powerPoint.LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss;
             }
+            string? sourceExtension = Path.GetExtension(options.SourceName)?.ToLowerInvariant();
             switch (Id) {
                 case "docx-odt": {
                     WordLoadOptions reading = OfficeConverter.WordInputOptions(options);
@@ -51,32 +52,44 @@ public static partial class OfficeWorkflow {
                             settings.OpenDocumentSave, options.FailOnLoss, token).ConfigureAwait(false), options.FailOnLoss).ConfigureAwait(false);
                 }
                 case "odt-docx": {
-                    using OdtDocument document = await OdtDocument.LoadAsync(input, load, token).ConfigureAwait(false);
+                    using OdtDocument document = sourceExtension == ".fodt"
+                        ? OdtDocument.LoadFlatXml(input, load)
+                        : await OdtDocument.LoadAsync(input, load, token).ConfigureAwait(false);
                     return await SaveModelAsync(await document.ToWordAsync(word, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, null, token), token).ConfigureAwait(false);
                 }
                 case "ods-xlsx": {
-                    using OdsDocument document = await OdsDocument.LoadAsync(input, load, token).ConfigureAwait(false);
+                    using OdsDocument document = sourceExtension == ".fods"
+                        ? OdsDocument.LoadFlatXml(input, load)
+                        : await OdsDocument.LoadAsync(input, load, token).ConfigureAwait(false);
                     return await SaveModelAsync(await document.ToExcelAsync(excel, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, null, token), token).ConfigureAwait(false);
                 }
                 case "odp-pptx": {
-                    using OdpPresentation document = await OdpPresentation.LoadAsync(input, load, token).ConfigureAwait(false);
+                    using OdpPresentation document = sourceExtension == ".fodp"
+                        ? OdpPresentation.LoadFlatXml(input, load)
+                        : await OdpPresentation.LoadAsync(input, load, token).ConfigureAwait(false);
                     return await SaveModelAsync(await document.ToPowerPointAsync(powerPoint, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, null, token), token).ConfigureAwait(false);
                 }
                 case "odt-pdf": {
-                    using OdtDocument document = await OdtDocument.LoadAsync(input, load, token).ConfigureAwait(false);
+                    using OdtDocument document = sourceExtension == ".fodt"
+                        ? OdtDocument.LoadFlatXml(input, load)
+                        : await OdtDocument.LoadAsync(input, load, token).ConfigureAwait(false);
                     OdtPdfExportOptions pdf = settings.OdtPdf ?? new(); pdf.FailOnLoss |= options.FailOnLoss;
                     return await document.SaveAsPdfAsync(output, pdf, token).ConfigureAwait(false);
                 }
                 case "ods-pdf": {
-                    using OdsDocument document = await OdsDocument.LoadAsync(input, load, token).ConfigureAwait(false);
+                    using OdsDocument document = sourceExtension == ".fods"
+                        ? OdsDocument.LoadFlatXml(input, load)
+                        : await OdsDocument.LoadAsync(input, load, token).ConfigureAwait(false);
                     OdsPdfExportOptions pdf = settings.OdsPdf ?? new(); pdf.FailOnLoss |= options.FailOnLoss;
                     return await document.SaveAsPdfAsync(output, pdf, token).ConfigureAwait(false);
                 }
                 default: {
-                    using OdpPresentation document = await OdpPresentation.LoadAsync(input, load, token).ConfigureAwait(false);
+                    using OdpPresentation document = sourceExtension == ".fodp"
+                        ? OdpPresentation.LoadFlatXml(input, load)
+                        : await OdpPresentation.LoadAsync(input, load, token).ConfigureAwait(false);
                     OdpPdfExportOptions pdf = settings.OdpPdf ?? new(); pdf.FailOnLoss |= options.FailOnLoss;
                     return await document.SaveAsPdfAsync(output, pdf, token).ConfigureAwait(false);
                 }

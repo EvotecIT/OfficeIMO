@@ -491,6 +491,7 @@ namespace OfficeIMO.Word {
             // Read the source file into memory with a shared read handle to avoid test collisions.
             using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
                 byte[] sourceBytes = ReadSourceBytes(fileStream, resolved);
+                if (TryLoadWordXml(sourceBytes, filePath, resolved) is { } xmlDocument) return xmlDocument;
                 ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
                 if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
@@ -616,6 +617,7 @@ namespace OfficeIMO.Word {
                 FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous);
             byte[] sourceBytes = await ReadSourceBytesAsync(fileStream, resolved,
                 cancellationToken).ConfigureAwait(false);
+            if (TryLoadWordXml(sourceBytes, filePath, resolved, cancellationToken) is { } xmlDocument) return xmlDocument;
             ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
             bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
             bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
@@ -664,7 +666,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>Asynchronously loads a Word document from a readable stream.</summary>
-        /// <param name="stream">Stream containing DOC or DOCX content.</param>
+        /// <param name="stream">Stream containing binary DOC, Word Open XML, or standalone Word XML content.</param>
         /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The loaded document. The caller retains ownership of <paramref name="stream"/>.</returns>
@@ -683,11 +685,15 @@ namespace OfficeIMO.Word {
 
             byte[] sourceBytes = await ReadSourceBytesAsync(stream, resolved,
                 cancellationToken).ConfigureAwait(false);
+            if (resolved.Password == null && TryLoadWordXml(sourceBytes, null, resolved, cancellationToken) is { } xmlDocument)
+                return xmlDocument.RememberXmlStream(stream);
             using var bufferedStream = new MemoryStream(sourceBytes.Length);
             bufferedStream.Write(sourceBytes, 0, sourceBytes.Length);
             bufferedStream.Position = 0;
-            WordDocument document = Load(bufferedStream, resolved);
-            if (document.SourceFormat != WordFileFormat.Doc) {
+            WordDocument document = resolved.Password == null
+                ? LoadFromStream(bufferedStream, resolved, captureSourcePackageSecurity: true, detectXml: false)
+                : Load(bufferedStream, resolved);
+            if (document.SourceFormat == WordFileFormat.Docx) {
                 document.OriginalStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)!;
             }
 
@@ -697,7 +703,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Load WordDocument from stream
         /// </summary>
-        /// <param name="stream">Readable source. Editable writable seekable sources become the associated destination; other sources remain detached.</param>
+        /// <param name="stream">Readable source. Editable writable seekable package sources become the associated destination; Word XML sources remain detached.</param>
         /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <returns></returns>
         public static WordDocument Load(Stream stream, WordLoadOptions? options = null) =>
@@ -706,7 +712,7 @@ namespace OfficeIMO.Word {
                 : LoadFromStream(stream, options, captureSourcePackageSecurity: true);
 
         private static WordDocument LoadFromStream(Stream stream, WordLoadOptions? options,
-            bool captureSourcePackageSecurity) {
+            bool captureSourcePackageSecurity, bool detectXml = true) {
             ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) {
                 throw new ArgumentException("Stream must be readable.", nameof(stream));
@@ -719,6 +725,8 @@ namespace OfficeIMO.Word {
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
             var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
             byte[] sourceBytes = ReadSourceBytes(stream, resolved);
+            if (detectXml && TryLoadWordXml(sourceBytes, null, resolved) is { } xmlDocument)
+                return xmlDocument.RememberXmlStream(stream);
             ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {

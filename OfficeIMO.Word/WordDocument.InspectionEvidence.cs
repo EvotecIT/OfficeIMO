@@ -6,7 +6,7 @@ namespace OfficeIMO.Word;
 public partial class WordDocument {
     /// <summary>Structural observations captured from the exact loader source bytes when requested; subsequent edits do not change this source report.</summary>
     public OfficePackageSecurityReport? SourcePackageSecurityReport { get; private set; }
-    /// <summary>Identifies whether captured observations describe the original source container or its decrypted package.</summary>
+    /// <summary>Identifies whether captured observations describe the original source, its decrypted package, or a reconstructed package.</summary>
     public string? SourcePackageSecurityScope { get; private set; }
 
     private static WordDocument WithSourcePackageInspection(WordDocument document, byte[] sourceBytes, WordLoadOptions options, string scope = "source-container") {

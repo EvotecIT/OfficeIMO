@@ -141,3 +141,4 @@ OfficeIMO.OfficeValidationReport.NativeReports.get -> System.Collections.Generic
 OfficeIMO.OfficeValidationReport.OfficeValidationReport(System.Collections.Generic.IEnumerable<OfficeIMO.OfficeDiagnostic!>! diagnostics, System.Collections.Generic.IEnumerable<object!>? nativeReports = null) -> void
 OfficeIMO.OfficeValidationReport.ThrowIfFailed() -> void
 OfficeIMO.OfficeValidationReport.ToMarkdown() -> string!
+OfficeIMO.OfficeFormatEncoding.StandaloneXml = 3 -> OfficeIMO.OfficeFormatEncoding

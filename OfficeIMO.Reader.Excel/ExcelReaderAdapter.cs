@@ -39,10 +39,10 @@ internal static partial class ExcelReaderAdapter {
         ReaderOptions readerOptions,
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
-        using ExcelDocument document = Load(path, readerOptions);
+        using ExcelDocument document = LoadForProjection(path, readerOptions, cancellationToken, out var sourceWarnings);
         using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         options = ResolveSheet(options, reader);
-        IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
+        IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         ReaderChunk[] chunks = Extract(reader, path, readerOptions, options, warnings, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectExcel(
             document.OpenXmlDocument, path, readerOptions, options.SheetName, options.A1Range, cancellationToken);
@@ -63,11 +63,11 @@ internal static partial class ExcelReaderAdapter {
         ReaderOptions readerOptions,
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
-        using ExcelDocument document = Load(stream, sourceName, readerOptions);
+        using ExcelDocument document = LoadForProjection(stream, sourceName, readerOptions, cancellationToken, out var sourceWarnings);
         using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         options = ResolveSheet(options, reader);
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "workbook.xlsx" : sourceName!;
-        IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
+        IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         ReaderChunk[] chunks = Extract(reader, logicalName, readerOptions, options, warnings, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectExcel(
             document.OpenXmlDocument, logicalName, readerOptions, options.SheetName, options.A1Range, cancellationToken);
