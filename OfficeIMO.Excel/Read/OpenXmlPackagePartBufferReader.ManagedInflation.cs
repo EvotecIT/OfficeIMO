@@ -1,6 +1,7 @@
 #if NET8_0_OR_GREATER
 using System.Buffers;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,8 @@ internal sealed partial class OpenXmlPackagePartBufferReader {
         consumed = false;
         // .NET 11 adds ZIP CRC validation during reads; retain its stream so that proof is not bypassed.
         if (Environment.Version.Major >= 11) return false;
+        // Keep BCL inflation on hosts outside the qualified macOS ARM64 path.
+        if (!OperatingSystem.IsMacOS() || RuntimeInformation.ProcessArchitecture != Architecture.Arm64) return false;
         if (!TryReadCompressedInput(entry, ct, out byte[]? compressed, out int compressedLength)) return false;
         byte[]? output = null;
         Task<bool>? consumer = null;
