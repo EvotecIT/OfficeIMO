@@ -1,4 +1,4 @@
-# Current CSV reader comparisons
+# Current CSV comparisons
 
 I use this opt-in runner for CsvHelper 34.0.0 and FourLambda.Csv 1.1.0 alongside
 OfficeIMO.CSV and Sep 0.17.1. CsvHelper 34 replaces the configuration and parser APIs used by
@@ -14,8 +14,8 @@ Four lanes use default string ownership. The fifth, `OfficeIMO_InternStrings`,
 sets `InternStrings=true` and measures per-read string reuse while returning the
 same complete observation. It is a separate option comparison; it is not the
 default reader. None of these lanes measures borrowed spans. File data is warmed by setup, so this is not cold-disk I/O.
-`--validate` runs the five sales-reader configurations and the four generated-data
-readers once, without collecting timings.
+`--validate` checks the sales readers, generated owned-string readers, typed reads
+and complete typed writes once, without collecting timings.
 
 ```sh
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks.Modern -- --filter "*MarkPflug65KModernCsvBenchmarks*" --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 8 --unrollFactor 1 --outliers DontRemove
@@ -42,6 +42,28 @@ I keep their results separate rather than combining timings from different runs.
 
 ```sh
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks.Modern -- --filter "*CsvGeneratedModernReadBenchmarks*" --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 8 --unrollFactor 1 --outliers DontRemove
+```
+
+## Typed reads and complete writes
+
+`CsvGeneratedModernTypedBenchmarks` uses the same shared 50,000-row record generator
+and ten-column schema. It compares OfficeIMO `RowsAs<T>` with CsvHelper 34's
+source-generated record mapping. The write methods use `CsvDocument.WriteObjects`,
+`CsvRowWriter.CreateStream` with `WriteObject`, and CsvHelper's source-generated
+`WriteRecords`. Every write includes formatting, headers, final disposal, flushing
+and copying the complete output into a byte array.
+
+Setup validates every typed property and row position. Each writer's output is
+read by both libraries, and its headers, byte count and SHA-256 are recorded.
+Timed reads verify the full ten-property checksum and row count. The readers use
+identical input bytes. Writers use their public default value formatting with
+invariant culture and LF line endings, so equivalent decoded records can have
+different output lengths. Stream buffer defaults are part of this complete-write
+comparison. Date/time validation compares ticks. This catalog qualifies the JIT
+object-mapping path, which carries the library's trimming annotation.
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks.Modern -- --filter "*CsvGeneratedModernTypedBenchmarks*" --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 8 --unrollFactor 1 --outliers DontRemove
 ```
 
 I retain the complete BenchmarkDotNet JSON, environment, package and source
