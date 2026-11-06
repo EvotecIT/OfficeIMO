@@ -195,8 +195,9 @@ public sealed partial class PdfReadPage {
         return GetTextSpans(includeArtifactText, default);
     }
 
-    internal IReadOnlyList<PdfTextSpan> GetTextSpans(System.Threading.CancellationToken cancellationToken) {
-        return GetTextSpans(_includeArtifactText, cancellationToken);
+    internal IReadOnlyList<PdfTextSpan> GetTextSpans(System.Threading.CancellationToken cancellationToken,
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
+        return GetTextSpans(_includeArtifactText, cancellationToken, onUnmappableText: onUnmappableText);
     }
 
     // Encoded redaction ranges must retain repeated and edge whitespace in glyph arrays.
@@ -219,13 +220,18 @@ public sealed partial class PdfReadPage {
     /// Counts visible text spans that this read leaves out because they are marked as artifacts (running headers,
     /// footers and page numbers in tagged PDFs). Returns zero without reparsing when the content has no artifacts.
     /// </summary>
-    internal int CountOmittedArtifactTextSpans(System.Threading.CancellationToken cancellationToken) {
+    internal int CountOmittedArtifactTextSpans(System.Threading.CancellationToken cancellationToken,
+        bool recoverDecodableText = false) {
         if (_includeArtifactText) return 0;
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
         string content = GetContentStreamSequence(pageContentBudget).Content;
         if (content.IndexOf("/Artifact", StringComparison.Ordinal) < 0) return 0;
-        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken).Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
-        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken).Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
+        // These passes count spans only. Inspection already recorded failures on its logical pass.
+        Action<PdfUnsupportedTextMappingException, int?>? ignoreUnmappableText = recoverDecodableText ? static (_, _) => { } : null;
+        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken, onUnmappableText: ignoreUnmappableText)
+            .Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
+        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken, onUnmappableText: ignoreUnmappableText)
+            .Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
         return Math.Max(0, withArtifacts - withoutArtifacts);
     }
 
@@ -235,7 +241,8 @@ public sealed partial class PdfReadPage {
         bool includeHiddenOptionalContent = false,
         bool preserveGlyphText = false,
         bool requireMappedText = false,
-        bool ignoreActualText = false) {
+        bool ignoreActualText = false,
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -273,7 +280,8 @@ public sealed partial class PdfReadPage {
                 cancellationCheck: cancellationToken.CanBeCanceled
                     ? cancellationToken.ThrowIfCancellationRequested
                     : null,
-                invokedResourceNames: invokedResources);
+                invokedResourceNames: invokedResources,
+                onUnmappableText: onUnmappableText);
         }
 
         return spans;
@@ -961,7 +969,8 @@ public sealed partial class PdfReadPage {
         bool ignoreActualText = false,
         bool requireMappedText = false,
         Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null,
-        int initialStrokeLineCap = 0) {
+        int initialStrokeLineCap = 0,
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1087,6 +1096,7 @@ public sealed partial class PdfReadPage {
             preserveGlyphText: preserveGlyphText,
                 ignoreActualText: ignoreActualText,
             requireMappedText: requireMappedText,
+            onUnmappableText: onUnmappableText,
             includeArtifactText: includeArtifactText,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
@@ -1247,6 +1257,7 @@ public sealed partial class PdfReadPage {
                     preserveGlyphText: preserveGlyphText,
                 ignoreActualText: ignoreActualText,
                     requireMappedText: requireMappedText,
+                    onUnmappableText: onUnmappableText,
                     onCompletedDrawingActualText: onCompletedDrawingActualText);
             } finally {
                 activeForms.Remove(formStream);

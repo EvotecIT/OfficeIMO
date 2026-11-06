@@ -68,19 +68,7 @@ internal static partial class TableDetector {
         anchors.Sort(static (left, right) => right.Row.Y.CompareTo(left.Row.Y));
         if (anchors.Count < 2) return;
 
-        var group = new List<(TextLayoutEngine.TextLine Line, PositionedRow Row)>();
-        for (int index = 0; index < anchors.Count; index++) {
-            cancellationCheck?.Invoke();
-            (TextLayoutEngine.TextLine Line, PositionedRow Row) candidate = anchors[index];
-            if (group.Count > 0 &&
-                (!PositionedRowsAlign(group[0].Row, candidate.Row) ||
-                 group[group.Count - 1].Row.Y - candidate.Row.Y > 96D)) {
-                TryAddWrappedPositionedCellTable(result, group, boundedLines, consumeWork, cancellationCheck);
-                group.Clear();
-            }
-            group.Add(candidate);
-        }
-        TryAddWrappedPositionedCellTable(result, group, boundedLines, consumeWork, cancellationCheck);
+        AddWrappedPositionedCellGroups(result, anchors, boundedLines, consumeWork, cancellationCheck);
     }
 
     private static void TryAddWrappedPositionedCellTable(
@@ -90,7 +78,8 @@ internal static partial class TableDetector {
         Action<long>? consumeWork,
         Action? cancellationCheck,
         bool allowSingleBodyRow = false,
-        bool allowUnwrappedHeader = false) {
+        bool allowUnwrappedHeader = false,
+        string? leadingCaption = null) {
         cancellationCheck?.Invoke();
         if (anchors.Count < 2 ||
             anchors.Any(candidate => candidate.Row.Cells.Count != anchors[0].Row.Cells.Count)) return;
@@ -177,13 +166,15 @@ internal static partial class TableDetector {
         var table = new PdfStructuredTable {
             YTop = headerLines.Max(static line => line.Y),
             YBottom = anchors[anchors.Count - 1].Row.Y - rowPitch / 2D,
-            Kind = "wrapped-positioned-cells-bounded"
+            Kind = "wrapped-positioned-cells-bounded",
+            LeadingCaption = firstAnchorIsHeader ? leadingCaption : null
         };
         table.Columns.AddRange(columns);
         table.Rows.Add(Header);
         var sourceLines = new List<TextLayoutEngine.TextLine> { HeaderSource };
         var sourceRuns = new List<PdfTextSpan>(HeaderSource.Spans);
-        bool hasCategoricalHeaderEvidence = firstAnchorIsHeader && anchors.Count >= 4 && HasEmphasizedText(anchors[0].Line);
+        bool hasCategoricalHeaderEvidence = firstAnchorIsHeader &&
+            ((anchors.Count >= 4 && HasEmphasizedText(anchors[0].Line)) || (leadingCaption != null && hasWrappedBodyEvidence));
         double firstBodyY = anchors[firstBodyAnchorIndex].Row.Y;
         double headerBodyBoundary = (headerLines.Min(static line => line.Y) + firstBodyY) / 2D;
         HashSet<int> centeredAnchors = FindCenteredWrappedAnchors(anchors, lines, splits,

@@ -24,12 +24,12 @@ internal static partial class PdfReaderAdapter {
     }
 
     private static void SetInspectionSelections(SourceMetadata source, PdfInspectionReadResult inspection) =>
-        source.SuccessfulPageSelectionIndexes = inspection.PageOutcomes.Where(outcome => outcome.Succeeded)
+        source.ProjectedPageSelectionIndexes = inspection.PageOutcomes.Where(outcome => outcome.Page is not null)
             .Select(outcome => outcome.SelectionIndex).ToArray();
 
     // Loaded logical projections have no native inspection outcome list and retain their own ordinal.
     private static int GetPageSelectionIndex(SourceMetadata? source, int ordinal) =>
-        source?.SuccessfulPageSelectionIndexes is IReadOnlyList<int> indexes ? indexes[ordinal] : ordinal;
+        source?.ProjectedPageSelectionIndexes is IReadOnlyList<int> indexes ? indexes[ordinal] : ordinal;
 
     private static IEnumerable<ReaderChunk> BuildInspectionWarningChunks(PdfInspectionReadResult? inspection,
         SourceMetadata source) {
@@ -74,12 +74,12 @@ internal static partial class PdfReaderAdapter {
                     attributes["hasDeclaredToUnicode"] = mapping.HasDeclaredToUnicode.ToString();
                 }
                 if (outcome.UnsupportedFilters.Count > 0) attributes["unsupportedFilters"] = string.Join(",", outcome.UnsupportedFilters);
-                if (!outcome.Succeeded) attributes["disposition"] = "Skipped";
+                if (!outcome.Succeeded) attributes["disposition"] = outcome.Page is null ? "Skipped" : "Partial";
                 evidence.Add("pdf.page-outcome", "NativeText", outcome.Status.ToString(), "outcome", location, attributes: attributes);
                 if (!outcome.Succeeded) {
                     diagnostics.Add(new OfficeDocumentDiagnostic {
                         Code = outcome.Status == PdfPageReadStatus.UnmappableText ? "pdf-page-unmappable-text" : "pdf-page-unsupported-content-filter",
-                        Severity = OfficeDocumentDiagnosticSeverity.Error,
+                        Severity = outcome.Page is null ? OfficeDocumentDiagnosticSeverity.Error : OfficeDocumentDiagnosticSeverity.Warning,
                         Message = GetInspectionFailureMessage(outcome),
                         IsRecoverable = true,
                         Location = location,
@@ -104,12 +104,9 @@ internal static partial class PdfReaderAdapter {
                 });
             }
         }
-        int selectedIndex = 0;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             PdfLogicalPage page = pages[pageIndex];
-            if (inspection is not null) {
-                while (!inspection.PageOutcomes[selectedIndex].Succeeded) selectedIndex++;
-            }
+            int selectionIndex = GetPageSelectionIndex(source, pageIndex);
             IReadOnlyList<PdfTextSpan> runs = page.Analysis.DecodedRuns;
             for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -117,7 +114,7 @@ internal static partial class PdfReaderAdapter {
                 PdfTextDecodingEvidence decoding = run.DecodingEvidence;
                 var attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
                     ["source"] = decoding.Source.ToString(),
-                    ["selectionIndex"] = (inspection is null ? pageIndex : selectedIndex).ToString(CultureInfo.InvariantCulture),
+                    ["selectionIndex"] = selectionIndex.ToString(CultureInfo.InvariantCulture),
                     ["coordinateSpace"] = "pdf-user-space",
                     ["fontResource"] = run.FontResource,
                     ["usedFallback"] = decoding.UsedFallback.ToString(),
@@ -142,7 +139,6 @@ internal static partial class PdfReaderAdapter {
                     });
                 }
             }
-            selectedIndex++;
         }
         result.Diagnostics = diagnostics.AsReadOnly();
         return evidence.Complete(result);
@@ -193,6 +189,7 @@ internal static partial class PdfReaderAdapter {
     };
 
     private static string GetInspectionFailureMessage(PdfPageReadOutcome outcome) =>
-        "PDF source page " + outcome.PageNumber.ToString(CultureInfo.InvariantCulture) + " was not read: " +
+        "PDF source page " + outcome.PageNumber.ToString(CultureInfo.InvariantCulture) +
+        (outcome.Page is null ? " was not read: " : " was partially read: ") +
         (outcome.MappingFailure?.Message ?? "unsupported content-stream filters " + string.Join(", ", outcome.UnsupportedFilters)) + ".";
 }

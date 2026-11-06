@@ -250,12 +250,30 @@ internal sealed partial class PdfUnderstandingPipeline {
         }
     }
 
-    private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) {
+    private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) =>
+        RunPage(CreateContext(page, pageNumber, cancellationToken), cancellationToken);
+
+    internal PdfUnderstandingPageResult RunInspectionPage(PdfReadPage page, int pageNumber, bool recoverDecodableText,
+        CancellationToken cancellationToken, out PdfUnsupportedTextMappingException? mappingFailure) {
         PdfUnderstandingPageContext context = CreateContext(page, pageNumber, cancellationToken);
+        if (recoverDecodableText) context.InspectionTextRecovery = new PdfTextDecodingDiagnosticsBuilder(context);
+        try {
+            PdfUnderstandingPageResult result = RunPage(context, cancellationToken);
+            mappingFailure = context.InspectionTextRecovery?.FirstMappingFailure;
+            return result;
+        } catch {
+            context.CompleteOperation();
+            throw;
+        } finally {
+            context.InspectionTextRecovery = null;
+        }
+    }
+
+    private PdfUnderstandingPageResult RunPage(PdfUnderstandingPageContext context, CancellationToken cancellationToken) {
         var trace = new List<PdfUnderstandingStageTrace>(8);
         IReadOnlyList<PdfTextSpan> runs = NotNull(_glyphDecoding.Decode(context), nameof(IPdfGlyphDecodingStage));
         cancellationToken.ThrowIfCancellationRequested();
-        EnsureCount(runs.Count, _limits.MaxRunsPerPage);
+        EnsureCount((long)runs.Count + (context.InspectionTextRecovery?.OmittedRunCount ?? 0), _limits.MaxRunsPerPage);
         EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
         runs = TextLayoutEngine.FilterIgnoredPageBands(
             runs,
@@ -409,7 +427,7 @@ internal sealed partial class PdfUnderstandingPipeline {
         if (value <= 0) throw new ArgumentOutOfRangeException(name);
     }
 
-    private static void EnsureCount(int actual, int maximum) {
+    private static void EnsureCount(long actual, int maximum) {
         if (actual > maximum) throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maximum, actual);
     }
 

@@ -13,6 +13,7 @@ public sealed partial class PdfLogicalPage {
         PdfUnderstandingPageResult? analysis = null,
         bool includeImages = true,
         bool includeFormWidgets = true,
+        bool recoverDecodableText = false,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var size = page.GetPageSize();
@@ -182,7 +183,7 @@ public sealed partial class PdfLogicalPage {
             page.HasOptionalContentUsage(cancellationToken),
             pageAnalysis, hasVisualPrimitiveCounts: includeImages,
             includesImages: includeImages, includesFormWidgets: includeFormWidgets);
-        logicalPage.OmittedArtifactTextSpanCount = page.CountOmittedArtifactTextSpans(cancellationToken);
+        logicalPage.OmittedArtifactTextSpanCount = page.CountOmittedArtifactTextSpans(cancellationToken, recoverDecodableText);
         if (includeImages && unrepresentedVectorPrimitiveCount >= 6) {
             logicalPage.VectorFigures = PdfLogicalVectorFigureAnalysis.Detect(page, textBlocks, tables, imagePlacements, cancellationToken);
         }

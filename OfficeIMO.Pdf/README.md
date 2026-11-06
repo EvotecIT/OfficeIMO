@@ -73,6 +73,34 @@ complete text extraction matters. Supported font encodings and valid `/ActualTex
 replacements remain readable; a missing ToUnicode map alone does not imply failure.
 OCR-merged results retain warnings about omitted native text.
 
+To include interactive form values in Markdown, enable the widget section:
+
+```csharp
+string markdown = result.ExtractMarkdown(new PdfLogicalMarkdownOptions {
+    IncludeFormWidgets = true
+});
+```
+
+The Markdown widget section is separate from `result.Text`, which reads the
+page content. To include text marked as an artifact, such as running headers,
+footers, or chart labels, pass `new PdfLoadOptions { IncludeArtifactText = true }`
+to `PdfDocument.Load` before calling `Read()`.
+
+`Read()` can throw `PdfUnsupportedTextMappingException` for an unsupported font
+mapping. To recover other readable text on the same page with the built-in
+decoder, opt in when inspecting the document:
+
+```csharp
+PdfInspectionReadResult inspection = pdf.ReadForInspection(new PdfLoadOptions {
+    RecoverDecodableTextForInspection = true
+});
+Console.WriteLine(inspection.Document.Text);
+```
+
+Check `PageOutcomes` and `Document.TextDecodingDiagnostics` before relying on the
+result. A partially read page retains its `UnmappableText` outcome and mapping
+failure, and `CompletedAllSelectedPages` is false.
+
 For files from outside your organization, pass `PdfLoadOptions` with read limits, as shown in the [guide](../Docs/officeimo.pdf-guide.md).
 
 ## Combine, split and reorder pages

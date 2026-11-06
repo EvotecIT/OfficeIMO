@@ -990,7 +990,7 @@ internal static partial class PdfReaderAdapter {
         public string? SourceHash { get; set; }
         public DateTime? LastWriteUtc { get; set; }
         public long? LengthBytes { get; set; }
-        public IReadOnlyList<int>? SuccessfulPageSelectionIndexes { get; set; }
+        public IReadOnlyList<int>? ProjectedPageSelectionIndexes { get; set; }
     }
 
     private sealed class TextPart {

@@ -28,6 +28,12 @@ public sealed partial class PdfLoadOptions {
     /// False retains bounded source field facts and values while omitting secondary widget objects.</summary>
     public bool IncludeFormWidgets { get; init; } = true;
 
+    /// <summary>
+    /// Retains decodable text on a partially unmappable page during <see cref="PdfDocument.ReadForInspection"/>.
+    /// The page still reports a mapping failure. Default: false.
+    /// </summary>
+    public bool RecoverDecodableTextForInspection { get; init; }
+
     /// <summary>Optional caller-ordered page selection. Null reads every page in document order.</summary>
     public PdfPageSelection? PageSelection { get; set; }
 

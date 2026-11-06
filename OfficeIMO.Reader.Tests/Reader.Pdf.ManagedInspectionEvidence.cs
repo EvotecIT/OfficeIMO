@@ -85,6 +85,30 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
         Assert.Contains("selection-0002", visuals[1].Location!.BlockAnchor);
     }
 
+    [Fact]
+    public void PartiallyRecoveredPageKeepsItsReaderSelectionAndMappingWarning() {
+        byte[] bytes = BuildMixedPdf(partialSecondPage: true);
+        var reader = new OfficeDocumentReaderBuilder().AddPdfHandler(new ReaderPdfOptions {
+            ReadOptions = new PdfLoadOptions {
+                PageSelection = PdfPageSelection.From(2, 1, 2),
+                RecoverDecodableTextForInspection = true
+            }
+        }).Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(bytes, "partial.pdf", new ReaderOptions {
+            Inspection = new ReaderInspectionOptions(),
+            Projection = ReaderProjection.TextAndMetadata
+        });
+
+        Assert.Equal(new int?[] { 0, 1, 2 }, result.Pages.Select(page => page.Location.SourceBlockIndex));
+        Assert.Equal(new int?[] { 0, 2 }, result.Chunks.Where(chunk => chunk.Text == "Readable part of affected page")
+            .Select(chunk => chunk.Location.SourceBlockIndex));
+        Assert.Equal(new int?[] { 0, 2 }, result.Diagnostics.Where(item => item.Code == "pdf-page-unmappable-text"
+                && item.Severity == OfficeDocumentDiagnosticSeverity.Warning && item.Attributes["disposition"] == "Partial")
+            .Select(item => item.Location!.SourceBlockIndex));
+        Assert.DoesNotContain(result.Chunks, chunk => chunk.Text.Contains("Running header"));
+    }
+
     [Theory]
     [InlineData("input", false)]
     [InlineData("input", true)]
@@ -190,7 +214,7 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
         Assert.Equal(241, clone.LoadOptions.Limits.MaxContentOperations);
     }
 
-    private static byte[] BuildMixedPdf(bool fallbackFont = false, bool decoratedReadablePage = false) {
+    private static byte[] BuildMixedPdf(bool fallbackFont = false, bool decoratedReadablePage = false, bool partialSecondPage = false) {
         string[] objects = {
             "<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 7 0 R >>",
@@ -210,6 +234,15 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
                 "<< /Type /Annot /Subtype /Link /Rect [20 30 80 50] /Contents (Readable annotation) /A << /S /URI /URI (https://example.test/readable-page) >> >>"
             }).ToArray();
         }
+        if (partialSecondPage) {
+            int formObject = objects.Length + 1;
+            objects[3] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 5 0 R >> " +
+                "/XObject << /Fm1 " + formObject.ToString(CultureInfo.InvariantCulture) + " 0 R >> >> /Contents 8 0 R /Annots [9 0 R] >>";
+            objects[7] = Stream("/Artifact BMC BT /F1 12 Tf 20 165 Td (Running header) Tj ET EMC " +
+                "q /Fm1 Do Q BT /F1 12 Tf 20 75 Td (Readable part of affected page) Tj ET");
+            objects = objects.Concat(new[] { Stream("BT /F1 12 Tf 20 115 Td <0001> Tj ET",
+                "/Type /XObject /Subtype /Form /BBox [0 0 300 200] /Resources << /Font << /F1 6 0 R >> >>") }).ToArray();
+        }
         var text = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
         for (int index = 0; index < objects.Length; index++) {
@@ -223,6 +256,6 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
         return Encoding.ASCII.GetBytes(text.ToString());
     }
 
-    private static string Stream(string content) => "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) +
-        " >>\nstream\n" + content + "\nendstream";
+    private static string Stream(string content, string entries = "") => "<< " + entries + " /Length " +
+        content.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + content + "\nendstream";
 }

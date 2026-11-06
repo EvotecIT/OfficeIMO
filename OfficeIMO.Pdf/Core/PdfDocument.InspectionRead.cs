@@ -6,6 +6,8 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Reads supported selected pages while retaining structural facts and explicit outcomes for unmappable
     /// text and unsupported content-stream filters. Existing <see cref="Read"/> remains fail-fast.
+    /// Pass <see cref="PdfLoadOptions.RecoverDecodableTextForInspection"/> to retain readable text on
+    /// a page with a font-mapping failure when using the built-in glyph decoder.
     /// Cancellation, resource admission, authentication, permissions, structural parsing, and unexpected
     /// stage failures remain terminal and are never converted to partial success.
     /// </summary>
@@ -15,6 +17,9 @@ public sealed partial class PdfDocument {
         var snapshot = GetReadSnapshot(cancellationToken: cancellationToken);
         snapshot.Document.DemandContentExtraction("logical object");
         PdfDocumentInfo sourceInfo = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
-        return PdfDocumentReadEngine.ReadForInspection(snapshot.Document, sourceInfo, effective, cancellationToken);
+        bool recoverDecodableText = options is null
+            ? snapshot.Options.RecoverDecodableTextForInspection
+            : effective.RecoverDecodableTextForInspection;
+        return PdfDocumentReadEngine.ReadForInspection(snapshot.Document, sourceInfo, effective, recoverDecodableText, cancellationToken);
     }
 }

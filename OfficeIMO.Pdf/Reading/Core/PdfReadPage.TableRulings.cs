@@ -8,7 +8,16 @@ public sealed partial class PdfReadPage {
     /// canonical content/form parser. Uncertain paint or clipping leaves text inference
     /// in charge; an intersection with the page alone cannot prove a complete ruling.
     /// </summary>
-    internal IReadOnlyList<PdfTableRuling> GetTableRulings(PdfUnderstandingPageContext context) {
+    internal IReadOnlyList<PdfTableRuling> GetTableRulings(PdfUnderstandingPageContext context) =>
+        GetTableRulings(context, out _);
+
+    /// <summary>
+    /// Distinguishes ordinary ruling evidence from the painted-row recovery
+    /// profile, which repairs incomplete cells while preserving equivalent text
+    /// tables' inferred continuation geometry.
+    /// </summary>
+    internal IReadOnlyList<PdfTableRuling> GetTableRulings(PdfUnderstandingPageContext context, out bool canRefineExistingGeometry) {
+        canRefineExistingGeometry = false;
         context.ThrowIfCancellationRequested();
         if (context.ImagePlacements.Count > 0) return Array.Empty<PdfTableRuling>();
         (double width, double height) = GetVisualPageSize();
@@ -31,6 +40,9 @@ public sealed partial class PdfReadPage {
         }
         var rulings = new List<PdfTableRuling>();
         bool uncertain = false;
+        bool firstPaint = true;
+        bool unsupportedTextPaint = false;
+        PaintedRowRulings? paintedRows = null;
         (OfficeColor Color, double Width, double Opacity)? strokePaint = null;
         OfficeColor? rulePaint = null;
         if (content.Length > 0) {
@@ -38,17 +50,30 @@ public sealed partial class PdfReadPage {
                 new HashSet<PdfStream>(), retainPrimitiveData: false,
                 // Opaque paint can hide a ruling. Images/groups are outside this small
                 // stroke-only profile rather than evidence for an authored grid.
-                type3ImageVisitor: (_, _, _) => uncertain = true,
-                type3GroupVisitor: (_, _, _, _, _) => uncertain = true,
+                type3ImageVisitor: (_, _, _) => RejectType3Paint(),
+                type3GroupVisitor: (_, _, _, _, _) => RejectType3Paint(),
                 textOutputBudget: CreateTextOutputBudget(), pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,
                 invokedResourceNames: invoked,
                 scaleStrokeWidthWithTransform: true);
         }
-        return uncertain ? Array.Empty<PdfTableRuling>() : rulings;
+        if (uncertain) return paintedRows?.Build(context, ToReadingPoint) ?? Array.Empty<PdfTableRuling>();
+        canRefineExistingGeometry = true;
+        return rulings;
+
+        void RejectType3Paint() {
+            uncertain = unsupportedTextPaint = true;
+            paintedRows?.Invalidate();
+        }
 
         void Visit(PdfPageVisualPrimitive primitive) {
             context.ConsumeWork();
+            if (firstPaint) {
+                firstPaint = false;
+                if (!unsupportedTextPaint) paintedRows = PaintedRowRulings.Start(primitive, width, height);
+            } else {
+                paintedRows?.Add(primitive, width, height, context);
+            }
             if (uncertain) return;
             if (primitive.ContentOrderKey?.Depth != 1) { uncertain = true; return; }
             if (primitive.HasFillPaint) {

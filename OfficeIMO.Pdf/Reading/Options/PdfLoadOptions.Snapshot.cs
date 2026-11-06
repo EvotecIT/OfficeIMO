@@ -17,6 +17,7 @@ public sealed partial class PdfLoadOptions {
             Profile = effective.Profile,
             IncludeImages = includeImagesOverride ?? effective.IncludeImages,
             IncludeFormWidgets = includeFormWidgetsOverride ?? effective.IncludeFormWidgets,
+            RecoverDecodableTextForInspection = effective.RecoverDecodableTextForInspection,
             PageSelection = effective.PageSelection,
             LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
             Pipeline = ClonePipelineOptions(effective.Pipeline),

@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfDocumentReadEngine {
     internal static PdfInspectionReadResult ReadForInspection(PdfReadDocument document, PdfDocumentInfo sourceInfo,
-        PdfLoadOptions options, CancellationToken cancellationToken) {
+        PdfLoadOptions options, bool recoverDecodableText, CancellationToken cancellationToken) {
         int[] selected = options.PageSelection?.ToPageNumbers(document.Pages.Count, nameof(options.PageSelection))
             ?? Enumerable.Range(1, document.Pages.Count).ToArray();
         PdfUnderstandingPipelineOptions pipelineOptions = PdfUnderstandingPipelineOptions.Resolve(options.Pipeline);
@@ -15,6 +15,7 @@ internal static partial class PdfDocumentReadEngine {
         var numbers = new List<int>();
         var analyses = new List<PdfUnderstandingPageResult>();
         var failures = new Dictionary<int, PdfPageReadOutcome>();
+        var partialFailures = recoverDecodableText ? new PdfUnsupportedTextMappingException?[selected.Length] : null;
         try {
             for (int index = 0; index < selected.Length; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -27,30 +28,44 @@ internal static partial class PdfDocumentReadEngine {
                     continue;
                 }
                 try {
-                    PdfUnderstandingPageResult analysis = pipeline.RunPages(document, new[] { pageNumber }, cancellationToken)[0];
+                    PdfUnderstandingPageResult analysis = pipeline.RunInspectionPage(document.Pages[pageNumber - 1], pageNumber,
+                        recoverDecodableText, cancellationToken, out PdfUnsupportedTextMappingException? mappingFailure);
+                    if (mappingFailure is not null && !analysis.DecodedRuns.Any(static run => !string.IsNullOrWhiteSpace(run.Text))) {
+                        analysis.CompleteOperation();
+                        failures.Add(index, new PdfPageReadOutcome(pageNumber, index, PdfPageReadStatus.UnmappableText,
+                            mappingFailure: mappingFailure));
+                        continue;
+                    }
                     numbers.Add(pageNumber);
                     analyses.Add(analysis);
+                    if (mappingFailure is not null) partialFailures![index] = mappingFailure;
                 } catch (PdfUnsupportedTextMappingException failure) {
                     cancellationToken.ThrowIfCancellationRequested();
                     failures.Add(index, new PdfPageReadOutcome(pageNumber, index,
                         PdfPageReadStatus.UnmappableText, mappingFailure: failure));
                 }
             }
-            int[] successfulNumbers = numbers.ToArray();
+            int[] projectedNumbers = numbers.ToArray();
             IReadOnlyList<PdfUnderstandingPageResult> enriched = options.Profile == PdfReadProfile.Structured
-                ? PdfDocumentSemanticEnricher.Enrich(document, successfulNumbers, analyses,
+                ? PdfDocumentSemanticEnricher.Enrich(document, projectedNumbers, analyses,
                     pipelineOptions.MaxRegionsPerPage, pipelineOptions.MaxDocumentWorkUnits, cancellationToken)
                 : analyses;
             PdfDocumentReadResult result = PdfDocumentReadResult.FromPageNumbers(document, options.LayoutOptions,
-                successfulNumbers, enriched, options.Profile, cancellationToken, preserveDocumentWideObjects: true,
-                includeImages: options.IncludeImages, includeFormWidgets: options.IncludeFormWidgets);
+                projectedNumbers, enriched, options.Profile, cancellationToken, preserveDocumentWideObjects: true,
+                includeImages: options.IncludeImages, includeFormWidgets: options.IncludeFormWidgets,
+                recoverDecodableText: recoverDecodableText);
             var outcomes = new List<PdfPageReadOutcome>(selected.Length);
-            int successfulIndex = 0;
+            int projectedIndex = 0;
             for (int index = 0; index < selected.Length; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                outcomes.Add(failures.TryGetValue(index, out PdfPageReadOutcome? failure)
-                    ? failure : new PdfPageReadOutcome(selected[index], index, PdfPageReadStatus.Read,
-                        result.Pages[successfulIndex++]));
+                if (failures.TryGetValue(index, out PdfPageReadOutcome? failure)) {
+                    outcomes.Add(failure);
+                    continue;
+                }
+                PdfUnsupportedTextMappingException? partialFailure = partialFailures?[index];
+                outcomes.Add(new PdfPageReadOutcome(selected[index], index,
+                    partialFailure is null ? PdfPageReadStatus.Read : PdfPageReadStatus.UnmappableText,
+                    result.Pages[projectedIndex++], mappingFailure: partialFailure));
             }
             return new PdfInspectionReadResult(sourceInfo, document.RepairReport, result, outcomes.AsReadOnly());
         } finally {

@@ -196,6 +196,11 @@ internal static class PdfLogicalTableContinuations {
         PdfLogicalPage previousPage = document.Pages[previous.PageIndex];
         PdfLogicalPage currentPage = document.Pages[current.PageIndex];
         if (previous.TableIndex != previousPage.Tables.Count - 1 || current.TableIndex != 0) return false;
+        // Distinct captions identify separate tables. An identical line can be
+        // a running page header or a caption repeated with the table header.
+        if (previous.Table.LeadingCaption is string previousCaption &&
+            current.Table.LeadingCaption is string currentCaption &&
+            !string.Equals(previousCaption, currentCaption, StringComparison.Ordinal)) return false;
         if (previous.Data.Columns.Count < 2 || previous.Data.Columns.Count != current.Data.Columns.Count) return false;
         if (!IsAtBottomEdge(previous.Table, previousPage) || !IsAtTopEdge(current.Table, currentPage)) return false;
         if (!HasCompatibleColumns(previous.Table, previousPage, current.Table, currentPage, tolerance, cancellationToken)) return false;

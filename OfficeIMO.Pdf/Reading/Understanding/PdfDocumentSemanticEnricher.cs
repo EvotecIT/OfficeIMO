@@ -44,6 +44,7 @@ internal static partial class PdfDocumentSemanticEnricher {
             pages,
             tableCandidates,
             taggedGraph,
+            taggedRoles,
             maxElementsPerPage,
             workBudget);
         ApplyTaggedStructureEvidence(document, pageNumbers, pages, elements, taggedRoles, workBudget);
@@ -53,10 +54,21 @@ internal static partial class PdfDocumentSemanticEnricher {
         EnsureElementLimits(elements, maxElementsPerPage);
         ApplyHeadingFontTierEvidence(elements, workBudget);
 
+        Dictionary<int, Dictionary<int, int>?>? paragraphStories =
+            IndexTaggedParagraphStories(document, taggedGraph, workBudget);
         var result = new PdfUnderstandingPageResult[pages.Count];
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             workBudget.Consume();
             PdfUnderstandingPageResult page = pages[pageIndex];
+            List<PdfUnderstandingSemanticElement>? taggedStory = !page.RestrictLogicalProjectionToReadingOrder &&
+                tableCandidates[pageIndex].Count == 0 &&
+                paragraphStories is not null && paragraphStories.TryGetValue(pageNumbers[pageIndex], out var paragraphOwners) &&
+                paragraphOwners is not null &&
+                elements[pageIndex].All(static element => element.Kind == PdfUnderstandingSemanticKind.Paragraph)
+                ? BuildTaggedParagraphStory(document.Pages[pageNumbers[pageIndex] - 1], page, paragraphOwners,
+                    maxElementsPerPage, workBudget)
+                : null;
+            if (taggedStory is not null) elements[pageIndex] = taggedStory;
             PdfUnderstandingRegion[] canonicalRegions = elements[pageIndex]
                 .Select(static element => element.Region)
                 .ToArray();
@@ -71,9 +83,12 @@ internal static partial class PdfDocumentSemanticEnricher {
             IReadOnlyList<PdfUnderstandingRegion> readingOrder = regionsChanged
                 ? regions
                 : page.ReadingOrder;
-            IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence = regionsChanged
-                ? BuildReadingOrderEvidence(page.ReadingOrderEvidence, canonicalRegions, workBudget)
-                : page.ReadingOrderEvidence;
+            IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence = taggedStory is not null
+                ? Array.AsReadOnly(canonicalRegions.Select(static (region, index) =>
+                    new PdfReadingOrderEvidence(index, region, region.Confidence, region.Evidence)).ToArray())
+                : regionsChanged
+                    ? BuildReadingOrderEvidence(page.ReadingOrderEvidence, canonicalRegions, workBudget)
+                    : page.ReadingOrderEvidence;
             result[pageIndex] = new PdfUnderstandingPageResult(
                 page.PageNumber,
                 page.DecodedRuns,
@@ -87,7 +102,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 page.ConsumeWork,
                 page.CancellationCheck,
                 page.CompleteOperation,
-                page.LogicalProjectionLines,
+                taggedStory is null ? page.LogicalProjectionLines : null,
                 page.RestrictLogicalProjectionToReadingOrder,
                 tableCandidates[pageIndex],
                 page.ImagePlacements,

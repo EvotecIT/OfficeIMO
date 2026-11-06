@@ -7,6 +7,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         IReadOnlyList<PdfUnderstandingPageResult> pages,
         IReadOnlyList<PdfUnderstandingTableCandidate>[] tableCandidates,
         TaggedStructureGraph? graph,
+        TaggedContentRoleIndex? taggedRoles,
         int maximumArtifactsPerPage,
         PdfUnderstandingWorkBudget workBudget) {
         if (graph is null) return;
@@ -90,11 +91,14 @@ internal static partial class PdfDocumentSemanticEnricher {
                 selectedPageNumbers[pageIndex],
                 index,
                 workBudget);
+            int pageNumber = selectedPageNumbers[pageIndex];
+            PdfReadPage readPage = document.Pages[pageNumber - 1];
             IReadOnlyList<PdfUnderstandingTableCandidate> existing = RemoveFullyAccountedGeometricTables(
                 tableCandidates[pageIndex],
                 additions,
                 figureRuns,
-                workBudget);
+                workBudget,
+                run => IsTaggedProseOutsideTables(run, additions, taggedRoles, pageNumber, readPage, workBudget));
             IReadOnlyList<PdfUnderstandingTableCandidate> reconciled =
                 PdfUnderstandingTableCandidateReconciler.Reconcile(
                     document.Pages[selectedPageNumbers[pageIndex] - 1],
@@ -110,6 +114,27 @@ internal static partial class PdfDocumentSemanticEnricher {
             }
             tableCandidates[pageIndex] = reconciled;
         }
+    }
+
+    private static bool IsTaggedProseOutsideTables(
+        PdfTextSpan run,
+        List<PdfUnderstandingTableCandidate> tables,
+        TaggedContentRoleIndex? taggedRoles,
+        int pageNumber,
+        PdfReadPage readPage,
+        PdfUnderstandingWorkBudget workBudget) {
+        if (taggedRoles is null || !run.MarkedContentId.HasValue) return false;
+        IReadOnlyList<string> roles = taggedRoles.GetRoles(pageNumber, readPage,
+            new MarkedContentKey(run.ContentStreamObjectNumber, run.MarkedContentId.Value));
+        if (roles.Contains("Table", StringComparer.OrdinalIgnoreCase) ||
+            (!roles.Contains("P", StringComparer.OrdinalIgnoreCase) &&
+             !roles.Contains("Caption", StringComparer.OrdinalIgnoreCase))) return false;
+
+        foreach (PdfUnderstandingTableCandidate table in tables) {
+            workBudget.Consume();
+            if (run.Y >= table.YBottom && run.Y <= table.YTop) return false;
+        }
+        return true;
     }
 
     private static HashSet<PdfTextSpan> CollectTaggedFigureRuns(
@@ -149,7 +174,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         IReadOnlyList<PdfUnderstandingTableCandidate> existing,
         List<PdfUnderstandingTableCandidate> taggedTables,
         HashSet<PdfTextSpan> figureRuns,
-        PdfUnderstandingWorkBudget workBudget) {
+        PdfUnderstandingWorkBudget workBudget,
+        Func<PdfTextSpan, bool>? isTaggedProseOutsideTables = null) {
         var taggedRuns = new HashSet<PdfTextSpan>();
         for (int index = 0; index < taggedTables.Count; index++) {
             workBudget.Consume();
@@ -180,7 +206,10 @@ internal static partial class PdfDocumentSemanticEnricher {
                 bool ownedByNonTableContent = run.IsArtifactContent || figureRuns.Contains(run);
                 intersectsTaggedTable |= ownedByTaggedTable;
                 fullyOwnedByNonTableContent &= ownedByNonTableContent;
-                fullyAccounted &= ownedByTaggedTable || ownedByNonTableContent;
+                // A separately tagged paragraph outside the grid belongs in the reading flow.
+                // It cannot keep a competing candidate that otherwise repeats authoritative cells.
+                fullyAccounted = fullyAccounted && (ownedByTaggedTable || ownedByNonTableContent ||
+                    string.IsNullOrWhiteSpace(run.Text) || isTaggedProseOutsideTables?.Invoke(run) == true);
             }
             if (!fullyOwnedByNonTableContent && !(intersectsTaggedTable && fullyAccounted)) result.Add(candidate);
         }
@@ -312,11 +341,11 @@ internal static partial class PdfDocumentSemanticEnricher {
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                 workBudget.Consume();
                 IReadOnlyList<MarkedContentKey> keys = sourceRows[rowIndex].Cells[columnIndex];
-                if (keys.Count == 0) {
+                if (!contentIndex.TryBuildCell(keys, out TaggedTableCell? resolved)) return null;
+                if (resolved is not TaggedTableCell cell) {
                     cells[columnIndex] = string.Empty;
                     continue;
                 }
-                if (!contentIndex.TryBuildCell(keys, out TaggedTableCell cell)) return null;
                 cells[columnIndex] = cell.Text;
                 sourceLines.AddRange(cell.SourceLines);
                 for (int runIndex = 0; runIndex < cell.SourceRuns.Count; runIndex++) {
@@ -374,6 +403,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         private readonly PdfUnderstandingPageResult _page;
         private readonly PdfUnderstandingWorkBudget _workBudget;
         private readonly Dictionary<MarkedContentKey, List<PdfTextSpan>> _runsByKey = new();
+        private Dictionary<int, int?>? _textlessPageContent;
 
         internal TaggedPageContentIndex(
             PdfReadPage readPage,
@@ -397,11 +427,12 @@ internal static partial class PdfDocumentSemanticEnricher {
 
         internal bool TryBuildCell(
             IReadOnlyList<MarkedContentKey> keys,
-            out TaggedTableCell cell) {
+            out TaggedTableCell? cell) {
             var selectedRuns = new HashSet<PdfTextSpan>();
             for (int keyIndex = 0; keyIndex < keys.Count; keyIndex++) {
                 _workBudget.Consume();
                 if (!TryResolveRuns(keys[keyIndex], out IReadOnlyList<PdfTextSpan>? runs)) {
+                    if (IsTextlessPageContent(keys[keyIndex])) continue;
                     cell = default;
                     return false;
                 }
@@ -410,6 +441,11 @@ internal static partial class PdfDocumentSemanticEnricher {
                     selectedRuns.Add(runs[runIndex]);
                 }
             }
+            if (selectedRuns.Count == 0) {
+                cell = null;
+                return true;
+            }
+
             var orderedRuns = new PdfTextSpan[selectedRuns.Count];
             int orderedRunIndex = 0;
             foreach (PdfTextSpan run in selectedRuns) {
@@ -421,11 +457,6 @@ internal static partial class PdfDocumentSemanticEnricher {
                 int baseline = right.Y.CompareTo(left.Y);
                 return baseline != 0 ? baseline : left.X.CompareTo(right.X);
             });
-            if (orderedRuns.Length == 0) {
-                cell = default;
-                return false;
-            }
-
             List<TextLayoutEngine.TextLine> layoutLines = TextLayoutEngine.BuildLines(
                 orderedRuns,
                 new TextLayoutEngine.Options { ForceSingleColumn = true },
@@ -433,8 +464,8 @@ internal static partial class PdfDocumentSemanticEnricher {
                 _workBudget.ThrowIfCancellationRequested);
             string text = string.Join(" ", layoutLines.Select(static line => line.Text)).Trim();
             if (text.Length == 0) {
-                cell = default;
-                return false;
+                cell = null;
+                return orderedRuns.All(static run => string.IsNullOrWhiteSpace(run.Text));
             }
 
             var sourceLines = new List<PdfUnderstandingLine>();
@@ -494,6 +525,14 @@ internal static partial class PdfDocumentSemanticEnricher {
                 sourceLines.AsReadOnly(),
                 Array.AsReadOnly(orderedRuns));
             return true;
+        }
+
+        private bool IsTextlessPageContent(MarkedContentKey key) {
+            if (!_readPage.IsPageContentStreamObjectNumber(key.ContentStreamObjectNumber)) return false;
+            _textlessPageContent ??= _readPage.GetTextlessPageMarkedContent(
+                () => _workBudget.Consume(), _workBudget.CancellationToken);
+            return _textlessPageContent.TryGetValue(key.MarkedContentId, out int? stream) &&
+                (!key.ContentStreamObjectNumber.HasValue || key.ContentStreamObjectNumber == stream);
         }
 
         internal bool TryResolveRuns(

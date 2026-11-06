@@ -7,11 +7,38 @@ namespace OfficeIMO.Tests.Pdf {
 
     public sealed class PdfPredefinedCjkTests {
         [Fact]
-        public void IndependentMismatchedEncodingAndCharacterCollectionRefusesSearch() {
+        public void IndependentMismatchedCollectionRecoversReadableTextOnlyForOptedInInspection() {
             byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Pdf", "Fixtures",
                 "Interoperability", "PredefinedCjk", "mismatched-collection.pdf"));
             Assert.ThrowsAny<NotSupportedException>(() => PdfReadDocument.Open(source).ExtractText());
-            PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("秘密"));
+            PdfDocument pdf = PdfDocument.Load(source);
+            PdfInspectionReadResult ordinary = pdf.ReadForInspection();
+            Assert.Null(Assert.Single(ordinary.PageOutcomes).Page);
+            Assert.Empty(ordinary.Document.Pages);
+
+            var options = new PdfLoadOptions { RecoverDecodableTextForInspection = true };
+            PdfInspectionReadResult recovered = pdf.ReadForInspection(options);
+            PdfPageReadOutcome outcome = Assert.Single(recovered.PageOutcomes);
+            Assert.Equal(PdfPageReadStatus.UnmappableText, outcome.Status);
+            Assert.False(outcome.Succeeded);
+            Assert.False(recovered.CompletedAllSelectedPages);
+            Assert.Same(Assert.Single(recovered.Document.Pages), outcome.Page);
+            Assert.Equal("UniGB-UCS2-H", outcome.MappingFailure!.EncodingName);
+            Assert.Equal("Public summary remains readable.", recovered.Document.Text.Trim());
+            Assert.Contains("Public summary remains readable.", recovered.Document.ExtractMarkdown());
+            PdfFontInspectionDiagnostic warning = Assert.Single(recovered.Document.TextDecodingDiagnostics);
+            Assert.Equal(PdfFontInspectionDiagnosticCode.UnmappableText, warning.Code);
+            Assert.Equal(1, warning.PageNumber);
+            Assert.EndsWith("/Font/F2", warning.ResourcePath);
+            Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts,
+                Assert.Throws<PdfReadLimitException>(() => pdf.ReadForInspection(new PdfLoadOptions {
+                    RecoverDecodableTextForInspection = true,
+                    Pipeline = new PdfUnderstandingPipelineOptions { MaxRunsPerPage = 1 }
+                })).Kind);
+
+            PdfDocument withRecoveryOption = PdfDocument.Load(source, options);
+            Assert.Throws<PdfUnsupportedTextMappingException>(() => withRecoveryOption.Read());
+            PdfRedactionPlan plan = withRecoveryOption.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("秘密"));
             Assert.False(plan.IsReviewable);
             Assert.Contains(plan.Findings, static finding => finding.Code == "redaction-search-text-mapping-unsupported");
         }

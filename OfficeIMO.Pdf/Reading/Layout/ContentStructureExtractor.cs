@@ -84,6 +84,8 @@ public sealed class PdfStructuredTable {
     public string Kind { get; set; } = "band-splits";
     /// <summary>YTop and YBottom are the outer rules of a closed grid rather than the first and last row baselines.</summary>
     internal bool HasRuledBounds { get; set; }
+    /// <summary>Text of a separate caption above the positioned header, when established by layout evidence.</summary>
+    internal string? LeadingCaption { get; set; }
     /// <summary>Detected columns with X ranges.</summary>
     public List<PdfStructuredTableColumn> Columns { get; } = new();
     /// <summary>Extracted row values aligned to Columns.</summary>

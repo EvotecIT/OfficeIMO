@@ -359,7 +359,8 @@ internal static partial class TextContentParser {
         bool mergeKernedTextArrays = true,
         Action<DrawingActualTextScope>? onCompletedDrawingActualText = null,
         Func<string, bool>? usesTwoByteGlyphCodesForResource = null,
-        int initialStrokeLineCap = 0) {
+        int initialStrokeLineCap = 0,
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
 
@@ -972,6 +973,8 @@ internal static partial class TextContentParser {
             bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
             bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
             bool isHidden = HasActiveHiddenContent();
+            bool recoverRun = onUnmappableText is not null && useLogicalTextFilters && !requireMappedText &&
+                !isArtifact && !isHidden && actualTextState is null;
             PdfUnsupportedTextMappingException? unsupportedMapping = null;
             string DecodeRun(byte[] value, int? maximumCharacters = null, bool probe = false) {
                 if (unsupportedMapping is not null) return string.Empty;
@@ -983,7 +986,7 @@ internal static partial class TextContentParser {
                     return decodeWithFontWithinLimit != null
                         ? decodeWithFontWithinLimit(font, value, remaining)
                         : decodeWithFont(font, value);
-                } catch (PdfUnsupportedTextMappingException error) when (probe ||
+                } catch (PdfUnsupportedTextMappingException error) when (probe || recoverRun ||
                     (useLogicalTextFilters && !requireMappedText && (isArtifact || isHidden || actualTextState is not null))) {
                     // Width probes may supply only a prefix of a composite code. Logical
                     // extraction can also use ActualText or exclude this decoration.
@@ -1070,7 +1073,15 @@ internal static partial class TextContentParser {
                 idx += step;
             }
             textOutputBudget.ChargeDecodedText(Math.Max(wholeDecoded.Length, decodedGlyphCharacters));
-            if (!usedVisualEncoding && ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded)) {
+            if (recoverRun && wholeRunMappingFailure is not null) {
+                onUnmappableText!(wholeRunMappingFailure, currentContentStreamObjectNumber);
+                // A failed run still advances text and may participate in clipping.
+                ApplyTextClippingPath(advTotal);
+                textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
+                return;
+            }
+            if (!usedVisualEncoding && ((recoverRun && unsupportedMapping is not null) ||
+                ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded))) {
                 sbOut.Clear();
                 sbOut.Append(wholeDecoded);
                 decodedAdvances.Clear();
