@@ -230,6 +230,7 @@ namespace OfficeIMO.Word.Html {
             _tableCellContentWidths.Clear();
             InlineStyleParseCount = 0;
             TableBackgroundParseCount = 0;
+            _remoteResourceCookies = null;
             _remoteImageBytesCache.Clear();
             _remoteImageFailureCache.Clear();
             _cssClassStyles.Clear();

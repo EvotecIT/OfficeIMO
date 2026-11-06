@@ -156,12 +156,14 @@ namespace OfficeIMO.Word.Html {
 
         /// <summary>
         /// Optional <see cref="HttpClient"/> used to download remote images and stylesheets.
-        /// The built-in client checks each redirect destination against the applicable resource policy.
+        /// The built-in client checks each redirect destination against the applicable resource policy
+        /// and scopes native HTTP cookies to a single conversion.
         /// </summary>
         /// <remarks>
-        /// When supplying a client, configure its handler to enforce your redirect policy.
+        /// When supplying a client, configure its handler to enforce your cookie and redirect policies.
         /// The converter checks the initial URI before handing it to the client.
-        /// The built-in client skips redirects in browsers because their destinations are unavailable.
+        /// In browsers, the runtime manages cookies and the built-in client skips redirects
+        /// because their destinations are unavailable.
         /// </remarks>
         public HttpClient? HttpClient { get; set; }
 

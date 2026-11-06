@@ -8,6 +8,8 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Html {
+    private const string RedirectTestPngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
+
     [Theory]
     [InlineData(false, false, false)]
     [InlineData(false, true, false)]
@@ -18,7 +20,7 @@ public partial class Html {
     public async Task HtmlToWord_BuiltInHttpClientChecksRedirectHostBeforeFetching(bool stylesheet, bool allowed, bool useUrlTransform) {
         byte[] payload = stylesheet
             ? Encoding.UTF8.GetBytes("p { color:#123456; }")
-            : Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=");
+            : Convert.FromBase64String(RedirectTestPngBase64);
         string contentType = stylesheet ? "text/css" : "image/png";
         string extension = stylesheet ? "css" : "png";
         using var destination = new RedirectTestServer();
@@ -73,6 +75,58 @@ public partial class Html {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+#if NETFRAMEWORK
+    [InlineData(true)]
+#endif
+    public async Task HtmlToWord_BuiltInHttpClientKeepsCookiesWithinOneConversion(bool useLegacyCookieHeader) {
+        const string host = "127.0.0.1";
+        const string cookie = "officeimo_session=proof";
+        string path = $"/{Guid.NewGuid():N}/";
+        string setCookie = useLegacyCookieHeader
+            ? $"Set-Cookie2: {cookie}; Version=1; Path={path}"
+            : $"Set-Cookie: {cookie}; Path={path}";
+        string expectedCookie = useLegacyCookieHeader ? $"$Version=1; {cookie}; $Path={path}" : cookie;
+        byte[] png = Convert.FromBase64String(RedirectTestPngBase64);
+        using var origin = new RedirectTestServer();
+        using var stylesheet = new RedirectTestServer();
+        using var image = new RedirectTestServer();
+        string startUrl = $"http://{host}:{origin.Port}{path}start.css";
+        string stylesheetUrl = $"http://{host}:{stylesheet.Port}{path}style.css";
+        string imageUrl = $"http://{host}:{image.Port}{path}image.png";
+        Task originResponse = origin.SendAsync($"302 Found\r\nLocation: {stylesheetUrl}\r\n{setCookie}");
+        Task stylesheetResponse = stylesheet.SendAsync("200 OK\r\nContent-Type: text/css", Encoding.UTF8.GetBytes("p { color:#123456; }"));
+        Task firstImageResponse = image.SendAsync("200 OK\r\nContent-Type: image/png", png);
+
+        var options = new HtmlWordExportOptions {
+            AllowDocumentStylesheetLinks = true,
+            ImageProcessing = WordHtmlImageProcessingMode.Embed,
+            ResourceTimeout = TimeSpan.FromSeconds(8)
+        };
+        options.AllowedImageHosts.Add(host);
+        options.AllowedStylesheetHosts.Add(host);
+        string imageHtml = $"<p><img src='{imageUrl}' alt='Image fallback'></p>";
+        using WordDocument first = (await OfficeIMO.Html.HtmlConversionDocument
+            .Parse($"<link rel='stylesheet' href='{startUrl}'><p>Styled text</p>{imageHtml}")
+            .ToWordAsync(options)).Value;
+        origin.Dispose();
+        stylesheet.Dispose();
+        Assert.Single(first.Images);
+        await Task.WhenAll(originResponse, stylesheetResponse, firstImageResponse);
+        Assert.Null(origin.RequestCookie);
+        Assert.Equal(expectedCookie, stylesheet.RequestCookie);
+        Assert.Equal(expectedCookie, image.RequestCookie);
+
+        Task secondImageResponse = image.SendAsync("200 OK\r\nContent-Type: image/png", png);
+        using WordDocument second = (await OfficeIMO.Html.HtmlConversionDocument.Parse(imageHtml)
+            .ToWordAsync(options)).Value;
+        image.Dispose();
+        await secondImageResponse;
+        Assert.Single(second.Images);
+        Assert.Null(image.RequestCookie);
+    }
+
     private sealed class RedirectTestServer : IDisposable {
         private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
         private volatile bool _disposed;
@@ -85,17 +139,21 @@ public partial class Html {
         internal int Port { get; }
         internal bool WasRequested { get; private set; }
         internal string? RequestHost { get; private set; }
+        internal string? RequestCookie { get; private set; }
 
         internal async Task SendAsync(string statusAndHeaders, byte[]? payload = null) {
             try {
                 using TcpClient client = await _listener.AcceptTcpClientAsync();
                 WasRequested = true;
+                RequestCookie = null;
                 using NetworkStream stream = client.GetStream();
                 using var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, leaveOpen: true);
                 string? line;
                 while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync())) {
                     if (line.StartsWith("Host:", StringComparison.OrdinalIgnoreCase)) {
                         RequestHost = line.Substring(5).Trim();
+                    } else if (line.StartsWith("Cookie:", StringComparison.OrdinalIgnoreCase)) {
+                        RequestCookie = line.Substring(7).Trim();
                     }
                 }
 

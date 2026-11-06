@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -16,7 +17,7 @@ public sealed class DrawingRemoteImageTests {
     [Fact]
     public async Task LoadAsyncReturnsNormalizedImageDataWithDefensiveOutputs() {
         byte[] payload = { 0xFF, 0xD8, 0xFF, 0xD9 };
-        using var server = new SingleResponseServer(
+        using var server = new LoopbackImageServer(
             $"HTTP/1.1 200 OK\r\nContent-Type: image/jpg; charset=binary\r\nContent-Length: {payload.Length}\r\nConnection: close\r\n\r\n",
             payload);
 
@@ -35,10 +36,10 @@ public sealed class DrawingRemoteImageTests {
 
     [Fact]
     public async Task LoadAsyncRejectsCrossOriginRedirectBeforeContactingTarget() {
-        using var target = new SingleResponseServer(
+        using var target = new LoopbackImageServer(
             "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 1\r\nConnection: close\r\n\r\n",
             new byte[] { 1 });
-        using var redirect = new SingleResponseServer(
+        using var redirect = new LoopbackImageServer(
             $"HTTP/1.1 302 Found\r\nLocation: {target.Url("private.png")}\r\nConnection: close\r\n\r\n");
 
         await Assert.ThrowsAsync<InvalidDataException>(() =>
@@ -53,9 +54,33 @@ public sealed class DrawingRemoteImageTests {
     }
 
     [Fact]
+    public async Task LoadAsyncKeepsCookiesWithinOneLoad() {
+        const string cookie = "officeimo_image_session=proof";
+        string path = $"/{Guid.NewGuid():N}/";
+        byte[] payload = { 0xFF, 0xD8, 0xFF, 0xD9 };
+        string redirect = $"HTTP/1.1 302 Found\r\nLocation: {path}image.jpg\r\nSet-Cookie: {cookie}; Path={path}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+        string success = $"HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: {payload.Length}\r\nConnection: close\r\n\r\n";
+        using var server = new LoopbackImageServer((redirect, null), (success, payload), (success, payload));
+        var options = new OfficeRemoteImageLoadOptions {
+            AllowPrivateNetworkAddresses = true,
+            Timeout = TimeSpan.FromSeconds(8)
+        };
+        string imageUrl = server.Url(path + "image.jpg");
+
+        OfficeRemoteImage first = await OfficeRemoteImageLoader.LoadAsync(server.Url(path + "start.jpg"), options);
+        OfficeRemoteImage second = await OfficeRemoteImageLoader.LoadAsync(imageUrl, options);
+        await server.Completion;
+
+        Assert.Equal(imageUrl, first.Source.AbsoluteUri);
+        Assert.Equal(payload, first.ToBytes());
+        Assert.Equal(payload, second.ToBytes());
+        Assert.Equal(new string?[] { null, cookie, null }, server.RequestCookies);
+    }
+
+    [Fact]
     public async Task LoadAsyncEnforcesMaximumBytesWhileStreaming() {
         byte[] payload = Enumerable.Repeat((byte)0x41, 64).ToArray();
-        using var server = new SingleResponseServer(
+        using var server = new LoopbackImageServer(
             "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nConnection: close\r\n\r\n",
             payload);
         var options = new OfficeRemoteImageLoadOptions { MaximumBytes = 16, AllowPrivateNetworkAddresses = true };
@@ -91,39 +116,52 @@ public sealed class DrawingRemoteImageTests {
         Assert.Equal("images.example.test:8443", request.Headers.Host);
     }
 
-    private sealed class SingleResponseServer : IDisposable {
+    private sealed class LoopbackImageServer : IDisposable {
         private readonly TcpListener _listener;
+        private readonly List<string?> _requestCookies = new();
         private bool _disposed;
 
-        internal SingleResponseServer(string headers, byte[]? payload = null) {
+        internal LoopbackImageServer(string headers, byte[]? payload = null) : this((headers, payload)) {
+        }
+
+        internal LoopbackImageServer(params (string Headers, byte[]? Payload)[] responses) {
             _listener = new TcpListener(IPAddress.Loopback, 0);
             _listener.Start();
             Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
-            Completion = ServeAsync(headers, payload ?? Array.Empty<byte>());
+            Completion = ServeAsync(responses);
         }
 
         internal int Port { get; }
         internal int RequestCount { get; private set; }
+        internal IReadOnlyList<string?> RequestCookies => _requestCookies;
         internal Task Completion { get; }
 
         internal string Url(string path) => $"http://127.0.0.1:{Port}/{path.TrimStart('/')}";
 
-        private async Task ServeAsync(string headers, byte[] payload) {
+        private async Task ServeAsync((string Headers, byte[]? Payload)[] responses) {
             try {
-                using TcpClient client = await _listener.AcceptTcpClientAsync();
-                RequestCount++;
-                using NetworkStream stream = client.GetStream();
-                using (var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, leaveOpen: true)) {
-                    string? line;
-                    while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync())) { }
-                }
+                foreach ((string headers, byte[]? payload) in responses) {
+                    using TcpClient client = await _listener.AcceptTcpClientAsync();
+                    RequestCount++;
+                    using NetworkStream stream = client.GetStream();
+                    using (var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, leaveOpen: true)) {
+                        string? cookie = null;
+                        string? line;
+                        while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync())) {
+                            if (line.StartsWith("Cookie:", StringComparison.OrdinalIgnoreCase)) {
+                                cookie = line.Substring(7).Trim();
+                            }
+                        }
+                        _requestCookies.Add(cookie);
+                    }
 
-                byte[] headerBytes = Encoding.ASCII.GetBytes(headers);
-                await stream.WriteAsync(headerBytes, 0, headerBytes.Length);
-                if (payload.Length > 0) {
-                    await stream.WriteAsync(payload, 0, payload.Length);
+                    byte[] headerBytes = Encoding.ASCII.GetBytes(headers);
+                    await stream.WriteAsync(headerBytes, 0, headerBytes.Length);
+                    if (payload is { Length: > 0 }) {
+                        await stream.WriteAsync(payload, 0, payload.Length);
+                    }
+                    await stream.FlushAsync();
                 }
-                await stream.FlushAsync();
             } catch (SocketException) when (_disposed) {
                 // Normal disposal path for a listener that did not receive a request.
             } catch (ObjectDisposedException) when (_disposed) {
