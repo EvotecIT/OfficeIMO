@@ -817,9 +817,12 @@ stylesheet.
 
 Floating drawings, unsupported image effects and transforms, embedded objects,
 and other unprojected legacy content are diagnosed or blocked. File optimization
-workflows refuse to publish incomplete legacy projections. `WordDocument.Convert`
-uses the same load/save paths and blocks known conversion loss by default. Set
-`AllowLoss = true` on `WordSaveOptions` only after reviewing that loss.
+workflows refuse to publish incomplete legacy projections. Use the
+`WordDocument.Load(..., out OfficeConversionReport report)` overload to review
+import diagnostics, and call `report.ThrowIfLoss()` before saving when any
+reported loss must block output. Normal saves block unsupported or preserve-only
+legacy content; set `AllowLoss = true` on `WordSaveOptions` only after reviewing
+and accepting that loss.
 See [DOC and DOCX compatibility](../Docs/officeimo.word.legacy-doc-compatibility.md)
 for the current capability matrix and safety contract. Use the
 [migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.

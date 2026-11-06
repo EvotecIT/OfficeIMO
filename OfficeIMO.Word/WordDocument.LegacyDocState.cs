@@ -107,7 +107,7 @@ namespace OfficeIMO.Word {
             string source = string.IsNullOrWhiteSpace(_legacyDocSourcePath)
                 ? "a legacy binary DOC source"
                 : $"legacy binary DOC source '{_legacyDocSourcePath}'";
-            throw new NotSupportedException($"Saving is blocked because this document was loaded from {source} with unsupported or preserve-only content. Review LegacyDocUnsupportedFeatures, LegacyDocPreservedFeatures, and LegacyDocCompoundFeatures, or set WordSaveOptions.LossPolicy to OfficeConversionLossPolicy.Allow when that loss is intentional.");
+            throw new NotSupportedException($"Saving is blocked because this document was loaded from {source} with unsupported or preserve-only content. Review the load report, LegacyDocUnsupportedFeatures, LegacyDocPreservedFeatures, and LegacyDocCompoundFeatures. Set WordSaveOptions.AllowLoss to true only when that loss is intentional.");
         }
     }
 }
