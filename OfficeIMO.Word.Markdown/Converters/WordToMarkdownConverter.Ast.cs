@@ -67,8 +67,16 @@ namespace OfficeIMO.Word.Markdown {
                     elements.AddRange(section.Tables);
                 }
 
+                var projectedElements = WordDocumentTraversal.ExpandBlockContentControls(elements, cancellationToken);
+                if (!ReferenceEquals(projectedElements, elements)) {
+                    const string message = "Word block content controls were exported as static content. Their editing behavior is not represented in Markdown.";
+                    options.DiagnosticSink?.Invoke(new WordMarkdownConversionDiagnostic(OfficeDiagnosticCodes.WordToMarkdownWarning,
+                        message, OfficeConversionLossKind.Approximation, location: "BlockContentControl", format: "Word"));
+                    options.OnWarning?.Invoke(message);
+                }
+
                 AppendBlocksFromElements(
-                    elements,
+                    projectedElements,
                     block => markdown.Add(block),
                     options,
                     listIndices,

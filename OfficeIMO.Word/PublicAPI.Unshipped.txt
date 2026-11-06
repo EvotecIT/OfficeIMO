@@ -432,3 +432,5 @@ OfficeIMO.Word.WordDocumentStatisticsInfo.Paragraphs.get -> int
 OfficeIMO.Word.WordDocumentStatisticsInfo.Shapes.get -> int
 OfficeIMO.Word.WordDocumentStatisticsInfo.Tables.get -> int
 OfficeIMO.Word.WordDocumentStatisticsInfo.Words.get -> int
+OfficeIMO.Word.WordSearchResult.EndnoteParagraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordParagraph!>!
+OfficeIMO.Word.WordSearchResult.FootnoteParagraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordParagraph!>!

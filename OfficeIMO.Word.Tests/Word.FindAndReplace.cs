@@ -123,6 +123,71 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DocumentSearchAndReplace_VisitsLaterAndSharedHeaderFooterStoriesOnce() {
+            using var source = WordDocument.Create();
+            var later = source.AddSection();
+            var shared = source.AddSection();
+            source.Sections[0].PageSetup.Header.AddParagraph("Unrelated first header");
+            later.PageSetup.Header.AddParagraph("TOKEN later header");
+            later.PageSetup.Footer.AddParagraph("TOKEN later footer");
+            // A second explicit reference to the same part must not count as a second story.
+            shared._sectionProperties.AddChild(later._sectionProperties.Elements<HeaderReference>().Single().CloneNode(true), true);
+
+            using var input = new MemoryStream();
+            source.Save(input);
+            input.Position = 0;
+            using var document = WordDocument.Load(input, new WordLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+
+            foreach (WordSearchResult result in new[] { document.Find("TOKEN"), document.Find(new Regex("TOKEN")) }) {
+                Assert.Equal(2, result.MatchCount);
+                Assert.Equal("TOKEN later header", Assert.Single(result.DefaultHeaderParagraphs).Text);
+                Assert.Equal("TOKEN later footer", Assert.Single(result.DefaultFooterParagraphs).Text);
+            }
+            Assert.Equal(2, document.Sections[2].Find("TOKEN").MatchCount);
+            // Keep the original token in the replacement so a duplicate edit is observable.
+            Assert.Equal(2, document.ReplaceAll("TOKEN", "TOKEN filled"));
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            output.Position = 0;
+            using var reopened = WordDocument.Load(output, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            Assert.Equal(new[] { "TOKEN filled later header", "TOKEN filled later footer" },
+                reopened.Find("TOKEN").Paragraphs.Select(paragraph => paragraph.Text));
+        }
+
+        [Fact]
+        public void DocumentSearchAndReplace_VisitsOrdinaryNotesAsSeparateStories() {
+            using var source = WordDocument.Create();
+            source.AddParagraph("First reference").AddFootNote("TOKEN alpha");
+            source.AddParagraph("Second reference").AddFootNote("beta TOKEN");
+            source.AddParagraph("Endnote reference").AddEndNote("TOKEN endnote");
+            var separator = source._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+                .Elements<Footnote>().First(note => note.Type?.Value == FootnoteEndnoteValues.Separator);
+            separator.Elements<Paragraph>().Single().Append(new Run(new Text("TOKEN separator")));
+
+            using var input = new MemoryStream();
+            source.Save(input);
+            input.Position = 0;
+            using var document = WordDocument.Load(input, new WordLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+
+            foreach (WordSearchResult result in new[] { document.Find("TOKEN"), document.Find(new Regex("TOKEN")) }) {
+                Assert.Equal(3, result.MatchCount);
+                Assert.Equal(new[] { "TOKEN alpha", "beta TOKEN", "TOKEN endnote" },
+                    result.Paragraphs.Select(paragraph => paragraph.Text));
+            }
+            Assert.Equal(0, document.ReplaceAll("alphabeta", "unexpected"));
+            Assert.Equal(3, document.ReplaceAll("TOKEN", "filled"));
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            output.Position = 0;
+            using var reopened = WordDocument.Load(output, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            Assert.Equal(new[] { "filled alpha", "beta filled", "filled endnote" },
+                reopened.Find("filled").Paragraphs.Select(paragraph => paragraph.Text));
+            Assert.Contains("TOKEN separator", reopened._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!.InnerText);
+        }
+
+        [Fact]
         public void Test_FindAndReplace_WithNewLines() {
             string filePath = Path.Combine(_directoryWithFiles, "FindAndReplaceNewLines.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

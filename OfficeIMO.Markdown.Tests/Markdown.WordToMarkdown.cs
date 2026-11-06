@@ -389,6 +389,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_PreservesBodyBlockContentControlContentInOrder() {
+            using var document = WordDocument.Create();
+            WordParagraph before = document.AddParagraph("Before control");
+            WordTable table = document.AddTable(1, 1);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Controlled table";
+            document.AddParagraph("After control");
+            table._table.Remove();
+            before._paragraph.InsertAfterSelf(
+                new SdtBlock(new SdtContentBlock(
+                    new Paragraph(new Run(new Text("Controlled paragraph"))),
+                    new SdtBlock(new SdtContentBlock(table._table)))));
+
+            using var result = document.ToMarkdown(null, out OfficeConversionReport report);
+            Assert.Collection(result.Blocks,
+                block => Assert.IsType<ParagraphBlock>(block),
+                block => Assert.IsType<ParagraphBlock>(block),
+                block => Assert.IsType<TableBlock>(block),
+                block => Assert.IsType<ParagraphBlock>(block));
+            string markdown = result.ToMarkdown();
+            int beforeIndex = markdown.IndexOf("Before control", StringComparison.Ordinal);
+            int paragraphIndex = markdown.IndexOf("Controlled paragraph", StringComparison.Ordinal);
+            int tableIndex = markdown.IndexOf("Controlled table", StringComparison.Ordinal);
+            int afterIndex = markdown.IndexOf("After control", StringComparison.Ordinal);
+            Assert.True(beforeIndex >= 0 && paragraphIndex > beforeIndex && tableIndex > paragraphIndex && afterIndex > tableIndex, markdown);
+            Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Location == "BlockContentControl" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        }
+
+        [Fact]
         public void WordToMarkdown_ProjectsEquationInsideInlineContentControl() {
             using var doc = WordDocument.Create();
             WordParagraph paragraph = doc.AddParagraph("Formula:");

@@ -83,23 +83,20 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void EnsureDocumentProperties(PresentationPart presentationPart) {
-            if (presentationPart.OpenXmlPackage is not PresentationDocument presentationDocument) {
-                return;
-            }
-
+        private static Ap.Properties EnsureApplicationProperties(PresentationDocument presentationDocument) {
             ExtendedFilePropertiesPart extendedPart = presentationDocument.ExtendedFilePropertiesPart ?? presentationDocument.AddExtendedFilePropertiesPart();
-            if (extendedPart.Properties == null) {
-                extendedPart.Properties = new Ap.Properties();
-            }
+            Ap.Properties properties = extendedPart.Properties ??= new Ap.Properties();
+            properties.TotalTime ??= new Ap.TotalTime() { Text = "0" };
+            properties.Application ??= new Ap.Application() { Text = "Microsoft Office PowerPoint" };
+            properties.PresentationFormat ??= new Ap.PresentationFormat() { Text = "Widescreen" };
+            properties.Slides ??= new Ap.Slides() { Text = "1" };
+            properties.Notes ??= new Ap.Notes() { Text = "0" };
+            properties.HiddenSlides ??= new Ap.HiddenSlides() { Text = "0" };
+            return properties;
+        }
 
-            extendedPart.Properties.TotalTime ??= new Ap.TotalTime() { Text = "0" };
-            extendedPart.Properties.Application ??= new Ap.Application() { Text = "Microsoft Office PowerPoint" };
-            extendedPart.Properties.PresentationFormat ??= new Ap.PresentationFormat() { Text = "Widescreen" };
-            extendedPart.Properties.Slides ??= new Ap.Slides() { Text = "1" };
-            extendedPart.Properties.Notes ??= new Ap.Notes() { Text = "0" };
-            extendedPart.Properties.HiddenSlides ??= new Ap.HiddenSlides() { Text = "0" };
-
+        private static void InitializeDocumentProperties(PresentationDocument presentationDocument) {
+            EnsureApplicationProperties(presentationDocument);
             DateTime timestamp = DateTime.UtcNow;
             CoreFilePropertiesPart corePart = presentationDocument.CoreFilePropertiesPart ?? presentationDocument.AddCoreFilePropertiesPart();
             bool coreHasContent;
@@ -132,32 +129,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static void UpdateDocumentProperties(PresentationPart presentationPart, long maximumSlideXmlCharacters) {
-            EnsureDocumentProperties(presentationPart);
-
             if (presentationPart.OpenXmlPackage is not PresentationDocument presentationDocument) {
                 return;
             }
 
-            Ap.Properties properties = presentationDocument.ExtendedFilePropertiesPart!.Properties!;
-            properties.Slides ??= new Ap.Slides();
-            properties.Notes ??= new Ap.Notes();
-            properties.HiddenSlides ??= new Ap.HiddenSlides();
-            properties.PresentationFormat ??= new Ap.PresentationFormat();
-
+            Ap.Properties properties = EnsureApplicationProperties(presentationDocument);
             SlideId[] slideIds = presentationPart.Presentation?.SlideIdList?.Elements<SlideId>().ToArray() ?? Array.Empty<SlideId>();
-            properties.Slides.Text = slideIds.Length.ToString(CultureInfo.InvariantCulture);
-            properties.Notes.Text = presentationPart.SlideParts.Count(slidePart => slidePart.NotesSlidePart != null)
+            properties.Slides!.Text = slideIds.Length.ToString(CultureInfo.InvariantCulture);
+            properties.Notes!.Text = presentationPart.SlideParts.Count(slidePart => slidePart.NotesSlidePart != null)
                 .ToString(CultureInfo.InvariantCulture);
-            properties.HiddenSlides.Text = slideIds.Count(slideId => IsHiddenSlide(presentationPart, slideId, maximumSlideXmlCharacters))
+            properties.HiddenSlides!.Text = slideIds.Count(slideId => IsHiddenSlide(presentationPart, slideId, maximumSlideXmlCharacters))
                 .ToString(CultureInfo.InvariantCulture);
-            properties.PresentationFormat.Text = GetPresentationFormat(presentationPart.Presentation?.SlideSize);
+            properties.PresentationFormat!.Text = GetPresentationFormat(presentationPart.Presentation?.SlideSize);
 
-            var packageProperties = presentationDocument.PackageProperties;
-            if (string.IsNullOrEmpty(packageProperties.LastModifiedBy)) {
-                packageProperties.LastModifiedBy = DefaultDocumentAuthor;
-            }
-
-            packageProperties.Modified = DateTime.UtcNow;
+            presentationDocument.PackageProperties.Modified = DateTime.UtcNow;
         }
 
         private static bool IsHiddenSlide(PresentationPart presentationPart, SlideId slideId, long maximumSlideXmlCharacters) {

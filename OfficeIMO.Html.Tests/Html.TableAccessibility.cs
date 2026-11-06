@@ -2,6 +2,8 @@ using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using System;
+using System.Linq;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -86,6 +88,32 @@ public partial class Html {
         Assert.True(beforeIndex >= 0 && nestedIndex > beforeIndex && afterIndex > nestedIndex, html);
         var parsed = HtmlDocumentParser.ParseDocument(html);
         Assert.Single(parsed.QuerySelectorAll("table table"));
+    }
+
+    [Fact]
+    public void WordToHtml_PreservesBodyBlockContentControlContentInOrder() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph before = document.AddParagraph("Before control");
+        WordTable table = document.AddTable(1, 1);
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Controlled table";
+        document.AddParagraph("After control");
+        table._table.Remove();
+        before._paragraph.InsertAfterSelf(
+            new W.SdtBlock(new W.SdtContentBlock(
+                new W.Paragraph(new W.Run(new W.Text("Controlled paragraph"))),
+                new W.SdtBlock(new W.SdtContentBlock(table._table)))));
+
+        string html = document.ToHtml(null, out OfficeConversionReport report);
+        var body = HtmlDocumentParser.ParseDocument(html).Body!;
+        Assert.Equal("Controlled table", Assert.Single(body.QuerySelectorAll("table th, table td")).TextContent.Trim());
+        string visibleContent = body.TextContent;
+        int beforeIndex = visibleContent.IndexOf("Before control", StringComparison.Ordinal);
+        int paragraphIndex = visibleContent.IndexOf("Controlled paragraph", StringComparison.Ordinal);
+        int tableIndex = visibleContent.IndexOf("Controlled table", StringComparison.Ordinal);
+        int afterIndex = visibleContent.IndexOf("After control", StringComparison.Ordinal);
+        Assert.True(beforeIndex >= 0 && paragraphIndex > beforeIndex && tableIndex > paragraphIndex && afterIndex > tableIndex, visibleContent);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "block-content-control-flattened" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
 
     [Fact]

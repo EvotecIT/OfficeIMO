@@ -264,6 +264,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ContentControlFormValidationUsesPicturePayloadForFilesAndBytes() {
+            string originalImagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            byte[] invalidBytes = { 1, 2, 3, 4 };
+            string invalidImagePath = Path.GetTempFileName();
+
+            try {
+                File.WriteAllBytes(invalidImagePath, invalidBytes);
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph().AddPictureControl(originalImagePath, OfficeLength.Pixels(24), OfficeLength.Pixels(24), tag: "Logo");
+
+                foreach (WordContentControlPictureValue value in new[] {
+                    WordContentControlPictureValue.FromBytes(invalidBytes, "not-an-image.jpg"),
+                    WordContentControlPictureValue.FromFile(invalidImagePath)
+                }) {
+                    var values = new Dictionary<string, object?> { ["Logo"] = value };
+                    WordContentControlFormValidationResult result = document.ValidateContentControlValues(values);
+                    Assert.False(result.IsValid);
+                    WordContentControlFormIssue issue = Assert.Single(result.Issues);
+                    Assert.Equal(WordContentControlFormIssueKind.InvalidImage, issue.Kind);
+                    Assert.Equal("Logo", issue.Key);
+                }
+
+                byte[] originalBytes = File.ReadAllBytes(originalImagePath);
+                var validValues = new Dictionary<string, object?> {
+                    ["Logo"] = WordContentControlPictureValue.FromBytes(originalBytes, "replacement")
+                };
+                Assert.True(document.ValidateContentControlValues(validValues).IsValid);
+                Assert.Equal(1, document.FillContentControlValues(validValues));
+                Assert.Equal(originalBytes, document.GetPictureControlByTag("Logo")!.Image!.ToBytes());
+            } finally {
+                File.Delete(invalidImagePath);
+            }
+        }
+
+        [Fact]
         public void Test_ContentControlFormPictureValuesDoNotReadRawStringPaths() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithRawPathPictureFormValue.docx");
             string originalImagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");

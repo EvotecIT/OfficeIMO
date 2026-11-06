@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Internal;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 
@@ -54,7 +55,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Finds literal text in the body, body tables, and the first section's headers and footers.
+        /// Finds literal text in the body, body tables, all section headers and footers, and ordinary footnotes and endnotes.
         /// </summary>
         /// <param name="text">Text to find.</param>
         /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
@@ -63,6 +64,7 @@ namespace OfficeIMO.Word {
         /// A match may span runs within a paragraph. Without <see cref="OfficeTextSearchOptions.WholeWords"/>, a match may
         /// also continue into the next paragraph of the same part; its result entry is the paragraph where it starts.
         /// With <see cref="OfficeTextSearchOptions.WholeWords"/>, each match lies within one paragraph.
+        /// A shared header or footer is searched once under its first referenced role.
         /// </remarks>
         public WordSearchResult Find(string text, OfficeTextSearchOptions? options = null) => FindInScope(text, options, null);
 
@@ -79,11 +81,11 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Finds text matching a regular expression in the body, body tables, and the first section's headers and footers.
+        /// Finds text matching a regular expression in the body, body tables, all section headers and footers, and ordinary footnotes and endnotes.
         /// </summary>
         /// <param name="pattern">Regular expression applied to each paragraph's text. Its own options control case and boundaries.</param>
         /// <returns>The paragraphs containing matches, grouped by document part, and the total match count.</returns>
-        /// <remarks>Each match lies within one paragraph.</remarks>
+        /// <remarks>Each match lies within one paragraph. A shared header or footer is searched once under its first referenced role.</remarks>
         public WordSearchResult Find(Regex pattern) => FindInScope(pattern, null);
 
         internal WordSearchResult FindInScope(Regex pattern, WordSection? section) {
@@ -95,7 +97,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Replaces literal text in the body, body tables, and the first section's headers and footers.
+        /// Replaces literal text in the body, body tables, all section headers and footers, and ordinary footnotes and endnotes.
         /// </summary>
         /// <param name="text">Text to find.</param>
         /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
@@ -136,7 +138,9 @@ namespace OfficeIMO.Word {
 
             MainDocumentPart? mainPart = _wordprocessingDocument?.MainDocumentPart;
             Body? body = mainPart?.Document?.Body;
-            if (body == null || mainPart!.HeaderParts.Any() || mainPart.FooterParts.Any()) {
+            if (body == null || mainPart!.HeaderParts.Any() || mainPart.FooterParts.Any() ||
+                mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>().Any(WordNoteResolver.IsOrdinary) == true ||
+                mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>().Any(WordNoteResolver.IsOrdinary) == true) {
                 return false;
             }
 
@@ -444,20 +448,56 @@ namespace OfficeIMO.Word {
                 visit(table.Paragraphs, result?.MutableTableParagraphs);
             }
 
-            var headers = (section ?? this.Sections[0]).Headers;
-            var footers = (section ?? this.Sections[0]).Footers;
-            VisitHeaderFooter(section == null ? headers.Default : section.ResolveDefaultHeader(), result?.MutableDefaultHeaderParagraphs);
-            VisitHeaderFooter(section == null ? headers.Even : section.ResolveEvenHeader(), result?.MutableEvenPageHeaderParagraphs);
-            VisitHeaderFooter(section == null ? headers.First : section.ResolveFirstHeader(), result?.MutableFirstPageHeaderParagraphs);
-            VisitHeaderFooter(section == null ? footers.Default : section.ResolveDefaultFooter(), result?.MutableDefaultFooterParagraphs);
-            VisitHeaderFooter(section == null ? footers.Even : section.ResolveEvenFooter(), result?.MutableEvenPageFooterParagraphs);
-            VisitHeaderFooter(section == null ? footers.First : section.ResolveFirstFooter(), result?.MutableFirstPageFooterParagraphs);
+            // A document-level operation edits each authored running story once, even when several
+            // section references point to the same part. Section searches retain their resolved roles.
+            HashSet<OpenXmlElement>? visitedStories = section == null
+                ? new HashSet<OpenXmlElement>(OfficeReferenceEqualityComparer<OpenXmlElement>.Instance)
+                : null;
+            if (section != null) {
+                VisitSectionStories(section, resolveLinks: true);
+                return;
+            }
+
+            foreach (WordSection current in Sections) {
+                VisitSectionStories(current, resolveLinks: false);
+            }
+
+            MainDocumentPart? mainPart = _wordprocessingDocument?.MainDocumentPart;
+            VisitNotes(mainPart?.FootnotesPart?.Footnotes?.Elements<Footnote>(), result?.MutableFootnoteParagraphs);
+            VisitNotes(mainPart?.EndnotesPart?.Endnotes?.Elements<Endnote>(), result?.MutableEndnoteParagraphs);
+
+            void VisitSectionStories(WordSection current, bool resolveLinks) {
+                var headers = current.Headers;
+                var footers = current.Footers;
+                VisitHeaderFooter(resolveLinks ? current.ResolveDefaultHeader() : headers.Default, result?.MutableDefaultHeaderParagraphs);
+                VisitHeaderFooter(resolveLinks ? current.ResolveEvenHeader() : headers.Even, result?.MutableEvenPageHeaderParagraphs);
+                VisitHeaderFooter(resolveLinks ? current.ResolveFirstHeader() : headers.First, result?.MutableFirstPageHeaderParagraphs);
+                VisitHeaderFooter(resolveLinks ? current.ResolveDefaultFooter() : footers.Default, result?.MutableDefaultFooterParagraphs);
+                VisitHeaderFooter(resolveLinks ? current.ResolveEvenFooter() : footers.Even, result?.MutableEvenPageFooterParagraphs);
+                VisitHeaderFooter(resolveLinks ? current.ResolveFirstFooter() : footers.First, result?.MutableFirstPageFooterParagraphs);
+            }
 
             void VisitHeaderFooter(WordHeaderFooter? part, List<WordParagraph>? destination) {
                 if (part == null) return;
+                if (visitedStories != null) {
+                    OpenXmlElement? root = (OpenXmlElement?)part._header ?? part._footer;
+                    if (root == null || !visitedStories.Add(root)) return;
+                }
+
                 visit(part.Paragraphs, destination);
                 foreach (var table in part.Tables) {
                     visit(table.Paragraphs, destination);
+                }
+            }
+
+            void VisitNotes(IEnumerable<FootnoteEndnoteType>? notes, List<WordParagraph>? destination) {
+                if (notes == null) return;
+                foreach (FootnoteEndnoteType note in notes.Where(WordNoteResolver.IsOrdinary)) {
+                    // Separate notes are separate stories, even when matching may span paragraphs.
+                    visit(WordSection.ConvertParagraphsToWordParagraphs(this, note.Elements<Paragraph>()), destination);
+                    foreach (WordTable table in WordSection.ConvertTableToWordTable(this, note.Elements<Table>())) {
+                        visit(table.Paragraphs, destination);
+                    }
                 }
             }
         }

@@ -14,6 +14,8 @@ namespace OfficeIMO.Word {
         private readonly List<WordParagraph> _defaultFooterParagraphs = new();
         private readonly List<WordParagraph> _evenPageFooterParagraphs = new();
         private readonly List<WordParagraph> _firstPageFooterParagraphs = new();
+        private readonly List<WordParagraph> _footnoteParagraphs = new();
+        private readonly List<WordParagraph> _endnoteParagraphs = new();
 
         internal WordSearchResult() { }
 
@@ -23,7 +25,7 @@ namespace OfficeIMO.Word {
         public int MatchCount { get; internal set; }
 
         /// <summary>
-        /// Every paragraph containing one or more matches: body, table, header and then footer paragraphs, in the order of the part-specific lists.
+        /// Every paragraph containing one or more matches, in the order of the body, table, header, footer, footnote, and endnote lists.
         /// </summary>
         public IReadOnlyList<WordParagraph> Paragraphs => _paragraphs ??= _bodyParagraphs
             .Concat(_tableParagraphs)
@@ -33,6 +35,8 @@ namespace OfficeIMO.Word {
             .Concat(_defaultFooterParagraphs)
             .Concat(_evenPageFooterParagraphs)
             .Concat(_firstPageFooterParagraphs)
+            .Concat(_footnoteParagraphs)
+            .Concat(_endnoteParagraphs)
             .ToList();
 
         /// <summary>Body paragraphs containing one or more matches.</summary>
@@ -51,6 +55,10 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<WordParagraph> EvenPageFooterParagraphs => _evenPageFooterParagraphs;
         /// <summary>First-page-footer paragraphs containing one or more matches.</summary>
         public IReadOnlyList<WordParagraph> FirstPageFooterParagraphs => _firstPageFooterParagraphs;
+        /// <summary>Ordinary footnote paragraphs containing one or more matches from a document-level search.</summary>
+        public IReadOnlyList<WordParagraph> FootnoteParagraphs => _footnoteParagraphs;
+        /// <summary>Ordinary endnote paragraphs containing one or more matches from a document-level search.</summary>
+        public IReadOnlyList<WordParagraph> EndnoteParagraphs => _endnoteParagraphs;
 
         internal List<WordParagraph> MutableBodyParagraphs => _bodyParagraphs;
         internal List<WordParagraph> MutableTableParagraphs => _tableParagraphs;
@@ -60,6 +68,8 @@ namespace OfficeIMO.Word {
         internal List<WordParagraph> MutableDefaultFooterParagraphs => _defaultFooterParagraphs;
         internal List<WordParagraph> MutableEvenPageFooterParagraphs => _evenPageFooterParagraphs;
         internal List<WordParagraph> MutableFirstPageFooterParagraphs => _firstPageFooterParagraphs;
+        internal List<WordParagraph> MutableFootnoteParagraphs => _footnoteParagraphs;
+        internal List<WordParagraph> MutableEndnoteParagraphs => _endnoteParagraphs;
 
         /// <summary>
         /// Searches the provided paragraphs for matches of the supplied regular expression and
