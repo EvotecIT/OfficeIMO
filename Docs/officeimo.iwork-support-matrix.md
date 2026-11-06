@@ -1,6 +1,6 @@
 # Apple iWork support
 
-OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources through the bounded `OfficeIMO.IWork` package. Opt-in adapter packages project supported semantics into the existing Word, Excel, and PowerPoint owners. Source snapshots remain immutable; separate native edit sessions preserve captured content and apply the bounded mutations below. The default destination packages do not depend on iWork.
+OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources and the [qualified iWork ’09 XML profile](#iwork-09-xml) through the bounded `OfficeIMO.IWork` package. Opt-in adapter packages project supported semantics into the existing Word, Excel, and PowerPoint owners. Source snapshots remain immutable. Separate native edit sessions preserve captured modern content and apply the bounded mutations below.
 
 The same package owns separate bounded native Keynote, Pages and Numbers creation models. Their scope and independent acceptance evidence are listed below; they do not edit loaded iWork sources.
 
@@ -213,7 +213,7 @@ The gate retains executable hashes, exit codes and output before deleting isolat
 | Object envelope | Bounded ArchiveInfo and MessageInfo protobuf parsing with field-count, depth, record-count, record-size, wire-type, varint, reference, and unique primary-object validation |
 | Preservation | Defensive access to all package entries and all primary or auxiliary IWA payloads; conversion reports retain source payloads for inspection through `PreservedRecords`, including consumed, partially consumed, and auxiliary records; this count does not measure omitted content |
 | Active content | No macros, scripts, external links, embedded executables, or application services are executed |
-| Legacy packages | Pre-IWA `index.xml` and `index.apxl` packages are rejected as unsupported rather than guessed |
+| iWork ’09 XML | Recognizes grammar `92008102400` in root `index.xml` and `index.apxl` entries, including gzip variants. XML depth, node, attribute, and projection limits apply. |
 
 Public source and adapter path/stream APIs accept cancellation; source byte-array loading accepts it as well. The source token governs subsequent projections and conversions. `source.WithCancellation(token)` shares the loaded source and parsed-message cache with an independent replacement token; it permits reuse after the original token is cancelled. Destination construction checks cancellation between objects, cells, paragraphs, and runs and disposes a partially constructed destination on failure. Caller-owned streams remain open. Fixed cancellation latency, allocation, and retained-memory budgets remain unqualified. The opt-in [runtime evidence lane](../OfficeIMO.IWork.Benchmarks/README.md) measures synthetic scale workloads and hash-pinned native fixtures, with complete saved-package semantic readback. The [portable run](benchmarks/officeimo.iwork-portable-runtime-2026-10-04.md) records 6,390 validated samples on Linux x64, macOS arm64 and Windows x64, including repeated managed baselines, sampled managed/resident changes and active I/O cancellation. Sampled maxima are lower bounds on peaks; the observations do not establish attributed native-memory retention, portable ceilings or native appearance.
 
