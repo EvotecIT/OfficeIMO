@@ -43,7 +43,6 @@ internal sealed partial class EarlyBiffWorkbook {
     private int _records;
     private int _textCharacters;
     private bool _formulaOmitted;
-    private bool _styleOmitted;
 
     private EarlyBiffWorkbook(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
         _data = data;
@@ -103,7 +102,6 @@ internal sealed partial class EarlyBiffWorkbook {
 
         if (_model.Sheets.Count == 0) throw new InvalidDataException("The early BIFF workbook contains no supported worksheets.");
         if (_formulaOmitted) AddLoss("early-biff-formula-cache", "Formula", "Stored formula results were imported as values. Source expressions were omitted.");
-        if (_styleOmitted) AddLoss("early-biff-style-omitted", "Formatting", "Early BIFF font, fill, border, protection and other unsupported formatting were omitted.");
         if (_unprojected.Count != 0) {
             string identifiers = string.Join(", ", _unprojected.OrderBy(static value => value).Take(24).Select(static value => $"0x{value:X4}"));
             if (_unprojected.Count > 24) identifiers += ", …";

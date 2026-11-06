@@ -131,22 +131,22 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         if (!ApplyBinaryOperator(stack, "&", 0)) return false;
                         break;
                     case 0x09:
-                        if (!ApplyBinaryOperator(stack, "<", 0)) return false;
+                        if (!ApplyBinaryOperator(stack, "<", -1)) return false;
                         break;
                     case 0x0a:
-                        if (!ApplyBinaryOperator(stack, "<=", 0)) return false;
+                        if (!ApplyBinaryOperator(stack, "<=", -1)) return false;
                         break;
                     case 0x0b:
-                        if (!ApplyBinaryOperator(stack, "=", 0)) return false;
+                        if (!ApplyBinaryOperator(stack, "=", -1)) return false;
                         break;
                     case 0x0c:
-                        if (!ApplyBinaryOperator(stack, ">=", 0)) return false;
+                        if (!ApplyBinaryOperator(stack, ">=", -1)) return false;
                         break;
                     case 0x0d:
-                        if (!ApplyBinaryOperator(stack, ">", 0)) return false;
+                        if (!ApplyBinaryOperator(stack, ">", -1)) return false;
                         break;
                     case 0x0e:
-                        if (!ApplyBinaryOperator(stack, "<>", 0)) return false;
+                        if (!ApplyBinaryOperator(stack, "<>", -1)) return false;
                         break;
                     case 0x0f:
                         if (!ApplyReferenceOperator(stack, " ", groupResult: true)) return false;

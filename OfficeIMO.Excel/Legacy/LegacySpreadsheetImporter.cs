@@ -84,23 +84,56 @@ public static class LegacySpreadsheetImporter {
         ExcelDocument document = ExcelDocument.Create();
         try {
             if (model.DateSystem is ExcelDateSystem dateSystem) document.DateSystem = dateSystem;
+            bool defaultFontImported = false;
             foreach (LegacySpreadsheetSheet sourceSheet in model.Sheets) {
                 cancellationToken.ThrowIfCancellationRequested();
                 ExcelSheet target = document.AddSheet(sourceSheet.Name, model.PreserveSheetNames ? ExcelSheetNameValidationMode.Strict : ExcelSheetNameValidationMode.Sanitize);
                 var comments = new List<(int Row, int Column, string Text)>();
-                foreach (LegacySpreadsheetCell cell in sourceSheet.Cells) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (cell.IsError) {
-                        target.CellError(cell.Row, cell.Column, (string)cell.Value!);
-                    } else if (!string.IsNullOrWhiteSpace(cell.Formula)) {
-                        target.CellValue(cell.Row, cell.Column, cell.Value);
-                        target.CellFormula(cell.Row, cell.Column, cell.Formula!);
-                    } else if (cell.Value != null) target.CellValue(cell.Row, cell.Column, cell.Value);
-                    else if (model.PreserveBlankCoordinates) target.SetImportedBlank(cell.Row, cell.Column);
-                    if (cell.Alignment.HasValue) target.CellAlign(cell.Row, cell.Column, cell.Alignment.Value);
-                    if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) target.Cell(cell.Row, cell.Column).SetNumberFormat(cell.NumberFormat!);
-                    if (!string.IsNullOrWhiteSpace(cell.Comment)) comments.Add((cell.Row, cell.Column, cell.Comment!));
+                if (!defaultFontImported && sourceSheet.StyleWorkbook?.Fonts.Count > 0) {
+                    target.SetImportedDefaultFont(sourceSheet.StyleWorkbook);
+                    defaultFontImported = true;
                 }
+                target.Batch(currentSheet => {
+                    var styles = new Dictionary<ushort, uint>();
+                    foreach (LegacySpreadsheetCell cell in sourceSheet.Cells) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (!string.IsNullOrWhiteSpace(cell.Formula)) {
+                            currentSheet.SetImportedFormula(cell.Row, cell.Column, cell.Formula!, cell.Value, cell.IsError);
+                        } else if (cell.IsError) {
+                            currentSheet.CellError(cell.Row, cell.Column, (string)cell.Value!);
+                        } else if (cell.Value != null) currentSheet.CellValue(cell.Row, cell.Column, cell.Value);
+                        else if (model.PreserveBlankCoordinates) currentSheet.SetImportedBlank(cell.Row, cell.Column);
+                        if (cell.StyleIndex.HasValue) {
+                            uint? style = ResolveStyle(cell.StyleIndex.Value);
+                            if (style.HasValue) currentSheet.SetCellStyleIndex(cell.Row, cell.Column, style.Value, save: false);
+                        }
+                        if (cell.Alignment.HasValue) currentSheet.CellAlign(cell.Row, cell.Column, cell.Alignment.Value);
+                        if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) currentSheet.Cell(cell.Row, cell.Column).SetNumberFormat(cell.NumberFormat!);
+                        if (!string.IsNullOrWhiteSpace(cell.Comment)) comments.Add((cell.Row, cell.Column, cell.Comment!));
+                    }
+                    if (sourceSheet.DefaultRowHeight.HasValue) currentSheet.SetDefaultRowHeightExact(sourceSheet.DefaultRowHeight.Value, sourceSheet.DefaultRowsHidden, save: false);
+                    if (sourceSheet.BaseColumnWidth.HasValue) currentSheet.SetImportedBaseColumnWidth(sourceSheet.BaseColumnWidth.Value);
+                    if (sourceSheet.DefaultColumnWidth.HasValue && sourceSheet.DefaultColumnWidth.Value > 0) currentSheet.SetDefaultColumnWidthExact(sourceSheet.DefaultColumnWidth.Value, save: false);
+                    currentSheet.SetImportedColumnLayouts(sourceSheet.Columns, ResolveStyle);
+                    foreach (var row in sourceSheet.Rows.OrderBy(layout => layout.Row)) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (row.CustomHeight && row.Height > 0) currentSheet.SetRowHeightExact(row.Row, row.Height);
+                        currentSheet.SetRowHidden(row.Row, row.Hidden);
+                        currentSheet.SetRowOutline(row.Row, row.OutlineLevel, row.Collapsed, save: false);
+                        uint? style = row.StyleIndex.HasValue ? ResolveStyle(row.StyleIndex.Value) : null;
+                        if (style.HasValue) currentSheet.SetRowStyleIndex(row.Row, style.Value, save: false);
+                    }
+
+                    uint? ResolveStyle(ushort index) {
+                        if (sourceSheet.StyleWorkbook == null) return null;
+                        if (styles.TryGetValue(index, out uint projected)) return projected;
+                        var format = sourceSheet.StyleWorkbook.GetEffectiveCellFormat(index);
+                        if (format == null) return null;
+                        projected = currentSheet.GetOrCreateLegacyCellFormatStyleIndex(sourceSheet.StyleWorkbook, format);
+                        styles.Add(index, projected);
+                        return projected;
+                    }
+                });
                 cancellationToken.ThrowIfCancellationRequested();
                 target.AddImportedComments(comments, "Legacy source", cancellationToken);
             }

@@ -88,24 +88,11 @@ namespace OfficeIMO.Excel {
             WriterFor(stylesheet).NumberFormatId(numberFormat);
 
         private static uint GetOrCreateBorderVariant(Stylesheet stylesheet, uint? baseBorderId, Action<Border> mutate) {
-            var borders = stylesheet.Borders ??= new Borders(new Border());
-            var baseBorder = borders.Elements<Border>().ElementAtOrDefault((int)(baseBorderId ?? 0U));
-            var candidate = baseBorder != null
-                ? (Border)baseBorder.CloneNode(true)
-                : new Border();
-
+            StyleBatch writer = WriterFor(stylesheet);
+            Border? baseBorder = writer.Border(baseBorderId ?? 0U);
+            var candidate = baseBorder != null ? (Border)baseBorder.CloneNode(true) : new Border();
             mutate(candidate);
-
-            var existing = borders.Elements<Border>()
-                .Select((border, index) => new { border, index })
-                .FirstOrDefault(entry => string.Equals(entry.border.OuterXml, candidate.OuterXml, StringComparison.Ordinal));
-            if (existing != null) {
-                return (uint)existing.index;
-            }
-
-            borders.Append(candidate);
-            borders.Count = (uint)borders.Count();
-            return borders.Count!.Value - 1;
+            return writer.BorderIndex(candidate);
         }
 
         private static uint GetOrCreateFontVariant(Stylesheet stylesheet, uint? baseFontId, Action<DocumentFormat.OpenXml.Spreadsheet.Font> mutate) {
@@ -184,16 +171,16 @@ namespace OfficeIMO.Excel {
         }
 
         private static void NormalizeFontChildOrder(DocumentFormat.OpenXml.Spreadsheet.Font font) {
-            List<OpenXmlElement> children = font.ChildElements.Select(CloneNormalizedFontChild).ToList();
+            List<OpenXmlElement> children = font.ChildElements.ToList();
             font.RemoveAllChildren();
             foreach (OpenXmlElement child in children) {
-                font.AddChild(child, true);
+                font.AddChild(NormalizeFontChild(child), true);
             }
         }
 
-        private static OpenXmlElement CloneNormalizedFontChild(OpenXmlElement child) {
+        private static OpenXmlElement NormalizeFontChild(OpenXmlElement child) {
             if (child is FontCharSet) {
-                return child.CloneNode(true);
+                return child;
             }
 
             if (IsSpreadsheetFontElement(child, "charset")
@@ -201,7 +188,7 @@ namespace OfficeIMO.Excel {
                 return new FontCharSet { Val = characterSet };
             }
 
-            return child.CloneNode(true);
+            return child;
         }
 
         private static void SetFontSchemeElement(DocumentFormat.OpenXml.Spreadsheet.Font font, FontSchemeValues? scheme) {

@@ -22,6 +22,14 @@ internal sealed class LegacySpreadsheetSheet {
     internal LegacySpreadsheetSheet(string name) => Name = name;
     internal string Name { get; }
     internal List<LegacySpreadsheetCell> Cells { get; } = new();
+    internal LegacyXls.Model.LegacyXlsWorkbook? StyleWorkbook { get; set; }
+    internal List<LegacyXls.Model.LegacyXlsRowLayout> Rows { get; } = new();
+    internal List<LegacyXls.Model.LegacyXlsColumnLayout> Columns { get; } = new();
+    internal double? DefaultRowHeight { get; set; }
+    internal bool DefaultRowsHidden { get; set; }
+    internal double? DefaultColumnWidth { get; set; }
+    internal uint? BaseColumnWidth { get; set; }
+    internal byte[]? GlobalColumnWidthMask { get; set; }
 }
 
 internal sealed class LegacySpreadsheetCell {
@@ -45,6 +53,7 @@ internal sealed class LegacySpreadsheetCell {
     internal string? NumberFormat { get; }
     internal string? Comment { get; }
     internal OfficeIMO.Excel.ExcelHorizontalAlignment? Alignment { get; }
+    internal ushort? StyleIndex { get; set; }
 }
 
 internal sealed class LegacySpreadsheetName {

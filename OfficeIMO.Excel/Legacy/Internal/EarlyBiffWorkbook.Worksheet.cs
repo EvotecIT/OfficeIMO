@@ -9,7 +9,7 @@ internal sealed partial class EarlyBiffWorkbook {
         int position = start;
         bool sawEnd = false;
         var formatRecords = new List<Record>();
-        var styles = new List<StyleFormat>();
+        var styleRecords = new List<Record>();
         while (position < end) {
             Record record = ReadRecord(ref position, end);
             if (IsBof(record.Type)) {
@@ -20,9 +20,10 @@ internal sealed partial class EarlyBiffWorkbook {
             if ((record.Type == 0x001E && bof != 0x0409) || (record.Type == 0x041E && bof == 0x0409)) {
                 formatRecords.Add(record);
             }
-            if ((record.Type, bof) is (0x0043, 0x0009) or (0x0243, 0x0209) or (0x0443, 0x0409)) {
-                styles.Add(ReadStyle(record, bof));
-                _styleOmitted = true;
+            if ((record.Type, bof) is (0x0043, 0x0009) or (0x0243, 0x0209) or (0x0443, 0x0409)
+                || record.Type is 0x0031 or 0x0231 or 0x0045 or 0x0092) {
+                if (styleRecords.Count >= ushort.MaxValue) throw new InvalidDataException("Early BIFF exceeds the supported style-record count.");
+                styleRecords.Add(record);
             }
             if (record.Type == CodePage) codePage = ObserveCodePage(record, codePage);
             if (record.Type == DateMode) {
@@ -52,15 +53,20 @@ internal sealed partial class EarlyBiffWorkbook {
         var coordinates = new HashSet<int>();
         string[] formats = formatRecords.Select(record =>
             ReadText(record, record.Type == 0x041E ? 2 : 0, 1, encoding)).ToArray();
+        sheet.StyleWorkbook = ReadStyles(styleRecords, bof, encoding, formats);
+        var effectiveStyles = new Dictionary<ushort, LegacyXls.Model.LegacyXlsCellFormat>();
         int previousCell = -1;
         bool outOfOrder = false;
         Record? pendingFormula = null;
         ushort? extendedStyle = null;
         bool biff2 = bof == 0x0009;
+        bool inlineStyles = biff2 && sheet.StyleWorkbook.CellFormats.Count == 0;
+        var inlineStyleIndices = new Dictionary<int, ushort>();
         position = start;
         while (position < end) {
             Record record = ReadRecord(ref position, end, charge: false);
             ushort type = record.Type;
+            if (!pendingFormula.HasValue && ReadLayout(record, bof, sheet, inlineStyles ? inlineStyleIndices : null, formats)) continue;
             if (pendingFormula.HasValue) {
                 if (type == (biff2 ? 0x0007 : 0x0207)) {
                     AddCell(pendingFormula.Value, ReadText(record, 0, biff2 ? 1 : 2, encoding), false);
@@ -81,6 +87,10 @@ internal sealed partial class EarlyBiffWorkbook {
                     continue;
                 case 0x001E when bof != 0x0409:
                 case 0x041E when bof == 0x0409:
+                case 0x0031:
+                case 0x0231:
+                case 0x0045:
+                case 0x0092:
                 case 0x0043 when biff2:
                 case 0x0243 when bof == 0x0209:
                 case 0x0443 when bof == 0x0409:
@@ -121,7 +131,6 @@ internal sealed partial class EarlyBiffWorkbook {
                 case 0x0006 when biff2:
                 case 0x0206 when bof == 0x0209:
                 case 0x0406 when bof == 0x0409:
-                    _formulaOmitted = true;
                     int cache = biff2 ? 7 : 6;
                     int tokenLengthSize = biff2 ? 1 : 2;
                     if (record.Length < 16 + tokenLengthSize) throw new InvalidDataException("Truncated early BIFF formula.");
@@ -164,6 +173,20 @@ internal sealed partial class EarlyBiffWorkbook {
             extendedStyle = null;
         }
 
+        if (sheet.GlobalColumnWidthMask != null) {
+            var columns = new LegacyXls.Model.LegacyXlsColumnLayout?[MaximumColumns];
+            foreach (var column in sheet.Columns) {
+                for (int index = column.StartColumn - 1; index < column.EndColumn; index++) columns[index] = column;
+            }
+            sheet.Columns.Clear();
+            for (int index = 0; index < columns.Length; index++) {
+                var column = columns[index];
+                if (column == null) continue;
+                bool useDefault = (sheet.GlobalColumnWidthMask[index / 8] & (1 << (index % 8))) != 0;
+                sheet.Columns.Add(new LegacyXls.Model.LegacyXlsColumnLayout(index + 1, index + 1,
+                    useDefault ? 0 : column.Width, column.Hidden, column.StyleIndex, column.OutlineLevel, column.Collapsed));
+            }
+        }
         if (outOfOrder) {
             sheet.Cells.Sort(static (left, right) => left.Row != right.Row
                 ? left.Row.CompareTo(right.Row) : left.Column.CompareTo(right.Column));
@@ -185,62 +208,36 @@ internal sealed partial class EarlyBiffWorkbook {
                 throw new InvalidDataException("The early BIFF worksheet contains a non-finite numeric value.");
             }
             int xf = biff2 ? _data[record.Offset + 4] & 0x3F : ReadUInt16(record, 4);
-            int formatIndex = 0;
-            if (biff2) {
-                if (xf == 63 && !extendedStyle.HasValue) {
-                    throw new InvalidDataException("An early BIFF cell references a missing extended style index.");
+            if (biff2 && !inlineStyles && xf == 63 && !extendedStyle.HasValue) {
+                throw new InvalidDataException("An early BIFF cell references a missing extended style index.");
+            }
+            int styleIndex = inlineStyles
+                ? ResolveBiff2InlineStyle(record, 4, sheet.StyleWorkbook, inlineStyleIndices, formats, name, row, column)
+                : extendedStyle ?? xf;
+            ushort? resolvedStyle = ResolveStyle(sheet.StyleWorkbook, effectiveStyles, styleIndex, name, row, column);
+            string? format = null;
+            if (biff2 && resolvedStyle == null) {
+                int formatIndex = _data[record.Offset + 5] & 63;
+                format = formatIndex < formats.Length ? formats[formatIndex] : null;
+            }
+            string? formula = null;
+            if (record.Type is 0x0006 or 0x0206 or 0x0406) {
+                int size = biff2 ? 1 : 2;
+                int count = biff2 ? _data[record.Offset + 16] : ReadUInt16(record, 16);
+                if (!EarlyBiffFormulaReader.TryRead(_data, record.Offset + 16 + size, count, bof, encoding, row, column, out formula)) {
+                    _formulaOmitted = true;
+                    AddCellLoss("early-biff-formula-unsupported", "Formula",
+                        "The formula uses unsupported tokens or function semantics. Its original typed result was retained.",
+                        name, row, column);
+                } else {
+                    if (formula!.Length > _limits.MaxTextCharacters - _textCharacters) throw new InvalidDataException("Early BIFF input exceeds the configured formula text limit.");
+                    _textCharacters += formula.Length;
                 }
-                int style = extendedStyle ?? xf;
-                formatIndex = style < styles.Count ? styles[style].NumberFormat : _data[record.Offset + 5] & 0x3F;
-            } else if (styles.Count != 0 || xf != 0) {
-                formatIndex = ResolveNumberFormat(styles, xf);
             }
-            string? format = formatIndex > 0 && formatIndex < formats.Length ? formats[formatIndex] : null;
-            if (formatIndex > 0 && format == null) {
-                AddLoss("early-biff-number-format", "Formatting", "A referenced early BIFF number format could not be resolved.");
-            }
-            sheet.Cells.Add(new LegacySpreadsheetCell(row + 1, column + 1, value, numberFormat: format, isError: error));
+            sheet.Cells.Add(new LegacySpreadsheetCell(row + 1, column + 1, value, formula,
+                numberFormat: format, isError: error) { StyleIndex = resolvedStyle });
             _model.RecoveredCellCount++;
         }
-    }
-
-    private StyleFormat ReadStyle(Record record, ushort bof) {
-        if (bof == 0x0009) {
-            RequireLength(record, 4);
-            return new StyleFormat(_data[record.Offset + 2] & 0x3F, -1, false, true);
-        }
-
-        RequireLength(record, 12);
-        bool biff3 = bof == 0x0209;
-        return new StyleFormat(_data[record.Offset + 1], ReadUInt16(record, biff3 ? 4 : 2) >> 4,
-            (_data[record.Offset + 2] & 0x04) != 0,
-            (_data[record.Offset + (biff3 ? 3 : 5)] & 0x04) != 0);
-    }
-
-    private int ResolveNumberFormat(List<StyleFormat> styles, int index) {
-        if (index < styles.Count) {
-            StyleFormat style = styles[index];
-            if (style.IsStyle != style.UsesOwnFormat) return style.NumberFormat;
-            if (!style.IsStyle && style.Parent < styles.Count) {
-                StyleFormat parent = styles[style.Parent];
-                if (parent.IsStyle && !parent.UsesOwnFormat) return parent.NumberFormat;
-            }
-        }
-        AddLoss("early-biff-number-format", "Formatting", "A referenced early BIFF number format or parent style could not be resolved.");
-        return 0;
-    }
-
-    private readonly struct StyleFormat {
-        internal StyleFormat(int numberFormat, int parent, bool isStyle, bool usesOwnFormat) {
-            NumberFormat = numberFormat;
-            Parent = parent;
-            IsStyle = isStyle;
-            UsesOwnFormat = usesOwnFormat;
-        }
-        internal int NumberFormat { get; }
-        internal int Parent { get; }
-        internal bool IsStyle { get; }
-        internal bool UsesOwnFormat { get; }
     }
 
     private static object DecodeBooleanOrError(byte value, int errorFlag) => errorFlag switch {

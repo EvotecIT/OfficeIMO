@@ -10,10 +10,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <param name="endColumn">One-based last column.</param>
         /// <param name="width">Column width in Excel character-width units.</param>
         /// <param name="hidden">Whether the column range is hidden.</param>
-        /// <param name="styleIndex">Default legacy XF style index for the column range.</param>
+        /// <param name="styleIndex">Default legacy XF style index, or null when the source record does not declare one.</param>
         /// <param name="outlineLevel">Excel outline level from 0 through 7.</param>
         /// <param name="collapsed">Whether the column range is shown as collapsed.</param>
-        public LegacyXlsColumnLayout(int startColumn, int endColumn, double width, bool hidden, ushort styleIndex, byte outlineLevel = 0, bool collapsed = false) {
+        public LegacyXlsColumnLayout(int startColumn, int endColumn, double width, bool hidden, ushort? styleIndex, byte outlineLevel = 0, bool collapsed = false) {
             StartColumn = startColumn;
             EndColumn = endColumn;
             Width = width;
@@ -44,9 +44,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public bool Hidden { get; }
 
         /// <summary>
-        /// Gets the default legacy XF style index for the column range.
+        /// Gets the default legacy XF style index, or null when the source record does not declare one.
         /// </summary>
-        public ushort StyleIndex { get; }
+        public ushort? StyleIndex { get; }
 
         /// <summary>
         /// Gets the Excel outline level from 0 through 7.
