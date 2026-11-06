@@ -32,13 +32,15 @@ internal static partial class EmailReaderProjection {
         IReadOnlyList<EmailDocument> documents, IReadOnlyList<string?> logicalPaths,
         IReadOnlyList<EmailDiagnostic> diagnostics, EmailFileFormat format, string sourceName,
         string path, ReaderOptions options, CancellationToken cancellationToken,
-        bool? computeSourceHash = null, bool includeEmbeddedMessageContent = true, EmailConcealedTextPolicy concealedTextPolicy = EmailConcealedTextPolicy.Preserve) {
+        bool? computeSourceHash = null, bool includeEmbeddedMessageContent = true,
+        EmailConcealedTextPolicy concealedTextPolicy = EmailConcealedTextPolicy.Preserve,
+        string? capturedSourceHash = null, long? capturedSourceLength = null) {
         Projection projection = CreateProjection(documents, null, logicalPaths, diagnostics, format, sourceName, options, cancellationToken, includeEmbeddedMessageContent, concealedTextPolicy);
         var source = new OfficeDocumentSource {
             Path = path,
             SourceId = "src:" + Hash(NormalizeSourceKey(path)),
-            SourceHash = (computeSourceHash ?? options.ComputeHashes) ? TryHashFile(path) : null,
-            LengthBytes = TryLength(path),
+            SourceHash = capturedSourceHash ?? ((computeSourceHash ?? options.ComputeHashes) ? TryHashFile(path) : null),
+            LengthBytes = capturedSourceLength ?? TryLength(path),
             LastWriteUtc = TryLastWrite(path)
         };
         EnrichChunks(projection.Chunks, source, options.ComputeHashes);

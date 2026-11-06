@@ -393,6 +393,7 @@ internal sealed partial class OfficeImoAgentService {
         return extension.Equals(".pst", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".ost", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".olm", StringComparison.OrdinalIgnoreCase) ||
+               extension.Equals(".dbx", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".emlx", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".mbox", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".mbx", StringComparison.OrdinalIgnoreCase);

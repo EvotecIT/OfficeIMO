@@ -41,7 +41,7 @@ with their original position restored.
 
 - EML, MSG/OFT, TNEF, Mbox/MBX, iCalendar, and vCard artifacts
 - MHT/MHTML web archives with embedded MIME resources projected through `OfficeIMO.Reader.Html`
-- PST, OST, OLM, EMLX, Maildir, and mailbox-directory sessions
+- PST, OST, OLM, EMLX, Outlook Express DBX, Maildir, and mailbox-directory sessions
 - Outlook Offline Address Book files
 
 ```csharp

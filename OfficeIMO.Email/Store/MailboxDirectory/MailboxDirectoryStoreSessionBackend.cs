@@ -9,6 +9,7 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
     private readonly string _windowsOpenRoot;
     private readonly StringComparison _rootComparison;
     private readonly EmailStoreReaderOptions _options;
+    private readonly string? _dbxCatalogPath;
     private readonly EmailStoreReadResources _resources;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
     private readonly List<EmailStoreFolderInfo> _folders = new List<EmailStoreFolderInfo>();
@@ -25,8 +26,9 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
     private long _sourceLength;
 
     internal MailboxDirectoryStoreSessionBackend(string path, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, string? dbxCatalogPath = null) {
         _root = AppendSeparator(Path.GetFullPath(path));
+        _dbxCatalogPath = dbxCatalogPath;
         string rootWithoutSeparator = TrimTrailingDirectorySeparators(_root);
         string? rootParent = Path.GetDirectoryName(rootWithoutSeparator);
         _rootComparison = EmailStorePathIdentity.GetComparison(rootParent ?? rootWithoutSeparator);
@@ -41,10 +43,16 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
         _options = options;
         _resources = new EmailStoreReadResources(options);
         DisplayName = new DirectoryInfo(path).Name;
-        Index(cancellationToken);
+        if (dbxCatalogPath == null) {
+            Index(cancellationToken);
+        } else {
+            try { IndexDbxCatalog(dbxCatalogPath, cancellationToken); }
+            catch { _resources.Dispose(); throw; }
+        }
     }
 
-    public EmailStoreFormat Format => EmailStoreFormat.MailboxDirectory;
+    public EmailStoreFormat Format => _dbxCatalogPath == null
+        ? EmailStoreFormat.MailboxDirectory : EmailStoreFormat.Dbx;
     public string? DisplayName { get; }
     public long SourceLength => _sourceLength;
     public IReadOnlyList<EmailStoreFolderInfo> Folders => _folders;
@@ -53,6 +61,7 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
 
     public IEnumerable<EmailStoreItemReference> EnumerateItems(
         EmailStoreEnumerationOptions options, CancellationToken cancellationToken) {
+        ValidateDbxCatalog(cancellationToken);
         HashSet<string>? folders = ResolveFolderIds(options);
         if (!options.IncludeRegularItems) yield break;
         int count = 0;
@@ -68,7 +77,10 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (TryGetAggregate(reference, out AggregateItem aggregate)) {
-            return aggregate.Backend.ReadSummary(aggregate.Reference, cancellationToken);
+            ValidateDbxCatalog(cancellationToken);
+            EmailStoreItemSummary summary = aggregate.Backend.ReadSummary(aggregate.Reference, cancellationToken);
+            ValidateDbxCatalog(cancellationToken);
+            return summary;
         }
         if (!_filesById.TryGetValue(reference.Id, out MailboxFile? file) || file.FolderId != reference.FolderId ||
             reference.IsAssociated || reference.IsOrphaned) throw new KeyNotFoundException("The item reference does not belong to this mailbox-directory session.");
@@ -87,13 +99,18 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
         ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
         if (TryGetAggregate(reference, out AggregateItem aggregate)) {
+            ValidateDbxCatalog(cancellationToken);
             EmailStoreItem item = aggregate.Backend.ReadItem(aggregate.Reference, options, cancellationToken);
+            ValidateDbxCatalog(cancellationToken);
             ApplyDirectoryProperties(item.Document, reference.Id, reference.FolderId, aggregate.RelativePath);
             foreach (EmailStoreDiagnostic diagnostic in aggregate.Backend.Diagnostics) {
                 AddDiagnostic(diagnostic, aggregate.RelativePath);
             }
+            EmailStoreItemSummary summary = aggregate.Backend is DbxStoreSessionBackend
+                ? EmailStoreItemSummary.FromItem(item)
+                : aggregate.Backend.ReadSummary(aggregate.Reference, cancellationToken);
             return new EmailStoreItem(reference.Id, reference.FolderId, item.Document,
-                loadedParts: item.LoadedParts, format: Format, summary: aggregate.Backend.ReadSummary(aggregate.Reference, cancellationToken));
+                loadedParts: item.LoadedParts, format: Format, summary: summary);
         }
         if (!_filesById.TryGetValue(reference.Id, out MailboxFile? file) ||
             file.FolderId != reference.FolderId || reference.IsAssociated || reference.IsOrphaned) {
@@ -344,14 +361,14 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
     }
 
     private sealed class AggregateItem {
-        internal AggregateItem(MboxStoreSessionBackend backend, EmailStoreItemReference reference,
+        internal AggregateItem(IEmailStoreSessionBackend backend, EmailStoreItemReference reference,
             string folderId, string relativePath) {
             Backend = backend;
             Reference = reference;
             FolderId = folderId;
             RelativePath = relativePath;
         }
-        internal MboxStoreSessionBackend Backend { get; }
+        internal IEmailStoreSessionBackend Backend { get; }
         internal EmailStoreItemReference Reference { get; }
         internal string FolderId { get; }
         internal string RelativePath { get; }
@@ -359,11 +376,11 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
 
     private sealed class MailboxFile {
         internal MailboxFile(string id, string folderId, string path, string relativePath, bool isEmlx,
-            string? maildirFlags) {
+            string? maildirFlags, long? length = null) {
             Id = id;
             FolderId = folderId;
             Path = path;
-            Length = new FileInfo(path).Length;
+            Length = length ?? new FileInfo(path).Length;
             RelativePath = relativePath;
             IsEmlx = isEmlx;
             MaildirFlags = maildirFlags;

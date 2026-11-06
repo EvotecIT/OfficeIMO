@@ -409,7 +409,7 @@ internal static partial class MimeParser {
     }
 
     internal static void PopulateEnvelope(EmailDocument document, IReadOnlyList<EmailHeader> headers,
-        IList<EmailDiagnostic> diagnostics, string location) {
+        IList<EmailDiagnostic> diagnostics, string location, bool includeRecipients = true) {
         document.Subject = MimeHeaderParser.GetValue(headers, "Subject");
         document.From = MimeAddressParser.ParseOne(MimeHeaderParser.GetRawValue(headers, "From"), diagnostics,
             string.Concat(location, "/From"));
@@ -418,10 +418,12 @@ internal static partial class MimeParser {
         document.MessageId = TrimAngleBrackets(MimeHeaderParser.GetValue(headers, "Message-ID"));
         document.Date = ParseDate(MimeHeaderParser.GetValue(headers, "Date"), diagnostics, string.Concat(location, "/Date"));
 
-        AddRecipients(document, headers, "To", EmailRecipientKind.To, diagnostics, location);
-        AddRecipients(document, headers, "Cc", EmailRecipientKind.Cc, diagnostics, location);
-        AddRecipients(document, headers, "Bcc", EmailRecipientKind.Bcc, diagnostics, location);
-        AddRecipients(document, headers, "Reply-To", EmailRecipientKind.ReplyTo, diagnostics, location);
+        if (includeRecipients) {
+            AddRecipients(document, headers, "To", EmailRecipientKind.To, diagnostics, location);
+            AddRecipients(document, headers, "Cc", EmailRecipientKind.Cc, diagnostics, location);
+            AddRecipients(document, headers, "Bcc", EmailRecipientKind.Bcc, diagnostics, location);
+            AddRecipients(document, headers, "Reply-To", EmailRecipientKind.ReplyTo, diagnostics, location);
+        }
 
         string? received = MimeHeaderParser.GetValues(headers, "Received").FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(received)) {

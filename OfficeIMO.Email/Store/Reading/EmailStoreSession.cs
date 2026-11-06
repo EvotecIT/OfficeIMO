@@ -79,7 +79,7 @@ public sealed partial class EmailStoreSession : IDisposable {
             64 * 1024, FileOptions.RandomAccess);
         try {
             return OpenCore(stream, Path.GetFileName(path), options ?? EmailStoreReaderOptions.Default,
-                leaveOpen: false, originalPosition: 0, cancellationToken);
+                leaveOpen: false, originalPosition: 0, cancellationToken, sourcePath: path);
         } catch {
             stream.Dispose();
             throw;
@@ -240,14 +240,23 @@ public sealed partial class EmailStoreSession : IDisposable {
 
     private static EmailStoreSession OpenCore(Stream stream, string? sourceName,
         EmailStoreReaderOptions options, bool leaveOpen, long originalPosition,
-        CancellationToken cancellationToken, bool isSnapshot = false) {
+        CancellationToken cancellationToken, bool isSnapshot = false, string? sourcePath = null) {
         if (stream.Length > options.MaxInputBytes) {
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxInputBytes),
                 stream.Length, options.MaxInputBytes);
         }
-        EmailStoreFormat format = EmailStoreReader.DetectFormat(stream, sourceName);
+        EmailStoreFormat format = EmailStoreReader.DetectFormat(stream, sourceName, out bool isDbxCatalog);
         stream.Position = 0;
         try {
+            if (isDbxCatalog) {
+                if (sourcePath == null || !DbxDatabase.IsCatalogFileName(sourcePath))
+                    throw new InvalidDataException("Open Folders.dbx by its original file name to resolve its local mailboxes.");
+                string catalogPath = Path.GetFullPath(sourcePath);
+                string root = Path.GetDirectoryName(catalogPath)!;
+                var directory = new MailboxDirectoryStoreSessionBackend(root, options, cancellationToken, catalogPath);
+                return new EmailStoreSession(stream, leaveOpen, originalPosition, options, directory);
+            }
+
             IEmailStoreSessionBackend backend;
             switch (format) {
                 case EmailStoreFormat.Pst:
@@ -263,6 +272,9 @@ public sealed partial class EmailStoreSession : IDisposable {
                 case EmailStoreFormat.Mbox:
                     backend = new MboxStoreSessionBackend(
                         stream, sourceName, options, cancellationToken, isSnapshot);
+                    break;
+                case EmailStoreFormat.Dbx:
+                    backend = new DbxStoreSessionBackend(stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 default:
                     throw new InvalidDataException("The source is not a supported email-store artifact.");
