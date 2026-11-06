@@ -243,7 +243,8 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { ".dbx" },
             Array.Empty<OfficeOperationKind>(),
             limitedSupported: new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect, OfficeOperationKind.Validate, OfficeOperationKind.Export },
-            limitation: "Indexed local mail. Folders.dbx requires its path and sibling mailboxes. Validation checks indexed items. Export writes EML.");
+            unsupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
+            limitation: "Indexed local mail. Folders.dbx requires its path and sibling mailboxes. Validation checks indexed items. Export writes EML. DBX creation, editing, and round-trip output are unsupported.");
         AddNativeLifecycle(rows, "email-address-book-oab", "OfficeIMO.Email", "Email.AddressBook.Oab",
             "OfflineAddressBookSession.Open / Search / Validate / OfflineAddressBookInspector.Inspect",
             "OfficeIMO.Email.Tests bounded OAB session, search, inspection, validation, identity-index, and malformed-input contracts",

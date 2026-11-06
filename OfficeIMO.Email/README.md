@@ -817,10 +817,10 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 8 | 0 | 0 | 0 | 6 | 0 |
+| Create | 8 | 0 | 0 | 0 | 7 | 0 |
 | Read | 15 | 0 | 0 | 0 | 0 | 0 |
-| Edit | 6 | 0 | 4 | 1 | 3 | 0 |
-| Preserve | 2 | 4 | 0 | 0 | 3 | 0 |
+| Edit | 6 | 0 | 4 | 1 | 4 | 0 |
+| Preserve | 2 | 4 | 0 | 0 | 4 | 0 |
 | Inspect | 15 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 11 | 0 | 0 | 0 | 0 | 3 |
 | Remove | 0 | 0 | 0 | 0 | 1 | 4 |
