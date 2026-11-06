@@ -441,8 +441,9 @@ namespace OfficeIMO.Excel {
                 return Array.Empty<int>();
             }
 
+            uint maximum = (uint)(breaks is RowBreaks ? ExcelA1.MaxRows : ExcelA1.MaxColumns);
             return breaks.Elements<Break>()
-                .Where(item => item.ManualPageBreak?.Value == true && item.Id?.Value > 0U)
+                .Where(item => item.ManualPageBreak?.Value == true && item.Id?.Value > 0U && item.Id.Value <= maximum)
                 .Select(item => (int)item.Id!.Value)
                 .Distinct()
                 .OrderBy(item => item)

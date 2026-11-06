@@ -20,15 +20,14 @@ namespace OfficeIMO.Excel {
         }
 
         private bool HasWrapText(Cell cell) {
-            if (cell.StyleIndex == null) return false;
-
             var stylesPart = _excelDocument.WorkbookPartRoot?.WorkbookStylesPart;
             var stylesheet = stylesPart?.Stylesheet;
             var cellFormats = stylesheet?.CellFormats;
 
             if (cellFormats == null) return false;
 
-            var cellFormat = cellFormats.Elements<CellFormat>().ElementAtOrDefault((int)cell.StyleIndex.Value);
+            uint styleIndex = GetCellDisplayStyleIndex(cell);
+            var cellFormat = styleIndex <= int.MaxValue ? cellFormats.Elements<CellFormat>().ElementAtOrDefault((int)styleIndex) : null;
             if (cellFormat?.Alignment == null) return false;
 
             return cellFormat.Alignment.WrapText?.Value == true;
@@ -45,6 +44,7 @@ namespace OfficeIMO.Excel {
         }
 
         private double CalculateRowHeight(Row row, AutoFitTextContext? textContext = null) {
+            textContext ??= CreateAutoFitTextContext();
             double defaultHeight = GetDefaultRowHeightPoints();
             double maxHeight = defaultHeight; // Start with default as minimum
             bool hasContent = false;
@@ -75,8 +75,12 @@ namespace OfficeIMO.Excel {
                 if (string.IsNullOrWhiteSpace(text)) continue;
                 hasContent = true;
 
-                var fontInfo = GetCellFontInfo(cell, textMeasurer.FallbackFontInfo);
+                uint styleIndex = GetCellDisplayStyleIndex(cell);
+                var fontInfo = GetCellFontInfo(cell.StyleIndex != null ? cell : new Cell { StyleIndex = styleIndex }, textMeasurer.FallbackFontInfo);
                 var style = textMeasurer.CreateStyle(fontInfo, 96);
+                var formats = textContext.CellFormats;
+                Alignment? alignment = formats != null && styleIndex < formats.Count ? formats[(int)styleIndex].Alignment : null;
+                uint rotation = alignment?.TextRotation?.Value ?? 0U;
 
                 // Measure a consistent line height using representative glyphs, but never below default row height
                 // ClosedXML effectively uses a line box slightly taller than raw metrics; add a small pixel fudge.
@@ -92,11 +96,11 @@ namespace OfficeIMO.Excel {
                 bool wrap = HasWrapText(cell) || hasExplicitBreaks; // Excel treats explicit breaks as wrapped content
 
                 // Ensure WrapText for visual parity when explicit breaks exist
-                if (hasExplicitBreaks && !HasWrapText(cell)) ApplyWrapText(cell);
+                if (hasExplicitBreaks && !HasWrapText(cell)) ApplyAutoFitWrapText(cell, styleIndex);
 
-                if (wrap) {
+                if (wrap && rotation == 0U) {
                     // Available width in pixels for this cell (span-aware)
-                    double availPx = GetAvailableWidthPx(cell) / AutoFitTextWidthSafetyFactor;
+                    double availPx = Math.Max(0, GetAvailableWidthPx(cell) - GetAutoFitIndentPixels(alignment, textMeasurer, style)) / AutoFitTextWidthSafetyFactor;
                     if (availPx > 0) {
                         int linesCount = 0;
                         foreach (var hard in hardLines) {
@@ -115,10 +119,15 @@ namespace OfficeIMO.Excel {
                 if (totalLines > 1) {
                     cellHeight *= 1.20;
                 }
+                if (rotation != 0U) {
+                    double widthPx = hardLines.Max(line => (double)textMeasurer.MeasureWidthOrDefault(line, style, 0)) * AutoFitTextWidthSafetyFactor;
+                    double heightPx = rotation == 255U ? baseLineHeightPt * 96D / 72D : cellHeight * 96D / 72D;
+                    cellHeight = ProjectAutoFitTextBox(text, widthPx, heightPx, rotation, textMeasurer, style).Height * 72D / 96D;
+                }
 
                 // Ensure Excel wraps when our calculation indicates multiple lines
                 if (totalLines > 1 && !HasWrapText(cell)) {
-                    ApplyWrapText(cell);
+                    ApplyAutoFitWrapText(cell, styleIndex);
                 }
 
                 if (cellHeight > maxHeight) {
@@ -128,6 +137,12 @@ namespace OfficeIMO.Excel {
 
             // Round to reasonable precision and return desired height
             return hasContent ? Math.Round(maxHeight, 2) : 0;
+        }
+
+        private void ApplyAutoFitWrapText(Cell cell, uint styleIndex) {
+            // Wrapping creates an explicit XF; start it from the inherited display style.
+            if (cell.StyleIndex == null && styleIndex != 0U) cell.StyleIndex = styleIndex;
+            ApplyWrapText(cell);
         }
 
         private int CountWrappedLines(string text, double maxWidthPx, ExcelTextMeasurer textMeasurer, ExcelTextMeasurer.Style style) {

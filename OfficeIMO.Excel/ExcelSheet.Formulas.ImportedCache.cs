@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 MaterializePendingDirectCellValues();
                 MaterializeDeferredDataSetImportIfNeeded();
-                Cell cell = GetCell(row, column);
+                Cell cell = GetWritableValueCell(row, column);
                 ClearCellValueMetadata(cell);
                 SetExistingCellPlainStringValue(cell, cachedText);
                 CompleteCellValueMutation(row, column);

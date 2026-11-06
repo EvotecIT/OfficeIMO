@@ -904,6 +904,8 @@ to use `Load`.
 
 ### Validation lists and typed reads
 
+Inline lists allow at most 255 characters in the complete quoted formula. Use a worksheet range or named range for longer lists or items containing commas. Imported validation extension markup remains in the package; `GetDataValidations()` projects standard `Formula1` and `Formula2` fields and does not decode AlternateContent list payloads.
+
 ```csharp
 using var document = ExcelDocument.Load("input.xlsx");
 var sheet = document["Data"];
@@ -1432,6 +1434,8 @@ ExcelQueryRefreshResult refresh = await document.RefreshQueryAsync(
 OfficeIMO stores the native connection, table, and query-table relationship chain but does not ship a database or network provider. The application-owned `IExcelQueryExecutionHost` interprets the opaque command and returns rows. OfficeIMO applies row, column, cell, and character budgets before a transactional table replacement. Commands loaded from imported workbooks require the separate `AllowImportedCommands` opt-in.
 
 ### Formula inspection and calculation policy
+
+Numeric caches retain double precision. Numeric-to-text conversion uses fifteen significant digits. Numeric comparisons use the same significant-digit precision, and terminal near-zero addition/subtraction compensates for floating-point residue. Overflow produces typed `#NUM!` caches. Legacy text indexing counts UTF-16 units; results containing isolated surrogate units or XML control characters remain unevaluated for the spreadsheet application.
 
 `RATE`, `IRR`, `XIRR` and `XNPV` calculate annuity rates and periodic or dated
 cash flows. Cash-flow vectors accept worksheet ranges, names, simple structured

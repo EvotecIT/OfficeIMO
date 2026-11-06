@@ -145,6 +145,8 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (Hyperlink hyperlink in worksheet.Descendants<Hyperlink>()) {
+                // A relationship-backed bookmark belongs to its target document.
+                if (!string.IsNullOrEmpty(hyperlink.Id?.Value)) continue;
                 string? location = hyperlink.Location?.Value;
                 if (string.IsNullOrEmpty(location)) {
                     continue;

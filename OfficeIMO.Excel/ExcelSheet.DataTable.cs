@@ -76,14 +76,17 @@ namespace OfficeIMO.Excel {
             ArgumentOutOfRangeException.ThrowIfLessThan(startRow, 1);
             ArgumentOutOfRangeException.ThrowIfLessThan(startColumn, 1);
             _excelDocument.MaterializeDeferredDataSetImport(ct);
+            bool writesTableHeader = false;
             if (table.Columns.Count > 0 && table.Rows.Count + (includeHeaders ? 1L : 0L) > 0) {
                 long lastRow = (long)startRow + table.Rows.Count + (includeHeaders ? 1L : 0L) - 1;
                 long lastColumn = (long)startColumn + table.Columns.Count - 1;
                 EnsureDynamicArrayRangeWritable(startRow, startColumn,
                     (int)Math.Min(lastRow, int.MaxValue), (int)Math.Min(lastColumn, int.MaxValue));
+                writesTableHeader = RangeContainsTableHeader(startRow, startColumn,
+                    (int)Math.Min(lastRow, int.MaxValue), (int)Math.Min(lastColumn, int.MaxValue));
             }
 
-            bool canRegisterDirectSave = registerDirectSaveCandidate
+            bool canRegisterDirectSave = !writesTableHeader && registerDirectSaveCandidate
                 && !_excelDocument.IsMaterializingDeferredDataSetImport
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
 
@@ -108,7 +111,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
+            if (!writesTableHeader && TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
                 RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);
                 return;
             }
@@ -137,6 +140,17 @@ namespace OfficeIMO.Excel {
 
             if (cells.Count == 0) return;
 
+            if (writesTableHeader) {
+                var values = cells.Select(item => (Row: item.Row, Column: item.Col, Value: item.Val!)).ToArray();
+                var normalized = PrepareTableHeaderValueWrites(values, ct);
+                if (!ReferenceEquals(values, normalized)) {
+                    for (int index = 0; index < cells.Count; index++) {
+                        var item = cells[index];
+                        cells[index] = (item.Row, item.Col, normalized[index].Value, item.NumFmt);
+                    }
+                }
+            }
+
             // Prepared buffers for compute/apply
             var prepared = new (int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[cells.Count];
             var wrapFlags = new bool[cells.Count];
@@ -156,7 +170,8 @@ namespace OfficeIMO.Excel {
                             CompleteCellValueMutation(r, c);
                         } else {
                             CellValueCore(r, c, v);
-                            ClearTabularReplacementValueMetadata(GetWritableValueCell(r, c));
+                            // The value writer already admitted this cell and synchronized its header.
+                            ClearTabularReplacementValueMetadata(GetCell(r, c));
                         }
                         if (!string.IsNullOrWhiteSpace(fmt)) {
                             // Apply number format using existing API

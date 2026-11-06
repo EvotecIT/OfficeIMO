@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     return false;
                 }
 
-                string runText = run.Text?.Text ?? string.Empty;
+                string runText = Utilities.ExcelSanitizer.DecodeXString(run.Text?.Text ?? string.Empty);
                 if (runText.Length == 0) {
                     continue;
                 }

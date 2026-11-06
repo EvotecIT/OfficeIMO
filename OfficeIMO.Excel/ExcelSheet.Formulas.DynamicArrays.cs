@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
         }
 
         private Cell GetWritableValueCell(int row, int column) {
-            EnsureDynamicArrayCellWritable(row, column);
+            EnsureCellPayloadWritable(row, column);
             return GetCell(row, column);
         }
 

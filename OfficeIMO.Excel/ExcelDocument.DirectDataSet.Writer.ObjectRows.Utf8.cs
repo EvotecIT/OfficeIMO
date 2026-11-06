@@ -21,7 +21,9 @@ namespace OfficeIMO.Excel {
             /// <exception cref="ArgumentException">The text is invalid UTF-8, contains an invalid XML scalar, or exceeds Excel's text limit.</exception>
             public ExcelTabularRowWriter WriteUtf8(ReadOnlySpan<byte> value) {
                 ValidateUtf8Text(value);
-                if (_sharedStrings != null || _writer is not PooledUtf8TextWriter writer) {
+                if (_sharedStrings != null || Utilities.ExcelSanitizer.HasXStringEscape(value)
+                    || value.IndexOf((byte)'_') >= 0 && value.IndexOfAnyInRange((byte)0, (byte)31) >= 0
+                    || _writer is not PooledUtf8TextWriter writer) {
                     return Write(StrictCellUtf8.GetString(value));
                 }
 

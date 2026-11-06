@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (typeHint == CellValues.String || typeHint == CellValues.InlineString) {
-                if (ReturnBindingConversion(TryConvertStringForBinding(rawText ?? inlineText, binding, out converted), binding, converted)) {
+                if (ReturnBindingConversion(TryConvertStringForBinding(rawText != null ? Utilities.ExcelSanitizer.DecodeXString(rawText) : inlineText, binding, out converted), binding, converted)) {
                     return true;
                 }
 
@@ -214,7 +214,7 @@ namespace OfficeIMO.Excel {
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
                 || raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
-                return TryConvertStringForBinding(raw.RawText ?? raw.InlineText, binding, out converted);
+                return TryConvertStringForBinding(raw.RawText != null ? Utilities.ExcelSanitizer.DecodeXString(raw.RawText) : raw.InlineText, binding, out converted);
             }
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date && raw.RawText != null) {
@@ -348,7 +348,7 @@ namespace OfficeIMO.Excel {
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
                 || raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
-                if (TrySetStringTextBinding(raw.RawText ?? raw.InlineText, binding, target)) {
+                if (TrySetStringTextBinding(raw.RawText != null ? Utilities.ExcelSanitizer.DecodeXString(raw.RawText) : raw.InlineText, binding, target)) {
                     return true;
                 }
 

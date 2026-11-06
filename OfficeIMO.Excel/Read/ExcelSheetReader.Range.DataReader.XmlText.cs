@@ -96,7 +96,7 @@ namespace OfficeIMO.Excel {
                     }
                     if (!IsXmlInlineStringTextElement(reader, depth, ref richRunDepth)) continue;
 
-                    string text = ReadElementText(reader, advancePastEnd: false);
+                    string text = Utilities.ExcelSanitizer.DecodeXString(ReadElementText(reader, advancePastEnd: false));
                     if (builder != null) {
                         builder.Append(text);
                     } else if (first == null) {

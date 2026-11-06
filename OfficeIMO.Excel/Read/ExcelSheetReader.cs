@@ -374,7 +374,7 @@ namespace OfficeIMO.Excel {
         private static string? ExtractInlineString(InlineString? inline, CellValues? typeHint) {
             if (typeHint != CellValues.InlineString && inline is null) return null;
 
-            if (inline?.Text?.Text != null) return inline.Text.Text;
+            if (inline?.Text?.Text != null) return Utilities.ExcelSanitizer.DecodeXString(inline.Text.Text);
             if (inline?.HasChildren == true) {
                 return SharedStringCache.GetRunText(inline);
             }
@@ -574,7 +574,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (type == CellValues.String || type == CellValues.InlineString) {
-                value = rawText ?? inlineText;
+                value = rawText != null ? Utilities.ExcelSanitizer.DecodeXString(rawText) : inlineText;
                 return value != null;
             }
 
@@ -709,7 +709,7 @@ namespace OfficeIMO.Excel {
             if (type == CellValues.String || type == CellValues.InlineString || type == CellValues.SharedString) {
                 if (type == CellValues.SharedString && TryParseSharedStringIndex(rawText, out var idx))
                     return GetSharedString(idx);
-                return rawText ?? inlineText;
+                return rawText != null ? Utilities.ExcelSanitizer.DecodeXString(rawText) : inlineText;
             }
 
             if (rawText != null) {

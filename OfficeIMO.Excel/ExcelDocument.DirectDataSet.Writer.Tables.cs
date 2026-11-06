@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
                 DirectDataSetSheetModel sheet,
                 string? range = null) {
                 int columnCount = sheet.Table.ColumnCount;
-                string reference = ExcelSheet.BuildTableReference(range ?? sheet.Range, sheet.IncludeHeaders);
+                string reference = range ?? sheet.Range;
                 var builder = new StringBuilder(512 + (columnCount * 72));
                 string sheetIndexText = InvariantNumberText.Get(sheet.Index);
                 builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");

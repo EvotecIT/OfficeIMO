@@ -386,7 +386,7 @@ namespace OfficeIMO.Excel {
 
             if (type == OpenXmlCellValues.InlineString || cell.InlineString != null) {
                 if (cell.InlineString?.Text?.Text != null) {
-                    return cell.InlineString.Text.Text;
+                    return Utilities.ExcelSanitizer.DecodeXString(cell.InlineString.Text.Text);
                 }
 
                 return cell.InlineString?.HasChildren == true ? SharedStringCache.GetRunText(cell.InlineString) : rawText;
@@ -396,7 +396,7 @@ namespace OfficeIMO.Excel {
                 return rawText == "1";
             }
 
-            return rawText;
+            return type == OpenXmlCellValues.String && rawText != null ? Utilities.ExcelSanitizer.DecodeXString(rawText) : rawText;
         }
 
         private List<string> LoadSharedStringTextsFromDom(int maxIndex) {
@@ -412,7 +412,7 @@ namespace OfficeIMO.Excel {
 
             var values = new List<string>(capacity);
             foreach (var item in table.Elements<SharedStringItem>()) {
-                values.Add(item.Text?.Text ?? (item.HasChildren ? SharedStringCache.GetRunText(item) : string.Empty));
+                values.Add(item.Text != null ? Utilities.ExcelSanitizer.DecodeXString(item.Text.Text) : (item.HasChildren ? SharedStringCache.GetRunText(item) : string.Empty));
                 if (values.Count > maxIndex) {
                     break;
                 }

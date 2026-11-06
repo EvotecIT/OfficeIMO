@@ -646,7 +646,8 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (Break pageBreak in WorksheetRoot.MetadataDescendants<RowBreaks>().SelectMany(rowBreaks => rowBreaks.Elements<Break>())) {
-                if (pageBreak.Id?.Value is uint row && row >= firstRow && (long)row + count > ExcelA1.MaxRows) {
+                if (pageBreak.Id?.Value is uint row && row <= ExcelA1.MaxRows
+                    && row >= firstRow && (long)row + count > ExcelA1.MaxRows) {
                     throw new InvalidOperationException("Inserting rows would move a page break beyond Excel's row limit.");
                 }
             }

@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
             HashSet<(int TargetIndex, uint StyleIndex, int SharedStringId)> sharedStringMeasurements,
             Dictionary<(int TargetIndex, uint StyleIndex), int> simpleTextMaxLengths,
             List<AutoFitMeasurement> measurements) {
-            uint styleIndex = cell.StyleIndex?.Value ?? 0U;
+            uint styleIndex = GetCellDisplayStyleIndex(cell);
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
                 && TryGetSharedStringIndex(cell, out int sharedStringId)
                 && !sharedStringMeasurements.Add((targetIndex, styleIndex, sharedStringId))) {

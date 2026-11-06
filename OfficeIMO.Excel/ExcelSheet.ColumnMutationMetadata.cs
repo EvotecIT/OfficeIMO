@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
             foreach (ColumnBreaks columnBreaks in WorksheetRoot.MetadataDescendants<ColumnBreaks>().ToList()) {
                 bool changed = false;
                 foreach (Break pageBreak in columnBreaks.Elements<Break>().ToList()) {
-                    if (pageBreak.Id?.Value is not uint columnId || columnId == 0U) continue;
+                    if (pageBreak.Id?.Value is not uint columnId || columnId == 0U || columnId > ExcelA1.MaxColumns) continue;
                     int column = checked((int)columnId);
                     if (deleting && column >= firstColumn && column <= lastDeletedColumn) {
                         pageBreak.Remove();

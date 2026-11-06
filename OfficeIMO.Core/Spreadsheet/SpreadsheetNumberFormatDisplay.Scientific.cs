@@ -4,7 +4,7 @@ using System.Globalization;
 namespace OfficeIMO.Spreadsheet {
     internal static partial class SpreadsheetNumberFormatDisplay {
         /// <summary>Formats the supported scientific mantissa while preserving optional precision and exponent presentation.</summary>
-        private static bool TryFormatScientific(double value, string formatCode, int selectedSection, out string text) {
+        private static bool TryFormatScientific(double value, string formatCode, int selectedSection, out string text, IFormatProvider? provider = null) {
             text = string.Empty;
             int first = FindFirstNumericPlaceholder(formatCode);
             if (first < 0) return false;
@@ -22,7 +22,7 @@ namespace OfficeIMO.Spreadsheet {
                     : "." + new string('0', precision.Required) + new string('#', precision.Optional));
                 string numericCode = mantissa + token + sign + new string('0', digits);
                 double numericValue = selectedSection == 1 ? Math.Abs(value) : value;
-                text = ApplyNumericAffixes(formatCode, numericValue.ToString(numericCode, CultureInfo.InvariantCulture));
+                text = ApplyNumericAffixes(formatCode, numericValue.ToString(numericCode, provider ?? CultureInfo.InvariantCulture));
                 return true;
             }
             return false;

@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string[] original = sourceTextNodes.Select(text => text.Text ?? string.Empty).ToArray();
+            string[] original = sourceTextNodes.Select(text => Utilities.ExcelSanitizer.DecodeXString(text.Text ?? string.Empty)).ToArray();
             IReadOnlyList<string> transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.ApplySegments(original, textCase, culture);
             if (original.SequenceEqual(transformed, StringComparer.Ordinal)) {
                 return true;
@@ -49,7 +49,9 @@ namespace OfficeIMO.Excel {
 
             InlineString inline;
             if (source is InlineString existingInline) {
-                inline = existingInline;
+                inline = TryGetTableHeader(row, column, out _, out _)
+                    ? (InlineString)existingInline.CloneNode(true)
+                    : existingInline;
             } else {
                 inline = new InlineString();
                 foreach (OpenXmlElement child in source.ChildElements) {
@@ -63,9 +65,10 @@ namespace OfficeIMO.Excel {
             }
 
             for (int index = 0; index < targetTextNodes.Length; index++) {
-                targetTextNodes[index].Text = transformed[index];
+                targetTextNodes[index].Text = Utilities.ExcelSanitizer.EncodeXString(transformed[index]);
             }
 
+            PrepareTableHeaderRichText(row, column, inline);
             cell.CellFormula = null;
             cell.CellValue = null;
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;

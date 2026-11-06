@@ -264,7 +264,7 @@ namespace OfficeIMO.Excel {
                     if (cell == null) continue;
                     string text = GetCellAutoFitText(cell, textContext);
                     if (string.IsNullOrWhiteSpace(text)) continue;
-                    uint styleIndex = cell.StyleIndex?.Value ?? 0U;
+                    uint styleIndex = GetCellDisplayStyleIndex(cell);
                     double columnWidth = measurer.MeasureHeader(text, styleIndex, header.Bold, header.FilterButton);
                     if (columnWidth > widths[header.TargetIndex]) widths[header.TargetIndex] = columnWidth;
                 }
