@@ -54,6 +54,7 @@ public sealed partial class PdfDocumentReadResult {
             includeFormWidgets ? IndexFormWidgetsByPageNumber(formFields) : new Dictionary<int, IReadOnlyList<PdfLogicalFormWidget>>();
 
         var pages = new List<PdfLogicalPage>(pageNumbers.Length);
+        var indexedSoftMaskMemo = includeImages && pageNumbers.Length > 1 ? new PdfIndexedSoftMaskPngMemo() : null;
         for (int i = 0; i < pageNumbers.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
@@ -68,7 +69,7 @@ public sealed partial class PdfDocumentReadResult {
                 options,
                 pageFormWidgets,
                 analyses[i],
-                includeImages, includeFormWidgets, recoverDecodableText, cancellationToken));
+                includeImages, includeFormWidgets, recoverDecodableText, indexedSoftMaskMemo, cancellationToken));
         }
         if (profile == PdfReadProfile.Structured) {
             ApplyDocumentHeadingFontTiers(

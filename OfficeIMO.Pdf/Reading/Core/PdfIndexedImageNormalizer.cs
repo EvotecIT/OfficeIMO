@@ -75,7 +75,7 @@ internal static class PdfIndexedImageNormalizer {
             colorFunctionEvaluationBudget: null,
             decodedPixels: null,
             functionResolutionContext: null,
-            out pngBytes, cancellationToken);
+            out pngBytes, cancellationToken: cancellationToken);
     }
 
     internal static bool TryBuildPngFile(
@@ -102,7 +102,7 @@ internal static class PdfIndexedImageNormalizer {
             colorFunctionEvaluationBudget: null,
             decodedPixels: null,
             functionResolutionContext: null,
-            out pngBytes, cancellationToken);
+            out pngBytes, cancellationToken: cancellationToken);
 
     internal static bool TryBuildPngFile(
         PdfObject? colorSpaceObj,
@@ -129,7 +129,7 @@ internal static class PdfIndexedImageNormalizer {
             colorFunctionEvaluationBudget,
             decodedPixels: null,
             functionResolutionContext: null,
-            out pngBytes, cancellationToken);
+            out pngBytes, cancellationToken: cancellationToken);
 
     internal static bool TryBuildPngFile(
         PdfObject? colorSpaceObj,
@@ -155,7 +155,7 @@ internal static class PdfIndexedImageNormalizer {
             colorFunctionEvaluationBudget: null,
             decodedPixels,
             functionResolutionContext: null,
-            out pngBytes, cancellationToken);
+            out pngBytes, cancellationToken: cancellationToken);
 
     internal static bool TryBuildPngFile(
         PdfObject? colorSpaceObj,
@@ -170,7 +170,9 @@ internal static class PdfIndexedImageNormalizer {
         Func<int, long, bool>? colorFunctionEvaluationBudget,
         byte[]? decodedPixels,
         PdfColorFunctionResolutionContext? functionResolutionContext,
-        out byte[] pngBytes, CancellationToken cancellationToken = default) {
+        out byte[] pngBytes,
+        PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo = null,
+        CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         pngBytes = Array.Empty<byte>();
         if (width <= 0 ||
@@ -203,7 +205,9 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
         if (PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects)) {
-            return TryBuildPngFileFromIndexedPixelsWithSoftMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, stream, objects, maxDecodedStreamBytes, out pngBytes, cancellationToken);
+            return TryBuildPngFileFromIndexedPixelsWithSoftMask(
+                width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, stream, objects,
+                maxDecodedStreamBytes, out pngBytes, decodedPixels is null ? indexedSoftMaskMemo : null, cancellationToken);
         }
 
         if (colorKeyMask is not null) {
@@ -518,7 +522,7 @@ internal static class PdfIndexedImageNormalizer {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        out byte[] pngBytes, CancellationToken cancellationToken = default) {
+        out byte[] pngBytes, PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         pngBytes = Array.Empty<byte>();
         if (!stream.Dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
@@ -580,6 +584,14 @@ internal static class PdfIndexedImageNormalizer {
         if (!PdfImageDecodeTransform.TryCreateColor(softMask.Dictionary, 1, objects, out PdfImageDecodeTransform? alphaDecodeTransform)) {
             return false;
         }
+        // Keep both stream decodes and their limit checks on every extraction.
+        // Only the deterministic packing of the admitted samples is shared.
+        cancellationToken.ThrowIfCancellationRequested();
+        if (indexedSoftMaskMemo?.Find(stream, softMask, maxDecodedStreamBytes, rgbPalette) is { } cached) {
+            pngBytes = cached;
+            return true;
+        }
+
         byte[] scanlines = new byte[scanlineBytes];
         int paletteEntryCount = rgbPalette.Length / 3;
         for (int row = 0; row < height; row++) {
@@ -613,6 +625,7 @@ internal static class PdfIndexedImageNormalizer {
             6,
             scanlines,
             OfficePngCompression.Stored);
+        indexedSoftMaskMemo?.Remember(stream, softMask, maxDecodedStreamBytes, rgbPalette, pngBytes);
         return true;
     }
 

@@ -554,7 +554,8 @@ public sealed partial class PdfReadPage {
             cancellationCheck: cancellationToken.ThrowIfCancellationRequested,
             cancellationToken: cancellationToken);
         VisitImagesForResources(ResolveDictionary(GetInheritedValue("Resources")), pageNumber, placements,
-            colorizeImageMasks: false, new PageContentBudget(this, cancellationToken), emit, cancellationToken);
+            colorizeImageMasks: false, new PageContentBudget(this, cancellationToken), emit,
+            indexedSoftMaskMemo: null, cancellationToken);
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements) {
@@ -562,10 +563,11 @@ public sealed partial class PdfReadPage {
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber,
-        IReadOnlyList<PdfImagePlacement>? imagePlacements, CancellationToken cancellationToken) {
+        IReadOnlyList<PdfImagePlacement>? imagePlacements, PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo,
+        CancellationToken cancellationToken) {
         PrepareOutputIntentRendering(cancellationToken);
         return GetImages(pageNumber, imagePlacements, colorizeImageMasks: false,
-            new PageContentBudget(this, cancellationToken), cancellationToken);
+            new PageContentBudget(this, cancellationToken), indexedSoftMaskMemo, cancellationToken);
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks) {
@@ -576,13 +578,15 @@ public sealed partial class PdfReadPage {
         int pageNumber,
         IReadOnlyList<PdfImagePlacement>? imagePlacements,
         bool colorizeImageMasks,
-        PageContentBudget pageContentBudget, CancellationToken cancellationToken = default) {
+        PageContentBudget pageContentBudget,
+        PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo = null,
+        CancellationToken cancellationToken = default) {
         return GetImagesForResources(
             ResolveDictionary(GetInheritedValue("Resources")),
             pageNumber,
             imagePlacements,
             colorizeImageMasks,
-            pageContentBudget, cancellationToken);
+            pageContentBudget, indexedSoftMaskMemo, cancellationToken);
     }
 
     private IReadOnlyList<PdfExtractedImage> GetImagesForResources(
@@ -590,10 +594,12 @@ public sealed partial class PdfReadPage {
         int pageNumber,
         IReadOnlyList<PdfImagePlacement>? imagePlacements,
         bool colorizeImageMasks = false,
-        PageContentBudget? pageContentBudget = null, CancellationToken cancellationToken = default) {
+        PageContentBudget? pageContentBudget = null,
+        PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo = null,
+        CancellationToken cancellationToken = default) {
         var images = new List<PdfExtractedImage>();
         VisitImagesForResources(resources, pageNumber, imagePlacements, colorizeImageMasks,
-            pageContentBudget, images.Add, cancellationToken);
+            pageContentBudget, images.Add, indexedSoftMaskMemo, cancellationToken);
         return images.Count == 0 ? Array.Empty<PdfExtractedImage>() : images.AsReadOnly();
     }
 
@@ -604,6 +610,7 @@ public sealed partial class PdfReadPage {
         bool colorizeImageMasks,
         PageContentBudget? pageContentBudget,
         Action<PdfExtractedImage> emit,
+        PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo,
         CancellationToken cancellationToken) {
         if (!cancellationToken.CanBeCanceled) cancellationToken = pageContentBudget?.CancellationToken ?? default;
         cancellationToken.ThrowIfCancellationRequested();
@@ -618,7 +625,7 @@ public sealed partial class PdfReadPage {
                 _limits,
                 EffectiveOutputIntentColorTransform,
                 pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
-                pageContentBudget?.ColorFunctionResolutionContext, cancellationToken);
+                pageContentBudget?.ColorFunctionResolutionContext, indexedSoftMaskMemo, cancellationToken);
         }
         if (imagePlacements is not null) {
             for (int i = 0; i < imagePlacements.Count; i++) {
@@ -644,7 +651,7 @@ public sealed partial class PdfReadPage {
                     pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
                     pageContentBudget?.ColorFunctionResolutionContext,
                     inheritedHasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent,
-                    cancellationToken: cancellationToken, maxImageReferenceSteps: _limits.MaxImageReferenceSteps));
+                    maxImageReferenceSteps: _limits.MaxImageReferenceSteps, cancellationToken: cancellationToken));
             }
         }
     }

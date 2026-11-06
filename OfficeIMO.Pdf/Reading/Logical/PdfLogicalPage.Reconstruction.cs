@@ -14,6 +14,7 @@ public sealed partial class PdfLogicalPage {
         bool includeImages = true,
         bool includeFormWidgets = true,
         bool recoverDecodableText = false,
+        PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var size = page.GetPageSize();
@@ -113,7 +114,9 @@ public sealed partial class PdfLogicalPage {
         IReadOnlyList<PdfImagePlacement> imagePlacements = !includeImages ? Array.Empty<PdfImagePlacement>() : analysis is not null
             ? pageAnalysis.ImagePlacements
             : page.GetImagePlacements(pageNumber, cancellationToken);
-        foreach (var image in includeImages ? page.GetImages(pageNumber, imagePlacements, cancellationToken) : Array.Empty<PdfExtractedImage>()) {
+        foreach (var image in includeImages
+            ? page.GetImages(pageNumber, imagePlacements, indexedSoftMaskMemo, cancellationToken)
+            : Array.Empty<PdfExtractedImage>()) {
             IReadOnlyList<PdfImagePlacement> matchingPlacements = MatchImagePlacements(image, imagePlacements);
             var logicalImage = new PdfLogicalImage(
                 image,
