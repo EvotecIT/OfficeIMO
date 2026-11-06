@@ -153,10 +153,24 @@ internal sealed partial class WordMl2003Projection {
             result.SetAttributeValue(Relationships + "id", id);
         }
         foreach (XElement child in source.Elements()) {
+            if (!IsSupportedVmlChild(source.Name, child.Name)) {
+                Omit(child, "VML picture structure inside " + source.Name.LocalName);
+                continue;
+            }
             XElement? mapped = ProjectVml(child);
             if (mapped != null) result.Add(mapped);
         }
+        if (source.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
+            Omit(source, "VML picture text content");
         return result;
+    }
+
+    private static bool IsSupportedVmlChild(XName parent, XName child) {
+        if (parent == Vml + "shape" || parent == Vml + "shapetype") {
+            return child == Office + "lock" || child.Namespace == Vml &&
+                ContainsName("path formulas fill stroke imagedata", child.LocalName);
+        }
+        return parent == Vml + "formulas" && child == Vml + "f";
     }
 
     private void ReserveRelationship(OpenXmlPartContainer owner, bool createsPart = false) {

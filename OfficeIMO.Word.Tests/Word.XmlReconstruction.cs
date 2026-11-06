@@ -96,6 +96,29 @@ public sealed class WordMlReconstructionTests {
     }
 
     [Theory]
+    [InlineData("<v:formulas><v:shape id=\"Nested\"/></v:formulas>", "shape")]
+    [InlineData("<v:formulas><v:f eqn=\"val 1\"><v:path v=\"m0,0\"/></v:f></v:formulas>", "path")]
+    [InlineData("<v:fill><o:lock aspectratio=\"t\"/></v:fill>", "lock")]
+    [InlineData("<v:formulas><v:imagedata src=\"wordml://pixel.png\"/></v:formulas>", "imagedata")]
+    [InlineData("<v:formulas>unexpected text<v:f eqn=\"val 1\"/></v:formulas>", "formulas")]
+    public void VmlChildContextLossIsReportedBeforeResourceCreationAndEmission(string content, string omittedName) {
+        string xml = Wrap("<w:body><w:p><w:r><w:pict><w:binData w:name=\"wordml://pixel.png\">" +
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=" +
+            "</w:binData><v:shape id=\"Picture1\" style=\"width:12pt;height:6pt\">" + content +
+            "</v:shape></w:pict></w:r></w:p></w:body>");
+        using var input = Input(xml);
+        using WordDocument document = WordDocument.Load(input, null, out OfficeConversionReport report);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Location?.EndsWith("}" + omittedName, StringComparison.Ordinal) == true &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        using var saved = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument package = WordprocessingDocument.Open(saved, false);
+        Assert.Empty(package.MainDocumentPart!.ImageParts);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(package));
+        using var strict = Input(xml);
+        Assert.Throws<OfficeConversionException>(() => WordDocument.Load(strict, new WordLoadOptions { FailOnLoss = true }));
+    }
+
+    [Theory]
     [InlineData("xml")]
     [InlineData("part")]
     [InlineData("aggregate")]
