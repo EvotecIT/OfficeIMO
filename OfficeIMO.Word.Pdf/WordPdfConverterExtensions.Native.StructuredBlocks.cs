@@ -69,29 +69,9 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IReadOnlyList<WordElement> GetNativeStructuredBlockElements(WordDocument document, W.SdtBlock? sdtBlock, bool skipCanvasOnlyVmlParagraphs = false) {
-            var elements = new List<WordElement>();
-            W.SdtContentBlock? content = sdtBlock?.SdtContentBlock;
-            if (content == null) {
-                return elements;
-            }
-
-            foreach (OpenXmlElement child in content.ChildElements) {
-                if (child is W.Paragraph paragraph) {
-                    if (skipCanvasOnlyVmlParagraphs && IsNativeCanvasOnlyVmlParagraph(paragraph)) {
-                        continue;
-                    }
-
-                    elements.AddRange(WordSection.ConvertParagraphToWordParagraphs(document, paragraph));
-                } else if (child is W.Table table) {
-                    elements.Add(new WordTable(document, table, initializeChildren: false, readOnly: true));
-                } else if (child is W.SdtBlock nestedSdtBlock) {
-                    elements.Add(WordSection.ConvertStdBlockToWordElements(document, nestedSdtBlock, readOnly: true));
-                }
-            }
-
-            return elements;
-        }
+        private static IReadOnlyList<WordElement> GetNativeStructuredBlockElements(WordDocument document, W.SdtBlock? sdtBlock, bool skipCanvasOnlyVmlParagraphs = false) =>
+            WordDocumentTraversal.GetBlockContentElements(document, sdtBlock,
+                skipCanvasOnlyVmlParagraphs ? static paragraph => !IsNativeCanvasOnlyVmlParagraph(paragraph) : null);
 
         private static IEnumerable<WordTable> EnumerateNativeTableTree(WordTable root) {
             var pending = new Stack<(WordTable Table, int Depth)>();

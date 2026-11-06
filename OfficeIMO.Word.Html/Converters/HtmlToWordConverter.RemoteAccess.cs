@@ -1,8 +1,82 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using OfficeIMO.Html;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
+        private static readonly Lazy<HttpClient> _sharedHttpClient = new(() =>
+            new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }));
+        private const int MaximumRemoteResourceRedirects = 50;
+
+        private async Task<HttpResponseMessage> FetchRemoteResourceAsync(Uri uri,
+            HashSet<string> allowedSchemes, HashSet<string> allowedHosts, CancellationToken cancellationToken,
+            HtmlUrlPolicy? urlPolicy = null) {
+            // A supplied client owns its transport and redirect behavior.
+            if (_options.HttpClient is { } client) {
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            }
+
+            // Preserve the shared client's timeout across the entire redirect chain.
+            HttpClient sharedClient = _sharedHttpClient.Value;
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(sharedClient.Timeout);
+            for (int redirects = 0; ; redirects++) {
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                HttpResponseMessage response = await sharedClient.SendAsync(
+                    request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
+                int status = (int)response.StatusCode;
+                bool redirect = status is 300 or 301 or 302 or 303 or 307;
+#if !NETFRAMEWORK
+                redirect |= status == 308;
+#endif
+                if (!redirect || redirects >= MaximumRemoteResourceRedirects) {
+                    return response;
+                }
+
+                Uri? next;
+                try {
+                    Uri? location = response.Headers.Location;
+                    if (location == null) {
+                        return response;
+                    }
+
+                    next = ResolveResourceRedirect(uri, location, urlPolicy);
+                    if (next == null || (next.Scheme != Uri.UriSchemeHttp && next.Scheme != Uri.UriSchemeHttps)
+#if !NETFRAMEWORK
+                        || (uri.Scheme == Uri.UriSchemeHttps && next.Scheme == Uri.UriSchemeHttp)
+#endif
+                        || !string.IsNullOrEmpty(next.UserInfo)
+                        || !allowedSchemes.Contains(next.Scheme)
+                        || (allowedHosts.Count > 0 && !allowedHosts.Contains(next.Host))) {
+                        throw new HtmlResourcePolicyException("The redirect destination is not allowed by the resource policy.");
+                    }
+                } catch {
+                    response.Dispose();
+                    throw;
+                }
+
+                response.Dispose();
+                uri = next;
+            }
+        }
+
+        private static Uri? ResolveResourceRedirect(Uri current, Uri location, HtmlUrlPolicy? policy) {
+            if (!Uri.TryCreate(current, location, out Uri? target)) return null;
+            if (policy == null) return target;
+            if (!HtmlUrlPolicyEvaluator.IsAllowed(location.OriginalString, policy)
+                || !HtmlUrlPolicyEvaluator.IsAllowed(target.AbsoluteUri, policy)) return null;
+            if (policy.ResolvedUrlTransform == null) return target;
+
+            // Unlike AbsoluteUri, this representation retains a scoped IPv6 address's interface.
+            string destination = target.GetComponents(UriComponents.SerializationInfoString, UriFormat.UriEscaped);
+            string transformed = HtmlUrlPolicyEvaluator.ResolveUrl(destination, null, policy);
+            return Uri.TryCreate(transformed, UriKind.Absolute, out Uri? rewritten) ? rewritten : null;
+        }
+
         /// <summary>
         /// Determines whether an import would perform HTTP I/O after applying the operation's
         /// image and stylesheet policies. This keeps the synchronous guard aligned with the

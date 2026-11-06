@@ -21,14 +21,14 @@ namespace OfficeIMO.Word {
             }
 
             var paragraphs = this.Paragraphs;
-            var segments = SearchText(paragraphs, textToFind,
-                new WordPositionInParagraph { Paragraph = 0 }, stringComparison);
+            var segments = SearchText(paragraphs.Select(paragraph => paragraph.Text).ToArray(), textToFind, stringComparison);
 
             if (segments == null || segments.Count == 0) {
                 return 0;
             }
 
-            segments = segments.OrderByDescending(s => s.BeginIndex).ToList();
+            // Process later offsets first. Chunks inserted after the same paragraph then retain source order.
+            segments.Reverse();
 
             foreach (var seg in segments) {
                 InsertHtmlFragmentAfter(paragraphs[seg.BeginIndex], htmlContent, type);

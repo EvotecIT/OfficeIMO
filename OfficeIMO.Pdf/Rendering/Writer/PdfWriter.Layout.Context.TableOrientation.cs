@@ -62,6 +62,7 @@ internal static partial class PdfWriter {
                 : new OfficeTransform(0D, 1D, -1D, 0D, frame.Left + frame.Width, frame.Top - frame.Height);
 
             // Physical clipping happens outside the turn, including full-cell viewports.
+            int annotationStart = currentPage!.Annotations.Count;
             new ContentStreamBuilder(sb).SaveState().Rectangle(inkClip.Left, inkClip.Top - inkClip.Height, inkClip.Width, inkClip.Height).ClipPath().EndPath();
             try {
                 RenderOpaqueEffectGroupInline(transform, () => {
@@ -80,6 +81,8 @@ internal static partial class PdfWriter {
             } finally {
                 new ContentStreamBuilder(sb).RestoreState();
             }
+            ClipLinkAnnotations(currentPage!.Annotations, annotationStart, inkClip.Left, inkClip.Top - inkClip.Height,
+                inkClip.Width, inkClip.Height, imagesOnly: true);
         }
 
         private static OfficeAlignment MapCellAlignment(OfficeAlignment align) => align switch {

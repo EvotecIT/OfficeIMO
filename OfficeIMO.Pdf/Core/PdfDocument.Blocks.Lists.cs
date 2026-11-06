@@ -17,12 +17,14 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Appends a numbered list of plain items.</summary>
+    /// <remarks>The start number must be non-negative and defaults to one.</remarks>
     public PdfList AddNumberedList(System.Collections.Generic.IEnumerable<string> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, int startNumber = 1, PdfListStyle? style = null) {
         Guard.NotNull(items, nameof(items));
         return AddListBlock(new NumberedListBlock(items, align, color, startNumber, style));
     }
 
     /// <summary>Appends a numbered list whose items can contain rich inline text runs.</summary>
+    /// <remarks>The start number must be non-negative and defaults to one.</remarks>
     public PdfList AddNumberedList(System.Collections.Generic.IEnumerable<PdfListItem> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, int startNumber = 1, PdfListStyle? style = null) {
         Guard.NotNull(items, nameof(items));
         return AddListBlock(new NumberedListBlock(items, align, color, startNumber, style));

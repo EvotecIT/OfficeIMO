@@ -658,18 +658,28 @@ namespace OfficeIMO.Word {
         }
 
         private static bool IsValidPictureFormValue(object? value) {
-            if (value is WordContentControlPictureValue pictureValue) {
-                if (!string.IsNullOrWhiteSpace(pictureValue.FilePath)) {
-                    return File.Exists(pictureValue.FilePath);
-                }
-
-                return pictureValue.Bytes != null
-                    && pictureValue.Bytes.Length > 0
-                    && !string.IsNullOrWhiteSpace(pictureValue.FileName)
-                    && Path.HasExtension(pictureValue.FileName);
+            if (value is not WordContentControlPictureValue pictureValue) {
+                return false;
             }
 
-            return false;
+            try {
+                if (pictureValue.FilePath is { } filePath) {
+                    using var file = File.OpenRead(filePath);
+                    WordImage.ValidateImagePayload(file, pictureValue.FileName);
+                    return true;
+                }
+
+                if (pictureValue.Bytes is not { Length: > 0 } bytes) {
+                    return false;
+                }
+
+                using var stream = new MemoryStream(bytes, writable: false);
+                WordImage.ValidateImagePayload(stream, pictureValue.FileName);
+                return true;
+            } catch (Exception exception) when (exception is InvalidDataException or IOException or
+                UnauthorizedAccessException or NotSupportedException or ArgumentException) {
+                return false;
+            }
         }
 
         private static bool TryApplyPictureFormValue(WordPictureControl pictureControl, object? value) {

@@ -52,6 +52,17 @@ Console.WriteLine("OfficeIMO");
     }
 
     [Fact]
+    public void Markdown_SaveAsPdf_RendersOrderedListStartingAtZero() {
+        const string markdown = "0. ZeroMarker\n1. NextMarker";
+        using PdfCore.PdfDocument document = MarkdownDocument.Parse(markdown).ToPdf(new MarkdownPdfExportOptions { ShowPageNumbers = false });
+        byte[] bytes = document.ToBytes();
+
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.Equal("0.ZeroMarker1.NextMarker", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
     public void Markdown_SaveAsPdf_PanelLists_DoNotDuplicate_ListItem_LeadParagraphs() {
         string markdown = """
 > - Alpha
