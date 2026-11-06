@@ -82,10 +82,12 @@ public partial class PdfRedactionApplierTests {
         if (encodedArtifacts) {
             objects[4] = objects[4].Replace("/Encoding /WinAnsiEncoding", "/Encoding /WinAnsiEncoding /ToUnicode 9 0 R");
             // The query exists only through the font mapping, not as a literal stream operand.
+            // Map the remaining shown ASCII too, keeping artifact search independent of missing mappings.
             objects[9] = Stream("/CIDInit /ProcSet findresource begin 12 dict begin begincmap " +
                 "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def /CMapName /FixtureMap def /CMapType 2 def " +
                 "1 begincodespacerange <00> <FF> endcodespacerange 4 beginbfchar " +
                 "<41> <0057> <42> <006F> <43> <0072> <44> <0064> endbfchar " +
+                "2 beginbfrange <20> <40> <0020> <45> <7E> <0045> endbfrange " +
                 "endcmap CMapName currentdict /CMap defineresource pop end end");
             objects[5] = Stream(Page(1).Replace("Word", "ABCD"));
             objects[7] = Stream(Page(2).Replace("Word", "ABCD"));

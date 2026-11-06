@@ -41,8 +41,8 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         }
         double medianFontSize = Median(boxes.Select(static box => box.FontSize));
         double minimumHorizontalGap = Math.Max(6D, medianFontSize * 0.8D);
-        // Region boxes already hold whole paragraphs, so a whitespace strip of one and a half ems through them is a
-        // column gutter even when it is narrower than the page-level gutter option.
+        // Region boxes already hold whole paragraphs, so their gaps can be
+        // narrower than the page-level gutter option.
         double minimumVerticalGap = Math.Min(
             Math.Max(context.LayoutOptions.MinGutterWidth.ToPoints(), medianFontSize * 1.5D),
             Math.Max(9D, medianFontSize * 1.5D));
@@ -276,6 +276,12 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         bool horizontal,
         double minimumGap) {
         context.ConsumeWork(boxes.Count);
+        // Narrow cuts need prose on both sides; short labels and numeric cells
+        // retain the ordinary threshold and their existing row order.
+        if (!horizontal && boxes.All(static box => box.Region.Lines.Any(static line =>
+                line.Words.Count >= 3 && line.Words.Count(static word => word.Text.Any(char.IsLetter)) * 2 >= line.Words.Count))) {
+            minimumGap = Math.Min(minimumGap, Math.Max(6D, Median(boxes.Select(static box => box.FontSize)) * 0.8D));
+        }
         Interval[] intervals = boxes
             .Select(box => horizontal
                 ? new Interval(box.Bottom, box.Top)

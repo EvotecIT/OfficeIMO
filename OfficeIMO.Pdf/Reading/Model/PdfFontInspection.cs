@@ -75,7 +75,7 @@ public sealed class PdfFontInspectionOptions {
     }
 }
 
-/// <summary>Stable diagnostic codes emitted while inspecting PDF font resources.</summary>
+/// <summary>Stable diagnostic codes for PDF font inspection and text decoding.</summary>
 public enum PdfFontInspectionDiagnosticCode {
     /// <summary>A font dictionary did not declare a BaseFont name.</summary>
     MissingBaseFont = 0,
@@ -102,10 +102,14 @@ public enum PdfFontInspectionDiagnosticCode {
     /// <summary>A declared ToUnicode mapping exceeded the configured per-map decoded-byte limit.</summary>
     ToUnicodeLimitExceeded = 11,
     /// <summary>A declared ToUnicode mapping was not decoded because the aggregate font-stream allowance was exhausted.</summary>
-    ToUnicodeTotalLimitExceeded = 12
+    ToUnicodeTotalLimitExceeded = 12,
+    /// <summary>Shown text references a font resource that could not be resolved.</summary>
+    MissingFontResource = 13,
+    /// <summary>Shown character codes could not be mapped to Unicode and the logical run was omitted.</summary>
+    UnmappableText = 14
 }
 
-/// <summary>One structured font inspection diagnostic.</summary>
+/// <summary>One structured font inspection or text-decoding diagnostic.</summary>
 public sealed class PdfFontInspectionDiagnostic {
     internal PdfFontInspectionDiagnostic(
         PdfFontInspectionDiagnosticCode code,

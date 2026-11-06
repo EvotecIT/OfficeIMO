@@ -124,7 +124,8 @@ internal static partial class PdfOcrLogicalDocumentBuilder {
                 typeof(PdfOcrLogicalDocumentBuilder),
                 cancellationToken,
                 orderingWork,
-                reconstructLayout);
+                reconstructLayout,
+                textDecodingDiagnostics: nativeAnalysis.TextDecodingDiagnostics);
         }
 
         int[] pageNumbers = nativeDocument.Pages.Select(static page => page.PageNumber).ToArray();

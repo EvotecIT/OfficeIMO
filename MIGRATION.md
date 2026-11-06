@@ -5205,6 +5205,27 @@ Handle `PdfRedactionMatchKind.BookmarkTitle` when switching on match kinds; its 
 Search redaction output for accepted object-stream and cross-reference-stream PDFs is always classic. If your code inspects saved structure, expect no object-stream or cross-reference-stream objects, no `/Prev` trailer entry, and null in place of references to free or missing objects.
 
 
+## PDF reads omit undecodable native text
+
+`PdfDocument.Read()` previously allowed missing font resources, raw Identity CIDs,
+and incomplete ToUnicode maps to contribute fallback characters to `Text`, Markdown
+and detected tables. It now omits each affected run and retains the readable content.
+A run containing both mapped and unmapped codes is omitted in full.
+
+Check `PdfDocumentReadResult.TextDecodingDiagnostics` when complete extraction is
+required. Its `PdfFontInspectionDiagnostic` entries use `MissingFontResource` or
+`UnmappableText`, with `PageNumber`, `ResourcePath` and an explanatory `Message`.
+Treat a nonempty collection as incomplete extraction instead of accepting empty or
+shortened text as complete. Handle the two new enum members in exhaustive diagnostic
+switches. `ReadForInspection().Document` exposes the same warnings; completed page
+outcomes do not establish that every shown character was decoded.
+
+Supported font encodings and valid `/ActualText` replacements remain readable.
+Raw parser span inspection retains its mapping evidence, and unsupported encodings
+that already failed with `PdfUnsupportedTextMappingException` continue to fail.
+Search redaction cannot use omitted or unmapped paint as proof that searched text is
+absent.
+
 ## Excel tables reject captions
 
 `ExcelSheet.AddTable` with `OfficeTableOptions.Caption` now throws `NotSupportedException`, as PowerPoint and

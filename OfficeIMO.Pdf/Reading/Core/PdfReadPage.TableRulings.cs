@@ -42,6 +42,7 @@ public sealed partial class PdfReadPage {
                 type3GroupVisitor: (_, _, _, _, _) => uncertain = true,
                 textOutputBudget: CreateTextOutputBudget(), pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,
+                invokedResourceNames: invoked,
                 scaleStrokeWidthWithTransform: true);
         }
         return uncertain ? Array.Empty<PdfTableRuling>() : rulings;

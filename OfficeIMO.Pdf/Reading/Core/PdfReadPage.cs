@@ -1098,7 +1098,8 @@ public sealed partial class PdfReadPage {
             decodeWithFontWithinLimit: DecodeWithFontWithinLimit,
             decodingEvidenceForResource: (fontName, bytes) => fonts.TryGetValue(fontName, out PdfFontResource? resource)
                 ? ResourceResolver.GetDecodingEvidence(resource, bytes, cancellationCheck, _preferToUnicode, _useWinAnsiFallback)
-                : new PdfTextDecodingEvidence(_useWinAnsiFallback ? PdfTextDecodingSource.WinAnsiFallback : PdfTextDecodingSource.Unmappable),
+                : new PdfTextDecodingEvidence(_useWinAnsiFallback ? PdfTextDecodingSource.WinAnsiFallback : PdfTextDecodingSource.Unmappable,
+                    failureCode: PdfFontInspectionDiagnosticCode.MissingFontResource),
             contentOrderPrefix: contentOrderPrefix,
             contentOrderOffset: contentOrderOffset,
             initialUnsupportedEffect: initialUnsupportedTextEffect,

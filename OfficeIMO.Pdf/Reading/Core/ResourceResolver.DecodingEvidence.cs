@@ -42,7 +42,12 @@ internal static partial class ResourceResolver {
         if (!useWinAnsiFallback && (source == PdfTextDecodingSource.WinAnsiFallback || unmapped > 0)) {
             source = PdfTextDecodingSource.Unmappable;
         }
+        // Identity maps select CIDs. Their numeric values are not Unicode when
+        // neither ToUnicode nor another supported character map supplied text.
+        PdfFontInspectionDiagnosticCode? failureCode = source == PdfTextDecodingSource.WinAnsiFallback &&
+            font.FontSubtype == "Type0" && font.Encoding is "Identity-H" or "Identity-V"
+                ? PdfFontInspectionDiagnosticCode.UnmappableText : null;
         return new PdfTextDecodingEvidence(source, font.Encoding, font.HasToUnicode,
-            (source is PdfTextDecodingSource.FontEncoding or PdfTextDecodingSource.WinAnsiFallback) && font.Differences is { Count: > 0 }, unmapped);
+            (source is PdfTextDecodingSource.FontEncoding or PdfTextDecodingSource.WinAnsiFallback) && font.Differences is { Count: > 0 }, unmapped, failureCode: failureCode);
     }
 }
