@@ -5,6 +5,7 @@ using OfficeIMO.Data;
 
 internal static class CsvPackedTextSmoke {
     internal static void Run() {
+        VerifyShortAsciiStream();
         VerifyInternedStream();
         foreach (bool quoted in new[] { false, true }) {
             // Exceed the 64 KiB quote probe and cross the 128-row batch boundary
@@ -33,6 +34,17 @@ internal static class CsvPackedTextSmoke {
             if (!ids.SequenceEqual(Enumerable.Range(0, count)))
                 throw new InvalidOperationException("Native CSV partition changed row order.");
         }
+    }
+
+    private static void VerifyShortAsciiStream() {
+        string[] expected = { "ab", "cdef", "ghijklmn", "opqrstuvwxyz123" };
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Value\nab\ncdef\nghijklmn\nopqrstuvwxyz123\n"));
+        using var reader = CsvDocument.OpenReader(input, new CsvReaderOptions { DetectDelimiter = false });
+        foreach (string value in expected) {
+            if (!reader.Read() || reader.GetString(0) != value)
+                throw new InvalidOperationException("Native CSV decoding changed a short ASCII value.");
+        }
+        if (reader.Read()) throw new InvalidOperationException("Native CSV decoding added a row.");
     }
 
     private static void VerifyInternedStream() {

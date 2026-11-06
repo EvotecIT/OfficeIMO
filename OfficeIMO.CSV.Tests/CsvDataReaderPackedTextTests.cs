@@ -8,6 +8,49 @@ using Xunit;
 namespace OfficeIMO.CSV.Tests;
 
 public sealed class CsvDataReaderPackedTextTests {
+    [Fact]
+    public void Utf8ReaderPreservesShortAsciiFieldsAcrossBufferRefills() {
+        const string alphabet = "\0\u007f!#$%&()*+-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+        var expected = new string[128 * 18];
+        var text = new StringBuilder("Id,Value,Tail\n");
+        for (int row = 0; row < expected.Length; row++) {
+            var characters = new char[row % 18];
+            for (int index = 0; index < characters.Length; index++)
+                characters[index] = alphabet[(row / 18 + index * 17) % alphabet.Length];
+            expected[row] = new string(characters);
+            text.Append(row.ToString(CultureInfo.InvariantCulture)).Append(',')
+                .Append(expected[row]).Append(",unchanged-tail\n");
+        }
+
+        using var stream = new ShortReadMemoryStream(Encoding.UTF8.GetBytes(text.ToString()));
+        using var reader = CsvDocument.OpenReader(stream, new CsvReaderOptions {
+            DetectDelimiter = false,
+            ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
+        });
+        var retained = new string[expected.Length];
+        for (int row = 0; row < expected.Length; row++) {
+            Assert.True(reader.Read());
+            Assert.Equal(row, reader.GetInt32(0));
+            Assert.Equal("unchanged-tail", reader.GetString(2));
+            retained[row] = reader.GetString(1);
+            Assert.Equal(expected[row], retained[row]);
+            Assert.Same(retained[row], reader.GetString(1));
+        }
+        Assert.False(reader.Read());
+        Assert.Equal(expected, retained);
+    }
+
+    private sealed class ShortReadMemoryStream : MemoryStream {
+        internal ShortReadMemoryStream(byte[] bytes) : base(bytes, writable: false) { }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            base.Read(buffer, offset, Math.Min(count, 257));
+
+#if NET8_0_OR_GREATER
+        public override int Read(Span<byte> buffer) => base.Read(buffer.Slice(0, Math.Min(buffer.Length, 257)));
+#endif
+    }
+
     [Theory]
     [InlineData(0, false)]
     [InlineData(0, true)]
