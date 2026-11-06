@@ -163,12 +163,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool IsAllowedLineBreak(HtmlRenderFlowBlock block, double start, double candidate, bool checkInteriorBreaks = false) {
-        bool? hasDiscardableMargin = null;
         foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
             // A final-line cut before a trailing paragraph margin leaves no widows.
             // Other final-line cuts must retain authored fixed-height flow.
             if (group.FinalLineMarginBreak && candidate >= group.End - 0.0001D
-                && (hasDiscardableMargin ??= ResolvePageStartDiscardableMargin(block, candidate) > 0.0001D) == true) continue;
+                && ResolvePageStartDiscardableMargin(block, candidate) > 0.0001D) continue;
             IReadOnlyList<double> offsets = group.Offsets;
             int candidateIndex = UpperBound(offsets, candidate + 0.0001D) - 1;
             bool exactLineBreak = candidateIndex >= 0 && Math.Abs(offsets[candidateIndex] - candidate) <= 0.0001D;
