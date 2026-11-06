@@ -18,7 +18,7 @@ internal sealed partial class PdfUnderstandingPipeline {
                 continue;
             }
             if (retained is null) {
-                context.ConsumeWork(index);
+                if (index > 0) context.ConsumeWork(index);
                 retained = new List<PdfTextSpan>(runs.Count);
                 for (int previous = 0; previous < index; previous++) retained.Add(runs[previous]);
                 diagnostics = new List<PdfFontInspectionDiagnostic>();

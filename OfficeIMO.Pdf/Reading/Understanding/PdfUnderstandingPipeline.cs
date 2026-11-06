@@ -160,7 +160,8 @@ internal sealed partial class PdfUnderstandingPipeline {
         IReadOnlyList<PdfUnderstandingLine> lines,
         Type sourceProviderType,
         CancellationToken cancellationToken,
-        long priorWorkUnits = 0, bool reconstructOcrLayout = false) {
+        long priorWorkUnits = 0, bool reconstructOcrLayout = false,
+        IReadOnlyList<PdfFontInspectionDiagnostic>? textDecodingDiagnostics = null) {
         Guard.NotNull(page, nameof(page));
         Guard.NotNull(runs, nameof(runs));
         Guard.NotNull(words, nameof(words));
@@ -170,6 +171,7 @@ internal sealed partial class PdfUnderstandingPipeline {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageNumber);
 #pragma warning restore CA1512
         var context = CreateContext(page, pageNumber, cancellationToken);
+        context.TextDecodingDiagnostics = textDecodingDiagnostics ?? Array.Empty<PdfFontInspectionDiagnostic>();
         if (priorWorkUnits > 0) context.ConsumeWork(priorWorkUnits);
         EnsureCount(runs.Count, _limits.MaxRunsPerPage);
         EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);

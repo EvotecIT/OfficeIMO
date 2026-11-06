@@ -43,7 +43,7 @@ public partial class PdfRedactionApplierTests {
 
     [Theory]
     [InlineData("begincmap note TOPSECRET here", false)]
-    [InlineData("begincmap 1 beginbfchar <41> <0041> endbfchar TOPSECRET endcmap", true)]
+    [InlineData("begincmap 1 beginbfrange <20> <7E> <0020> endbfrange TOPSECRET endcmap", true)]
     public void WordBegincmapDoesNotHideStreamFromResidueSweep(string stream, bool referencedAsToUnicode) {
         string font = referencedAsToUnicode ? "/ToUnicode 6 0 R" : string.Empty;
         PdfDocument source = PdfDocument.Load(BuildPdf(new[] {

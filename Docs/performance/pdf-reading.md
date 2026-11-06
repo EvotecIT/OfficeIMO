@@ -11,6 +11,7 @@ fixtures live in `OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/BrowserColum
 
 Measurements use Apple M4, macOS 27.0.1 ARM64, SDK 10.0.403 and Release builds.
 The baseline is `186819ce958a928a0d3b13cd41e9d8f808d1481b`.
+The measured candidate is `b2193d970c8a782bc655f6f36115913cc6b1e8be`.
 For each profile, warm one fresh `PdfDocument.Load(path).Read(options)` and
 Markdown extraction, then take three fresh loads/reads. Time `Load`,
 `Read().Text` and `ExtractMarkdown()` separately; use the read median.

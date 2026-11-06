@@ -47,9 +47,12 @@ internal static partial class PdfRedactionApplier {
                     PdfRedactionSearchCriteria[] pageCriteria = criteria.Where(criterion => criterion.CoversAllPages || criterion.PageNumbers.Contains(index + 1)).ToArray();
                     if (pageCriteria.Length == 0) continue;
                     PdfReadPage page = current.Pages[index];
+                    IReadOnlyList<PdfTextSpan> painted = page.GetTextSpansIncludingHiddenOptionalContent(ignoreActualText: true);
+                    if (painted.Any(static span => span.DecodingEvidence.FailureCode is not null))
+                        issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "UndecodableStream",
+                            "Shown character codes cannot be mapped, so searched text cannot be proven absent."));
                     if (pageCriteria.Any(criterion => criterion.Matches(page.ExtractText(cancellationToken))) ||
-                        page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true, ignoreActualText: true)
-                            .Any(span => pageCriteria.Any(criterion => criterion.Matches(span.Text))))
+                        painted.Any(span => pageCriteria.Any(criterion => criterion.Matches(span.Text))))
                         issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "Page:" + (index + 1).ToString(CultureInfo.InvariantCulture),
                             "A saved page still paints searched text."));
                 }
