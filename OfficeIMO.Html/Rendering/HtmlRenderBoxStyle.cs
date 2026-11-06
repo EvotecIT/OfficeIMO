@@ -135,9 +135,6 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UsedIndividualScale => TransformAppliesToBox ? IndividualScale : "none";
     internal string SemanticRole = "block";
 
-    // Resolved for every CSS box, so keep this scalar out of the copy-on-write effects.
-    internal double? ImageResolutionDpi { get; set; }
-
     internal double HorizontalInsets => BorderLeftWidth + BorderRightWidth + PaddingLeft + PaddingRight;
     internal double VerticalInsets => BorderTopWidth + BorderBottomWidth + PaddingTop + PaddingBottom;
 
@@ -299,6 +296,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string ObjectFit { get => _effects.ObjectFit; set { if (!(string.Equals(_effects.ObjectFit, value, StringComparison.Ordinal))) MutableEffects().ObjectFit = value; } }
     internal string ObjectPosition { get => _effects.ObjectPosition; set { if (!(string.Equals(_effects.ObjectPosition, value, StringComparison.Ordinal))) MutableEffects().ObjectPosition = value; } }
     internal bool ApplyEmbeddedImageOrientation { get => _effects.ApplyEmbeddedImageOrientation; set { if (!(_effects.ApplyEmbeddedImageOrientation == value)) MutableEffects().ApplyEmbeddedImageOrientation = value; } }
+    internal double? ImageResolutionDpi { get => _effects.ImageResolutionDpi; set { if (!(SameValue(_effects.ImageResolutionDpi, value))) MutableEffects().ImageResolutionDpi = value; } }
     internal double? AspectRatio { get => _effects.AspectRatio; set { if (!(SameValue(_effects.AspectRatio, value))) MutableEffects().AspectRatio = value; } }
     internal bool AspectRatioPrefersIntrinsic { get => _effects.AspectRatioPrefersIntrinsic; set { if (!(_effects.AspectRatioPrefersIntrinsic == value)) MutableEffects().AspectRatioPrefersIntrinsic = value; } }
     internal string OverflowClipMarginBox { get => _effects.OverflowClipMarginBox; set { if (!(string.Equals(_effects.OverflowClipMarginBox, value, StringComparison.Ordinal))) MutableEffects().OverflowClipMarginBox = value; } }
@@ -481,6 +479,7 @@ internal sealed class HtmlRenderBoxStyle {
         internal string ObjectFit = "fill";
         internal string ObjectPosition = "50% 50%";
         internal bool ApplyEmbeddedImageOrientation = true;
+        internal double? ImageResolutionDpi;
         internal double? AspectRatio;
         internal bool AspectRatioPrefersIntrinsic = true;
         internal string OverflowClipMarginBox = "padding-box";
