@@ -36,6 +36,13 @@ namespace OfficeIMO.Tests {
         public void LegacyDoc_WriteAssessment_DoesNotNormalizeTheLiveDocument() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Assessment must not mutate this document");
+            var lazyProperties = document.OpenXmlDocument.ExtendedFilePropertiesPart
+                ?? document.OpenXmlDocument.AddNewPart<ExtendedFilePropertiesPart>();
+            using (var properties = lazyProperties.GetStream(FileMode.Create, FileAccess.Write)) {
+                byte[] xml = System.Text.Encoding.UTF8.GetBytes("<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><Application>Lazy source control</Application></Properties>");
+                properties.Write(xml, 0, xml.Length);
+            }
+            Assert.False(lazyProperties.IsRootElementLoaded);
             Body body = document._wordprocessingDocument.MainDocumentPart!.Document.Body!;
             SectionProperties sectionProperties = Assert.Single(body.Elements<SectionProperties>());
             sectionProperties.Remove();
@@ -46,6 +53,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(assessment.IsSupported);
             Assert.Equal(bodyBeforeAssessment, body.OuterXml);
+            Assert.False(lazyProperties.IsRootElementLoaded);
         }
 
         [Fact]

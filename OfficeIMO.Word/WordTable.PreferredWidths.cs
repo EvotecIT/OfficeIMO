@@ -15,7 +15,7 @@ public partial class WordTable {
     internal static void CopyGridNormalizationState(WordprocessingDocument source, WordprocessingDocument copy) {
         Dictionary<Uri, OpenXmlPart> parts = copy.GetAllParts().ToDictionary(part => part.Uri);
         foreach (OpenXmlPart part in source.GetAllParts()) {
-            if (part.RootElement is { } original && parts.TryGetValue(part.Uri, out OpenXmlPart? copiedPart) &&
+            if (part.IsRootElementLoaded && part.RootElement is { } original && parts.TryGetValue(part.Uri, out OpenXmlPart? copiedPart) &&
                 copiedPart.RootElement is { } cloned) CopyGridNormalizationState(original, cloned);
         }
     }

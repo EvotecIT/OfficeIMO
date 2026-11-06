@@ -20,14 +20,18 @@ public partial class Word {
     [InlineData("section", true)]
     [InlineData("document", false)]
     [InlineData("document", true)]
+    [InlineData("template", false)]
+    [InlineData("template", true)]
     public void PreferredWidths_CloningRetainsDerivedVersusAuthoredNestedGeometry(string boundary, bool authored) {
         using WordDocument source = WordDocument.Create();
         using WordDocument destination = WordDocument.Create();
+        if (boundary == "template") source.AddParagraph("{{#each Items}}");
         WordTable outer = source.AddTable(1, 1);
         WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 2);
         nested.Rows[0].Cells[0].Width = WordTableWidth.Length(OfficeLength.Points(72));
         nested.Rows[0].Cells[1].Width = WordTableWidth.Length(OfficeLength.Points(144));
         if (authored) nested.GridColumnWidth = new List<OfficeLength> { OfficeLength.Points(105), OfficeLength.Points(135) };
+        if (boundary == "template") source.AddParagraph("{{/each Items}}");
         WordTable clone;
         WordDocument result = source;
         switch (boundary) {
@@ -35,6 +39,12 @@ public partial class Word {
             case "row": clone = Assert.Single(outer.CopyRow(outer.Rows[0]).Cells[0].NestedTables); break;
             case "section":
                 source.Sections[0].CloneSection();
+                clone = Assert.Single(source.Tables.Last().Rows[0].Cells[0].NestedTables);
+                break;
+            case "template":
+                WordTemplate.Apply(source, new Dictionary<string, object?> {
+                    ["Items"] = new[] { new Dictionary<string, object?>(), new Dictionary<string, object?>() }
+                });
                 clone = Assert.Single(source.Tables.Last().Rows[0].Cells[0].NestedTables);
                 break;
             default:
