@@ -71,7 +71,9 @@ internal static class PdfManipulationEngines {
                 documents.Add(OfficePdfDocument.Load(input));
             }
             using OfficePdfDocument merged = OfficePdfDocument.Merge(documents);
-            return merged.ToBytes();
+            byte[] bytes = merged.ToBytes();
+            ValidateOfficeImoReadback(bytes, merged.Pages.Count);
+            return bytes;
         } finally {
             foreach (OfficePdfDocument document in documents) document.Dispose();
         }
