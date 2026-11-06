@@ -48,7 +48,8 @@ internal static partial class PdfRedactionApplier {
                     if (pageCriteria.Length == 0) continue;
                     PdfReadPage page = current.Pages[index];
                     if (pageCriteria.Any(criterion => criterion.Matches(page.ExtractText(cancellationToken))) ||
-                        page.GetTextSpansIncludingHiddenOptionalContent().Any(span => pageCriteria.Any(criterion => criterion.Matches(span.Text))))
+                        page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true, ignoreActualText: true)
+                            .Any(span => pageCriteria.Any(criterion => criterion.Matches(span.Text))))
                         issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "Page:" + (index + 1).ToString(CultureInfo.InvariantCulture),
                             "A saved page still paints searched text."));
                 }

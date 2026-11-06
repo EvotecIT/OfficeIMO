@@ -888,3 +888,6 @@ OfficeIMO.Pdf.PdfAnnotation.Uri.get -> string?
 OfficeIMO.Pdf.PdfFormFillerOptions.Clone() -> OfficeIMO.Pdf.PdfFormFillerOptions!
 OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions.Clone() -> OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions!
 OfficeIMO.Pdf.PdfRewritePreservationOptions.Clone() -> OfficeIMO.Pdf.PdfRewritePreservationOptions!
+OfficeIMO.Pdf.PdfDocumentReadResult.TextDecodingDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfFontInspectionDiagnostic!>!
+OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode.MissingFontResource = 13 -> OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode
+OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode.UnmappableText = 14 -> OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode

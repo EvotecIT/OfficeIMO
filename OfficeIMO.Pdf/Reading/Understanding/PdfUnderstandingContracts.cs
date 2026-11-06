@@ -89,6 +89,7 @@ public sealed class PdfUnderstandingPageContext {
         return true;
     }
     internal IReadOnlyList<PdfTextSpan> DecodedRuns { get; set; } = Array.Empty<PdfTextSpan>();
+    internal IReadOnlyList<PdfFontInspectionDiagnostic> TextDecodingDiagnostics { get; set; } = Array.Empty<PdfFontInspectionDiagnostic>();
     /// <summary>Table candidates available to page segmentation and later stages.</summary>
     public IReadOnlyList<PdfUnderstandingTableCandidate> TableCandidates { get; internal set; } = Array.Empty<PdfUnderstandingTableCandidate>();
     /// <summary>Image placement invocations available to semantic stages in stable paint order.</summary>
@@ -341,7 +342,8 @@ public sealed class PdfUnderstandingPageResult {
         IReadOnlyList<PdfImagePlacement>? imagePlacements = null,
         IReadOnlyList<PdfUnderstandingImageRegion>? imageRegions = null,
         long maxWorkUnitsPerPage = 10_000_000,
-        IReadOnlyList<PdfTaggedListItemSource>? taggedListItems = null) {
+        IReadOnlyList<PdfTaggedListItemSource>? taggedListItems = null,
+        IReadOnlyList<PdfFontInspectionDiagnostic>? textDecodingDiagnostics = null) {
         PageNumber = pageNumber;
         DecodedRuns = runs;
         Words = words;
@@ -356,6 +358,7 @@ public sealed class PdfUnderstandingPageResult {
         ImageRegions = imageRegions ?? Array.Empty<PdfUnderstandingImageRegion>();
         MaxWorkUnitsPerPage = maxWorkUnitsPerPage;
         TaggedListItems = taggedListItems ?? Array.Empty<PdfTaggedListItemSource>();
+        TextDecodingDiagnostics = textDecodingDiagnostics ?? Array.Empty<PdfFontInspectionDiagnostic>();
         LogicalProjectionLines = logicalProjectionLines ?? CollectLogicalProjectionLines(readingOrder);
         RestrictLogicalProjectionToReadingOrder = restrictLogicalProjectionToReadingOrder;
         ConsumeWork = consumeWork;
@@ -388,6 +391,7 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
     internal Action<long>? ConsumeWork { get; }
     internal Action? CancellationCheck { get; }
+    internal IReadOnlyList<PdfFontInspectionDiagnostic> TextDecodingDiagnostics { get; }
     internal long MaxWorkUnitsPerPage { get; }
     /// <summary>Tagged list membership over canonical source runs, independent of paragraph and heading classification.</summary>
     internal IReadOnlyList<PdfTaggedListItemSource> TaggedListItems { get; }
@@ -419,7 +423,7 @@ public sealed class PdfUnderstandingPageResult {
             ImagePlacements,
             ImageRegions,
             MaxWorkUnitsPerPage,
-            TaggedListItems);
+            TaggedListItems, TextDecodingDiagnostics);
     }
 
     private static IReadOnlyList<PdfUnderstandingLine> CollectLogicalProjectionLines(

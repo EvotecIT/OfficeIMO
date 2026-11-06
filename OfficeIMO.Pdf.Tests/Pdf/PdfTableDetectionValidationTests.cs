@@ -28,12 +28,15 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void LogicalTables_RetainRegularFontProseHeavyTablesWithStableColumns(bool sentenceValues) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void LogicalTables_RetainRegularFontProseHeavyTablesWithStableColumns(bool sentenceValues, bool longHeaders) {
         string[][] rows = sentenceValues
             ? new[] {
-                new[] { "Regional order owner", "Regional file status" },
+                longHeaders
+                    ? new[] { "Assigned regional coordinator", "Current regional workflow" }
+                    : new[] { "Regional order owner", "Regional file status" },
                 new[] { "Orders are ready today.", "Documents stay available here." },
                 new[] { "Orders are ready today.", "Documents stay available here." }
             }
@@ -46,10 +49,10 @@ public sealed class PdfTableDetectionValidationTests {
                 HeaderBold = false,
                 HeaderRowCount = 1,
                 ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
-            })))
+            })), new PdfCreateOptions { EmbedDefaultFonts = false })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
+        PdfLogicalTable table = Assert.Single(PdfDocument.Load(pdf).Read().Tables);
         Assert.Equal(rows.Length, table.Rows.Count);
         for (int row = 0; row < rows.Length; row++) Assert.Equal(rows[row], table.Rows[row]);
     }

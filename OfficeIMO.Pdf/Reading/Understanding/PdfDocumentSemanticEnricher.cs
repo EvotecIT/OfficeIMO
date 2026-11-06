@@ -93,7 +93,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 page.ImagePlacements,
                 RemapImageCaptions(imageRegions[pageIndex], elements[pageIndex]),
                 page.MaxWorkUnitsPerPage,
-                BuildTaggedListSources(document.Pages[pageNumbers[pageIndex] - 1], page, taggedRoles, maxElementsPerPage, workBudget));
+                BuildTaggedListSources(document.Pages[pageNumbers[pageIndex] - 1], page, taggedRoles, maxElementsPerPage, workBudget), page.TextDecodingDiagnostics);
         }
         return Array.AsReadOnly(result);
     }

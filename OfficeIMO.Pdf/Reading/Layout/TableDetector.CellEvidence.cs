@@ -89,7 +89,40 @@ internal static partial class TableDetector {
             .Sum(static run => Math.Max(0D, run.Advance));
         int populatedCells = table.Rows.Sum(static row => row.Count(static value => !string.IsNullOrWhiteSpace(value)));
         return wrappedProse || widelySpaced || (fontSize > 0D && populatedCells > 0 &&
-            occupiedWidth > populatedCells * fontSize * MaximumAverageCompactCellWidthInFontSizes);
+            occupiedWidth > populatedCells * fontSize * MaximumAverageCompactCellWidthInFontSizes &&
+            !(LooksLikeCompactHeaderRow(table) && HasRowMajorSourceOrder(table)));
+    }
+
+    // Width alone cannot turn a compact labelled table into prose when every
+    // painted run belongs unambiguously to a cell and rows are painted in order.
+    private static bool HasRowMajorSourceOrder(PdfStructuredTable table) {
+        if (table.SourceLines.Count != table.Rows.Count || table.SourceRuns.Count == 0) return false;
+        var cells = new Dictionary<PdfTextSpan, (int Row, int Column)>();
+        for (int row = 0; row < table.SourceLines.Count; row++) {
+            foreach (PdfTextSpan run in table.SourceLines[row].Spans) {
+                if (string.IsNullOrWhiteSpace(run.Text)) continue;
+                if (run.ContentOrderKey is null) return false;
+                double center = run.X + Math.Max(0D, run.Advance) / 2D;
+                int column = -1;
+                for (int index = 0; index < table.Columns.Count; index++) {
+                    PdfStructuredTableColumn bounds = table.Columns[index];
+                    if (center < Math.Min(bounds.From, bounds.To) || center > Math.Max(bounds.From, bounds.To)) continue;
+                    if (column >= 0) return false;
+                    column = index;
+                }
+                if (column < 0 || cells.ContainsKey(run)) return false;
+                cells.Add(run, (row, column));
+            }
+        }
+        int previousRow = -1;
+        var covered = new HashSet<(int Row, int Column)>();
+        foreach (PdfTextSpan run in table.SourceRuns.OrderBy(static run => run.ContentOrderKey)) {
+            if (string.IsNullOrWhiteSpace(run.Text)) continue;
+            if (!cells.TryGetValue(run, out var cell) || cell.Row < previousRow) return false;
+            covered.Add(cell);
+            previousRow = cell.Row;
+        }
+        return covered.Count == table.Rows.Count * table.Columns.Count;
     }
 
     // Paragraph columns are painted down one column before the next. Row-major

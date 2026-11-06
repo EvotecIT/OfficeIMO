@@ -972,6 +972,14 @@ public sealed partial class PdfReadPage {
         Dictionary<string, Func<byte[], int, string>>? configuredDecoders = null;
         string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) {
             try {
+                if (requireMappedText && bytes.Length > 0) {
+                    if (!fonts.TryGetValue(fontRes, out PdfFontResource? mappedFont))
+                        throw new PdfUnsupportedTextMappingException(
+                            new PdfFontResource(fontRes, string.Empty, "UnresolvedFont", false));
+                    if (ResourceResolver.GetDecodingEvidence(mappedFont, bytes, cancellationCheck,
+                            _preferToUnicode, _useWinAnsiFallback).FailureCode is not null)
+                        throw new PdfUnsupportedTextMappingException(mappedFont);
+                }
                 if (!_preferToUnicode || !_useWinAnsiFallback) {
                     if (fonts.TryGetValue(fontRes, out PdfFontResource? resource)) {
                         configuredDecoders ??= new Dictionary<string, Func<byte[], int, string>>(StringComparer.Ordinal);
@@ -1098,7 +1106,8 @@ public sealed partial class PdfReadPage {
             decodeWithFontWithinLimit: DecodeWithFontWithinLimit,
             decodingEvidenceForResource: (fontName, bytes) => fonts.TryGetValue(fontName, out PdfFontResource? resource)
                 ? ResourceResolver.GetDecodingEvidence(resource, bytes, cancellationCheck, _preferToUnicode, _useWinAnsiFallback)
-                : new PdfTextDecodingEvidence(_useWinAnsiFallback ? PdfTextDecodingSource.WinAnsiFallback : PdfTextDecodingSource.Unmappable),
+                : new PdfTextDecodingEvidence(_useWinAnsiFallback ? PdfTextDecodingSource.WinAnsiFallback : PdfTextDecodingSource.Unmappable,
+                    failureCode: PdfFontInspectionDiagnosticCode.MissingFontResource),
             contentOrderPrefix: contentOrderPrefix,
             contentOrderOffset: contentOrderOffset,
             initialUnsupportedEffect: initialUnsupportedTextEffect,
