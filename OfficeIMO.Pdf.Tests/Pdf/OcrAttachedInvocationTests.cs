@@ -6,6 +6,8 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
+// Keep provider cleanup and deadline continuations apart from parallel rendering work.
+[Collection(PdfOcrEngineGateCollection.Name)]
 public sealed class OcrAttachedInvocationTests {
     [Theory]
     [InlineData(false, false)]
