@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using OfficeIMO.Excel;
 
 /// <summary>Exercises buffered XLSB compression under NativeAOT.</summary>
@@ -9,6 +10,11 @@ internal static class BufferedXlsbSaveSmoke {
             ("Id", static row => row), ("Label", static row => "_x0041_ & " + row));
         byte[] bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var source = new MemoryStream(bytes, writable: false);
+        using (var package = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true)) {
+            if (package.GetEntry("xl/worksheets/sheet1.bin") == null)
+                throw new InvalidOperationException("The buffered XLSB smoke did not produce a binary worksheet.");
+        }
+        source.Position = 0;
         using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(source);
         if (reader.FieldCount != 2 || reader.GetName(0) != "Id" || reader.GetName(1) != "Label")
             throw new InvalidOperationException("The buffered XLSB smoke lost its schema.");
