@@ -275,7 +275,10 @@ public sealed class DocBookDocumentTests {
     public void AddImageRejectsBlankReferencesBeforeMutation(DocBookProfile profile, string? fileReference) {
         DocBookDocument document = DocBookDocument.CreateArticle(profile);
 
-        Assert.Throws<ArgumentException>(() => document.Root.AddImage(fileReference!));
+        ArgumentException error = fileReference is null
+            ? Assert.Throws<ArgumentNullException>(() => document.Root.AddImage(fileReference!))
+            : Assert.Throws<ArgumentException>(() => document.Root.AddImage(fileReference));
+        Assert.Equal("fileReference", error.ParamName);
 
         Assert.Empty(document.Root.Children);
     }

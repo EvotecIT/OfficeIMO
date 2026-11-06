@@ -633,6 +633,7 @@ Add-Paragraph 'For .NET code:'
     '- **Conversion limits.** Lists deeper than `MarkdownLoadOptions.MaxNestingDepth` (default 64) now throw `InvalidDataException`; raise the option if you parse deeper lists. `WordHtmlExportOptions.AdditionalLinkTags` now follow the hyperlink URL policy, so `file:` and `data:` entries such as an embedded favicon are dropped with an `unsafe-link-dropped` diagnostic; serve them over `https:` or add them to the page after export.'
     '- **Conversion checkpoints.** Checkpoints written before 3.6 can no longer be resumed: `ConvertAsync` rejects them with `InvalidDataException`. Start the job with a new `ResumeFrom` manifest and a new output folder.'
     '- **Renames in option and inspection types.** `OfficeWorkflowLimits` is now `OfficeOperationLimits` with the same properties, and `ExcelDocument.CreateInspectionSnapshot` is now `ExcelDocument.Inspect`, which takes `ExcelReaderOptions` and returns `ExcelWorkbookInfo`.'
+    '- **Argument validation.** Nonblank string guards use the .NET throw helpers: null values throw `ArgumentNullException`, while empty or whitespace-only values throw `ArgumentException`. If you match exact exception types or messages, handle null separately and check `ParamName` instead of localized message text. Catching `ArgumentException` still catches both.'
 ) | ForEach-Object { Add-Line $_ }
 Add-Line
 

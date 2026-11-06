@@ -168,7 +168,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
             document.Save();
             var ex = Assert.Throws<ArgumentException>(() => document.SaveAsPdf(path));
-            Assert.Contains("empty or whitespace", ex.Message);
+            Assert.Equal("path", ex.ParamName);
         }
     }
 
