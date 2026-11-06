@@ -296,6 +296,7 @@ public sealed class AgentCommandTests {
     [InlineData(".msg", "officeimo.reader.email")]
     [InlineData(".pst", "officeimo.reader.email.store")]
     [InlineData(".ost", "officeimo.reader.email.store")]
+    [InlineData(".dbx", "officeimo.reader.email.store")]
     public void CapabilitiesCanBeFilteredWithoutReturningTheWholeManifest(
         string extension,
         string expectedId) {
@@ -306,11 +307,13 @@ public sealed class AgentCommandTests {
 
         AgentCapabilitySummary capability = Assert.Single(result.Capabilities);
         Assert.Equal(expectedId, capability.Id);
+        Assert.Contains(extension, capability.Extensions);
         Assert.True(AgentJson.Serialize(result).Length <= 1200);
     }
 
     [Theory]
     [InlineData(".pst")]
+    [InlineData(".dbx")]
     [InlineData(".mbox")]
     [InlineData(".mbx")]
     public void CapabilitiesDoNotAdvertiseWholeStoreConversion(string extension) {
@@ -430,6 +433,7 @@ public sealed class AgentCommandTests {
     [InlineData(".docx", "inspect", "OfficeIMO.Word")]
     [InlineData(".pptx", "export", "OfficeIMO.PowerPoint")]
     [InlineData(".xls", "preserve", "OfficeIMO.Excel")]
+    [InlineData(".dbx", "read", "OfficeIMO.Email")]
     public void CapabilitiesExposePackageNeutralOperationOutcomes(
         string extension,
         string operation,

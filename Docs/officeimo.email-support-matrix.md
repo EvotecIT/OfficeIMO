@@ -72,7 +72,7 @@ This matrix describes the current public contract for persisted email and Outloo
 - SMTP, IMAP, POP3, Graph, authentication, and account synchronization
 - DKIM, ARC, OpenPGP, certificate/key discovery, and automatic recipient or trust-policy selection
 - In-place PST NDB mutation/append, ANSI PST mutation, OST mutation/output, in-place repair, or password/encryption authoring
-- OLM authoring, proprietary DBX mailboxes, Outlook/Mac profile databases, autocomplete caches, search indexes, synchronization state, and other profile/cache formats outside the dedicated OAB owner
+- OLM and DBX authoring, recovery of deleted DBX messages, Outlook/Mac profile databases, autocomplete caches, search indexes, synchronization state, and other profile/cache formats outside the dedicated OAB owner
 - xCal/xCard, jCal/jCard, JSCalendar, and JSContact public adapters. The shared content-line model remains the canonical ICS/VCF owner so XML/JSON adapters can reuse it without duplicating calendar/contact semantics; JSCalendar and JSContact require separate mapping contracts rather than syntax substitution
 - a public arbitrary-CFB editing or transaction package
 - Outlook UI automation or identical editors across platforms; Outlook for Mac uses its generic item viewer for non-mail MSG classes
