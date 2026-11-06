@@ -27,13 +27,44 @@ The read-only XML profile accepts Apple’s `92008102400` grammar in root
 comes from the XML namespace and root element. Package, XML size, nesting, node,
 and projection bounds apply. XML declarations of external entities are rejected.
 
-| Source | Recovered editable content | Omitted content |
+| Source | Recovered source content | Omitted content |
 |---|---|---|
-| Pages ’09 | Flowing body paragraphs and their text | Styles, page layout, headers, footers and inline or positioned objects |
-| Numbers ’09 | Direct sheets and tables, selected text, numbers, checkbox values, dates and scalar formula caches | Formula expressions, charts, merges, styles and other cell types or controls |
-| Keynote ’09 | Ordered slides, directly referenced title and body placeholders, canvas size, selected placeholder geometry and notes | Masters, styles, other drawables and playback settings |
+| Pages ’09 | Body paragraphs, selected rich styles and text bullets, links, inline tables and images, positioned text boxes and images, page dimensions and margins | Section layout, headers, footers, footnotes, vector shape appearance, wrapping and unqualified objects |
+| Numbers ’09 | Direct sheets and tables, selected typed cells and scalar formula/control caches, rich cell text, selected styles and fills, scalar/date/duration formats, dimensions and merges | Formula expressions, non-table drawables, borders, unsupported formats and interactive control behavior |
+| Keynote ’09 | Ordered slides, directly referenced title/body placeholders, presenter notes, direct text boxes, tables and images, canvas size and selected geometry | Masters, grouped shapes, vector shape appearance, image masks/crops, playback and application-only fields |
 
-Pages and Keynote text retains tabs and manual line breaks. Use
+Scoped stylesheet and style inheritance recovers selected font families, sizes,
+bold, italic, underline, strikethrough, RGB colors, paragraph alignment, indents,
+spacing and pagination flags. Missing or ambiguous selected references retain
+loss diagnostics. Cycles and excessive inheritance depth are rejected. Text
+retains tabs and manual line breaks. Embedded PNG/JPEG resources use the shared
+bounded image decoder and retain their original bytes. Crop and alpha masks
+remain reported omissions.
+
+Independent Pages image fixtures exercise inline and positioned PNG uses,
+including a document spanning multiple pages. Keynote fixtures exercise six
+ordered image slides and shared image references. Saved/reopened OOXML retains
+the embedded PNG payloads, editable tables, selected text formatting, text boxes
+and bullet markers. The image sources are the CC-BY-SA 4.0 `Pages/4/images.pages`,
+`Pages/4/images-multipage.pages` and `Keynote/5/images.key` cases in the
+[libetonyek test corpus](https://git.libreoffice.org/libetonyek-test) at
+`a548a9569c18cdffc24d3ba5d549f6b423c449d3`. Independent Numbers cases retain native
+table dimensions, currency formats, header typography, merges and formula caches.
+Destination adapters report additional approximations and omissions, including
+cell padding and application-specific number/date display.
+The source model retains recovered point dimensions. Native Excel quantizes row
+heights and resolves column widths using font and display metrics, so physical
+grid sizes can differ from those source points. XLSX conversion reports this
+display approximation separately from scalar and style preservation.
+
+Native Microsoft Word and PowerPoint 16 build 20527 open the converted image,
+table, formatted-text, textbox and bullet cases. Word retains the two-page image
+layout, editable tables, inline/floating pictures and native image frames.
+PowerPoint retains all six image slides and their editable picture shapes,
+the 1024 × 768-point canvas and the native table. These cases qualify the named
+static content; crop and alpha-mask appearance remains outside the profile.
+
+Use
 `AllowPartialEditableReconstruction = true` on the existing OOXML conversion
 options to accept these omissions. The report identifies the legacy index and
 omitted content. Raw IWA records are empty for XML packages. `BeginEdit()` rejects

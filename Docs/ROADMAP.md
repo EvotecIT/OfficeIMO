@@ -216,6 +216,8 @@ Completion evidence: each admitted feature has a source fixture, independent exp
 
 ### I3: everyday semantic coverage
 
+- [ ] Extend the [iWork ’09 XML profile](officeimo.iwork-support-matrix.md#iwork-09-xml) with additional numbering formats, section/header/footer/footnote content, table borders, non-table Numbers drawables, image masks/crops and master/group inheritance. Pair each profile with independent producer fixtures, saved editable output, native application readback and equivalent load/conversion measurements.
+
 Owners: `OfficeIMO.IWork` for decoding; Word/Drawing for Pages layout; Excel and shared spreadsheet owners for formulas, formats and ranges; PowerPoint/Drawing for Keynote scenes. Adapters map into these owners rather than adding parallel layout or calculation engines.
 
 - [ ] Extend the [qualified spacing/tab defaults and everyday subset](officeimo.iwork-support-matrix.md#qualified-everyday-subset) beyond the Pages 15.4 inherited/overriding spacing, tabs and explicit-reset reference, adding other producers and table text/layout defaults. Qualify paragraph locale and decimal-tab rendering beyond [uniform DOCX separator metadata](officeimo.iwork-support-matrix.md#native-pages-creation), including the recorded Pages DOCX reimport difference and PPTX separator preservation. Qualify additional frame/list geometry, interacting paragraph indents, mixed font sizes, linked flows and pagination beyond the fixed-frame keep-lines case; retain explicit diagnostics for unsupported declarations.

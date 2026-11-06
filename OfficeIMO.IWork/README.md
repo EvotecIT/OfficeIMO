@@ -291,7 +291,10 @@ The [image resizing reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/nat
 The same `IWorkSourceDocument.Load` overloads inspect iWork ’09 ZIP and directory
 packages containing `index.xml` (Pages or Numbers) or `index.apxl` (Keynote), including
 gzip-compressed indexes. See the [iWork ’09 support profile](../Docs/officeimo.iwork-support-matrix.md#iwork-09-xml)
-for recovered content and conversion limits.
+for recovered content and conversion limits. The XML profile recovers selected
+rich text, table cells and styles, dimensions, images and positioned text through
+the same typed projections. OOXML conversion requires explicit partial editable
+acceptance, with source and destination losses retained in the report.
 
 ```csharp
 using OfficeIMO.IWork;
