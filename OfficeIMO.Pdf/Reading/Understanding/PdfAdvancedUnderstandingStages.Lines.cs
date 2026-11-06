@@ -64,7 +64,8 @@ internal static partial class PdfAdvancedUnderstandingStages {
                     bool repeatedGutter = gap >= GetOrdinaryGutterWidth(context, ordered[i]) &&
                         HasRepeatedGutter(gutterAnchors.Standard, group, alongStart) ||
                         gap >= GetRepeatedGutterWidth(context, ordered[i]) && HasRepeatedGutter(gutterAnchors.Prose, group, alongStart) &&
-                        HasProseOnBothSides(context, ordered, i, radians);
+                        HasProseOnBothSides(context, ordered, i, radians) &&
+                        HasClearGutter(context, groups, group, alongStart, ordered[i].FontSize, radians);
                     bool hangingMarker = runs.Count == 1 && i == 1 && ContentStructureExtractor.IsHangingListMarker(ordered[0].Text, gap);
                     if (runs[runs.Count - 1].Count > 0 && (gap > splitGap || repeatedGutter) && !hangingMarker) runs.Add(new List<PdfUnderstandingWord>());
                     runs[runs.Count - 1].Add(ordered[i]);

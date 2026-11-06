@@ -32,6 +32,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Excel benchmark notes](officeimo.excel.benchmark-notes.md) — reproducible comparison-suite execution and provenance.
 - [Excel and CSV tabular performance](performance/excel-tabular-data.md) — matched materialized reads, object parsing, native writes, and allocation profiles.
 - [Excel formula calculation performance](performance/excel-formula-calculation.md) — validated lookup reports, calculation-pass shared-string reuse, and before/after measurements.
+- [PDF browser-print reading performance](performance/pdf-reading.md) — complete-output checks, column preservation and before/after read measurements.
 - [Windows .NET 10 tabular measurements](benchmarks/officeimo.excel-tabular-2026-10-08.md) — validated workbook and CSV reads/writes, shared-string first-row latency, mapping, Arrow, and ADO.NET workloads with captured artifact and input identities.
 - [Image engine benchmarks](../OfficeIMO.Drawing.Benchmarks/README.md) — validated identification, decode, encode, resize, and placement-optimization workloads, with isolated opt-in library comparisons.
 
