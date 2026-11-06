@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
 
@@ -56,6 +57,7 @@ internal static class OfficeRemoteImageLoader {
             timeout.CancelAfter(snapshot.Timeout);
         }
 
+        var cookies = new OfficeHttpCookieScope();
         Uri current = uri;
         for (int redirectCount = 0; ; redirectCount++) {
             timeout.Token.ThrowIfCancellationRequested();
@@ -74,10 +76,8 @@ internal static class OfficeRemoteImageLoader {
             using HttpRequestMessage request = CreatePinnedRequest(current,
                 addresses[0]);
 #endif
-            using HttpResponseMessage response = await client.SendAsync(
-                request,
-                HttpCompletionOption.ResponseHeadersRead,
-                timeout.Token).ConfigureAwait(false);
+            using HttpResponseMessage response = await cookies.SendAsync(
+                client, request, current, timeout.Token).ConfigureAwait(false);
 
             if (IsRedirect(response.StatusCode)) {
                 if (redirectCount >= snapshot.MaximumRedirects) {
@@ -112,6 +112,7 @@ internal static class OfficeRemoteImageLoader {
             AllowAutoRedirect = false,
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
         };
+        OfficeHttpCookieScope.DisableAutomaticCookies(handler);
         return new HttpClient(handler, disposeHandler: true) {
             Timeout = System.Threading.Timeout.InfiniteTimeSpan
         };
@@ -122,6 +123,7 @@ internal static class OfficeRemoteImageLoader {
         bool allowPrivateNetworkAddresses) {
         var handler = new SocketsHttpHandler {
             AllowAutoRedirect = false,
+            UseCookies = false,
             AutomaticDecompression = DecompressionMethods.GZip
                 | DecompressionMethods.Deflate,
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
