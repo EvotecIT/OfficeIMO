@@ -61,7 +61,7 @@ public partial class WordDocument {
     private OfficeFormatDescriptor GetXmlSourceFormatDescriptor() {
         if (SourceFormat == WordFileFormat.WordMl2003) {
             return new OfficeFormatDescriptor("Word.WordMl2003", ".xml", OfficeDocumentFamily.Word,
-                OfficeDocumentKind.Document, OfficeFormatGeneration.Legacy, OfficeFormatEncoding.StandaloneXml, macroEnabled: false);
+                OfficeDocumentKind.Document, OfficeFormatGeneration.Legacy, OfficeFormatEncoding.StandaloneXml, macroEnabled: true);
         }
         OfficeFormatDescriptor package = WordFormatCatalog.GetDescriptor(_wordprocessingDocument.DocumentType);
         string id = _wordprocessingDocument.DocumentType switch {

@@ -8,6 +8,25 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordXmlInterchangeTests {
     [Fact]
+    public void WordMlSourceFormatDescribesMacroCapabilityWhileReportingDroppedCarrier() {
+        const string xml = """
+            <w:wordDocument xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml" w:macrosPresent="on">
+              <w:docSuppData><w:binData w:name="editdata.mso">AA==</w:binData></w:docSuppData>
+              <w:body><w:p><w:r><w:t>Inert migration source</w:t></w:r></w:p></w:body>
+            </w:wordDocument>
+            """;
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+        using WordDocument document = WordDocument.Load(input, null, out OfficeConversionReport report);
+        Assert.True(document.SourceFormatDescriptor.IsMacroEnabled);
+        Assert.False(document.HasMacros);
+        Assert.Contains(report.Diagnostics, finding => finding.LossKind == OfficeConversionLossKind.Omission &&
+            finding.Location?.EndsWith("}docSuppData", StringComparison.Ordinal) == true);
+        Assert.Equal("Inert migration source", document.Paragraphs.Single().Text);
+        input.Position = 0;
+        Assert.Throws<OfficeConversionException>(() => WordDocument.Load(input, new WordLoadOptions { FailOnLoss = true }));
+    }
+
+    [Fact]
     public async Task FlatOpcLoadAndExportRetainEditsWithoutAssociatingWritableSource() {
         byte[] original = Encoding.UTF8.GetBytes(FlatOpc());
         using var source = new MemoryStream();
@@ -80,7 +99,7 @@ public sealed class WordXmlInterchangeTests {
               <w:body>
                 <wx:sect>
                   <wx:sub-section>
-                    <w:p><w:r><w:rPr><w:b/></w:rPr><w:t>  Report </w:t></w:r><w:hlink w:dest="https://example.invalid/"><w:r><w:t>visible link</w:t></w:r></w:hlink></w:p>
+                    <w:p><w:pPr><w:framePr w:w="2000"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>  Report </w:t></w:r><w:hlink w:dest="https://example.invalid/"><w:r><w:t>visible link</w:t></w:r></w:hlink></w:p>
                     <w:tbl><w:tr><w:tc><w:p><w:r><w:t>Left</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>Right</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
                   </wx:sub-section>
                   <w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr>
@@ -93,7 +112,7 @@ public sealed class WordXmlInterchangeTests {
         using WordDocument document = WordDocument.Load(source, new WordLoadOptions(), out OfficeConversionReport report);
         Assert.Equal(WordFileFormat.WordMl2003, document.SourceFormat);
         Assert.Contains(report.Diagnostics, diagnostic =>
-            diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Location != null && diagnostic.Location.EndsWith("}hlink", StringComparison.Ordinal));
+            diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Location != null && diagnostic.Location.EndsWith("}framePr", StringComparison.Ordinal));
 
         using var output = new MemoryStream(document.ToBytes());
         using WordprocessingDocument saved = WordprocessingDocument.Open(output, false);
@@ -101,6 +120,8 @@ public sealed class WordXmlInterchangeTests {
         Paragraph title = Assert.IsType<Paragraph>(body.FirstChild);
         Assert.Equal("  Report visible link", title.InnerText);
         Assert.NotNull(title.GetFirstChild<Run>().RunProperties.Bold);
+        Assert.Equal("https://example.invalid/", saved.MainDocumentPart.HyperlinkRelationships.Single().Uri.AbsoluteUri);
+        Assert.Equal(saved.MainDocumentPart.HyperlinkRelationships.Single().Id, title.GetFirstChild<Hyperlink>().Id.Value);
         Assert.Equal(new[] { "Left", "Right" }, Assert.Single(body.Elements<Table>()).Descendants<TableCell>().Select(cell => cell.InnerText));
         Assert.Equal(12240U, body.GetFirstChild<SectionProperties>().GetFirstChild<PageSize>().Width.Value);
 

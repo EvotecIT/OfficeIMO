@@ -11,6 +11,48 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
     private static readonly XNamespace X = "urn:schemas-microsoft-com:office:excel";
     private static byte[] Xml(string content) => Encoding.UTF8.GetBytes("<Workbook xmlns='" + Ss + "' xmlns:ss='" + Ss + "' xmlns:x='" + X + "'>" + content + "</Workbook>");
 
+    [Theory]
+    [InlineData(105.5, 7, 20.140625, 105.75)]
+    [InlineData(7.875, 8, 1.375, 8.25)]
+    [InlineData(0, 7, 0, 0)]
+    public void Physical_column_width_quantization_is_stable_after_saved_xlsx_and_xml_reimport(
+        double points, double digitPixels, double storedWidth, double serializedPoints) {
+        string sourcePoints = points.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        byte[] source = Xml("<Worksheet ss:Name='Data'><Table ss:DefaultColumnWidth='" + sourcePoints
+            + "'><Column ss:Width='" + sourcePoints + "'/></Table></Worksheet>");
+        var options = new ExcelSpreadsheetXmlOptions { DefaultFontMaximumDigitWidth = OfficeLength.Pixels(digitPixels) };
+        using ExcelDocument document = ExcelDocument.ImportSpreadsheetXml(source, options).Value;
+        using var saved = new MemoryStream();
+        document.Save(saved);
+        saved.Position = 0;
+        using ExcelDocument reopened = ExcelDocument.Load(saved);
+        Assert.Equal(storedWidth, reopened.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single().Width!.Value);
+        Assert.Equal(storedWidth, reopened.OpenXmlDocument.WorkbookPart.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<SheetFormatProperties>()!.DefaultColumnWidth!.Value);
+        byte[] exported = reopened.ExportSpreadsheetXml(options).Value;
+        XDocument xml = XDocument.Parse(Encoding.UTF8.GetString(exported));
+        Assert.Equal(serializedPoints, (double)xml.Descendants(Ss + "Column").Single().Attribute(Ss + "Width")!);
+        Assert.Equal(serializedPoints, (double)xml.Descendants(Ss + "Table").Single().Attribute(Ss + "DefaultColumnWidth")!);
+        using ExcelDocument reimported = ExcelDocument.ImportSpreadsheetXml(exported, options).Value;
+        Assert.Equal(storedWidth, reimported.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single().Width!.Value);
+        Assert.Equal(storedWidth, reimported.OpenXmlDocument.WorkbookPart.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<SheetFormatProperties>()!.DefaultColumnWidth!.Value);
+    }
+
+    [Fact]
+    public void Automatic_font_metrics_report_the_physical_column_width_approximation() {
+        byte[] source = Xml("<Styles><Style ss:ID='Default'><Font ss:FontName='Calibri' ss:Size='11'/></Style></Styles>"
+            + "<Worksheet ss:Name='Data'><Table><Column ss:Width='105.5'/></Table></Worksheet>");
+        var imported = ExcelDocument.ImportSpreadsheetXml(source);
+        using ExcelDocument document = imported.Value;
+        Assert.Contains(imported.Report.Diagnostics, item => item.Code == "excel-xml-approximation"
+            && item.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Contains(document.ExportSpreadsheetXml().Report.Diagnostics, item => item.Code == "excel-xml-approximation"
+            && item.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
     [Fact]
     public void Native_Excel_geometry_comments_and_font_are_imported_and_reexported() {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "SpreadsheetXmlCorpus", "excel-geometry.xml");

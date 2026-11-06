@@ -580,6 +580,8 @@ TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split arc
 
 ## Document-format depth
 
+- [ ] Qualify XML Spreadsheet 2003 physical column widths against native Excel across Normal fonts and window DPI settings. Cover point-to-character conversion, default and explicit widths, zero-width hidden columns, and repeated XML/XLSX conversion. Extend the current reported 96-DPI approximation only with independent evidence for the receiving environment. See the [Excel compatibility contract](../OfficeIMO.Excel/COMPATIBILITY.md).
+
 ### OpenDocument qualification and depth
 
 - [ ] Extend the native ODS evaluator with named references, date arithmetic, logical functions, and conditional evaluation. Qualify each accepted subset against independent Calc-produced values, including errors, scalar-versus-reference coercion, dependency cycles, and resource bounds; preserve unsupported formulas and report failed recalculations.

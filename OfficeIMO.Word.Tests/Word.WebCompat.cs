@@ -6,6 +6,31 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Theory]
+        [InlineData("valid", "1800", "2400")]
+        [InlineData("missing", "2100", "2100")]
+        [InlineData("invalid", "2100", "2100")]
+        public void NormalizeForOnline_PreservesCompletePhysicalGridAndRepairsMissingGeometry(string geometry, string first, string second) {
+            using var document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 2);
+            Table raw = table._table;
+            raw.GetFirstChild<TableProperties>().TableWidth = new TableWidth { Type = TableWidthUnitValues.Dxa, Width = "7200" };
+            TableCell[] cells = raw.Elements<TableRow>().Single().Elements<TableCell>().ToArray();
+            cells[0].TableCellProperties.GridSpan = new GridSpan { Val = 2 };
+            cells[0].TableCellProperties.TableCellWidth = new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "4200" };
+            cells[1].TableCellProperties.TableCellWidth = new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "3000" };
+            raw.GetFirstChild<TableGrid>().Remove();
+            if (geometry != "missing") raw.InsertAt(new TableGrid(new GridColumn { Width = geometry == "invalid" ? "-1" : "1800" },
+                new GridColumn { Width = "2400" }, new GridColumn { Width = "3000" }), 1);
+
+            document.NormalizeTablesForOnline();
+            using var stream = new MemoryStream(document.ToBytes());
+            using var saved = WordprocessingDocument.Open(stream, false);
+            Table output = saved.MainDocumentPart.Document.Body.Elements<Table>().Single();
+            Assert.Equal(new[] { first, second, "3000" }, output.GetFirstChild<TableGrid>().Elements<GridColumn>().Select(column => column.Width.Value));
+            Assert.Equal(2, output.Elements<TableRow>().Single().Elements<TableCell>().First().TableCellProperties.GridSpan.Val.Value);
+        }
+
         [Fact]
         public void Test_NormalizeTablesForOnline_UpdatesBodyHeaderAndFooterTables() {
             using var document = WordDocument.Create();

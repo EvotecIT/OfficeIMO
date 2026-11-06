@@ -155,12 +155,10 @@ namespace OfficeIMO.Word {
                     return;
                 }
 
-                // An absent preferred width leaves an existing physical grid authoritative.
-                // Recomputing percentages during save would change a grid preserved by Width = null.
-                bool preserveGrid = _tableProperties?.TableWidth == null &&
-                    _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Any() == true;
                 ConvertHorizontalMergesToGridSpan();
-                if (!preserveGrid) RefreshGrid();
+                // A complete physical grid carries geometry independent of preferred cell widths.
+                // A spanning cell cannot recover the individual columns it covers.
+                if (!HasCompletePhysicalGrid()) RefreshGrid();
 
                 // Supply missing host cell margins without replacing direct authoring values.
                 if (IsNestedTable) EnsureHostCellVerticalMargins(72);
@@ -169,6 +167,40 @@ namespace OfficeIMO.Word {
                 // the first row has a top border if absent (nested tables only).
                 if (IsNestedTable) EnsureFirstRowTopBorder();
             } catch { }
+        }
+
+        private bool HasCompletePhysicalGrid() {
+            TableGrid? grid = _table.GetFirstChild<TableGrid>();
+            if (grid == null) return false;
+            int columns = 0;
+            long total = 0;
+            foreach (GridColumn column in grid.Elements<GridColumn>()) {
+                if (!int.TryParse(column.Width?.Value, out int width) || width <= 0) return false;
+                total += width;
+                if (total > int.MaxValue) return false;
+                columns++;
+            }
+            if (columns == 0) return false;
+            int maximum = 0;
+            foreach (TableRow row in WordTableContent.Rows(_table)) {
+                int occupied = 0;
+                foreach (OpenXmlElement offset in row.TableRowProperties?.Elements() ?? Enumerable.Empty<OpenXmlElement>()) {
+                    if (offset is not GridBefore && offset is not GridAfter) continue;
+                    if (!int.TryParse(offset.GetAttribute("val", "http://schemas.openxmlformats.org/wordprocessingml/2006/main").Value, out int count) || count < 0)
+                        return false;
+                    occupied += count;
+                    if (occupied > columns) return false;
+                }
+                foreach (TableCell cell in WordTableContent.Cells(row)) {
+                    int span = 1;
+                    if (cell.TableCellProperties?.GridSpan is { } declared &&
+                        (!int.TryParse(declared.Val?.InnerText, out span) || span <= 0)) return false;
+                    occupied += span;
+                    if (occupied > columns) return false;
+                }
+                maximum = Math.Max(maximum, occupied);
+            }
+            return maximum == columns;
         }
 
         /// <summary>

@@ -41,9 +41,8 @@ namespace OfficeIMO.Excel {
         public double ToCharacters(ExcelSheet sheet) {
             ArgumentNullException.ThrowIfNull(sheet);
             if (!_isLength) return _characters;
-            double pixels = Math.Round(_length.ToPixels(), MidpointRounding.AwayFromZero);
             double digit = ExcelColumnGeometry.GetMaximumDigitWidth(sheet.WorksheetPart);
-            return Math.Truncate(pixels / digit * 256D) / 256D;
+            return ExcelColumnGeometry.ToStoredWidth(_length.ToPixels(), digit);
         }
 
         /// <summary>Gets the physical column width for a worksheet, including native column padding and pixel rounding.</summary>

@@ -750,10 +750,18 @@ namespace bindings. Package signatures and XML declarations, processing
 instructions, and comments outside part roots do not travel through the
 standalone XML representation.
 
-Word 2003 XML projects paragraphs, basic run formatting, tables, and section page
-dimensions into an editable document. The load report records omitted features,
-such as unsupported styles, fields, drawing resources, and hyperlink behavior.
-Set `WordLoadOptions.FailOnLoss` to reject sources that require those omissions.
+Word 2003 XML projects named paragraph, character and table styles, their
+inheritance and font defaults, rich run formatting, paragraph spacing, indents,
+tabs and borders into an editable document. Tables retain their grid, widths,
+cell spans, row settings, shading and borders. Embedded raster pictures retain
+their bytes and VML geometry; hyperlinks use native package relationships.
+Headers and footers have their own parts and image relationships. Section page
+sizes, margins, columns and document grids retain their supported native values.
+
+The load report records unsupported elements and formatting attributes, including
+unmapped list definitions, floating text frames, non-picture drawings, active
+content and unsupported document settings. `WordLoadOptions.FailOnLoss` rejects
+sources that require those omissions. Import never retrieves linked resources.
 
 ```csharp
 using var document = WordDocument.Load("source.xml", new WordLoadOptions(), out var report);
