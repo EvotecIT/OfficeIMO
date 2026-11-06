@@ -37,7 +37,7 @@ internal static partial class IWorkLegacyXmlReader {
                 budget.AddTable();
                 IWorkTable? table = ReadLegacyTable(tableInfo, source, budget, catalog, ref materializedCells);
                 if (table != null) tables.Add(table);
-                if (table == null || !table.CellStorageIsComplete) {
+                if (table == null) {
                     catalog.AddLoss("IWORK_LEGACY_NUMBERS_GRID_PARTIAL",
                         "A Numbers '09 table has unqualified dimensions, a missing model, or cell records "
                         + "that cannot be safely placed or decoded.");
@@ -137,8 +137,14 @@ internal static partial class IWorkLegacyXmlReader {
             catalog.AddLoss("IWORK_LEGACY_TABLE_MERGE_OMITTED",
                 "Overlapping Numbers '09 merges or merges covering populated cells were omitted to retain cell values.");
         }
+        if (!complete) {
+            catalog.AddLoss(source.Kind == IWorkDocumentKind.Numbers
+                    ? "IWORK_LEGACY_NUMBERS_GRID_PARTIAL" : "IWORK_LEGACY_TABLE_GRID_PARTIAL",
+                "An iWork '09 table contains cell records that cannot be safely placed or decoded; "
+                + "its retained cells are an incomplete projection.");
+        }
         return new IWorkTable(name, rowCount, columnCount, cells, headerRows, headerColumns, footerRows,
-            mergedRanges: merges, geometry: tableInfo == null ? null : ReadLegacyGeometry(tableInfo),
+            mergedRanges: merges, geometry: tableInfo == null ? null : ReadLegacyGeometry(tableInfo, catalog),
             sourceIdentity: tableInfo == null ? null : catalog.Identity(tableInfo),
             rowHeights: rowHeights, columnWidths: columnWidths,
             textStyles: styles.TextStyles, fillStyles: styles.FillStyles, cellLayouts: styles.Layouts,

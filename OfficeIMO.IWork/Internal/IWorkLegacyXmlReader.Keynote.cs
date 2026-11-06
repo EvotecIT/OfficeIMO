@@ -61,8 +61,13 @@ internal static partial class IWorkLegacyXmlReader {
                 XElement? placeholder = isTitle ? titlePlaceholder : bodyPlaceholder;
                 string? expectedId = isTitle ? titleId : bodyId;
                 if (placeholder == null || string.IsNullOrEmpty(expectedId)
-                    || (string?)drawable.Attribute(referenceAttribute) != expectedId
-                    || !acceptedPlaceholders.Add(placeholder)) continue;
+                    || (string?)drawable.Attribute(referenceAttribute) != expectedId) {
+                    catalog.AddLoss("IWORK_LEGACY_KEYNOTE_PLACEHOLDER_UNRESOLVED",
+                        "A Keynote '09 " + (isTitle ? "title" : "body")
+                        + " placeholder reference is missing or does not match its slide definition; its text is omitted.");
+                    continue;
+                }
+                if (!acceptedPlaceholders.Add(placeholder)) continue;
                 IWorkTextBox? box = ReadLegacyTextBox(placeholder, catalog);
                 if (box?.Content.Paragraphs.Any(paragraph => paragraph.Runs.Count > 0) == true) {
                     if (isTitle) title = box;
@@ -100,7 +105,7 @@ internal static partial class IWorkLegacyXmlReader {
             tables, drawables, isSkipped: false);
     }
 
-    internal static IWorkGeometry? ReadLegacyGeometry(XElement placeholder, IWorkLegacyXmlCatalog? catalog = null) {
+    internal static IWorkGeometry? ReadLegacyGeometry(XElement placeholder, IWorkLegacyXmlCatalog catalog) {
         XElement? geometry = placeholder.Element(Sf + "geometry");
         XElement? size = geometry?.Element(Sf + "size");
         XElement? position = geometry?.Element(Sf + "position");
@@ -112,7 +117,7 @@ internal static partial class IWorkLegacyXmlReader {
         bool unsupportedTransform = LegacyUnsupportedTransforms.Any(name => geometry?.Attribute(Sf + name) is XAttribute attribute
                 && attribute.Value is not ("0" or "false"));
         if (unsupportedTransform || geometry?.Attribute(Sf + "angle") != null && !angle.HasValue) {
-            catalog?.AddLoss("IWORK_LEGACY_GEOMETRY_UNSUPPORTED",
+            catalog.AddLoss("IWORK_LEGACY_GEOMETRY_UNSUPPORTED",
                 "A selected XML drawable uses an unqualified transform; its geometry is omitted.");
             return null;
         }
