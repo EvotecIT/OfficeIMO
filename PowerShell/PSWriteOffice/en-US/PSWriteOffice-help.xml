@@ -60142,7 +60142,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Clears values, formulas, styles and range metadata from a range, a header column or whole sheets.</maml:para>
+      <maml:para>Native table schemas and their header labels remain in place while the selected data and metadata categories are cleared.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Range">
@@ -60483,16 +60483,15 @@ cells. This keeps existing-document editing simple without forcing callers back 
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>Reset a sheet before reloading it</maml:title>
+        <maml:title>Clear worksheet data and rules</maml:title>
         <dev:code>Open-OfficeExcel -Path .\Reports\Weekly-Ops.xlsx {
                 ExcelSheet 'Data' {
                     $cleared = Clear-OfficeExcelRange -PassThru
-                    Write-Verbose "Cleared $cleared cells"
-                    ExcelTable (Import-OfficeCsv -Path .\Data\Ops-Week43.csv) -Name OpsData
+                    Write-Verbose "Selected $cleared cells"
                 }
             }</dev:code>
         <dev:remarks>
-          <maml:para>Clears everything from the Data sheet, writes the new extract and reports how many cells were cleared.</maml:para>
+          <maml:para>Clears the supported data and rule categories on Data, retains table headers and reports the selected cell count.</maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -110806,7 +110805,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return native annotation edit reports.</maml:para>
+            <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -110893,7 +110892,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return native annotation edit reports.</maml:para>
+            <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -111004,7 +111003,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return native annotation edit reports.</maml:para>
+            <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -111115,7 +111114,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return native annotation edit reports.</maml:para>
+            <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -111226,7 +111225,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return native annotation edit reports.</maml:para>
+            <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -111349,7 +111348,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return native annotation edit reports.</maml:para>
+            <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -111460,7 +111459,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return native annotation edit reports.</maml:para>
+            <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -111571,7 +111570,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return native annotation edit reports.</maml:para>
+            <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -111682,7 +111681,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return native annotation edit reports.</maml:para>
+            <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -111757,7 +111756,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return native annotation edit reports.</maml:para>
+            <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -111880,7 +111879,7 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Return native annotation edit reports.</maml:para>
+          <maml:para>Return the changed, caller-owned PDF document. Dispose it when finished.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -111959,11 +111958,6 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
       <command:returnValue>
         <dev:type>
           <maml:name>OfficeIMO.Pdf.PdfDocument</maml:name>
-        </dev:type>
-      </command:returnValue>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>System.IO.FileInfo</maml:name>
         </dev:type>
       </command:returnValue>
     </command:returnValues>

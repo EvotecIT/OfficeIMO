@@ -20,7 +20,7 @@ Clear-OfficeExcelRange -Header <string> [-Document <ExcelDocument>] [-Sheet <Off
 ```
 
 ## DESCRIPTION
-Clears values, formulas, styles and range metadata from a range, a header column or whole sheets.
+Native table schemas and their header labels remain in place while the selected data and metadata categories are cleared.
 
 ## EXAMPLES
 
@@ -40,13 +40,12 @@ Removes the values from A2:F200 and keeps formatting, validation and comments.
 Open-OfficeExcel -Path .\Reports\Weekly-Ops.xlsx {
     ExcelSheet 'Data' {
         $cleared = Clear-OfficeExcelRange -PassThru
-        Write-Verbose "Cleared $cleared cells"
-        ExcelTable (Import-OfficeCsv -Path .\Data\Ops-Week43.csv) -Name OpsData
+        Write-Verbose "Selected $cleared cells"
     }
 }
 ```
 
-Clears everything from the Data sheet, writes the new extract and reports how many cells were cleared.
+Clears the supported data and rule categories on Data, retains table headers and reports the selected cell count.
 
 ## PARAMETERS
 
