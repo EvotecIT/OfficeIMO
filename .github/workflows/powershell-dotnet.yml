@@ -28,6 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       selected: ${{ steps.select.outputs.selected }}
+      macos: ${{ steps.select.outputs.selected == 'true' && fromJSON(steps.select.outputs.suites)['powershell-macos'] }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -106,7 +107,10 @@ jobs:
 
   test-macos:
     needs: changes
-    if: github.event_name != 'pull_request' && needs.changes.outputs.selected == 'true'
+    # macOS runners are scarce. Pull requests run this lane only when module,
+    # batch, path, file-system or font-discovery inputs change; master pushes,
+    # manual runs and full-ci requests always run it.
+    if: needs.changes.outputs.macos == 'true'
     name: 'macOS'
     runs-on: macos-latest
     timeout-minutes: 20

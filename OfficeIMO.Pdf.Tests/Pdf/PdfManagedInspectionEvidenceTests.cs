@@ -2,6 +2,9 @@ using System.Globalization;
 using System.Text;
 using System.Threading;
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
+using OfficeIMO.Ocr;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -188,6 +191,83 @@ public sealed class PdfManagedInspectionEvidenceTests {
         Assert.Equal(23, clone.Limits.MaxTextSearchMatches);
         Assert.True(clone.IncludeArtifactText);
         Assert.Equal(PdfParsingMode.Strict, clone.ParsingMode);
+    }
+
+    [Theory]
+    [InlineData("missing", PdfReadProfile.Structured)]
+    [InlineData("missing", PdfReadProfile.Fast)]
+    [InlineData("identity", PdfReadProfile.Structured)]
+    [InlineData("partial", PdfReadProfile.Structured)]
+    [InlineData("actual", PdfReadProfile.Structured)]
+    [InlineData("rotated", PdfReadProfile.Structured)]
+    [InlineData("only", PdfReadProfile.Structured)]
+    public void LogicalReadOmitsUndecodableRunsAndRetainsReadableReplacements(string mapping, PdfReadProfile profile) {
+        PdfDocumentReadResult result = PdfDocument.Load(BuildUndecodableDocument(mapping)).Read(new PdfLoadOptions {
+            Profile = profile, IncludeImages = false, IncludeFormWidgets = false
+        });
+        string expected = mapping == "only" ? string.Empty :
+            mapping == "actual" ? "Readable content Recovered text" : "Readable content";
+        Assert.Equal(expected, string.Join(" ", result.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
+        Assert.Equal(expected, string.Join(" ", result.ExtractMarkdown().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
+        if (mapping == "actual") Assert.Empty(result.TextDecodingDiagnostics);
+        else {
+            PdfFontInspectionDiagnostic diagnostic = Assert.Single(result.TextDecodingDiagnostics);
+            Assert.Equal(mapping is "missing" or "rotated" or "only" ? PdfFontInspectionDiagnosticCode.MissingFontResource
+                : PdfFontInspectionDiagnosticCode.UnmappableText, diagnostic.Code);
+            Assert.Equal(1, diagnostic.PageNumber);
+            Assert.Contains("/Font/F1", diagnostic.ResourcePath);
+            Assert.Contains("/F1", diagnostic.Message);
+        }
+    }
+
+    [Theory]
+    [InlineData("missing", PdfRedactionTextSelection.LogicalBlocks)]
+    [InlineData("missing", PdfRedactionTextSelection.MatchedGlyphs)]
+    [InlineData("identity", PdfRedactionTextSelection.LogicalBlocks)]
+    [InlineData("partial", PdfRedactionTextSelection.LogicalBlocks)]
+    [InlineData("actual", PdfRedactionTextSelection.LogicalBlocks)]
+    public void UndecodableShownTextCannotProduceAReviewableNoMatchesPlan(string mapping, PdfRedactionTextSelection selection) {
+        PdfRedactionPlan plan = PdfDocument.Load(BuildUndecodableDocument(mapping)).Redactions.Search(
+            new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("Absent text"));
+
+        Assert.False(plan.IsReviewable);
+    }
+
+    [Fact]
+    public async Task OcrReconstructionRetainsNativeTextDecodingWarnings() {
+        var engine = new DelegateOcrEngine("diagnostic-retention", (_, _) => Task.FromResult(new OcrResult {
+            Spans = new[] { new OcrTextSpan {
+                Level = OcrTextSpanLevel.Word, Text = "OCR recovery", Confidence = 0.99,
+                CoordinateUnit = OcrCoordinateUnit.Points,
+                Region = new OcrRegion { X = 20, Y = 150, Width = 80, Height = 12 }
+            } }
+        }));
+        PdfOcrMergeResult result = await PdfDocument.Load(BuildUndecodableDocument("missing"))
+            .ReadWithOcrAsync(engine, new PdfOcrMergeOptions { Dpi = 36 });
+
+        Assert.Contains("OCR recovery", result.Document.Text);
+        PdfFontInspectionDiagnostic native = Assert.Single(result.NativeDocument.TextDecodingDiagnostics);
+        PdfFontInspectionDiagnostic merged = Assert.Single(result.Document.TextDecodingDiagnostics);
+        Assert.Equal((native.Code, native.PageNumber, native.ResourcePath), (merged.Code, merged.PageNumber, merged.ResourcePath));
+    }
+
+    private static byte[] BuildUndecodableDocument(string mapping) {
+        string shown = "BT /F1 12 Tf 20 100 Td <00010002> Tj ET";
+        if (mapping == "actual") shown = "/Span << /ActualText (Recovered text) >> BDC " + shown + " EMC";
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 6 0 R /F2 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            Stream((mapping == "rotated" ? "0 1 -1 0 200 0 cm " : "") +
+                (mapping == "only" ? "" : "BT /F2 12 Tf 20 140 Td (Readable content) Tj ET ") + shown)
+        };
+        if (mapping is "identity" or "partial") {
+            objects.Add("<< /Type /Font /Subtype /Type0 /BaseFont /Subset /Encoding /Identity-H /DescendantFonts [7 0 R]" +
+                (mapping == "partial" ? " /ToUnicode 8 0 R" : "") + " >>");
+            objects.Add("<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Subset /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 500 >>");
+            objects.Add(Stream("1 beginbfchar\n<0001> <0041>\nendbfchar"));
+        }
+        return BuildPdf(objects.ToArray());
     }
 
     private static byte[] BuildMixedDocument(bool unsupportedFilter = false, bool includeXref = true) => BuildPdf(new[] {

@@ -76,6 +76,12 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            // A nonzero leading digit leaves room for at most fifteen digits and
+            // one point. Longer literals already require the general parser.
+            if (value.Length - index > 16 && value[index] is >= (byte)'1' and <= (byte)'9') {
+                return false;
+            }
+
             ulong mantissa = 0;
             int significantDigits = 0;
             int fractionalDigits = 0;

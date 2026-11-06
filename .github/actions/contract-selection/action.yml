@@ -8,6 +8,9 @@ outputs:
   selected:
     description: Whether this suite is affected or full CI was requested
     value: ${{ steps.suite.outputs.selected }}
+  suites:
+    description: Every suite's selection as a JSON object
+    value: ${{ steps.suite.outputs.suites }}
 runs:
   using: composite
   steps:
@@ -45,4 +48,5 @@ runs:
         selection = json.loads((Path(os.environ['RUNNER_TEMP']) / 'ci-selection.json').read_text())
         with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
             output.write('selected=' + str(selection['suites'][os.environ['CI_SUITE']]).lower() + '\n')
+            output.write('suites=' + json.dumps(selection['suites'], separators=(',', ':')) + '\n')
         PY

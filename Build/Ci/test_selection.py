@@ -212,6 +212,18 @@ class SelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(selection.select(repository, [path])["suites"]["apple-dependency-graph"])
 
+    def test_powershell_macos_lane_follows_platform_sensitive_inputs(self):
+        repository = Path(__file__).resolve().parents[2]
+        for path in ["OfficeIMO/Batches/OfficeBatchExecutor.cs", "OfficeIMO.Core/IO/OfficePathIdentity.cs",
+                     "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs"]:
+            with self.subTest(path=path):
+                result = selection.select(repository, [path])
+                self.assertTrue(result["suites"]["powershell"] and result["suites"]["powershell-macos"])
+        for path in ["OfficeIMO.Word/WordDocument.cs", "PowerShell/PSWriteOffice/Docs/Add-OfficeAccessColumn.md", ".github/workflows/dotnet-tests.yml"]:
+            with self.subTest(path=path):
+                self.assertFalse(selection.select(repository, [path])["suites"]["powershell-macos"])
+        self.assertTrue(selection.select(repository, [], full=True)["suites"]["powershell-macos"])
+
     def test_conditional_references_are_not_lost_on_another_os(self):
         path = self.root / "OfficeIMO.Word/OfficeIMO.Word.csproj"
         path.write_text('<Project><ItemGroup Condition="false"><ProjectReference Include="../OfficeIMO.CSV/OfficeIMO.CSV.csproj" /></ItemGroup></Project>')

@@ -24,13 +24,16 @@ public sealed class PdfTextDecodingEvidence {
 
     internal PdfTextDecodingEvidence(PdfTextDecodingSource source, string? encodingName = null,
         bool hasDeclaredToUnicode = false, bool usesDifferences = false, int unmappedCodeBytes = 0,
-        PdfTextDecodingSource? underlyingSource = null) {
+        PdfTextDecodingSource? underlyingSource = null, PdfFontInspectionDiagnosticCode? failureCode = null) {
         Source = source;
         EncodingName = encodingName;
         HasDeclaredToUnicode = hasDeclaredToUnicode;
         UsesDifferences = usesDifferences;
         UnmappedCodeBytes = unmappedCodeBytes;
         UnderlyingSource = underlyingSource;
+        FailureCode = source == PdfTextDecodingSource.ActualText ? null : failureCode ??
+            (source == PdfTextDecodingSource.Unmappable || unmappedCodeBytes > 0
+                ? PdfFontInspectionDiagnosticCode.UnmappableText : null);
     }
 
     /// <summary>Mapping that produced the returned logical text.</summary>
@@ -48,6 +51,10 @@ public sealed class PdfTextDecodingEvidence {
     /// <summary>True when logical output used Windows-1252 fallback or unmapped raw character values.</summary>
     public bool UsedFallback => Source == PdfTextDecodingSource.WinAnsiFallback ||
         (Source != PdfTextDecodingSource.ActualText && UnmappedCodeBytes > 0);
+
+    // Raw paint inspection keeps the decoder's source even when that path cannot
+    // supply logical Unicode. Semantic reconstruction consumes this failure.
+    internal PdfFontInspectionDiagnosticCode? FailureCode { get; }
 
     internal PdfTextDecodingEvidence WithActualText() => new PdfTextDecodingEvidence(
         PdfTextDecodingSource.ActualText, EncodingName, HasDeclaredToUnicode, UsesDifferences,

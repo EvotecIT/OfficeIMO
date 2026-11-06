@@ -795,7 +795,9 @@ public sealed partial class PdfReadPage {
             activeForms,
             PdfPageDrawingEffect.Default,
             pageContentBudget: pageContentBudget,
-            contentOrderPrefix: PdfContentOrderKey.Root);
+            contentOrderPrefix: PdfContentOrderKey.Root,
+            invokedResourceNames: GetRootInvokedResourceNames(content, resources,
+                pageContentBudget.CancellationToken.ThrowIfCancellationRequested));
         SortGraphicsEffectTransitions(transitions);
         return transitions.Count == 0 ? Array.Empty<PdfPageDrawingEffectTransition>() : transitions.AsReadOnly();
     }
@@ -833,12 +835,13 @@ public sealed partial class PdfReadPage {
         PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null,
         PdfContentOrderKey? contentOrderPrefix = null,
-        bool skipTransparencyGroupForms = false) {
+        bool skipTransparencyGroupForms = false,
+        PdfPageInvokedResourceNames? invokedResourceNames = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         textClippingBudget ??= new PdfTextClippingBudget();
         initialEffect = initialEffect.WithEffectiveRenderingIntent(initialRenderingIntent);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
             content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources, pageContentBudget);
         IReadOnlyList<PdfPageDrawingEffectTransition> parsed = PdfPageGraphicsEffectTimelineParser.Parse(
@@ -873,6 +876,10 @@ public sealed partial class PdfReadPage {
         bool hasContentOrderKeys = contentOrderPrefix != null &&
             local.All(static transition => transition.ContentOrderKey != null);
         if (hasContentOrderKeys) SortGraphicsEffectTransitions(local);
+
+        // The timeline above owns root graphics effects. No Do/BI means there
+        // are no invoked forms whose inherited effects need another traversal.
+        if (!invokedResources.HasObjectPaint) return;
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,

@@ -59,7 +59,19 @@ foreach (PdfLogicalPage page in result.Pages) {
     Console.WriteLine($"Page {page.PageNumber}: {page.Paragraphs.Count} paragraphs, {page.Tables.Count} tables");
 }
 Console.WriteLine(result.ExtractMarkdown());
+
+foreach (PdfFontInspectionDiagnostic warning in result.TextDecodingDiagnostics) {
+    Console.Error.WriteLine($"Page {warning.PageNumber}, {warning.ResourcePath}: {warning.Code} — {warning.Message}");
+}
 ```
+
+`Read()` omits an entire native text run when its font resource is missing or its
+character codes cannot be mapped to Unicode. The omitted run does not enter
+`Text`, Markdown or tables. `TextDecodingDiagnostics` reports `MissingFontResource`
+or `UnmappableText` with the source page and font path. Check this collection when
+complete text extraction matters. Supported font encodings and valid `/ActualText`
+replacements remain readable; a missing ToUnicode map alone does not imply failure.
+OCR-merged results retain warnings about omitted native text.
 
 For files from outside your organization, pass `PdfLoadOptions` with read limits, as shown in the [guide](../Docs/officeimo.pdf-guide.md).
 

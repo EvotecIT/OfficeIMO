@@ -87,7 +87,7 @@ public sealed class PdfUnderstandingPipelineOptions {
 }
 
 /// <summary>Runs a bounded, typed, pluggable PDF text-understanding pipeline.</summary>
-internal sealed class PdfUnderstandingPipeline {
+internal sealed partial class PdfUnderstandingPipeline {
     private readonly IPdfGlyphDecodingStage _glyphDecoding;
     private readonly IPdfWordGroupingStage _wordGrouping;
     private readonly IPdfLineGroupingStage _lineGrouping;
@@ -160,7 +160,8 @@ internal sealed class PdfUnderstandingPipeline {
         IReadOnlyList<PdfUnderstandingLine> lines,
         Type sourceProviderType,
         CancellationToken cancellationToken,
-        long priorWorkUnits = 0, bool reconstructOcrLayout = false) {
+        long priorWorkUnits = 0, bool reconstructOcrLayout = false,
+        IReadOnlyList<PdfFontInspectionDiagnostic>? textDecodingDiagnostics = null) {
         Guard.NotNull(page, nameof(page));
         Guard.NotNull(runs, nameof(runs));
         Guard.NotNull(words, nameof(words));
@@ -170,6 +171,7 @@ internal sealed class PdfUnderstandingPipeline {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageNumber);
 #pragma warning restore CA1512
         var context = CreateContext(page, pageNumber, cancellationToken);
+        context.TextDecodingDiagnostics = textDecodingDiagnostics ?? Array.Empty<PdfFontInspectionDiagnostic>();
         if (priorWorkUnits > 0) context.ConsumeWork(priorWorkUnits);
         EnsureCount(runs.Count, _limits.MaxRunsPerPage);
         EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
@@ -263,6 +265,7 @@ internal sealed class PdfUnderstandingPipeline {
             context.ThrowIfCancellationRequested);
         EnsureCount(runs.Count, _limits.MaxRunsPerPage);
         EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
+        runs = FilterUndecodableRuns(context, runs);
         if (!_restrictLogicalProjectionToReadingOrder &&
             ReferenceEquals(_semanticClassification, PdfAdvancedUnderstandingStages.SemanticClassification) &&
             ReferenceEquals(_imageRegionDetection, PdfAdvancedUnderstandingStages.ImageRegionDetection)) {
@@ -375,7 +378,8 @@ internal sealed class PdfUnderstandingPipeline {
             tableCandidates: tableCandidates,
             imagePlacements: context.ImagePlacements,
             imageRegions: imageRegions,
-            maxWorkUnitsPerPage: context.MaxWorkUnitsPerPage);
+            maxWorkUnitsPerPage: context.MaxWorkUnitsPerPage,
+            textDecodingDiagnostics: context.TextDecodingDiagnostics);
         return context.ReadingFrame is null ? result : context.ReadingFrame.Restore(result);
     }
 
