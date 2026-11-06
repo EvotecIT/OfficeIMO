@@ -6,17 +6,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal Dictionary<ushort, int> StyleFonts { get; } = new();
         internal Dictionary<ushort, ushort> StyleLanguages { get; } = new();
 
-        internal LegacyDocCharacterFormat ReadCharacter(ReadOnlySpan<byte> data, IReadOnlyList<string> fonts, out int? fontIndex, out ushort? languageId) {
+        internal LegacyDocCharacterFormat ReadCharacter(LegacyWord69Bytes data, IReadOnlyList<string> fonts, out int? fontIndex, out ushort? languageId) {
             byte[] normalized = Normalize(data, paragraph: false, out fontIndex, out languageId);
             return LegacyDocCharacterFormattingReader.ReadGrpprl(normalized, 0, normalized.Length, fonts);
         }
 
-        internal LegacyDocParagraphFormat ReadParagraph(ReadOnlySpan<byte> data, ushort styleIndex) {
+        internal LegacyDocParagraphFormat ReadParagraph(LegacyWord69Bytes data, ushort styleIndex) {
             byte[] normalized = Normalize(data, paragraph: true, out _, out _, styleIndex);
             return LegacyDocParagraphFormattingReader.ReadGrpprl(normalized, 0, normalized.Length);
         }
 
-        private byte[] Normalize(ReadOnlySpan<byte> data, bool paragraph, out int? fontIndex, out ushort? languageId, ushort styleIndex = 0) {
+        private byte[] Normalize(LegacyWord69Bytes data, bool paragraph, out int? fontIndex, out ushort? languageId, ushort styleIndex = 0) {
             fontIndex = null;
             languageId = null;
             var output = new List<byte>(data.Length);
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 AppendCode(output, code);
-                foreach (byte value in operand) output.Add(value);
+                for (int i = 0; i < operand.Length; i++) output.Add(operand[i]);
                 if (!paragraph && operation == 93) fontIndex = LegacyWord69Reader.U16(operand, 0);
                 if (!paragraph && operation == 97) languageId = LegacyWord69Reader.U16(operand, 0);
             }
@@ -102,7 +102,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             _ => 0
         };
 
-        private static bool TryReadOperand(byte operation, ref ReadOnlySpan<byte> data, out ReadOnlySpan<byte> operand) {
+        private static bool TryReadOperand(byte operation, ref LegacyWord69Bytes data, out LegacyWord69Bytes operand) {
             operand = default;
             int length = operation switch {
                 4 or 5 or 6 or 7 or 8 or 9 or 10 or 11 or 13 or 14 or 24 or 25 or 29 or 37 or 44 or 50 or 51
@@ -137,7 +137,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return true;
         }
 
-        private void AppendTableDefinition(List<byte> output, ReadOnlySpan<byte> operand) {
+        private void AppendTableDefinition(List<byte> output, LegacyWord69Bytes operand) {
             const int oldCellSize = 10;
             const int modernCellSize = 20;
             if (operand.IsEmpty || operand[0] is 0 or > 63) {
@@ -156,7 +156,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int descriptors = (operand.Length - edgesEnd) / oldCellSize;
             AppendCode(output, 0xD608);
             AppendWord(output, (ushort)(edgesEnd + descriptors * modernCellSize + 1));
-            foreach (byte value in operand.Slice(0, edgesEnd)) output.Add(value);
+            for (int i = 0; i < edgesEnd; i++) output.Add(operand[i]);
             for (int i = 0; i < descriptors; i++) {
                 var descriptor = operand.Slice(edgesEnd + i * oldCellSize, oldCellSize);
                 ushort oldFlags = LegacyWord69Reader.U16(descriptor, 0);
@@ -166,7 +166,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        internal static IReadOnlyList<string> ReadFonts(ReadOnlySpan<byte> data, out IReadOnlyList<byte> charsets) {
+        internal static IReadOnlyList<string> ReadFonts(LegacyWord69Bytes data, out IReadOnlyList<byte> charsets) {
             var fontCharsets = new List<byte>();
             charsets = fontCharsets;
             var fonts = new List<string>();
@@ -193,15 +193,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return fonts;
         }
 
-        internal static string DecodeName(ReadOnlySpan<byte> data) {
+        internal static string DecodeName(LegacyWord69Bytes data) {
             var chars = new char[data.Length];
             for (int i = 0; i < data.Length; i++) chars[i] = LegacyDocPieceTable.DecodeWindows1252(data[i]);
             return new string(chars);
         }
 
-        private static bool IsZero(ReadOnlySpan<byte> data) {
-            foreach (byte value in data) {
-                if (value != 0) return false;
+        private static bool IsZero(LegacyWord69Bytes data) {
+            for (int i = 0; i < data.Length; i++) {
+                if (data[i] != 0) return false;
             }
 
             return true;

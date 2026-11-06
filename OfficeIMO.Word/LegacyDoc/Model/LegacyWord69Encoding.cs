@@ -1,7 +1,7 @@
 namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>Checks the active legacy font and language before interpreting text bytes as Windows-1252.</summary>
     internal static class LegacyWord69Encoding {
-        internal static bool HasUnsupportedText(ReadOnlySpan<byte> text, int textStart,
+        internal static bool HasUnsupportedText(LegacyWord69Bytes text, int textStart,
             IReadOnlyList<byte> charsets, IReadOnlyList<TextContextRange> contexts,
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphs, LegacyDocStyleSheet stylesheet,
             IReadOnlyDictionary<ushort, int> styleFonts, IReadOnlyDictionary<ushort, ushort> styleLanguages,

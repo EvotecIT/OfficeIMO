@@ -7,20 +7,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal static bool IsProfile(byte[] bytes) {
             if (bytes.Length < 2) return false;
-            return U16(bytes, 0) is WesternSignature or 0xA697 or 0xA698 or 0xA699;
+            return U16(new LegacyWord69Bytes(bytes), 0) is WesternSignature or 0xA697 or 0xA698 or 0xA699;
         }
 
-        internal static bool TryRead(byte[] bytes, LegacyDocImportOptions options, out Result? result,
+        internal static bool TryRead(byte[] source, LegacyDocImportOptions options, out Result? result,
             out string? errorCode, out string? error) {
             result = null;
             errorCode = null;
             error = null;
-            if (bytes.Length < FibSize) {
+            if (source.Length < FibSize) {
                 errorCode = "doc-word69-fib-invalid";
                 error = "The Word 6/95 File Information Block is truncated.";
                 return false;
             }
 
+            var bytes = new LegacyWord69Bytes(source);
             ushort flags = U16(bytes, 0x0A);
             if ((flags & 0x0100) != 0) {
                 errorCode = "doc-encrypted";
@@ -52,7 +53,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private static Result Read(byte[] bytes, ushort flags, LegacyDocImportOptions options) {
+        private static Result Read(LegacyWord69Bytes bytes, ushort flags, LegacyDocImportOptions options) {
             int textStart = I32(bytes, 0x18);
             int textEnd = I32(bytes, 0x1C);
             int bodyLength = I32(bytes, 0x34);
@@ -91,7 +92,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var paragraphs = LegacyWord69Formatting.ReadParagraphRanges(bytes, usedEnd, ReadRange(bytes, usedEnd, 0xC0),
                 properties, options.MaxParagraphPropertyWorkBytes);
 
-            if (LegacyWord69Encoding.HasUnsupportedText(bytes.AsSpan(textStart, bodyLength), textStart,
+            if (LegacyWord69Encoding.HasUnsupportedText(bytes.Slice(textStart, bodyLength), textStart,
                 charsets, contextRanges, paragraphs, styleSheet, properties.StyleFonts, properties.StyleLanguages,
                 properties.DefaultFontIndex, U16(bytes, 6))) {
                 Report(LegacyDocUnsupportedFeatureKind.Formatting, "doc-word69-text-codepage-unsupported",
@@ -120,13 +121,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 Report(LegacyDocUnsupportedFeatureKind.Bookmark, "doc-word69-bookmarks", "Word 6/95 bookmark records are not projected.");
             }
 
-            ReadOnlySpan<byte> sections = ReadRange(bytes, usedEnd, 0x88);
+            LegacyWord69Bytes sections = ReadRange(bytes, usedEnd, 0x88);
             if (sections.Length > 20 || (sections.Length == 20 && I32(sections, 10) != -1)) {
                 Report(LegacyDocUnsupportedFeatureKind.Section, "doc-word69-sections",
                     "Word 6/95 section formatting and multiple sections are not projected.");
             }
 
-            ReadOnlySpan<byte> documentProperties = ReadRange(bytes, usedEnd, 0x150);
+            LegacyWord69Bytes documentProperties = ReadRange(bytes, usedEnd, 0x150);
             if (!documentProperties.IsEmpty && documentProperties.Length < 12) {
                 throw new InvalidDataException("The Word 6/95 document properties are truncated.");
             }
@@ -142,21 +143,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal static bool IsWesternLanguage(ushort language) =>
             (language & 0x03FF) is 0 or 3 or 6 or 7 or 9 or 10 or 11 or 12 or 15 or 16 or 19 or 20 or 22 or 29 or 45 or 54 or 56;
 
-        private static ReadOnlySpan<byte> ReadRange(byte[] bytes, int usedEnd, int directoryOffset) {
+        private static LegacyWord69Bytes ReadRange(LegacyWord69Bytes bytes, int usedEnd, int directoryOffset) {
             int start = I32(bytes, directoryOffset);
             int length = I32(bytes, directoryOffset + 4);
-            if (length == 0) return ReadOnlySpan<byte>.Empty;
+            if (length == 0) return default;
             if (start < FibSize || length < 0 || start > usedEnd - length) {
                 throw new InvalidDataException($"The Word 6/95 FIB record at 0x{directoryOffset:X} points outside the used stream.");
             }
 
-            return bytes.AsSpan(start, length);
+            return bytes.Slice(start, length);
         }
 
-        internal static ushort U16(ReadOnlySpan<byte> data, int offset) =>
+        internal static ushort U16(LegacyWord69Bytes data, int offset) =>
             (ushort)(data[offset] | (data[offset + 1] << 8));
 
-        internal static int I32(ReadOnlySpan<byte> data, int offset) =>
+        internal static int I32(LegacyWord69Bytes data, int offset) =>
             data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) | (data[offset + 3] << 24);
 
         internal sealed record Result(

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal sealed partial class LegacyDocStyleSheet {
         /// <summary>Reads ANSI Word 6/95 paragraph style records and projects their inherited formatting.</summary>
-        internal static LegacyDocStyleSheet ReadWord69(ReadOnlySpan<byte> data, IReadOnlyList<string> fonts,
+        internal static LegacyDocStyleSheet ReadWord69(LegacyWord69Bytes data, IReadOnlyList<string> fonts,
             LegacyWord69Properties properties) {
             if (data.IsEmpty) return Empty;
             if (data.Length < 6) throw new InvalidDataException("The Word 6/95 stylesheet is truncated.");
@@ -34,7 +34,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     throw new InvalidDataException("A Word 6/95 style record extends beyond the stylesheet.");
                 }
 
-                ReadOnlySpan<byte> record = data.Slice(offset, length);
+                LegacyWord69Bytes record = data.Slice(offset, length);
                 offset = (offset + length + 1) & ~1;
                 ushort kindAndBase = LegacyWord69Reader.U16(record, 2);
                 if ((kindAndBase & 15) != 1) continue;
@@ -59,7 +59,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     int propertyLength = LegacyWord69Reader.U16(record, cursor);
                     cursor += 2;
                     if (propertyLength > record.Length - cursor) throw new InvalidDataException("A Word 6/95 style property extends beyond its record.");
-                    ReadOnlySpan<byte> property = record.Slice(cursor, propertyLength);
+                    LegacyWord69Bytes property = record.Slice(cursor, propertyLength);
                     if (propertyIndex == 0 && propertyLength >= 2) {
                         paragraph = properties.ReadParagraph(property.Slice(2), LegacyWord69Reader.U16(property, 0));
                     } else if (propertyIndex == 1) {

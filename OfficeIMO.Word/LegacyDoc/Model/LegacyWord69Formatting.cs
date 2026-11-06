@@ -4,14 +4,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const int PageSize = 512;
 
         internal static IReadOnlyList<LegacyDocCharacterFormatRange> ReadCharacterRanges(
-            byte[] bytes, int usedEnd, ReadOnlySpan<byte> bin, IReadOnlyList<string> fonts,
+            LegacyWord69Bytes bytes, int usedEnd, LegacyWord69Bytes bin, IReadOnlyList<string> fonts,
             LegacyWord69Properties properties, int maximumWork, out IReadOnlyList<LegacyWord69Encoding.TextContextRange> contextRanges) {
             var ranges = new List<LegacyDocCharacterFormatRange>();
             var textContexts = new List<LegacyWord69Encoding.TextContextRange>();
             contextRanges = textContexts;
             foreach (var run in ReadRuns(bytes, usedEnd, bin, paragraph: false, maximumWork)) {
                 if (run.Length == 0) continue;
-                var format = properties.ReadCharacter(bytes.AsSpan(run.Offset, run.Length), fonts, out int? fontIndex, out ushort? languageId);
+                var format = properties.ReadCharacter(bytes.Slice(run.Offset, run.Length), fonts, out int? fontIndex, out ushort? languageId);
                 if (fontIndex.HasValue || languageId.HasValue) {
                     textContexts.Add(new LegacyWord69Encoding.TextContextRange(run.Start, run.End, fontIndex, languageId));
                 }
@@ -22,11 +22,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         internal static IReadOnlyList<LegacyDocParagraphFormatRange> ReadParagraphRanges(
-            byte[] bytes, int usedEnd, ReadOnlySpan<byte> bin, LegacyWord69Properties properties, int maximumWork) {
+            LegacyWord69Bytes bytes, int usedEnd, LegacyWord69Bytes bin, LegacyWord69Properties properties, int maximumWork) {
             var ranges = new List<LegacyDocParagraphFormatRange>();
             foreach (var run in ReadRuns(bytes, usedEnd, bin, paragraph: true, maximumWork)) {
                 if (run.Length == 0) continue;
-                var data = bytes.AsSpan(run.Offset, run.Length);
+                var data = bytes.Slice(run.Offset, run.Length);
                 var format = properties.ReadParagraph(data.Slice(2), LegacyWord69Reader.U16(data, 0));
                 ranges.Add(new LegacyDocParagraphFormatRange(run.Start, run.End, format));
             }
@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static List<FormattingRun> ReadRuns(
-            byte[] bytes, int usedEnd, ReadOnlySpan<byte> bin, bool paragraph, int maximumWork) {
+            LegacyWord69Bytes bytes, int usedEnd, LegacyWord69Bytes bin, bool paragraph, int maximumWork) {
             var runs = new List<FormattingRun>();
             if (bin.IsEmpty) return runs;
             if (bin.Length < 10 || (bin.Length - 4) % 6 != 0) {
@@ -53,7 +53,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     throw new InvalidDataException("A Word 6/95 formatting bin contains a repeated or invalid page reference.");
                 }
 
-                ReadOnlySpan<byte> page = bytes.AsSpan(pageOffset, PageSize);
+                LegacyWord69Bytes page = bytes.Slice(pageOffset, PageSize);
                 int count = page[PageSize - 1];
                 int positionsEnd = (count + 1) * 4;
                 int indexEnd = positionsEnd + count * stride;
