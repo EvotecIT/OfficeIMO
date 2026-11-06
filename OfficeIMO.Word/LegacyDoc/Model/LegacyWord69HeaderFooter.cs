@@ -7,7 +7,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyWord69Bytes positions, LegacyDocTextCharacter[] characters, int headerStart, int headerLength,
             IReadOnlyList<byte> sectionMasks, byte separatorMask,
             IReadOnlyList<LegacyDocCharacterFormatRange> characterRanges,
-            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphRanges, out bool unsupported) {
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphRanges, out bool unsupported,
+            LegacyDocFieldMetadataReader? fieldMetadata = null) {
             unsupported = false;
             var stories = new List<LegacyDocHeaderFooterStory>();
             if (headerLength == 0) return stories;
@@ -50,7 +51,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     var text = new ArraySegment<LegacyDocTextCharacter>(characters, headerStart + start, end - start);
                     var bookmarks = new LegacyDocBookmarkProjectionTracker(Array.Empty<LegacyDocBookmark>());
                     var blocks = LegacyDocDocument.BuildStoryBlocks(text, characterRanges, paragraphRanges,
-                        bookmarks, new Dictionary<int, LegacyDocPicture>(), orderedFormattingRanges: true);
+                        bookmarks, new Dictionary<int, LegacyDocPicture>(), orderedFormattingRanges: true, fieldMetadata: fieldMetadata);
                     if (blocks.Count == 0) continue;
                     HeaderFooterValues type = index >= 4 ? HeaderFooterValues.First
                         : index is 0 or 2 ? HeaderFooterValues.Even : HeaderFooterValues.Default;

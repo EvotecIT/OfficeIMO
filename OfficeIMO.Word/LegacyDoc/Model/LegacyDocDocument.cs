@@ -166,6 +166,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 string alternateName = fib.UsesOneTableStream ? "0Table" : "1Table";
                 if (TryGetRootStream(compoundFile, alternateName, out tableStreamCandidate)) {
                     AddWarning("doc-table-stream-fallback", $"The FIB requested {tableStreamName}, but only {alternateName} was present. The available table stream was used.");
+                    tableStreamName = alternateName;
                 } else {
                     AddError("doc-table-stream-missing", $"The compound document does not contain the {tableStreamName} table stream.");
                     return;
@@ -181,6 +182,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddError("doc-piece-table-invalid", textError ?? "The legacy DOC piece table could not be decoded.");
                 return;
             }
+
+            var fieldMetadata = LegacyDocFieldMetadataReader.Read(tableStream, fib, textContent.AllCharacters, tableStreamName);
 
             IReadOnlyList<string> fontFamilies = LegacyDocFontTableReader.ReadFontFamilies(tableStream, fib, out string? fontTableWarning);
             if (fontTableWarning != null) {
@@ -266,18 +269,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 Sections,
                 bookmarkProjection,
                 pictures.PicturesByCharacterPosition,
-                options.ReportUnsupportedContent);
-            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? footnoteWarning);
+                options.ReportUnsupportedContent, fieldMetadata: fieldMetadata);
+            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? footnoteWarning, fieldMetadata);
             if (footnoteWarning != null) {
                 AddWarning("doc-footnote-plc-invalid", footnoteWarning);
             }
 
-            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? endnoteWarning);
+            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? endnoteWarning, fieldMetadata);
             if (endnoteWarning != null) {
                 AddWarning("doc-endnote-plc-invalid", endnoteWarning);
             }
 
-            Comments = LegacyDocCommentReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? commentWarning);
+            Comments = LegacyDocCommentReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? commentWarning, fieldMetadata);
             if (commentWarning != null) {
                 AddWarning("doc-comment-plc-invalid", commentWarning);
             }
@@ -290,7 +293,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 pictures.FullyProjectsDataStream,
                 options.ReportUnsupportedContent);
 
-            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? headerFooterWarning);
+            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? headerFooterWarning, fieldMetadata);
             if (headerFooterWarning != null) {
                 AddWarning("doc-plcfhdd-invalid", headerFooterWarning);
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
@@ -300,6 +303,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     detailCode: "Fib:PlcfHdd"),
                     options.ReportUnsupportedContent);
             }
+
+            AddFieldMetadataDiagnostics(fieldMetadata, options.ReportUnsupportedContent);
 
             ReportRemainingUnprojectedBookmarks(bookmarkProjection);
         }

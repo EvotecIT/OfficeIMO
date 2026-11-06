@@ -101,7 +101,9 @@ public partial class Word {
             Assert.Contains(header.Descendants(w + "fldSimple"), field => ((string?)field.Attribute(w + "instr"))?.Trim() == "FILENAME");
             Assert.Contains(header.Descendants(w + "fldSimple"), field => ((string?)field.Attribute(w + "instr"))?.Trim() == "STYLEREF \"heading 1\"");
             XDocument footer = ReadPart("word/footer1.xml");
-            Assert.Single(footer.Descendants(w + "pgNum"));
+            XElement page = Assert.Single(footer.Descendants(w + "fldSimple"),
+                field => ((string?)field.Attribute(w + "instr"))?.Trim() == "PAGE");
+            Assert.Equal("1", string.Concat(page.Descendants(w + "t").Select(text => text.Value)));
             Assert.Contains("Page ", string.Concat(footer.Descendants(w + "t").Select(t => t.Value)));
 
             XDocument ReadPart(string name) {

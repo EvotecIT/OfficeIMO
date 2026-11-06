@@ -2,7 +2,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>Decodes the bounded, non-complex Windows Word 6/95 FIB and its in-stream records.</summary>
     internal static class LegacyWord69Reader {
         private const ushort WesternSignature = 0xA5DC;
-        private const int FibSize = 0x192;
+        internal const int FibSize = 0x192;
         private const ushort HasPictures = 0x0008;
 
         internal static bool IsProfile(byte[] bytes) {
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             try {
-                result = Read(bytes, flags, options);
+                result = Read(source, bytes, flags, options);
                 return true;
             } catch (InvalidDataException exception) {
                 errorCode = "doc-word69-structure-invalid";
@@ -53,7 +53,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private static Result Read(LegacyWord69Bytes bytes, ushort flags, LegacyDocImportOptions options) {
+        private static Result Read(byte[] source, LegacyWord69Bytes bytes, ushort flags, LegacyDocImportOptions options) {
             int textStart = I32(bytes, 0x18);
             int textEnd = I32(bytes, 0x1C);
             int bodyLength = I32(bytes, 0x34);
@@ -80,6 +80,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 allCharacters[cp] = new LegacyDocTextCharacter(LegacyDocPieceTable.DecodeWindows1252(bytes[fc]), fc, cp);
             }
             var body = new ArraySegment<LegacyDocTextCharacter>(allCharacters, 0, bodyLength);
+            var fieldMetadata = LegacyDocFieldMetadataReader.ReadWord69(source, usedEnd, allCharacters,
+                bodyLength, I32(bytes, 0x38), I32(bytes, 0x3C));
 
             var findings = new List<LegacyDocUnsupportedFeature>();
             void Report(LegacyDocUnsupportedFeatureKind kind, string code, string message) =>
@@ -156,14 +158,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             byte separatorMask = documentProperties.IsEmpty ? (byte)0 : documentProperties[1];
             var headerFooterStories = LegacyWord69HeaderFooter.Read(ReadRange(bytes, usedEnd, 0xB0),
                 allCharacters, bodyLength + I32(bytes, 0x38), I32(bytes, 0x3C), sectionHeaderMasks,
-                separatorMask, characters, paragraphs, out bool runningStoriesUnsupported);
+                separatorMask, characters, paragraphs, out bool runningStoriesUnsupported, fieldMetadata);
             if (runningStoriesUnsupported) {
                 Report(LegacyDocUnsupportedFeatureKind.HeaderFooter, "doc-word69-running-stories",
                     "The Word 6/95 document contains running stories outside the supported header/footer directory.");
             }
             bool differentOddAndEvenPages = !documentProperties.IsEmpty && (documentProperties[0] & 1) != 0;
             return new Result(body, characters, paragraphs, styleSheet, findings, defaultTabStop,
-                sections, headerFooterStories, differentOddAndEvenPages);
+                sections, headerFooterStories, differentOddAndEvenPages, fieldMetadata);
         }
 
         internal static bool IsWesternLanguage(ushort language) =>
@@ -195,6 +197,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? DefaultTabStop,
             IReadOnlyList<LegacyDocSection> Sections,
             IReadOnlyList<LegacyDocHeaderFooterStory> HeaderFooterStories,
-            bool DifferentOddAndEvenPages);
+            bool DifferentOddAndEvenPages,
+            LegacyDocFieldMetadataReader FieldMetadata);
     }
 }

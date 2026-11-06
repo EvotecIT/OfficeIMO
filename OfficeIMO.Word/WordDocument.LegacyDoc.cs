@@ -895,15 +895,6 @@ namespace OfficeIMO.Word {
                 || character == LegacyDocCommentReader.CommentReferenceCharacter;
         }
 
-        private static bool IsLegacyDocFieldResultSpecialRunCharacter(char character) {
-            return character == '\t'
-                || character == LegacyDocSpecialCharacters.SoftHyphen
-                || character == LegacyDocSpecialCharacters.NoBreakHyphen
-                || character == LegacyDocSpecialCharacters.TextWrappingBreak
-                || character == LegacyDocSpecialCharacters.PageBreak
-                || character == LegacyDocSpecialCharacters.ColumnBreak;
-        }
-
         private static bool IsLegacyDocHyperlinkSpecialRunCharacter(char character) {
             return character == '\t'
                 || character == LegacyDocSpecialCharacters.TextWrappingBreak
@@ -947,6 +938,7 @@ namespace OfficeIMO.Word {
                 fieldKind: source.FieldKind,
                 fieldInstruction: source.FieldInstruction,
                 fieldResultRuns: source.FieldResultRuns,
+                fieldLocked: source.FieldLocked,
                 specified: source.Specified,
                 styleRelative: source.StyleRelative,
                 styleInverted: source.StyleInverted,
@@ -957,85 +949,6 @@ namespace OfficeIMO.Word {
                 eastAsiaLanguage: source.EastAsiaLanguage,
                 picture: source.Picture,
                 revision: source.Revision);
-        }
-
-        private static void AddLegacyDocStaticDisplayField(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
-            var simpleField = new SimpleField { Instruction = string.IsNullOrWhiteSpace(legacyRun.FieldInstruction) ? GetLegacyDocStaticFieldInstruction(legacyRun.FieldKind) : legacyRun.FieldInstruction };
-            AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, legacyRun.Text, bookmarks);
-            paragraph._paragraph.Append(simpleField);
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
-        }
-
-        private static void AppendLegacyDocFieldResultContent(SimpleField simpleField, WordParagraph paragraph, LegacyDocTextRun legacyRun, string resultText, LegacyDocBookmarkProjection bookmarks) {
-            if (legacyRun.FieldResultRuns.Count > 0) {
-                int originalChildren = paragraph._paragraph.ChildElements.Count;
-                AddLegacyDocRuns(paragraph, legacyRun.FieldResultRuns, LegacyDocNoteProjection.Empty, bookmarks);
-                foreach (OpenXmlElement child in paragraph._paragraph.ChildElements.Skip(originalChildren).ToArray()) {
-                    child.Remove();
-                    simpleField.Append(child);
-                }
-                return;
-            }
-            int segmentStart = 0;
-            for (int index = 0; index < resultText.Length; index++) {
-                char character = resultText[index];
-                if (!IsLegacyDocFieldResultSpecialRunCharacter(character)) {
-                    continue;
-                }
-
-                AppendLegacyDocFieldTextSegment(simpleField, paragraph, legacyRun, resultText, segmentStart, index - segmentStart);
-                AppendLegacyDocFieldSpecialRun(simpleField, paragraph, legacyRun, character);
-                segmentStart = index + 1;
-            }
-
-            AppendLegacyDocFieldTextSegment(simpleField, paragraph, legacyRun, resultText, segmentStart, resultText.Length - segmentStart);
-            if (!simpleField.HasChildren) {
-                AppendLegacyDocFieldTextSegment(simpleField, paragraph, legacyRun, "1", 0, 1);
-            }
-        }
-
-        private static void AppendLegacyDocFieldTextSegment(SimpleField simpleField, WordParagraph paragraph, LegacyDocTextRun legacyRun, string text, int startIndex, int length) {
-            if (length <= 0) {
-                return;
-            }
-
-            var run = new Run(new Text(text.Substring(startIndex, length)) {
-                Space = SpaceProcessingModeValues.Preserve
-            });
-            simpleField.Append(run);
-            ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
-        }
-
-        private static void AppendLegacyDocFieldSpecialRun(SimpleField simpleField, WordParagraph paragraph, LegacyDocTextRun legacyRun, char character) {
-            var run = new Run();
-            if (character == '\t') {
-                run.Append(new TabChar());
-            } else if (character == LegacyDocSpecialCharacters.SoftHyphen) {
-                run.Append(new SoftHyphen());
-            } else if (character == LegacyDocSpecialCharacters.NoBreakHyphen) {
-                run.Append(new NoBreakHyphen());
-            } else {
-                run.Append(character == LegacyDocSpecialCharacters.TextWrappingBreak
-                    ? new Break()
-                    : new Break { Type = GetLegacyDocBreakType(character) });
-            }
-
-            simpleField.Append(run);
-            ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
-        }
-
-        private static string GetLegacyDocStaticFieldInstruction(LegacyDocFieldKind fieldKind) {
-            return fieldKind switch {
-                LegacyDocFieldKind.Time => " TIME  ",
-                LegacyDocFieldKind.CreateDate => " CREATEDATE  ",
-                LegacyDocFieldKind.SaveDate => " SAVEDATE  ",
-                LegacyDocFieldKind.PrintDate => " PRINTDATE  ",
-                LegacyDocFieldKind.DocumentProperty => throw new NotSupportedException("Legacy DOC document-property field projection requires the source field instruction."),
-                LegacyDocFieldKind.TextReference => throw new NotSupportedException("Legacy DOC text-reference field projection requires the source field instruction."),
-                LegacyDocFieldKind.Equation => " EQ ",
-                _ => " DATE  "
-            };
         }
 
         private static void AddLegacyDocBreak(WordParagraph paragraph, LegacyDocTextRun legacyRun, BreakValues? breakType) {

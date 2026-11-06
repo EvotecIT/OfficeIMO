@@ -2116,15 +2116,17 @@ namespace OfficeIMO.Tests {
             Assert.Contains(paragraphs, paragraph => paragraph.Text == expectedPrefix);
             Assert.Contains(paragraphs, paragraph => paragraph.Text == " of ");
             Assert.Contains(paragraphs, paragraph => paragraph.Text == " done");
-            Assert.Single(paragraphs
-                .SelectMany(paragraph => paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.PageNumber>())
-                .Distinct());
+            SimpleField pageField = Assert.Single(paragraphs
+                .SelectMany(paragraph => paragraph._paragraph.Descendants<SimpleField>()).Distinct(),
+                field => IsFieldInstruction(field, "PAGE"));
+            Assert.Equal("[Document Page]", pageField.InnerText);
+            Assert.Contains(paragraphs, paragraph => HasCachedPageField(paragraph));
             SimpleField totalPagesField = Assert.Single(
                 paragraphs
                     .SelectMany(paragraph => paragraph._paragraph.Descendants<SimpleField>())
                     .Distinct(),
                 field => field.Instruction?.Value?.Contains("NUMPAGES", StringComparison.OrdinalIgnoreCase) == true);
-            Assert.Equal("1", totalPagesField.InnerText);
+            Assert.Equal("[Document NumPages]", totalPagesField.InnerText);
             foreach (WordParagraph paragraph in paragraphs) {
                 Assert.DoesNotContain("PAGE", paragraph._paragraph.InnerText, StringComparison.Ordinal);
                 Assert.DoesNotContain("NUMPAGES", paragraph._paragraph.InnerText, StringComparison.Ordinal);
@@ -3031,7 +3033,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    document.AddParagraph("Zażółć gęślą jaźń");
+                    document.AddParagraph("ZaÅ¼Ã³Å‚Ä‡ gÄ™Å›lÄ… jaÅºÅ„");
                     document.AddParagraph("Second plain paragraph");
 
                     document.Save(docPath);
@@ -3046,7 +3048,7 @@ namespace OfficeIMO.Tests {
                     .Select(paragraph => paragraph.Text)
                     .Where(text => !string.IsNullOrEmpty(text))
                     .ToArray();
-                Assert.Equal(new[] { "Zażółć gęślą jaźń", "Second plain paragraph" }, paragraphs);
+                Assert.Equal(new[] { "ZaÅ¼Ã³Å‚Ä‡ gÄ™Å›lÄ… jaÅºÅ„", "Second plain paragraph" }, paragraphs);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -3810,7 +3812,7 @@ namespace OfficeIMO.Tests {
                     reloaded.Sections[0].PageSetup.Footer.Paragraphs,
                     paragraph => paragraph.Text == "Page ");
                 Assert.Equal("Page ", footerParagraph.Text);
-                Assert.Single(footerParagraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.PageNumber>());
+                Assert.True(HasCachedPageField(footerParagraph));
                 Assert.DoesNotContain("PAGE", footerParagraph._paragraph.InnerText, StringComparison.Ordinal);
                 Assert.DoesNotContain(footerParagraph._paragraph.InnerText, character => character == LegacyDocField.Begin);
                 Assert.DoesNotContain(footerParagraph._paragraph.InnerText, character => character == LegacyDocField.Separator);
@@ -3847,13 +3849,13 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(footerParagraphs, paragraph => paragraph.Text == " of ");
                 Assert.Contains(
                     footerParagraphs,
-                    paragraph => paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.PageNumber>().Any());
+                    paragraph => HasCachedPageField(paragraph));
                 SimpleField totalPagesField = Assert.Single(
                     footerParagraphs
                         .SelectMany(paragraph => paragraph._paragraph.Descendants<SimpleField>())
                         .Distinct(),
                     field => field.Instruction?.Value?.Contains("NUMPAGES", StringComparison.OrdinalIgnoreCase) == true);
-                Assert.Equal("1", totalPagesField.InnerText);
+                Assert.Equal("[Document NumPages]", totalPagesField.InnerText);
                 foreach (WordParagraph paragraph in footerParagraphs) {
                     Assert.DoesNotContain("PAGE", paragraph._paragraph.InnerText, StringComparison.Ordinal);
                     Assert.DoesNotContain("NUMPAGES", paragraph._paragraph.InnerText, StringComparison.Ordinal);
@@ -3893,13 +3895,14 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(footerParagraphs, paragraph => paragraph.Text == " of ");
                 Assert.Contains(
                     footerParagraphs,
-                    paragraph => paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.PageNumber>().Any());
+                    paragraph => HasCachedPageField(paragraph, "2", bold: true));
                 SimpleField totalPagesField = Assert.Single(
                     footerParagraphs
                         .SelectMany(paragraph => paragraph._paragraph.Descendants<SimpleField>())
                         .Distinct(),
                     field => field.Instruction?.Value?.Contains("NUMPAGES", StringComparison.OrdinalIgnoreCase) == true);
-                Assert.Equal("1", totalPagesField.InnerText);
+                Assert.Equal("2", totalPagesField.InnerText);
+                Assert.All(totalPagesField.Descendants<Run>(), run => Assert.True(run.RunProperties?.Bold?.Val?.Value ?? run.RunProperties?.Bold != null));
                 foreach (WordParagraph paragraph in footerParagraphs) {
                     Assert.DoesNotContain("PAGE", paragraph._paragraph.InnerText, StringComparison.Ordinal);
                     Assert.DoesNotContain("NUMPAGES", paragraph._paragraph.InnerText, StringComparison.Ordinal);
@@ -3942,13 +3945,13 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(paragraphs, paragraph => paragraph.Text == " done");
                 Assert.Contains(
                     paragraphs,
-                    paragraph => paragraph._paragraph.Descendants<PageNumber>().Any());
+                    paragraph => HasCachedPageField(paragraph));
                 SimpleField totalPagesField = Assert.Single(
                     paragraphs
                         .SelectMany(paragraph => paragraph._paragraph.Descendants<SimpleField>())
                         .Distinct(),
                     field => field.Instruction?.Value?.Contains("NUMPAGES", StringComparison.OrdinalIgnoreCase) == true);
-                Assert.Equal("1", totalPagesField.InnerText);
+                Assert.Equal("[Document NumPages]", totalPagesField.InnerText);
                 foreach (WordParagraph paragraph in paragraphs) {
                     Assert.DoesNotContain("PAGE", paragraph._paragraph.InnerText, StringComparison.Ordinal);
                     Assert.DoesNotContain("NUMPAGES", paragraph._paragraph.InnerText, StringComparison.Ordinal);
@@ -3993,13 +3996,13 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(paragraphs, paragraph => paragraph.Text == " done");
                 Assert.Contains(
                     paragraphs,
-                    paragraph => paragraph._paragraph.Descendants<PageNumber>().Any());
+                    paragraph => HasCachedPageField(paragraph));
                 SimpleField totalPagesField = Assert.Single(
                     paragraphs
                         .SelectMany(paragraph => paragraph._paragraph.Descendants<SimpleField>())
                         .Distinct(),
                     field => field.Instruction?.Value?.Contains("NUMPAGES", StringComparison.OrdinalIgnoreCase) == true);
-                Assert.Equal("1", totalPagesField.InnerText);
+                Assert.Equal("[Document NumPages]", totalPagesField.InnerText);
                 foreach (WordParagraph paragraph in paragraphs) {
                     Assert.DoesNotContain("PAGE", paragraph._paragraph.InnerText, StringComparison.Ordinal);
                     Assert.DoesNotContain("NUMPAGES", paragraph._paragraph.InnerText, StringComparison.Ordinal);
@@ -5027,7 +5030,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedFootnoteRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-            const string bodyText = "Zażółć body with formatted footnote";
+            const string bodyText = "ZaÅ¼Ã³Å‚Ä‡ body with formatted footnote";
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
@@ -5187,7 +5190,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedEndnoteRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-            const string bodyText = "Zażółć body with formatted endnote";
+            const string bodyText = "ZaÅ¼Ã³Å‚Ä‡ body with formatted endnote";
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
@@ -6362,25 +6365,25 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.DoesNotContain(reloaded.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
-                Assert.Contains(reloaded.Paragraphs, paragraph => paragraph.Text == "Body field " && paragraph._paragraph.Descendants<PageNumber>().Any());
+                Assert.Contains(reloaded.Paragraphs, paragraph => paragraph.Text == "Body field " && HasCachedPageField(paragraph));
 
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.DoesNotContain(reloadedTable.Rows[0].Cells[0].Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
-                Assert.Contains(reloadedTable.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "Cell field " && paragraph._paragraph.Descendants<PageNumber>().Any());
+                Assert.Contains(reloadedTable.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "Cell field " && HasCachedPageField(paragraph));
 
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 Assert.DoesNotContain(reloadedSection.PageSetup.Header.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
-                Assert.Contains(reloadedSection.PageSetup.Header.Paragraphs, paragraph => paragraph.Text == "Header field " && paragraph._paragraph.Descendants<PageNumber>().Any());
+                Assert.Contains(reloadedSection.PageSetup.Header.Paragraphs, paragraph => paragraph.Text == "Header field " && HasCachedPageField(paragraph));
                 Assert.DoesNotContain(reloadedSection.PageSetup.Footer.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
-                Assert.Contains(reloadedSection.PageSetup.Footer.Paragraphs, paragraph => paragraph.Text == "Footer field " && paragraph._paragraph.Descendants<PageNumber>().Any());
+                Assert.Contains(reloadedSection.PageSetup.Footer.Paragraphs, paragraph => paragraph.Text == "Footer field " && HasCachedPageField(paragraph));
 
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 Assert.DoesNotContain(footnote.Paragraphs!, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
-                Assert.Contains(footnote.Paragraphs!, paragraph => paragraph.Text == "Footnote" && paragraph._paragraph.Descendants<PageNumber>().Any());
+                Assert.Contains(footnote.Paragraphs!, paragraph => paragraph.Text == "Footnote" && HasCachedPageField(paragraph));
 
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 Assert.DoesNotContain(endnote.Paragraphs!, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
-                Assert.Contains(endnote.Paragraphs!, paragraph => paragraph.Text == "Endnote" && paragraph._paragraph.Descendants<PageNumber>().Any());
+                Assert.Contains(endnote.Paragraphs!, paragraph => paragraph.Text == "Endnote" && HasCachedPageField(paragraph));
             } finally {
                 DeleteIfExists(docPath);
             }

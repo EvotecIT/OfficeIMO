@@ -11,7 +11,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocCharacterFormat format,
             IReadOnlyList<int> characterPositions,
             LegacyDocHyperlinkTarget hyperlinkTarget = default,
-            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null) {
+            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null,
+            bool? fieldLocked = null) {
             return new LegacyDocTextRun(
                 resultText,
                 format.Bold,
@@ -47,7 +48,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 language: format.Language,
                 eastAsiaLanguage: format.EastAsiaLanguage,
                 revision: fieldResultRuns?.Count > 0 ? default : format.Revision,
-                fieldResultRuns: fieldResultRuns);
+                fieldResultRuns: fieldResultRuns,
+                fieldLocked: fieldLocked);
         }
     }
 }

@@ -154,6 +154,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal static bool TryReadPageNumber(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startIndex,
+            out string instruction,
             out int resultStartIndex,
             out int resultEndIndex,
             out int fieldEndIndex) {
@@ -164,7 +165,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (!TryReadField(
                 characters,
                 startIndex,
-                out string instruction,
+                out instruction,
                 out resultStartIndex,
                 out resultEndIndex,
                 out fieldEndIndex)) {
@@ -177,6 +178,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal static bool TryReadNumberOfPages(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startIndex,
+            out string instruction,
             out int resultStartIndex,
             out int resultEndIndex,
             out int fieldEndIndex) {
@@ -187,7 +189,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (!TryReadField(
                 characters,
                 startIndex,
-                out string instruction,
+                out instruction,
                 out resultStartIndex,
                 out resultEndIndex,
                 out fieldEndIndex)) {

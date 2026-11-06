@@ -344,202 +344,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text-wrapping, page, and column breaks.");
         }
 
-        private static void AppendSupportedNoteFieldFromSimpleField(
-            StringBuilder text,
-            List<LegacyDocWritableRun> runs,
-            LegacyDocWritableBookmarksBuilder bookmarks,
-            SimpleField field,
-            int storyStart,
-            bool allowHyperlinkRunStyle = false) {
-            if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
-                throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} simple fields in note paragraphs. Other field types are not supported yet.");
-            }
-
-            LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field, allowHyperlinkRunStyle);
-            AppendSupportedNoteField(
-                text,
-                runs,
-                bookmarks,
-                field.Instruction?.Value ?? GetSupportedFieldInstruction(fieldKind),
-                GetSupportedFieldResultText(fieldKind, result.Text),
-                result.Formatting,
-                result.BookmarkMarkers,
-                storyStart);
-        }
-
-        private static void AppendSupportedNoteComplexPageNumberField(
-            IReadOnlyList<OpenXmlElement> paragraphChildren,
-            ref int childIndex,
-            StringBuilder text,
-            List<LegacyDocWritableRun> runs,
-            LegacyDocWritableBookmarksBuilder bookmarks,
-            int storyStart) {
-            var instruction = new StringBuilder();
-            var resultText = new StringBuilder();
-            LegacyDocWritableFormatting? resultFormatting = null;
-            LegacyDocWritableFormatting? effectiveResultFormatting = null;
-            var bookmarkMarkers = new List<LegacyDocSimpleFieldBookmarkMarker>();
-            bool sawSeparator = false;
-            int resultOffset = 0;
-            int index = childIndex;
-            for (; index < paragraphChildren.Count; index++) {
-                OpenXmlElement fieldChild = paragraphChildren[index];
-                if (fieldChild is BookmarkStart bookmarkStart && sawSeparator) {
-                    bookmarkMarkers.Add(new LegacyDocSimpleFieldBookmarkMarker(bookmarkStart, null, resultOffset));
-                    continue;
-                }
-
-                if (fieldChild is BookmarkEnd bookmarkEnd && sawSeparator) {
-                    bookmarkMarkers.Add(new LegacyDocSimpleFieldBookmarkMarker(null, bookmarkEnd, resultOffset));
-                    continue;
-                }
-
-                if (fieldChild is not Run run) {
-                    if (IsIgnorableParagraphMarkup(fieldChild)) {
-                        continue;
-                    }
-
-                    throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only when the whole field is represented by adjacent runs.");
-                }
-
-                LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
-                LegacyDocWritableFormatting effectiveRunFormatting = ReadFieldComparisonFormatting(run, runFormatting, LegacyDocWritableFormatting.Plain);
-                foreach (OpenXmlElement child in run.ChildElements) {
-                    switch (child) {
-                        case RunProperties:
-                        case LastRenderedPageBreak:
-                            break;
-                        case FieldCode fieldCode when !sawSeparator:
-                            instruction.Append(fieldCode.Text);
-                            break;
-                        case Text textNode when sawSeparator:
-                            resultFormatting ??= runFormatting;
-                            effectiveResultFormatting ??= effectiveRunFormatting;
-                            if (!effectiveResultFormatting.Value.Equals(effectiveRunFormatting)) {
-                                throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only when their display runs use one formatting set.");
-                            }
-
-                            resultText.Append(textNode.Text);
-                            resultOffset = resultText.Length;
-                            break;
-                        case TabChar when sawSeparator:
-                        case CarriageReturn when sawSeparator:
-                        case NoBreakHyphen when sawSeparator:
-                        case SoftHyphen when sawSeparator:
-                        case Break when sawSeparator:
-                            resultFormatting ??= runFormatting;
-                            effectiveResultFormatting ??= effectiveRunFormatting;
-                            if (!effectiveResultFormatting.Value.Equals(effectiveRunFormatting)) {
-                                throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only when their display runs use one formatting set.");
-                            }
-
-                            AppendSupportedFieldResultElementText(resultText, child);
-                            resultOffset = resultText.Length;
-                            break;
-                        case FieldChar fieldChar:
-                            FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
-                            if (fieldCharType == FieldCharValues.Begin) {
-                                if (index != childIndex) {
-                                    throw new NotSupportedException($"Native DOC saving does not support nested complex fields in note paragraph {SupportedFieldNames} field runs.");
-                                }
-
-                                break;
-                            }
-
-                            if (fieldCharType == FieldCharValues.Separate) {
-                                sawSeparator = true;
-                                break;
-                            }
-
-                            if (fieldCharType == FieldCharValues.End) {
-                                if (!TryReadSupportedFieldKind(instruction.ToString(), out LegacyDocFieldKind fieldKind)) {
-                                    throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} complex fields in note paragraphs. Other field types are not supported yet.");
-                                }
-
-                                AppendSupportedNoteField(
-                                    text,
-                                    runs,
-                                    bookmarks,
-                                    instruction.ToString(),
-                                    GetSupportedFieldResultText(fieldKind, resultText.ToString()),
-                                    resultFormatting ?? LegacyDocWritableFormatting.Plain,
-                                    bookmarkMarkers,
-                                    storyStart);
-                                childIndex = index;
-                                return;
-                            }
-
-                            throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only with begin, separate, and end field characters.");
-                        default:
-                            throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only with field code and display text runs. Unsupported field run element: {child.LocalName}.");
-                    }
-                }
-            }
-
-            throw new NotSupportedException($"Native DOC saving cannot write an unterminated {SupportedFieldNames} complex field in a note paragraph.");
-        }
-
-        private static void AppendSupportedNoteField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocFieldKind fieldKind, LegacyDocWritableFormatting formatting, int storyStart) {
-            AppendSupportedNoteField(text, runs, GetSupportedFieldInstruction(fieldKind), "1", formatting, storyStart);
-        }
-
-        private static void AppendSupportedNoteField(StringBuilder text, List<LegacyDocWritableRun> runs, string instruction, string resultText, LegacyDocWritableFormatting formatting, int storyStart) {
-            AppendFormattedNoteText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
-            AppendFormattedNoteText(text, runs, instruction, LegacyDocWritableFormatting.Plain, storyStart);
-            AppendFormattedNoteText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
-            AppendFormattedNoteText(text, runs, resultText.Length == 0 ? "1" : resultText, formatting, storyStart);
-            AppendFormattedNoteText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
-        }
-
-        private static void AppendSupportedNoteField(
-            StringBuilder text,
-            List<LegacyDocWritableRun> runs,
-            LegacyDocWritableBookmarksBuilder bookmarks,
-            string instruction,
-            string resultText,
-            LegacyDocWritableFormatting formatting,
-            IReadOnlyList<LegacyDocSimpleFieldBookmarkMarker> bookmarkMarkers,
-            int storyStart) {
-            AppendFormattedNoteText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
-            AppendFormattedNoteText(text, runs, instruction, LegacyDocWritableFormatting.Plain, storyStart);
-            AppendFormattedNoteText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
-            int resultStartCharacter = storyStart + text.Length;
-            string safeResultText = resultText.Length == 0 ? "1" : resultText;
-            AppendNoteFieldResultTextWithBookmarkMarkers(text, runs, bookmarks, safeResultText, formatting, bookmarkMarkers, resultStartCharacter, storyStart);
-            AppendFormattedNoteText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
-        }
-
-        private static void AppendNoteFieldResultTextWithBookmarkMarkers(
-            StringBuilder text,
-            List<LegacyDocWritableRun> runs,
-            LegacyDocWritableBookmarksBuilder bookmarks,
-            string resultText,
-            LegacyDocWritableFormatting formatting,
-            IReadOnlyList<LegacyDocSimpleFieldBookmarkMarker> bookmarkMarkers,
-            int resultStartCharacter,
-            int storyStart) {
-            int currentOffset = 0;
-            int[] markerOffsets = bookmarkMarkers
-                .Select(marker => marker.ResultOffset)
-                .Where(offset => offset >= 0 && offset <= resultText.Length)
-                .Distinct()
-                .OrderBy(offset => offset)
-                .ToArray();
-
-            foreach (int markerOffset in markerOffsets) {
-                if (markerOffset > currentOffset) {
-                    AppendFormattedNoteText(text, runs, resultText.Substring(currentOffset, markerOffset - currentOffset), formatting, storyStart);
-                    currentOffset = markerOffset;
-                }
-
-                AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, markerOffset);
-            }
-
-            if (currentOffset < resultText.Length) {
-                AppendFormattedNoteText(text, runs, resultText.Substring(currentOffset), formatting, storyStart);
-            }
-        }
-
         private static void AppendSupportedNoteHyperlinkText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
@@ -760,7 +564,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     textPositions.Add(text.Length);
                     markerPositions.Add(text.Length);
                     foreach (LegacyDocWritableRun run in story.FormattedRuns) {
-                        runs.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
+                        runs.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset, run.FieldLocked));
                     }
 
                     foreach (LegacyDocWritableParagraph paragraph in story.FormattedParagraphs) {
@@ -882,7 +686,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int length = value!.Length;
             if (runs.Count > 0) {
                 LegacyDocWritableRun previous = runs[runs.Count - 1];
-                if (previous.EndCharacter == start && previous.Formatting.HasSameEncoding(formatting)) {
+                if (!previous.FieldLocked && previous.EndCharacter == start && previous.Formatting.HasSameEncoding(formatting)) {
                     runs[runs.Count - 1] = previous.Extend(length);
                     return;
                 }

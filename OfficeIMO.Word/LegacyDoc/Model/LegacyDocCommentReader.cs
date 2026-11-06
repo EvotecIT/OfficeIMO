@@ -24,7 +24,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
-            out string? warning) {
+            out string? warning,
+            LegacyDocFieldMetadataReader? fieldMetadata = null) {
             warning = null;
             if (fib.CcpAtn == 0) {
                 return Array.Empty<LegacyDocComment>();
@@ -56,7 +57,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     formattingRanges,
                     paragraphFormattingRanges,
                     bookmarkProjection,
-                    picturesByCharacterPosition);
+                    picturesByCharacterPosition, fieldMetadata);
                 if (paragraphs.Count == 0) {
                     continue;
                 }

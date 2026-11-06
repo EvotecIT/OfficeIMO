@@ -24,7 +24,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var bookmarks = new LegacyDocBookmarkProjectionTracker(Array.Empty<LegacyDocBookmark>());
             Text = BuildFormattedParagraphs(model.Body, model.Characters, model.Paragraphs,
                 Sections, bookmarks, new Dictionary<int, LegacyDocPicture>(),
-                options.ReportUnsupportedContent, orderedFormattingRanges: true);
+                options.ReportUnsupportedContent, orderedFormattingRanges: true, fieldMetadata: model.FieldMetadata);
+            AddFieldMetadataDiagnostics(model.FieldMetadata, options.ReportUnsupportedContent);
 
             foreach (var finding in model.Findings) {
                 AddUnsupportedFeature(finding, options.ReportUnsupportedContent);

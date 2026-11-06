@@ -206,7 +206,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             // Adjacent native records must retain explicit overrides even when
-            // their values match. Field uniformity compares effective values instead.
+            // their effective values match.
             internal bool HasSameEncoding(LegacyDocWritableFormatting other) =>
                 Specified == other.Specified && Equals(other);
 
@@ -285,11 +285,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableRun {
-            internal LegacyDocWritableRun(int startCharacter, int length, LegacyDocWritableFormatting formatting, int? pictureDataOffset = null) {
+            internal LegacyDocWritableRun(int startCharacter, int length, LegacyDocWritableFormatting formatting, int? pictureDataOffset = null, bool fieldLocked = false) {
                 StartCharacter = startCharacter;
                 Length = length;
                 Formatting = formatting;
                 PictureDataOffset = pictureDataOffset;
+                FieldLocked = fieldLocked;
             }
 
             internal int StartCharacter { get; }
@@ -302,8 +303,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal int? PictureDataOffset { get; }
 
+            internal bool FieldLocked { get; }
+
             internal LegacyDocWritableRun Extend(int additionalLength) {
-                return new LegacyDocWritableRun(StartCharacter, Length + additionalLength, Formatting, PictureDataOffset);
+                return new LegacyDocWritableRun(StartCharacter, Length + additionalLength, Formatting, PictureDataOffset, FieldLocked);
             }
         }
 

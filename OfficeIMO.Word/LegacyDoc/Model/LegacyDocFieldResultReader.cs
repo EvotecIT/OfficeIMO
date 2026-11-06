@@ -3,9 +3,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     internal sealed class LegacyDocFieldResultReader {
         private readonly IReadOnlyList<LegacyDocCharacterFormatRange> _ranges;
         private readonly bool _ordered;
+        private readonly LegacyDocFieldMetadataReader? _metadata;
         private readonly int[]? _prefixMaximumEnds;
 
-        internal LegacyDocFieldResultReader(IReadOnlyList<LegacyDocCharacterFormatRange> ranges) {
+        internal LegacyDocFieldResultReader(IReadOnlyList<LegacyDocCharacterFormatRange> ranges, LegacyDocFieldMetadataReader? metadata = null) {
+            _metadata = metadata;
             _ranges = ranges;
             _ordered = true;
             bool sortedStarts = true;
@@ -56,10 +58,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 runPositions.Add(character.CharacterPosition);
             }
             FlushRun();
-            bool simplePageNumber = kind == LegacyDocFieldKind.Page
-                && runs.Count <= 1 && !firstFormat.Revision.HasValue;
-            return LegacyDocTextRunFactory.CreateFieldRun(simplePageNumber ? string.Empty : text.ToString(),
-                kind, instruction, firstFormat, positions, hyperlink, simplePageNumber ? null : runs);
+            return LegacyDocTextRunFactory.CreateFieldRun(text.ToString(),
+                kind, instruction, firstFormat, positions, hyperlink, runs,
+                fieldLocked: end < characters.Count ? _metadata?.ReadLock(characters[end].CharacterPosition) : null);
 
             void FlushRun() {
                 if (runText.Length == 0) return;

@@ -383,7 +383,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     textPositions.Add(text.Length);
                     markerPositions.Add(text.Length);
                     foreach (LegacyDocWritableRun run in story.FormattedRuns) {
-                        runs.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
+                        runs.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset, run.FieldLocked));
                     }
 
                     foreach (LegacyDocWritableParagraph paragraph in story.FormattedParagraphs) {

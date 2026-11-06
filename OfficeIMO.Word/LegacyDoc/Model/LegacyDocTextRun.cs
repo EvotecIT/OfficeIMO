@@ -34,7 +34,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? characterScalePercentage = null,
             string? hyperlinkTooltip = null,
             string? hyperlinkTargetFrame = null,
-            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null)
+            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null,
+            bool? fieldLocked = null)
             : this(
                 text,
                 bold,
@@ -71,7 +72,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 characterScalePercentage: characterScalePercentage,
                 hyperlinkTooltip: hyperlinkTooltip,
                 hyperlinkTargetFrame: hyperlinkTargetFrame,
-                fieldResultRuns: fieldResultRuns) {
+                fieldResultRuns: fieldResultRuns,
+                fieldLocked: fieldLocked) {
         }
 
         internal LegacyDocTextRun(
@@ -110,7 +112,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? characterScalePercentage = null,
             string? hyperlinkTooltip = null,
             string? hyperlinkTargetFrame = null,
-            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null) {
+            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null,
+            bool? fieldLocked = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -144,6 +147,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             HyperlinkAnchor = string.IsNullOrWhiteSpace(hyperlinkAnchor) ? null : hyperlinkAnchor;
             HyperlinkTooltip = hyperlinkTooltip;
             HyperlinkTargetFrame = hyperlinkTargetFrame;
+            FieldLocked = fieldLocked;
             FieldKind = fieldKind;
             FieldInstruction = string.IsNullOrWhiteSpace(fieldInstruction) ? null : fieldInstruction;
             Specified = specified;
@@ -157,6 +161,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string Text { get; }
 
         internal IReadOnlyList<LegacyDocTextRun> FieldResultRuns { get; }
+
+        internal bool? FieldLocked { get; }
 
         internal bool Bold { get; }
 

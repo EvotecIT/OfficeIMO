@@ -68,18 +68,20 @@ public partial class Word {
     }
 
     [Fact]
-    public void LegacyDoc_FieldComparisonRefreshesStylesBetweenSaves() {
+    public void LegacyDoc_FieldRunsRefreshInheritedVisibilityBetweenSaves() {
         using WordDocument source = WordDocument.Create();
         AppendSplitFormattingField(source.AddParagraph()._paragraph, complex: false, automaticColor: false, "FIRST", "SECOND");
-        source.ToBytes(WordFileFormat.Doc);
+        using (WordDocument before = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)))) {
+            AssertFieldRunVisibility(before, "FIRST", "SECOND", false, false);
+        }
 
         W.Style normal = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
         normal.StyleRunProperties ??= new W.StyleRunProperties();
         normal.StyleRunProperties.Vanish = new W.Vanish();
 
-        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
-        Assert.Contains("display runs use one formatting set", error.Message);
+        using WordDocument after = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        AssertFieldRunVisibility(after, "FIRST", "SECOND", true, false);
     }
 
     [Theory]
@@ -107,7 +109,7 @@ public partial class Word {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void LegacyDoc_FieldRunsWithDifferentInheritedVisibilityFailBeforeWriting(bool complex) {
+    public void LegacyDoc_FieldRunsRetainInheritedAndExplicitVisibilityAcrossStories(bool complex) {
         for (int story = 0; story < 6; story++) {
             using WordDocument source = WordDocument.Create();
             W.Style normal = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
@@ -116,15 +118,15 @@ public partial class Word {
             normal.StyleRunProperties.Vanish = new W.Vanish();
             AppendSplitFormattingField(CreateFieldFormattingStories(source)[story], complex, false, "HIDDEN", "VISIBLE");
             Assert.Empty(source.ValidateDocument());
-            NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
-            Assert.Contains("display runs use one formatting set", error.Message);
+            using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
+            AssertFieldRunVisibility(loaded, "HIDDEN", "VISIBLE", true, false);
         }
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void LegacyDoc_FieldRunsRespectInheritedTableVisibility(bool complex) {
+    public void LegacyDoc_FieldRunsRetainInheritedTableVisibility(bool complex) {
         using WordDocument source = WordDocument.Create();
         const string styleId = "HiddenFieldTable";
         source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(new W.Style {
@@ -136,8 +138,26 @@ public partial class Word {
         table._table.GetFirstChild<W.TableProperties>()!.TableStyle = new W.TableStyle { Val = styleId };
         AppendSplitFormattingField(table.Rows[0].Cells[0].Paragraphs[0]._paragraph, complex, false, "HIDDEN", "VISIBLE");
         Assert.Empty(source.ValidateDocument());
-        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
-        Assert.Contains("display runs use one formatting set", error.Message);
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
+        AssertFieldRunVisibility(loaded, "HIDDEN", "VISIBLE", true, false);
+    }
+
+    private static void AssertFieldRunVisibility(WordDocument document, string firstText, string secondText, bool firstHidden, bool secondHidden) {
+        MainDocumentPart main = document._wordprocessingDocument.MainDocumentPart!;
+        W.SimpleField field = Assert.Single(EnumerateFieldFormattingRoots(main).SelectMany(root => root.Descendants<W.SimpleField>()));
+        W.Run first = Assert.Single(field.Descendants<W.Run>(), run => run.InnerText == firstText);
+        W.Run second = Assert.Single(field.Descendants<W.Run>(), run => run.InnerText == secondText);
+        Assert.Equal(firstHidden, Hidden(first));
+        Assert.Equal(secondHidden, Hidden(second));
+        Assert.Empty(document.ValidateDocument());
+
+        bool Hidden(W.Run run) {
+            W.Vanish? value = run.RunProperties?.Vanish;
+            if (value != null) return value.Val?.Value ?? true;
+            W.Vanish? normal = main.StyleDefinitionsPart!.Styles!.Elements<W.Style>()
+                .Single(style => style.StyleId == "Normal").StyleRunProperties?.Vanish;
+            return normal != null && (normal.Val?.Value ?? true);
+        }
     }
 
     private static W.Paragraph[] CreateFieldFormattingStories(WordDocument source) {

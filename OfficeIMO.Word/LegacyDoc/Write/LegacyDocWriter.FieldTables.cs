@@ -4,7 +4,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         /// <summary>Story-relative MS-DOC Plcfld records for the writer's supported field instructions.</summary>
         private sealed class LegacyDocWritableFieldTables {
-            private static readonly int[] FibOffsets = { 0x11A, 0x122, 0x12A, 0x132, 0x21A };
+            private static readonly int[] FibOffsets = { LegacyDocFib.FcPlcfFldMomOffset, LegacyDocFib.FcPlcfFldHdrOffset,
+                LegacyDocFib.FcPlcfFldFtnOffset, LegacyDocFib.FcPlcfFldAtnOffset, LegacyDocFib.FcPlcfFldEdnOffset };
             private readonly byte[][] _tables;
 
             internal LegacyDocWritableFieldTables(string body, IReadOnlyList<LegacyDocWritableRun> bodyRuns,
@@ -39,6 +40,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 // Only control characters carrying sprmCFSpec are fields. Plain
                 // text with the same code point must not create a field record.
                 var positions = new SortedSet<int>();
+                var lockedEnds = new HashSet<int>();
                 foreach (LegacyDocWritableRun run in runs) {
                     if (!run.Formatting.Special) continue;
                     int end = checked(run.StartCharacter + run.Length);
@@ -46,6 +48,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         char character = text[position];
                         if (character == LegacyDocField.Begin || character == LegacyDocField.Separator || character == LegacyDocField.End)
                             positions.Add(position);
+                        if (character == LegacyDocField.End && run.FieldLocked) lockedEnds.Add(position);
                     }
                 }
                 if (positions.Count == 0) return Array.Empty<byte>();
@@ -63,7 +66,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     } else {
                         if (stack.Count == 0) throw InvalidFieldSequence();
                         FieldFrame frame = stack.Pop();
-                        flags = (byte)((frame.HasSeparator ? 0x80 : 0) | (frame.Nested ? 0x40 : 0));
+                        flags = (byte)((frame.HasSeparator ? 0x80 : 0) | (frame.Nested ? 0x40 : 0)
+                            | (lockedEnds.Contains(position) ? 0x10 : 0));
                     }
                     records.Add((position, (byte)character, flags));
                 }

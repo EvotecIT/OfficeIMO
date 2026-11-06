@@ -11,11 +11,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
-            bool orderedFormattingRanges = false) {
+            bool orderedFormattingRanges = false,
+            LegacyDocFieldMetadataReader? fieldMetadata = null) {
             var projection = new LegacyDocDocument();
             projection.BuildFormattedParagraphs(characters, formattingRanges, paragraphFormattingRanges,
                 Array.Empty<LegacyDocSection>(), bookmarkProjection, picturesByCharacterPosition,
-                reportUnsupportedFeatures: false, orderedFormattingRanges);
+                reportUnsupportedFeatures: false, orderedFormattingRanges, fieldMetadata);
             return projection._bodyBlocks;
         }
 
@@ -27,7 +28,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
             bool reportUnsupportedFeatures,
-            bool orderedFormattingRanges = false) {
+            bool orderedFormattingRanges = false,
+            LegacyDocFieldMetadataReader? fieldMetadata = null) {
             var bodyText = new System.Text.StringBuilder(characters.Count);
             var currentRuns = new List<LegacyDocTextRun>();
             LegacyDocFieldResultReader? fieldResultReader = null;
@@ -79,10 +81,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 if (LegacyDocField.TryReadPageNumber(
                     characters,
                     characterIndex,
+                    out string pageNumberInstruction,
                     out int pageNumberResultStartIndex,
                     out int pageNumberResultEndIndex,
                     out int pageNumberFieldEndIndex)) {
-                    AppendPageNumberResult(pageNumberResultStartIndex, pageNumberResultEndIndex);
+                    AppendPageNumberResult(pageNumberInstruction, pageNumberResultStartIndex, pageNumberResultEndIndex);
                     characterIndex = pageNumberFieldEndIndex;
                     continue;
                 }
@@ -90,10 +93,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 if (LegacyDocField.TryReadNumberOfPages(
                     characters,
                     characterIndex,
+                    out string numberOfPagesInstruction,
                     out int numberOfPagesResultStartIndex,
                     out int numberOfPagesResultEndIndex,
                     out int numberOfPagesFieldEndIndex)) {
-                    AppendFieldResult(LegacyDocFieldKind.NumPages, fieldInstruction: null, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
+                    AppendFieldResult(LegacyDocFieldKind.NumPages, numberOfPagesInstruction, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
                     characterIndex = numberOfPagesFieldEndIndex;
                     continue;
                 }
@@ -305,7 +309,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             if (normalizedEquationCharacter == null) continue;
                             bodyText.Append(normalizedEquationCharacter.Value);
                         }
-                        fieldResultReader ??= new LegacyDocFieldResultReader(formattingRanges);
+                        fieldResultReader ??= new LegacyDocFieldResultReader(formattingRanges, fieldMetadata);
                         currentRuns.Add(fieldResultReader.Read(characters, equationResultStartIndex, equationResultEndIndex,
                             LegacyDocFieldKind.Equation, equationInstruction, NormalizeBodyCharacter, hyperlinkTarget));
                         resultIndex = equationFieldEndIndex;
@@ -347,8 +351,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
             }
 
-            void AppendPageNumberResult(int resultStartIndex, int resultEndIndex) {
-                AppendFieldResult(LegacyDocFieldKind.Page, fieldInstruction: null, resultStartIndex, resultEndIndex);
+            void AppendPageNumberResult(string instruction, int resultStartIndex, int resultEndIndex) {
+                AppendFieldResult(LegacyDocFieldKind.Page, instruction, resultStartIndex, resultEndIndex);
             }
 
             void AppendFieldDisplayResult(int resultStartIndex, int resultEndIndex) {
@@ -367,7 +371,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             void AppendFieldResult(LegacyDocFieldKind fieldKind, string? fieldInstruction, int resultStartIndex, int resultEndIndex) {
                 FlushRun();
-                fieldResultReader ??= new LegacyDocFieldResultReader(formattingRanges);
+                fieldResultReader ??= new LegacyDocFieldResultReader(formattingRanges, fieldMetadata);
                 currentRuns.Add(fieldResultReader.Read(characters, resultStartIndex, resultEndIndex,
                     fieldKind, fieldInstruction, NormalizeBodyCharacter));
                 if (inTable) {
