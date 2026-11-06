@@ -28,17 +28,23 @@ public sealed class DocumentPdfCmdletTests {
             var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, TextShapingProvider = shaper }
                 .EmbedStandardFont(PdfStandardFont.Courier, font);
             File.WriteAllText(input, "Stop during actual PDF generation");
+            using var stopObserved = new ManualResetEventSlim();
             var state = InitialSessionState.CreateDefault();
             state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
             shell.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", input).AddParameter("OutputPath", output)
                 .AddParameter("Options", new PdfTextImportOptions { PdfOptions = options });
+            // Stopping is transient: the pipeline can reach Stopped while the engine worker is still
+            // blocked in the shaper, so observe the transition instead of polling the current state.
+            shell.InvocationStateChanged += (_, e) => {
+                if (e.InvocationStateInfo.State is PSInvocationState.Stopping or PSInvocationState.Stopped) stopObserved.Set();
+            };
             try {
                 IAsyncResult invocation = shell.BeginInvoke();
                 Assert.True(await Task.Run(() => shaper.Entered.Wait(TimeSpan.FromSeconds(15))), "The real font shaper was not reached during save.");
                 IAsyncResult stopping = shell.BeginStop(null, null);
-                Assert.True(SpinWait.SpinUntil(() => shell.InvocationStateInfo.State == PSInvocationState.Stopping, TimeSpan.FromSeconds(5)));
+                Assert.True(await Task.Run(() => stopObserved.Wait(TimeSpan.FromSeconds(5))), "The pipeline did not begin stopping.");
                 shaper.Release.Set();
                 await Task.Run(() => shell.EndStop(stopping));
                 Assert.Throws<PipelineStoppedException>(() => shell.EndInvoke(invocation));
