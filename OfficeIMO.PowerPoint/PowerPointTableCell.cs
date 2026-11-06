@@ -153,7 +153,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
         /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
         /// <returns>The number of replaced matches.</returns>
-        /// <remarks>Each match lies within one text run; text split across runs with different formatting is not matched. Replacement keeps each run's formatting.</remarks>
+        /// <remarks>A match can span adjacent runs within one paragraph. Replacement text takes the formatting of the run where the match starts.</remarks>
         public int ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) {
             OfficeTextSearch.ValidateSearchText(text, nameof(text));
             return Cell.TextBody == null ? 0 : Paragraphs.Sum(paragraph => paragraph.ReplaceAll(text, replacement, options));

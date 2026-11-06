@@ -128,9 +128,11 @@ namespace OfficeIMO.Internal {
         internal static string GetPhysicalIdentityKey(string path, SafeFileHandle handle) =>
             GetMetadata(path, handle).Identity.ToStableKey();
 
-        internal static OfficeFileMetadata GetMetadata(string path) {
+        internal static OfficeFileMetadata GetMetadata(string path) => GetMetadata(path, allowOpenedNameFallback: false);
+
+        internal static OfficeFileMetadata GetMetadata(string path, bool allowOpenedNameFallback) {
             string fullPath = Path.GetFullPath(path);
-            if (!TryGetPathMetadata(fullPath, out OfficeFileMetadata metadata)) {
+            if (!TryGetPathMetadata(fullPath, out OfficeFileMetadata metadata, allowOpenedNameFallback)) {
                 throw new FileNotFoundException("The filesystem entry does not exist.", fullPath);
             }
             return metadata;
@@ -342,10 +344,11 @@ namespace OfficeIMO.Internal {
             return false;
         }
 
-        private static bool TryGetPathMetadata(string path, out OfficeFileMetadata metadata) {
+        /// <summary>Reads an existing entry's metadata, allowing an opened Windows name for authority when explicitly requested.</summary>
+        internal static bool TryGetPathMetadata(string path, out OfficeFileMetadata metadata, bool allowOpenedNameFallback = false) {
             string fullPath = Path.GetFullPath(path);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                return TryGetWindowsMetadata(fullPath, out metadata);
+                return TryGetWindowsMetadata(fullPath, out metadata, allowOpenedNameFallback);
             }
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || IsDarwinFileSystem) {
                 return TryGetUnixMetadata(fullPath, out metadata);
@@ -377,7 +380,8 @@ namespace OfficeIMO.Internal {
             return true;
         }
 
-        private static bool AreIdentitiesEquivalent(OfficePhysicalFileIdentity left,
+        /// <summary>Compares identities and rejects ambiguous numeric matches across filesystem authorities.</summary>
+        internal static bool AreIdentitiesEquivalent(OfficePhysicalFileIdentity left,
             OfficePhysicalFileIdentity right) {
             if (!left.HasSameNumericIdentity(right)) return false;
             if (left.HasSameAuthority(right)) return true;

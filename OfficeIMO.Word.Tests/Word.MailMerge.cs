@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -198,6 +199,43 @@ namespace OfficeIMO.Tests {
                 (index, _) => Path.Combine(outputDirectory, index + ".docx"));
 
             Assert.Equal(2, outputs.Count);
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void Test_MailMerge_BatchRejectsAliasesOfAnEarlierOutputOrTheTemplate(bool withReport, bool targetsTemplate) {
+            string templatePath = Path.Combine(_directoryWithFiles, "BatchTemplate.docx");
+            string outputDirectory = Path.Combine(_directoryWithFiles, "NewOutputDirectory");
+            string firstOutput = Path.Combine(outputDirectory, "Result.docx");
+            using (WordDocument template = WordDocument.Create(templatePath)) {
+                template.AddParagraph().AddField(WordFieldType.MergeField, parameters: new List<string> { "Name" });
+                template.Save();
+            }
+            byte[] templateBytes = File.ReadAllBytes(templatePath);
+            string protectedPath = targetsTemplate ? templatePath : firstOutput;
+            string aliasedPath = Path.Combine(Path.GetDirectoryName(protectedPath)!, ".", Path.GetFileName(protectedPath));
+            var records = new[] {
+                new Dictionary<string, string> { ["Name"] = "Alice" },
+                new Dictionary<string, string> { ["Name"] = "Bob" }
+            };
+
+            string Destination(int index, IDictionary<string, string> _) => index == 0 ? firstOutput : aliasedPath;
+            InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => {
+                if (withReport) {
+                    WordMailMerge.ExecuteBatchWithReport(templatePath, records, Destination);
+                } else {
+                    WordMailMerge.ExecuteBatch(templatePath, records, Destination);
+                }
+            });
+
+            Assert.Contains(targetsTemplate ? "source template" : "same destination as record 0", error.Message);
+            Assert.Equal(templateBytes, File.ReadAllBytes(templatePath));
+            using (WordprocessingDocument first = WordprocessingDocument.Open(firstOutput, false)) {
+                Assert.Equal("Alice", first.MainDocumentPart!.Document.Body!.InnerText);
+            }
         }
 
         [Fact]
