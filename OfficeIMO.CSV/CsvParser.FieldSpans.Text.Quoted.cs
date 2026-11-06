@@ -593,13 +593,7 @@ internal static partial class CsvParser
     {
         var start = index;
         var remaining = text.Slice(index);
-        var terminatorOffset = delimiter switch
-        {
-            ',' => remaining.IndexOfAny(CommaTextFieldTerminators),
-            ';' => remaining.IndexOfAny(SemicolonTextFieldTerminators),
-            '\t' => remaining.IndexOfAny(TabTextFieldTerminators),
-            _ => remaining.IndexOfAny(new[] { delimiter, '\r', '\n', '"' })
-        };
+        var terminatorOffset = IndexOfTextFieldTerminator(remaining, delimiter);
 
         if (terminatorOffset < 0)
         {
