@@ -61,7 +61,7 @@ public partial class Word {
                 .SelectMany(root => root.Descendants<W.SimpleField>()).ToArray();
             Assert.Equal(6, fields.Length);
             Assert.All(fields, field => {
-                Assert.Equal("DATE", field.Instruction!.Value!.Trim());
+                Assert.Equal(" DATE  \\* MERGEFORMAT ", field.Instruction!.Value);
                 Assert.Equal("FIRSTSECOND", field.InnerText);
                 Assert.True(field.FieldLock?.Value);
             });
