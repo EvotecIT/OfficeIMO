@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph original = document.AddParagraph("first TOKEN middle TTOKEN tail");
                 original.Bold = true;
                 original.PageBreakBeforeOverride = true;
-                int count = document.ReplaceTextWithHtmlFragment("TOKEN", "<html><p>Injected</p></html>");
+                int count = document.ReplaceTextWithHtmlFragment("TOKEN", "<p>Injected</p>");
 
                 Assert.Equal(2, count);
                 document.Save(output);
@@ -33,7 +33,13 @@ namespace OfficeIMO.Tests {
             Assert.False(reopened.Paragraphs[1].PageBreakBeforeOverride);
             Assert.False(reopened.Paragraphs[2].PageBreakBeforeOverride);
             Assert.Equal(2, reopened.EmbeddedDocuments.Count);
-            Assert.All(reopened.EmbeddedDocuments, fragment => Assert.Contains("Injected", fragment.GetHtml()));
+            Assert.All(reopened.EmbeddedDocuments, fragment => {
+                string html = Assert.IsType<string>(fragment.GetHtml());
+                Assert.StartsWith("<html>", html);
+                Assert.Contains("<meta charset=\"utf-8\">", html);
+                Assert.Contains("<p>Injected</p>", html);
+                Assert.EndsWith("</body></html>", html);
+            });
         }
 
         [Fact]
