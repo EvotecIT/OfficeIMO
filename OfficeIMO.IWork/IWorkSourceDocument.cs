@@ -234,7 +234,8 @@ public sealed partial class IWorkSourceDocument {
             IWorkPackageEntry[] legacyIndexes = package.Entries
                 .Where(entry => IWorkLegacyXmlSource.IsIndexPath(entry.Path)).ToArray();
             if (legacyIndexes.Length == 0)
-                throw new InvalidDataException("The package does not contain a supported iWork index.");
+                throw new InvalidDataException(
+                    "The package does not contain modern iWork IWA archives or a supported iWork '09 XML index.");
             if (legacyIndexes.Length != 1)
                 throw new InvalidDataException("The iWork package declares conflicting legacy indexes.");
             IWorkLegacyXmlSource legacy = IWorkLegacyXmlSource.Read(legacyIndexes[0], options, cancellationToken);
