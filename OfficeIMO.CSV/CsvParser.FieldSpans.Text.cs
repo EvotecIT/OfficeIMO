@@ -499,6 +499,21 @@ internal static partial class CsvParser
                             ref scratch,
                             out fieldCount,
                             out firstFieldLength) ||
+                         TryReadTextQuoteAwareRecordFieldSpansAvx2(
+                             text,
+                             delimiter,
+                             trim: false,
+                             allowEmpty,
+                             emitFields,
+                             recordIndex,
+                             start,
+                             delimiterIndexCapacity,
+                             ref position,
+                             projectedFieldVisitor,
+                             ref fieldVisitor,
+                             ref scratch,
+                             out fieldCount,
+                             out firstFieldLength) ||
                          TryReadTextQuotedRecordFieldSpansFromPrefix(
                             text,
                             delimiter,
