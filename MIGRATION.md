@@ -5287,6 +5287,13 @@ Modern accents. Chart typography, gridlines, line widths and bar spacing follow
 the shared theme. Regenerate worksheet and chart preview baselines; the default
 font can also change column widths in pixels. Loaded documents keep their styles.
 
+A workbook created with `ExcelCreateOptions.Theme` takes its Normal font from
+that theme's body font and size, as `CreateWriter` output does, now including
+writers with declared styles. Column widths follow that font, so regenerate
+baselines for workbooks created with a non-default theme. `ApplyTheme` replaces
+the theme part but keeps the workbook's Normal font; pass the theme at creation
+to set both.
+
 On a loaded workbook, `Success`, `Warning` and `Danger` need a known shared
 palette; raw Excel theme XML has no slots for these roles. Pass
 `color.Resolve(theme)` as a literal, or call `book.ApplyTheme(theme)` before

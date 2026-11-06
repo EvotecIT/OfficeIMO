@@ -6,6 +6,10 @@ namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
     private OfficeTheme? _creationTheme;
+    // The theme whose body font became font zero, the Normal font, when this workbook was created; null for
+    // the shared default and for loaded workbooks. Stylesheets regenerated on save keep it. ApplyTheme does
+    // not change it, because it leaves literal formatting alone.
+    private OfficeTheme? _defaultFontTheme;
     /// <summary>Gets the creation palette for status colors that have no native theme slot.</summary>
     internal OfficeTheme EffectiveCreationTheme => _creationTheme ?? OfficeTheme.Default;
 

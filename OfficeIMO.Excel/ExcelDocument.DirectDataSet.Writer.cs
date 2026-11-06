@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
             private static readonly string?[] SharedStringCellCache = new string?[CachedSharedStringCellLimit];
             private static readonly string[][] CellReferencePrefixCache = CreateCellReferencePrefixCache();
 
-            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, string? themeXml, bool disableSharedStrings = false, bool collectSharedStrings = false) {
+            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, string? themeXml, bool disableSharedStrings = false, bool collectSharedStrings = false, OfficeTheme? theme = null) {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
                 var sharedStrings = disableSharedStrings ? null
@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel {
                     : new ExcelPositionReportingWriteStream(stream);
                 Stream packageDestination = positionReportingDestination ?? stream;
                 using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
-                WritePackagePreamble(archive, model, stylePlan, sharedStrings != null, themeXml);
+                WritePackagePreamble(archive, model, stylePlan, sharedStrings != null, themeXml, theme);
                 if (sharedStrings != null && !collectSharedStrings) {
                     WriteSharedStrings(archive, sharedStrings, ct);
                 }
@@ -116,8 +116,8 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            internal static void WriteExtendedStyles(ZipArchive archive, ExtendedDirectWritePlan plan) {
-                WriteStyles(archive, plan.StylePlan);
+            internal static void WriteExtendedStyles(ZipArchive archive, ExtendedDirectWritePlan plan, OfficeTheme? theme) {
+                WriteStyles(archive, plan.StylePlan, theme);
             }
 
             internal static void WriteExtendedSharedStrings(ZipArchive archive, ExtendedDirectWritePlan plan) {

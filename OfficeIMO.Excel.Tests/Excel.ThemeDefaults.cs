@@ -98,18 +98,30 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Descendants<C.CategoryAxis>().Single().Descendants<A.LatinFont>(), font => font.Typeface!.Value == "Courier New");
         }
 
+        // Font zero is the Normal style font, whose digit width sizes every column, so it must be
+        // the creation theme's body font whichever package writer saves the content.
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void NewWorkbooksUseSharedThemeInEditableAndTabularExports(bool tabular) {
-            using ExcelDocument document = ExcelDocument.Create();
-            if (tabular) {
+        [InlineData("cells", false)]
+        [InlineData("dataSet", false)]
+        [InlineData("dataWithChart", false)]
+        [InlineData("cells", true)]
+        [InlineData("dataSet", true)]
+        [InlineData("dataWithChart", true)]
+        public void NewWorkbooksUseTheCreationThemeInEditableAndTabularExports(string content, bool themed) {
+            OfficeTheme? creationTheme = themed ? OfficeTheme.Minimal : null;
+            OfficeTheme expected = creationTheme ?? OfficeTheme.Default;
+            using ExcelDocument document = ExcelDocument.Create(new ExcelCreateOptions { Theme = creationTheme });
+            if (content == "dataSet") {
                 var data = new DataTable("Data");
                 data.Columns.Add("Region");
                 data.Rows.Add("Europe");
                 var set = new DataSet();
                 set.Tables.Add(data);
                 document.InsertDataSet(set, createTables: false, includeAutoFilter: false);
+            } else if (content == "dataWithChart") {
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.WriteData(new[] { 30D, 42D }, ("Sales", static _ => _));
+                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "East", "West" }, new[] { new ExcelChartSeries("Sales", new[] { 30D, 42D }) }), new ExcelChartOptions { Row = 5, Column = 3 });
             } else {
                 document.AddSheet("Data").Cell(1, 1).SetValue("Europe");
             }
@@ -118,17 +130,43 @@ namespace OfficeIMO.Tests {
             using SpreadsheetDocument package = SpreadsheetDocument.Open(stream, false);
             var workbook = package.WorkbookPart!;
             Font font = workbook.WorkbookStylesPart!.Stylesheet.Fonts!.Elements<Font>().First();
-            Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, font.FontName!.Val!.Value);
-            Assert.Equal(OfficeTheme.Default.TypeScale.Body.ToPoints(), font.FontSize!.Val!.Value);
+            Assert.Equal(expected.Fonts.Body.Family, font.FontName!.Val!.Value);
+            Assert.Equal(expected.TypeScale.Body.ToPoints(), font.FontSize!.Val!.Value);
             using var themeStream = workbook.ThemePart!.GetStream();
             XElement theme = XDocument.Load(themeStream).Root!;
             XNamespace ns = theme.Name.Namespace;
             XElement elements = theme.Element(ns + "themeElements")!;
             XElement colors = elements.Element(ns + "clrScheme")!;
-            Assert.Equal(OfficeTheme.Default.Palette.Accent1.ToRgbHex(),
+            Assert.Equal(expected.Palette.Accent1.ToRgbHex(),
                 colors.Element(ns + "accent1")!.Element(ns + "srgbClr")!.Attribute("val")!.Value);
-            Assert.Equal(OfficeTheme.Default.Fonts.Heading.Family,
-                elements.Element(ns + "fontScheme")!.Element(ns + "majorFont")!.Element(ns + "latin")!.Attribute("typeface")!.Value);
+            XElement fonts = elements.Element(ns + "fontScheme")!;
+            Assert.Equal(expected.Fonts.Heading.Family,
+                fonts.Element(ns + "majorFont")!.Element(ns + "latin")!.Attribute("typeface")!.Value);
+            Assert.Equal(expected.Fonts.Body.Family,
+                fonts.Element(ns + "minorFont")!.Element(ns + "latin")!.Attribute("typeface")!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(package));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void StreamedWorkbooksUseTheWriterThemeForTheNormalFont(bool declaredStyles) {
+            ExcelWriterOptions? options = declaredStyles
+                ? new ExcelWriterOptions {
+                    UseSharedStrings = false,
+                    Styles = new Dictionary<string, ExcelStyleDefinition> { ["Total"] = new() { Bold = true } },
+                    DefaultRowStyle = "Total"
+                }
+                : null;
+            using var output = new MemoryStream();
+            using (var writer = ExcelDocument.CreateWriter(output, options, OfficeTheme.Minimal, leaveOpen: true)) {
+                writer.WriteTable("Data", new[] { 1, 2 }, new[] { "Value" }, (row, value) => row.Write(value));
+            }
+
+            using SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            Font font = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet.Fonts!.Elements<Font>().First();
+            Assert.Equal(OfficeTheme.Minimal.Fonts.Body.Family, font.FontName!.Val!.Value);
+            Assert.Equal(OfficeTheme.Minimal.TypeScale.Body.ToPoints(), font.FontSize!.Val!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(package));
         }
     }
