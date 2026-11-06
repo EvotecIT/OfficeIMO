@@ -17,5 +17,6 @@
     <Compile Include="..\Benchmarks\BenchmarkProcessPriority.cs" Link="Shared\BenchmarkProcessPriority.cs" />
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
     <Compile Include="..\Benchmarks\CsvReadObservation.cs" Link="Shared\CsvReadObservation.cs" />
+    <Compile Include="..\Benchmarks\CsvBenchmarkData.cs" Link="Shared\CsvBenchmarkData.cs" />
   </ItemGroup>
 </Project>
