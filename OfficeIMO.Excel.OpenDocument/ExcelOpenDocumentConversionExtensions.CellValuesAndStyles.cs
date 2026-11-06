@@ -65,40 +65,41 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
     private static void ApplyExcelStyle(OdsDocument document, OdsCell target, ExcelCellStyleInfo style,
         IDictionary<uint, string> dataStyles, ref int unsupported) {
-        target.Bold = style.Bold;
-        target.Italic = style.Italic;
+        OdfStyle targetStyle = target.EnsureStyle();
+        targetStyle.Bold = style.Bold;
+        targetStyle.Italic = style.Italic;
         ExcelUnderlineStyle? underlineStyle = style.UnderlineStyle;
         bool underlined = underlineStyle.HasValue
             ? underlineStyle.Value != ExcelUnderlineStyle.None
             : style.Underline;
         if (underlined) {
-            target.Underline = true;
-            target.UnderlineStyle = OdfTextDecorationStyle.Solid;
-            target.UnderlineType = underlineStyle is ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting
+            targetStyle.Underline = true;
+            targetStyle.UnderlineStyle = OdfTextDecorationStyle.Solid;
+            targetStyle.UnderlineType = underlineStyle is ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting
                 ? OdfTextDecorationType.Double
                 : OdfTextDecorationType.Single;
             if (underlineStyle is ExcelUnderlineStyle.SingleAccounting or ExcelUnderlineStyle.DoubleAccounting) unsupported++;
         }
         if (style.Strikethrough) {
-            target.Strikethrough = true;
-            target.LineThroughStyle = OdfTextDecorationStyle.Solid;
-            target.LineThroughType = OdfTextDecorationType.Single;
+            targetStyle.Strikethrough = true;
+            targetStyle.LineThroughStyle = OdfTextDecorationStyle.Solid;
+            targetStyle.LineThroughType = OdfTextDecorationType.Single;
         }
-        target.TextPosition = style.VerticalTextAlignment switch {
+        targetStyle.TextPosition = style.VerticalTextAlignment switch {
             ExcelVerticalTextAlignment.Superscript => OdfTextPosition.Superscript,
             ExcelVerticalTextAlignment.Subscript => OdfTextPosition.Subscript,
             ExcelVerticalTextAlignment.Baseline => OdfTextPosition.Normal,
             _ => null
         };
-        if (style.FontSize.HasValue) target.FontSize = OdfLength.Points(style.FontSize.Value.ToPoints());
-        if (!string.IsNullOrWhiteSpace(style.FontName)) target.FontFamily = style.FontName;
-        if (!string.IsNullOrWhiteSpace(style.FontColorHex)) target.Color = OdfColor.Parse(style.FontColorHex!);
-        if (!string.IsNullOrWhiteSpace(style.FillColorHex)) target.BackgroundColor = OdfColor.Parse(style.FillColorHex!);
+        if (style.FontSize.HasValue) targetStyle.FontSize = OdfLength.Points(style.FontSize.Value.ToPoints());
+        if (!string.IsNullOrWhiteSpace(style.FontName)) targetStyle.FontFamily = style.FontName;
+        if (!string.IsNullOrWhiteSpace(style.FontColorHex)) targetStyle.Color = OdfColor.Parse(style.FontColorHex!);
+        if (!string.IsNullOrWhiteSpace(style.FillColorHex)) targetStyle.BackgroundColor = OdfColor.Parse(style.FillColorHex!);
         string? horizontal = ToOdfHorizontalAlignment(style.HorizontalAlignment);
-        if (horizontal != null) target.TextAlign = horizontal;
+        if (horizontal != null) targetStyle.TextAlign = horizontal;
         string? vertical = ToOdfVerticalAlignment(style.VerticalAlignment);
-        if (vertical != null) target.VerticalAlign = vertical;
-        if (style.WrapText) target.WrapOption = "wrap";
+        if (vertical != null) targetStyle.CellVerticalAlign = vertical;
+        if (style.WrapText) targetStyle.CellWrapOption = "wrap";
         if (!string.IsNullOrWhiteSpace(style.NumberFormatCode) && style.NumberFormatCode != "General") {
             if (!dataStyles.TryGetValue(style.StyleIndex, out string? name)) {
                 name = "xlData" + style.StyleIndex.ToString(CultureInfo.InvariantCulture);
@@ -116,7 +117,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (HasUnsupportedNumberFormatProjection(style, format, timeOnly)) unsupported++;
                 dataStyles.Add(style.StyleIndex, name);
             }
-            target.NumberFormatName = name;
+            targetStyle.DataStyleName = name;
         }
         if (HasUnsupportedExcelStyle(style)) unsupported++;
     }

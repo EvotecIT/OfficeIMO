@@ -345,7 +345,8 @@ public sealed class OdsCell {
         }) _element.Attribute(name)?.Remove();
     }
 
-    private OdfStyle EnsureStyle() {
+    /// <summary>Materializes this cell, imports its inherited binding, and resolves its copy-on-write style for one formatting batch.</summary>
+    internal OdfStyle EnsureStyle() {
         EnsureEditable();
         string? inheritedStyle = InheritedStyleName;
         if (StyleName == null && inheritedStyle != null) {
