@@ -5,6 +5,30 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+    [Fact]
+    public void WorkbookWriter_XlsPreservesFullWidthNumericRowsAcrossRowBlocks() {
+        const int columns = 256;
+        const int rows = 33;
+        string[] headers = Enumerable.Range(0, columns).Select(column => "Column" + column).ToArray();
+        using var output = new MemoryStream();
+        using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, output, leaveOpen: true)) {
+            var result = writer.WriteTable("FullWidth", Enumerable.Range(0, rows), headers, static (row, index) => {
+                for (int column = 0; column < columns; column++) row.Write(index * columns + column);
+            });
+            Assert.Equal("A1:IV34", result.Range);
+        }
+        output.Position = 0;
+        using var reader = ExcelDocument.OpenReader(output);
+        Assert.Equal(columns, reader.FieldCount);
+        Assert.Equal(headers[columns - 1], reader.GetName(columns - 1));
+        for (int index = 0; index < rows; index++) {
+            Assert.True(reader.Read());
+            for (int column = 0; column < columns; column++) Assert.Equal(index * columns + column, reader.GetInt32(column));
+        }
+        Assert.False(reader.Read());
+        Assert.False(reader.NextResult());
+    }
+
     [Theory]
     [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenHundred)]
     [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenFour)]

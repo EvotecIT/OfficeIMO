@@ -15,6 +15,9 @@ internal static partial class LegacyXlsWriter {
         private int _row;
         private int _rows;
         private int _blockRows;
+        private int _rkRunStart = -1;
+        private int _rkRunCount;
+        private int _rkLastColumn;
         private bool _complete;
 
         internal StreamingSheet(int columns, ushort[] styles, LegacyXlsDirectSharedStringBuilder strings) {
@@ -22,6 +25,7 @@ internal static partial class LegacyXlsWriter {
         }
         internal long Length => _cells.Length;
         internal override void BeginRow(int oneBasedRow) {
+            _rkRunStart = -1;
             _row = oneBasedRow - 1;
             _firstCells[_blockRows] = checked((int)_block.Length);
         }
@@ -30,6 +34,7 @@ internal static partial class LegacyXlsWriter {
             if (++_blockRows == DirectRowsPerDbCellBlock) FlushBlock();
         }
         internal override void WriteText(string value) {
+            _rkRunStart = -1;
             CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
             uint index = _strings.Add(value);
             int position = PrepareCell();
@@ -42,10 +47,9 @@ internal static partial class LegacyXlsWriter {
             ValidateNumber(value);
             int position = PrepareCell();
             if (BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
-                WriteCellHeader(ref position, 0x027e, 10);
-                WriteUInt32(_block.Buffer, position, rk);
-                position += 4;
+                WriteRkCell(ref position, rk);
             } else {
+                _rkRunStart = -1;
                 WriteCellHeader(ref position, 0x0203, 14);
                 ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
                 WriteUInt32(_block.Buffer, position, unchecked((uint)bits));
@@ -55,6 +59,7 @@ internal static partial class LegacyXlsWriter {
             _block.CommitDirectWrite(position);
         }
         internal override void WriteBoolean(bool value) {
+            _rkRunStart = -1;
             int position = PrepareCell();
             WriteCellHeader(ref position, 0x0205, 8);
             _block.Buffer[position++] = value ? (byte)1 : (byte)0;
@@ -62,10 +67,36 @@ internal static partial class LegacyXlsWriter {
             _block.CommitDirectWrite(position);
         }
         internal override void WriteBlank() {
+            _rkRunStart = -1;
             int position = PrepareCell();
             WriteCellHeader(ref position, 0x0201, 6);
             _block.CommitDirectWrite(position);
         }
+        /// <summary>Extends adjacent RK cells in the owned row block without deferring any values.</summary>
+        private void WriteRkCell(ref int position, uint rk) {
+            if (_rkRunStart >= 0 && Column == _rkLastColumn + 1) {
+                _ = checked((ushort)_row);
+                ushort column = checked((ushort)Column);
+                ushort style = _styles[checked((int)Style)];
+                // A multi-cell record already ends with colLast; replace that trailer.
+                if (_rkRunCount > 1) position -= 2;
+                WriteUInt16(_block.Buffer, position, style);
+                WriteUInt32(_block.Buffer, position + 2, rk);
+                WriteUInt16(_block.Buffer, position + 6, column);
+                position += 8;
+                WriteUInt16(_block.Buffer, _rkRunStart, 0x00bd);
+                WriteUInt16(_block.Buffer, _rkRunStart + 2, checked((ushort)(position - _rkRunStart - 4)));
+                _rkRunCount++;
+            } else {
+                _rkRunStart = position;
+                _rkRunCount = 1;
+                WriteCellHeader(ref position, 0x027e, 10);
+                WriteUInt32(_block.Buffer, position, rk);
+                position += 4;
+            }
+            _rkLastColumn = Column;
+        }
+
         private int PrepareCell() {
             int start = checked((int)_block.Position);
             _block.EnsureCapacity(checked(start + 18));
