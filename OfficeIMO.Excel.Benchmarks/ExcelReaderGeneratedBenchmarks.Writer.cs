@@ -25,24 +25,42 @@ public partial class ExcelReaderGeneratedBenchmarks {
         return output.ToArray();
     }
 
-    internal static byte[] WriteExcelReader(ExcelFileFormat format, int rowCount) {
+    internal static byte[] WriteExcelReader(ExcelFileFormat format, int rowCount, bool prefetch = false, int parallelism = 0) {
+        if (format == ExcelFileFormat.Xls && (prefetch || parallelism != 0))
+            throw new ArgumentException("Prefetch and parallel comparisons require XLSX or XLSB.");
         using var output = new MemoryStream();
         switch (format) {
             case ExcelFileFormat.Xlsx:
-                using (var workbook = XlsxWorkbookWriter.Create(output, leaveOpen: true)) {
+                using (var workbook = XlsxWorkbookWriter.Create(output, leaveOpen: true,
+                    options: prefetch ? new XlsxWriterOptions { PrefetchWrite = true } : null)) {
                     using (var sheet = workbook.AddSheet("Data")) {
                         using (var row = sheet.StartRow()) WriteHeaders(row);
-                        foreach (var value in Generate(rowCount)) { using var row = sheet.StartRow(); WriteValues(row, value); }
+                        if (parallelism != 0) {
+                            sheet.WriteRecordsParallelAsync(Generate(rowCount),
+                                static (row, value) => WriteValues(row, value),
+                                new ParallelWriteOptions { DegreeOfParallelism = parallelism, BatchRows = 8192 })
+                                .GetAwaiter().GetResult();
+                        } else {
+                            foreach (var value in Generate(rowCount)) { using var row = sheet.StartRow(); WriteValues(row, value); }
+                        }
                         sheet.End();
                     }
                     workbook.End();
                 }
                 break;
             case ExcelFileFormat.Xlsb:
-                using (var workbook = XlsbWorkbookWriter.Create(output, leaveOpen: true)) {
+                using (var workbook = XlsbWorkbookWriter.Create(output, leaveOpen: true,
+                    options: prefetch ? new XlsbWriterOptions { PrefetchWrite = true } : null)) {
                     using (var sheet = workbook.AddSheet("Data")) {
                         using (var row = sheet.StartRow()) WriteHeaders(row);
-                        foreach (var value in Generate(rowCount)) { using var row = sheet.StartRow(); WriteValues(row, value); }
+                        if (parallelism != 0) {
+                            sheet.WriteRecordsParallelAsync(Generate(rowCount),
+                                static (row, value) => WriteValues(row, value),
+                                new ParallelWriteOptions { DegreeOfParallelism = parallelism, BatchRows = 8192 })
+                                .GetAwaiter().GetResult();
+                        } else {
+                            foreach (var value in Generate(rowCount)) { using var row = sheet.StartRow(); WriteValues(row, value); }
+                        }
                         sheet.End();
                     }
                     workbook.End();

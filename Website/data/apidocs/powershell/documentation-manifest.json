@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "moduleName": "PSWriteOffice",
-  "moduleVersion": "3.5.3",
-  "sourceRef": "9e47e61439ef0233b820c8c1215a3cea802a3e56",
-  "sourceCommit": "9e47e61439ef0233b820c8c1215a3cea802a3e56",
+  "moduleVersion": "3.6.0",
+  "sourceRef": "3b3a029106ece280577eca40744bd196d6c7b5c4",
+  "sourceCommit": "3b3a029106ece280577eca40744bd196d6c7b5c4",
   "normalization": "utf8-no-bom-lf",
   "producer": {
     "path": "Build/Export-WebsiteDocumentationCatalog.ps1",
@@ -14,11 +14,11 @@
   },
   "sourceCatalog": {
     "bytes": 10156,
-    "sha256": "842aa67ef3d27dca21765a4e2572e563fc48eb49c292476db4668528637e943e"
+    "sha256": "eb108cd353f12b9c9824a8b6063d5b93bed022c2868c859afadeaf65cc5bf710"
   },
   "derivedCatalog": {
     "bytes": 10962,
-    "sha256": "edda898ea7d154bd04b15e558dacbffd7ee54effd4d3a02cde2f2597584fc51b"
+    "sha256": "0a816f17306a86c26776636056a3b37d3cbb0c52a6c56a9a3e3d0238f0a24a95"
   },
   "documentation": [
     {
@@ -30,7 +30,7 @@
       "sitePath": "content/docs/pswriteoffice/index.md",
       "derived": {
         "bytes": 4039,
-        "sha256": "cc42483b05745424cce12eba75e0a7109777bc411d386afbafeb04fc534ae29b"
+        "sha256": "8802ae62e67bf28356fe9da54681c3ba1e162ef3ce6eb50704b5b39ebfcb09f0"
       }
     },
     {
@@ -42,7 +42,7 @@
       "sitePath": "content/docs/pswriteoffice/automation-patterns/index.md",
       "derived": {
         "bytes": 4841,
-        "sha256": "852c3304b114a7d42cf26fc17facd07233d993adf344335da45aec4a6043b456"
+        "sha256": "a8b8fcb162913e51c057d88dd815036c04d1033e171c241d123db2ecd82e5a8d"
       }
     },
     {
@@ -78,7 +78,7 @@
       "sitePath": "content/docs/pswriteoffice/compare-importexcel-excelfast/index.md",
       "derived": {
         "bytes": 6856,
-        "sha256": "031f71ea3d0976bddf78e8bdd48b0cdb7ca4af99051c7e9eed28d1568da293bd"
+        "sha256": "bd13674f6f3bb87941b41f7e2aed0fc287369070a5b0dbe8556153c3f379c2d9"
       }
     },
     {
@@ -102,7 +102,7 @@
       "sitePath": "content/docs/pswriteoffice/confluence/index.md",
       "derived": {
         "bytes": 2088,
-        "sha256": "3f556098572106b25802bfc5f0cdead1dcb223b9458594e4c2b5180405f35ff4"
+        "sha256": "a487c091c51f89c5ba616bfaee80ad7ddbb21612d4b512c832f44062bd57d378"
       }
     },
     {
@@ -126,7 +126,7 @@
       "sitePath": "content/docs/pswriteoffice/document-layout/index.md",
       "derived": {
         "bytes": 3101,
-        "sha256": "1524dca263c46cc75cd1db7303b96979fbde0aeaf9e0f5279030c499dcfed01b"
+        "sha256": "e8cbef46258857a176e4980101daf2f6e3b0671f8f9426371d943fc5671dc4c5"
       }
     },
     {
@@ -138,7 +138,7 @@
       "sitePath": "content/docs/pswriteoffice/dsl-cookbook/index.md",
       "derived": {
         "bytes": 14326,
-        "sha256": "23e4eca255541c0566119e98ab1352e066386773f366417cdadf44156be5a55c"
+        "sha256": "69dfec16c04352eecd7fd0715b3f0601d895fa158ea99b95c1fba938639e0ca9"
       }
     },
     {
@@ -150,7 +150,7 @@
       "sitePath": "content/docs/pswriteoffice/excel-export-publish/index.md",
       "derived": {
         "bytes": 1680,
-        "sha256": "2d81026ab76359d1b57922be0bd63d0b6c0e2e900ed60348863aa8b76c83a4ba"
+        "sha256": "dc240a37280616c077b48f4b315fd64a54407d769eaa3382c64e410c1db19a6a"
       }
     },
     {
@@ -162,7 +162,7 @@
       "sitePath": "content/docs/pswriteoffice/excel-merge-compare/index.md",
       "derived": {
         "bytes": 1795,
-        "sha256": "dd305e4b7980347cd660a4cb5180f98844f58702fe59a6482917e74e6ed24007"
+        "sha256": "b7e1543e640a1c16af8b02de697bcf87adec9aac4f2738680bf5a7664d9f54e2"
       }
     },
     {
@@ -174,7 +174,7 @@
       "sitePath": "content/docs/pswriteoffice/excel-read-import/index.md",
       "derived": {
         "bytes": 1450,
-        "sha256": "f483abfb67b3c7f656284873d183645bfc430b1403a51c54c01973ec4f00f724"
+        "sha256": "b47f120a0340c9f0ef234e775546a8fbcfa7699ab8cfd101846f465381efd21f"
       }
     },
     {
@@ -186,7 +186,7 @@
       "sitePath": "content/docs/pswriteoffice/excel-update-existing/index.md",
       "derived": {
         "bytes": 1570,
-        "sha256": "5c5709cbcdaabe6c447b5a6ffdbed41e3a20b6b9a8a2e242eea399b52494548d"
+        "sha256": "5cbea275f6f0b02db41ef1f11fa7e88c0bb6d1b6d674b48d193e4f4ebbd77494"
       }
     },
     {
@@ -198,7 +198,7 @@
       "sitePath": "content/docs/pswriteoffice/excel-validation-repair/index.md",
       "derived": {
         "bytes": 1900,
-        "sha256": "956c68f0c25699d920d58130a77756d674b40986292e68544efc028e72d49d44"
+        "sha256": "8aaa5a54ea3d4c0d39411097656d77062967c67d18a16d9174136e19e538c585"
       }
     },
     {
@@ -210,7 +210,7 @@
       "sitePath": "content/docs/pswriteoffice/excel/index.md",
       "derived": {
         "bytes": 5538,
-        "sha256": "5bffff806998ab0781555dc746c01d087ac529bcf0a8948a6d54b63d3c9a0721"
+        "sha256": "34fa66ee43b0060440dd6312f7128c35a2e0b69216db54803c8cd0686713e5d6"
       }
     },
     {
@@ -222,7 +222,7 @@
       "sitePath": "content/docs/pswriteoffice/install/index.md",
       "derived": {
         "bytes": 1729,
-        "sha256": "2162b6023996c9f02aa0af1cd38d886a08380f6a9f77815f943ecd902b6b2fac"
+        "sha256": "3bb6cb6cfc6467a60d77e54b265a32de3a489ab730f33da833d13b936c9b3972"
       }
     },
     {
@@ -234,7 +234,7 @@
       "sitePath": "content/docs/pswriteoffice/markdown-convert-publish/index.md",
       "derived": {
         "bytes": 1451,
-        "sha256": "f8bafdb3991d26e98e7c032e2a3f67da9a5ad3141ed984c7e49f62d399c65180"
+        "sha256": "d18a301d8c60091b8069ed1ac6f7951ac5c547025350aeb24f4950c60f8875a3"
       }
     },
     {
@@ -246,7 +246,7 @@
       "sitePath": "content/docs/pswriteoffice/markdown-read-parse/index.md",
       "derived": {
         "bytes": 1193,
-        "sha256": "aa7231c703e4f8cf3b6dbde1872052e00202f845e44d5f93af370ab0d33eb255"
+        "sha256": "bf5dd36c635e5f7c818cb3d220651085ea8eaa8beafe8cdf6e8c2975aef2c4c9"
       }
     },
     {
@@ -258,7 +258,7 @@
       "sitePath": "content/docs/pswriteoffice/markdown-word-roundtrip/index.md",
       "derived": {
         "bytes": 1963,
-        "sha256": "c5ba419e4c9bc9e8ec06789c1525e15653bb77cff470648185eed47494e1a5b4"
+        "sha256": "05053244674fa700d327e7341ceb7b0dd8a7ec9245ef84533e350592e5e016ac"
       }
     },
     {
@@ -318,7 +318,7 @@
       "sitePath": "content/docs/pswriteoffice/object-workflows/index.md",
       "derived": {
         "bytes": 6392,
-        "sha256": "4dcd05450e9306728d9268ba874561a315ef4c622fdc016a8fc1609ea7ff93ad"
+        "sha256": "067993f2fd56f0a2648dc576f0fc9766beb5104358e22c33c0d70e2651acb418"
       }
     },
     {
@@ -330,7 +330,7 @@
       "sitePath": "content/docs/pswriteoffice/open-text-formats/index.md",
       "derived": {
         "bytes": 6881,
-        "sha256": "c3a4ebac079f84c1b45963fe5e406f445fbb59047227547ffc7bb02e60b1fb69"
+        "sha256": "ea4d9325cafa0c1042e76a46f5da360325b4c816d3b00fa48f3ba5a8c57ab857"
       }
     },
     {
@@ -342,7 +342,7 @@
       "sitePath": "content/docs/pswriteoffice/overview/index.md",
       "derived": {
         "bytes": 4816,
-        "sha256": "8f5ba23a9d2b6b9ef8aaf93f9f875f1921600809d5dad6e97b399c46f2a4d078"
+        "sha256": "6b38bbe9f1bad105e80800969d30b605617dceabff304fbfedee57a150483332"
       }
     },
     {
@@ -354,7 +354,7 @@
       "sitePath": "content/docs/pswriteoffice/pdf-forms-annotations/index.md",
       "derived": {
         "bytes": 1617,
-        "sha256": "7396ebd49b8b8c946f758d2ff68abcfd010831fc0582b64ff6ac811a0c5bc627"
+        "sha256": "4542d25688d3c522d7840e8d087c43238f2e1c245cc383f3fc0d6409456ed7c0"
       }
     },
     {
@@ -366,7 +366,7 @@
       "sitePath": "content/docs/pswriteoffice/pdf-merge-split-pages/index.md",
       "derived": {
         "bytes": 1772,
-        "sha256": "6d45298bbe219a42c7f82c5bf01c4906ff5415757d47c137337ce8c57572fa99"
+        "sha256": "0ca862b37aea0c1255d747cd06b3f7be96e78e79441faac34f16b75d24eb6412"
       }
     },
     {
@@ -378,7 +378,7 @@
       "sitePath": "content/docs/pswriteoffice/pdf-positioned-content/index.md",
       "derived": {
         "bytes": 2273,
-        "sha256": "833da889c7c6e0060122e4795db63afb46168593416ef746d5f5d4920d123716"
+        "sha256": "2e80ba4ce748d3f4058c674e4c6243365d14c2f63ebea5ba9e15f92a9661a1eb"
       }
     },
     {
@@ -390,7 +390,7 @@
       "sitePath": "content/docs/pswriteoffice/pdf-read-preflight/index.md",
       "derived": {
         "bytes": 1537,
-        "sha256": "a0010826c0e57582ecf5d4801dd988f0472349cddeccd56feddb265f18470d11"
+        "sha256": "e5f0cc6c5c6ee23310d995e7e6c359c6e10c45d834798702ef60c13187aca9c4"
       }
     },
     {
@@ -402,7 +402,7 @@
       "sitePath": "content/docs/pswriteoffice/pdf-redact-sanitize/index.md",
       "derived": {
         "bytes": 1819,
-        "sha256": "ccf91d22491e6a4c3b570f0ed64dc95a2fef328d2879d676a940e08c13599025"
+        "sha256": "b7a2c2bee904153399cb8fb9f655665b28fa963b99587e8f2599cb6975a05983"
       }
     },
     {
@@ -426,7 +426,7 @@
       "sitePath": "content/docs/pswriteoffice/pdf/index.md",
       "derived": {
         "bytes": 5085,
-        "sha256": "d108ea64bc48f852317e00a5d891de3efc436841b3a04dabd0f4d3f52de94709"
+        "sha256": "616f71f5850301d9c1acf50e542cde76649a51b78b44e09c96cb53627ce8d366"
       }
     },
     {
@@ -438,7 +438,7 @@
       "sitePath": "content/docs/pswriteoffice/powerpoint-export-review/index.md",
       "derived": {
         "bytes": 1413,
-        "sha256": "0e897f6628d0c268692b160c9d4a78f392326174af5582791fd128e07561a5f1"
+        "sha256": "03b823b511558f9406fb8c2b98f2456efde54dc67d4c5f67578009e98ccc176a"
       }
     },
     {
@@ -450,7 +450,7 @@
       "sitePath": "content/docs/pswriteoffice/powerpoint-read-inspect/index.md",
       "derived": {
         "bytes": 1307,
-        "sha256": "af83fc3e769650bc72308b9ab098315a80f1e89d1e8440e4c26f9d9a7ea9113a"
+        "sha256": "5c78bb6149678b4f5cbde04ff0b4066592762f153ce4c09b16d5f7325e06a327"
       }
     },
     {
@@ -462,7 +462,7 @@
       "sitePath": "content/docs/pswriteoffice/powerpoint-reuse-slides/index.md",
       "derived": {
         "bytes": 1878,
-        "sha256": "e02d5a9a652a5c82158bf1437ac7033860b13e338b4a6c1ca68b3052d675b5a1"
+        "sha256": "237e46cf3f580a0f48e4544429727db1672477afb5e590ddad585b0b78485d28"
       }
     },
     {
@@ -474,7 +474,7 @@
       "sitePath": "content/docs/pswriteoffice/powerpoint-update-existing/index.md",
       "derived": {
         "bytes": 1131,
-        "sha256": "ff8632078e2df8226467abacfe33aab4373456d37fc97467610a94e524d29b11"
+        "sha256": "9259f6faa14e53ca140961431eaf78762c86f1800853a1c8c38b10191c4822d2"
       }
     },
     {
@@ -486,7 +486,7 @@
       "sitePath": "content/docs/pswriteoffice/powerpoint/index.md",
       "derived": {
         "bytes": 4836,
-        "sha256": "9384068b03c55dd362b2f19fae8527b7b7ce747522b273d7ba62a946abf9bf42"
+        "sha256": "cc8b1ff6621fc63bf074f74b347d5930a743d6f3aaa200e8ca307680fd275c26"
       }
     },
     {
@@ -498,7 +498,7 @@
       "sitePath": "content/docs/pswriteoffice/reader-chunks-tables/index.md",
       "derived": {
         "bytes": 1587,
-        "sha256": "de81f31728c458d1a4e02658121fd2f9faade9ad51090796d3c455042e4bf26b"
+        "sha256": "d4df0d5979e198a866ff20b36dfab0cc8f9f154852e32686ba04b8454ec700b2"
       }
     },
     {
@@ -510,7 +510,7 @@
       "sitePath": "content/docs/pswriteoffice/reader-ingest-pipelines/index.md",
       "derived": {
         "bytes": 1328,
-        "sha256": "40c2e7cf9581ba6a7989a304cc449c1c6b6289022a2ff33c76aaca31e6384b2e"
+        "sha256": "88f869f70e770bee7ebb3fd3d9bd4c8a3e186285befbbb0602fb2d14ec2a2524"
       }
     },
     {
@@ -522,7 +522,7 @@
       "sitePath": "content/docs/pswriteoffice/reader-search-corpus/index.md",
       "derived": {
         "bytes": 1409,
-        "sha256": "5b62e8543ee5a9f8fed47eb4d452b978f6b3da47b5774896500352a953f917ec"
+        "sha256": "f4ad35f67ab9f61c6ad6d8da7eb0db12137dda4ee37dfd9c5a939e9f944b4169"
       }
     },
     {
@@ -534,7 +534,7 @@
       "sitePath": "content/docs/pswriteoffice/reader/index.md",
       "derived": {
         "bytes": 2652,
-        "sha256": "5fe506b2ae0755aaaa6af52111418e6a5409e27a53f1fdeaae904a70aa93ed44"
+        "sha256": "3d1e5f19dd4b0dfd082e7eb874dc266253c999f0672d178e93e55a5a97b4bcb0"
       }
     },
     {
@@ -546,7 +546,7 @@
       "sitePath": "content/docs/pswriteoffice/report-integrations/index.md",
       "derived": {
         "bytes": 3078,
-        "sha256": "fdf0469a0d5bbb9f28b7dcc1c7fa2d4bffc90cc67792303deb22c9ff12b631de"
+        "sha256": "0dfed25138a30ed92382ecd589308409fa75ea2d9bf7737698d5bef4db2e5a8e"
       }
     },
     {
@@ -582,7 +582,7 @@
       "sitePath": "content/docs/pswriteoffice/visio/index.md",
       "derived": {
         "bytes": 1945,
-        "sha256": "f1aa0fb8d2909b71a2aca014bc45c4fbddbf8cc8adbf163a6db1d8777fce7d77"
+        "sha256": "cf89b63b3a5355c652c4223c2d4bcc90f7e51d6f3c0e4d3fec54350644faf8d9"
       }
     },
     {
@@ -594,7 +594,7 @@
       "sitePath": "content/docs/pswriteoffice/word-merge-mailmerge/index.md",
       "derived": {
         "bytes": 1768,
-        "sha256": "d6a96178f53d052783277faf91ad6792ca18115c22faf2ce8cc3aa5ac4bbfcff"
+        "sha256": "7e308db809fb675056a741ce4c43672985f51285a7352f596a704af3d7a5f071"
       }
     },
     {
@@ -606,7 +606,7 @@
       "sitePath": "content/docs/pswriteoffice/word-read-inspect/index.md",
       "derived": {
         "bytes": 2009,
-        "sha256": "92a1f652d12778bc3e7a3b4e3672c3071f91d81ed03a1abaf29946ff60a2df4f"
+        "sha256": "6c3660d0ac2a86793d007da0f89277079d1a5fb75d1111a5077e0b0a2bac7162"
       }
     },
     {
@@ -618,7 +618,7 @@
       "sitePath": "content/docs/pswriteoffice/word-review-delivery/index.md",
       "derived": {
         "bytes": 1757,
-        "sha256": "58ba2414394cb14a4ec7fbae2e840caaefd069df8d5b435af24bc13e88a0add0"
+        "sha256": "ef0072951b3dae5dd2761d0ae4518448ab676fc7cd050b4b94c7fbddbcbcdecd"
       }
     },
     {
@@ -630,7 +630,7 @@
       "sitePath": "content/docs/pswriteoffice/word-update-existing/index.md",
       "derived": {
         "bytes": 1972,
-        "sha256": "26df910971bdbf630c5e419b0e43e3b5fbb2a166ad0a0d0e5c833419d93907b1"
+        "sha256": "8a39cc88edd20c40a50c82adb9233e05daf4206009c837ed4496844599122442"
       }
     },
     {
@@ -642,7 +642,7 @@
       "sitePath": "content/docs/pswriteoffice/word/index.md",
       "derived": {
         "bytes": 5040,
-        "sha256": "21762c862d7892828a51a7e43b3468e8b01d3e66deffb0471ac6e8e689382af4"
+        "sha256": "4f786dae4f5b514b6eaba251810e27990f88a3cee95215cf137730afbc08fb02"
       }
     }
   ],

@@ -5,7 +5,8 @@ using OfficeIMO.CSV.Benchmarks;
 
 if (args.Length == 1 && args[0] == "--validate") {
     new MarkPflug65KModernCsvBenchmarks().Setup();
-    Console.WriteLine("PASS | All five reader configurations produce the complete expected owned-string observation.");
+    new CsvGeneratedModernReadBenchmarks().Setup();
+    Console.WriteLine("PASS | All five sales-reader configurations and all four generated-data readers produce the expected values.");
     return;
 }
 
