@@ -156,20 +156,8 @@ namespace OfficeIMO.Excel {
         // Indexing may overlap foreground inflation only when metadata has an
         // independent archive. Explicit sequential policies and diagnostic callbacks
         // retain their existing execution and callback-thread behavior.
-        private static bool CanPipelineWorksheetIndex(ExcelReaderOptions options) {
-#if NET8_0_OR_GREATER
-            // WebAssembly may schedule the worker on this same event loop and
-            // cannot synchronously join it. Keep its fully validated serial path.
-            return RuntimeInformation.ProcessArchitecture != Architecture.Wasm
-                && options.A1Range == null
-                && options.Execution.Mode != ExcelExecutionMode.Sequential
-                && (options.Execution.MaxDegreeOfParallelism ?? 2) > 1
-                && options.Execution.OnDecision == null && options.Execution.OnTiming == null
-                && options.Execution.OnInfo == null && !options.Execution.DiagnosticsRequested;
-#else
-            return false;
-#endif
-        }
+        private static bool CanPipelineWorksheetIndex(ExcelReaderOptions options) =>
+            options.A1Range == null && options.Execution.AllowsBackgroundRead;
 
         internal static XlsxTabularWorkbook Open(string path, ExcelReaderOptions options) {
             return Open(path, options, metadataOnly: false);

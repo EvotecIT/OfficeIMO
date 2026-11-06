@@ -23,7 +23,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             out int lastColumn,
             out int firstDataRow,
             out int lastDataRow,
-            out XlsbValidatedRowPlan? validatedRowPlan) {
+            out XlsbValidatedRowPlan? validatedRowPlan,
+            WorksheetInflationProgress? inflation = null) {
             ArgumentNullException.ThrowIfNull(dateStyles);
             int styleCount = dateStyles.Length;
             firstColumn = int.MaxValue;
@@ -37,6 +38,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ref byte data = ref MemoryMarshal.GetReference(bytes.AsSpan());
             int dataLength = worksheetPart.DataLength;
             int position = 0;
+            int available = inflation == null ? int.MaxValue : 0;
             {
                 bool inSheetData = false;
                 bool sawBeginSheetData = false;
@@ -55,6 +57,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 // common fixed-cell checks so large worksheets are validated once without a
                 // method dispatch and record-object path for every cell.
                 while (position < dataLength) {
+                    if (position > available - 6) {
+                        int headerEnd = position + Math.Min(6, dataLength - position);
+                        available = inflation!.WaitForAvailable(headerEnd, cancellationToken);
+                    }
                     int recordOffset = position;
                     int firstTypeByte = Unsafe.Add(ref data, position++);
                     int recordType = firstTypeByte & 0x7F;
@@ -106,6 +112,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     }
                     int payloadOffset = position;
                     position += recordSize;
+                    if (position > available) available = inflation!.WaitForAvailable(position, cancellationToken);
 
                     pendingRecordBudget++;
                     if (pendingRecordBudget == DiscoveryBudgetBatchSize) {

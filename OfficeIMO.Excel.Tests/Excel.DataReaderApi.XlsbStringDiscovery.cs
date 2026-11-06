@@ -48,17 +48,35 @@ namespace OfficeIMO.Excel.Tests {
         }
 
         [Theory]
-        [InlineData(6, "Count")]
-        [InlineData(62, "Count")]
-        [InlineData(8, "Count")]
-        [InlineData(6, "Truncated")]
-        [InlineData(62, "Truncated")]
-        [InlineData(8, "Truncated")]
-        [InlineData(8, "MissingTail")]
-        [InlineData(8, "TokenCount")]
-        public void NativeXlsbRejectsLateStringPayloadFailuresBeforeReaderDelivery(int recordType, string failure) {
-            byte[] workbook = CreateStringDiscoveryWorkbook(recordType, new ushort[] { 0x41, 0x42, 0x43 }, failure);
-            InvalidDataException error = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(workbook); _ = reader.FieldCount; });
+        [InlineData(6, "Count", false)]
+        [InlineData(62, "Count", false)]
+        [InlineData(8, "Count", false)]
+        [InlineData(6, "Truncated", false)]
+        [InlineData(62, "Truncated", false)]
+        [InlineData(8, "Truncated", false)]
+        [InlineData(8, "MissingTail", false)]
+        [InlineData(8, "TokenCount", false)]
+        [InlineData(6, "Truncated", true)]
+        public void NativeXlsbRejectsLateStringPayloadFailuresBeforeReaderDelivery(int recordType, string failure, bool large) {
+            if (large) {
+                byte[] valid = CreateStringDiscoveryWorkbook(recordType, new ushort[] { 0x41, 0x42, 0x43 }, large: true);
+                using var validInput = new MemoryStream(valid, writable: false);
+                using var control = ExcelDocument.OpenReader(validInput);
+                int rows = 0;
+                string last = string.Empty;
+                while (control.Read()) {
+                    rows++;
+                    last = control.GetString(0);
+                }
+                Assert.Equal(4099, rows);
+                Assert.Equal("After", last);
+            }
+            byte[] workbook = CreateStringDiscoveryWorkbook(recordType, new ushort[] { 0x41, 0x42, 0x43 }, failure, large);
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => {
+                using var input = new MemoryStream(workbook, writable: false);
+                using var reader = ExcelDocument.OpenReader(input);
+                _ = reader.FieldCount;
+            });
             string expected = failure switch {
                 "Count" => "exceeding the configured limit",
                 "Truncated" => "truncated",
@@ -67,17 +85,23 @@ namespace OfficeIMO.Excel.Tests {
             Assert.Contains(expected, error.Message, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static byte[] CreateStringDiscoveryWorkbook(int recordType, ushort[] units, string? failure = null) {
+        private static byte[] CreateStringDiscoveryWorkbook(int recordType, ushort[] units, string? failure = null, bool large = false) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Text");
             sheet.Cell(1, 2).SetValue("Value");
             sheet.Cell(2, 1).SetValue("Ready");
             sheet.Cell(2, 2).SetValue(42);
-            sheet.Cell(3, 1).SetValue("Replace");
-            sheet.Cell(3, 2).SetValue(43);
-            sheet.Cell(4, 1).SetValue("After");
-            sheet.Cell(4, 2).SetValue(44);
+            int targetRow = large ? 4099 : 3;
+            string padding = large ? new string('X', 128) : string.Empty;
+            for (int row = 3; row < targetRow; row++) {
+                sheet.Cell(row, 1).SetValue(padding);
+                sheet.Cell(row, 2).SetValue(row);
+            }
+            sheet.Cell(targetRow, 1).SetValue("Replace");
+            sheet.Cell(targetRow, 2).SetValue(43);
+            sheet.Cell(targetRow + 1, 1).SetValue("After");
+            sheet.Cell(targetRow + 1, 2).SetValue(44);
             byte[] original = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = false });
             using MemoryStream package = new MemoryStream();
             package.Write(original, 0, original.Length);
@@ -91,7 +115,7 @@ namespace OfficeIMO.Excel.Tests {
                 bool replaced = false;
                 foreach (XlsbRecord record in records) {
                     if (record.Type == 0) row = BitConverter.ToInt32(record.Data, 0);
-                    if (row == 2 && record.Type == 6 && BitConverter.ToInt32(record.Data, 0) == 0) {
+                    if (row == targetRow - 1 && record.Type == 6 && BitConverter.ToInt32(record.Data, 0) == 0) {
                         XlsbRecordWriter.Write(output, recordType, CreateStringDiscoveryPayload(record.Data, recordType, units, failure));
                         replaced = true;
                     } else {
