@@ -6,9 +6,7 @@ public sealed partial class EmailStorePstMutationTransaction {
     /// <summary>Creates a folder and returns its transaction-local identifier.</summary>
     public string CreateFolder(string name, string? parentFolderId = null,
         string? containerClass = null) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("A folder name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ThrowIfUnavailable();
         string parent = parentFolderId ?? RootFolderId;
         FolderState parentFolder = GetFolder(parent);
@@ -31,9 +29,7 @@ public sealed partial class EmailStorePstMutationTransaction {
 
     /// <summary>Changes a non-mandatory folder's display name.</summary>
     public void RenameFolder(string folderId, string name) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("A folder name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ThrowIfUnavailable();
         FolderState folder = GetFolder(folderId);
         if (folder.IsMandatory) {

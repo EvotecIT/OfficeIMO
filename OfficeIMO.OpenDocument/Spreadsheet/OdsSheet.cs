@@ -25,7 +25,7 @@ public sealed partial class OdsSheet {
     public string Name {
         get => (string?)Element.Attribute(OdfNamespaces.Table + "name") ?? string.Empty;
         set {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Worksheet name cannot be empty.", nameof(value));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             if (_document.Sheets.Any(sheet => !ReferenceEquals(sheet.Element, Element) && string.Equals(sheet.Name, value, StringComparison.Ordinal))) {
                 throw new InvalidOperationException($"A worksheet named '{value}' already exists.");
             }

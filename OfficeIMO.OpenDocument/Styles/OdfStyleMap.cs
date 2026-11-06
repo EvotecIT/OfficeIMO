@@ -18,7 +18,7 @@ public sealed class OdfStyleMap {
     public string Condition {
         get => (string?)_element.Attribute(OdfNamespaces.Style + "condition") ?? string.Empty;
         set {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A condition is required.", nameof(value));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             SetAttribute(OdfNamespaces.Style + "condition", value);
         }
     }
@@ -27,7 +27,7 @@ public sealed class OdfStyleMap {
     public string ApplyStyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Style + "apply-style-name") ?? string.Empty;
         set {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("An applied style name is required.", nameof(value));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             SetAttribute(OdfNamespaces.Style + "apply-style-name", value);
         }
     }

@@ -317,7 +317,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         string text,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) {
-        if (string.IsNullOrWhiteSpace(text)) throw new ArgumentException("Watermark text is required.", nameof(text));
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
         return MutateBytesAsync(
             PdfWorkspaceOperationKind.Watermark,
             "Added text watermark",
@@ -379,7 +379,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         global::OfficeIMO.OfficeColor color,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) {
-        if (string.IsNullOrWhiteSpace(contents)) throw new ArgumentException("Reply text is required.", nameof(contents));
+        ArgumentException.ThrowIfNullOrWhiteSpace(contents);
         return MutateAnnotationBytesAsync(
             PdfWorkspaceOperationKind.Annotation,
             "Added annotation reply",

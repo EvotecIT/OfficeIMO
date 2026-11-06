@@ -58,9 +58,7 @@ public sealed partial class RtfLosslessEditor {
     /// Pass <c>null</c> for <paramref name="value"/> to remove all variables with the supplied name.
     /// </summary>
     public void SetDocumentVariable(string name, string? value) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Document variable name cannot be empty.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         RtfGroup root = SetDocumentVariable(_syntaxTree.Root, name, value);
         _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);
@@ -87,9 +85,7 @@ public sealed partial class RtfLosslessEditor {
     /// Removes all custom document properties with the supplied name while preserving the rest of the RTF stream.
     /// </summary>
     public void RemoveUserProperty(string name) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Custom property name cannot be empty.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         RtfGroup root = RemoveUserPropertyFromRoot(_syntaxTree.Root, name);
         _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);

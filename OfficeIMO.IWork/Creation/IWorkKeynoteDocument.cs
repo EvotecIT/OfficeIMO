@@ -51,7 +51,7 @@ public sealed partial class IWorkKeynoteDocument {
     public void Save(string path, bool overwrite = false, IWorkKeynoteSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(path);
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string fullPath = Path.GetFullPath(path);
         byte[] bytes = ToBytes(options, cancellationToken);
         OfficeFileCommit.WriteAtomically(fullPath, stream => IWorkNativePackageWriter.Copy(bytes, stream, cancellationToken), cancellationToken,

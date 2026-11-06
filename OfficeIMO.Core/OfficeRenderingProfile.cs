@@ -27,9 +27,7 @@ public sealed class OfficeRenderingProfile {
         string? textShapingLanguage = null,
         IOfficeRasterImageCodec? imageCodec = null,
         OfficeImageExportPolicy? policy = null) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("A rendering profile name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name.Trim();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();

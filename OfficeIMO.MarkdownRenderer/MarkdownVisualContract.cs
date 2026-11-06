@@ -70,18 +70,10 @@ public static class MarkdownVisualContract {
         MarkdownVisualPayload payload,
         MarkdownCodeFenceInfo? fenceInfo,
         params KeyValuePair<string, string?>[] extraAttributes) {
-        if (string.IsNullOrWhiteSpace(elementName)) {
-            throw new ArgumentException("Element name is required.", nameof(elementName));
-        }
-        if (string.IsNullOrWhiteSpace(cssClass)) {
-            throw new ArgumentException("CSS class is required.", nameof(cssClass));
-        }
-        if (string.IsNullOrWhiteSpace(visualKind)) {
-            throw new ArgumentException("Visual kind is required.", nameof(visualKind));
-        }
-        if (string.IsNullOrWhiteSpace(language)) {
-            throw new ArgumentException("Fence language is required.", nameof(language));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(cssClass);
+        ArgumentException.ThrowIfNullOrWhiteSpace(visualKind);
+        ArgumentException.ThrowIfNullOrWhiteSpace(language);
 
         var sb = new StringBuilder();
         sb.Append('<')
@@ -110,12 +102,8 @@ public static class MarkdownVisualContract {
         string language,
         MarkdownVisualPayload payload) {
         ArgumentNullException.ThrowIfNull(sb);
-        if (string.IsNullOrWhiteSpace(visualKind)) {
-            throw new ArgumentException("Visual kind is required.", nameof(visualKind));
-        }
-        if (string.IsNullOrWhiteSpace(language)) {
-            throw new ArgumentException("Fence language is required.", nameof(language));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(visualKind);
+        ArgumentException.ThrowIfNullOrWhiteSpace(language);
 
         AppendAttribute(sb, MarkdownVisualElementContract.AttributeVisualContract, ContractVersion);
         AppendAttribute(sb, MarkdownVisualElementContract.AttributeVisualKind, visualKind);

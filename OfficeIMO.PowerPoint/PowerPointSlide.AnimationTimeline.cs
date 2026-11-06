@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Adds a native motion-path action without replacing the existing timeline.</summary>
         public PowerPointTimelineAction AddMotionAnimation(PowerPointShape shape,
             string path, PowerPointTimelineOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A motion path is required.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             uint shapeId = ValidateTimelineTarget(shape);
             uint id = GetNextTimingId();
             CommonBehavior behavior = CreateTimelineBehavior(shapeId, id, options);
@@ -82,7 +82,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointTimelineAction AddCommandAnimation(PowerPointShape shape,
             string command, PowerPointAnimationCommand type,
             PowerPointTimelineOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(command)) throw new ArgumentException("A command is required.", nameof(command));
+            ArgumentException.ThrowIfNullOrWhiteSpace(command);
             uint shapeId = ValidateTimelineTarget(shape);
             uint id = GetNextTimingId();
             var action = new Command(CreateTimelineBehavior(shapeId, id, options)) {

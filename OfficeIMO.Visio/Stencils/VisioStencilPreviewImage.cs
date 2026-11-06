@@ -9,8 +9,8 @@ namespace OfficeIMO.Visio.Stencils {
         /// Initializes preview image metadata.
         /// </summary>
         public VisioStencilPreviewImage(string relationshipId, string target, string? contentType = null, string? extension = null, long? byteLength = null, bool isExternal = false) {
-            if (string.IsNullOrWhiteSpace(relationshipId)) throw new ArgumentException("Relationship id cannot be null or whitespace.", nameof(relationshipId));
-            if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("Preview image target cannot be null or whitespace.", nameof(target));
+            ArgumentException.ThrowIfNullOrWhiteSpace(relationshipId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(target);
 
             RelationshipId = relationshipId;
             Target = target;

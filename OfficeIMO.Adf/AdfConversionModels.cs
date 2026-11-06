@@ -18,9 +18,9 @@ public sealed class AdfConversionDiagnostic {
     /// <param name="message">Non-empty explanation for a reader of the report.</param>
     /// <param name="severity">Severity used by the report's fidelity and error checks.</param>
     public AdfConversionDiagnostic(string code, string path, string message, AdfConversionSeverity severity) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("A diagnostic code is required.", nameof(code));
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
         ArgumentNullException.ThrowIfNull(path);
-        if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("A diagnostic message is required.", nameof(message));
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
         Code = code;
         Path = path;
         Message = message;

@@ -14,12 +14,8 @@ public sealed class PdfFontFamilySubstitution {
         string sourceFontFamily,
         string targetFontFamily,
         PdfFontFamilySubstitutionImpact impact) {
-        if (string.IsNullOrWhiteSpace(sourceFontFamily)) {
-            throw new ArgumentException("Source font family cannot be empty.", nameof(sourceFontFamily));
-        }
-        if (string.IsNullOrWhiteSpace(targetFontFamily)) {
-            throw new ArgumentException("Target font family cannot be empty.", nameof(targetFontFamily));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFontFamily);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetFontFamily);
 
         SourceFontFamily = sourceFontFamily.Trim();
         TargetFontFamily = targetFontFamily.Trim();

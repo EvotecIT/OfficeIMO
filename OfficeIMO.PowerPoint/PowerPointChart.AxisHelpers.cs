@@ -274,9 +274,7 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointChart SetAxisNumberFormat<TAxis>(string formatCode, bool sourceLinked, Func<TAxis, bool>? predicate = null)
             where TAxis : OpenXmlCompositeElement {
-            if (string.IsNullOrWhiteSpace(formatCode)) {
-                throw new ArgumentException("Format code cannot be null or empty.", nameof(formatCode));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(formatCode);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();

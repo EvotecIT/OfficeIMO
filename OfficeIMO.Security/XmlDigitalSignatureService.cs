@@ -226,7 +226,7 @@ internal static class XmlDigitalSignatureService {
 #else
         ArgumentNullException.ThrowIfNull(xml);
 #endif
-        if (string.IsNullOrWhiteSpace(algorithm)) throw new ArgumentException("A canonicalization algorithm is required.", nameof(algorithm));
+        ArgumentException.ThrowIfNullOrWhiteSpace(algorithm);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxOutputBytes);
         XmlDocument document = LoadXml(xml, maxOutputBytes);
         Transform transform;

@@ -15,7 +15,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// </summary>
         /// <param name="name">Catalog name.</param>
         public VisioStencilCatalogBuilder(string name) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Catalog name cannot be null or whitespace.", nameof(name));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             Name = name;
         }
 

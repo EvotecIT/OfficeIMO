@@ -157,9 +157,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Resolves one placeholder by authored or semantic name and rejects ambiguous matches.</summary>
         public PowerPointTemplatePlaceholderInfo ResolvePlaceholder(string semanticName) {
-            if (string.IsNullOrWhiteSpace(semanticName)) {
-                throw new ArgumentException("Placeholder name cannot be empty.", nameof(semanticName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(semanticName);
 
             List<PowerPointTemplatePlaceholderInfo> exact = _placeholders.Where(placeholder =>
                 string.Equals(placeholder.Name, semanticName, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -287,9 +285,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Resolves one layout by authored name, semantic name fragment, or native type name.</summary>
         public PowerPointTemplateLayoutInfo ResolveLayout(string semanticName) {
-            if (string.IsNullOrWhiteSpace(semanticName)) {
-                throw new ArgumentException("Layout name cannot be empty.", nameof(semanticName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(semanticName);
             List<PowerPointTemplateLayoutInfo> layouts = _masters.SelectMany(master => master.Layouts).ToList();
             List<PowerPointTemplateLayoutInfo> exact = layouts.Where(layout =>
                 string.Equals(layout.Name, semanticName, StringComparison.OrdinalIgnoreCase)).ToList();

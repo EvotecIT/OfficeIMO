@@ -80,9 +80,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a deterministic palette variation from literal accents, keeping the primary brand accent but changing supporting colors.
         /// </summary>
         public PowerPointDesignTheme WithVariation(string seed) {
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Variation seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
 
             int pick = StablePick(seed, 7);
             double coolShift = 18d + pick * 8d;
@@ -104,9 +102,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a copy with a specific typography strategy.
         /// </summary>
         public PowerPointDesignTheme WithTypographyStyle(PowerPointTypographyStyle typographyStyle, string seed) {
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Typography seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
 
             PowerPointDesignTheme clone = Clone();
             clone.ApplyTypographyStyle(typographyStyle, seed);
@@ -117,9 +113,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a copy with a specific supporting palette strategy while preserving the primary brand accent.
         /// </summary>
         public PowerPointDesignTheme WithPaletteStyle(PowerPointPaletteStyle paletteStyle, string seed) {
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Palette seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
 
             PowerPointDesignTheme clone = Clone();
             clone.ApplyPaletteStyle(paletteStyle, seed);
@@ -269,18 +263,12 @@ namespace OfficeIMO.PowerPoint {
 
         internal void Validate() {
 
-            if (string.IsNullOrWhiteSpace(HeadingFontFamily)) {
-                throw new ArgumentException("Heading font cannot be null or empty.", nameof(HeadingFontFamily));
-            }
-            if (string.IsNullOrWhiteSpace(BodyFontFamily)) {
-                throw new ArgumentException("Body font cannot be null or empty.", nameof(BodyFontFamily));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(HeadingFontFamily);
+            ArgumentException.ThrowIfNullOrWhiteSpace(BodyFontFamily);
         }
 
         internal void ApplyPaletteStyle(PowerPointPaletteStyle paletteStyle, string seed) {
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Palette seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
 
             PowerPointPaletteStyle resolvedStyle = ResolvePaletteStyle(paletteStyle, seed);
             int pick = StablePick(seed + "/" + resolvedStyle, 7);
@@ -343,9 +331,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void ApplyTypographyStyle(PowerPointTypographyStyle typographyStyle, string seed) {
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Typography seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
 
             PowerPointTypographyStyle resolvedStyle = ResolveTypographyStyle(typographyStyle, seed);
             TypographyStyle = resolvedStyle;

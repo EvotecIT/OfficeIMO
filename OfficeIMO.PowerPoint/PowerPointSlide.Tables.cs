@@ -115,9 +115,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeLength? width = null, OfficeLength? height = null, bool ignoreCase = true, bool? firstRow = null,
             bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null,
             bool? bandedColumns = null) {
-            if (string.IsNullOrWhiteSpace(styleName)) {
-                throw new ArgumentException("Style name cannot be null or empty.", nameof(styleName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(styleName);
 
             PowerPointTable table = AddTable(rows, columns, left, top, width, height);
             table.ApplyStyleByName(styleName, ignoreCase, firstRow, lastRow, firstColumn, lastColumn, bandedRows,
@@ -378,9 +376,7 @@ namespace OfficeIMO.PowerPoint {
             string styleName, bool includeHeaders = true, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null,
             OfficeLength? height = null, bool ignoreCase = true, bool? firstRow = null, bool? lastRow = null,
             bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null, bool? bandedColumns = null) {
-            if (string.IsNullOrWhiteSpace(styleName)) {
-                throw new ArgumentException("Style name cannot be null or empty.", nameof(styleName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(styleName);
 
             PowerPointTable table = AddTable(data, columns, includeHeaders, left, top, width, height);
             table.ApplyStyleByName(styleName, ignoreCase, firstRow, lastRow, firstColumn, lastColumn, bandedRows,

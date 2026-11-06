@@ -116,7 +116,7 @@ namespace OfficeIMO.PowerPoint {
             long nativeHeight = (height ?? OfficeLength.Emus(1828800L)).ToEmus();
             ArgumentNullException.ThrowIfNull(source);
             if (!source.IsAbsoluteUri) throw new ArgumentException("A linked OLE URI must be absolute.", nameof(source));
-            if (string.IsNullOrWhiteSpace(progId)) throw new ArgumentException("An OLE ProgID is required.", nameof(progId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(progId);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
 

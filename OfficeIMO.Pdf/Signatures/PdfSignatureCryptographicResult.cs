@@ -17,7 +17,7 @@ public sealed class PdfSignatureCryptographicResult {
         DateTimeOffset? signingTime = null,
         DateTimeOffset? timestampTime = null,
         IReadOnlyList<PdfSignatureCryptographicFinding>? findings = null) {
-        if (string.IsNullOrWhiteSpace(providerName)) throw new ArgumentException("Provider name cannot be empty.", nameof(providerName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerName);
         ProviderName = providerName;
         MathematicalSignatureStatus = mathematicalSignatureStatus;
         MessageDigestStatus = messageDigestStatus;

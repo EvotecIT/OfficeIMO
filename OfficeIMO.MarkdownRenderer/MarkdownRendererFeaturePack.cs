@@ -26,13 +26,9 @@ public sealed class MarkdownRendererFeaturePack {
         string name,
         Action<MarkdownRendererOptions> apply,
         Action<MarkdownLoadOptions>? applyReader = null) {
-        if (string.IsNullOrWhiteSpace(id)) {
-            throw new ArgumentException("Feature pack id is required.", nameof(id));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Feature pack name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         _apply = apply ?? throw new ArgumentNullException(nameof(apply));
         _plugins = Array.Empty<MarkdownRendererPlugin>();
@@ -56,13 +52,9 @@ public sealed class MarkdownRendererFeaturePack {
         IEnumerable<MarkdownRendererPlugin> plugins,
         Action<MarkdownRendererOptions>? apply = null,
         Action<MarkdownLoadOptions>? applyReader = null) {
-        if (string.IsNullOrWhiteSpace(id)) {
-            throw new ArgumentException("Feature pack id is required.", nameof(id));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Feature pack name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         ArgumentNullException.ThrowIfNull(plugins);
 

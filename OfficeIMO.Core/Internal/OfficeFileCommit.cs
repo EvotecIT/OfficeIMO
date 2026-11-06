@@ -318,9 +318,7 @@ namespace OfficeIMO.Core.Internal {
             Action<string>? beforeCommitFinalized,
             Action<string>? afterFirstRollbackReplacement,
             Action<string, Exception>? backupCleanupFailed) {
-            if (string.IsNullOrWhiteSpace(temporaryPath)) {
-                throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(temporaryPath);
             ArgumentNullException.ThrowIfNull(destinationMatchesExpected);
 
             string fullTargetPath = GetFullTargetPath(targetPath);
@@ -462,7 +460,7 @@ namespace OfficeIMO.Core.Internal {
             bool allowNonAtomicReplacementFallback,
             bool allowReadOnlyUnixDestination,
             bool ownerOnlyUnixPermissions = false) {
-            if (string.IsNullOrWhiteSpace(temporaryPath)) throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(temporaryPath);
 
             string fullTargetPath = GetFullTargetPath(targetPath);
             if (ownerOnlyUnixPermissions) OfficeTemporaryFile.ApplyOwnerOnlyUnixPermissions(temporaryPath);
@@ -512,9 +510,7 @@ namespace OfficeIMO.Core.Internal {
         public static bool TryCommitTemporaryFileIfAbsent(
             string temporaryPath,
             string targetPath) {
-            if (string.IsNullOrWhiteSpace(temporaryPath)) {
-                throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(temporaryPath);
 
             EnsureTargetDirectory(targetPath);
             return TryMoveIfAbsent(temporaryPath, GetFullTargetPath(targetPath));
@@ -546,7 +542,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private static string GetFullTargetPath(string targetPath) {
-            if (string.IsNullOrWhiteSpace(targetPath)) throw new ArgumentException("Target path cannot be empty.", nameof(targetPath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
 
             string fullTargetPath = Path.GetFullPath(targetPath);
             if (string.IsNullOrEmpty(Path.GetFileName(fullTargetPath))) {

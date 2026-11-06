@@ -44,7 +44,7 @@ public sealed class OdpPresentationLayout {
     public string Name => (string?)_element.Attribute(OdfNamespaces.Style + "name") ?? string.Empty;
     /// <summary>Adds a presentation placeholder using an ODF object token such as <c>title</c> or <c>outline</c>.</summary>
     public void AddPlaceholder(string objectType, OdfRect bounds) {
-        if (string.IsNullOrWhiteSpace(objectType)) throw new ArgumentException("Placeholder type cannot be empty.", nameof(objectType));
+        ArgumentException.ThrowIfNullOrWhiteSpace(objectType);
         _element.Add(new XElement(OdfNamespaces.Presentation + "placeholder",
             new XAttribute(OdfNamespaces.Presentation + "object", objectType),
             new XAttribute(OdfNamespaces.Svg + "x", bounds.X.ToString()),

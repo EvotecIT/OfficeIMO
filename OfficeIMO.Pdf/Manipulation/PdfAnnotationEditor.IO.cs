@@ -6,9 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfAnnotationEditor {
     private static string ValidateOutputPath(string outputPath) {
         Guard.NotNull(outputPath, nameof(outputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) {
-            throw new ArgumentException("Output path cannot be empty or whitespace.", nameof(outputPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
 
         string fullPath = Path.GetFullPath(outputPath);
         if (Directory.Exists(fullPath) && (File.GetAttributes(fullPath) & FileAttributes.Directory) == FileAttributes.Directory) {

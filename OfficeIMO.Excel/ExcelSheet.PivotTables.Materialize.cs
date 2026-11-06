@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
         /// <exception cref="InvalidOperationException">A budget or destination collision prevents generation.</exception>
         public ExcelPivotMaterializationResult MaterializePivotTable(string pivotTableName, ExcelMutationPlanOptions? options = null,
             CancellationToken cancellationToken = default, DateTime? referenceDate = null) {
-            if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentException("A pivot table name is required.", nameof(pivotTableName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(pivotTableName);
             var effective = (options ?? new ExcelMutationPlanOptions()).CloneAndValidate();
             DateTime pivotReferenceDate = DateTime.SpecifyKind((referenceDate ?? DateTime.Today).Date, DateTimeKind.Unspecified);
             ExcelPivotMaterializationResult? result = null;

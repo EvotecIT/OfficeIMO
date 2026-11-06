@@ -28,9 +28,7 @@ namespace OfficeIMO.PowerPoint {
             string? eyebrow = null, string? footerLeft = null, string? footerRight = null,
             string headingFontFamily = "Poppins", string bodyFontFamily = "Lato") {
 #pragma warning restore RS0026
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
 
             PowerPointDesignTheme theme = PowerPointDesignTheme
                 .FromBrand(accentColor, name, headingFontFamily, bodyFontFamily)
@@ -52,9 +50,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignDirection direction, string? name = null, string? eyebrow = null,
             string? footerLeft = null, string? footerRight = null) {
             ArgumentNullException.ThrowIfNull(direction);
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
 
             PowerPointDesignTheme theme = PowerPointDesignTheme
                 .FromBrand(accentColor, name, direction.HeadingFontFamily, direction.BodyFontFamily)
@@ -81,9 +77,7 @@ namespace OfficeIMO.PowerPoint {
             int count = 3, string? name = null, string? eyebrow = null, string? footerLeft = null,
             string? footerRight = null, string headingFontFamily = "Poppins", string bodyFontFamily = "Lato") {
 #pragma warning restore RS0026
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
             if (count <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(count), "At least one design alternative is required.");
             }
@@ -121,9 +115,7 @@ namespace OfficeIMO.PowerPoint {
             string? footerLeft = null, string? footerRight = null, string? headingFontFamily = null,
             string? bodyFontFamily = null) {
 #pragma warning restore RS0026
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
             ArgumentNullException.ThrowIfNull(recipe);
             if (count < 0) {
                 throw new ArgumentOutOfRangeException(nameof(count), "Design alternative count cannot be negative.");
@@ -165,9 +157,7 @@ namespace OfficeIMO.PowerPoint {
             string? footerLeft = null, string? footerRight = null, string? headingFontFamily = null,
             string? bodyFontFamily = null) {
 #pragma warning restore RS0026
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
             ArgumentNullException.ThrowIfNull(directions);
 
             List<PowerPointDesignDirection> directionList = new();
@@ -265,9 +255,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a per-slide intent while preserving the deck's mood, density, and visual style.
         /// </summary>
         public PowerPointDesignIntent IntentFor(string slideSeed) {
-            if (string.IsNullOrWhiteSpace(slideSeed)) {
-                throw new ArgumentException("Slide seed cannot be null or empty.", nameof(slideSeed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(slideSeed);
 
             PowerPointDesignIntent intent = BaseIntent.Clone();
             intent.Seed = Seed + "/" + slideSeed;

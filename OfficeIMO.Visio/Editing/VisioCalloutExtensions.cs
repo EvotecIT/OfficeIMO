@@ -63,9 +63,7 @@ namespace OfficeIMO.Visio {
 
             ArgumentNullException.ThrowIfNull(target);
 
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Callout id cannot be empty.", nameof(id));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
             if (page.FindShapeById(id) != null || page.Connectors.Any(connector => string.Equals(connector.Id, id, StringComparison.OrdinalIgnoreCase))) {
                 throw new InvalidOperationException("A shape or connector with the callout id already exists on the page.");
@@ -98,9 +96,7 @@ namespace OfficeIMO.Visio {
 
             ArgumentNullException.ThrowIfNull(target);
 
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Callout id cannot be empty.", nameof(id));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
             VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
             VisioCalloutOptions pageOptions = ConvertOptionsToPageUnits(effectiveOptions, page.DefaultUnit);

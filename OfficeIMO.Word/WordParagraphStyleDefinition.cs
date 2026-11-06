@@ -13,9 +13,7 @@ public sealed class WordParagraphStyleDefinition {
     /// <summary>Creates a paragraph style definition.</summary>
     /// <param name="styleId">Identifier stored on paragraphs that use the style.</param>
     public WordParagraphStyleDefinition(string styleId) {
-        if (string.IsNullOrWhiteSpace(styleId)) {
-            throw new ArgumentException("Style ID cannot be empty.", nameof(styleId));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(styleId);
 
         StyleId = styleId;
         Name = styleId;

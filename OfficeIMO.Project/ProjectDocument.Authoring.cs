@@ -20,12 +20,12 @@ public sealed partial class ProjectDocument {
     }
     internal void QueueDependency(ProjectTask successor, string predecessor, ProjectDependencyType type, ProjectDuration? lag) {
         EnsureMutable();
-        if (string.IsNullOrWhiteSpace(predecessor)) throw new ArgumentException("A predecessor alias is required.", nameof(predecessor));
+        ArgumentException.ThrowIfNullOrWhiteSpace(predecessor);
         _links.Add(new PendingLink(successor, predecessor, type, lag));
     }
     internal void QueueAssignment(ProjectTask task, string resource, ProjectUnits? units) {
         EnsureMutable();
-        if (string.IsNullOrWhiteSpace(resource)) throw new ArgumentException("A resource alias is required.", nameof(resource));
+        ArgumentException.ThrowIfNullOrWhiteSpace(resource);
         _assignments.Add(new PendingAssignment(task, resource, units));
     }
 
@@ -51,7 +51,7 @@ public sealed partial class ProjectDocument {
         _links.Clear(); _assignments.Clear(); return this;
     }
     private static void CheckAlias<T>(string alias, Dictionary<string, T> aliases) {
-        if (string.IsNullOrWhiteSpace(alias)) throw new ArgumentException("An explicit alias is required.", nameof(alias));
+        ArgumentException.ThrowIfNullOrWhiteSpace(alias);
         if (aliases.ContainsKey(alias)) throw new ArgumentException("Duplicate alias: " + alias, nameof(alias));
     }
     private sealed class PendingLink {

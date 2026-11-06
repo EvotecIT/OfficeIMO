@@ -61,7 +61,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal ExcelSheet? GetOrCreateDeferredDirectTabularSheet(string worksheetName) {
-            if (string.IsNullOrEmpty(worksheetName)) throw new ArgumentException("Worksheet name is required.", nameof(worksheetName));
+            ArgumentException.ThrowIfNullOrEmpty(worksheetName);
 
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 List<ExcelSheet> sheets = GetSheetsForLockedOperation();

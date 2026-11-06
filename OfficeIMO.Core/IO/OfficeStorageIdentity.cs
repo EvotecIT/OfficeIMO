@@ -6,7 +6,7 @@ namespace OfficeIMO.Internal {
     internal static class OfficeStorageIdentity {
         /// <summary>Normalizes a file path or absolute provider URI without converting a provider URI to a path.</summary>
         internal static string Normalize(string location) {
-            if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A storage location is required.", nameof(location));
+            ArgumentException.ThrowIfNullOrWhiteSpace(location);
             if (TryGetProviderUri(location, out Uri? provider)) return provider!.AbsoluteUri;
             if (Uri.TryCreate(location, UriKind.Absolute, out Uri? uri) && uri.IsFile) return Path.GetFullPath(uri.LocalPath);
             return Path.GetFullPath(location);

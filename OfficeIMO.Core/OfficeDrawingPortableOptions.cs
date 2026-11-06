@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeDrawingPortableOptions {
     /// <summary>Creates an export profile bound to one explicit font family.</summary>
     public OfficeDrawingPortableOptions(string fontFamily) {
-        if (string.IsNullOrWhiteSpace(fontFamily)) throw new ArgumentException("An explicit font family is required.", nameof(fontFamily));
+        ArgumentException.ThrowIfNullOrWhiteSpace(fontFamily);
         FontFamily = fontFamily.Trim();
     }
 

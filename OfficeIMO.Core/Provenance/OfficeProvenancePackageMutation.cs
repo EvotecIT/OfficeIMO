@@ -26,7 +26,7 @@ internal static class OfficeProvenancePackageMutation {
         string filePath,
         OfficeProvenanceOptions? options,
         Action<byte[], string, OfficeProvenanceOptions> validatePackage) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         ArgumentNullException.ThrowIfNull(validatePackage);
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
@@ -59,8 +59,8 @@ internal static class OfficeProvenancePackageMutation {
         bool validateOpcMetadata = true,
         Func<string, bool>? shouldReplacePackageMetadata = null,
         Func<string, byte[], bool, byte[]>? replacePackageMetadata = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeProvenanceRemovalOptions();
         string fullInputPath = Path.GetFullPath(inputPath);
         byte[] data;

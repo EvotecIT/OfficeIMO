@@ -306,7 +306,7 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
     private TimeSpan Clamp(TimeSpan delay) => delay > _session.RuntimeOptions.RetryMaxDelay ? _session.RuntimeOptions.RetryMaxDelay : delay;
 
     private Uri ResolveUri(string relativeUri) {
-        if (string.IsNullOrWhiteSpace(relativeUri)) throw new ArgumentException("Confluence request URI is required.", nameof(relativeUri));
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativeUri);
         Uri resolved = relativeUri.StartsWith("/", StringComparison.Ordinal)
             ? new Uri(_session.ApiBaseUri, relativeUri.TrimStart('/'))
             : Uri.TryCreate(relativeUri, UriKind.Absolute, out Uri? absolute)

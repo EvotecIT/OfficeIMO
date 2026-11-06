@@ -6,7 +6,7 @@ public static class OdsFormulaEvaluator {
     public static OdsFormulaEvaluationResult EvaluateCell(OdsDocument document, string sheetName, long row, long column,
         OdsFormulaEvaluationOptions? options = null) {
         ArgumentNullException.ThrowIfNull(document);
-        if (string.IsNullOrWhiteSpace(sheetName)) throw new ArgumentException("Sheet name cannot be empty.", nameof(sheetName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sheetName);
         ArgumentOutOfRangeException.ThrowIfNegative(row);
         ArgumentOutOfRangeException.ThrowIfNegative(column);
         var context = new OdsFormulaEvaluationContext(document, options);
@@ -18,7 +18,7 @@ public static class OdsFormulaEvaluator {
     public static OdsFormulaEvaluationResult EvaluateExpression(OdsDocument document, string sheetName, string formula,
         OdsFormulaEvaluationOptions? options = null) {
         ArgumentNullException.ThrowIfNull(document);
-        if (string.IsNullOrWhiteSpace(sheetName)) throw new ArgumentException("Sheet name cannot be empty.", nameof(sheetName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sheetName);
         ArgumentNullException.ThrowIfNull(formula);
         var context = new OdsFormulaEvaluationContext(document, options);
         OdsFormulaValue value;

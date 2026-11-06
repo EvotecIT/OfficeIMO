@@ -28,9 +28,7 @@ public sealed class C2paToolProvenanceSigner : IOfficeProvenanceSigner {
         string? signerPath,
         bool useBuiltInTestCredentials,
         IC2paToolProcessRunner runner) {
-        if (string.IsNullOrWhiteSpace(executablePath)) {
-            throw new ArgumentException("A c2patool executable path or command name is required.", nameof(executablePath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(executablePath);
         if (!useBuiltInTestCredentials && string.IsNullOrWhiteSpace(signerPath)) {
             throw new ArgumentException("A production signer path or command name is required.", nameof(signerPath));
         }

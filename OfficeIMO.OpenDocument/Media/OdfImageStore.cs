@@ -7,7 +7,7 @@ internal static class OdfImageStore {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(data);
         if (data.Length == 0) throw new ArgumentException("Image data cannot be empty.", nameof(data));
-        if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Image file name cannot be empty.", nameof(fileName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         if (!OfficeRasterGuards.IsEncodedPayloadWithinLimits(data.Length))
             throw new ArgumentException("Image data exceeds the shared encoded image size limit.", nameof(data));
 

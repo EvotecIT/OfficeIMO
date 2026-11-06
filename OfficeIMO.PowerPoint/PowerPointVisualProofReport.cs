@@ -133,8 +133,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Records a downstream conversion artifact without retaining its bytes.</summary>
         public PowerPointVisualProofReport RecordArtifact(string name, string mediaType, byte[] content,
             int diagnosticCount = 0) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Artifact name cannot be empty.", nameof(name));
-            if (string.IsNullOrWhiteSpace(mediaType)) throw new ArgumentException("Media type cannot be empty.", nameof(mediaType));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            ArgumentException.ThrowIfNullOrWhiteSpace(mediaType);
             ArgumentNullException.ThrowIfNull(content);
             _artifacts.Add(new PowerPointVisualProofArtifact(name.Trim(), mediaType.Trim(), content, diagnosticCount));
             return this;
@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Records perceptual comparison evidence produced by the caller's selected renderer.</summary>
         public PowerPointVisualProofReport RecordPerceptualComparison(string name, double differenceRatio,
             double allowedDifferenceRatio) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Comparison name cannot be empty.", nameof(name));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             ValidateRatio(differenceRatio, nameof(differenceRatio));
             ValidateRatio(allowedDifferenceRatio, nameof(allowedDifferenceRatio));
             _perceptualProofs.Add(new PowerPointPerceptualProof(name.Trim(), differenceRatio, allowedDifferenceRatio));
@@ -200,7 +200,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Writes the proof report as UTF-8 JSON.</summary>
         public void SaveJson(string path, bool indented = true) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be empty.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             string fullPath = Path.GetFullPath(path);
             string? directory = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory!);
@@ -240,7 +240,7 @@ namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
         /// <summary>Creates structural, extraction, accessibility, PNG, SVG, and snapshot proof for every slide.</summary>
         public PowerPointVisualProofReport InspectVisuals(string sourceKind = "generated") {
-            if (string.IsNullOrWhiteSpace(sourceKind)) throw new ArgumentException("Source kind cannot be empty.", nameof(sourceKind));
+            ArgumentException.ThrowIfNullOrWhiteSpace(sourceKind);
             PowerPointAccessibilityReport accessibility = InspectAccessibility();
             List<PowerPointExtractChunk> chunks = this.ExtractMarkdownChunks(
                 new PowerPointExtractionExtensions.PowerPointExtractOptions {

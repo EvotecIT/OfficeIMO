@@ -37,9 +37,7 @@ public sealed class OfficeVisualSource {
     public byte[] GetSvgBytes() => (byte[])_svgBytes.Clone();
 
     private static byte[] EncodeSvgMarkupAsUtf8(string svg) {
-        if (string.IsNullOrWhiteSpace(svg)) {
-            throw new ArgumentException("SVG markup cannot be empty.", nameof(svg));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(svg);
 
         string normalized = svg[0] == '\uFEFF' ? svg.Substring(1) : svg;
         if (normalized.StartsWith("<?xml", StringComparison.Ordinal)) {

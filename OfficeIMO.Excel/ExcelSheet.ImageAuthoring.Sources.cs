@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateImagePath(string path) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Image path is required.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             if (!File.Exists(path)) throw new FileNotFoundException($"Image file '{path}' was not found.", path);
         }
 

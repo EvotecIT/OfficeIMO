@@ -21,9 +21,7 @@ namespace OfficeIMO.Excel {
         /// Creates a new explicit header mapping definition.
         /// </summary>
         public ExcelColumnAttribute(string name, params string[] aliases) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Header name cannot be null or whitespace.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             Name = name;
             Aliases = aliases?.Where(alias => !string.IsNullOrWhiteSpace(alias)).ToArray() ?? Array.Empty<string>();

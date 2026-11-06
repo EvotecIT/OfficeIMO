@@ -4,9 +4,7 @@ namespace OfficeIMO.Email.Store;
 public static class EmailStoreConverter {
     /// <summary>Deletes one migration checkpoint, its writer-owned files, and its exact verification journal.</summary>
     public static void DeletePstConversionCheckpoint(string checkpointPath) {
-        if (string.IsNullOrWhiteSpace(checkpointPath)) {
-            throw new ArgumentException("A checkpoint path is required.", nameof(checkpointPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkpointPath);
         string fullPath = Path.GetFullPath(checkpointPath);
         if (!PstStoreWriterCore.TryReadCheckpointApplicationState(fullPath,
                 out byte[]? applicationState)) return;
@@ -30,8 +28,8 @@ public static class EmailStoreConverter {
         string destinationPath, EmailStoreReaderOptions? readerOptions = null,
         EmailStorePstConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(sourcePath)) throw new ArgumentException("A source path is required.", nameof(sourcePath));
-        if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentException("A destination path is required.", nameof(destinationPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         string source = Path.GetFullPath(sourcePath);
         string destination = Path.GetFullPath(destinationPath);
         if (EmailStorePathIdentity.AreEquivalent(source, destination)) {
@@ -50,9 +48,7 @@ public static class EmailStoreConverter {
     public static EmailStorePstMergeReport MergeToPst(IEnumerable<EmailStoreMergeSource> sources,
         string destinationPath, EmailStorePstMergeOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(destinationPath)) {
-            throw new ArgumentException("A destination path is required.", nameof(destinationPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         return new EmailStorePstMerger(sources, destinationPath,
             options ?? new EmailStorePstMergeOptions(), cancellationToken).Run();
     }

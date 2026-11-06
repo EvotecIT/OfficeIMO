@@ -277,7 +277,7 @@ internal sealed class OfficeImageExportBatchOperation<TOptions> where TOptions :
     }
 
     private static string PrepareFolder(string folderPath) {
-        if (string.IsNullOrWhiteSpace(folderPath)) throw new ArgumentException("Output folder cannot be null or whitespace.", nameof(folderPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(folderPath);
         string fullFolder = Path.GetFullPath(folderPath);
         Directory.CreateDirectory(fullFolder);
         return fullFolder;

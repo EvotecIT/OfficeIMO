@@ -55,9 +55,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointSectionInfo AddSection(string name, int startSlideIndex) {
             ThrowIfDisposed();
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Section name cannot be null or empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             SlideIdList? slideIdList = PresentationRoot?.SlideIdList;
             if (slideIdList == null) {
@@ -111,9 +109,7 @@ namespace OfficeIMO.PowerPoint {
         public bool RenameSection(string name, string newName, bool ignoreCase = true) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(name);
-            if (string.IsNullOrWhiteSpace(newName)) {
-                throw new ArgumentException("Section name cannot be null or empty.", nameof(newName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(newName);
 
             P14.SectionList? sectionList = GetSectionList(create: false);
             if (sectionList == null) {

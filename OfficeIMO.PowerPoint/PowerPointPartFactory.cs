@@ -62,9 +62,7 @@ namespace OfficeIMO.PowerPoint {
             if (parent.OpenXmlPackage == null) {
                 throw new InvalidOperationException("Parent part is not attached to a package.");
             }
-            if (string.IsNullOrWhiteSpace(partUri)) {
-                throw new ArgumentException("Part URI is required.", nameof(partUri));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(partUri);
 
             object? instance = Activator.CreateInstance(typeof(TPart), nonPublic: true);
             if (instance is not TPart part) {
@@ -100,9 +98,7 @@ namespace OfficeIMO.PowerPoint {
             string relationshipId) {
             ArgumentNullException.ThrowIfNull(parent);
             ArgumentNullException.ThrowIfNull(sourcePart);
-            if (string.IsNullOrWhiteSpace(relationshipId)) {
-                throw new ArgumentException("Relationship identifier is required.", nameof(relationshipId));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(relationshipId);
 
             string contentType = sourcePart.ContentType;
             return sourcePart switch {
@@ -177,15 +173,9 @@ namespace OfficeIMO.PowerPoint {
             string extension,
             bool allowBaseWithoutIndex) {
             ArgumentNullException.ThrowIfNull(package);
-            if (string.IsNullOrWhiteSpace(folder)) {
-                throw new ArgumentException("Folder is required.", nameof(folder));
-            }
-            if (string.IsNullOrWhiteSpace(baseName)) {
-                throw new ArgumentException("Base name is required.", nameof(baseName));
-            }
-            if (string.IsNullOrWhiteSpace(extension)) {
-                throw new ArgumentException("Extension is required.", nameof(extension));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(folder);
+            ArgumentException.ThrowIfNullOrWhiteSpace(baseName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(extension);
 
             string normalizedFolder = NormalizeFolder(folder);
             string normalizedExtension = extension.StartsWith(".", StringComparison.Ordinal)

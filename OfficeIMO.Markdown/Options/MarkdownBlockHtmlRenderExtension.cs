@@ -21,9 +21,7 @@ public sealed class MarkdownBlockHtmlRenderExtension {
         string name,
         Type blockType,
         MarkdownBlockHtmlContextualRenderer renderHtml) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Extension name cannot be null or whitespace.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name.Trim();
         BlockType = blockType ?? throw new ArgumentNullException(nameof(blockType));

@@ -83,9 +83,7 @@ namespace OfficeIMO.Word {
         /// <param name="matchWholeWord">Whether matches require non-letter/digit boundaries around the search text.</param>
         /// <returns>A report describing the marks inserted and entries skipped.</returns>
         public WordIndexConcordanceReport MarkIndexEntriesFromConcordance(string concordancePath, bool matchCase = false, bool matchWholeWord = true) {
-            if (string.IsNullOrWhiteSpace(concordancePath)) {
-                throw new ArgumentException("Concordance path cannot be empty.", nameof(concordancePath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(concordancePath);
 
             using (WordDocument concordanceDocument = Load(concordancePath, new WordLoadOptions {
                 AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly

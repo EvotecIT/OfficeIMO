@@ -4,7 +4,7 @@ namespace OfficeIMO.Email;
 public sealed class EmailHeader {
     /// <summary>Creates a header field.</summary>
     public EmailHeader(string name, string value, string? rawValue = null) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Header name is required.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name;
         Value = value ?? string.Empty;
         RawValue = rawValue;

@@ -23,7 +23,7 @@ internal static class OfficeConversionOutput {
     internal static byte[] Text(string text, Encoding? encoding = null) => (encoding ?? Utf8NoBom).GetBytes(text);
 
     internal static OfficeConversionReport Save(OfficeConversionReport report, string path, byte[] bytes) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string fullPath = Path.GetFullPath(path);
         OfficeConversionFailures.Run(report, () => OfficeFileCommit.WriteAllBytes(fullPath, bytes));
         return WithPath(report, fullPath);
@@ -37,7 +37,7 @@ internal static class OfficeConversionOutput {
 
     internal static async Task<OfficeConversionReport> SaveAsync(OfficeConversionReport report, string path, byte[] bytes,
         CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string fullPath = Path.GetFullPath(path);
         await OfficeConversionFailures.RunAsync(report, () => OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes,
             cancellationToken: cancellationToken)).ConfigureAwait(false);

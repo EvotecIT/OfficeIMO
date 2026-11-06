@@ -6,9 +6,7 @@ namespace OfficeIMO.Visio {
     /// </summary>
     public sealed class VisioSwimlanePhase {
         internal VisioSwimlanePhase(string id, VisioShape header, int order) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Phase id cannot be empty.", nameof(id));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
             Id = id;
             Header = header ?? throw new ArgumentNullException(nameof(header));

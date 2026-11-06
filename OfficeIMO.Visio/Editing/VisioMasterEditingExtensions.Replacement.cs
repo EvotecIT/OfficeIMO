@@ -8,7 +8,7 @@ namespace OfficeIMO.Visio;
 
 public static partial class VisioMasterEditingExtensions {
     private static VisioMaster ResolveMaster(VisioPage page, string name) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Master NameU cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return page.OwnerDocument?.TryGetMaster(name, out VisioMaster? master) == true && master != null
             ? master : VisioDocument.CreateBuiltinMaster(name);
     }

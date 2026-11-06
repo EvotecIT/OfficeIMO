@@ -235,7 +235,7 @@ public static class HtmlSupportMatrixWriter {
 
     /// <summary>Writes the generated Markdown support matrix to a file, replacing any existing file.</summary>
     public static void WriteMarkdown(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A support-matrix path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         OfficeFileCommit.WriteAllBytes(path, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(ToMarkdown()));
     }
 

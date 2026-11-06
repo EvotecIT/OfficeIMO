@@ -23,7 +23,7 @@ namespace OfficeIMO.Word {
         /// <returns>The inserted <see cref="WordParagraph"/>.</returns>
         public static WordParagraph AddParagraphFromXml(this WordDocument document, string xml) {
             ArgumentNullException.ThrowIfNull(document);
-            if (string.IsNullOrWhiteSpace(xml)) throw new ArgumentException("Value cannot be null or empty.", nameof(xml));
+            ArgumentException.ThrowIfNullOrWhiteSpace(xml);
             var paragraph = new Paragraph(xml);
             var wordParagraph = new WordParagraph(document, paragraph);
             document.AddParagraph(wordParagraph);

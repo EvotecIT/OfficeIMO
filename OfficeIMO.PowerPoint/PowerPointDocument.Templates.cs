@@ -40,12 +40,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal static PowerPointDocument CreateFromTemplate(string templatePath, string outputPath,
             PowerPointTemplateCreationOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(templatePath)) {
-                throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
-            }
-            if (string.IsNullOrWhiteSpace(outputPath)) {
-                throw new ArgumentException("Output path cannot be empty.", nameof(outputPath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(templatePath);
+            ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
 
             string source = Path.GetFullPath(templatePath);
             string destination = Path.GetFullPath(outputPath);

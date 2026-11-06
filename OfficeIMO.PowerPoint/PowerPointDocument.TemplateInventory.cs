@@ -12,9 +12,7 @@ namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
         /// <summary>Reads a template inventory from an existing presentation or PowerPoint template file.</summary>
         internal static PowerPointTemplateInventory InspectTemplate(string templatePath) {
-            if (string.IsNullOrWhiteSpace(templatePath)) {
-                throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(templatePath);
             if (!File.Exists(templatePath)) {
                 throw new FileNotFoundException("PowerPoint template was not found.", templatePath);
             }

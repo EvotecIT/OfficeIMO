@@ -13,9 +13,7 @@ public sealed class GenerateRowMapperAttribute : Attribute { }
 public sealed class DataColumnAttribute : Attribute, IDataColumnAliasProvider {
     /// <summary>Initializes a column mapping.</summary>
     public DataColumnAttribute(string name, params string[] aliases) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Column name cannot be null or whitespace.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name;
         Aliases = aliases?.Where(static alias => !string.IsNullOrWhiteSpace(alias)).ToArray()

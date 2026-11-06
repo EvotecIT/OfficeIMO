@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel {
             string description) {
             ArgumentNullException.ThrowIfNull(source);
             ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
-            if (string.IsNullOrWhiteSpace(description)) throw new ArgumentException("Metadata description cannot be empty.", nameof(description));
+            ArgumentException.ThrowIfNullOrWhiteSpace(description);
 
             if (source.CanSeek) {
                 long position = source.Position;

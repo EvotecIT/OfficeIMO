@@ -15,7 +15,7 @@ public sealed class OfficeDocumentOcrProcessor : IAsyncOfficeDocumentProcessor {
         OfficeDocumentOcrExecutionOptions? options = null,
         string id = "ocr-execution") {
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Processor id cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         Id = id.Trim();
         _options = (options ?? new OfficeDocumentOcrExecutionOptions()).Clone();
     }

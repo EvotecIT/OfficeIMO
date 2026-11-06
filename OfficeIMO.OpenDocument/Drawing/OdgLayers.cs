@@ -69,7 +69,7 @@ public sealed class OdgLayers : IReadOnlyList<OdgLayer> {
     public OdgLayer? Find(string name) => Elements.Where(element => (string?)element.Attribute(OdfNamespaces.Draw + "name") == name).Select(Wrap).FirstOrDefault();
     /// <summary>Adds a uniquely named layer. Invalid legacy masks leave the existing layer set and saved views unchanged.</summary>
     public OdgLayer Add(string name, OdgLayerDisplay display = OdgLayerDisplay.Always) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Layer name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (!Enum.IsDefined(typeof(OdgLayerDisplay), display)) throw new ArgumentOutOfRangeException(nameof(display));
         if (Find(name) != null) throw new ArgumentException("Layer names must be unique in their scope.", nameof(name));
         XElement? container = Container;

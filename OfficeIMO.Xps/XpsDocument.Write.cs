@@ -6,7 +6,7 @@ public sealed partial class XpsDocument {
     /// <summary>Appends a page to the last fixed document, creating one when the sequence is empty. Dimensions use 1/96-inch units.</summary>
     public XpsPage AddPage(double width = 816, double height = 1056, string language = "en-US") {
         XpsPage.ValidatePageDimension(width); XpsPage.ValidatePageDimension(height);
-        if (string.IsNullOrWhiteSpace(language)) throw new ArgumentException("A page language is required.", nameof(language));
+        ArgumentException.ThrowIfNullOrWhiteSpace(language);
         if (_documents.Count > 0) return _documents[_documents.Count - 1].AddPage(width, height, language);
         var document = new XpsFixedDocument(this, NewPartName("Documents/", "/FixedDocument.fdoc"), new XElement(XName.Get("FixedDocument", XpsPackage.Namespace(Format))));
         return document.InsertNewPage(0, width, height, language, attach: true);
@@ -24,7 +24,7 @@ public sealed partial class XpsDocument {
     /// <summary>Adds an immutable package resource. Existing parts cannot be overwritten through this API.</summary>
     public string AddResource(string partName, byte[] bytes, string contentType) {
         ArgumentNullException.ThrowIfNull(bytes);
-        if (string.IsNullOrWhiteSpace(contentType)) throw new ArgumentException("A MIME content type is required.", nameof(contentType));
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
         string name = XpsPackage.PartName(partName);
         if (name == "[Content_Types].xml" || name.EndsWith(".rels", StringComparison.OrdinalIgnoreCase) || OfficeOpcPieceAssembler.HasPieceSuffix(name)) throw new ArgumentException("Reserved package part.", nameof(partName));
         if (bytes.Length > _limits.MaxPartBytes || _parts.Count >= _limits.MaxParts) throw new InvalidOperationException("XPS resource limit exceeded.");

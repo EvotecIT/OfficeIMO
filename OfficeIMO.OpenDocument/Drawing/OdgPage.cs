@@ -9,7 +9,7 @@ public sealed partial class OdgPage {
     public string Name {
         get => (string?)Element.Attribute(OdfNamespaces.Draw + "name") ?? string.Empty;
         set {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Page name cannot be empty.", nameof(value));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             if (_document.Pages.Any(page => !ReferenceEquals(page.Element, Element) && page.Name == value)) throw new ArgumentException("Page names must be unique.", nameof(value));
             Element.SetAttributeValue(OdfNamespaces.Draw + "name", value); _document.MarkPartDirty("content.xml");
         }

@@ -114,7 +114,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Saves the current chart's plain-text data summary as a UTF-8 sidecar.</summary>
         public PowerPointChart SaveDataSummary(string filePath) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             OfficeFileCommit.WriteAllBytes(filePath, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(CreateDataSummary()));
             return this;
         }
@@ -122,9 +122,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Applies native alternative text and optionally includes a plain-text data summary.</summary>
         public PowerPointChart SetAccessibility(string alternativeText, string? dataSummary = null,
             bool includeDataSummary = true) {
-            if (string.IsNullOrWhiteSpace(alternativeText)) {
-                throw new ArgumentException("Alternative text cannot be empty.", nameof(alternativeText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(alternativeText);
             string resolved = dataSummary ?? (includeDataSummary ? CreateDataSummary() : string.Empty);
             AltText = includeDataSummary && !string.IsNullOrWhiteSpace(resolved)
                 ? alternativeText.Trim() + Environment.NewLine + Environment.NewLine + "Data summary:" +

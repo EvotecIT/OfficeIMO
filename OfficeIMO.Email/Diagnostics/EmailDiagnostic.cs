@@ -23,7 +23,7 @@ public sealed class EmailDiagnostic {
     /// <summary>Creates a diagnostic with an explicit format-conversion fidelity effect.</summary>
     public EmailDiagnostic(string code, string message, EmailDiagnosticSeverity severity,
         string? location, OfficeConversionLossKind lossKind) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Diagnostic code is required.", nameof(code));
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
         ValidateLossKind(lossKind);
         Code = code;
         Message = message ?? string.Empty;
@@ -50,7 +50,7 @@ public sealed class EmailDiagnostic {
         long? actualValue, long? maximumValue, EmailDiagnosticDisposition disposition,
         EmailDataLossRisk dataLossRisk, string? suggestedAction, bool isRetryable,
         OfficeConversionLossKind lossKind) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Diagnostic code is required.", nameof(code));
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
         ValidateLossKind(lossKind);
         Code = code;
         Message = message ?? string.Empty;

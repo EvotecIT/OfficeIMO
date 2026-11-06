@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel {
         public void SetComment(int row, int column, string text, string author = "OfficeIMO", string? initials = null) {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
-            if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
+            ArgumentException.ThrowIfNullOrEmpty(text);
             SetCommentInternal(row, column, BuildCommentText(text), author, initials, visible: false);
         }
 
@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel {
         internal void SetLegacyComment(int row, int column, string text, string author, bool visible, ExcelCommentAnchor? anchor = null) {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
-            if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
+            ArgumentException.ThrowIfNullOrEmpty(text);
             SetCommentInternal(row, column, BuildCommentText(text), author, initials: null, visible, anchor);
         }
 
@@ -294,7 +294,7 @@ namespace OfficeIMO.Excel {
         /// <returns>Number of comments updated.</returns>
         public int UpdateComments(ExcelCommentFilter filter, string text, string? author = null, string? initials = null) {
             ArgumentNullException.ThrowIfNull(filter);
-            if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
+            ArgumentException.ThrowIfNullOrEmpty(text);
 
             return UpdateCommentsInternal(filter, BuildCommentText(text), author, initials);
         }

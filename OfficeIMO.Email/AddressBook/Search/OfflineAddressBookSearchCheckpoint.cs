@@ -28,7 +28,7 @@ public sealed class OfflineAddressBookSearchCheckpoint {
 
     /// <summary>Parses and structurally validates a durable checkpoint.</summary>
     public static OfflineAddressBookSearchCheckpoint Parse(string value) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A checkpoint cannot be empty.", nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         if (value.Length > 4096) throw new InvalidDataException("The checkpoint is too large.");
         try {
             string normalized = value.Replace('-', '+').Replace('_', '/');

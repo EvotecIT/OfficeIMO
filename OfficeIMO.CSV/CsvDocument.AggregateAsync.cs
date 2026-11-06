@@ -37,7 +37,7 @@ public sealed partial class CsvDocument
         CsvReaderOptions? options = null,
         ParallelRowMappingOptions? parallelOptions = null, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return AggregateRowsAsParallelAsyncCore(
             (parsing, token) => OpenReaderAsync(path, parsing, token),
             createAccumulator, accumulatorBuilder, merge, options, parallelOptions, cancellationToken);

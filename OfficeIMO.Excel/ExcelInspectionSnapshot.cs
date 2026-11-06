@@ -449,9 +449,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<string> A1Ranges => _a1Ranges;
 
         internal void AddRange(string a1Range) {
-            if (string.IsNullOrWhiteSpace(a1Range)) {
-                throw new ArgumentException("Range is required.", nameof(a1Range));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(a1Range);
 
             _a1Ranges.Add(a1Range);
         }

@@ -86,13 +86,9 @@ namespace OfficeIMO.Word {
             string? targetText,
             string message,
             string? detailedLocation = null) {
-            if (string.IsNullOrWhiteSpace(location)) {
-                throw new ArgumentException("Comparison finding location cannot be empty.", nameof(location));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(location);
 
-            if (string.IsNullOrWhiteSpace(message)) {
-                throw new ArgumentException("Comparison finding message cannot be empty.", nameof(message));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(message);
 
             Scope = scope;
             ChangeKind = changeKind;

@@ -16,13 +16,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int recordOffset,
             ushort recordType,
             int payloadLength) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Table name cannot be empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-            if (string.IsNullOrWhiteSpace(range)) {
-                throw new ArgumentException("Table range cannot be empty.", nameof(range));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(range);
 
             Name = name;
             Range = range;

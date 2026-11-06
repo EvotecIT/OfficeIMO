@@ -37,7 +37,7 @@ public sealed partial class HtmlSiteBundle {
     /// <summary>Loads a ZIP site bundle from a file, without extracting it.</summary>
     public static HtmlSiteBundle Load(string path, HtmlSiteBundleOptions? options = null,
         HtmlConversionDocumentOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         cancellationToken.ThrowIfCancellationRequested();
         using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return Load(source, options, htmlOptions, cancellationToken);
@@ -58,7 +58,7 @@ public sealed partial class HtmlSiteBundle {
     /// <summary>Asynchronously loads a ZIP site bundle from a file, without extracting it.</summary>
     public static async Task<HtmlSiteBundle> LoadAsync(string path, HtmlSiteBundleOptions? options = null,
         HtmlConversionDocumentOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         cancellationToken.ThrowIfCancellationRequested();
         using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
         return await LoadAsync(source, options, htmlOptions, cancellationToken).ConfigureAwait(false);

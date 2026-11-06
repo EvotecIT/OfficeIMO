@@ -47,10 +47,10 @@ namespace OfficeIMO.Visio.Stencils {
         /// Initializes a new stencil shape definition with source package, preview image, connection point, support, and licensing metadata.
         /// </summary>
         public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit, string? sourcePackagePath, VisioStencilPreviewImage? previewImage, IEnumerable<VisioStencilConnectionPoint>? sourceConnectionPoints, bool isSupported = true, string? sourceLicense = null, string? sourceAttribution = null) {
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Stencil shape id cannot be null or whitespace.", nameof(id));
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Stencil shape name cannot be null or whitespace.", nameof(name));
-            if (string.IsNullOrWhiteSpace(masterNameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(masterNameU));
-            if (string.IsNullOrWhiteSpace(category)) throw new ArgumentException("Stencil category cannot be null or whitespace.", nameof(category));
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            ArgumentException.ThrowIfNullOrWhiteSpace(masterNameU);
+            ArgumentException.ThrowIfNullOrWhiteSpace(category);
             if (defaultWidth <= 0) throw new ArgumentOutOfRangeException(nameof(defaultWidth), "Default width must be positive.");
             if (defaultHeight <= 0) throw new ArgumentOutOfRangeException(nameof(defaultHeight), "Default height must be positive.");
 

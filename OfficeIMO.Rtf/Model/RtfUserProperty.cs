@@ -21,7 +21,7 @@ public sealed partial class RtfUserProperty {
 
     /// <summary>Creates a custom property.</summary>
     public RtfUserProperty(string name, int? typeCode = null, string? staticValue = null) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Custom property name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name;
         TypeCode = typeCode;
         StaticValue = staticValue;

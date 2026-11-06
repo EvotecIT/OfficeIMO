@@ -101,7 +101,7 @@ public static class ReaderVisualExportMaterializer {
         ReaderVisualExportMaterializationOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(exports);
-        if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Directory path cannot be empty.", nameof(directoryPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
 
         ReaderVisualExportMaterializationOptions effectiveOptions = options ?? new ReaderVisualExportMaterializationOptions();
         List<ReaderVisualExportBundle> selectedExports = ReaderMaterializationPreflight.ToList(

@@ -107,7 +107,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Destination associated with the document.</param>
         /// <param name="options">Creation and persistence options.</param>
         public static WordDocument Create(string filePath, WordCreateOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             WordCreateOptions resolved = options ?? new WordCreateOptions();
             if (resolved.Template != null) {
                 WordDocument copied = CreateFromTemplate(resolved.Template);
@@ -124,7 +124,7 @@ namespace OfficeIMO.Word {
         /// <param name="templatePath">Existing Word package to copy into memory.</param>
         /// <returns>A document that requires an explicit destination when saved.</returns>
         internal static WordDocument CreateFromTemplate(string templatePath) {
-            if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(templatePath);
             using var source = File.OpenRead(templatePath);
             return Load(source, new WordLoadOptions {
                 AccessMode = DocumentAccessMode.ReadWrite,

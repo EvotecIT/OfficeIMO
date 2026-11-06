@@ -351,7 +351,7 @@ public sealed partial class OdfStyleRepository {
     }
 
     internal static void ValidateStyleName(string name) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Style name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         try { XmlConvert.VerifyNCName(name); }
         catch (XmlException exception) { throw new ArgumentException("Style names must be XML NCNames.", nameof(name), exception); }
     }

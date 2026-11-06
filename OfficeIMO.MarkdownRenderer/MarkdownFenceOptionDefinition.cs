@@ -14,9 +14,7 @@ public sealed class MarkdownFenceOptionDefinition {
         MarkdownFenceOptionValueKind valueKind,
         IEnumerable<string>? aliases = null,
         Func<string?, string?>? validator = null) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Option name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name.Trim();
         ValueKind = valueKind;

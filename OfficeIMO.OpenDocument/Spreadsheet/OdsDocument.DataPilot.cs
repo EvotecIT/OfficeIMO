@@ -12,7 +12,7 @@ public sealed partial class OdsDocument {
 
     /// <summary>Adds a local-range ODF data pilot table; the caller supplies the complete output range.</summary>
     public OdsDataPilotTable AddDataPilotTable(string name, string sourceRangeAddress, string targetRangeAddress) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Data pilot name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         SpreadsheetRangeReference source = OdsDataPilotTable.ParseLocalRange(sourceRangeAddress, nameof(sourceRangeAddress));
         SpreadsheetRangeReference target = OdsDataPilotTable.ParseLocalRange(targetRangeAddress, nameof(targetRangeAddress));
         if (GetSheet(source.Start.SheetName!) == null) throw new ArgumentException("Source worksheet does not exist.", nameof(sourceRangeAddress));

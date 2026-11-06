@@ -13,8 +13,8 @@ public sealed class OfficeFormatDescriptor : IEquatable<OfficeFormatDescriptor> 
         OfficeFormatGeneration generation,
         OfficeFormatEncoding encoding,
         bool macroEnabled) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Format id cannot be empty.", nameof(id));
-        if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("Format extension cannot be empty.", nameof(extension));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(extension);
 
         Id = id.Trim();
         Extension = NormalizeExtension(extension);

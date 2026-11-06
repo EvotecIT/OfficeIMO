@@ -55,9 +55,7 @@ internal sealed class OfficeImageExportOperation<TOptions> where TOptions : Offi
 
     /// <summary>Saves the exported image to a file path.</summary>
     internal OfficeImageExportResult Save(string path, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) {
-            throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         cancellationToken.ThrowIfCancellationRequested();
         string resolvedPath = OfficeImageExportPath.NormalizeFile(path, _format);
@@ -84,9 +82,7 @@ internal sealed class OfficeImageExportOperation<TOptions> where TOptions : Offi
     internal async Task<OfficeImageExportResult> SaveAsync(
         string path,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) {
-            throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         cancellationToken.ThrowIfCancellationRequested();
         string resolvedPath = OfficeImageExportPath.NormalizeFile(path, _format);

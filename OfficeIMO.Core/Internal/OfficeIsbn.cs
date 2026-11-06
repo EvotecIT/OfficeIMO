@@ -6,7 +6,7 @@ namespace OfficeIMO.Core.Internal;
 /// <summary>Shared ISBN shape and checksum validation for document and publishing owners.</summary>
 internal static class OfficeIsbn {
     internal static string Normalize(string value, bool isbn13) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("An ISBN value is required.", nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         string isbn = value.Trim();
         if (isbn.StartsWith("urn:isbn:", StringComparison.OrdinalIgnoreCase)) isbn = isbn.Substring(9);
         isbn = isbn.Replace("-", string.Empty).Replace(" ", string.Empty).ToUpperInvariant();

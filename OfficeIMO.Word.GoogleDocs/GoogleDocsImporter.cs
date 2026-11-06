@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleWorkspaceSession session,
             GoogleDocsImportOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(documentId)) throw new ArgumentException("Document ID is required.", nameof(documentId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(documentId);
             ArgumentNullException.ThrowIfNull(session);
             GoogleDocsImportOptions effective = options ?? new GoogleDocsImportOptions();
             ValidateOptions(effective);

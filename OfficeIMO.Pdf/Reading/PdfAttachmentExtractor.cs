@@ -817,9 +817,7 @@ internal static class PdfAttachmentExtractor {
 
     private static string ValidateOutputDirectory(string outputDirectory) {
         Guard.NotNull(outputDirectory, nameof(outputDirectory));
-        if (string.IsNullOrWhiteSpace(outputDirectory)) {
-            throw new ArgumentException("Output directory cannot be empty or whitespace.", nameof(outputDirectory));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
 
         string fullOutputDirectory;
         try {

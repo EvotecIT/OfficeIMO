@@ -102,9 +102,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointDesignRecipe(string name, IEnumerable<PowerPointDesignDirection> directions,
             string? defaultEyebrow = null, string? description = null, IEnumerable<string>? keywords = null) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Recipe name cannot be null or empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             ArgumentNullException.ThrowIfNull(directions);
 
             List<PowerPointDesignDirection> directionList = new();

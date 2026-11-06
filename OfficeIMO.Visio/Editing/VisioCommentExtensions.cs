@@ -61,9 +61,7 @@ namespace OfficeIMO.Visio {
         public static IReadOnlyList<VisioComment> CommentsForShape(this VisioPage page, string shapeId) {
             ArgumentNullException.ThrowIfNull(page);
 
-            if (string.IsNullOrWhiteSpace(shapeId)) {
-                throw new ArgumentException("Shape id cannot be empty.", nameof(shapeId));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(shapeId);
 
             return page.Comments
                 .Where(comment => string.Equals(comment.ShapeId, shapeId, StringComparison.Ordinal))
@@ -207,9 +205,7 @@ namespace OfficeIMO.Visio {
         public static int RemoveCommentsForShape(this VisioPage page, string shapeId) {
             ArgumentNullException.ThrowIfNull(page);
 
-            if (string.IsNullOrWhiteSpace(shapeId)) {
-                throw new ArgumentException("Shape id cannot be empty.", nameof(shapeId));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(shapeId);
 
             List<VisioComment> comments = page.Comments
                 .Where(comment => string.Equals(comment.ShapeId, shapeId, StringComparison.Ordinal))
@@ -293,9 +289,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static void EnsureTargetBelongsToPage(VisioPage page, string shapeId) {
-            if (string.IsNullOrWhiteSpace(shapeId)) {
-                throw new ArgumentException("Shape id cannot be empty.", nameof(shapeId));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(shapeId);
 
             bool foundShape = page.FindShapeById(shapeId) != null;
             bool foundConnector = page.Connectors.Any(connector => string.Equals(connector.Id, shapeId, StringComparison.Ordinal));

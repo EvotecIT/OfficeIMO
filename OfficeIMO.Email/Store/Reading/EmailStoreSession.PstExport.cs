@@ -9,9 +9,7 @@ public sealed partial class EmailStoreSession {
     public EmailStorePstConversionReport ExportToPst(string destinationPath,
         EmailStorePstConversionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(destinationPath)) {
-            throw new ArgumentException("A destination path is required.", nameof(destinationPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         ThrowIfDisposed();
         var effective = options ?? new EmailStorePstConversionOptions();
         string destination = Path.GetFullPath(destinationPath);

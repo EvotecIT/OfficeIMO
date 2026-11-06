@@ -9,7 +9,7 @@ public sealed class OfflineAddressBookLimitExceededException : IOException {
             "Offline address book limit '", limitName, "' was exceeded: ",
             actualValue.ToString(CultureInfo.InvariantCulture), " > ",
             limitValue.ToString(CultureInfo.InvariantCulture), ".")) {
-        if (string.IsNullOrWhiteSpace(limitName)) throw new ArgumentException("Limit name is required.", nameof(limitName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(limitName);
         LimitName = limitName;
         ActualValue = actualValue;
         LimitValue = limitValue;

@@ -44,7 +44,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
 
         /// <summary>Parses a checkpoint obtained from <see cref="Value"/>.</summary>
         public static GoogleDriveResumableUploadCheckpoint Parse(string value) {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A checkpoint is required.", nameof(value));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             if (value.Length > 64 * 1024) throw new InvalidDataException("The upload checkpoint is too large.");
             try {
                 string normalized = value.Replace('-', '+').Replace('_', '/');

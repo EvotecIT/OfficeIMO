@@ -68,9 +68,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         IReadOnlyCollection<string>? libraryFilters = null,
         string? processorAffinity = null,
         string? processPriority = null) {
-        if (string.IsNullOrWhiteSpace(outputPath)) {
-            throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
@@ -703,9 +701,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         IReadOnlyCollection<string>? scenarioFilters = null,
         int warmupIterations = DefaultWarmupIterations,
         int measuredIterations = DefaultMeasuredIterations) {
-        if (string.IsNullOrWhiteSpace(outputPath)) {
-            throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 

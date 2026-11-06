@@ -389,9 +389,7 @@ namespace OfficeIMO.Word {
         }
 
         private static string NormalizeCaptionSequenceIdentifier(string sequenceIdentifier) {
-            if (string.IsNullOrWhiteSpace(sequenceIdentifier)) {
-                throw new ArgumentException("Caption sequence identifier cannot be empty.", nameof(sequenceIdentifier));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(sequenceIdentifier);
 
             string normalized = TrimCaptionIdentifier(sequenceIdentifier);
             if (normalized.Length == 0 ||

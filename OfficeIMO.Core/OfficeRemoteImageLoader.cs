@@ -30,9 +30,7 @@ internal static class OfficeRemoteImageLoader {
         string url,
         OfficeRemoteImageLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(url)) {
-            throw new ArgumentException("Image URL cannot be null or whitespace.", nameof(url));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
 
         if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri)) {
             throw new ArgumentException("Image URL must be an absolute HTTP or HTTPS URL.", nameof(url));

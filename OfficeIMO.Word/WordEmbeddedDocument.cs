@@ -133,7 +133,7 @@ namespace OfficeIMO.Word {
         /// <param name="htmlFragment">When <c>true</c>, <paramref name="fileNameOrContent"/> is treated as HTML markup rather than a file path.</param>
         public WordEmbeddedDocument(WordDocument wordDocument, string fileNameOrContent, WordAlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) {
             ArgumentNullException.ThrowIfNull(wordDocument);
-            if (string.IsNullOrWhiteSpace(fileNameOrContent)) throw new ArgumentException("Value cannot be null or whitespace.", nameof(fileNameOrContent));
+            ArgumentException.ThrowIfNullOrWhiteSpace(fileNameOrContent);
 
             WordAlternativeFormatImportPartType partType;
             if (alternativeFormatImportPartType == null) {

@@ -233,7 +233,7 @@ public static class PdfAnnotationReviewEditor {
         options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(pdf, nameof(pdf));
         Guard.PositiveInteger(parentObjectNumber, nameof(parentObjectNumber));
-        if (string.IsNullOrWhiteSpace(contents)) throw new ArgumentException("Reply contents cannot be empty.", nameof(contents));
+        ArgumentException.ThrowIfNullOrWhiteSpace(contents);
 
         cancellationToken = options?.CancellationToken ?? default;
         cancellationToken.ThrowIfCancellationRequested();

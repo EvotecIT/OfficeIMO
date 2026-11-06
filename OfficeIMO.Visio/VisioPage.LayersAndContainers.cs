@@ -26,9 +26,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="nameOrNameU">Layer name to find.</param>
         public VisioLayer? FindLayer(string nameOrNameU) {
-            if (string.IsNullOrWhiteSpace(nameOrNameU)) {
-                throw new ArgumentException("Layer name cannot be null or whitespace.", nameof(nameOrNameU));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(nameOrNameU);
 
             foreach (VisioLayer layer in _layers) {
                 if (string.Equals(layer.Name, nameOrNameU, StringComparison.OrdinalIgnoreCase) ||
@@ -77,9 +75,7 @@ namespace OfficeIMO.Visio {
         /// <param name="options">Optional container layout and style settings.</param>
         /// <returns>The created container shape.</returns>
         public VisioShape AddContainer(string id, string text, IEnumerable<VisioShape> members, VisioContainerOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Container id cannot be empty.", nameof(id));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
             ArgumentNullException.ThrowIfNull(members);
 
@@ -123,9 +119,7 @@ namespace OfficeIMO.Visio {
         /// <param name="options">Optional style and semantic settings.</param>
         /// <returns>The created container shape.</returns>
         internal VisioShape AddContainerInches(string id, double pinX, double pinY, double width, double height, string? text = null, VisioContainerOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Container id cannot be empty.", nameof(id));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
             VisioContainerOptions effectiveOptions = options ?? new VisioContainerOptions();
             VisioShape container = new(id, pinX, pinY, width, height, text ?? string.Empty) {

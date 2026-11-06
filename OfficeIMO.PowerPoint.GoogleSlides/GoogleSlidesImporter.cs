@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         /// <summary>Loads a Google presentation and returns a caller-owned OfficeIMO presentation with source metadata.</summary>
         /// <remarks>Drive export is the default mode. Native mode projects supported Slides objects and records fidelity notices for unsupported content.</remarks>
         public async Task<GoogleSlidesImportResult> ImportAsync(string presentationId, GoogleWorkspaceSession session, GoogleSlidesImportOptions? options = null, CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(presentationId)) throw new ArgumentException("Presentation ID is required.", nameof(presentationId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(presentationId);
             ArgumentNullException.ThrowIfNull(session);
             GoogleSlidesImportOptions effective = options ?? new GoogleSlidesImportOptions();
             if (effective.MaxImageBytes <= 0) {

@@ -10,7 +10,7 @@ public static partial class OfficeDocument {
     private static OfficeValidationReport ValidatePath(string path, OfficeDocumentCheck[]? checks,
         OfficeDocumentValidationOptions? options, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(path);
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A document path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (!File.Exists(path)) throw new FileNotFoundException("Document not found.", path);
         var settings = options ?? new OfficeDocumentValidationOptions();
         var selected = ValidationChecks(checks, settings);

@@ -6,7 +6,7 @@ namespace OfficeIMO.Rtf;
 public sealed partial class RtfFormFieldDataControl {
     /// <summary>Creates a form-field data control.</summary>
     public RtfFormFieldDataControl(string name, int? parameter = null, bool hasParameter = false) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Form-field data control name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name;
         Parameter = parameter;
         HasParameter = hasParameter;

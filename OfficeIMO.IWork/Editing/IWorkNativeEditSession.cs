@@ -43,7 +43,7 @@ public sealed partial class IWorkNativeEditSession {
     public IWorkNativeSaveReport Save(string path, bool overwrite = false, IWorkNativeSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(path);
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         cancellationToken.ThrowIfCancellationRequested();
         RejectDirectoryMember(path);
         byte[] bytes = ToBytes(out var report, options, cancellationToken);

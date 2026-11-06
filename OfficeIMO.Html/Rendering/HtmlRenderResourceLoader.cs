@@ -322,7 +322,7 @@ public sealed partial class HtmlResourceSession {
         HtmlResolvedResource resource,
         out string diagnosticCode,
         out string diagnosticDetail) {
-        if (string.IsNullOrWhiteSpace(resolvedSource)) throw new ArgumentException("A canonical inline resource source is required.", nameof(resolvedSource));
+        ArgumentException.ThrowIfNullOrWhiteSpace(resolvedSource);
         ArgumentNullException.ThrowIfNull(resource);
         if (_resources.ContainsKey(resolvedSource)) {
             diagnosticCode = string.Empty;

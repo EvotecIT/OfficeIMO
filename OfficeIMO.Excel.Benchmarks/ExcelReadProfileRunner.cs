@@ -24,9 +24,7 @@ internal static class ExcelReadProfileRunner {
         int warmupIterations = DefaultWarmupIterations,
         int measuredIterations = DefaultMeasuredIterations,
         string? processorAffinity = null) {
-        if (string.IsNullOrWhiteSpace(outputPath)) {
-            throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(warmupIterations);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(measuredIterations);

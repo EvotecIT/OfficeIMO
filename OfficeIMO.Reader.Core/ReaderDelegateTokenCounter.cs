@@ -16,7 +16,7 @@ public sealed class ReaderDelegateTokenCounter : IReaderRangeTokenCounter {
     /// <summary>Creates a tokenizer bridge with an optional allocation-free range callback.</summary>
     public ReaderDelegateTokenCounter(string id, Func<string, int> count,
         Func<string, string, int, int, int>? countRange = null) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A tokenizer identifier is required.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         Id = id.Trim(); _count = count ?? throw new ArgumentNullException(nameof(count)); _countRange = countRange;
     }
     /// <inheritdoc />

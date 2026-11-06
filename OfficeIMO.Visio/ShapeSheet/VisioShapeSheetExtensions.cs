@@ -162,7 +162,7 @@ namespace OfficeIMO.Visio {
 
         private static bool RemoveSection<T>(IList<XElement> sections, IList<T> childOrder,
             Func<T, XElement?> rawElement, string name) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Section name cannot be empty.", nameof(name));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             for (int index = sections.Count - 1; index >= 0; index--) {
                 if (SectionNamesMatch((string?)sections[index].Attribute("N"), name)) {
                     XElement removed = sections[index];

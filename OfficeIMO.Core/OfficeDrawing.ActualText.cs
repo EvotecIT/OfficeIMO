@@ -12,7 +12,7 @@ public sealed partial class OfficeDrawing {
         OfficeDrawing drawing,
         double actualTextAnchorX,
         double actualTextAnchorY) {
-        if (string.IsNullOrEmpty(actualText)) throw new ArgumentException("Logical text cannot be empty.", nameof(actualText));
+        ArgumentException.ThrowIfNullOrEmpty(actualText);
         ArgumentNullException.ThrowIfNull(drawing);
         ValidateFinite(actualTextAnchorX, nameof(actualTextAnchorX));
         ValidateFinite(actualTextAnchorY, nameof(actualTextAnchorY));

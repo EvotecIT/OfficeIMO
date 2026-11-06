@@ -27,7 +27,7 @@ public sealed class EmailStoreDiagnostic {
     public EmailStoreDiagnostic(string code, string message,
         EmailStoreDiagnosticSeverity severity = EmailStoreDiagnosticSeverity.Warning,
         string? location = null) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Diagnostic code is required.", nameof(code));
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
         Code = code;
         Message = message ?? string.Empty;
         Severity = severity;
@@ -41,7 +41,7 @@ public sealed class EmailStoreDiagnostic {
         string? location, string? operation, long? byteOffset, string? limitName,
         long? actualValue, long? maximumValue, EmailDiagnosticDisposition disposition,
         EmailDataLossRisk dataLossRisk, string? suggestedAction, bool isRetryable = false) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Diagnostic code is required.", nameof(code));
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
         Code = code;
         Message = message ?? string.Empty;
         Severity = severity;

@@ -28,7 +28,7 @@ public static class ReaderNestedContent {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(stream);
-        if (string.IsNullOrWhiteSpace(sourceName)) throw new ArgumentException("A nested source name is required.", nameof(sourceName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
         return ReadDocument(stream, sourceName, options, cancellationToken).Chunks;
     }
 
@@ -43,7 +43,7 @@ public static class ReaderNestedContent {
     internal static OfficeDocumentReadResult ReadDocumentInContainer(Stream stream, string sourceName, string containerPath,
         ReaderOptions? options, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(stream);
-        if (string.IsNullOrWhiteSpace(sourceName)) throw new ArgumentException("A nested source name is required.", nameof(sourceName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
         OfficeDocumentReadResult result;
         using (ReaderReadScope.Enter(options, nested: true)) {
             var budget = ReaderReadScope.Current?.Budget;

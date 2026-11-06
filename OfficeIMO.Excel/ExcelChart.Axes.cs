@@ -297,9 +297,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetValueAxisDisplayUnits(OfficeChartDisplayUnit unit, string labelText, bool showLabel = true,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            if (string.IsNullOrWhiteSpace(labelText)) {
-                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -366,9 +364,7 @@ namespace OfficeIMO.Excel {
             if (customUnit <= 0 || double.IsNaN(customUnit) || double.IsInfinity(customUnit)) {
                 throw new ArgumentOutOfRangeException(nameof(customUnit));
             }
-            if (string.IsNullOrWhiteSpace(labelText)) {
-                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -860,9 +856,7 @@ namespace OfficeIMO.Excel {
 
         private ExcelChart SetAxisNumberFormat(string formatCode, bool sourceLinked,
             OfficeChartAxisGroup axisGroup, AxisKind axisKind) {
-            if (string.IsNullOrWhiteSpace(formatCode)) {
-                throw new ArgumentException("Format code cannot be null or empty.", nameof(formatCode));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(formatCode);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();

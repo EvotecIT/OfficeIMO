@@ -12,7 +12,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Initializes a graph node import record.
         /// </summary>
         public VisioGraphNodeRecord(string id, string text) {
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Node id cannot be null or whitespace.", nameof(id));
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
             Id = id;
             Text = text ?? string.Empty;
         }
@@ -74,8 +74,8 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Initializes a named graph edge import record.
         /// </summary>
         public VisioGraphEdgeRecord(string? id, string fromId, string toId) {
-            if (string.IsNullOrWhiteSpace(fromId)) throw new ArgumentException("From node id cannot be null or whitespace.", nameof(fromId));
-            if (string.IsNullOrWhiteSpace(toId)) throw new ArgumentException("To node id cannot be null or whitespace.", nameof(toId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(fromId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(toId);
             Id = string.IsNullOrWhiteSpace(id) ? null : id;
             FromId = fromId;
             ToId = toId;
@@ -135,7 +135,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Initializes a graph cluster import record.
         /// </summary>
         public VisioGraphClusterRecord(string id, string text, IEnumerable<string> nodeIds) {
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Cluster id cannot be null or whitespace.", nameof(id));
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
             ArgumentNullException.ThrowIfNull(nodeIds);
 
             Id = id;

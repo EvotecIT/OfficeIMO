@@ -18,9 +18,7 @@ public sealed class MarkdownSyntaxInlineHtmlRenderExtension {
         MarkdownSyntaxKind kind,
         string? customKind,
         MarkdownSyntaxInlineHtmlContextualRenderer renderHtml) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Extension name cannot be null or whitespace.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name.Trim();
         Kind = kind;

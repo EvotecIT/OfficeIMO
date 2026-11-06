@@ -138,7 +138,7 @@ public sealed partial class LatexDocument {
 
     /// <summary>Loads decoded text with syntax and recovery diagnostics using Unicode BOM detection when no encoding is specified.</summary>
     public static LatexParseResult LoadResult(string path, LatexParseOptions? options = null, Encoding? encoding = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return LoadResult(stream, options, encoding);
     }

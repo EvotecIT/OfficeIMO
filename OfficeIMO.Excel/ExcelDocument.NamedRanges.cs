@@ -36,12 +36,8 @@ namespace OfficeIMO.Excel {
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
             ArgumentNullException.ThrowIfNullOrWhiteSpace(range);
 #else
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Name cannot be null or whitespace.", nameof(name));
-            }
-            if (string.IsNullOrWhiteSpace(range)) {
-                throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            ArgumentException.ThrowIfNullOrWhiteSpace(range);
 #endif
 
             name = NormalizeDefinedName(name, validationMode);
@@ -69,7 +65,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal void SetPrintAreaCore(ExcelSheet sheet, string range, bool save = true) {
             ArgumentNullException.ThrowIfNull(sheet);
-            if (string.IsNullOrWhiteSpace(range)) throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
+            ArgumentException.ThrowIfNullOrWhiteSpace(range);
 
             string[] areas = ExcelSheet.SplitDefinedNameParts(range).Select(part => {
                 if (part.IndexOf('!') >= 0 &&
@@ -150,9 +146,7 @@ namespace OfficeIMO.Excel {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
 #else
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Name cannot be null or whitespace.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 #endif
             var definedNames = WorkbookRoot.DefinedNames;
             if (definedNames == null) return null;
@@ -209,9 +203,7 @@ namespace OfficeIMO.Excel {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
 #else
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Name cannot be null or whitespace.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 #endif
             var definedNames = WorkbookRoot.DefinedNames;
             if (definedNames == null) return false;

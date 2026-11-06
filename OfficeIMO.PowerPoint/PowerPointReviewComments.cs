@@ -846,9 +846,7 @@ namespace OfficeIMO.PowerPoint {
             Guid.NewGuid().ToString("B").ToUpperInvariant();
 
         internal static void ValidateCommentText(string text) {
-            if (string.IsNullOrWhiteSpace(text)) {
-                throw new ArgumentException("Comment text cannot be empty.", nameof(text));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(text);
             if (text.Length > MaxModernCommentTextLength) {
                 throw new ArgumentException(
                     $"Modern comment text cannot exceed {MaxModernCommentTextLength:N0} characters.",

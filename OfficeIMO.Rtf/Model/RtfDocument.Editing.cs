@@ -101,7 +101,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Replaces all inline content inside the first matching named bookmark range.</summary>
     public bool ReplaceBookmarkText(string name, string replacement) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Bookmark name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(replacement);
         var paragraphs = new List<RtfParagraph>();
         CollectParagraphsInOrder(_blocks, paragraphs);

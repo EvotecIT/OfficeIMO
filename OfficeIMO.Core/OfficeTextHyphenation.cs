@@ -62,7 +62,7 @@ public sealed class OfficeTextHyphenationLexicon {
     public OfficeTextHyphenationCallback AsCallback() => GetBreakpoints;
 
     private void AddEntry(string entry) {
-        if (string.IsNullOrWhiteSpace(entry)) throw new ArgumentException("Hyphenation dictionary entries cannot be null, empty, or whitespace.", nameof(entry));
+        ArgumentException.ThrowIfNullOrWhiteSpace(entry);
         string value = entry.Trim();
         if (value[0] == BreakMarker || value[value.Length - 1] == BreakMarker) {
             throw new ArgumentException("Hyphenation dictionary entries cannot start or end with the break marker.", nameof(entry));

@@ -684,7 +684,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string ValidateConditionalFormattingRange(string range) {
-            if (string.IsNullOrWhiteSpace(range)) throw new ArgumentException("A conditional-formatting range is required.", nameof(range));
+            ArgumentException.ThrowIfNullOrWhiteSpace(range);
             var normalized = new List<string>();
             foreach (ReferenceListPart part in SplitReferenceList(range.Trim())) {
                 if (!TryParseReference(part, out _)) {

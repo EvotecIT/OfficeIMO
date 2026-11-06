@@ -78,7 +78,7 @@ public sealed partial class RtfLosslessEditor {
 
     /// <summary>Replaces the content of every matching destination group, including headers and footers.</summary>
     public int ReplaceDestinationContent(string destination, string rtfFragment) {
-        if (string.IsNullOrWhiteSpace(destination)) throw new ArgumentException("Destination cannot be empty.", nameof(destination));
+        ArgumentException.ThrowIfNullOrWhiteSpace(destination);
         ArgumentNullException.ThrowIfNull(rtfFragment);
         IReadOnlyList<RtfNode> fragmentNodes = ParseFragment(rtfFragment);
         int replacements = 0;

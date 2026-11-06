@@ -22,7 +22,7 @@ public enum ProjectIndicatorIcon {
 public sealed class ProjectIndicatorRule {
     /// <summary>Creates a predicate using the same bounded expression language as custom fields.</summary>
     public ProjectIndicatorRule(string expression, ProjectIndicatorIcon icon, string label) {
-        if (string.IsNullOrWhiteSpace(expression)) throw new ArgumentException("An indicator requires a predicate.", nameof(expression));
+        ArgumentException.ThrowIfNullOrWhiteSpace(expression);
         if (!Enum.IsDefined(typeof(ProjectIndicatorIcon), icon)) throw new ArgumentOutOfRangeException(nameof(icon));
         Expression = expression; Icon = icon; Label = label ?? throw new ArgumentNullException(nameof(label));
     }

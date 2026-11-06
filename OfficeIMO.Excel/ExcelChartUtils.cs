@@ -111,9 +111,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static string EnsureSheetQualifiedRange(string sheetName, string a1Range) {
-            if (string.IsNullOrWhiteSpace(a1Range)) {
-                throw new ArgumentException("Range cannot be null or empty.", nameof(a1Range));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(a1Range);
 
             string trimmed = a1Range.Trim();
             return trimmed.Contains("!") ? trimmed : BuildSheetQualifiedRange(sheetName, trimmed);

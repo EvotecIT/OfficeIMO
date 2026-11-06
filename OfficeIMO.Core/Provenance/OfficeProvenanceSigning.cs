@@ -60,7 +60,7 @@ public sealed class OfficeProvenanceClaim {
         string claimGenerator,
         IReadOnlyList<OfficeProvenanceAction> actions,
         string? title = null) {
-        if (string.IsNullOrWhiteSpace(claimGenerator)) throw new ArgumentException("A claim generator is required.", nameof(claimGenerator));
+        ArgumentException.ThrowIfNullOrWhiteSpace(claimGenerator);
         if (claimGenerator.Length > 256 || ContainsControlCharacter(claimGenerator)) {
             throw new ArgumentException("The claim generator must be at most 256 characters and contain no controls.", nameof(claimGenerator));
         }
@@ -98,8 +98,8 @@ public sealed class OfficeProvenanceSigningRequest {
         string outputPath,
         OfficeProvenanceClaim claim,
         string? parentPath = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         InputPath = inputPath;
         OutputPath = outputPath;
         Claim = claim ?? throw new ArgumentNullException(nameof(claim));
@@ -150,7 +150,7 @@ public sealed class OfficeProvenanceSigningResult {
         string? outputPath = null,
         OfficeProvenanceReport? structuralReport = null,
         string? rawReport = null) {
-        if (string.IsNullOrWhiteSpace(providerName)) throw new ArgumentException("A provider name is required.", nameof(providerName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerName);
         Status = status;
         ProviderName = providerName;
         Findings = new List<string>(findings ?? throw new ArgumentNullException(nameof(findings))).AsReadOnly();

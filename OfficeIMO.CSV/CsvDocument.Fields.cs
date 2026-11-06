@@ -13,10 +13,7 @@ public sealed partial class CsvDocument
     internal static void ReadRowFieldSpans<TVisitor>(string path, ref TVisitor rowVisitor, CsvParsingSettings? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         options ??= new CsvParsingSettings();
         var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
@@ -144,10 +141,7 @@ public sealed partial class CsvDocument
     internal static void ReadFieldSpans<TVisitor>(string path, ref TVisitor fieldVisitor, CsvParsingSettings? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         options = CreateRawRecordOptions(options);
         var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);

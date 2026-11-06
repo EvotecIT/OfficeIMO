@@ -121,7 +121,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointDocument Create(string filePath, PowerPointCreateOptions? options = null) {
             ArgumentNullException.ThrowIfNull(filePath);
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             return CreateInternal(filePath, sourceStream: null, options ?? new PowerPointCreateOptions());
         }
 

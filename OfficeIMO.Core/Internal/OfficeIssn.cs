@@ -5,7 +5,7 @@ namespace OfficeIMO.Core.Internal;
 /// <summary>Shared ISSN shape and checksum validation for document and publishing owners.</summary>
 internal static class OfficeIssn {
     internal static string Normalize(string value) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("An ISSN is required.", nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         string issn = value.Trim().ToUpperInvariant();
         if (issn.Length == 9 && issn[4] == '-') issn = issn.Remove(4, 1);
         if (issn.Length != 8) throw new ArgumentException("Supply an eight-character ISSN, optionally hyphenated after four digits.", nameof(value));

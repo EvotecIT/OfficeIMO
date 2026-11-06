@@ -22,7 +22,7 @@ public static class MarkdownProvenance {
 
     /// <summary>Inspects a bounded Markdown file.</summary>
     public static OfficeProvenanceReport InspectFile(string filePath, OfficeProvenanceOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         byte[] input;
@@ -54,8 +54,8 @@ public static class MarkdownProvenance {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeProvenanceRemovalOptions();
         byte[] input;
         using (var stream = File.OpenRead(Path.GetFullPath(inputPath))) {

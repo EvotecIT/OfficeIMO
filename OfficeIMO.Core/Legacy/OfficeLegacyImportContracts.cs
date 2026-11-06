@@ -86,9 +86,7 @@ public sealed class OfficeLegacyImportReport : OfficeConversionReport {
         IEnumerable<OfficeCompatibilityFinding>? findings = null,
         OfficeLegacyInertContentKind inertContent = OfficeLegacyInertContentKind.None,
         int recoveredItemCount = 0) {
-        if (string.IsNullOrWhiteSpace(sourceFormatId)) {
-            throw new ArgumentException("Source format id cannot be empty.", nameof(sourceFormatId));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFormatId);
         ArgumentOutOfRangeException.ThrowIfNegative(recoveredItemCount);
 
         SourceFormatId = sourceFormatId.Trim();

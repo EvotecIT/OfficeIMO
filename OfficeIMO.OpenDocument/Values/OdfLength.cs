@@ -10,7 +10,7 @@ public readonly struct OdfLength : IEquatable<OdfLength> {
 
     /// <summary>Creates a length from an ODF lexical value such as `2.54cm` or `12pt`.</summary>
     public static OdfLength Parse(string value) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Length cannot be empty.", nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         return new OdfLength(value.Trim());
     }
 

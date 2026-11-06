@@ -4,7 +4,7 @@ namespace OfficeIMO.OpenDocument;
 public sealed class OdfConversionMapping {
     /// <summary>Creates a feature mapping result.</summary>
     public OdfConversionMapping(string feature, OdfConversionMappingStatus status, int count = 1, string? message = null) {
-        if (string.IsNullOrWhiteSpace(feature)) throw new ArgumentException("Feature name cannot be empty.", nameof(feature));
+        ArgumentException.ThrowIfNullOrWhiteSpace(feature);
         ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
         Feature = feature;
         Status = status;

@@ -182,7 +182,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             string? parentId = null,
             TranslationReport? report = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Folder name is required.", nameof(name));
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(_options.WriteScopes, report, "Google Drive folder creation", cancellationToken).ConfigureAwait(false);
             var payload = GoogleDriveJson.ToNode(new GoogleDriveFilePayload {

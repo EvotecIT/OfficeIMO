@@ -25,7 +25,7 @@ public sealed partial class MhtmlDocument {
         OfficeContentSafetyOptions? options = null,
         EmailReaderOptions? mimeOptions = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         return InspectContentSafety(OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective), effective, mimeOptions, cancellationToken);
     }
@@ -79,8 +79,8 @@ public sealed partial class MhtmlDocument {
         OfficeContentCleanupOptions? options = null,
         EmailReaderOptions? mimeOptions = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         byte[] input = OfficeContentSafetyInputGuard.ReadAllBytes(inputPath, options.Inspection);

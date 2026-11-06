@@ -155,9 +155,7 @@ public abstract partial class OdfDocument {
 
 
     private static void EnsurePath(string path) {
-        if (string.IsNullOrWhiteSpace(path)) {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
     }
 
     /// <summary>

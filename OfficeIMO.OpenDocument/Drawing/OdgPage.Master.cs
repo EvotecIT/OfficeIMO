@@ -10,7 +10,7 @@ public sealed partial class OdgPage {
     public string MasterPageName {
         get => (string?)Element.Attribute(OdfNamespaces.Draw + "master-page-name") ?? string.Empty;
         set {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Master page name cannot be empty.", nameof(value));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             XElement master = FindMaster(value) ?? throw new ArgumentException("Master page does not exist in this drawing.", nameof(value));
             ResolveLayoutProperties(master);
             Element.SetAttributeValue(OdfNamespaces.Draw + "master-page-name", value);

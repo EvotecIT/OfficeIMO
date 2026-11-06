@@ -15,8 +15,8 @@ namespace OfficeIMO.Excel {
         /// <param name="items">Field criteria. Dates accept DateTime or workbook serials; error items use an ExcelCellData error, distinct from text with the same spelling.</param>
         /// <exception cref="NotSupportedException">The view has no materialized items or uses an unsupported layout or exceeds lookup limits.</exception>
         public ExcelCellData GetPivotData(string pivotTableName, string dataField, IReadOnlyDictionary<string, object?>? items = null) {
-            if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentException("A pivot table name is required.", nameof(pivotTableName));
-            if (string.IsNullOrWhiteSpace(dataField)) throw new ArgumentException("A data field is required.", nameof(dataField));
+            ArgumentException.ThrowIfNullOrWhiteSpace(pivotTableName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(dataField);
             return _excelDocument.ExecuteReadAfterMaterializing(() => {
                 var criteria = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                 if (items != null) {

@@ -17,7 +17,7 @@ public sealed partial class OfficeTheme {
     /// <param name="path">Path to the document or template.</param>
     /// <returns>An immutable theme suitable for creating documents in any supported format.</returns>
     public static OfficeTheme FromDocument(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A document path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string extension = Path.GetExtension(path).ToLowerInvariant();
         if (extension is not (".docx" or ".dotx" or ".xlsx" or ".xltx" or ".pptx" or ".potx"))
             throw new ArgumentException("Use a DOCX/DOTX, XLSX/XLTX or PPTX/POTX theme source.", nameof(path));

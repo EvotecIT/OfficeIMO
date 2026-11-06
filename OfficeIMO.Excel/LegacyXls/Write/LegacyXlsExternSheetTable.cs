@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         internal static LegacyXlsExternSheetTable CreateDirectTabular(string sheetName) {
-            if (string.IsNullOrEmpty(sheetName)) throw new ArgumentException("Worksheet name is required.", nameof(sheetName));
+            ArgumentException.ThrowIfNullOrEmpty(sheetName);
 
             return new LegacyXlsExternSheetTable(
                 [sheetName],

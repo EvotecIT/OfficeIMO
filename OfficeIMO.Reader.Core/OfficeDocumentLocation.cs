@@ -92,7 +92,7 @@ public static partial class OfficeDocumentReadResultExtensions {
         this OfficeDocumentReadResult document,
         string blockId) {
         ArgumentNullException.ThrowIfNull(document);
-        if (string.IsNullOrWhiteSpace(blockId)) throw new ArgumentException("Block identifier cannot be empty.", nameof(blockId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(blockId);
         return Locate(document, blockId, fallbackBlock: null);
     }
 

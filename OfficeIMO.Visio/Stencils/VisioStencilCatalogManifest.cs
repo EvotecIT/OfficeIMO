@@ -31,7 +31,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// </summary>
         public static void Save(VisioStencilCatalog catalog, string path) {
             ArgumentNullException.ThrowIfNull(catalog);
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Manifest path cannot be null or whitespace.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             OfficeFileCommit.WriteAllBytes(path, ToBytes(catalog));
         }
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Visio.Stencils {
             string path,
             CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(catalog);
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Manifest path cannot be null or whitespace.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             cancellationToken.ThrowIfCancellationRequested();
             return OfficeFileCommit.WriteAllBytesAsync(path, ToBytes(catalog), cancellationToken: cancellationToken);
         }
@@ -83,7 +83,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Loads a stencil catalog manifest from a file with explicit source-package trust options.
         /// </summary>
         public static VisioStencilCatalog Load(string path, VisioStencilCatalogManifestLoadOptions? options) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Manifest path cannot be null or whitespace.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             using FileStream stream = File.OpenRead(path);
             return Load(stream, CreateOptionsForPath(path, options));
         }
@@ -113,7 +113,7 @@ namespace OfficeIMO.Visio.Stencils {
             string path,
             VisioStencilCatalogManifestLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Manifest path cannot be null or whitespace.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous);
             return await LoadAsync(stream, CreateOptionsForPath(path, options), cancellationToken).ConfigureAwait(false);
         }

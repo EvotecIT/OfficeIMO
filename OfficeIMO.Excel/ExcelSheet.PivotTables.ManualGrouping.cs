@@ -9,9 +9,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelPivotGroupingInfo AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName,
             IReadOnlyDictionary<string, string[]> groups, IReadOnlyCollection<string>? hiddenGroupItems = null) {
-            if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentException("A pivot name is required.", nameof(pivotTableName));
-            if (string.IsNullOrWhiteSpace(sourceFieldName)) throw new ArgumentException("A source field is required.", nameof(sourceFieldName));
-            if (string.IsNullOrWhiteSpace(groupFieldName)) throw new ArgumentException("A group field name is required.", nameof(groupFieldName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(pivotTableName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(sourceFieldName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(groupFieldName);
             if (groups == null || groups.Count == 0) throw new ArgumentException("At least one group is required.", nameof(groups));
             ExcelPivotGroupingInfo? createdGrouping = null;
             WriteLockWorksheetPreparationOnly(() => {

@@ -26,7 +26,7 @@ public sealed class EmailStoreContinuationToken : IEquatable<EmailStoreContinuat
 
     /// <summary>Parses and structurally validates a continuation token.</summary>
     public static EmailStoreContinuationToken Parse(string value) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A continuation token cannot be empty.", nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         if (value.Length > MaxEncodedLength) throw new InvalidDataException("The continuation token is too large.");
         byte[] bytes;
         try {

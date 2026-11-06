@@ -89,7 +89,7 @@ public sealed class EmailHtmlImageDocument {
     public void SetImageSource(int imageIndex, string source) {
         ArgumentOutOfRangeException.ThrowIfNegative(imageIndex);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(imageIndex, _images.Length);
-        if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("An image source is required.", nameof(source));
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
         _images[imageIndex].SetAttribute("src", source);
     }
 

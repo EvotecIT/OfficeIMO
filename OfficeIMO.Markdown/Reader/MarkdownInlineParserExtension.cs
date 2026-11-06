@@ -149,9 +149,7 @@ public sealed class MarkdownInlineParserExtension {
         string name,
         MarkdownInlineParser parser,
         Func<MarkdownLoadOptions, bool>? isEnabled = null) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Extension name cannot be null or whitespace.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name.Trim();
         Parser = parser ?? throw new ArgumentNullException(nameof(parser));

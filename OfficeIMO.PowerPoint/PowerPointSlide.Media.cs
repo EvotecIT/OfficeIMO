@@ -114,12 +114,8 @@ namespace OfficeIMO.PowerPoint {
             if (!media.CanRead) {
                 throw new ArgumentException("Media stream must be readable.", nameof(media));
             }
-            if (string.IsNullOrWhiteSpace(contentType)) {
-                throw new ArgumentException("Media content type is required.", nameof(contentType));
-            }
-            if (string.IsNullOrWhiteSpace(extension)) {
-                throw new ArgumentException("Media extension is required.", nameof(extension));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+            ArgumentException.ThrowIfNullOrWhiteSpace(extension);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
 

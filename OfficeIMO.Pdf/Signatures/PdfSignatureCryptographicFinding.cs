@@ -4,8 +4,8 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfSignatureCryptographicFinding {
     /// <summary>Creates a provider finding with a stable code and human-readable message.</summary>
     public PdfSignatureCryptographicFinding(PdfDiagnosticSeverity severity, string code, string message) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Finding code cannot be empty.", nameof(code));
-        if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("Finding message cannot be empty.", nameof(message));
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
         Severity = severity;
         Code = code;
         Message = message;

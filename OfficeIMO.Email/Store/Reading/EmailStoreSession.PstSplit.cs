@@ -10,9 +10,7 @@ public sealed partial class EmailStoreSession {
     public EmailStorePstSplitPlan PlanPstSplit(string outputBasePath,
         EmailStorePstSplitOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(outputBasePath)) {
-            throw new ArgumentException("An output base path is required.", nameof(outputBasePath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputBasePath);
         ThrowIfDisposed();
         EmailStorePstSplitOptions effective = options ?? new EmailStorePstSplitOptions();
         string outputBase = Path.GetFullPath(outputBasePath);

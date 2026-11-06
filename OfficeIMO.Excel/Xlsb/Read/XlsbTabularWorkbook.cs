@@ -142,9 +142,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             string path,
             ExcelReaderOptions readOptions,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("File path cannot be empty.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             ArgumentNullException.ThrowIfNull(readOptions);
 
@@ -167,9 +165,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             string path,
             ExcelReaderOptions readOptions,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("File path cannot be empty.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             ArgumentNullException.ThrowIfNull(readOptions);
 
             cancellationToken.ThrowIfCancellationRequested();

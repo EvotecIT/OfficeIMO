@@ -20,9 +20,7 @@ namespace OfficeIMO.Visio {
 
             ArgumentNullException.ThrowIfNull(shape);
 
-            if (string.IsNullOrWhiteSpace(masterNameU)) {
-                throw new ArgumentException("Master NameU cannot be empty.", nameof(masterNameU));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(masterNameU);
 
             ReplaceMasters(page, new[] { shape }, ResolveMaster(page, masterNameU), resizeToMaster, null);
             return shape;

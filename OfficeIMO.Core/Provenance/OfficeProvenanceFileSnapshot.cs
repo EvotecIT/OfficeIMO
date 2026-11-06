@@ -67,7 +67,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         long maximumTotalBytes,
         CancellationToken cancellationToken = default) {
         if (_disposed) throw new ObjectDisposedException(nameof(OfficeProvenanceFileSnapshot));
-        if (string.IsNullOrWhiteSpace(sourcePath)) throw new ArgumentException("A source path is required.", nameof(sourcePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentNullException.ThrowIfNull(report);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDependencyBytes);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumTotalBytes);
@@ -249,7 +249,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         bool usesPhysicalIdentity,
         string? auditRootPhysicalPath = null,
         string? auditRootIdentity = null) {
-        if (string.IsNullOrWhiteSpace(sourcePath)) throw new ArgumentException("A source path is required.", nameof(sourcePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
 
         string fullPath = Path.GetFullPath(sourcePath);
@@ -656,7 +656,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             throw new ArgumentException("The snapshot destination must be writable.", nameof(destination));
         }
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
-        if (string.IsNullOrWhiteSpace(limitMessage)) throw new ArgumentException("A limit message is required.", nameof(limitMessage));
+        ArgumentException.ThrowIfNullOrWhiteSpace(limitMessage);
 
         source.Position = 0;
         if (source.Length > maximumBytes) throw new InvalidDataException(limitMessage);

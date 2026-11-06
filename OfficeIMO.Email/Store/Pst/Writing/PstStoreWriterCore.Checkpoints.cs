@@ -50,9 +50,7 @@ internal sealed partial class PstStoreWriterCore {
     }
 
     internal static void DeleteCheckpoint(string checkpointPath) {
-        if (string.IsNullOrWhiteSpace(checkpointPath)) {
-            throw new ArgumentException("A checkpoint path is required.", nameof(checkpointPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkpointPath);
         string fullPath = Path.GetFullPath(checkpointPath);
         if (!File.Exists(fullPath)) return;
         WriterCheckpointState state = ReadCheckpointFile(fullPath);
@@ -64,9 +62,7 @@ internal sealed partial class PstStoreWriterCore {
 
     internal static bool TryReadCheckpointApplicationState(string checkpointPath,
         out byte[]? applicationState) {
-        if (string.IsNullOrWhiteSpace(checkpointPath)) {
-            throw new ArgumentException("A checkpoint path is required.", nameof(checkpointPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkpointPath);
         string fullPath = Path.GetFullPath(checkpointPath);
         if (!File.Exists(fullPath)) {
             applicationState = null;

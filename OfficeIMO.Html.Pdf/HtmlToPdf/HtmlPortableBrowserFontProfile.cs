@@ -57,7 +57,7 @@ public sealed class HtmlPortableBrowserFontProfile {
     /// The reader must return the exact named font file bytes or throw.
     /// </summary>
     public static HtmlPortableBrowserFontProfile Create(string id, Func<string, byte[]> readAsset) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A portable font-package id is required.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentNullException.ThrowIfNull(readAsset);
         byte[] regular = Read(readAsset, "Carlito-Regular.ttf");
         byte[] bold = Read(readAsset, "Carlito-Bold.ttf");

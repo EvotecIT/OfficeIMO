@@ -22,9 +22,7 @@ public sealed class MarkdownInlineHtmlRenderExtension {
         Type inlineType,
         MarkdownInlineHtmlRenderer renderHtml,
         MarkdownInlineHtmlContextualRenderer renderHtmlWithContext) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Extension name cannot be null or whitespace.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name.Trim();
         InlineType = inlineType ?? throw new ArgumentNullException(nameof(inlineType));

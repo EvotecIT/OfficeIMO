@@ -6,7 +6,7 @@ namespace OfficeIMO.Rtf;
 public sealed partial class RtfShapeInstruction {
     /// <summary>Creates a shape instruction control.</summary>
     public RtfShapeInstruction(string name, int? parameter = null, bool hasParameter = false) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Shape instruction name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name;
         Parameter = parameter;
         HasParameter = hasParameter;

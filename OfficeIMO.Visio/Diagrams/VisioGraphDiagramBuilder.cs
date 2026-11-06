@@ -288,9 +288,7 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder NodeShapeData(string nodeId, string name, string? value, string? label = null, VisioShapeDataType? type = null, string? prompt = null, string? format = null) {
             string normalizedNodeId = RequireId(nodeId, nameof(nodeId), "Node id");
             NodeItem node = GetKnownNode(normalizedNodeId, nameof(nodeId));
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Shape data name cannot be null or whitespace.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             string normalizedName = name.Trim();
             node.ShapeData.RemoveAll(row => string.Equals(row.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
@@ -322,9 +320,7 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder NodeHyperlink(string nodeId, string address, string? description = null, string? subAddress = null) {
             string normalizedNodeId = RequireId(nodeId, nameof(nodeId), "Node id");
             NodeItem node = GetKnownNode(normalizedNodeId, nameof(nodeId));
-            if (string.IsNullOrWhiteSpace(address)) {
-                throw new ArgumentException("Hyperlink address cannot be null or whitespace.", nameof(address));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(address);
 
             node.Hyperlinks.Add(new VisioHyperlink(address, description, subAddress));
             return this;
@@ -438,9 +434,7 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder EdgeHyperlink(string edgeId, string address, string? description = null, string? subAddress = null) {
             string normalizedEdgeId = RequireId(edgeId, nameof(edgeId), "Edge id");
             EdgeItem edge = GetKnownEdge(normalizedEdgeId, nameof(edgeId));
-            if (string.IsNullOrWhiteSpace(address)) {
-                throw new ArgumentException("Hyperlink address cannot be null or whitespace.", nameof(address));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(address);
 
             edge.Hyperlinks.Add(new VisioHyperlink(address, description, subAddress));
             return this;
@@ -457,9 +451,7 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder EdgeShapeData(string edgeId, string name, string? value, string? label = null, VisioShapeDataType? type = null, string? prompt = null, string? format = null) {
             string normalizedEdgeId = RequireId(edgeId, nameof(edgeId), "Edge id");
             EdgeItem edge = GetKnownEdge(normalizedEdgeId, nameof(edgeId));
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Shape data name cannot be null or whitespace.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             string normalizedName = name.Trim();
             edge.ShapeData.RemoveAll(row => string.Equals(row.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
@@ -491,9 +483,7 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder ZoneShapeData(string zoneId, string name, string? value, string? label = null, VisioShapeDataType? type = null, string? prompt = null, string? format = null) {
             string normalizedZoneId = RequireId(zoneId, nameof(zoneId), "Zone id");
             ZoneItem zone = GetKnownZone(normalizedZoneId, nameof(zoneId));
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Shape data name cannot be null or whitespace.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             string normalizedName = name.Trim();
             zone.ShapeData.RemoveAll(row => string.Equals(row.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
@@ -505,9 +495,7 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder ZoneHyperlink(string zoneId, string address, string? description = null, string? subAddress = null) {
             string normalizedZoneId = RequireId(zoneId, nameof(zoneId), "Zone id");
             ZoneItem zone = GetKnownZone(normalizedZoneId, nameof(zoneId));
-            if (string.IsNullOrWhiteSpace(address)) {
-                throw new ArgumentException("Hyperlink address cannot be null or whitespace.", nameof(address));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(address);
 
             zone.Hyperlinks.Add(new VisioHyperlink(address, description, subAddress));
             return this;

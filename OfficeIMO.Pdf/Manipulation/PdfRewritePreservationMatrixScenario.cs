@@ -11,13 +11,9 @@ public sealed class PdfRewritePreservationMatrixScenario {
     /// Creates a rewrite-preservation matrix scenario.
     /// </summary>
     public PdfRewritePreservationMatrixScenario(string id, string operation, byte[] sourcePdf, Func<byte[], byte[]> rewrite) {
-        if (string.IsNullOrWhiteSpace(id)) {
-            throw new ArgumentException("Scenario id cannot be empty or whitespace.", nameof(id));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        if (string.IsNullOrWhiteSpace(operation)) {
-            throw new ArgumentException("Operation name cannot be empty or whitespace.", nameof(operation));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(operation);
 
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(rewrite, nameof(rewrite));

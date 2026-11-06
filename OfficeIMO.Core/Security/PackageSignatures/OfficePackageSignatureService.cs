@@ -768,7 +768,7 @@ internal static class OfficePackageSignatureService {
     }
 
     private static byte[] ReadPackage(string filePath, OfficePackageSignatureInspectionOptions options) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A package path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         options.Validate();
         string fullPath = Path.GetFullPath(filePath);
         var info = new FileInfo(fullPath);

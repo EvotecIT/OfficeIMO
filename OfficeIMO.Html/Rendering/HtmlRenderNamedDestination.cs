@@ -10,7 +10,7 @@ public sealed class HtmlRenderNamedDestination : HtmlRenderVisual {
         string? source,
         double? layoutY = null)
         : base(HtmlRenderVisualKind.NamedDestination, x, y, 0.01D, 0.01D, paintOrder, null, source, layoutY) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Named destinations cannot be empty or whitespace.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name.Trim();
     }
 

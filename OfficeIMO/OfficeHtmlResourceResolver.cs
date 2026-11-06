@@ -28,9 +28,7 @@ internal static class OfficeHtmlResourceResolver {
         long maximumResourceBytes,
         IReadOnlyDictionary<string, byte[]>? resourceSnapshots = null,
         HtmlPdfExportOptions? renderingOptions = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) {
-            throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
         ArgumentOutOfRangeException.ThrowIfLessThan(maximumResourceBytes, 0L);
 
         string sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(inputPath))

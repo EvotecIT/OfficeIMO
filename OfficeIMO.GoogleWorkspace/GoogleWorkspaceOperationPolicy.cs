@@ -64,9 +64,7 @@ namespace OfficeIMO.GoogleWorkspace {
 
         /// <summary>Declares the exact revision already embedded by the adapter in the request payload.</summary>
         public static GoogleWorkspaceRevisionPrecondition PayloadRevision(string expectedRevision) {
-            if (string.IsNullOrWhiteSpace(expectedRevision)) {
-                throw new ArgumentException("The payload revision is required.", nameof(expectedRevision));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(expectedRevision);
             return new GoogleWorkspaceRevisionPrecondition(
                 GoogleWorkspaceRevisionPreconditionKind.PayloadRevision,
                 expectedRevision);
@@ -74,9 +72,7 @@ namespace OfficeIMO.GoogleWorkspace {
 
         /// <summary>Declares the exact resumable-session state enforced by the request's content range.</summary>
         public static GoogleWorkspaceRevisionPrecondition ResumableSessionState(string expectedState) {
-            if (string.IsNullOrWhiteSpace(expectedState)) {
-                throw new ArgumentException("The resumable-session state is required.", nameof(expectedState));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(expectedState);
             return new GoogleWorkspaceRevisionPrecondition(
                 GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState,
                 expectedState);
@@ -157,12 +153,12 @@ namespace OfficeIMO.GoogleWorkspace {
             string expectedRevision, int maxRetryCount, TimeSpan maxRetryElapsedTime,
             GoogleWorkspaceRateLimitPolicy rateLimitPolicy, GoogleWorkspaceDataLossDecision dataLossDecision,
             string? acceptedLoss = null) {
-            if (string.IsNullOrWhiteSpace(account)) throw new ArgumentException("The expected Google account is required.", nameof(account));
+            ArgumentException.ThrowIfNullOrWhiteSpace(account);
             ArgumentNullException.ThrowIfNull(scopes);
             string[] materialized = scopes.Where(scope => !string.IsNullOrWhiteSpace(scope)).Distinct(StringComparer.Ordinal).ToArray();
             if (materialized.Length == 0) throw new ArgumentException("At least one OAuth scope is required.", nameof(scopes));
-            if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("The mutation target is required.", nameof(target));
-            if (string.IsNullOrWhiteSpace(expectedRevision)) throw new ArgumentException("An expected revision decision is required; use an explicit create or unversioned marker when applicable.", nameof(expectedRevision));
+            ArgumentException.ThrowIfNullOrWhiteSpace(target);
+            ArgumentException.ThrowIfNullOrWhiteSpace(expectedRevision);
             ArgumentOutOfRangeException.ThrowIfNegative(maxRetryCount);
             if (maxRetryElapsedTime <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(maxRetryElapsedTime));
             if (dataLossDecision == GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss && string.IsNullOrWhiteSpace(acceptedLoss)) throw new ArgumentException("Accepted loss must be named explicitly.", nameof(acceptedLoss));
@@ -194,9 +190,7 @@ namespace OfficeIMO.GoogleWorkspace {
         /// conditional revision precondition. The named reason is retained in the operation receipt.
         /// </summary>
         public static string ExplicitlyUnversionedRevision(string reason) {
-            if (string.IsNullOrWhiteSpace(reason)) {
-                throw new ArgumentException("An explicitly unversioned mutation must name why no revision precondition is available.", nameof(reason));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
             return ExplicitlyUnversionedPrefix + reason.Trim();
         }
 

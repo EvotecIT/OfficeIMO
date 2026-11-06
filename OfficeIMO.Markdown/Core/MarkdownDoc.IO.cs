@@ -29,7 +29,7 @@ public partial class MarkdownDocument : IDisposable {
 
     /// <summary>Loads Markdown from a path and associates it for subsequent saves.</summary>
     public static MarkdownDocument Load(string path, MarkdownLoadOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         MarkdownDocument document = Load(stream, options);
         document._filePath = Path.GetFullPath(path);
@@ -59,7 +59,7 @@ public partial class MarkdownDocument : IDisposable {
     /// <summary>Asynchronously loads a Markdown file and associates its path.</summary>
     public static async Task<MarkdownDocument> LoadAsync(string path, MarkdownLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
         MarkdownDocument document = await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
         document._filePath = Path.GetFullPath(path);
@@ -88,7 +88,7 @@ public partial class MarkdownDocument : IDisposable {
 
     /// <summary>Atomically saves the native document and associates its path.</summary>
     public void Save(string path, MarkdownSaveOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         OfficeFileCommit.WriteAllBytes(path, ToBytes(options));
         _filePath = Path.GetFullPath(path);
     }
@@ -104,7 +104,7 @@ public partial class MarkdownDocument : IDisposable {
     /// <summary>Asynchronously saves the native document and associates its path.</summary>
     public async Task SaveAsync(string path, MarkdownSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         await OfficeFileCommit.WriteAllBytesAsync(path, ToBytes(options, cancellationToken), cancellationToken: cancellationToken).ConfigureAwait(false);
         _filePath = Path.GetFullPath(path);
     }

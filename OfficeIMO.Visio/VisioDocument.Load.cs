@@ -17,7 +17,7 @@ namespace OfficeIMO.Visio {
         /// <summary>Loads an existing .vsdx file with explicit input limits.</summary>
         public static VisioDocument Load(string filePath, VisioLoadOptions? options) {
             ArgumentNullException.ThrowIfNull(filePath);
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
 
@@ -58,7 +58,7 @@ namespace OfficeIMO.Visio {
             VisioLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(filePath);
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
             using var source = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 81920, useAsync: true);

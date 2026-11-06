@@ -41,9 +41,7 @@ namespace OfficeIMO.Visio {
         /// <param name="layerName">Layer name or universal name.</param>
         /// <param name="comparison">String comparison used for matching.</param>
         public static IReadOnlyList<VisioConnector> ConnectorsInLayer(this VisioPage page, string layerName, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            if (string.IsNullOrWhiteSpace(layerName)) {
-                throw new ArgumentException("Layer name cannot be empty.", nameof(layerName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(layerName);
 
             return FilterConnectors(page, connector => connector.LayerNames.Any(current => string.Equals(current, layerName, comparison)));
         }
@@ -63,9 +61,7 @@ namespace OfficeIMO.Visio {
         /// <param name="address">Hyperlink address.</param>
         /// <param name="comparison">String comparison used for matching.</param>
         public static IReadOnlyList<VisioConnector> ConnectorsWithHyperlink(this VisioPage page, string address, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            if (string.IsNullOrWhiteSpace(address)) {
-                throw new ArgumentException("Hyperlink address cannot be empty.", nameof(address));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(address);
 
             return FilterConnectors(page, connector => connector.Hyperlinks.Any(hyperlink => string.Equals(hyperlink.Address, address, comparison)));
         }

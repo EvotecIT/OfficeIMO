@@ -15,7 +15,7 @@ public static partial class OfficeDocument {
     public static OfficeDocumentInfo Inspect(Stream source, string sourceName, OfficeInspectOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(source);
-        if (string.IsNullOrWhiteSpace(sourceName)) throw new ArgumentException("A source filename is required.", nameof(sourceName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
         OfficeInspectOptions settings = options ?? new();
         if (settings.Formats == null || ((settings.IncludeContent || settings.IncludeSummary) && settings.Reader == null)) throw new ArgumentException("Reader and format settings are required.", nameof(options));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(settings.MaximumInputBytes, nameof(options));

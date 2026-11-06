@@ -293,9 +293,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private string ValidateCustomShowName(string name, P.CustomShow? except) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Custom-show name cannot be empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
             string normalized = name.Trim();
             PowerPointXmlValueValidator.ValidateCharacters(normalized,
                 nameof(name), "Custom-show name");

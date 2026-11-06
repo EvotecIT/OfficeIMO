@@ -34,8 +34,8 @@ public class OfficeConversionReport {
     /// <param name="source">Source format or description.</param>
     /// <param name="target">Target format or description.</param>
     protected OfficeConversionReport(string source, string target) {
-        if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("A source is required.", nameof(source));
-        if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("A target is required.", nameof(target));
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        ArgumentException.ThrowIfNullOrWhiteSpace(target);
         Source = source;
         Target = target;
     }

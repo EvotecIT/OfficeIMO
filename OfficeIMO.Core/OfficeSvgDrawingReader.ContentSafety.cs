@@ -28,7 +28,7 @@ public static partial class OfficeSvgDrawingReader {
         string filePath,
         OfficeContentSafetyOptions? options = null,
         OfficeSvgDrawingReaderOptions? readerOptions = null) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         return InspectContentSafety(OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective), effective, readerOptions);
     }
@@ -97,8 +97,8 @@ public static partial class OfficeSvgDrawingReader {
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
         OfficeSvgDrawingReaderOptions? readerOptions = null) {
-        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         byte[] input = OfficeContentSafetyInputGuard.ReadAllBytes(inputPath, options.Inspection);

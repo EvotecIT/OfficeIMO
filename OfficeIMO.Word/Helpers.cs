@@ -20,9 +20,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="hex">Color value in hex without alpha or with '#'.</param>
         internal static OfficeIMO.OfficeColor ParseColor(string hex) {
-            if (string.IsNullOrEmpty(hex)) {
-                throw new ArgumentException("Value cannot be null or empty.", nameof(hex));
-            }
+            ArgumentException.ThrowIfNullOrEmpty(hex);
             if (!hex.StartsWith("#", StringComparison.Ordinal)) {
                 hex = "#" + hex;
             }

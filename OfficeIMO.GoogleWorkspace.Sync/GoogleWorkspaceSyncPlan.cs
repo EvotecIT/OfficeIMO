@@ -19,9 +19,9 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
         /// <remarks>The caller supplies the classification and descriptive fields; this constructor does not inspect either copy.</remarks>
         public GoogleWorkspaceSyncItem(string id, GoogleWorkspaceSyncItemKind kind, string path, string message,
             string targetResource, string expectedRevision, string? sourceId = null, string? googleFileId = null) {
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A stable plan item id is required.", nameof(id));
-            if (string.IsNullOrWhiteSpace(targetResource)) throw new ArgumentException("The target resource is required.", nameof(targetResource));
-            if (string.IsNullOrWhiteSpace(expectedRevision)) throw new ArgumentException("The expected revision decision is required.", nameof(expectedRevision));
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            ArgumentException.ThrowIfNullOrWhiteSpace(targetResource);
+            ArgumentException.ThrowIfNullOrWhiteSpace(expectedRevision);
             Id = id; Kind = kind; Path = path ?? string.Empty; Message = message ?? string.Empty;
             TargetResource = targetResource; ExpectedRevision = expectedRevision;
             SourceId = sourceId; GoogleFileId = googleFileId;

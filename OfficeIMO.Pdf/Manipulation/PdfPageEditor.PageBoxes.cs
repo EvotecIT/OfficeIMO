@@ -139,9 +139,7 @@ internal static partial class PdfPageEditor {
     }
 
     private static string NormalizePageBoxName(string boxName) {
-        if (string.IsNullOrWhiteSpace(boxName)) {
-            throw new ArgumentException("Page box name cannot be empty.", nameof(boxName));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(boxName);
 
         string normalized = boxName.Trim().TrimStart('/');
         if (string.Equals(normalized, "MediaBox", StringComparison.OrdinalIgnoreCase)) {

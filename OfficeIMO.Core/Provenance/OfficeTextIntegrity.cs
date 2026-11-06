@@ -76,7 +76,7 @@ public sealed class OfficeTextIntegrityFinding {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(textLength);
         ArgumentOutOfRangeException.ThrowIfNegative(codePoint);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(codePoint, 0x10FFFF);
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A finding location is required.", nameof(location));
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
         Kind = kind;
         Risk = risk;
         TextOffset = textOffset;
@@ -142,7 +142,7 @@ public static class OfficeTextIntegrityInspector {
         string? location,
         Encoding? encoding,
         CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         string fullPath = Path.GetFullPath(filePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The text file was not found.", fullPath);
         options ??= new OfficeTextIntegrityOptions();
@@ -177,7 +177,7 @@ public static class OfficeTextIntegrityInspector {
         if (text.Length > options.MaxCharacters) {
             throw new OfficeInspectionResourceLimitException("text-integrity", nameof(OfficeTextIntegrityOptions.MaxCharacters), options.MaxCharacters);
         }
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A text location is required.", nameof(location));
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
 
         cancellationToken.ThrowIfCancellationRequested();
         var findings = new List<OfficeTextIntegrityFinding>();

@@ -23,7 +23,7 @@ namespace OfficeIMO.Word {
             bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
             Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) {
 #pragma warning restore RS0026
-            if (string.IsNullOrEmpty(columnName)) throw new ArgumentException("Column name can't be empty", nameof(columnName));
+            ArgumentException.ThrowIfNullOrEmpty(columnName);
             if (matchText == null) matchText = string.Empty;
 
             int headerIndex = -1;

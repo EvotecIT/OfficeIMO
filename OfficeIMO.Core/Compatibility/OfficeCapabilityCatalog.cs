@@ -23,10 +23,10 @@ public sealed class OfficeCapability {
         OfficeCapabilityCoverageState legacyToModern,
         OfficeCompatibilityImpact affectedFidelity = OfficeCompatibilityImpact.None,
         string? note = null) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Capability id cannot be empty.", nameof(id));
-        if (string.IsNullOrWhiteSpace(formatId)) throw new ArgumentException("Format id cannot be empty.", nameof(formatId));
-        if (string.IsNullOrWhiteSpace(category)) throw new ArgumentException("Capability category cannot be empty.", nameof(category));
-        if (string.IsNullOrWhiteSpace(description)) throw new ArgumentException("Capability description cannot be empty.", nameof(description));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(category);
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
 
         Id = id.Trim();
         FormatId = formatId.Trim();
@@ -117,7 +117,7 @@ public sealed class OfficeCapabilityCatalog {
 
     /// <summary>Creates a versioned capability catalog.</summary>
     public OfficeCapabilityCatalog(string id, int schemaVersion, IEnumerable<OfficeCapability> capabilities) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Catalog id cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(schemaVersion);
         ArgumentNullException.ThrowIfNull(capabilities);
 
@@ -160,7 +160,7 @@ public sealed class OfficeCapabilityCatalog {
 
     /// <summary>Gets a capability by its exact stable id.</summary>
     public OfficeCapability Get(string id) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Capability id cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         if (!_capabilitiesById.TryGetValue(id.Trim(), out OfficeCapability? capability)) {
             throw new KeyNotFoundException($"Capability '{id}' is not present in catalog '{Id}'.");
         }

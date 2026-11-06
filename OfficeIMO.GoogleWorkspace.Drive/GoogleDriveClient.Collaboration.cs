@@ -168,7 +168,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             TranslationReport? report = null,
             CancellationToken cancellationToken = default) {
             ValidateResourceId(fileId, nameof(fileId));
-            if (string.IsNullOrWhiteSpace(content)) throw new ArgumentException("Comment content is required.", nameof(content));
+            ArgumentException.ThrowIfNullOrWhiteSpace(content);
             report ??= new TranslationReport();
             if (!string.IsNullOrWhiteSpace(anchor)) {
                 report.Add(
@@ -329,7 +329,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             GoogleDriveChangeListOptions? options = null,
             TranslationReport? report = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(pageToken)) throw new ArgumentException("A change page token is required.", nameof(pageToken));
+            ArgumentException.ThrowIfNullOrWhiteSpace(pageToken);
             options ??= new GoogleDriveChangeListOptions();
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(Options.ReadScopes, report, "Google Drive change listing", cancellationToken).ConfigureAwait(false);

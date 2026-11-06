@@ -82,7 +82,7 @@ public static class OfficeProvenanceLifecycle {
         IOfficeProvenanceSigner? signer = null) {
         string source = RequireFile(sourcePath, nameof(sourcePath));
         string candidate = RequireFile(candidatePath, nameof(candidatePath));
-        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         string output = Path.GetFullPath(outputPath);
         options ??= new OfficeProvenanceTransformationOptions();
 

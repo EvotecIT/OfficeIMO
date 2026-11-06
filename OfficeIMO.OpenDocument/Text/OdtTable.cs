@@ -14,7 +14,7 @@ public sealed class OdtTable {
     public string Name {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "name") ?? string.Empty;
         set {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Table name cannot be empty.", nameof(value));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             _element.SetAttributeValue(OdfNamespaces.Table + "name", value);
             Dirty();
         }

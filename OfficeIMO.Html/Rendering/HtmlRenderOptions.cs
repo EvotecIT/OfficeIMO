@@ -429,9 +429,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
             throw new ArgumentOutOfRangeException(nameof(UserAgentStyles));
         }
         (MediaFeatures ?? throw new ArgumentNullException(nameof(MediaFeatures))).Validate();
-        if (string.IsNullOrWhiteSpace(DefaultFontFamily)) {
-            throw new ArgumentException("A default font family is required.", nameof(DefaultFontFamily));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(DefaultFontFamily);
 
         if (MaxSurfaceWidth <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxSurfaceWidth), "Maximum surface width must be positive.");

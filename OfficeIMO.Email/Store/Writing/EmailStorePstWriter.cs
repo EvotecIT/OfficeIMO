@@ -21,9 +21,7 @@ public sealed class EmailStorePstWriter : IDisposable {
     /// <summary>Creates a writer targeting a new PST path.</summary>
     public static EmailStorePstWriter Create(string destinationPath,
         EmailStorePstWriterOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(destinationPath)) {
-            throw new ArgumentException("A destination path is required.", nameof(destinationPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         return new EmailStorePstWriter(destinationPath, options ?? new EmailStorePstWriterOptions());
     }
 
@@ -36,9 +34,7 @@ public sealed class EmailStorePstWriter : IDisposable {
     /// <summary>Resumes a writer and returns caller state committed atomically with the writer checkpoint.</summary>
     public static EmailStorePstWriter Resume(string checkpointPath, out byte[]? applicationState,
         IProgress<EmailStorePstWriteProgress>? progress = null) {
-        if (string.IsNullOrWhiteSpace(checkpointPath)) {
-            throw new ArgumentException("A checkpoint path is required.", nameof(checkpointPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkpointPath);
         return new EmailStorePstWriter(PstStoreWriterCore.Resume(checkpointPath, progress,
             out applicationState));
     }

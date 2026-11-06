@@ -57,7 +57,7 @@ public sealed class EmailStoreConfigurationDictionary {
 
     /// <summary>Creates an empty dictionary with an OfficeIMO producer version.</summary>
     public static EmailStoreConfigurationDictionary Create(string producerVersion = "OfficeIMO.1") {
-        if (string.IsNullOrWhiteSpace(producerVersion)) throw new ArgumentException("A producer version is required.", nameof(producerVersion));
+        ArgumentException.ThrowIfNullOrWhiteSpace(producerVersion);
         var root = new XElement(DictionaryNamespace + "UserConfiguration",
             new XElement(DictionaryNamespace + "Info", new XAttribute("version", producerVersion)),
             new XElement(DictionaryNamespace + "Data"));

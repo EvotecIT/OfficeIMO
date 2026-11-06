@@ -46,9 +46,7 @@ public sealed class MarkdownFencedBlockExtension {
     /// Creates a new fenced block extension.
     /// </summary>
     public MarkdownFencedBlockExtension(string name, IEnumerable<string> languages, MarkdownFencedBlockFactory createBlock) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            throw new ArgumentException("Extension name is required.", nameof(name));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         ArgumentNullException.ThrowIfNull(languages);
 

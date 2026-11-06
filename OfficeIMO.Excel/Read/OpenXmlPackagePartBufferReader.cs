@@ -372,9 +372,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string NormalizePartName(string partName) {
-            if (string.IsNullOrWhiteSpace(partName)) {
-                throw new ArgumentException("Package part name cannot be empty.", nameof(partName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(partName);
             if (partName.IndexOf('\\') >= 0) {
                 throw new OpenXmlPackagePartIndexException($"Package part name '{partName}' contains a backslash.");
             }

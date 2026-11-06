@@ -122,14 +122,14 @@ public sealed class OfficeContentSafetyFinding {
         OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.ReportOnly,
         int? sourceTextOffset = null,
         int? sourceTextLength = null) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A stable finding id is required.", nameof(id));
-        if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException("A format name is required.", nameof(format));
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A logical location is required.", nameof(location));
-        if (string.IsNullOrWhiteSpace(evidence)) throw new ArgumentException("Exact concealment evidence is required.", nameof(evidence));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(format);
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
+        ArgumentException.ThrowIfNullOrWhiteSpace(evidence);
         ArgumentOutOfRangeException.ThrowIfNegative(textLength);
         if (sourceTextOffset.HasValue && sourceTextOffset.Value < 0) throw new ArgumentOutOfRangeException(nameof(sourceTextOffset));
         if (sourceTextLength.HasValue && sourceTextLength.Value <= 0) throw new ArgumentOutOfRangeException(nameof(sourceTextLength));
-        if (string.IsNullOrWhiteSpace(contentHash)) throw new ArgumentException("A content hash is required.", nameof(contentHash));
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentHash);
         Id = id;
         Format = format;
         Kind = kind;
@@ -184,7 +184,7 @@ public sealed class OfficeContentSafetyReport {
         IReadOnlyList<OfficeContentSafetyFinding> findings,
         IReadOnlyList<OfficeIMO.Provenance.OfficeTextIntegrityFinding>? textIntegrityFindings = null,
         IReadOnlyList<string>? diagnostics = null) {
-        if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException("A format name is required.", nameof(format));
+        ArgumentException.ThrowIfNullOrWhiteSpace(format);
         Format = format;
         Findings = new List<OfficeContentSafetyFinding>(findings ?? throw new ArgumentNullException(nameof(findings))).AsReadOnly();
         TextIntegrityFindings = new List<OfficeIMO.Provenance.OfficeTextIntegrityFinding>(textIntegrityFindings ?? Array.Empty<OfficeIMO.Provenance.OfficeTextIntegrityFinding>()).AsReadOnly();
@@ -242,8 +242,8 @@ public sealed class OfficeContentCleanupOptions {
 public sealed class OfficeContentCleanupChange {
     /// <summary>Creates a cleanup change.</summary>
     public OfficeContentCleanupChange(string findingId, string location, OfficeContentCleanupCapability capability) {
-        if (string.IsNullOrWhiteSpace(findingId)) throw new ArgumentException("A finding id is required.", nameof(findingId));
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A location is required.", nameof(location));
+        ArgumentException.ThrowIfNullOrWhiteSpace(findingId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(location);
         FindingId = findingId;
         Location = location;
         Capability = capability;

@@ -161,7 +161,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Saves the image to a file asynchronously.</summary>
         public async Task SaveAsync(string path, CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             using Stream source = OpenRead();
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
             await OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);

@@ -136,9 +136,7 @@ namespace OfficeIMO.Excel {
             CultureInfo? culture,
             bool includeHeader,
             bool autoFit) {
-            if (string.IsNullOrWhiteSpace(header)) {
-                throw new ArgumentException("Header cannot be empty.", nameof(header));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(header);
 
             if (preset == null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("A preset or custom number format is required.", nameof(numberFormat));

@@ -49,7 +49,7 @@ public static class EmailStoreItemReader {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(path);
-        if (string.IsNullOrWhiteSpace(itemId)) throw new ArgumentException("Item id cannot be empty.", nameof(itemId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(itemId);
         var effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
         return reader.Scope(ReadByIdCore(
             path,

@@ -45,8 +45,8 @@ public static partial class OfficeConverter {
 
     internal static async Task<OfficeConversionReport> ConvertFileAsync(string source, string destination,
         OfficeConversionOptions? options, OfficeConversionExecutionInput? sourceOverride, CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("A non-empty value is required.", nameof(source));
-        if (string.IsNullOrWhiteSpace(destination)) throw new ArgumentException("A non-empty value is required.", nameof(destination));
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destination);
         using var assets = new OfficeConversionAssets(cancellationToken);
         var timer = Stopwatch.StartNew();
         OfficeConversionOptions settings = (options ?? new()).Snapshot();
@@ -147,8 +147,8 @@ public static partial class OfficeConverter {
     public static async Task<OfficeConversionReport> AnalyzeAsync(string source, string destination, OfficeConversionOptions? options = null,
         CancellationToken cancellationToken = default) {
         OfficeConversionOptions settings = (options ?? new()).Snapshot();
-        if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("A source file is required.", nameof(source));
-        if (string.IsNullOrWhiteSpace(destination)) throw new ArgumentException("A destination file is required.", nameof(destination));
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destination);
         string inputPath = Path.GetFullPath(source);
         settings.SourceName = ConversionSourceName(inputPath, settings); settings.TargetName = Path.GetFileName(destination);
         settings.ResourceDirectory = Path.GetDirectoryName(inputPath);

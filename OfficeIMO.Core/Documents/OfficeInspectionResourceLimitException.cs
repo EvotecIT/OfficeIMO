@@ -8,8 +8,8 @@ public sealed class OfficeInspectionResourceLimitException : IOException {
     /// <summary>Creates a limit failure retaining its canonical owner and optional underlying bounded-engine failure.</summary>
     public OfficeInspectionResourceLimitException(string owner, string limitName, long maximum, Exception? innerException = null)
         : base($"{owner} inspection exceeds {limitName} ({maximum}).", innerException) {
-        if (string.IsNullOrWhiteSpace(owner)) throw new ArgumentException("An inspection owner is required.", nameof(owner));
-        if (string.IsNullOrWhiteSpace(limitName)) throw new ArgumentException("A limit name is required.", nameof(limitName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(owner);
+        ArgumentException.ThrowIfNullOrWhiteSpace(limitName);
         ArgumentOutOfRangeException.ThrowIfNegative(maximum);
         Owner = owner; LimitName = limitName; Maximum = maximum;
     }

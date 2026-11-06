@@ -66,7 +66,7 @@ internal sealed partial class PdfWorkspace {
         bool flatten,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) {
-        if (string.IsNullOrWhiteSpace(fieldName)) throw new ArgumentException("Choose a form field.", nameof(fieldName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
         ArgumentNullException.ThrowIfNull(value);
         string normalizedName = fieldName.Trim();
         IReadOnlyDictionary<string, PdfFormFieldValue> values = new Dictionary<string, PdfFormFieldValue>(StringComparer.Ordinal) {
@@ -136,7 +136,7 @@ internal sealed partial class PdfWorkspace {
         string fieldName,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) {
-        if (string.IsNullOrWhiteSpace(fieldName)) throw new ArgumentException("Choose a form field.", nameof(fieldName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
         string normalizedName = fieldName.Trim();
         return MutateBytesAsync(
             PdfWorkspaceOperationKind.FormFlatten,

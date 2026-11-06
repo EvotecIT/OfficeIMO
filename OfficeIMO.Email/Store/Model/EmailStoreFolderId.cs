@@ -6,7 +6,7 @@ public readonly struct EmailStoreFolderId : IEquatable<EmailStoreFolderId>, ICom
 
     /// <summary>Creates a folder identifier from the exact source value.</summary>
     public EmailStoreFolderId(string value) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A folder identifier cannot be empty.", nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         _value = value;
     }
 

@@ -9,9 +9,7 @@ internal static class ExcelChartProfileRunner {
     internal const int DefaultMeasuredIterations = 3;
 
     internal static string WriteProfile(string outputPath, int rowCount, int warmupIterations, int measuredIterations) {
-        if (string.IsNullOrWhiteSpace(outputPath)) {
-            throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
 
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(rowCount);
         var samplesByStage = new Dictionary<string, List<double>>(StringComparer.Ordinal);

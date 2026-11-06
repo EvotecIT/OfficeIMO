@@ -14,7 +14,7 @@ namespace OfficeIMO.Core.Internal {
             string suffix,
             FileOptions options,
             out string path) {
-            if (string.IsNullOrWhiteSpace(prefix)) throw new ArgumentException("Temporary file prefix cannot be empty.", nameof(prefix));
+            ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
             ArgumentNullException.ThrowIfNull(suffix);
 
             path = Path.Combine(Path.GetTempPath(), prefix + Guid.NewGuid().ToString("N") + suffix);
@@ -25,7 +25,7 @@ namespace OfficeIMO.Core.Internal {
             string path,
             int bufferSize,
             FileOptions options) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Temporary file path cannot be empty.", nameof(path));
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             ArgumentOutOfRangeException.ThrowIfLessThan(bufferSize, 1);
 #if NET6_0_OR_GREATER
             if (OperatingSystem.IsWindows()) return CreateWindowsOwnerOnly(path, bufferSize, options);

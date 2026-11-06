@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Visio {
         };
 
         public static void Example_MicrosoftIntegrationAzureStencils(string folderPath, bool openVisio, string stencilPackPathOrDirectory) {
-            if (string.IsNullOrWhiteSpace(stencilPackPathOrDirectory)) throw new ArgumentException("Stencil pack path cannot be null or whitespace.", nameof(stencilPackPathOrDirectory));
+            ArgumentException.ThrowIfNullOrWhiteSpace(stencilPackPathOrDirectory);
 
             Console.WriteLine("[*] Visio - Microsoft Integration/Azure external stencil pack graph");
             string filePath = Path.Combine(folderPath, "Microsoft Integration Azure Stencil Graph.vsdx");

@@ -18,7 +18,7 @@ public sealed class AdfDestinationPolicy {
     /// <param name="allowedNodeTypes">Supported content node types, compared case-sensitively, or null to allow any type.</param>
     /// <param name="allowedMarkTypes">Supported mark types, compared case-sensitively, or null to allow any type.</param>
     public AdfDestinationPolicy(string name, IEnumerable<string>? allowedNodeTypes = null, IEnumerable<string>? allowedMarkTypes = null) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A destination product/version name is required.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name;
         AllowedNodeTypes = CopyTypes(allowedNodeTypes, nameof(allowedNodeTypes), out _nodes);
         AllowedMarkTypes = CopyTypes(allowedMarkTypes, nameof(allowedMarkTypes), out _marks);

@@ -109,9 +109,7 @@ namespace OfficeIMO.Word {
         /// <param name="history">Whether to track link history.</param>
         /// <returns>The created <see cref="WordHyperLink"/>.</returns>
         public WordHyperLink AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
-            if (string.IsNullOrWhiteSpace(text)) {
-                throw new ArgumentException("Text cannot be null or empty.", nameof(text));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
             if (uri == null) {
                 throw new ArgumentException("Uri cannot be null.", nameof(uri));
@@ -130,13 +128,9 @@ namespace OfficeIMO.Word {
         /// <param name="history">Whether to track link history.</param>
         /// <returns>The created <see cref="WordHyperLink"/>.</returns>
         public WordHyperLink AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
-            if (string.IsNullOrWhiteSpace(text)) {
-                throw new ArgumentException("Text cannot be null or empty.", nameof(text));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
-            if (string.IsNullOrWhiteSpace(anchor)) {
-                throw new ArgumentException("Anchor cannot be null or empty.", nameof(anchor));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(anchor);
 
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
         }

@@ -31,8 +31,8 @@ public static class OfficeHtmlSemanticEnvelope {
     /// <summary>Appends canonical source, profile, and schema attributes to an open start tag.</summary>
     public static void AppendRootAttributes(StringBuilder builder, string source, string profile) {
         ArgumentNullException.ThrowIfNull(builder);
-        if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("Semantic source cannot be empty.", nameof(source));
-        if (string.IsNullOrWhiteSpace(profile)) throw new ArgumentException("Semantic profile cannot be empty.", nameof(profile));
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        ArgumentException.ThrowIfNullOrWhiteSpace(profile);
         builder.Append(" data-officeimo-source=\"")
             .Append(OfficeHtmlText.EscapeAttribute(source.Trim().ToLowerInvariant()))
             .Append("\" data-officeimo-profile=\"")
@@ -59,7 +59,7 @@ public static class OfficeHtmlSemanticEnvelope {
 
     internal static OfficeHtmlSemanticEnvelopeInfo Inspect(IHtmlDocument document, string expectedSource) {
         ArgumentNullException.ThrowIfNull(document);
-        if (string.IsNullOrWhiteSpace(expectedSource)) throw new ArgumentException("Expected source cannot be empty.", nameof(expectedSource));
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedSource);
 
         string normalizedSource = expectedSource.Trim().ToLowerInvariant();
         IElement? root = document.QuerySelector("main.officeimo-document[data-officeimo-source]");
@@ -104,7 +104,7 @@ public static class OfficeHtmlSemanticEnvelope {
         string selector) {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(envelope);
-        if (string.IsNullOrWhiteSpace(selector)) throw new ArgumentException("A container selector is required.", nameof(selector));
+        ArgumentException.ThrowIfNullOrWhiteSpace(selector);
 
         IElement? root = envelope.RootElement ?? document.DocumentElement;
         if (root == null) return Array.Empty<IElement>();

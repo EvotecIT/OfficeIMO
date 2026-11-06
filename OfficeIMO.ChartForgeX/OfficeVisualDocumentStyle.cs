@@ -16,7 +16,7 @@ public sealed class OfficeVisualDocumentStyle {
     /// <summary>Creates an immutable document typography style. Sizes are expressed in points.</summary>
     public OfficeVisualDocumentStyle(string fontFamily = "Arial", double headingSizePoints = 18D,
         double captionSizePoints = 11D, double labelSizePoints = 11.25D, double subtitleSizePoints = 12D) {
-        if (string.IsNullOrWhiteSpace(fontFamily)) throw new ArgumentException("A font family is required.", nameof(fontFamily));
+        ArgumentException.ThrowIfNullOrWhiteSpace(fontFamily);
         FontFamily = fontFamily;
         HeadingSizePoints = Positive(headingSizePoints, nameof(headingSizePoints));
         CaptionSizePoints = Positive(captionSizePoints, nameof(captionSizePoints));

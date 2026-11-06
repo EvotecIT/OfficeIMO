@@ -9,7 +9,7 @@ internal static class AdfJsonSerializer {
     private enum PropertySet { Root, Node, Mark }
 
     internal static AdfDocument Parse(string json, AdfProcessingOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(json)) throw new ArgumentException("ADF JSON is required.", nameof(json));
+        ArgumentException.ThrowIfNullOrWhiteSpace(json);
         options ??= new AdfProcessingOptions();
         AdfGraphGuard.Input(json, options);
 

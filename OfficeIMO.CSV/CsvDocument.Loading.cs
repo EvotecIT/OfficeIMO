@@ -30,10 +30,7 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings.</param>
     internal static void ReadRows(string path, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvReaderOptions? options = null)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         ArgumentNullException.ThrowIfNull(rowAction);
 
@@ -52,10 +49,7 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings.</param>
     internal static void ReadRowsReusable(string path, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvReaderOptions? options = null)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new ArgumentException("File path cannot be empty.", nameof(path));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         ArgumentNullException.ThrowIfNull(rowAction);
 
@@ -282,7 +276,7 @@ public sealed partial class CsvDocument
     /// <summary>Asynchronously loads a CSV document from disk.</summary>
     public static async Task<CsvDocument> LoadAsync(string path, CsvLoadOptions? options = null, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         CsvParsingSettings resolved = options?.Parsing.Clone() ?? new CsvParsingSettings();
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,

@@ -207,7 +207,7 @@ public sealed class OdsCell {
 
     /// <summary>Sets a currency amount and ISO currency code.</summary>
     public void SetCurrency(decimal value, string currencyCode) {
-        if (string.IsNullOrWhiteSpace(currencyCode)) throw new ArgumentException("Currency code cannot be empty.", nameof(currencyCode));
+        ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
         EnsureEditable(); ClearValueAttributes();
         string lexical = value.ToString(CultureInfo.InvariantCulture);
         _element.SetAttributeValue(OdfNamespaces.Office + "value-type", "currency");
@@ -218,7 +218,7 @@ public sealed class OdsCell {
 
     /// <summary>Sets a hyperlink display value without fetching its target.</summary>
     public void SetHyperlink(string text, string href) {
-        if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
+        ArgumentException.ThrowIfNullOrWhiteSpace(href);
         EnsureEditable();
         if (_element.Attribute(OdfNamespaces.Office + "value-type") == null &&
             _element.Attribute(OdfNamespaces.Table + "formula") == null) {

@@ -29,7 +29,7 @@ public abstract partial class OdfDocument {
 
     /// <summary>Returns an already-loaded entry within an explicit byte ceiling, checked before creating its defensive copy. External links are never resolved.</summary>
     public byte[] GetPackageEntryBytes(string path, long maximumBytes) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Package entry path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
         string normalized = OdfPackagePath.NormalizeHref(path);
         if (normalized.Length == 0) throw new ArgumentException("Package entry path cannot be empty.", nameof(path));

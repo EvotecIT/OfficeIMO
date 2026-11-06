@@ -96,8 +96,8 @@ public sealed partial class OdsDocument : OdfDocument {
 
     /// <summary>Adds a workbook-scoped named range using ODF address syntax.</summary>
     public OdsNamedRange AddNamedRange(string name, string cellRangeAddress, string? baseCellAddress = null) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Named range name cannot be empty.", nameof(name));
-        if (string.IsNullOrWhiteSpace(cellRangeAddress)) throw new ArgumentException("Cell range address cannot be empty.", nameof(cellRangeAddress));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(cellRangeAddress);
         if (!SpreadsheetRangeReference.TryParse(cellRangeAddress, SpreadsheetAddressDialect.OpenDocument,
                 out SpreadsheetRangeReference? range)) {
             throw new ArgumentException("Cell range address must use valid OpenDocument address syntax.", nameof(cellRangeAddress));
@@ -131,8 +131,8 @@ public sealed partial class OdsDocument : OdfDocument {
 
     /// <summary>Adds a validation rule with a preserved ODF condition expression.</summary>
     public OdsValidation AddValidation(string name, string condition, bool allowEmptyCell = true) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Validation name cannot be empty.", nameof(name));
-        if (string.IsNullOrWhiteSpace(condition)) throw new ArgumentException("Validation condition cannot be empty.", nameof(condition));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(condition);
         XElement? container = SpreadsheetBody.Element(OdfNamespaces.Table + "content-validations");
         if (container == null) {
             container = new XElement(OdfNamespaces.Table + "content-validations");
@@ -172,6 +172,6 @@ public sealed partial class OdsDocument : OdfDocument {
     }
 
     private static void ValidateSheetName(string name) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Worksheet name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
     }
 }

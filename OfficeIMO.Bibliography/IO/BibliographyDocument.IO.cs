@@ -6,7 +6,7 @@ public sealed partial class BibliographyDocument {
     private const int SynchronousWriteChunkSize = 81920;
     /// <summary>Loads bibliography data from a path, detecting format by extension and content when needed.</summary>
     public static BibliographyReadResult Load(string path, BibliographyFormat? format = null, BibliographyReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (format.HasValue) return Load(stream, format.Value, options, encoding, cancellationToken);
         if (BibliographyFormatDetector.TryDetectPath(path, out BibliographyFormat detected)) return Load(stream, detected, options, encoding, cancellationToken);
@@ -26,7 +26,7 @@ public sealed partial class BibliographyDocument {
 
     /// <summary>Loads bibliography data from a path asynchronously.</summary>
     public static async Task<BibliographyReadResult> LoadAsync(string path, BibliographyFormat? format = null, BibliographyReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
         if (format.HasValue) return await LoadAsync(stream, format.Value, options, encoding, cancellationToken).ConfigureAwait(false);
         if (BibliographyFormatDetector.TryDetectPath(path, out BibliographyFormat detected)) return await LoadAsync(stream, detected, options, encoding, cancellationToken).ConfigureAwait(false);
@@ -46,7 +46,7 @@ public sealed partial class BibliographyDocument {
 
     /// <summary>Atomically saves or converts to a path, preserving an existing file when writing fails or is cancelled before commit.</summary>
     public BibliographyWriteResult Save(string path, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         BibliographyWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeFileCommit.WriteAtomically(path, stream => WriteAllBytes(stream, result.Bytes, cancellationToken), cancellationToken);
@@ -66,7 +66,7 @@ public sealed partial class BibliographyDocument {
 
     /// <summary>Atomically saves or converts to a path asynchronously, preserving an existing file when writing fails or is cancelled before commit.</summary>
     public async Task<BibliographyWriteResult> SaveAsync(string path, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         BibliographyWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         await OfficeFileCommit.WriteAtomicallyAsync(path,

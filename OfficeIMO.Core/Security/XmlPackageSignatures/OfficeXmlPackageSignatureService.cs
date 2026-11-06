@@ -398,7 +398,7 @@ internal static class OfficeXmlPackageSignatureService {
     }
 
     private static string NormalizePath(string filePath) {
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A package path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         return Path.GetFullPath(filePath);
     }
 

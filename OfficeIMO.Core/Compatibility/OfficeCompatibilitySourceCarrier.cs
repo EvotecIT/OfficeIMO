@@ -32,8 +32,8 @@ internal static class OfficeCompatibilitySourceCarrier {
         OfficeCompatibilityMode mode,
         byte[] sourceBytes) {
         ArgumentNullException.ThrowIfNull(compoundBytes);
-        if (string.IsNullOrWhiteSpace(formatId)) throw new ArgumentException("Format id cannot be empty.", nameof(formatId));
-        if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("File name cannot be empty.", nameof(fileName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentNullException.ThrowIfNull(sourceBytes);
         ValidateSourcePayloadSize(sourceBytes.LongLength);
         if (!OfficeCompoundFileReader.TryRead(compoundBytes, out OfficeCompoundFile? compound, out string? error)
@@ -82,8 +82,8 @@ internal static class OfficeCompatibilitySourceCarrier {
         OfficeCompatibilityMode mode,
         byte[] sourceBytes) {
         ArgumentNullException.ThrowIfNull(packageBytes);
-        if (string.IsNullOrWhiteSpace(formatId)) throw new ArgumentException("Format id cannot be empty.", nameof(formatId));
-        if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("File name cannot be empty.", nameof(fileName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentNullException.ThrowIfNull(sourceBytes);
         ValidateSourcePayloadSize(sourceBytes.LongLength);
 

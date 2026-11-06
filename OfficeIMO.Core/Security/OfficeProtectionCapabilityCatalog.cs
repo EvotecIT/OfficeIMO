@@ -21,7 +21,7 @@ public sealed class OfficeProtectionCapabilityCatalog {
     /// </summary>
     public OfficeProtectionCapabilityCatalog(string id, int schemaVersion,
         IEnumerable<OfficeProtectionCapability> capabilities) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Catalog id cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(schemaVersion);
         ArgumentNullException.ThrowIfNull(capabilities);
         OfficeProtectionCapability[] rows = capabilities.ToArray();
@@ -58,7 +58,7 @@ public sealed class OfficeProtectionCapabilityCatalog {
 
     /// <summary>Gets a capability by exact stable id.</summary>
     public OfficeProtectionCapability Get(string id) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Capability id cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         if (!_byId.TryGetValue(id.Trim(), out OfficeProtectionCapability? capability)) {
             throw new KeyNotFoundException($"Capability '{id}' is not present in catalog '{Id}'.");
         }

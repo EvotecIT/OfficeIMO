@@ -70,9 +70,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             string path,
             ExcelReaderOptions options,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("File path cannot be empty.", nameof(path));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
             ArgumentNullException.ThrowIfNull(options);
 
             cancellationToken.ThrowIfCancellationRequested();

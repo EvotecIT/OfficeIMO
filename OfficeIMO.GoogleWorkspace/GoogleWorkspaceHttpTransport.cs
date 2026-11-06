@@ -274,10 +274,10 @@ namespace OfficeIMO.GoogleWorkspace {
             IReadOnlyCollection<string>? requiredScopes,
             bool potentialDataLoss) {
             ThrowIfDisposed();
-            if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
+            ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
             ArgumentNullException.ThrowIfNull(method);
-            if (string.IsNullOrWhiteSpace(uri)) throw new ArgumentException("Request URI is required.", nameof(uri));
-            if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException("Service name is required.", nameof(serviceName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(uri);
+            ArgumentException.ThrowIfNullOrWhiteSpace(serviceName);
             ArgumentNullException.ThrowIfNull(report);
             if (maxResponseBytes.HasValue && maxResponseBytes.Value <= 0) throw new ArgumentOutOfRangeException(nameof(maxResponseBytes));
 
@@ -691,10 +691,10 @@ namespace OfficeIMO.GoogleWorkspace {
             bool potentialDataLoss,
             bool allowSafeNonReadMethod) {
             ThrowIfDisposed();
-            if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
+            ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
             ArgumentNullException.ThrowIfNull(method);
-            if (string.IsNullOrWhiteSpace(uri)) throw new ArgumentException("Request URI is required.", nameof(uri));
-            if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException("Service name is required.", nameof(serviceName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(uri);
+            ArgumentException.ThrowIfNullOrWhiteSpace(serviceName);
             ArgumentNullException.ThrowIfNull(report);
 
             string effectiveUri = preserveRequestUri
@@ -784,9 +784,9 @@ namespace OfficeIMO.GoogleWorkspace {
             IReadOnlyCollection<string> requiredScopes, bool potentialDataLoss = false) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(method);
-            if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("The mutation target is required.", nameof(target));
+            ArgumentException.ThrowIfNullOrWhiteSpace(target);
             ArgumentNullException.ThrowIfNull(revisionPrecondition);
-            if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException("Service name is required.", nameof(serviceName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(serviceName);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
             MutationAttempt mutation = BeginMutation(accessToken, method, target, requestSafety, mutationKind,

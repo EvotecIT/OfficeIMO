@@ -153,9 +153,7 @@ internal static partial class PdfTextExtractor {
     
     private static string ValidateOutputDirectory(string outputDirectory) {
         Guard.NotNull(outputDirectory, nameof(outputDirectory));
-        if (string.IsNullOrWhiteSpace(outputDirectory)) {
-            throw new ArgumentException("Output directory cannot be empty or whitespace.", nameof(outputDirectory));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
     
         string fullOutputDirectory;
         try {
@@ -196,9 +194,7 @@ internal static partial class PdfTextExtractor {
     
     private static string ValidateOutputPath(string outputPath) {
         Guard.NotNull(outputPath, nameof(outputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) {
-            throw new ArgumentException("Output path cannot be empty or whitespace.", nameof(outputPath));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
     
         string fullPath;
         try {

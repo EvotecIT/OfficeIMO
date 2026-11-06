@@ -16,7 +16,7 @@ public sealed class ExcelWorkbookWriter : IDisposable {
     /// <summary>Begins a disk-spooled table whose final schema may grow as normalized rows arrive.</summary>
     public ExcelIncrementalTableWriter BeginTable(string name, CancellationToken cancellationToken = default) {
         EnsureNoActiveTable();
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Supply a worksheet name.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         cancellationToken.ThrowIfCancellationRequested();
         return _activeTable = new ExcelIncrementalTableWriter(this, name, _workbook.MaximumTemporaryBytes, cancellationToken);
     }

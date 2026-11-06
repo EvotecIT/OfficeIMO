@@ -288,9 +288,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="name">Shape Data row name.</param>
         public VisioShapeDataField(string name) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Shape data name cannot be empty.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             Name = name;
         }

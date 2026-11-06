@@ -40,7 +40,7 @@ public sealed partial class LatexDocument {
         LatexParseOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
         return await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
     }
@@ -133,7 +133,7 @@ public sealed partial class LatexDocument {
 
     /// <summary>Saves the current document text to a file.</summary>
     public void Save(string path, LatexWriterOptions? options = null, Encoding? encoding = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         OfficeFileCommit.WriteAllBytes(path, ToBytes(options, encoding));
     }
 
@@ -147,7 +147,7 @@ public sealed partial class LatexDocument {
         LatexWriterOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         await OfficeFileCommit.WriteAllBytesAsync(
             path,
             ToBytes(options, encoding),

@@ -5,7 +5,7 @@ public sealed class EmailStoreMergeSource {
     /// <summary>Creates a merge source.</summary>
     public EmailStoreMergeSource(string path, string? displayName = null,
         EmailStoreReaderOptions? readerOptions = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A source path is required.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         Path = System.IO.Path.GetFullPath(path);
         DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName!.Trim();
         ReaderOptions = readerOptions;

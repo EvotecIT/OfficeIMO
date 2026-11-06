@@ -45,7 +45,7 @@ public sealed partial class ChmDocument {
 
     /// <summary>Loads a file into a bounded independent snapshot.</summary>
     public static ChmDocument Load(string path, ChmLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("CHM path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return Load(stream, options, cancellationToken);
     }
@@ -69,7 +69,7 @@ public sealed partial class ChmDocument {
     }
     /// <summary>Asynchronously snapshots a file and parses it with cooperative cancellation.</summary>
     public static async Task<ChmDocument> LoadAsync(string path, ChmLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("CHM path cannot be empty.", nameof(path));
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
         return await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
     }

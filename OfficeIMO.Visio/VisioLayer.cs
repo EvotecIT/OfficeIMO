@@ -18,9 +18,7 @@ namespace OfficeIMO.Visio {
         /// <param name="name">Layer name shown in Visio.</param>
         /// <param name="nameU">Universal layer name. Defaults to <paramref name="name"/>.</param>
         public VisioLayer(string name, string? nameU = null) {
-            if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Layer name cannot be null or whitespace.", nameof(name));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
             Name = name;
             NameU = string.IsNullOrWhiteSpace(nameU) ? name : nameU!;

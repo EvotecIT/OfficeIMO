@@ -282,7 +282,7 @@ public sealed partial class OdsDocument {
 
     /// <summary>Adds a currency style with a visible currency symbol or code.</summary>
     public OdsDataStyle AddCurrencyStyle(string name, string currencySymbol, int decimalPlaces = 2, bool useGrouping = false) {
-        if (string.IsNullOrWhiteSpace(currencySymbol)) throw new ArgumentException("Currency symbol cannot be empty.", nameof(currencySymbol));
+        ArgumentException.ThrowIfNullOrWhiteSpace(currencySymbol);
         ArgumentOutOfRangeException.ThrowIfNegative(decimalPlaces);
         return AddDataStyle(name, OdsDataStyleKind.Currency,
             new XElement(OdfNamespaces.Number + "currency-symbol", currencySymbol),
@@ -310,7 +310,7 @@ public sealed partial class OdsDocument {
         new XElement(OdfNamespaces.Number + "seconds", new XAttribute(OdfNamespaces.Number + "style", "long")));
 
     private OdsDataStyle AddDataStyle(string name, OdsDataStyleKind kind, params XElement[] children) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Data style name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (DataStyles.Any(style => string.Equals(style.Name, name, StringComparison.Ordinal))) {
             throw new InvalidOperationException($"A data style named '{name}' already exists.");
         }

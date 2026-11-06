@@ -125,7 +125,7 @@ public sealed partial class OdtDocument {
     }
 
     private OdtTrackedChange? FindTrackedChange(string id) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Change identifier cannot be empty.", nameof(id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         return TrackedChanges.FirstOrDefault(change => string.Equals(change.Id, id, StringComparison.Ordinal));
     }
 
@@ -182,6 +182,6 @@ public sealed partial class OdtDocument {
     private static XNode CloneNode(XNode node) => node is XElement element ? new XElement(element) :
         node is XText text ? new XText(text.Value) : node is XComment comment ? new XComment(comment.Value) : new XText(node.ToString());
     private static void ValidateCreator(string creator) {
-        if (string.IsNullOrWhiteSpace(creator)) throw new ArgumentException("Tracked-change creator cannot be empty.", nameof(creator));
+        ArgumentException.ThrowIfNullOrWhiteSpace(creator);
     }
 }

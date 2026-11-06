@@ -195,7 +195,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             TranslationReport? report = null,
             CancellationToken cancellationToken = default,
             long? maxResponseBytes = null) {
-            if (string.IsNullOrWhiteSpace(fileId)) throw new ArgumentException("File id is required.", nameof(fileId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(fileId);
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(Options.ReadScopes, report, "Google Drive file download", cancellationToken).ConfigureAwait(false);
             byte[] bytes = await Transport.SendBytesAsync(
@@ -219,8 +219,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             TranslationReport? report = null,
             CancellationToken cancellationToken = default,
             long? maxResponseBytes = null) {
-            if (string.IsNullOrWhiteSpace(fileId)) throw new ArgumentException("File id is required.", nameof(fileId));
-            if (string.IsNullOrWhiteSpace(mimeType)) throw new ArgumentException("Export MIME type is required.", nameof(mimeType));
+            ArgumentException.ThrowIfNullOrWhiteSpace(fileId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(mimeType);
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(Options.ReadScopes, report, "Google Drive file export", cancellationToken).ConfigureAwait(false);
             byte[] bytes = await Transport.SendBytesAsync(

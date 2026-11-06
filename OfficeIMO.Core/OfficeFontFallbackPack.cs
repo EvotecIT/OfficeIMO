@@ -20,10 +20,8 @@ public sealed class OfficeFontFallbackPack {
         string id,
         string defaultFamilyNames,
         OfficeFontFaceCollection fonts) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A font fallback pack id is required.", nameof(id));
-        if (string.IsNullOrWhiteSpace(defaultFamilyNames)) {
-            throw new ArgumentException("A default font family list is required.", nameof(defaultFamilyNames));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(defaultFamilyNames);
         ArgumentNullException.ThrowIfNull(fonts);
         if (fonts.Faces.Count == 0) throw new ArgumentException("A font fallback pack must contain at least one face.", nameof(fonts));
 

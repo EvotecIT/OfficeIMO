@@ -29,7 +29,7 @@ public sealed partial class OdgDocument {
     /// <exception cref="NotSupportedException">The master contains content outside the page-cloning profile.</exception>
     /// <exception cref="InvalidDataException">The source master or page layout is missing or ambiguous.</exception>
     public string CloneMasterPage(string sourceName, string? name = null) {
-        if (string.IsNullOrWhiteSpace(sourceName)) throw new ArgumentException("Master name cannot be empty.", nameof(sourceName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
         XElement styles = GetXml("styles.xml").Root!;
         XElement masters = styles.Element(OdfNamespaces.Office + "master-styles")
             ?? throw new InvalidDataException("Drawing has no master styles.");

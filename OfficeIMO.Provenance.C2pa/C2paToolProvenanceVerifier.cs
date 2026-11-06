@@ -42,7 +42,7 @@ public sealed partial class C2paToolProvenanceVerifier : ICancellableOfficeProve
         : this(executablePath, new C2paToolProcessRunner()) { }
 
     internal C2paToolProvenanceVerifier(string executablePath, IC2paToolProcessRunner runner) {
-        if (string.IsNullOrWhiteSpace(executablePath)) throw new ArgumentException("A c2patool executable path or command name is required.", nameof(executablePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(executablePath);
         ExecutablePath = File.Exists(executablePath) ? Path.GetFullPath(executablePath) : executablePath;
         _runner = runner ?? throw new ArgumentNullException(nameof(runner));
     }
@@ -67,7 +67,7 @@ public sealed partial class C2paToolProvenanceVerifier : ICancellableOfficeProve
         OfficeProvenanceVerificationOptions? options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("An asset path is required.", nameof(filePath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         string fullPath = Path.GetFullPath(filePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to verify was not found.", fullPath);
         options ??= new OfficeProvenanceVerificationOptions();

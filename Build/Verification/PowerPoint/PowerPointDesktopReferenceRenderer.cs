@@ -55,12 +55,8 @@ namespace OfficeIMO.Verification.PowerPoint {
                 return new PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus.Disabled,
                     "PowerPoint Desktop reference rendering is opt-in and was not enabled.");
             }
-            if (string.IsNullOrWhiteSpace(presentationPath)) {
-                throw new ArgumentException("Presentation path cannot be empty.", nameof(presentationPath));
-            }
-            if (string.IsNullOrWhiteSpace(outputDirectory)) {
-                throw new ArgumentException("Output directory cannot be empty.", nameof(outputDirectory));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(presentationPath);
+            ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
             string fullPath = Path.GetFullPath(presentationPath);
             if (!File.Exists(fullPath)) throw new FileNotFoundException("Presentation was not found.", fullPath);
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {

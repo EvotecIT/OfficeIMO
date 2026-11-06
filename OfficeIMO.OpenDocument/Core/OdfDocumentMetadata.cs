@@ -45,7 +45,7 @@ public sealed class OdfDocumentMetadata {
 
     /// <summary>Gets a custom `meta:user-defined` value.</summary>
     public string? GetCustomProperty(string name) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Custom property name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         XElement? element = _metadata.Elements(OdfNamespaces.Meta + "user-defined")
             .FirstOrDefault(item => string.Equals((string?)item.Attribute(OdfNamespaces.Meta + "name"), name, StringComparison.Ordinal));
         return element?.Value;
@@ -53,7 +53,7 @@ public sealed class OdfDocumentMetadata {
 
     /// <summary>Adds, replaces, or removes a custom metadata value.</summary>
     public void SetCustomProperty(string name, string? value) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Custom property name cannot be empty.", nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         List<XElement> matches = _metadata.Elements(OdfNamespaces.Meta + "user-defined")
             .Where(item => string.Equals((string?)item.Attribute(OdfNamespaces.Meta + "name"), name, StringComparison.Ordinal))
             .ToList();

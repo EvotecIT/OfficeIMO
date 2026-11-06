@@ -165,7 +165,7 @@ public abstract class EmailStoreFilter {
 
         internal StringFilter(EmailStoreStringField field, EmailStoreStringOperator operation, string value) {
             _field = field ?? throw new ArgumentNullException(nameof(field));
-            if (string.IsNullOrEmpty(value)) throw new ArgumentException("A string filter value cannot be empty.", nameof(value));
+            ArgumentException.ThrowIfNullOrEmpty(value);
             _operation = operation;
             _value = value;
         }

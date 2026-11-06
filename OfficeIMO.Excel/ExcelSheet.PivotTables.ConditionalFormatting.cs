@@ -9,9 +9,7 @@ namespace OfficeIMO.Excel {
         /// Resolves the output range for a pivot table on this worksheet.
         /// </summary>
         public string GetPivotTableRange(string pivotTableName, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.WholeTable) {
-            if (string.IsNullOrWhiteSpace(pivotTableName)) {
-                throw new ArgumentException("Pivot table name cannot be null or empty.", nameof(pivotTableName));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(pivotTableName);
 
             ExcelPivotTableInfo? pivot = GetPivotTables()
                 .FirstOrDefault(item => string.Equals(item.Name, pivotTableName, StringComparison.OrdinalIgnoreCase));

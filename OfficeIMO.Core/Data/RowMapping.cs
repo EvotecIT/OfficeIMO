@@ -97,9 +97,7 @@ public sealed class RowMapper<T> where T : new() {
 
     /// <summary>Binds a named column with per-column conversion or missing-column controls.</summary>
     public RowMapper<T> FromColumn<TValue>(string columnName, Func<T, TValue, T> assign, RowMappingColumnOptions? options) {
-        if (string.IsNullOrWhiteSpace(columnName)) {
-            throw new ArgumentException("Column name cannot be null or empty.", nameof(columnName));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(columnName);
         ArgumentNullException.ThrowIfNull(assign);
 
         Entries.Add(new RowMappingEntry<T, TValue>(new[] { columnName }, assign, options));

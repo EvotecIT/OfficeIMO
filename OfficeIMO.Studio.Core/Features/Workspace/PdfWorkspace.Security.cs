@@ -65,7 +65,7 @@ internal sealed partial class PdfWorkspace {
     }
 
     private string ValidateExportDestination(string destinationPath) {
-        if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentException("Choose an output PDF.", nameof(destinationPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         string destination = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(destinationPath);
         if (OfficeIMO.Internal.OfficeStorageIdentity.AreEquivalent(destination, Path)) {
             throw new InvalidOperationException("Choose a different output path so the open document remains unchanged.");

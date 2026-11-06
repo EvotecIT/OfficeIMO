@@ -61,12 +61,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a brief from a brand accent and stable seed.
         /// </summary>
         public PowerPointDesignBrief(string accentColor, string seed) {
-            if (string.IsNullOrWhiteSpace(accentColor)) {
-                throw new ArgumentException("Brand accent cannot be null or empty.", nameof(accentColor));
-            }
-            if (string.IsNullOrWhiteSpace(seed)) {
-                throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(accentColor);
+            ArgumentException.ThrowIfNullOrWhiteSpace(seed);
 
             AccentColor = accentColor;
             Seed = seed;
@@ -197,9 +193,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the plain-language deck purpose used for recipe matching.
         /// </summary>
         public PowerPointDesignBrief ForPurpose(string purpose) {
-            if (string.IsNullOrWhiteSpace(purpose)) {
-                throw new ArgumentException("Deck purpose cannot be null or empty.", nameof(purpose));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(purpose);
 
             Purpose = purpose;
             return this;
