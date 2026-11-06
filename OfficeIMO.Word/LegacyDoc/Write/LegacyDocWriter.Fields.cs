@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const string CreateDateFieldInstruction = " CREATEDATE ";
         private const string SaveDateFieldInstruction = " SAVEDATE ";
         private const string PrintDateFieldInstruction = " PRINTDATE ";
-        private const string SupportedFieldNames = "PAGE, NUMPAGES, SECTIONPAGES, DATE, TIME, CREATEDATE, SAVEDATE, PRINTDATE, EQ, and document-property display fields";
+        private const string SupportedFieldNames = "PAGE, NUMPAGES, SECTIONPAGES, DATE, TIME, CREATEDATE, SAVEDATE, PRINTDATE, FILENAME, STYLEREF, EQ, and document-property display fields";
 
         private static void AppendSupportedPageNumberField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableFormatting formatting) {
             AppendSupportedField(text, runs, GetSupportedFieldInstruction(LegacyDocFieldKind.Page), "1", formatting);
@@ -292,6 +292,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return true;
             }
 
+            if (LegacyDocField.IsTextReferenceInstruction(trimmed)) {
+                fieldKind = LegacyDocFieldKind.TextReference;
+                return true;
+            }
+
             if (LegacyDocField.IsDocumentPropertyInstruction(trimmed)) {
                 fieldKind = LegacyDocFieldKind.DocumentProperty;
                 return true;
@@ -321,6 +326,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocFieldKind.SaveDate => SaveDateFieldInstruction,
                 LegacyDocFieldKind.PrintDate => PrintDateFieldInstruction,
                 LegacyDocFieldKind.DocumentProperty => throw new NotSupportedException("Native DOC saving requires document-property fields to preserve their source instruction."),
+                LegacyDocFieldKind.TextReference => throw new NotSupportedException("Native DOC saving requires text-reference fields to preserve their source instruction."),
                 LegacyDocFieldKind.Equation => " EQ ",
                 _ => throw new NotSupportedException($"Native DOC saving supports only {SupportedFieldNames} field instructions.")
             };

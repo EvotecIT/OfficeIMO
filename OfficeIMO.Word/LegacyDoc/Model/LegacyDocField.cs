@@ -1,5 +1,5 @@
 namespace OfficeIMO.Word.LegacyDoc.Model {
-    internal static class LegacyDocField {
+    internal static partial class LegacyDocField {
         internal const char Begin = '\u0013';
         internal const char Separator = '\u0014';
         internal const char End = '\u0015';
@@ -259,7 +259,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return false;
             }
 
-            return IsDocumentPropertyInstruction(instruction);
+            return IsDocumentPropertyInstruction(instruction) || IsTextReferenceInstruction(instruction);
         }
 
         internal static bool TryReadEquationField(

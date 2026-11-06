@@ -8,14 +8,18 @@ Native DOC uses the legacy behavior for a manual page break at the end of a para
 
 ## Import Word 6 and Word 95 documents
 
-Load an unencrypted, non-fast-saved Windows-1252 Word 6 or Word 95 document with `WordDocument.Load`. The supported File Information Block versions are 101 and 104. Import projects body paragraphs, supported paragraph styles and character formatting, simple tables, supported field results, tracked text revisions, and the default tab stop into editable Word content. Edit-protected files are rejected.
+Load an unencrypted, non-fast-saved Windows-1252 Word 6 or Word 95 document with `WordDocument.Load`. The supported File Information Block versions are 101 and 104. Import projects body paragraphs, paragraph styles and their inheritance, character formatting, simple tables, tracked text revisions, and the default tab stop into editable Word content. Edit-protected files are rejected.
+
+Section layout retains supported section starts, paper dimensions, orientation, margins, gutter, header/footer distances, columns, vertical alignment and page-number settings. Default, first-page and even-page headers and footers retain supported paragraphs, tables and fields. Running stories use the source document's formatting and font-code-page checks. Explicit paragraph tabs, spacing, and supported single, double, dotted and dashed paragraph/table borders remain editable. Border shadows, thick borders and range-based tab changes are reported as unsupported formatting.
+
+Supported page-count, date/time, document-property, `FILENAME` and `STYLEREF` fields retain their editable representation. Filename and style references retain the source instruction, switches and cached text. A style reference without a matching projected source style is reported explicitly. Unsupported or localized field instructions retain cached text under an explicit loss policy. Import does not evaluate fields.
 
     using OfficeIMO.Word;
 
     using WordDocument document = WordDocument.Load("archive.doc");
     document.Save("editable.docx");
 
-Save to a separate DOCX path. Word 6/95 sources have no associated save path and binary DOC output is unavailable for those documents. Review `LegacyDocUnsupportedFeatures` before conversion. Strict DOCX saving blocks when the reader reports lost content, such as unprojected running stories, embedded objects, unsupported formatting, or text that uses another font code page. Set `WordSaveOptions.AllowLoss` to `true` only when those reported losses are acceptable.
+Save to a separate DOCX path. Word 6/95 sources have no associated save path and binary DOC output is unavailable for those documents. Review `LegacyDocUnsupportedFeatures` before conversion. Strict DOCX saving blocks when the reader reports lost content, including pictures, embedded objects, footnotes/endnotes, comments, text boxes, legacy numbering, unsupported formatting, or text that uses another font code page. Set `WordSaveOptions.AllowLoss` to `true` only when those reported losses are acceptable.
 
 ## Normal API
 
@@ -80,6 +84,7 @@ The DOC reader projects supported content into the normal OfficeIMO Word model. 
 | Bookmarks and supported internal/external hyperlinks | Projected |
 | Static and supported field display results | Projected |
 | SECTIONPAGES fields | Projected as editable fields, retaining the source instruction, format switches and cached result |
+| FILENAME and STYLEREF fields | Projected as editable fields, retaining the source instruction, switches and cached text |
 | Footnotes and endnotes, including supported formatting | Projected |
 | Comments with readable comment tables | Projected |
 | Revision-tracking settings | Projected |

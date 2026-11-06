@@ -15,10 +15,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocOleDocumentPropertyReader.AddDocumentProperties(compoundFile, this, options);
             AddUnsupportedCompoundFeatures(compoundFile, pictureDataFullyProjected: false, options.ReportUnsupportedContent);
             StyleSheet = model.StyleSheet;
+            ReadDopMarginSettings(bytes, LegacyDocFib.ReadInt32(bytes, 0x150), LegacyDocFib.ReadInt32(bytes, 0x154));
             DefaultTabStop = model.DefaultTabStop;
+            Sections = model.Sections;
+            SectionFormat = Sections.Count == 0 ? LegacyDocSectionFormat.Default : Sections[0].Format;
+            HeaderFooterStories = model.HeaderFooterStories;
+            DifferentOddAndEvenPages = model.DifferentOddAndEvenPages;
             var bookmarks = new LegacyDocBookmarkProjectionTracker(Array.Empty<LegacyDocBookmark>());
             Text = BuildFormattedParagraphs(model.Body, model.Characters, model.Paragraphs,
-                Array.Empty<LegacyDocSection>(), bookmarks, new Dictionary<int, LegacyDocPicture>(),
+                Sections, bookmarks, new Dictionary<int, LegacyDocPicture>(),
                 options.ReportUnsupportedContent, orderedFormattingRanges: true);
 
             foreach (var finding in model.Findings) {

@@ -234,6 +234,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool IsStaticDisplayField =>
             IsStaticDateTimeField
             || FieldKind == LegacyDocFieldKind.DocumentProperty
+            || FieldKind == LegacyDocFieldKind.TextReference
             || FieldKind == LegacyDocFieldKind.Equation;
 
         internal bool IsSpecified(LegacyDocCharacterFormatProperties property) {

@@ -1022,6 +1022,7 @@ namespace OfficeIMO.Word {
                 LegacyDocFieldKind.SaveDate => " SAVEDATE  ",
                 LegacyDocFieldKind.PrintDate => " PRINTDATE  ",
                 LegacyDocFieldKind.DocumentProperty => throw new NotSupportedException("Legacy DOC document-property field projection requires the source field instruction."),
+                LegacyDocFieldKind.TextReference => throw new NotSupportedException("Legacy DOC text-reference field projection requires the source field instruction."),
                 LegacyDocFieldKind.Equation => " EQ ",
                 _ => " DATE  "
             };

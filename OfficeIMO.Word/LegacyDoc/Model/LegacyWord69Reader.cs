@@ -74,11 +74,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 throw new InvalidDataException("The Word 6/95 FIB declares a piece table in a non-complex document.");
             }
 
-            var body = new LegacyDocTextCharacter[bodyLength];
-            for (int cp = 0; cp < bodyLength; cp++) {
+            var allCharacters = new LegacyDocTextCharacter[(int)storyLength];
+            for (int cp = 0; cp < allCharacters.Length; cp++) {
                 int fc = textStart + cp;
-                body[cp] = new LegacyDocTextCharacter(LegacyDocPieceTable.DecodeWindows1252(bytes[fc]), fc, cp);
+                allCharacters[cp] = new LegacyDocTextCharacter(LegacyDocPieceTable.DecodeWindows1252(bytes[fc]), fc, cp);
             }
+            var body = new ArraySegment<LegacyDocTextCharacter>(allCharacters, 0, bodyLength);
 
             var findings = new List<LegacyDocUnsupportedFeature>();
             void Report(LegacyDocUnsupportedFeatureKind kind, string code, string message) =>
@@ -92,7 +93,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var paragraphs = LegacyWord69Formatting.ReadParagraphRanges(bytes, usedEnd, ReadRange(bytes, usedEnd, 0xC0),
                 properties, options.MaxParagraphPropertyWorkBytes);
 
-            if (LegacyWord69Encoding.HasUnsupportedText(bytes.Slice(textStart, bodyLength), textStart,
+            if (LegacyDocField.HasUnprojectedFields(allCharacters)) {
+                Report(LegacyDocUnsupportedFeatureKind.Formatting, "doc-word69-fields-unsupported",
+                    "The Word 6/95 document contains fields whose instructions are reduced to cached text.");
+            }
+            if (LegacyDocField.HasUnresolvedStyleReferences(allCharacters, styleSheet)) {
+                Report(LegacyDocUnsupportedFeatureKind.Formatting, "doc-word69-field-reference-unresolved",
+                    "A Word 6/95 STYLEREF field has no matching qualified editable style.");
+            }
+
+            if (LegacyWord69Encoding.HasUnsupportedText(bytes.Slice(textStart, allCharacters.Length), textStart,
                 charsets, contextRanges, paragraphs, styleSheet, properties.StyleFonts, properties.StyleLanguages,
                 properties.DefaultFontIndex, U16(bytes, 6))) {
                 Report(LegacyDocUnsupportedFeatureKind.Formatting, "doc-word69-text-codepage-unsupported",
@@ -104,7 +114,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     "The Word 6/95 document contains formatting properties outside the supported profile.");
             }
             if (I32(bytes, 0x38) != 0) Report(LegacyDocUnsupportedFeatureKind.Footnote, "doc-word69-footnotes", "Word 6/95 footnote stories are not projected.");
-            if (I32(bytes, 0x3C) != 0) Report(LegacyDocUnsupportedFeatureKind.HeaderFooter, "doc-word69-running-stories", "Word 6/95 header and footer stories are not projected.");
             if (I32(bytes, 0x40) != 0 || I32(bytes, 0x11C) > 2 || I32(bytes, 0x124) != 0 || I32(bytes, 0x12C) != 0) {
                 Report(LegacyDocUnsupportedFeatureKind.VbaProject, "doc-word69-wordbasic", "Legacy WordBasic command and macro content is not projected.");
             }
@@ -114,17 +123,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 Report(LegacyDocUnsupportedFeatureKind.TextBox, "doc-word69-textboxes", "Word 6/95 text box stories are not projected.");
             }
 
-            if ((flags & HasPictures) != 0 || body.Any(character => character.Character == '\u0001')) {
+            if ((flags & HasPictures) != 0 || allCharacters.Any(character => character.Character == '\u0001')) {
                 Report(LegacyDocUnsupportedFeatureKind.Picture, "doc-word69-pictures", "Word 6/95 inline graphics and embedded payloads are not projected.");
             }
             if (I32(bytes, 0x104) != 0 || I32(bytes, 0x10C) != 0 || I32(bytes, 0x114) != 0) {
                 Report(LegacyDocUnsupportedFeatureKind.Bookmark, "doc-word69-bookmarks", "Word 6/95 bookmark records are not projected.");
-            }
-
-            LegacyWord69Bytes sections = ReadRange(bytes, usedEnd, 0x88);
-            if (sections.Length > 20 || (sections.Length == 20 && I32(sections, 10) != -1)) {
-                Report(LegacyDocUnsupportedFeatureKind.Section, "doc-word69-sections",
-                    "Word 6/95 section formatting and multiple sections are not projected.");
             }
 
             LegacyWord69Bytes documentProperties = ReadRange(bytes, usedEnd, 0x150);
@@ -137,7 +140,23 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             ushort nativeTabStop = documentProperties.IsEmpty ? (ushort)0 : U16(documentProperties, 10);
             int? defaultTabStop = nativeTabStop == 0 ? null : nativeTabStop;
-            return new Result(body, characters, paragraphs, styleSheet, findings, defaultTabStop);
+            var sections = LegacyWord69Sections.Read(bytes, usedEnd, ReadRange(bytes, usedEnd, 0x88),
+                bodyLength, textEnd - textStart, out var sectionHeaderMasks, out bool sectionUnsupported);
+            if (sectionUnsupported) {
+                Report(LegacyDocUnsupportedFeatureKind.Section, "doc-word69-sections",
+                    "The Word 6/95 document contains section properties outside the supported profile.");
+            }
+            byte separatorMask = documentProperties.IsEmpty ? (byte)0 : documentProperties[1];
+            var headerFooterStories = LegacyWord69HeaderFooter.Read(ReadRange(bytes, usedEnd, 0xB0),
+                allCharacters, bodyLength + I32(bytes, 0x38), I32(bytes, 0x3C), sectionHeaderMasks,
+                separatorMask, characters, paragraphs, out bool runningStoriesUnsupported);
+            if (runningStoriesUnsupported) {
+                Report(LegacyDocUnsupportedFeatureKind.HeaderFooter, "doc-word69-running-stories",
+                    "The Word 6/95 document contains running stories outside the supported header/footer directory.");
+            }
+            bool differentOddAndEvenPages = !documentProperties.IsEmpty && (documentProperties[0] & 1) != 0;
+            return new Result(body, characters, paragraphs, styleSheet, findings, defaultTabStop,
+                sections, headerFooterStories, differentOddAndEvenPages);
         }
 
         internal static bool IsWesternLanguage(ushort language) =>
@@ -166,6 +185,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocParagraphFormatRange> Paragraphs,
             LegacyDocStyleSheet StyleSheet,
             IReadOnlyList<LegacyDocUnsupportedFeature> Findings,
-            int? DefaultTabStop);
+            int? DefaultTabStop,
+            IReadOnlyList<LegacyDocSection> Sections,
+            IReadOnlyList<LegacyDocHeaderFooterStory> HeaderFooterStories,
+            bool DifferentOddAndEvenPages);
     }
 }

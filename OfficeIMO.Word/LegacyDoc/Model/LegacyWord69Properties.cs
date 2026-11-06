@@ -1,6 +1,6 @@
 namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>Maps supported one-byte Word 6/95 property operands to the common legacy DOC format model.</summary>
-    internal sealed class LegacyWord69Properties {
+    internal sealed partial class LegacyWord69Properties {
         internal bool HasUnsupportedFormatting { get; set; }
         internal int DefaultFontIndex { get; set; }
         internal Dictionary<ushort, int> StyleFonts { get; } = new();
@@ -38,10 +38,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendTableDefinition(output, operand);
                     continue;
                 }
+                if (paragraph && AppendParagraphStructure(output, operation, operand)) continue;
 
                 ushort code = paragraph ? ParagraphCode(operation) : CharacterCode(operation);
                 if (code == 0) {
                     if (!paragraph && operation == 117) continue;
+                    if (!paragraph && operation == 68 && operand.Length == 4
+                        && LegacyWord69Reader.I32(operand, 0) == 0) continue;
                     HasUnsupportedFormatting = true;
                     continue;
                 }
@@ -74,6 +77,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             47 => 0x442D,   // shading
             51 => 0x2431,   // widow control
             182 => 0x548A,  // table alignment
+            183 => 0x9601,  // table origin
+            184 => 0x9602,  // half-width of the table cell gap
             185 => 0x3403,  // disallow row split
             186 => 0x3404,  // repeated heading row
             189 => 0x9407,  // row height
@@ -160,9 +165,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             for (int i = 0; i < descriptors; i++) {
                 var descriptor = operand.Slice(edgesEnd + i * oldCellSize, oldCellSize);
                 ushort oldFlags = LegacyWord69Reader.U16(descriptor, 0);
-                if ((oldFlags & ~3) != 0 || !IsZero(descriptor.Slice(2))) HasUnsupportedFormatting = true;
+                if ((oldFlags & ~3) != 0) HasUnsupportedFormatting = true;
                 AppendWord(output, (ushort)(oldFlags & 3));
-                for (int j = 2; j < modernCellSize; j++) output.Add(0);
+                AppendWord(output, 0);
+                for (int j = 0; j < 4; j++) AppendBorder(output, descriptor.Slice(2 + j * 2, 2));
             }
         }
 
@@ -197,14 +203,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var chars = new char[data.Length];
             for (int i = 0; i < data.Length; i++) chars[i] = LegacyDocPieceTable.DecodeWindows1252(data[i]);
             return new string(chars);
-        }
-
-        private static bool IsZero(LegacyWord69Bytes data) {
-            for (int i = 0; i < data.Length; i++) {
-                if (data[i] != 0) return false;
-            }
-
-            return true;
         }
 
         private static void AppendCode(List<byte> bytes, ushort value) => AppendWord(bytes, value);

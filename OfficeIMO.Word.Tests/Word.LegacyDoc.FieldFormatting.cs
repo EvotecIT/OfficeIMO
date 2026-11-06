@@ -7,6 +7,30 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData(" FILENAME ", "old.doc")]
+    [InlineData(" STYLEREF \"Heading 1\" ", "Heading")]
+    public void LegacyDoc_FieldTextReferences_SurviveNativeSaveAndEditableMigration(string instruction, string cachedText) {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Heading").Style = WordParagraphStyles.Heading1;
+        source.AddParagraph()._paragraph.Append(new W.SimpleField(new W.Run(new W.Text(cachedText))) { Instruction = instruction });
+        source.PageSetup.Header.AddParagraph()._paragraph.Append(new W.SimpleField(new W.Run(new W.Text(cachedText))) { Instruction = instruction });
+        using var native = new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
+        using WordDocument imported = WordDocument.Load(native);
+        using var output = new MemoryStream();
+        imported.Save(output);
+        output.Position = 0;
+        using WordDocument reopened = WordDocument.Load(output);
+        MainDocumentPart main = reopened._wordprocessingDocument.MainDocumentPart!;
+        W.SimpleField body = Assert.Single(main.Document.Descendants<W.SimpleField>());
+        W.SimpleField header = Assert.Single(main.HeaderParts.SelectMany(part => part.Header.Descendants<W.SimpleField>()));
+        Assert.Equal(instruction, body.Instruction?.Value);
+        Assert.Equal(cachedText, body.InnerText);
+        Assert.Equal(instruction, header.Instruction?.Value);
+        Assert.Equal(cachedText, header.InnerText);
+        Assert.NotEmpty(imported.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
+    }
+
     [Fact]
     public void LegacyDoc_FieldComparisonRefreshesStylesBetweenSaves() {
         using WordDocument source = WordDocument.Create();

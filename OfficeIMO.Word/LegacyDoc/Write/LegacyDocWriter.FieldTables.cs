@@ -85,10 +85,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 int end = start;
                 while (end < text.Length && char.IsLetter(text[end])) end++;
                 return text.Substring(start, end - start).ToUpperInvariant() switch {
-                    "TITLE" => 0x0F, "SUBJECT" => 0x10, "AUTHOR" => 0x11, "KEYWORDS" => 0x12,
+                    "STYLEREF" => 0x0A, "TITLE" => 0x0F, "SUBJECT" => 0x10, "AUTHOR" => 0x11, "KEYWORDS" => 0x12,
                     "COMMENTS" => 0x13, "LASTSAVEDBY" => 0x14, "CREATEDATE" => 0x15,
                     "SAVEDATE" => 0x16, "PRINTDATE" => 0x17, "REVNUM" => 0x18, "NUMPAGES" => 0x1A,
-                    "DATE" => 0x1F, "TIME" => 0x20, "PAGE" => 0x21,
+                    "FILENAME" => 0x1D, "DATE" => 0x1F, "TIME" => 0x20, "PAGE" => 0x21,
                     "EQ" => 0x31, "SECTIONPAGES" => 0x42, "DOCPROPERTY" => 0x55, "HYPERLINK" => 0x58,
                     _ => 0x01 // MS-DOC: the instruction has not been parsed.
                 };

@@ -10,6 +10,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         SaveDate,
         PrintDate,
         DocumentProperty,
-        Equation
+        Equation,
+        TextReference
     }
 }
