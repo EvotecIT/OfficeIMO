@@ -15,12 +15,48 @@ internal static class MimeHeaderParser {
         "Snapshot-Content-Location"
     };
 
+    /// <summary>Reads a bounded top-level RFC message envelope without decoding body or attachment content.</summary>
+    internal static EmailDocument ReadEnvelope(Stream input, EmailReaderOptions options,
+        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken) {
+        const string location = "message";
+        // A UTF-8 BOM and a CRLF separator can sit outside the configured header byte count.
+        long captureLimit = (long)options.MaxHeaderBytes + 7;
+        using var captured = new MemoryStream();
+        var buffer = new byte[1024];
+        int scanStart = 0;
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int allowed = (int)Math.Min(buffer.Length, captureLimit - captured.Length);
+            if (allowed == 0)
+                throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxHeaderBytes),
+                    options.MaxHeaderBytes + 1L, options.MaxHeaderBytes);
+            int read = input.Read(buffer, 0, allowed);
+            if (read == 0) break;
+            captured.Write(buffer, 0, read);
+            int length = checked((int)captured.Length);
+            byte[] bytes = captured.GetBuffer();
+            int offset = SkipUtf8Bom(bytes, 0, length);
+            int end = FindHeaderEnd(bytes, offset, length, out int separatorLength, scanStart);
+            if (separatorLength != 0) {
+                captured.SetLength(end + separatorLength);
+                break;
+            }
+            scanStart = Math.Max(0, length - 3);
+        }
+
+        var headers = new List<EmailHeader>();
+        Parse(captured.GetBuffer(), 0, checked((int)captured.Length), options, headers, diagnostics, location);
+        if (headers.Count == 0) throw new InvalidDataException("The indexed payload has no RFC message headers.");
+        var document = new EmailDocument { Format = EmailFileFormat.Eml, OutlookItemKind = OutlookItemKind.Message };
+        MimeParser.PopulateEnvelope(document, headers, diagnostics, location, includeRecipients: false);
+        MimeMessageMetadataProjection.Apply(document, headers);
+        return document;
+    }
+
     internal static int Parse(byte[] data, int offset, int count, EmailReaderOptions options,
         IList<EmailHeader> headers, IList<EmailDiagnostic> diagnostics, string location) {
         int end = offset + count;
-        if (offset + 3 <= end && data[offset] == 0xEF && data[offset + 1] == 0xBB && data[offset + 2] == 0xBF) {
-            offset += 3;
-        }
+        offset = SkipUtf8Bom(data, offset, end);
         int headerEnd = FindHeaderEnd(data, offset, end, out int separatorLength);
         int headerBytes = headerEnd - offset;
         if (headerBytes > options.MaxHeaderBytes) {
@@ -143,7 +179,11 @@ internal static class MimeHeaderParser {
         }
     }
 
-    private static int FindHeaderEnd(byte[] data, int offset, int end, out int separatorLength) {
+    private static int SkipUtf8Bom(byte[] bytes, int offset, int end) =>
+        end - offset >= 3 && bytes[offset] == 0xef && bytes[offset + 1] == 0xbb && bytes[offset + 2] == 0xbf
+            ? offset + 3 : offset;
+
+    private static int FindHeaderEnd(byte[] data, int offset, int end, out int separatorLength, int scanStart = 0) {
         if (offset < end && data[offset] == '\r') {
             separatorLength = offset + 1 < end && data[offset + 1] == '\n' ? 2 : 1;
             return offset;
@@ -152,7 +192,7 @@ internal static class MimeHeaderParser {
             separatorLength = 1;
             return offset;
         }
-        for (int i = offset; i < end; i++) {
+        for (int i = Math.Max(offset, scanStart); i < end; i++) {
             if (i + 3 < end && data[i] == '\r' && data[i + 1] == '\n' && data[i + 2] == '\r' && data[i + 3] == '\n') {
                 separatorLength = 4;
                 return i;
