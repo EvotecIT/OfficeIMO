@@ -1666,7 +1666,7 @@ change retains the existing parser and public API.
 Synchronous and asynchronous table sources share row callbacks, row limits and
 validation. I enumerate synchronous sources directly after table setup, with
 cancellation checks before and after each advance and ordinary enumerator
-disposal. The common callback completes and releases every row.
+disposal. The common callback handles row completion and release.
 
 The reversed 50,000-row typed XLSB comparison records 7.0930 ms to 6.9800 ms,
 a 1.59% reduction with both pairs improving. The first order records 5.38%,
@@ -1674,3 +1674,29 @@ with larger launch variation. XLS and XLSX are smaller and mixed across the
 matched cohorts. Native caller CPU improves by 1.07% for XLS and 0.96% for
 XLSX, while XLSB caller CPU is flat and its diagnostic wall time is mixed.
 I retain those controls and losses alongside the smaller gain.
+
+### Native XLS word stores
+
+I use the existing BCL little-endian primitives for native BIFF 16-bit and
+32-bit record stores on .NET 8 and later. The legacy targets use their
+byte-ordered record helpers. The two paths serialize the same unsigned values.
+
+Matched 50,000-row typed XLS writes improve by 3.42% in ABBA and 3.68% in BAAB,
+with both pairs improving in each order. Buffered XLS records 1.32% and 1.02%,
+with a mixed pair in reversal. Other formats and peer controls are mixed.
+Those local comparisons retain 12 warmups, 12 measured samples, 16 invocations,
+normal priority, every outlier and complete independent output validation.
+
+The combined writer candidate records typed XLS writes of 9.9870 ms to
+9.6303 ms in its first order, a 3.57% reduction. Its combined XLSB result is
+flat, while XLSX includes a 3.85% loss. Reversal has large variation in both
+OfficeIMO and the peer writers. I retain those complete cohorts alongside the
+isolated comparisons and qualify the small gains by their measured workload.
+Overall portable leadership and the wider 20% research target remain open.
+
+A serialized confirmation records a 1.51% combined typed XLS gain, a flat XLSB
+result and a 2.97% XLSX loss, with the peer XLSX control 2.21% slower. An exact
+XLSX-method check with 200 completed warmups and 200 native measurements per
+launch records caller CPU 0.96% faster, process CPU 1.15% faster and wall time
+0.84% faster, with both pairs improving. I retain the wall-time and CPU cohorts
+separately and report the wider XLSX result as mixed.
