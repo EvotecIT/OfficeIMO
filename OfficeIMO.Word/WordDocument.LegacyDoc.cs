@@ -993,7 +993,7 @@ namespace OfficeIMO.Word {
 
             Hyperlink hyperlink;
             if (target.Uri != null && Uri.TryCreate(target.Uri, UriKind.Absolute, out Uri? uri)) {
-                OpenXmlPart relationshipOwner = ResolveLegacyDocHyperlinkRelationshipPart(paragraph)
+                OpenXmlPart relationshipOwner = WordHyperLink.ResolveRelationshipPart(paragraph._document, paragraph._paragraph)
                     ?? throw new InvalidOperationException("Legacy DOC hyperlink projection requires a document relationship owner.");
                 HyperlinkRelationship relationship = relationshipOwner.AddHyperlinkRelationship(uri, true);
                 hyperlink = new Hyperlink {
@@ -1090,39 +1090,6 @@ namespace OfficeIMO.Word {
             run.Append(element);
             hyperlink.Append(run);
             ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
-        }
-
-        private static OpenXmlPart? ResolveLegacyDocHyperlinkRelationshipPart(WordParagraph paragraph) {
-            OpenXmlElement? parent = paragraph._paragraph.Parent;
-            while (parent != null
-                && parent is not Body
-                && parent is not DocumentFormat.OpenXml.Wordprocessing.Header
-                && parent is not DocumentFormat.OpenXml.Wordprocessing.Footer
-                && parent is not Footnote
-                && parent is not Endnote) {
-                parent = parent.Parent;
-            }
-
-            HeaderPart? headerPart = (parent as DocumentFormat.OpenXml.Wordprocessing.Header)?.HeaderPart;
-            if (headerPart != null) {
-                return headerPart;
-            }
-
-            FooterPart? footerPart = (parent as DocumentFormat.OpenXml.Wordprocessing.Footer)?.FooterPart;
-            if (footerPart != null) {
-                return footerPart;
-            }
-
-            MainDocumentPart? mainPart = paragraph._document._wordprocessingDocument?.MainDocumentPart;
-            if (parent is Footnote) {
-                return mainPart?.FootnotesPart;
-            }
-
-            if (parent is Endnote) {
-                return mainPart?.EndnotesPart;
-            }
-
-            return mainPart;
         }
 
         private static void ApplyLegacyDocParagraphFormatting(WordParagraph paragraph, LegacyDocParagraphFormat paragraphFormat, LegacyDocStyleSheet styleSheet) {

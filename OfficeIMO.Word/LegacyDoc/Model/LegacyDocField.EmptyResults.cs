@@ -18,7 +18,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 if (IsInstruction(trimmed, "SECTIONPAGES")) continue;
                 if (!IsPageNumberInstruction(instruction) && !IsNumberOfPagesInstruction(instruction)
                     && !TryReadDateTimeFieldKind(instruction, out _) && !IsDocumentPropertyInstruction(instruction)
-                    && !IsTextReferenceInstruction(instruction) && !IsInstruction(trimmed, "EQ")) continue;
+                    && !IsTextReferenceInstruction(instruction) && !IsInstruction(trimmed, "EQ")
+                    && !TryReadHyperlinkInstruction(instruction, out _)) continue;
 
                 string? story = FindSupportedStory(beginPosition, endPosition, fib, readableComments, readableBodyTextBox);
                 if (story == null) continue;

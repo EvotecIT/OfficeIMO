@@ -15,7 +15,7 @@ public partial class Word {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void LegacyDoc_EmptyFieldCaches_ReadableCommentsAndBodyTextboxesReportOmittedFields(bool textBox, bool separator) {
-        foreach (string instruction in new[] { "DATE", "FILENAME", "DOCPROPERTY Title", "EQ \\f(1,2)", "PAGE", "NUMPAGES", "SECTIONPAGES" }) {
+        foreach (string instruction in new[] { "DATE", "FILENAME", "DOCPROPERTY Title", "EQ \\f(1,2)", "HYPERLINK \"https://example.com\"", "PAGE", "NUMPAGES", "SECTIONPAGES" }) {
             bool acceptsEmpty = instruction == "SECTIONPAGES";
             foreach (string cache in new[] { string.Empty, "CACHE" }) {
                 string field = "\u0013 " + instruction + " " + (separator ? "\u0014" + cache : cache) + "\u0015";
@@ -45,8 +45,33 @@ public partial class Word {
                 var root = System.Xml.Linq.XDocument.Load(xml);
                 System.Xml.Linq.XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
                 var fields = root.Descendants(w + "fldSimple").ToArray();
-                if (!acceptsEmpty && cache.Length == 0) Assert.Empty(fields);
-                else {
+                if (!acceptsEmpty && cache.Length == 0) {
+                    Assert.Empty(fields);
+                    Assert.Empty(root.Descendants(w + "hyperlink"));
+                } else if (instruction.StartsWith("HYPERLINK ", StringComparison.Ordinal)) {
+                    Assert.Empty(fields);
+                    var hyperlink = Assert.Single(root.Descendants(w + "hyperlink"));
+                    Assert.Equal(cache, hyperlink.Value);
+                    System.Xml.Linq.XNamespace r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+                    string relationshipId = (string)hyperlink.Attribute(r + "id")!;
+                    string relationshipsPart = textBox ? "word/_rels/document.xml.rels" : "word/_rels/comments.xml.rels";
+                    using Stream relationshipsXml = package.GetEntry(relationshipsPart)!.Open();
+                    var relationships = System.Xml.Linq.XDocument.Load(relationshipsXml);
+                    var relationship = Assert.Single(relationships.Root!.Elements(), element => (string?)element.Attribute("Id") == relationshipId);
+                    Assert.Equal("External", (string?)relationship.Attribute("TargetMode"));
+                    Assert.Equal(new Uri("https://example.com"), new Uri((string)relationship.Attribute("Target")!));
+                    if (!textBox) {
+                        using WordDocument reopened = WordDocument.Load(new MemoryStream(output.ToArray()));
+                        WordParagraph linked = Assert.Single(Assert.Single(reopened.Comments).Paragraphs, paragraph => paragraph.Hyperlink != null);
+                        Assert.Equal(new Uri("https://example.com"), linked.Hyperlink!.Uri);
+                        linked.Hyperlink.Uri = new Uri("https://example.org/edited");
+                        using var edited = new MemoryStream();
+                        reopened.Save(edited);
+                        using WordDocument editedReopened = WordDocument.Load(new MemoryStream(edited.ToArray()));
+                        WordParagraph editedLink = Assert.Single(Assert.Single(editedReopened.Comments).Paragraphs, paragraph => paragraph.Hyperlink != null);
+                        Assert.Equal(new Uri("https://example.org/edited"), editedLink.Hyperlink!.Uri);
+                    }
+                } else {
                     var projected = Assert.Single(fields);
                     Assert.Equal(instruction, ((string?)projected.Attribute(w + "instr"))?.Trim());
                     Assert.Equal(expectedCache, projected.Value);
