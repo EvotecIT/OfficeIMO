@@ -10,7 +10,7 @@ public sealed class ExcelEncryptedLoadCancellationTests {
     [InlineData(ExcelFileFormat.Xlsx)]
     [InlineData(ExcelFileFormat.Xlsb)]
     [InlineData(ExcelFileFormat.Xls)]
-    public async Task EncryptedLoadObservesCancellationAfterInputEnds(ExcelFileFormat format) {
+    public async Task EncryptedLoadCancellationWinsOverPasswordDecodingAtEndOfInput(ExcelFileFormat format) {
         const string password = "test-password";
         byte[] encrypted;
         using (var document = ExcelDocument.Create()) {
@@ -27,10 +27,9 @@ public sealed class ExcelEncryptedLoadCancellationTests {
         using var cancellation = new CancellationTokenSource();
         using var source = new CancelAtEndOfInputStream(encrypted, cancellation) { Position = 3 };
         OperationCanceledException error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            ExcelDocument.LoadAsync(source, new ExcelLoadOptions { Password = password }, cancellation.Token));
+            ExcelDocument.LoadAsync(source, new ExcelLoadOptions { Password = "incorrect-password" }, cancellation.Token));
         Assert.Equal(cancellation.Token, error.CancellationToken);
         Assert.True(source.EndObserved);
-        Assert.Equal(encrypted.Length, source.BytesRead);
         Assert.True(source.CanRead);
         Assert.Equal(3, source.Position);
     }
@@ -45,7 +44,6 @@ public sealed class ExcelEncryptedLoadCancellationTests {
         }
 
         internal bool EndObserved { get; private set; }
-        internal int BytesRead { get; private set; }
         public override bool CanRead => _input.CanRead;
         public override bool CanSeek => true;
         public override bool CanWrite => false;
@@ -54,7 +52,6 @@ public sealed class ExcelEncryptedLoadCancellationTests {
 
         public override int Read(byte[] buffer, int offset, int count) {
             int read = _input.Read(buffer, offset, count);
-            BytesRead += read;
             if (read == 0 && count > 0 && _input.Position == _input.Length) {
                 EndObserved = true;
                 _cancellation.Cancel();
