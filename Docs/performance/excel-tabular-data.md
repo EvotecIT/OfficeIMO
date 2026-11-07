@@ -1660,3 +1660,17 @@ comparison methods. Native caller CPU improves by 1.04% in both pairs. The
 reader gains one private reference, adding eight bytes per reader in this
 64-bit cohort. Typed-read and write controls remain mixed. This general .NET 8+
 change retains the existing parser and public API.
+
+### Synchronous Excel table rows
+
+Synchronous and asynchronous table sources share row callbacks, row limits and
+validation. I enumerate synchronous sources directly after table setup, with
+cancellation checks before and after each advance and ordinary enumerator
+disposal. The common callback completes and releases every row.
+
+The reversed 50,000-row typed XLSB comparison records 7.0930 ms to 6.9800 ms,
+a 1.59% reduction with both pairs improving. The first order records 5.38%,
+with larger launch variation. XLS and XLSX are smaller and mixed across the
+matched cohorts. Native caller CPU improves by 1.07% for XLS and 0.96% for
+XLSX, while XLSB caller CPU is flat and its diagnostic wall time is mixed.
+I retain those controls and losses alongside the smaller gain.
