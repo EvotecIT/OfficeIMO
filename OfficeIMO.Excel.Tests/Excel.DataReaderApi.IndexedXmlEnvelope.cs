@@ -16,7 +16,11 @@ public partial class Excel {
     [InlineData("unbound-prefix", true)]
     [InlineData("normalized-prefix-alias", true)]
     [InlineData("malformed-body", true)]
-    public void OpenDataReader_PreservesBodyAndEnclosingXmlValidationWithPrefixedMetadata(string scenario, bool invalid) {
+    [InlineData("normalized-prefix-alias-canonical", true)]
+    [InlineData("namespace-alias-canonical-valid", false)]
+    [InlineData("canonical-invalid-xml-space", true)]
+    [InlineData("canonical-xml-space", false)]
+    public void OpenDataReader_PreservesIndexedBodyAndEnclosingXmlValidation(string scenario, bool invalid) {
         const string spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         string xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
             + "<worksheet xmlns=\"" + spreadsheetNamespace + "\" xmlns:a=\"urn:one\" xmlns:b=\"urn:two\">"
@@ -48,12 +52,30 @@ public partial class Excel {
                 xml = xml.Replace("spans=\"1:1\"", "spans=\"1:1\" missing:note=\"bad\"");
                 break;
             case "normalized-prefix-alias":
+            case "normalized-prefix-alias-canonical":
                 xml = xml.Replace("urn:one", "urn:same\t").Replace("urn:two", "urn:same ")
                     .Replace("spans=\"1:1\"", "spans=\"1:1\" a:note=\"one\" b:note=\"two\"");
+                break;
+            case "namespace-alias-canonical-valid":
+                xml = xml.Replace("spans=\"1:1\"", "spans=\"1:1\" a:note=\"one\" b:note=\"two\"");
+                break;
+            case "canonical-invalid-xml-space":
+                xml = xml.Replace("spans=\"1:1\"", "spans=\"1:1\" xml:space=\"bogus\"");
+                break;
+            case "canonical-xml-space":
+                xml = xml.Replace("spans=\"1:1\"", "spans=\"1:1\" xml:space=\"preserve\"");
                 break;
             case "malformed-body":
                 xml = xml.Replace("<v>42</v>", "<v>42</missing>");
                 break;
+        }
+        if (scenario == "normalized-prefix-alias-canonical"
+            || scenario == "namespace-alias-canonical-valid"
+            || scenario == "canonical-invalid-xml-space"
+            || scenario == "canonical-xml-space") {
+            xml = xml.Replace(
+                "<view:sheetViews xmlns:view=\"" + spreadsheetNamespace + "\"><view:sheetView workbookViewId=\"0\"/></view:sheetViews>",
+                "<sheetViews><sheetView workbookViewId=\"0\"/></sheetViews>");
         }
         if (scenario != "numeric") Assert.NotEqual(original, xml);
         string path = CreateCompactFastPathWorkbook();
@@ -73,7 +95,7 @@ public partial class Excel {
                     Assert.Equal(originalError.LineNumber, error.LineNumber);
                     Assert.Equal(originalError.LinePosition, error.LinePosition);
                 }
-                if (scenario == "normalized-prefix-alias") {
+                if (scenario == "normalized-prefix-alias" || scenario == "normalized-prefix-alias-canonical") {
                     Assert.Equal(1, error.LineNumber);
                     Assert.True(error.LinePosition > xml.IndexOf("<row r=\"2\"", StringComparison.Ordinal));
                 }

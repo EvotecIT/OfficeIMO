@@ -369,7 +369,8 @@ namespace OfficeIMO.Excel {
 #if NET8_0_OR_GREATER
                             // Indexed attributes use root namespace bindings. Keep
                             // their full traversal when the enclosing XML is richer.
-                            if (_sheetDataContentStart >= 0 && tag.Start >= _sheetDataContentStart
+                            if (!_indexedBodyHasPrefixedAttributes
+                                && _sheetDataContentStart >= 0 && tag.Start >= _sheetDataContentStart
                                 && (_sheetDataEndTagStart < 0 || tag.Start < _sheetDataEndTagStart)) {
                                 _indexedBodyHasPrefixedAttributes = true;
                             }
@@ -500,6 +501,13 @@ namespace OfficeIMO.Excel {
                             || namespacePrefixCount == namespacePrefixStarts.Length) {
                             return false;
                         }
+                        // URI comparisons use original bytes. Leave XML attribute
+                        // whitespace normalization to the authoritative reader.
+                        for (int valueIndex = valueStart; valueIndex < valueStart + valueLength; valueIndex++) {
+                            if (IsAsciiWhitespace(_buffer![valueIndex])) {
+                                return false;
+                            }
+                        }
                         namespacePrefixStarts[namespacePrefixCount] = localStart;
                         namespacePrefixLengths[namespacePrefixCount] = localLength;
                         namespaceUriStarts[namespacePrefixCount] = valueStart;
@@ -509,6 +517,11 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (AsciiEquals(nameStart, prefixLength, "xml")) {
+                        if (AsciiEquals(localStart, localLength, "space")
+                            && !AsciiEquals(valueStart, valueLength, "default")
+                            && !AsciiEquals(valueStart, valueLength, "preserve")) {
+                            return false;
+                        }
                         continue;
                     }
                     if (usedPrefixCount == usedPrefixStarts.Length) {
