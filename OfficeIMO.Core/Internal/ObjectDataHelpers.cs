@@ -178,7 +178,7 @@ internal static partial class ObjectDataHelpers
         return new ObjectPropertyPlan(type, properties);
     }
 
-    private sealed class ObjectPropertyPlan
+    private sealed partial class ObjectPropertyPlan
     {
         private readonly PropertyInfo[] _properties;
         private readonly Dictionary<string, PropertyInfo> _propertiesByName;
