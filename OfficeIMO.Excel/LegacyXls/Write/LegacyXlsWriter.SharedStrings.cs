@@ -108,7 +108,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
                 // Three header bytes per string provide a conservative capacity bound.
                 int segmentCapacity = (int)Math.Min(BiffMaxRecordDataLength, Math.Max(256L, 8L + 3L * _entryCount));
-                var writer = new LegacyXlsStringSegmentWriter(maximumBytes, segmentCapacity);
+                long sharedStringTableOffset = stream.Position;
+                var writer = new LegacyXlsStringSegmentWriter(maximumBytes, segmentCapacity, stream, cancellationToken);
                 writer.WriteUInt32(_totalCount);
                 writer.WriteUInt32(checked((uint)_entryCount));
                 int stringsPerBucket = Math.Max((_entryCount / 128) + 1, 8);
@@ -125,7 +126,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                long sharedStringTableOffset = stream.Position;
                 IReadOnlyList<int> payloadLengths = writer.WriteSharedStringRecords(stream, cancellationToken);
 
                 WriteExtSstRecord(
@@ -233,11 +233,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private sealed class LegacyXlsStringSegmentWriter {
-            // Each segment is one bounded record payload. Owned buffers avoid a stream
-            // call and limit check per header byte while keeping the same bounds.
+            // Preservation retains bounded payloads. Workbook saves write completed
+            // records into their internal stream and reuse the active buffer.
             private readonly List<byte[]> _segments = new();
             private readonly List<int> _segmentLengths = new();
             private readonly long _maximumBytes;
+            private readonly Stream? _output;
+            private readonly CancellationToken _cancellationToken;
             private readonly int _initialSegmentCapacity;
             private long _completedBytes;
             private byte[] _current = null!;
@@ -245,18 +247,33 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             private int _currentLimit;
             private byte[] _scratch = new byte[64];
 
-            internal LegacyXlsStringSegmentWriter(long maximumBytes = int.MaxValue, int initialSegmentCapacity = 256) {
+            /// <summary>Buffers preservation payloads or reuses a payload buffer for an internal workbook stream.</summary>
+            internal LegacyXlsStringSegmentWriter(long maximumBytes = int.MaxValue, int initialSegmentCapacity = 256,
+                Stream? output = null, CancellationToken cancellationToken = default) {
                 _maximumBytes = maximumBytes;
+                _output = output;
+                _cancellationToken = cancellationToken;
                 _initialSegmentCapacity = initialSegmentCapacity;
                 AddBoundedSegment();
             }
 
+            /// <summary>Starts a bounded payload after delivering its completed predecessor when output is supplied.</summary>
             private void AddBoundedSegment() {
                 long remaining = _maximumBytes - _completedBytes - 4;
                 if (remaining <= 0) throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create("Native XLS shared strings exceed the in-memory save limit.");
-                if (_segments.Count > 0) _segmentLengths[_segments.Count - 1] = _currentLength;
+                if (_segments.Count > 0) {
+                    _segmentLengths[_segments.Count - 1] = _currentLength;
+                    if (_output != null) {
+                        _cancellationToken.ThrowIfCancellationRequested();
+                        WriteRecord(_output, _segments.Count == 1 ? (ushort)0x00fc : (ushort)0x003c,
+                            _current, _currentLength);
+                    }
+                }
                 _currentLimit = (int)Math.Min(BiffMaxRecordDataLength, remaining);
-                _current = new byte[Math.Min(_initialSegmentCapacity, _currentLimit)];
+                int capacity = Math.Min(_initialSegmentCapacity, _currentLimit);
+                if (_output == null || _current == null || _current.Length < capacity) {
+                    _current = new byte[capacity];
+                }
                 _currentLength = 0;
                 _segments.Add(_current);
                 _segmentLengths.Add(0);
@@ -316,9 +333,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return position;
             }
 
-            /// <summary>Writes the owned segments without copying their used prefixes.</summary>
+            /// <summary>Finishes the SST and continuation records and returns their used payload lengths.</summary>
             internal IReadOnlyList<int> WriteSharedStringRecords(Stream stream, CancellationToken cancellationToken) {
                 _segmentLengths[_segments.Count - 1] = _currentLength;
+                if (_output != null) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    WriteRecord(_output, _segments.Count == 1 ? (ushort)0x00fc : (ushort)0x003c,
+                        _current, _currentLength);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return _segmentLengths;
+                }
                 for (int index = 0; index < _segments.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     WriteRecord(stream, index == 0 ? (ushort)0x00fc : (ushort)0x003c,
