@@ -467,13 +467,7 @@ internal static partial class CsvParser
             ref int fieldStart,
             ref int fieldIndex)
         {
-            while (delimiterMask != 0)
-            {
-                int delimiterIndex = chunkStart + BitOperations.TrailingZeroCount(delimiterMask);
-                _visitor.VisitFieldRange(fieldIndex++, fieldStart, delimiterIndex - fieldStart);
-                fieldStart = delimiterIndex + 1;
-                delimiterMask &= delimiterMask - 1;
-            }
+            _visitor.VisitDelimiterMask(delimiterMask, chunkStart, ref fieldStart, ref fieldIndex);
         }
 
         private bool CompleteRecord(
