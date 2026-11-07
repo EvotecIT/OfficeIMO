@@ -172,7 +172,7 @@ internal static partial class ObjectDataHelpers
         var properties = type
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(static p => p.CanRead && p.GetIndexParameters().Length == 0 && !string.IsNullOrWhiteSpace(p.Name))
-            .OrderBy(static p => p.MetadataToken)
+            .OrderBy(OfficeIMO.Data.ObjectFlattener.GetMetadataOrder)
             .ToArray();
 
         return new ObjectPropertyPlan(type, properties);
