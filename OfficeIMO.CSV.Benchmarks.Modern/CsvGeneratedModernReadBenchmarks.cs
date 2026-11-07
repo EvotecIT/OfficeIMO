@@ -20,6 +20,9 @@ public class CsvGeneratedModernReadBenchmarks
     private static readonly SepReaderOptions SepOptions =
         SepLib.New(',').Reader(options => options with { Unescape = true });
 
+    private static readonly SepReaderOptions SepPooledOptions =
+        SepLib.New(',').Reader(options => options with { Unescape = true, CreateToString = SepToString.PoolPerCol() });
+
     [GlobalSetup]
     public void Setup()
     {
@@ -33,8 +36,11 @@ public class CsvGeneratedModernReadBenchmarks
         try
         {
             OfficeIMO();
+            OfficeIMO_InternStrings();
             CsvHelper();
+            CsvHelper_PoolStrings();
             Sep();
+            Sep_PoolPerCol();
             FourLambda();
         }
         finally
@@ -122,6 +128,70 @@ public class CsvGeneratedModernReadBenchmarks
             for (int column = 0; column < reader.FieldCount; column++)
             {
                 string value = reader.GetString(column);
+                checksum += 1 + value.Length;
+                if (_validate) ValidateField(rows, column, value);
+            }
+            rows++;
+        }
+        return CompleteRead(rows, checksum);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_InternStrings()
+    {
+        using var input = new MemoryStream(_utf8, writable: false);
+        using var reader = CsvDocument.OpenReader(input, options: new CsvReaderOptions { InternStrings = true });
+        if (_validate) ValidateHeaders(Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
+        int checksum = 0, rows = 0;
+        while (reader.Read())
+        {
+            if (_validate) ValidateWidth(reader.FieldCount);
+            for (int column = 0; column < reader.FieldCount; column++)
+            {
+                string value = reader.GetString(column);
+                checksum += 1 + value.Length;
+                if (_validate) ValidateField(rows, column, value);
+            }
+            rows++;
+        }
+        return CompleteRead(rows, checksum);
+    }
+
+    [Benchmark]
+    public int CsvHelper_PoolStrings()
+    {
+        using var input = new MemoryStream(_utf8, writable: false);
+        using var reader = global::CsvHelper.CsvReader.Create(input,
+            new global::CsvHelper.CsvReaderOptions { FormatProvider = CultureInfo.InvariantCulture, PoolStrings = true });
+        if (_validate) ValidateHeaders(reader.Headers.ToArray());
+        int checksum = 0, rows = 0;
+        while (reader.Read())
+        {
+            if (_validate) ValidateWidth(reader.FieldCount);
+            for (int column = 0; column < reader.FieldCount; column++)
+            {
+                string value = reader.GetString(column);
+                checksum += 1 + value.Length;
+                if (_validate) ValidateField(rows, column, value);
+            }
+            rows++;
+        }
+        return CompleteRead(rows, checksum);
+    }
+
+    [Benchmark]
+    public int Sep_PoolPerCol()
+    {
+        using var input = new MemoryStream(_utf8, writable: false);
+        using var reader = SepPooledOptions.From(input);
+        if (_validate) ValidateHeaders(reader.Header.ColNames);
+        int checksum = 0, rows = 0;
+        foreach (var row in reader)
+        {
+            if (_validate) ValidateWidth(row.ColCount);
+            for (int column = 0; column < row.ColCount; column++)
+            {
+                string value = row[column].ToString();
                 checksum += 1 + value.Length;
                 if (_validate) ValidateField(rows, column, value);
             }
