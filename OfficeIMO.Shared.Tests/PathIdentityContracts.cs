@@ -10,7 +10,7 @@ public class PathIdentityContracts {
     public void LongWindowsPathsRetainPhysicalIdentityAndRegularFileAccess() {
         if (!OperatingSystem.IsWindows()) return;
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-long-identity-" + Guid.NewGuid().ToString("N"));
-        string root = Path.Combine(directory, new string('a', 160));
+        string root = Path.Combine(directory, new string('a', 240));
         Directory.CreateDirectory(root);
         try {
             string path = Path.Combine(root, "document.txt");

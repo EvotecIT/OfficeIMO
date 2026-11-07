@@ -247,6 +247,14 @@ public sealed partial class PdfPageCanvas {
 
     /// <summary>Adds a shared vector drawing inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, double rotationAngle = 0D) {
+        return AddDrawing(drawing, x, y, width, height, style, linkUri, linkContents, rotationAngle, useDrawingSnapshot: false);
+    }
+
+    /// <summary>Retains an adapter's private scene and shared immutable shape snapshots; the adapter must never expose or mutate either after this call.</summary>
+    internal PdfPageCanvas DrawingSnapshot(OfficeDrawing drawing, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfDrawingStyle? style, string? linkUri, string? linkContents) =>
+        AddDrawing(drawing, x, y, width, height, style, linkUri, linkContents, rotationAngle: 0D, useDrawingSnapshot: true);
+
+    private PdfPageCanvas AddDrawing(OfficeDrawing drawing, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfDrawingStyle? style, string? linkUri, string? linkContents, double rotationAngle, bool useDrawingSnapshot) {
         Guard.NotNull(drawing, nameof(drawing));
         ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
         ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
@@ -254,7 +262,7 @@ public sealed partial class PdfPageCanvas {
         Guard.Positive(height.ToPoints(), nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas drawing rotation angle must be finite.");
 
-        DrawingBlock block = PdfDocument.CreateDrawingBlock(drawing, OfficeAlignment.Left, spacingBefore: 0D, spacingAfter: 0D, style, linkUri, linkContents);
+        DrawingBlock block = PdfDocument.CreateDrawingBlock(drawing, OfficeAlignment.Left, spacingBefore: 0D, spacingAfter: 0D, style, linkUri, linkContents, allowClippedOverflow: false, useDrawingSnapshot: useDrawingSnapshot);
         _items.Add(new PdfCanvasDrawingItem(block, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), rotationAngle));
         return this;
     }

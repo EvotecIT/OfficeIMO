@@ -13,7 +13,11 @@ internal sealed class DrawingBlock : IPdfBlock {
     public string? AlternativeText => Style?.AlternativeText;
     public bool Decorative => Style?.Decorative == true;
 
-    public DrawingBlock(OfficeDrawing drawing, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    public DrawingBlock(OfficeDrawing drawing, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null)
+        : this(drawing, style, linkUri, linkContents, useDrawingSnapshot: false) { }
+
+    /// <summary>Retains a private scene when requested; its shared shape snapshots must remain immutable and unavailable to caller edits.</summary>
+    internal DrawingBlock(OfficeDrawing drawing, PdfDrawingStyle? style, string? linkUri, string? linkContents, bool useDrawingSnapshot) {
         Guard.NotNull(drawing, nameof(drawing));
         Guard.OptionalUriAction(linkUri, nameof(linkUri));
         if (linkContents != null && linkUri == null) {
@@ -24,7 +28,7 @@ internal sealed class DrawingBlock : IPdfBlock {
             Guard.NotNullOrWhiteSpace(linkContents, nameof(linkContents));
         }
 
-        Drawing = drawing.Clone();
+        Drawing = useDrawingSnapshot ? drawing : drawing.Clone();
         Style = style?.Clone();
         LinkUri = linkUri;
         LinkContents = linkUri == null ? null : linkContents ?? "Drawing";

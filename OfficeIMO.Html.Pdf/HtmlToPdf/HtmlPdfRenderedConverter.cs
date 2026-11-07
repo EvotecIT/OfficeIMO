@@ -855,8 +855,9 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken,
         bool suppressLink) {
         var drawing = new OfficeDrawing(visual.Width, visual.Height);
-        // AddShape snapshots the immutable private descriptor through OfficeDrawingShape.
-        drawing.AddShape(visual.InnerShape, 0D, 0D);
+        // InnerShape is a private immutable snapshot; public Shape reads clone it.
+        // This scene stays private and neither the adapter nor writer edits the descriptor.
+        drawing.AddShapeSnapshot(visual.InnerShape, 0D, 0D);
         if (TryAddTranslucentGradient(canvas, visual, drawing, imageResources, conversionReport, cancellationToken, suppressLink)) return;
         double x = visual.X * PointsPerCssPixel;
         double y = visual.Y * PointsPerCssPixel;
@@ -864,7 +865,7 @@ internal static partial class HtmlPdfRenderedConverter {
         double drawingY = Math.Max(0D, y);
         OfficeTransform transform = OfficeTransform.Translate(Math.Min(0D, x), Math.Min(0D, y));
         bool fragmentLink = !suppressLink && IsFragmentLink(visual.LinkUri);
-        Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
+        Action<PdfCore.PdfPageCanvas> addDrawing = target => target.DrawingSnapshot(
             drawing,
             global::OfficeIMO.OfficeLength.Points(drawingX),
             global::OfficeIMO.OfficeLength.Points(drawingY),

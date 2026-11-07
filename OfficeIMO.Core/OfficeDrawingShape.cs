@@ -18,7 +18,11 @@ public sealed class OfficeDrawingShape : OfficeDrawingElement {
     public OfficeShape Shape { get; }
 
     /// <summary>Creates a positioned shape.</summary>
-    public OfficeDrawingShape(OfficeShape shape, double x, double y) {
+    public OfficeDrawingShape(OfficeShape shape, double x, double y)
+        : this(shape, x, y, useShapeSnapshot: false) { }
+
+    /// <summary>Retains an already-private immutable descriptor when requested; its caller must never expose or mutate that snapshot.</summary>
+    internal OfficeDrawingShape(OfficeShape shape, double x, double y, bool useShapeSnapshot) {
         ArgumentNullException.ThrowIfNull(shape);
 
         ValidateFinite(x, nameof(x));
@@ -31,7 +35,7 @@ public sealed class OfficeDrawingShape : OfficeDrawingElement {
             ValidatePositiveFinite(shape.Height, nameof(shape.Height));
         }
 
-        Shape = shape.Clone();
+        Shape = useShapeSnapshot ? shape : shape.Clone();
         X = x;
         Y = y;
     }
