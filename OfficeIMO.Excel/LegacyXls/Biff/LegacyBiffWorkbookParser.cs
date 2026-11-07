@@ -39,7 +39,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return workbook;
                 }
 
-                if (!TryDecryptRecordStream(workbookStream, filePass, options.Password!, workbook.MutableDiagnostics, out workbookStream)) {
+                if (!TryDecryptRecordStream(workbookStream, filePass, options.Password!, workbook.MutableDiagnostics,
+                        out workbookStream, options.CancellationToken)) {
                     if (!workbook.MutableDiagnostics.Any(diagnostic => diagnostic.Code == "xls-biff-filepass-password-invalid")) {
                         AddFilePassBlocker(workbook, filePass);
                     }
@@ -289,17 +290,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffRecord filePass,
             string password,
             List<LegacyXlsImportDiagnostic> diagnostics,
-            out byte[] decryptedWorkbookStream) {
+            out byte[] decryptedWorkbookStream,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (BiffXorObfuscation.IsXorFilePass(filePass)) {
-                return BiffXorObfuscation.TryDecrypt(workbookStream, filePass, password, diagnostics, out decryptedWorkbookStream);
+                return BiffXorObfuscation.TryDecrypt(workbookStream, filePass, password, diagnostics, out decryptedWorkbookStream, cancellationToken);
             }
 
             if (BiffRc4Encryption.IsRc4FilePass(filePass)) {
-                return BiffRc4Encryption.TryDecrypt(workbookStream, filePass, password, diagnostics, out decryptedWorkbookStream);
+                return BiffRc4Encryption.TryDecrypt(workbookStream, filePass, password, diagnostics, out decryptedWorkbookStream, cancellationToken);
             }
 
             if (BiffRc4CryptoApiEncryption.IsRc4CryptoApiFilePass(filePass)) {
-                return BiffRc4CryptoApiEncryption.TryDecrypt(workbookStream, filePass, password, diagnostics, out decryptedWorkbookStream);
+                return BiffRc4CryptoApiEncryption.TryDecrypt(workbookStream, filePass, password, diagnostics, out decryptedWorkbookStream, cancellationToken);
             }
 
             decryptedWorkbookStream = workbookStream;

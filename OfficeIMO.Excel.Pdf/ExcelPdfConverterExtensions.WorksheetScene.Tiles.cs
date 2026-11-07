@@ -35,7 +35,8 @@ namespace OfficeIMO.Excel.Pdf {
             foreach (WorksheetImageExportData image in plan.Images) {
                 if (TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, image.RowIndex, image.ColumnIndex, out double x, out double y,
                         image.OffsetXPoints + image.WidthPoints, image.OffsetYPoints + image.HeightPoints)) {
-                    rects.Add((x + image.OffsetXPoints, y + image.OffsetYPoints, image.WidthPoints, image.HeightPoints));
+                    rects.Add((GetWorksheetSceneObjectX(plan, tableWidth, x + image.OffsetXPoints, image.WidthPoints),
+                        y + image.OffsetYPoints, image.WidthPoints, image.HeightPoints));
                 }
             }
 
@@ -43,7 +44,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ExcelChartInfo snapshot = chart.Snapshot;
                 if (TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, snapshot.RowIndex, snapshot.ColumnIndex, out double x, out double y,
                         (snapshot.OffsetX.ToPoints() + snapshot.Width.ToPoints()), (snapshot.OffsetY.ToPoints() + snapshot.Height.ToPoints()))) {
-                    rects.Add((x + snapshot.OffsetX.ToPoints(), y + snapshot.OffsetY.ToPoints(),
+                    rects.Add((GetWorksheetSceneObjectX(plan, tableWidth, x + snapshot.OffsetX.ToPoints(), snapshot.Width.ToPoints()), y + snapshot.OffsetY.ToPoints(),
                         snapshot.Width.ToPoints(), snapshot.Height.ToPoints()));
                 }
             }
@@ -52,7 +53,8 @@ namespace OfficeIMO.Excel.Pdf {
                 (double drawingWidth, double drawingHeight) = GetWorksheetDrawingSize(plan, drawing);
                 if (TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, drawing.Row, drawing.Column, out double x, out double y,
                         PixelsToPoints(drawing.OffsetXPixels) + drawingWidth, PixelsToPoints(drawing.OffsetYPixels) + drawingHeight)) {
-                    rects.Add((x + PixelsToPoints(drawing.OffsetXPixels), y + PixelsToPoints(drawing.OffsetYPixels), drawingWidth, drawingHeight));
+                    rects.Add((GetWorksheetSceneObjectX(plan, tableWidth, x + PixelsToPoints(drawing.OffsetXPixels), drawingWidth),
+                        y + PixelsToPoints(drawing.OffsetYPixels), drawingWidth, drawingHeight));
                 }
             }
 
@@ -68,7 +70,17 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<double> rowBreaks = options.UseWorksheetPageBreaks && !IsFitToHeight(plan.PageSetup)
                 ? GetUnmappedSceneBreakPositions(plan, chunk, columnWidths, rowHeights, columns: false)
                 : Array.Empty<double>();
-            var horizontal = CreateSceneAxisWindows(bounds.Left, right, tileWidth, columnBreaks, scale);
+            // Tile in source-column coordinates, whose page grid starts at the sheet's
+            // starting edge. Reflect each window afterward; a mirrored negative bound
+            // must not be rounded onto the left-to-right grid a second time.
+            double logicalLeft = plan.RightToLeft ? tableWidth - right : bounds.Left;
+            double logicalRight = plan.RightToLeft ? tableWidth - bounds.Left : right;
+            IReadOnlyList<(double Start, double Length)> horizontal = CreateSceneAxisWindows(
+                logicalLeft, logicalRight, tileWidth, columnBreaks, scale);
+            if (plan.RightToLeft) horizontal = horizontal.Select(window => {
+                double length = Math.Min(window.Length, logicalRight - window.Start);
+                return (tableWidth - window.Start - length, length);
+            }).ToArray();
             // A single column wider than the page prints once, cut at the page edge, as in a
             // spreadsheet application. Continuing it on another page would only show the cut
             // ends of words.
@@ -81,7 +93,8 @@ namespace OfficeIMO.Excel.Pdf {
                 bool hasContent = rects.Any(rect => rect.X < x.Start + x.Length && rect.X + rect.Width > x.Start &&
                     rect.Y < y.Start + y.Length && rect.Y + rect.Height > y.Start);
                 if (hasContent) tiles.Add(new WorksheetSceneTile((x.Start - bounds.Left) * scale,
-                    (y.Start - bounds.Top) * scale, x.Length * scale, y.Length * scale, x.Start, y.Start));
+                    (y.Start - bounds.Top) * scale, x.Length * scale, y.Length * scale,
+                    plan.RightToLeft ? tableWidth - x.Start - x.Length : x.Start, y.Start));
             }
             if (plan.PageSetup?.PageOrder == ExcelPageOrder.OverThenDown) {
                 foreach (var y in vertical) foreach (var x in horizontal) Add(x, y);
