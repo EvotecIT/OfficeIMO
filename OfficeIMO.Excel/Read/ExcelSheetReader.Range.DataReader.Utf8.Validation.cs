@@ -5,12 +5,18 @@ namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource {
             private bool ValidateBufferedWorksheetXml(CancellationToken ct) {
-                using var stream = new MemoryStream(
-                    _buffer!,
-                    0,
-                    _length,
-                    writable: false,
-                    publiclyVisible: false);
+                using var stream = CreateWorksheetXmlValidationStream(ct);
+                try {
+                    return ValidateWorksheetXmlStream(stream, ct);
+                } catch (XmlException) when (stream.Length != _length) {
+                    // Preserve original source line and column information for callers.
+                    using var original = new MemoryStream(
+                        _buffer!, 0, _length, writable: false, publiclyVisible: false);
+                    return ValidateWorksheetXmlStream(original, ct);
+                }
+            }
+
+            private bool ValidateWorksheetXmlStream(Stream stream, CancellationToken ct) {
                 using XmlReader reader = OpenWorksheetXmlReader(stream);
                 var namespaces = new IndexedWorksheetNamespaceValidator(_worksheetPrefixLength != 0);
                 int nodesUntilCancellationCheck = 1024;

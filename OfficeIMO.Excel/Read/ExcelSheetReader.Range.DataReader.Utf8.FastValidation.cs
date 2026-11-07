@@ -366,6 +366,14 @@ namespace OfficeIMO.Excel {
                     for (int index = nameStart; index < position; index++) {
                         if (_buffer![index] == (byte)':') {
                             hasPrefixedAttributes = true;
+#if NET8_0_OR_GREATER
+                            // Indexed attributes use root namespace bindings. Keep
+                            // their full traversal when the enclosing XML is richer.
+                            if (_sheetDataContentStart >= 0 && tag.Start >= _sheetDataContentStart
+                                && (_sheetDataEndTagStart < 0 || tag.Start < _sheetDataEndTagStart)) {
+                                _indexedBodyHasPrefixedAttributes = true;
+                            }
+#endif
                             break;
                         }
                     }
