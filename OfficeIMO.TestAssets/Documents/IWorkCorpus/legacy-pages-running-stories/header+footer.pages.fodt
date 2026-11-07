@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<office:document xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" office:mimetype="application/vnd.oasis.opendocument.text" office:version="1.1">
+  <office:meta>
+    <meta:generator>libodfgen/0.1.7</meta:generator>
+  </office:meta>
+  <office:font-face-decls>
+    <style:font-face style:font-charset="x-symbol" style:name="StarSymbol" svg:font-family="StarSymbol"/>
+  </office:font-face-decls>
+  <office:styles>
+    <style:default-style style:family="graphic"/>
+    <style:default-style style:family="paragraph">
+      <style:paragraph-properties style:line-break="strict" style:punctuation-wrap="hanging" style:tab-stop-distance="0.5in" style:text-autospace="ideograph-alpha" style:use-window-font-color="true" style:writing-mode="page"/>
+    </style:default-style>
+    <style:default-style style:family="table"/>
+    <style:default-style style:family="table-row">
+      <style:table-row-properties fo:keep-together="auto"/>
+    </style:default-style>
+    <style:default-style style:family="table-column"/>
+    <style:default-style style:family="table-cell"/>
+    <style:style style:class="text" style:family="paragraph" style:name="Standard"/>
+    <style:style style:class="text" style:display-name="Text Body" style:family="paragraph" style:name="Text_Body" style:parent-style-name="Standard"/>
+    <style:style style:class="extra" style:display-name="Table Contents" style:family="paragraph" style:name="Table_Contents" style:parent-style-name="Text_Body"/>
+    <style:style style:class="extra" style:display-name="Table Heading" style:family="paragraph" style:name="Table_Heading" style:parent-style-name="Table_Contents"/>
+    <style:style style:class="list" style:display-name="List" style:family="paragraph" style:name="List" style:parent-style-name="Text_Body"/>
+    <style:style style:class="extra" style:display-name="Header" style:family="paragraph" style:name="Header" style:parent-style-name="Standard"/>
+    <style:style style:class="extra" style:display-name="Footer" style:family="paragraph" style:name="Footer" style:parent-style-name="Standard"/>
+    <style:style style:class="extra" style:display-name="Caption" style:family="paragraph" style:name="Caption" style:parent-style-name="Standard"/>
+    <style:style style:class="extra" style:display-name="Footnote" style:family="paragraph" style:name="Footnote" style:parent-style-name="Standard"/>
+    <style:style style:class="extra" style:display-name="Endnote" style:family="paragraph" style:name="Endnote" style:parent-style-name="Standard"/>
+    <style:style style:class="extra" style:display-name="Index" style:family="paragraph" style:name="Index" style:parent-style-name="Standard"/>
+    <style:style style:display-name="Footnote_Symbol" style:family="text" style:name="Footnote_Symbol">
+      <style:text-properties style:text-position="super 58%"/>
+    </style:style>
+    <style:style style:display-name="Endnote_Symbol" style:family="text" style:name="Endnote_Symbol">
+      <style:text-properties style:text-position="super 58%"/>
+    </style:style>
+    <style:style style:display-name="Footnote_anchor" style:family="text" style:name="Footnote_anchor">
+      <style:text-properties style:text-position="super 58%"/>
+    </style:style>
+    <style:style style:display-name="Endnote_anchor" style:family="text" style:name="Endnote_anchor">
+      <style:text-properties style:text-position="super 58%"/>
+    </style:style>
+    <text:linenumbering-configuration style:num-format="1" text:increment="5" text:number-lines="false" text:number-position="left" text:offset="0.1965in"/>
+    <text:notes-configuration style:num-format="1" text:citation-body-style-name="Footnote_anchor" text:citation-style-name="Footnote_Symbol" text:footnotes-position="page" text:note-class="footnote" text:start-numbering-at="document" text:start-value="0"/>
+    <text:notes-configuration style:num-format="i" text:citation-body-style-name="Endnote_anchor" text:citation-style-name="Endnote_Symbol" text:master-page-name="Endnote" text:note-class="endnote" text:start-value="0"/>
+  </office:styles>
+  <office:automatic-styles>
+    <style:page-layout style:name="PL0">
+      <style:page-layout-properties fo:margin-bottom="1.0000in" fo:margin-left="1.0000in" fo:margin-right="1.0000in" fo:margin-top="1.0000in" fo:page-height="11.0000in" fo:page-width="8.5000in" style:footnote-max-height="0.0000in" style:print-orientation="portrait" style:writing-mode="lr-tb">
+        <style:footnote-sep style:adjustment="left" style:color="#000000" style:distance-after-sep="0.0398in" style:distance-before-sep="0.0398in" style:rel-width="25.0000%" style:width="0.0071in"/>
+      </style:page-layout-properties>
+    </style:page-layout>
+    <style:page-layout style:name="PL1">
+      <style:page-layout-properties fo:margin-bottom="1.0000in" fo:margin-left="1.0000in" fo:margin-right="1.0000in" fo:margin-top="1.0000in" fo:page-height="11.0000in" fo:page-width="8.5000in" style:footnote-max-height="0.0000in" style:print-orientation="portrait" style:writing-mode="lr-tb">
+        <style:footnote-sep style:adjustment="left" style:color="#000000" style:rel-width="25.0000%"/>
+      </style:page-layout-properties>
+    </style:page-layout>
+    <style:page-layout style:name="PL2">
+      <style:page-layout-properties fo:margin-bottom="56.6929pt" fo:margin-left="56.6929pt" fo:margin-right="56.6929pt" fo:margin-top="56.6929pt" fo:page-height="842.0000pt" fo:page-width="595.0000pt" style:footnote-max-height="0.0000in" style:writing-mode="lr-tb">
+        <style:footnote-sep style:adjustment="left" style:color="#000000" style:distance-after-sep="0.0398in" style:distance-before-sep="0.0398in" style:rel-width="25.0000%" style:width="0.0071in"/>
+      </style:page-layout-properties>
+    </style:page-layout>
+    <style:style style:family="text" style:name="Span_M0">
+      <style:text-properties fo:color="#000000" fo:font-size="0.1389in" style:font-size-asian="0.1389in" style:font-size-complex="0.1389in"/>
+    </style:style>
+    <style:style style:family="paragraph" style:name="S_M0" style:parent-style-name="Standard">
+      <style:paragraph-properties fo:orphans="2" fo:widows="2" style:justify-single-word="false"/>
+    </style:style>
+    <style:style style:family="paragraph" style:master-page-name="PM2" style:name="S1" style:parent-style-name="Standard">
+      <style:paragraph-properties fo:orphans="2" fo:widows="2" style:justify-single-word="false"/>
+    </style:style>
+  </office:automatic-styles>
+  <office:master-styles>
+    <style:master-page style:display-name="Standard" style:name="PM0" style:page-layout-name="PL0"/>
+    <style:master-page style:display-name="EndNote" style:name="PM1" style:page-layout-name="PL1"/>
+    <style:master-page style:name="PM2" style:page-layout-name="PL2">
+      <style:header>
+        <text:p text:style-name="S_M0">
+          <text:span text:style-name="Span_M0">Header.</text:span>
+        </text:p>
+      </style:header>
+      <style:footer>
+        <text:p text:style-name="S_M0">
+          <text:span text:style-name="Span_M0">Footer.</text:span>
+        </text:p>
+      </style:footer>
+    </style:master-page>
+  </office:master-styles>
+  <office:body>
+    <office:text>
+      <text:p text:style-name="S1"/>
+    </office:text>
+  </office:body>
+</office:document>

@@ -230,6 +230,18 @@ namespace OfficeIMO.Tests
             Assert.Equal("AB12", ExcelA1.CellReference(12, 28));
             Assert.Throws<ArgumentOutOfRangeException>(() => ExcelA1.CellReference(0, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() => ExcelA1.CellReference(1, 0));
+            Assert.Equal("A", ExcelA1.ColumnIndexToLetters(-1));
+            Assert.Equal("row", Assert.Throws<ArgumentOutOfRangeException>(() => ExcelA1.CellReference(-1, 1)).ParamName);
+            Assert.Equal("column", Assert.Throws<ArgumentOutOfRangeException>(() => ExcelA1.CellReference(1, -1)).ParamName);
+            CultureInfo previousCulture = CultureInfo.CurrentCulture;
+            try {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ar-SA");
+                Assert.Equal("FXSHRXW", ExcelA1.ColumnIndexToLetters(int.MaxValue));
+                Assert.Equal("FXSHRXW2147483647", ExcelA1.CellReference(int.MaxValue, int.MaxValue));
+                Assert.Equal("$FXSHRXW$2147483647", ExcelA1.AbsoluteCellReference(int.MaxValue, int.MaxValue));
+            } finally {
+                CultureInfo.CurrentCulture = previousCulture;
+            }
         }
     }
 }

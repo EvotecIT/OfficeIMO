@@ -22,6 +22,7 @@ internal sealed class LegacySpreadsheetSheet {
     internal LegacySpreadsheetSheet(string name) => Name = name;
     internal string Name { get; }
     internal List<LegacySpreadsheetCell> Cells { get; } = new();
+    internal List<(LegacyXls.Model.LegacyXlsArrayFormulaRecord Record, string Formula)> ArrayFormulas { get; } = new();
     internal LegacyXls.Model.LegacyXlsWorkbook? StyleWorkbook { get; set; }
     internal List<LegacyXls.Model.LegacyXlsRowLayout> Rows { get; } = new();
     internal List<LegacyXls.Model.LegacyXlsColumnLayout> Columns { get; } = new();

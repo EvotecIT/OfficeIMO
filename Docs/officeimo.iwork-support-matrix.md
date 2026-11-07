@@ -29,7 +29,7 @@ and projection bounds apply. XML declarations of external entities are rejected.
 
 | Source | Recovered source content | Omitted content |
 |---|---|---|
-| Pages ’09 | Body paragraphs, selected rich styles and text bullets, links, inline tables and images, positioned text boxes and images, page dimensions and margins | Section layout, headers, footers, footnotes, vector shape appearance, wrapping and unqualified objects |
+| Pages ’09 | Body paragraphs, selected rich styles and text bullets, links, inline tables and images, positioned text boxes and images, page dimensions and margins; default header/footer rich text for a single ordinary-template section | Other section layout and running-story selection, footnotes, vector shape appearance, wrapping and unqualified objects |
 | Numbers ’09 | Direct sheets and tables, selected typed cells and scalar formula/control caches, rich cell text, selected styles and fills, scalar/date/duration formats, dimensions and merges | Formula expressions, non-table drawables, borders, unsupported formats and interactive control behavior |
 | Keynote ’09 | Ordered slides, directly referenced title/body placeholders, presenter notes, direct text boxes, tables and images, canvas size and selected geometry | Masters, grouped shapes, vector shape appearance, image masks/crops, playback and application-only fields |
 
@@ -40,6 +40,15 @@ loss diagnostics. Cycles and excessive inheritance depth are rejected. Text
 retains tabs and manual line breaks. Embedded PNG/JPEG resources use the shared
 bounded image decoder and retain their original bytes. Crop and alpha masks
 remain reported omissions.
+
+The unchanged `Pages/4/header+footer.pages` fixture and its independently
+produced FODT reference qualify default header/footer text and formatting through
+the existing Word adapter, DOCX save/reopen and further editing. Fixture hashes,
+source revision and CC-BY-SA 4.0 attribution are recorded in the
+[running-story corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/legacy-pages-running-stories/README.md).
+First/even-page selection, multiple sections and unresolved active storage remain
+reported omissions. This semantic evidence does not establish native appearance
+of the converted output.
 
 Independent Pages image fixtures exercise inline and positioned PNG uses,
 including a document spanning multiple pages. Keynote fixtures exercise six

@@ -492,8 +492,11 @@ namespace OfficeIMO.Word {
         }
 
         private static void PushChildrenInReverse(OpenXmlElement element, Stack<OpenXmlElement> pending) {
-            for (OpenXmlElement? child = element.LastChild; child != null; child = child.PreviousSibling()) {
-                pending.Push(child);
+            if (!element.HasChildren) return;
+            // PreviousSibling searches from the first child; buffer once to keep wide paragraphs linear.
+            OpenXmlElement[] children = element.ChildElements.ToArray();
+            for (int index = children.Length - 1; index >= 0; index--) {
+                pending.Push(children[index]);
             }
         }
 

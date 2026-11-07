@@ -105,6 +105,85 @@ public sealed partial class DbxStoreReaderTests {
         }
     }
 
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    public void ContentSearchValidatesTerminalSourceAndReleasesDbxScopes(bool catalog, bool cancel,
+        bool exhaustedResume) {
+        byte[] database = CreateDatabase();
+        byte[] empty = CreateDatabase();
+        using var input = new ObservedDbxStream(database);
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-dbx-content-search-" + Guid.NewGuid().ToString("N"));
+        string catalogPath = Path.Combine(root, "Folders.dbx");
+        string emptyPath = Path.Combine(root, "Empty.dbx");
+        try {
+            if (catalog) {
+                Directory.CreateDirectory(root);
+                byte[] folders = CreateFolderCatalog("Archive.dbx", "Empty.dbx");
+                WriteFolderRecord(folders, 0x2d00, 9, 1, 3, "Empty folder", "Empty.dbx");
+                UInt32(empty, 0xc4, 0);
+                UInt32(empty, 0xe4, 0);
+                File.WriteAllBytes(catalogPath, folders);
+                File.WriteAllBytes(Path.Combine(root, "Archive.dbx"), database);
+                File.WriteAllBytes(emptyPath, empty);
+            }
+            using EmailStoreSession session = catalog
+                ? EmailStoreSession.Open(catalogPath) : EmailStoreSession.Open(input, "Inbox.dbx");
+            EmailStoreItem first = session.ReadItem(session.EnumerateItems().First(),
+                new EmailStoreItemReadOptions(preferStreamingAttachmentContent: true));
+            IEmailContentSource retained = Assert.IsAssignableFrom<IEmailContentSource>(
+                Assert.Single(first.Document.Attachments).ContentSource);
+            EmailStoreContentQuery Query(EmailStoreContentSearchCheckpoint? resume = null) => new(
+                new[] { "aaa", "Body" }, fields: EmailStoreContentSearchFields.TextBody,
+                matchMode: EmailStoreContentMatchMode.AnyTerm, maxItemsScanned: 10, maxResults: 10,
+                progressInterval: 1, resumeFrom: resume);
+            EmailStoreContentQuery query = Query();
+            if (exhaustedResume) query = Query(EmailStoreContentSearchCheckpoint.Create(
+                3, session.GetDurableSourceFingerprint(), query.Signature));
+            using var cancellation = new CancellationTokenSource();
+            bool triggered = false;
+            var progress = new DbxContentSearchProgress(value => {
+                if (triggered || !exhaustedResume && value.ItemsScanned != 2) return;
+                triggered = true;
+                if (cancel) cancellation.Cancel();
+                else if (catalog) {
+                    empty[empty.Length - 1] ^= 1;
+                    File.WriteAllBytes(emptyPath, empty);
+                } else database[database.Length - 1] ^= 1;
+            });
+
+            if (cancel) {
+                Assert.Throws<OperationCanceledException>(() => session.SearchContent(query, progress, cancellation.Token));
+                Assert.True(triggered);
+                EmailStoreContentSearchReport retry = session.SearchContent(Query());
+                Assert.True(retry.IsComplete);
+                Assert.Equal(new[] { "Archived receipt", "Other message" }, retry.Results.Select(result => result.Summary.Subject));
+                using Stream content = retained.OpenRead();
+                using var text = new StreamReader(content, Encoding.ASCII);
+                Assert.Equal("proof bytes", text.ReadToEnd());
+            } else {
+                Assert.Throws<InvalidDataException>(() => session.SearchContent(query, progress));
+                Assert.True(triggered);
+                Assert.Throws<ObjectDisposedException>(() => retained.OpenRead());
+                Assert.Throws<InvalidDataException>(() => session.ReadAll());
+            }
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private sealed class DbxContentSearchProgress : IProgress<EmailStoreContentSearchProgress> {
+        private readonly Action<EmailStoreContentSearchProgress> _report;
+        internal DbxContentSearchProgress(Action<EmailStoreContentSearchProgress> report) => _report = report;
+        public void Report(EmailStoreContentSearchProgress value) => _report(value);
+    }
+
     private sealed class ObservedDbxStream : Stream {
         private readonly MemoryStream _source;
 

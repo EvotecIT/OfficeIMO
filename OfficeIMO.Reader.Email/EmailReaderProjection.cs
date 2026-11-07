@@ -394,6 +394,9 @@ internal static partial class EmailReaderProjection {
     private static IEnumerable<OfficeDocumentMetadataEntry> MessageMetadata(EmailDocument document, string prefix, string sourceObjectId) {
         foreach ((string Name, string? Value, string Type, string Category) item in new[] {
             ("Subject", document.Subject, "string", "email.message"),
+            ("NormalizedSubject", document.MessageMetadata.NormalizedSubject, "string", "email.message"),
+            ("Importance", document.MessageMetadata.Importance?.ToString(), "string", "email.message"),
+            ("DeclaredSize", document.MessageMetadata.DeclaredSize?.ToString(CultureInfo.InvariantCulture), "number", "email.message"),
             ("OutlookItemKind", document.OutlookItemKind.ToString(), "string", "email.message"),
             ("MessageClass", document.MessageClass, "string", "email.message"),
             ("MessageId", document.MessageId, "string", "email.message"),

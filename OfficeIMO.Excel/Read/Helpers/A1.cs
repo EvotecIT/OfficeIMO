@@ -441,10 +441,10 @@ namespace OfficeIMO.Excel {
         /// </example>
         public static string ColumnIndexToLetters(int index) {
             if (index <= 0) return "A";
-            char[] buffer = new char[ColumnLettersBufferLength];
+            Span<char> buffer = stackalloc char[ColumnLettersBufferLength];
             int position = 0;
             AppendColumnLetters(index, buffer, ref position);
-            return new string(buffer, 0, position);
+            return buffer.Slice(0, position).ToString();
         }
 
         /// <summary>
@@ -486,7 +486,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(column), "A1 references are 1-based and require a positive column.");
             }
 
-            char[] buffer = new char[CellReferenceBufferLength];
+            Span<char> buffer = stackalloc char[CellReferenceBufferLength];
             int position = 0;
             if (absolute) {
                 buffer[position++] = '$';
@@ -496,10 +496,10 @@ namespace OfficeIMO.Excel {
                 buffer[position++] = '$';
             }
             AppendPositiveInt(row, buffer, ref position);
-            return new string(buffer, 0, position);
+            return buffer.Slice(0, position).ToString();
         }
 
-        private static void AppendColumnLetters(int index, char[] buffer, ref int position) {
+        private static void AppendColumnLetters(int index, Span<char> buffer, ref int position) {
             int letters = 0;
             int n = index;
             while (n > 0) {
@@ -517,7 +517,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AppendPositiveInt(int value, char[] buffer, ref int position) {
+        private static void AppendPositiveInt(int value, Span<char> buffer, ref int position) {
             int digits = 1;
             int n = value;
             while (n >= 10) {

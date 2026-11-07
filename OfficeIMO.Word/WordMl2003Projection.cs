@@ -92,7 +92,8 @@ internal sealed partial class WordMl2003Projection {
             if (child.Name == Word + "pPr") {
                 XElement mapped = MapProperties(child, "pPr", parent: "p")!;
                 XElement? section = child.Element(Word + "sectPr");
-                var properties = NormalizeMappedProperties(new ParagraphProperties(mapped.ToString(SaveOptions.DisableFormatting)));
+                string mappedXml = mapped.ToString(SaveOptions.DisableFormatting);
+                var properties = NormalizeMappedProperties(new ParagraphProperties(mappedXml), mappedXml);
                 if (section != null) {
                     if (inTableCell || _story != _main)
                         Omit(section, inTableCell ? "section properties inside a table cell" : "section properties inside a header or footer");
@@ -124,7 +125,8 @@ internal sealed partial class WordMl2003Projection {
                     var parsed = new Run(new XElement(ModernWord + "r", mapped).ToString(SaveOptions.DisableFormatting));
                     run.AppendChild(parsed.GetFirstChild<Break>()!.CloneNode(true));
                 } else if (child.Name == Word + "rPr") {
-                    run.RunProperties = NormalizeMappedProperties(new RunProperties(MapProperties(child, "rPr")!.ToString(SaveOptions.DisableFormatting)));
+                    string mappedXml = MapProperties(child, "rPr")!.ToString(SaveOptions.DisableFormatting);
+                    run.RunProperties = NormalizeMappedProperties(new RunProperties(mappedXml), mappedXml);
                 } else if (child.Name == Word + "pict") {
                     Picture? picture = ProjectPicture(child);
                     if (picture != null) run.AppendChild(picture);

@@ -443,7 +443,7 @@ namespace OfficeIMO.Excel {
             }
 
             return diagnostics
-                .GroupBy(diagnostic => diagnostic.Code + "\0" + diagnostic.Message, StringComparer.Ordinal)
+                .GroupBy(diagnostic => string.Join("\0", diagnostic.Code, diagnostic.Message, diagnostic.SourceLocation), StringComparer.Ordinal)
                 .Select(group => group.First())
                 .ToList();
         }

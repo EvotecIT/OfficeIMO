@@ -87,6 +87,100 @@ public sealed class IWorkLegacyRichTextTests {
         Assert.Contains("Decoded image data", error.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("count")]
+    [InlineData("encoded")]
+    [InlineData("decoded")]
+    public void XmlSharedImageOccurrencesRetainBudgetsAndUniqueResourceSemantics(string boundary) {
+        string[]? sharedDiagnostics = null;
+        foreach (bool shared in new[] { true, false }) {
+            using MemoryStream package = RepeatedImagePackage(shared);
+            var limits = new IWorkLoadOptions {
+                MaxProjectedImages = 2,
+                MaxProjectedImageBytes = 2L * Image.Length,
+                MaxDecodedImageBytes = 8
+            };
+            using IWorkSourceDocument source = IWorkSourceDocument.Load(package, limits);
+            IWorkPagesProjection projection = source.ReadPages();
+            Assert.Equal("EmphasisLink\nBullet\nBeforeAfter\nSecondTail", projection.Body.PlainText);
+            Assert.Equal(2, projection.Images.Count);
+            Assert.Equal(shared ? 1 : 2, projection.Images.Select(image => image.PackagePath).Distinct().Count());
+            Assert.All(projection.Images, image => Assert.Equal(Image, image.GetBytes()));
+            Assert.Equal(new[] { (72d, 36d), (36d, 18d) }, projection.Images
+                .Select(image => (image.Geometry!.WidthPoints, image.Geometry.HeightPoints)));
+            Assert.Equal(projection.Images.Select(image => image.SourceIdentity!.RecordIdentifier),
+                projection.Body.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                    .Where(run => run.InlineObject != null).Select(run => run.InlineObject!.Drawable.RecordIdentifier));
+            using var result = source.ToWordResult(new IWorkConversionOptions {
+                Mode = IWorkConversionMode.EditableOnly,
+                AllowPartialEditableReconstruction = true
+            });
+            string[] diagnostics = result.Report.Diagnostics.Select(item => item.Code + ":" + item.LossKind).ToArray();
+            if (shared) sharedDiagnostics = diagnostics;
+            else Assert.Equal(sharedDiagnostics, diagnostics);
+            using var output = new MemoryStream();
+            result.Value.Save(output);
+            output.Position = 0;
+            using (var saved = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(output, false)) {
+                var main = saved.MainDocumentPart!;
+                Assert.Equal(projection.Body.Paragraphs.Select(paragraph => paragraph.Text),
+                    main.Document!.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
+                        .Select(paragraph => paragraph.InnerText));
+                Assert.Equal(new[] { (914400L, 457200L), (457200L, 228600L) },
+                    main.Document!.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent>()
+                        .Select(extent => (extent.Cx!.Value, extent.Cy!.Value)));
+                var pictures = main.Document!.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().ToArray();
+                Assert.Equal(2, pictures.Length);
+                foreach (var picture in pictures) {
+                    var part = Assert.IsType<DocumentFormat.OpenXml.Packaging.ImagePart>(main.GetPartById(picture.Embed!.Value!));
+                    using var payload = new MemoryStream();
+                    using (Stream image = part.GetStream()) image.CopyTo(payload);
+                    Assert.Equal(Image, payload.ToArray());
+                }
+            }
+
+            if (boundary == "count") limits.MaxProjectedImages--;
+            else if (boundary == "encoded") limits.MaxProjectedImageBytes--;
+            else limits.MaxDecodedImageBytes--;
+            package.Position = 0;
+            using IWorkSourceDocument limited = IWorkSourceDocument.Load(package, limits);
+            var error = Assert.Throws<InvalidDataException>(() => limited.ReadPages());
+            Assert.Contains(boundary == "count" ? "iWork image count" : boundary == "encoded"
+                ? "Projected destination image data" : "Decoded image data", error.Message, StringComparison.Ordinal);
+        }
+    }
+
+    private static MemoryStream RepeatedImagePackage(bool shared) {
+        MemoryStream package = CreatePackage();
+        XNamespace sf = "http://developer.apple.com/namespaces/sf";
+        XNamespace sfa = "http://developer.apple.com/namespaces/sfa";
+        using (var zip = new ZipArchive(package, ZipArchiveMode.Update, leaveOpen: true)) {
+            ZipArchiveEntry index = zip.GetEntry("index.xml")!;
+            XDocument document;
+            using (Stream xml = index.Open()) document = XDocument.Load(xml, LoadOptions.PreserveWhitespace);
+            XElement storage = document.Root!.Element(sf + "text-storage")!;
+            XElement attachments = storage.Element(sf + "attachments")!;
+            var second = new XElement(attachments.Elements().Single());
+            second.SetAttributeValue(sfa + "ID", "second-attachment");
+            second.Element(sf + "media")!.SetAttributeValue(sfa + "ID", "second-image");
+            XElement size = second.Descendants(sf + "size").Single();
+            size.SetAttributeValue(sfa + "w", "36");
+            size.SetAttributeValue(sfa + "h", "18");
+            if (!shared) second.Descendants(sf + "data").Single().SetAttributeValue(sf + "path", "second.png");
+            attachments.Add(second);
+            storage.Element(sf + "text-body")!.Add(new XElement(sf + "p", "Second",
+                new XElement(sf + "attachment-ref", new XAttribute(sfa + "IDREF", "second-attachment")), "Tail"));
+            index.Delete();
+            using (Stream xml = zip.CreateEntry("index.xml").Open()) document.Save(xml);
+            if (!shared) {
+                using Stream image = zip.CreateEntry("second.png").Open();
+                image.Write(Image, 0, Image.Length);
+            }
+        }
+        package.Position = 0;
+        return package;
+    }
+
     private static MemoryStream CreatePackage(bool cycle = false) {
         string parent = cycle ? "loop" : "base";
         string xml = $$"""

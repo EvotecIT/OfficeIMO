@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Word.IWork/OfficeIMO.Word.IWork.csproj" />
+    <ProjectReference Include="../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
+    <ProjectReference Include="../OfficeIMO.Email/OfficeIMO.Email.csproj" />
+  </ItemGroup>
+</Project>

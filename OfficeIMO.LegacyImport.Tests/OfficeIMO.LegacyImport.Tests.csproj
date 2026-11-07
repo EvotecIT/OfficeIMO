@@ -36,5 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\LegacyXlsCorpus\apache-openoffice-testdocs\**\*"
+          Link="Fixtures\EarlyBiff\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

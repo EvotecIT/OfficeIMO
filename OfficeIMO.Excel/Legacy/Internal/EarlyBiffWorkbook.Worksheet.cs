@@ -10,6 +10,7 @@ internal sealed partial class EarlyBiffWorkbook {
         bool sawEnd = false;
         var formatRecords = new List<Record>();
         var styleRecords = new List<Record>();
+        ArrayFormulaState? arrayFormulas = null;
         while (position < end) {
             Record record = ReadRecord(ref position, end);
             if (IsBof(record.Type)) {
@@ -17,6 +18,7 @@ internal sealed partial class EarlyBiffWorkbook {
                 continue;
             }
             if (record.Type == FilePass) RejectEncrypted();
+            if (bof == 0x0409) ObserveArrayFormula(record, ref arrayFormulas);
             if ((record.Type == 0x001E && bof != 0x0409) || (record.Type == 0x041E && bof == 0x0409)) {
                 formatRecords.Add(record);
             }
@@ -50,6 +52,7 @@ internal sealed partial class EarlyBiffWorkbook {
         Encoding encoding = BiffCodePageEncoding.Resolve(codePage ?? inheritedCodePage);
         var sheet = new LegacySpreadsheetSheet(name);
         _model.Sheets.Add(sheet);
+        PrepareArrayFormulas(arrayFormulas, sheet, encoding);
         var coordinates = new HashSet<int>();
         string[] formats = formatRecords.Select(record =>
             ReadText(record, record.Type == 0x041E ? 2 : 0, 1, encoding)).ToArray();
@@ -75,7 +78,7 @@ internal sealed partial class EarlyBiffWorkbook {
                     continue;
                 }
                 if (type is 0x0021 or 0x0221 or 0x0036 or 0x0037 or 0x0236) {
-                    ObserveUnprojected(record);
+                    ObserveArrayOrUnprojected(record, arrayFormulas);
                     continue;
                 }
                 throw new InvalidDataException("An early BIFF string formula is missing its cached STRING record.");
@@ -98,6 +101,9 @@ internal sealed partial class EarlyBiffWorkbook {
                 case 0x0044 when biff2:
                     RequireLength(record, 2);
                     extendedStyle = ReadUInt16(record, 0);
+                    continue;
+                case 0x0221 when bof == 0x0409:
+                    ObserveArrayOrUnprojected(record, arrayFormulas);
                     continue;
                 case 0x0001 when biff2:
                 case 0x0201 when !biff2:
@@ -224,13 +230,16 @@ internal sealed partial class EarlyBiffWorkbook {
             if (record.Type is 0x0006 or 0x0206 or 0x0406) {
                 int size = biff2 ? 1 : 2;
                 int count = biff2 ? _data[record.Offset + 16] : ReadUInt16(record, 16);
-                if (!EarlyBiffFormulaReader.TryRead(_data, record.Offset + 16 + size, count, bof, encoding, row, column, out formula)) {
+                bool recovered = bof == 0x0409 && TryGetArrayAnchor(record, out int anchor)
+                    ? TryReadArrayFormula(arrayFormulas, anchor, row, column, out formula)
+                    : EarlyBiffFormulaReader.TryRead(_data, record.Offset + 16 + size, count, bof, encoding, row, column, out formula);
+                if (!recovered) {
                     _formulaOmitted = true;
                     AddCellLoss("early-biff-formula-unsupported", "Formula",
                         "The formula uses unsupported tokens or function semantics. Its original typed result was retained.",
                         name, row, column);
-                } else {
-                    if (formula!.Length > _limits.MaxTextCharacters - _textCharacters) throw new InvalidDataException("Early BIFF input exceeds the configured formula text limit.");
+                } else if (formula != null) {
+                    if (formula.Length > _limits.MaxTextCharacters - _textCharacters) throw new InvalidDataException("Early BIFF input exceeds the configured formula text limit.");
                     _textCharacters += formula.Length;
                 }
             }
