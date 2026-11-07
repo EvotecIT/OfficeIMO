@@ -36,6 +36,10 @@ public sealed partial class OfficeFontFaceCollection {
         }
     }
 
+    /// <summary>Shares bounded family parsing with internal rendering consumers that only read the result.</summary>
+    internal IReadOnlyList<string> GetParsedFamilyNames(string? familyNames) =>
+        string.IsNullOrEmpty(familyNames) ? Array.Empty<string>() : ParseFamilies(familyNames!);
+
     private string[] ParseFamilies(string familyNames) {
         OfficeBoundedCache<string, string[]> cache = Selections.ParsedFamilies;
         if (cache.TryGetValue(familyNames, out string[]? parsed)) return parsed;

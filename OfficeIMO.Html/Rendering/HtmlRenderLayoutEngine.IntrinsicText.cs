@@ -90,19 +90,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     } else {
                         HyphenationToken hyphenation = PrepareHyphenationToken(token, token, run.Style);
                         string paintToken = hyphenation.PaintText;
-                        var hyphenationBreaks = new HashSet<int>(hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks));
                         IReadOnlyList<int> preferredBreaks = GetHtmlPreferredBreakPositions(paintToken,
                             run.Style.WordBreak != "keep-all", start == 0 ? runPrecedingCategory : GetPrecedingTextCategory(run.Text, start));
-                        int segmentStart = 0;
-                        foreach (int end in preferredBreaks.Concat(hyphenationBreaks).Distinct().OrderBy(point => point)) {
-                            if (end <= segmentStart || end > paintToken.Length) continue;
-                            string segment = paintToken.Substring(segmentStart, end - segmentStart);
-                            if (hyphenationBreaks.Contains(end)) segment += run.Style.HyphenateCharacter;
-                            AddAdvance(Measure(segment, run));
-                            FinishSegment();
-                            segmentStart = end;
+                        if (preferredBreaks.Count == 0 && hyphenation.PrimaryBreaks.Count == 0 && hyphenation.SecondaryBreaks.Count == 0) {
+                            if (paintToken.Length > 0) AddAdvance(Measure(paintToken, run));
+                        } else {
+                            var hyphenationBreaks = new HashSet<int>(hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks));
+                            int segmentStart = 0;
+                            foreach (int end in preferredBreaks.Concat(hyphenationBreaks).Distinct().OrderBy(point => point)) {
+                                if (end <= segmentStart || end > paintToken.Length) continue;
+                                string segment = paintToken.Substring(segmentStart, end - segmentStart);
+                                if (hyphenationBreaks.Contains(end)) segment += run.Style.HyphenateCharacter;
+                                AddAdvance(Measure(segment, run));
+                                FinishSegment();
+                                segmentStart = end;
+                            }
+                            if (segmentStart < paintToken.Length) AddAdvance(Measure(paintToken.Substring(segmentStart), run));
                         }
-                        if (segmentStart < paintToken.Length) AddAdvance(Measure(paintToken.Substring(segmentStart), run));
                     }
                 }
                 if (!atEnd) {

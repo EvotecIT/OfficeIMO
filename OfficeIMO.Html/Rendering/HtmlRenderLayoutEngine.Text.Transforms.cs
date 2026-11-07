@@ -16,6 +16,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
+            if (!first.Style.ApproximateSmallCaps
+                && string.Equals(first.Style.TextTransform, "none", StringComparison.OrdinalIgnoreCase)) {
+                first.CompleteTextTransform(first.Text);
+                start++;
+                continue;
+            }
+
             var textRuns = new List<HtmlInlineRun> { first };
             int end = start + 1;
             while (end < runs.Count) {

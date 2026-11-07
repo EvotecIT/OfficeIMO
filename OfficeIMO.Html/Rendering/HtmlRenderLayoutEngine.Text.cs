@@ -498,53 +498,44 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static IEnumerable<string> Tokenize(string text, bool preserveWhitespace, bool breakSpaces) {
         if (text.Length == 0) yield break;
-        var token = new StringBuilder();
+        int tokenStart = 0;
         bool? whitespace = null;
         for (int i = 0; i < text.Length; i++) {
             char current = text[i];
             if (current == '\u2028') {
-                if (token.Length > 0) {
-                    yield return token.ToString();
-                    token.Clear();
-                }
-
+                if (i > tokenStart) yield return text.Substring(tokenStart, i - tokenStart);
                 whitespace = null;
                 yield return "\u2028";
+                tokenStart = i + 1;
                 continue;
             }
 
             if (preserveWhitespace && (current == '\r' || current == '\n')) {
-                if (token.Length > 0) {
-                    yield return token.ToString();
-                    token.Clear();
-                }
-
+                if (i > tokenStart) yield return text.Substring(tokenStart, i - tokenStart);
                 if (current == '\r' && i + 1 < text.Length && text[i + 1] == '\n') i++;
                 whitespace = null;
                 yield return "\n";
+                tokenStart = i + 1;
                 continue;
             }
 
             bool currentWhitespace = IsCollapsibleCssWhitespace(current);
             if (breakSpaces && currentWhitespace) {
-                if (token.Length > 0) {
-                    yield return token.ToString();
-                    token.Clear();
-                }
+                if (i > tokenStart) yield return text.Substring(tokenStart, i - tokenStart);
                 whitespace = null;
                 yield return current.ToString();
+                tokenStart = i + 1;
                 continue;
             }
             if (whitespace.HasValue && whitespace.Value != currentWhitespace) {
-                yield return token.ToString();
-                token.Clear();
+                yield return text.Substring(tokenStart, i - tokenStart);
+                tokenStart = i;
             }
 
             whitespace = currentWhitespace;
-            token.Append(current);
         }
 
-        if (token.Length > 0) yield return token.ToString();
+        if (tokenStart < text.Length) yield return tokenStart == 0 ? text : text.Substring(tokenStart);
     }
 
     private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(IsCollapsibleCssWhitespace);
