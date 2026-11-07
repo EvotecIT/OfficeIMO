@@ -68,7 +68,7 @@ public sealed class AtomicFileWriterTests
             var destination = Path.Combine(directory, "report.txt");
             var uniquePath = Path.Combine(directory, "report-2.txt");
             var claimPath = OfficeFileCommitClaim.CreatePath(destination);
-            var claimBytes = Encoding.UTF8.GetBytes("claim awaiting its exclusive lock");
+            var claimBytes = Array.Empty<byte>();
             if (sharedReadableClaim) File.WriteAllBytes(claimPath, claimBytes);
             var writeCount = 0;
             Action<string> serialize = temporaryPath =>
@@ -77,7 +77,7 @@ public sealed class AtomicFileWriterTests
                 File.WriteAllText(temporaryPath, "new-payload");
             };
 
-            // A Unix claim becomes visible before FileStream obtains its exclusive lock.
+            // A Unix claim is empty when it becomes visible before FileStream obtains its exclusive lock.
             using (sharedReadableClaim
                 ? (IDisposable)new FileStream(claimPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)
                 : OfficeFileCommitClaim.Acquire(destination))
