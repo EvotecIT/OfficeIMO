@@ -502,7 +502,7 @@ namespace OfficeIMO.Excel {
                 OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
             }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
-                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved), encryptedBytes, resolved, "encrypted-source-container");
+                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved, resolved.LoadCancellationToken), encryptedBytes, resolved, "encrypted-source-container");
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password, resolved.LoadCancellationToken);
@@ -554,7 +554,7 @@ namespace OfficeIMO.Excel {
                 OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
             }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
-                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved), encryptedBytes, resolved, "encrypted-source-container");
+                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved, resolved.LoadCancellationToken), encryptedBytes, resolved, "encrypted-source-container");
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password, resolved.LoadCancellationToken);
@@ -684,7 +684,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password, bool readOnly,
-            ExcelLoadOptions options, CancellationToken cancellationToken = default) {
+            ExcelLoadOptions options, CancellationToken cancellationToken) {
             if (!options.AllowBinaryProjection) throw new NotSupportedException("This load profile accepts XML workbook packages only; encrypted XLS projection is disabled.");
             LegacyXlsImportOptions importOptions = CreateLegacyImportOptions(options);
             importOptions.Password = password;
