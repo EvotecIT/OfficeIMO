@@ -171,10 +171,13 @@ public sealed class CsvDataReaderUtf8ScalarTests {
     [InlineData("-79228162514264337593543950335")]
     [InlineData("0.1234567890123456789012345678")]
     [InlineData("-0.0000")]
+    [InlineData("1.00000000000000000000000000005")]
+    [InlineData("-0e-2147483648")]
     public void DecimalGettersRetainFullPrecisionAndSignedZero(string text) {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Value\n" + text + "\n"));
         using var reader = CsvDocument.OpenReader(stream);
         Assert.True(reader.Read());
+        Assert.True(reader.TryGetUtf8Text(0, out _));
         decimal expected = decimal.Parse(text, NumberStyles.Any, CultureInfo.InvariantCulture);
         Assert.Equal(decimal.GetBits(expected), decimal.GetBits(reader.GetDecimal(0)));
     }
