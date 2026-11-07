@@ -180,11 +180,15 @@ public sealed class WordPdfTableSourceFormattingTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void SaveAsPdf_SeparatedCellNoFillKeepsAuthoredTableBackdrop(bool directTable) {
-        using WordDocument document = CreateSourceTableDocument("TableGrid");
-        W.Style style = SourceStyle(document, "TableGrid");
+    [InlineData("TableGrid", false, true)]
+    [InlineData("TableGrid", true, true)]
+    [InlineData("TableNormal", false, false)]
+    [InlineData("NormalTable", false, false)]
+    [InlineData("CustomBasedOnNormal", false, false)]
+    [InlineData("TableNormal", true, true)]
+    public void SaveAsPdf_SeparatedCellNoFillKeepsAuthoredTableBackdrop(string styleId, bool directTable, bool visibleBackdrop) {
+        using WordDocument document = CreateSourceTableDocument(styleId);
+        W.Style style = SourceStyle(document, styleId);
         style.StyleTableCellProperties = new W.StyleTableCellProperties(new W.Shading {
             Val = W.ShadingPatternValues.Clear, Fill = "CC3300"
         });
@@ -192,7 +196,16 @@ public sealed class WordPdfTableSourceFormattingTests {
         W.TableProperties properties = table.GetFirstChild<W.TableProperties>()!;
         properties.TableCellSpacing = new W.TableCellSpacing { Type = W.TableWidthUnitValues.Dxa, Width = "100" };
         if (directTable) properties.Shading = ThemedFill();
-        else style.StyleTableProperties = new W.StyleTableProperties(ThemedFill());
+        else if (styleId == "CustomBasedOnNormal") {
+            style.BasedOn = new W.BasedOn { Val = "TableNormal" };
+            W.Styles styles = document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            W.Style? normal = styles.Elements<W.Style>().FirstOrDefault(item => item.StyleId?.Value == "TableNormal");
+            if (normal == null) {
+                normal = new W.Style { Type = W.StyleValues.Table, StyleId = "TableNormal" };
+                styles.Append(normal);
+            }
+            normal.StyleTableProperties = new W.StyleTableProperties(ThemedFill());
+        } else style.StyleTableProperties = new W.StyleTableProperties(ThemedFill());
         table.Descendants<W.TableCell>().Single().TableCellProperties!.Shading = new W.Shading {
             Val = W.ShadingPatternValues.Nil, Fill = "FF0000"
         };
@@ -204,8 +217,9 @@ public sealed class WordPdfTableSourceFormattingTests {
         var word = Assert.Single(page.GetWords(), item => item.Text == "SOURCE");
         double x = (word.BoundingBox.Left + word.BoundingBox.Right) / 2D;
         double y = (word.BoundingBox.Bottom + word.BoundingBox.Top) / 2D;
-        Assert.Contains(page.Paths, path => path.IsFilled && MatchesRgb(path.FillColor.ToRGBValues(), 18, 164, 94) &&
+        bool hasBackdrop = page.Paths.Any(path => path.IsFilled && MatchesRgb(path.FillColor.ToRGBValues(), 18, 164, 94) &&
             path.GetBoundingRectangle() is { } bounds && bounds.Left < x && bounds.Right > x && bounds.Bottom < y && bounds.Top > y);
+        Assert.Equal(visibleBackdrop, hasBackdrop);
         Assert.Equal(before, SourceXml(document));
     }
 

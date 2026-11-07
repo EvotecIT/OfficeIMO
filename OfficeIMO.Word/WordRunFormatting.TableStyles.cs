@@ -12,7 +12,8 @@ internal static partial class WordRunFormatting {
         TableProperties? properties = table._table.GetFirstChild<TableProperties>();
         if (properties?.GetFirstChild<Shading>() is { } direct) return direct;
         Styles? styles = table.Document.MainDocumentPartRoot.StyleDefinitionsPart?.Styles;
-        foreach (Style style in EnumerateStyleChain(styles, properties?.TableStyle?.Val?.Value, StyleValues.Table)) {
+        foreach (Style style in EnumerateStyleChain(styles, properties?.TableStyle?.Val?.Value, StyleValues.Table)
+                     .TakeWhile(style => !IsBuiltInNormalTableStyle(style.StyleId?.Value))) {
             if (style.StyleTableProperties?.GetFirstChild<Shading>() is { } shading) return shading;
         }
         return null;
