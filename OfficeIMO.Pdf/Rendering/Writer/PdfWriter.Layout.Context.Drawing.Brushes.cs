@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
         private bool _suppressDrawingLinks;
         private bool _drawingIsOpacityData;
 
-        private void DrawDrawingEffectAt(OfficeDrawingEffectGroup effect, double originX, double originTopY, OfficeDrawingTextMetrics metrics) {
+        private void DrawDrawingEffectAt(OfficeDrawingEffectGroup effect, double originX, double originTopY, DrawingTextMetricsState metrics) {
             OfficeTransform transform = ToTopLeftPageTransform(effect.Transform, originX, originTopY);
             PageEffectGroup? maskGroup = null;
             if (effect.SoftMask != null) {

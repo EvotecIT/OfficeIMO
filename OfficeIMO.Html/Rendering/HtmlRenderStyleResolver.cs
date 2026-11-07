@@ -977,7 +977,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.UnsupportedBoxShadow = boxShadow;
         } else {
             style.BoxShadowLayerCount = shadows.Count;
-            style.BoxShadows = shadows.Take(_options.MaxBoxShadowLayers).ToArray();
+            style.BoxShadows = shadows.Count == 0 ? Array.Empty<HtmlCssBoxShadow>()
+                : shadows.Take(_options.MaxBoxShadowLayers).ToArray();
         }
         string textShadow = NormalizeCssValue(computed.GetValue("text-shadow"), "none");
         if (!HtmlCssTextShadowParser.TryParse(textShadow, style.Font.Size, _rootFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, _options.MaxTextShadowLayers, out IReadOnlyList<HtmlCssTextShadow> textShadows, out int textShadowLayerCount, style.CharacterAdvance)) {
@@ -1078,7 +1079,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.HasDeclaredBackgroundImage = hasDeclaredBackgroundImage;
         style.UnsupportedBackgroundImageLayerCount = unsupportedLayerCount;
         style.GradientStopLimitExceededCount = gradientStopLimitExceededCount;
-        style.BackgroundImageLayers = layers.AsReadOnly();
+        style.BackgroundImageLayers = layers.Count == 0 ? Array.Empty<HtmlRenderBackgroundLayer>() : layers.AsReadOnly();
         ApplyBackgroundClipText(computed, style, textClipLayers);
     }
 

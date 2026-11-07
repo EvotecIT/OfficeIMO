@@ -206,8 +206,8 @@ internal static partial class PdfWriter {
             return structElementIndex;
         }
 
-        private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY, OfficeDrawingTextMetrics? textMetrics = null) {
-            textMetrics ??= CreateDrawingTextMetrics(currentOpts, cancellationToken);
+        private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY, DrawingTextMetricsState? textMetrics = null) {
+            textMetrics ??= new DrawingTextMetricsState(currentOpts, cancellationToken);
             for (int i = 0; i < drawing.Elements.Count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 OfficeDrawingElement element = drawing.Elements[i];
@@ -215,7 +215,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawDrawingElement(OfficeDrawingElement element, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
+        private void DrawDrawingElement(OfficeDrawingElement element, double originX, double originTopY, DrawingTextMetricsState textMetrics) {
                 if (element is OfficeDrawingShape shape) {
                     double xShape = originX + shape.X;
                     double bottomY = originTopY - shape.Y - shape.Shape.Height;
@@ -241,19 +241,19 @@ internal static partial class PdfWriter {
                 }
         }
 
-        private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
+        private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY, DrawingTextMetricsState textMetrics) {
             void DrawGroupContent() {
                 int linkStart = currentPage!.Annotations.Count;
                 double clipX = originX + group.X;
                 double clipBottomY = originTopY - group.Y - group.ClipPath.Height;
-                new ContentStreamBuilder(sb).SaveState();
+                ContentStreamBuilder.AppendGraphicsSave(sb);
                 AppendClipPath(sb, group.ClipPath, clipX, clipBottomY, group.ClipPath.Height);
                 DrawDrawingElements(
                     group.InnerDrawing,
                     clipX + group.ContentOffsetX,
                     originTopY - group.Y - group.ContentOffsetY, textMetrics);
                 ClipCanvasLinkAnnotations(currentPage.Annotations, linkStart, clipX, clipBottomY, group.ClipPath.Width, group.ClipPath.Height, group.ClipPath);
-                new ContentStreamBuilder(sb).RestoreState();
+                ContentStreamBuilder.AppendGraphicsRestore(sb);
             }
 
             void DrawGroupPaint() {

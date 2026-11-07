@@ -75,8 +75,11 @@ public sealed partial class HtmlRenderingTests {
             MaxResourceBytes = data.Length, MaxTotalResourceBytes = data.Length
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(
-            HtmlConversionDocument.Parse("<p style='margin:0;font:20px Arial'>A</p>"), options);
+        var warmOptions = (HtmlPdfExportOptions)options.Clone();
+        warmOptions.MaxTotalResourceBytes = data.Length * 3;
+        HtmlConversionDocument source = HtmlConversionDocument.Parse("<p style='margin:0;font:20px Arial'>A</p>");
+        Assert.NotEmpty(HtmlRenderEngine.Render(source, warmOptions).Fonts.Faces);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(source, options);
 
         Assert.Empty(rendered.Fonts.Faces);
         Assert.Contains(rendered.Diagnostics, diagnostic =>
@@ -122,5 +125,39 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(reference.Pages[0].CreateDrawing().ExportImage(OfficeImageExportFormat.Png).Bytes,
             actual.Pages[0].CreateDrawing().ExportImage(OfficeImageExportFormat.Png).Bytes);
+    }
+
+    [Fact]
+    public void HtmlDefaultFont_ImmutableSnapshotReusePreservesAliasesAndCallerIsolation() {
+        byte[] caller = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        byte[] expected = (byte[])caller.Clone();
+        var family = new PdfCore.PdfEmbeddedFontFamily("Private Snapshot", caller);
+        Array.Clear(caller, 0, caller.Length);
+        byte[] publicCopy = family.Regular;
+        Array.Clear(publicCopy, 0, publicCopy.Length);
+
+        HtmlPdfRenderRequestResult Render(string alias, string text) {
+            var options = new HtmlPdfExportOptions {
+                FontFamily = family, DefaultFontFamily = alias, AllowSystemFontFallback = false,
+                Margins = HtmlRenderMargins.All(0D), ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+            };
+            return HtmlConversionDocument.Parse("<p style='margin:0'>" + text + "</p>").RenderToPdfResult(
+                HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
+        }
+
+        HtmlPdfRenderRequestResult first = Render("First Alias", "A");
+        HtmlPdfRenderRequestResult second = Render("Second Alias", "B");
+        OfficeFontFace firstFace = Assert.Single(first.RenderResult!.Document.Fonts.Faces);
+        OfficeFontFace secondFace = Assert.Single(second.RenderResult!.Document.Fonts.Faces);
+        Assert.Equal("First Alias", firstFace.FamilyName);
+        Assert.Equal("Second Alias", secondFace.FamilyName);
+        Assert.Equal(expected, firstFace.Data);
+        Assert.Equal(expected, secondFace.Data);
+        Assert.Same(firstFace.Program, secondFace.Program);
+        byte[] faceCopy = firstFace.Data;
+        Array.Clear(faceCopy, 0, faceCopy.Length);
+        Assert.Equal(expected, secondFace.Data);
+        Assert.Equal("A", PdfCore.PdfReadDocument.Open(first.ToBytes()).ExtractText().Trim());
+        Assert.Equal("B", PdfCore.PdfReadDocument.Open(second.ToBytes()).ExtractText().Trim());
     }
 }

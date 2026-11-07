@@ -44,7 +44,8 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (parent == null || !computed.IsInheritedValue("text-shadow")) return;
         style.UnsupportedTextShadow = parent.UnsupportedTextShadow;
         style.TextShadowLayerCount = parent.TextShadowLayerCount;
-        style.TextShadows = parent.TextShadows.Select(shadow => shadow.UsesCurrentColor
+        style.TextShadows = parent.TextShadows.Count == 0 ? Array.Empty<HtmlCssTextShadow>()
+            : parent.TextShadows.Select(shadow => shadow.UsesCurrentColor
             ? new HtmlCssTextShadow(OfficeColor.FromRgb(style.Color.R, style.Color.G, style.Color.B), style.Color.A / 255D,
                 shadow.OffsetX, shadow.OffsetY, shadow.BlurRadius, usesCurrentColor: true)
             : shadow).ToArray();

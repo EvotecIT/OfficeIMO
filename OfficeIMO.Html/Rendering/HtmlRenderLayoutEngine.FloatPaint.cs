@@ -82,16 +82,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     groupChildren = semantic.Visuals;
                 }
             }
-            var filtered = new List<HtmlRenderVisual>(groupChildren.Count);
+            List<HtmlRenderVisual>? filtered = null;
             for (int index = 0; index < groupChildren.Count; index++) {
                 HtmlRenderVisual? child = FilterFlowPaint(groupChildren[index], phase, projectionIdentities);
                 if (child == null) continue;
+                filtered ??= new List<HtmlRenderVisual>(groupChildren.Count);
                 // Number children as the caller's renumbering copy would, so the fragment needs none.
                 // Pending children are numbered by position when the fragment is read.
                 filtered.Add(pendingOffsets != null ? child
                     : child.WithPaintOrder(filtered.Count, owned: !ReferenceEquals(child, groupChildren[index])));
             }
-            if (filtered.Count == 0) return null;
+            if (filtered == null) return null;
             // Group constructors copy their children, so the working list can be passed directly.
             HtmlRenderVisual fragment = pendingGroup != null
                 ? visual.CopyStackingContextTo(pendingGroup.WithPendingChildren(filtered, pendingOffsets!))

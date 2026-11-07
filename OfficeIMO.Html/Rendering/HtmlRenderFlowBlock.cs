@@ -2,7 +2,7 @@ using AngleSharp.Dom;
 
 namespace OfficeIMO.Html;
 
-internal sealed class HtmlRenderFlowBlock {
+internal sealed partial class HtmlRenderFlowBlock {
     internal const double ZeroHeightFlowCarrierAdvance = 0.01D;
 
     internal HtmlRenderFlowBlock(
@@ -214,7 +214,9 @@ internal sealed class HtmlRenderFlowBlock {
     }
 
     internal HtmlRenderFlowBlock WithLayoutViewport(double width, double height) =>
-        CopyLayoutFacts(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(CanShareNormalizedFacts
+            ? new HtmlRenderFlowBlock(this, Visuals, width, height)
+            : new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals,
@@ -327,7 +329,11 @@ internal sealed class HtmlRenderFlowBlock {
         double pagedBreakTranslation = 0D, IEnumerable<HtmlRenderContinuationGroup>? continuationGroups = null,
         IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null, double? width = null, double? height = null,
         IEnumerable<HtmlRenderForcedBreak>? forcedBreaks = null) =>
-        CopyLayoutFacts(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(CanShareNormalizedFacts && !width.HasValue && !height.HasValue
+            && !pagedPaintExtent.HasValue && pagedBreakTranslation <= 0D
+            && continuationGroups == null && trailingGroups == null && forcedBreaks == null
+            ? new HtmlRenderFlowBlock(this, visuals, LayoutViewportWidth, LayoutViewportHeight)
+            : new HtmlRenderFlowBlock(
             width ?? Width,
             height ?? Height,
             visuals,
@@ -455,7 +461,9 @@ internal sealed class HtmlRenderFlowBlock {
 
     internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement,
         bool collapsesThrough = false, HtmlCollapsedMargin? topGroup = null, HtmlCollapsedMargin? bottomGroup = null) =>
-        CopyLayoutFacts(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(CanShareNormalizedFacts
+            ? new HtmlRenderFlowBlock(this, top, bottom, ownerElement, collapsesThrough, topGroup, bottomGroup)
+            : new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals,

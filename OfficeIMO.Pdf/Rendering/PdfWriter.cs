@@ -1600,7 +1600,8 @@ internal static partial class PdfWriter {
         var available = new HashSet<string>(resources.Select(resource => resource.Name.TrimStart('/')), StringComparer.Ordinal);
         var usedNames = new HashSet<string>(StringComparer.Ordinal);
         for (int index = 0; index < content.Length; index++) {
-            if (content[index] != (byte)'/') continue;
+            index = Array.IndexOf(content, (byte)'/', index);
+            if (index < 0) break;
             int end = index + 1;
             while (end < content.Length && content[end] != (byte)'/' && !char.IsWhiteSpace((char)content[end])) end++;
             string name = System.Text.Encoding.ASCII.GetString(content, index + 1, end - index - 1);
@@ -1611,18 +1612,6 @@ internal static partial class PdfWriter {
             if (usedNames.Contains(resources[index].Name.TrimStart('/'))) used.Add(resources[index]);
         }
         return used;
-    }
-
-    private static bool UsesPdfResource(string content, string name) {
-        int searchIndex = 0;
-        while (searchIndex < content.Length) {
-            int index = content.IndexOf(name, searchIndex, StringComparison.Ordinal);
-            if (index < 0) return false;
-            int next = index + name.Length;
-            if (next >= content.Length || char.IsWhiteSpace(content[next])) return true;
-            searchIndex = next;
-        }
-        return false;
     }
 
     // True when every byte is ASCII (< 0x80). Only then does the stored content (Latin1-encoded) round-trip
@@ -1637,13 +1626,15 @@ internal static partial class PdfWriter {
         return true;
     }
 
-    // Byte-scan equivalent of UsesPdfResource. Generated content streams and PDF resource names are ASCII,
-    // so scanning the stored bytes matches the string scan while avoiding a bytes->string decode.
+    // Generated content streams and PDF resource names are ASCII, so scan the stored bytes directly.
     private static bool UsesPdfResource(byte[] content, string name) {
         int nameLength = name.Length;
+        if (nameLength == 0) return true;
         int limit = content.Length - nameLength;
         for (int index = 0; index <= limit; index++) {
-            int j = 0;
+            index = Array.IndexOf(content, (byte)name[0], index, limit - index + 1);
+            if (index < 0) return false;
+            int j = 1;
             while (j < nameLength && content[index + j] == (byte)name[j]) {
                 j++;
             }

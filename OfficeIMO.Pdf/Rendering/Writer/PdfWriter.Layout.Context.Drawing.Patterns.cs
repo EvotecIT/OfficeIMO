@@ -22,7 +22,7 @@ internal static partial class PdfWriter {
 
     private sealed partial class LayoutContext {
         private readonly DrawingPatternAnnotationBudget drawingPatternAnnotations;
-        private void DrawDrawingPatternAt(OfficeDrawingTilingPattern pattern, double originX, double originTopY, OfficeDrawingTextMetrics metrics) {
+        private void DrawDrawingPatternAt(OfficeDrawingTilingPattern pattern, double originX, double originTopY, DrawingTextMetricsState metrics) {
             cancellationToken.ThrowIfCancellationRequested();
             if (pattern.Opacity <= 0D) return;
             drawingPatternAnnotations.Observe(pattern.MaximumTileCount);

@@ -1185,14 +1185,18 @@ internal static partial class PdfTextDiagnostics {
         // Preflight the same selected language-system lookups used by the shared shaper.
         // A rejected required feature or custom ligature need not contain ff/fi/fl, but it
         // only simplifies this run when it could start on one of the run's glyphs.
-        int latinInputIndex = OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
         OfficeTextFeatureSettings effectiveSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
-        if (latinInputIndex >= 0 && info.LatinSubstitution != null &&
-            !info.LatinSubstitution.ApplyLatinDefaults(new List<OfficeOpenTypeSubstitution.GlyphToken>(), effectiveSettings, default) &&
-            info.LatinSubstitution.DeclinedLatinDefaultLookupMayApply(MapRunGlyphs(text, info), effectiveSettings, default)) {
-            AddDiagnostic(diagnostics, reportedCodes, source, indexOffset + latinInputIndex, char.ConvertToUtf32(text, latinInputIndex),
-                "OpenType GSUB", "unsupported-font-ligature-substitution",
-                "Embedded font '" + info.FontName + "' selects an OpenType GSUB feature outside the managed shaping subset. Generated output may be visually simplified.");
+        bool usesCachedDefaultLookups = effectiveSettings.IsDefault;
+        int latinInputIndex = usesCachedDefaultLookups ? -1 : OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
+        if (info.LatinSubstitution != null && (usesCachedDefaultLookups || latinInputIndex >= 0) &&
+            !info.LatinSubstitution.CanApplyLatinDefaults(effectiveSettings, default)) {
+            if (usesCachedDefaultLookups) latinInputIndex = OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
+            if (latinInputIndex >= 0 && info.LatinSubstitution.DeclinedLatinDefaultLookupMayApply(
+                    MapRunGlyphs(text, info), effectiveSettings, default)) {
+                AddDiagnostic(diagnostics, reportedCodes, source, indexOffset + latinInputIndex, char.ConvertToUtf32(text, latinInputIndex),
+                    "OpenType GSUB", "unsupported-font-ligature-substitution",
+                    "Embedded font '" + info.FontName + "' selects an OpenType GSUB feature outside the managed shaping subset. Generated output may be visually simplified.");
+            }
         }
         if (HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, "liga", "clig", "rlig") ||
             HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, "dlig") && featureSettings != null &&
