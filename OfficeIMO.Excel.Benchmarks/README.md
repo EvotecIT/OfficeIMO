@@ -23,6 +23,17 @@ output with ExcelDataReader and the strict OfficeIMO reader. The XLS lane also
 requires the BIFF8 Index/DBCell structure. A failed preflight stays visible as
 an unavailable timing, without ranking invalid output against a valid package.
 
+`ExcelWriterOptionsComparisonBenchmarks` adds complete XLSX and XLSB writes from
+that same generated source, with serial, compression-prefetch and parallel-record
+methods labelled separately. The parallel methods use one or eight batches in
+flight, with 8,192 rows per batch. Every method finalizes the package and returns
+its bytes; setup validates every output through the same independent reader.
+Generation and the final byte-array copy are included in each measurement.
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelWriterOptionsComparisonBenchmarks*" --inProcess --warmupCount 12 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove
+```
+
 For CPU sampling I use `--profile-native-generated-write xlsb 600` (or `xls`).
 This .NET 10 entry point runs the same complete 50,000-row writer workload,
 validates before and after sampling, and avoids benchmark report generation in

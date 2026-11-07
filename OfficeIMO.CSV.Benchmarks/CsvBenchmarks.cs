@@ -24,19 +24,7 @@ namespace OfficeIMO.CSV.Benchmarks;
 [MemoryDiagnoser]
 public partial class CsvBenchmarks
 {
-    private static readonly string[] Headers =
-    [
-        nameof(CsvBenchmarkRow.Id),
-        nameof(CsvBenchmarkRow.Name),
-        nameof(CsvBenchmarkRow.Department),
-        nameof(CsvBenchmarkRow.Region),
-        nameof(CsvBenchmarkRow.IsEnabled),
-        nameof(CsvBenchmarkRow.Created),
-        nameof(CsvBenchmarkRow.Score),
-        nameof(CsvBenchmarkRow.Owner),
-        nameof(CsvBenchmarkRow.TicketCount),
-        nameof(CsvBenchmarkRow.Notes)
-    ];
+    private static readonly string[] Headers = CsvBenchmarkData.Headers;
 
     private CsvBenchmarkRow[] _rows = [];
     private object?[][] _projectedRows = [];
@@ -63,12 +51,10 @@ public partial class CsvBenchmarks
     public void Setup()
     {
         _rows = CsvBenchmarkData.Create(RowCount, Shape);
-        _projectedRows = _rows.Select(ProjectRow).ToArray();
-        _projectedTextRows = _projectedRows.Select(ProjectTextRow).ToArray();
+        _projectedRows = _rows.Select(CsvBenchmarkData.ProjectRow).ToArray();
+        _projectedTextRows = _projectedRows.Select(CsvBenchmarkData.ProjectTextRow).ToArray();
 
-        using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        CsvDocument.WriteObjects(writer, _rows, new CsvSaveOptions { NewLine = "\n" });
-        _csvText = writer.ToString();
+        _csvText = CsvBenchmarkData.CreateText(_rows);
         _csvUtf8 = Encoding.UTF8.GetBytes(_csvText);
         _expectedTypedReadChecksum = MeasureTypedRows(_rows);
 
@@ -792,34 +778,6 @@ public partial class CsvBenchmarks
         return fieldCount;
     }
 
-    private static object?[] ProjectRow(CsvBenchmarkRow row)
-    {
-        return
-        [
-            row.Id,
-            row.Name,
-            row.Department,
-            row.Region,
-            row.IsEnabled,
-            row.Created,
-            row.Score,
-            row.Owner,
-            row.TicketCount,
-            row.Notes
-        ];
-    }
-
-    private static string?[] ProjectTextRow(object?[] row)
-    {
-        var values = new string?[row.Length];
-        for (var i = 0; i < row.Length; i++)
-        {
-            values[i] = Convert.ToString(row[i], CultureInfo.InvariantCulture);
-        }
-
-        return values;
-    }
-
     private static int MeasureValues(IReadOnlyList<string> values)
     {
         var checksum = 0;
@@ -860,71 +818,5 @@ public partial class CsvBenchmarks
             TextLength += unescapedLength;
             return true;
         }
-    }
-}
-
-public enum CsvBenchmarkShape
-{
-    Mixed,
-    Quoted,
-    Multiline
-}
-
-public sealed class CsvBenchmarkRow
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Department { get; set; } = string.Empty;
-    public string Region { get; set; } = string.Empty;
-    public bool IsEnabled { get; set; }
-    public DateTime Created { get; set; }
-    public decimal Score { get; set; }
-    public string Owner { get; set; } = string.Empty;
-    public int TicketCount { get; set; }
-    public string Notes { get; set; } = string.Empty;
-}
-
-internal static class CsvBenchmarkData
-{
-    private static readonly string[] Regions = ["NA", "EU", "APAC", "LATAM"];
-
-    public static CsvBenchmarkRow[] Create(int count, CsvBenchmarkShape shape)
-    {
-        var rows = new CsvBenchmarkRow[count];
-        for (var i = 1; i <= count; i++)
-        {
-            var region = Regions[i % Regions.Length];
-            var name = string.Create(CultureInfo.InvariantCulture, $"Server-{i:000000}");
-            var department = string.Create(CultureInfo.InvariantCulture, $"Department-{i % 25}");
-            var notes = string.Create(CultureInfo.InvariantCulture, $"Benchmark row {i}");
-
-            switch (shape)
-            {
-                case CsvBenchmarkShape.Quoted:
-                    name = string.Create(CultureInfo.InvariantCulture, $"Server,{i:000000}");
-                    department = string.Create(CultureInfo.InvariantCulture, $"Department \"{i % 25}\"");
-                    notes = string.Create(CultureInfo.InvariantCulture, $"Benchmark row {i}, \"quoted\", region {region}");
-                    break;
-                case CsvBenchmarkShape.Multiline:
-                    notes = string.Create(CultureInfo.InvariantCulture, $"Benchmark row {i}\ncontinued value {i % 10}");
-                    break;
-            }
-
-            rows[i - 1] = new CsvBenchmarkRow
-            {
-                Id = i,
-                Name = name,
-                Department = department,
-                Region = region,
-                IsEnabled = i % 3 != 0,
-                Created = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(i),
-                Score = Math.Round((decimal)((i * 1.137) % 1000), 3),
-                Owner = string.Create(CultureInfo.InvariantCulture, $"owner{i % 250}@example.test"),
-                TicketCount = i % 17,
-                Notes = notes
-            };
-        }
-
-        return rows;
     }
 }

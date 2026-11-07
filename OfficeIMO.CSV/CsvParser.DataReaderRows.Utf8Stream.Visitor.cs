@@ -1,5 +1,8 @@
 #if NET8_0_OR_GREATER
+using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text;
 
 namespace OfficeIMO.CSV;
@@ -108,7 +111,7 @@ internal static partial class CsvParser
                 {
                     ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
                     materialized = _allFieldsAscii || Ascii.IsValid(bytes)
-                        ? Encoding.Latin1.GetString(bytes)
+                        ? CreateAsciiString(_buffer, start, length)
                         : _encoding.GetString(bytes);
                 }
 
@@ -116,6 +119,58 @@ internal static partial class CsvParser
             }
 
             return materialized;
+        }
+
+        // Only validated ASCII reaches this method. The first and last bounded loads
+        // overlap for short tails, so every UTF-16 character is initialized without padding.
+        private static string CreateAsciiString(byte[] buffer, int start, int length)
+        {
+            if (!BitConverter.IsLittleEndian || !Vector128.IsHardwareAccelerated || length < 2 || length >= 16)
+            {
+                return Encoding.Latin1.GetString(buffer.AsSpan(start, length));
+            }
+
+            return string.Create(length, (Buffer: buffer, Start: start), static (characters, state) =>
+            {
+                ReadOnlySpan<byte> bytes = state.Buffer.AsSpan(state.Start, characters.Length);
+                Span<byte> destination = MemoryMarshal.AsBytes(characters);
+                int length = bytes.Length;
+                if (length >= 8)
+                {
+                    WidenEight(bytes, destination);
+                    WidenEight(bytes.Slice(length - 8), destination.Slice((length - 8) * 2));
+                }
+                else if (length >= 4)
+                {
+                    WidenFour(bytes, destination);
+                    WidenFour(bytes.Slice(length - 4), destination.Slice((length - 4) * 2));
+                }
+                else
+                {
+                    WidenTwo(bytes, destination);
+                    WidenTwo(bytes.Slice(length - 2), destination.Slice((length - 2) * 2));
+                }
+            });
+        }
+
+        private static void WidenEight(ReadOnlySpan<byte> bytes, Span<byte> destination)
+        {
+            ulong word = BinaryPrimitives.ReadUInt64LittleEndian(bytes);
+            Vector128.WidenLower(Vector128.CreateScalarUnsafe(word).AsByte()).AsByte().CopyTo(destination);
+        }
+
+        private static void WidenFour(ReadOnlySpan<byte> bytes, Span<byte> destination)
+        {
+            ulong word = BinaryPrimitives.ReadUInt32LittleEndian(bytes);
+            word = (word | (word << 16)) & 0x0000ffff0000ffffUL;
+            word = (word | (word << 8)) & 0x00ff00ff00ff00ffUL;
+            BinaryPrimitives.WriteUInt64LittleEndian(destination, word);
+        }
+
+        private static void WidenTwo(ReadOnlySpan<byte> bytes, Span<byte> destination)
+        {
+            uint word = BinaryPrimitives.ReadUInt16LittleEndian(bytes);
+            BinaryPrimitives.WriteUInt32LittleEndian(destination, (word | (word << 8)) & 0x00ff00ffU);
         }
 
         /// <summary>Completes requested per-read string sharing before exposing the row.</summary>
