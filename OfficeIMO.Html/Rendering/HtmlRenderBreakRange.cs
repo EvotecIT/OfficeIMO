@@ -9,6 +9,8 @@ internal sealed record HtmlRenderBreakRange(double Start, double End) {
 
     internal static IReadOnlyList<HtmlRenderBreakRange> Normalize(
         IEnumerable<HtmlRenderBreakRange> source, double extent) {
+        if (source is HtmlRenderBreakRange[] { Length: 0 }) return Array.Empty<HtmlRenderBreakRange>();
+
         var result = new List<HtmlRenderBreakRange>();
         foreach (HtmlRenderBreakRange range in source
             .Where(range => IsFinite(range.Start) && IsFinite(range.End)

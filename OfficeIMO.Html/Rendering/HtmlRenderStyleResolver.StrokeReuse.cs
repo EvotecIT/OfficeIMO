@@ -9,7 +9,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private readonly Dictionary<HtmlCssBoxStrokeParser.StrokeDeclarations, HtmlComputedStyle> _strokeStyles = new();
 
     /// <summary>Reuses used border/outline values for one immutable computed style and the exact numeric context.</summary>
-    /// <remarks>Layout callers receive value copies; parent boxes and other mutable resolved style fields are never cached.</remarks>
+    /// <remarks>Cached results are immutable; layout still copies border values into its own mutable style.</remarks>
     private ResolvedBoxStroke ResolveBoxStroke(HtmlComputedStyle computed, double reference, double fontSize,
         OfficeColor color) {
         computed = ReuseStrokeDeclarations(computed);
@@ -18,7 +18,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (reuse) {
             context = new BoxStrokeContext(computed, reference, fontSize, _rootFontSize,
                 _viewportWidth, _viewportHeight, color, _activeCharacterAdvance, _activeUprightVerticalText);
-            if (_boxStrokes.TryGetValue(context, out ResolvedBoxStroke found)) return found;
+            if (_boxStrokes.TryGetValue(context, out ResolvedBoxStroke? found)) return found;
         }
 
         bool borderSupported = HtmlCssBoxStrokeParser.TryParseBorder(computed, reference, fontSize,
@@ -54,7 +54,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         double FontSize, double RootFontSize, double ViewportWidth, double ViewportHeight,
         OfficeColor Color, double CharacterAdvance, bool UprightVerticalText);
 
-    private readonly record struct ResolvedBoxStroke(bool BorderDeclared, bool BorderSupported,
+    private sealed record ResolvedBoxStroke(bool BorderDeclared, bool BorderSupported,
         HtmlRenderBorderEdges Borders, string BorderDetail, bool OutlineSupported, double OutlineWidth,
         string OutlineStyle, OfficeColor OutlineColor, bool OutlineColorInvert, double OutlineOffset,
         string OutlineDetail);
