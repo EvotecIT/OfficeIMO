@@ -119,6 +119,21 @@ public sealed class WordMlReconstructionTests {
     }
 
     [Theory]
+    [InlineData("Tm90IGFuIGltYWdl")]
+    [InlineData("")]
+    [InlineData("iVBORw0KGgo=")]
+    public void UnrecognizedEmbeddedImagePayloadsFailWithSourceAdmissionError(string payload) {
+        string xml = Wrap("<w:body><w:p><w:r><w:pict><w:binData w:name=\"wordml://pixel.png\">" + payload +
+            "</w:binData><v:shape id=\"Picture1\" style=\"width:12pt;height:6pt\">" +
+            "<v:imagedata src=\"wordml://pixel.png\"/></v:shape></w:pict></w:r></w:p></w:body>");
+        using var input = Input(xml);
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => WordDocument.Load(input));
+        Assert.Contains("WordML 2003 contains an unsupported image payload", error.Message, StringComparison.Ordinal);
+        Assert.IsType<NotSupportedException>(error.InnerException);
+        Assert.True(input.CanRead);
+    }
+
+    [Theory]
     [InlineData("xml")]
     [InlineData("part")]
     [InlineData("aggregate")]

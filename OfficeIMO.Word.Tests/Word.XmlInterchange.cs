@@ -1,5 +1,7 @@
 using System.Xml.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -206,6 +208,45 @@ public sealed class WordXmlInterchangeTests {
             "relationship-uri" => "Word main",
             _ => "MaxDepth"
         }, error.Message);
+    }
+
+    [Theory]
+    [InlineData("AB!D", null)]
+    [InlineData("A=BC", null)]
+    [InlineData("AA=A", null)]
+    [InlineData("QUJD", "ABC")]
+    [InlineData("QUI=", "AB")]
+    [InlineData(" Q Q = = \r\n\t", "A")]
+    public void FlatOpcBinaryPayloadsUseConsistentAdmissionErrorsAndPreserveValidBytes(string payload, string? expected) {
+        string xml = FlatOpc().Replace("</pkg:package>", """
+          <pkg:part pkg:name="/word/_rels/document.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+            <pkg:xmlData><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+              <Relationship Id="rPayload" Type="urn:officeimo:test:payload" Target="custom.bin"/>
+            </Relationships></pkg:xmlData>
+          </pkg:part>
+          <pkg:part pkg:name="/word/custom.bin" pkg:contentType="application/octet-stream"><pkg:binaryData>
+          """ + payload + "</pkg:binaryData></pkg:part></pkg:package>");
+        using var source = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+        if (expected == null) {
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => WordDocument.Load(source));
+            Assert.Contains("base64", error.Message);
+            Assert.IsType<FormatException>(error.InnerException);
+            Assert.True(source.CanRead);
+            return;
+        }
+
+        using WordDocument document = WordDocument.Load(source, new WordLoadOptions { FailOnLoss = true }, out OfficeConversionReport report);
+        Assert.False(report.HasLoss);
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(saved));
+        Assert.Equal("Producer package", saved.MainDocumentPart!.Document.InnerText);
+        ExtendedPart part = Assert.Single(saved.MainDocumentPart.GetPartsOfType<ExtendedPart>());
+        using Stream content = part.GetStream(FileMode.Open, FileAccess.Read);
+        using var actual = new MemoryStream();
+        content.CopyTo(actual);
+        Assert.Equal(Encoding.ASCII.GetBytes(expected), actual.ToArray());
+        Assert.True(source.CanRead);
     }
 
     [Theory]

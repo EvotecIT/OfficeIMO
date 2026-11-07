@@ -88,9 +88,16 @@ public partial class WordDocument {
         IReadOnlyList<OfficeDiagnostic> diagnostics = Array.Empty<OfficeDiagnostic>();
         if (isFlatOpc) {
             WordXmlInterchange.ValidateFlatOpc(xml.Root!, policy, cancellationToken);
-            using WordprocessingDocument flat = WordprocessingDocument.FromFlatOpcDocument(xml, package, true);
-            if (flat.MainDocumentPart == null) {
-                throw new InvalidDataException("The Flat OPC source does not have a Word main document part.");
+            WordprocessingDocument flat;
+            try {
+                flat = WordprocessingDocument.FromFlatOpcDocument(xml, package, true);
+            } catch (FormatException error) {
+                throw new InvalidDataException("Flat OPC contains an invalid base64 payload.", error);
+            }
+            using (flat) {
+                if (flat.MainDocumentPart == null) {
+                    throw new InvalidDataException("The Flat OPC source does not have a Word main document part.");
+                }
             }
         } else {
             diagnostics = WordMl2003Projection.WritePackage(xml.Root!, package, policy, cancellationToken);

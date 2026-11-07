@@ -121,7 +121,9 @@ internal sealed partial class WordMl2003Projection {
                     catch (FormatException error) { throw new InvalidDataException("WordML 2003 contains an invalid image payload.", error); }
                     if (bytes.LongLength > _resourcePolicy.MaxPartUncompressedBytes || bytes.LongLength > _remainingReconstructionBytes)
                         throw new InvalidDataException("WordML 2003 exceeds the decoded image resource limit.");
-                    OfficeImageInfo info = OfficeImageReader.Identify(bytes);
+                    OfficeImageInfo info;
+                    try { info = OfficeImageReader.Identify(bytes); }
+                    catch (NotSupportedException error) { throw new InvalidDataException("WordML 2003 contains an unsupported image payload.", error); }
                     image = (bytes, info.MimeType);
                     _decodedImages.Add(name, image);
                 }
