@@ -451,7 +451,12 @@ public class HtmlOfficeAdaptersPowerPointTables {
         table.GetCell(0, 0).Text = "Header";
         table.GetCell(1, 0).Text = "Body";
 
-        string html = presentation.ToHtml();
+        using var source = new MemoryStream(presentation.ToBytes(), writable: false);
+        using PowerPointDocument readOnly = PowerPointDocument.Load(source,
+            new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        string sourceTable = readOnly.Slides[0].Tables.Single().TableElement.OuterXml;
+        string sourceStyles = readOnly.OpenXmlDocument.PresentationPart!.TableStylesPart!.TableStyleList!.OuterXml;
+        string html = readOnly.ToHtml();
 
         Assert.Contains("font-weight:700", html, StringComparison.Ordinal);
         Assert.Contains("font-family:&#39;Arial&#39;", html, StringComparison.Ordinal);
@@ -459,5 +464,52 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.Contains("font-style:italic", html, StringComparison.Ordinal);
         Assert.Contains("font-family:&#39;Consolas&#39;", html, StringComparison.Ordinal);
         Assert.Contains("color:#112233", html, StringComparison.Ordinal);
+        Assert.Equal(sourceTable, readOnly.Slides[0].Tables.Single().TableElement.OuterXml);
+        Assert.Equal(sourceStyles, readOnly.OpenXmlDocument.PresentationPart!.TableStylesPart!.TableStyleList!.OuterXml);
+    }
+
+    [Fact]
+    public void PowerPointHtml_VisualReviewKeepsLargeReadOnlyTablesWithoutAStylePart() {
+        using var presentation = PowerPointDocument.Create();
+        presentation.SetThemeColor(PowerPointThemeColor.Accent1, "123456");
+        presentation.SetThemeColor(PowerPointThemeColor.Light1, "FFFFFF");
+        PowerPointSlide slide = presentation.AddSlide();
+        PowerPointTable table = slide.AddTable(2, 1, OfficeLength.Points(20), OfficeLength.Points(30),
+            OfficeLength.Points(220), OfficeLength.Points(100));
+        table.StyleId = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
+        table.FirstRow = true;
+        table.BandedRows = false;
+        table.GetCell(0, 0).Text = "Header";
+        table.GetCell(1, 0).Text = "Body";
+        A.TableRow template = table.TableElement.Elements<A.TableRow>().Last();
+        // The snapshot skips this table; its HTML metadata must still read the source style.
+        for (int row = 2; row < 4097; row++) table.TableElement.Append(template.CloneNode(true));
+        table.GetCell(4096, 0).NoFill = true;
+        var presentationPart = presentation.OpenXmlDocument.PresentationPart!;
+        presentationPart.DeletePart(presentationPart.TableStylesPart!);
+        byte[] package = presentation.ToBytes();
+
+        using var source = new MemoryStream(package, writable: false);
+        using PowerPointDocument readOnly = PowerPointDocument.Load(source,
+            new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        var readOnlyPart = readOnly.OpenXmlDocument.PresentationPart!;
+        Assert.Null(readOnlyPart.TableStylesPart);
+        string sourceTable = readOnly.Slides[0].Tables.Single().TableElement.OuterXml;
+        string[] sourceRelationships = readOnlyPart.Parts.Select(part => part.RelationshipId).OrderBy(id => id).ToArray();
+
+        string html = readOnly.ToHtml(PowerPointHtmlExportOptions.CreateVisualReviewProfile(), out OfficeConversionReport report);
+
+        var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+        var cells = parsed.QuerySelectorAll("td");
+        Assert.Equal(4097, cells.Length);
+        Assert.Equal("Header", cells[0].TextContent);
+        Assert.Contains("background-color:#123456", cells[0].GetAttribute("style"));
+        Assert.Contains("border-bottom:3pt solid #FFFFFF", cells[0].GetAttribute("style")!, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("background-color:#00000000", cells[^1].GetAttribute("style"));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Message.Contains("4097 rows", StringComparison.Ordinal));
+        Assert.Null(readOnlyPart.TableStylesPart);
+        Assert.Equal(sourceTable, readOnly.Slides[0].Tables.Single().TableElement.OuterXml);
+        Assert.Equal(sourceRelationships, readOnlyPart.Parts.Select(part => part.RelationshipId).OrderBy(id => id).ToArray());
+        Assert.Equal(package, source.ToArray());
     }
 }

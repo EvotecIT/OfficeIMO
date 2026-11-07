@@ -37,7 +37,7 @@ public static partial class ExcelHtmlConverterExtensions {
     private static bool IsDashDotBorder(string? style) => style?.Trim().ToLowerInvariant()
         is "dashdot" or "dashdotdot" or "mediumdashdot" or "mediumdashdotdot" or "slantdashdot";
 
-    private static void ReportCssBorderFidelity(ExcelCellBorderInfo? border, string source, IList<HtmlDiagnostic> diagnostics) {
+    private static void ReportCssBorderFidelity(ExcelCellBorderInfo? border, int row, int column, CellFidelityDiagnostics diagnostics) {
         if (border == null) return;
         ReportEdge("top", border.Top);
         ReportEdge("right", border.Right);
@@ -46,16 +46,14 @@ public static partial class ExcelHtmlConverterExtensions {
         if ((border.DiagonalUp || border.DiagonalDown) && border.Diagonal != null
             && !string.IsNullOrWhiteSpace(border.Diagonal.Style)
             && !string.Equals(border.Diagonal.Style, "none", StringComparison.OrdinalIgnoreCase)) {
-            diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Excel.Html", HtmlConversionDiagnosticCodes.ContentOmitted,
-                "The diagonal cell border is not represented by semantic HTML cell edges.", HtmlDiagnosticSeverity.Warning,
-                "excel:cell:" + source + ":diagonal", lossKind: OfficeConversionLossKind.Omission));
+            diagnostics.Add(HtmlConversionDiagnosticCodes.ContentOmitted,
+                "The diagonal cell border is not represented by semantic HTML cell edges.", row, column, "diagonal", OfficeConversionLossKind.Omission);
         }
 
         void ReportEdge(string edge, ExcelBorderSideInfo? side) {
             if (!IsDashDotBorder(side?.Style)) return;
-            diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Excel.Html", HtmlConversionDiagnosticCodes.ContentApproximated,
-                "Excel border pattern '" + side!.Style + "' is approximated by a CSS dashed edge.", HtmlDiagnosticSeverity.Warning,
-                "excel:cell:" + source + ":" + edge, lossKind: OfficeConversionLossKind.Approximation));
+            diagnostics.Add(HtmlConversionDiagnosticCodes.ContentApproximated,
+                "Excel border pattern '" + side!.Style + "' is approximated by a CSS dashed edge.", row, column, edge, OfficeConversionLossKind.Approximation);
         }
     }
 }

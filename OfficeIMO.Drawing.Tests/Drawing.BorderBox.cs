@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -23,8 +24,7 @@ public partial class DrawingTests {
                 new OfficeBorderSide(OfficeColor.FromRgb(22, 163, 74), 3D, OfficeStrokeDashStyle.Dot),
                 new OfficeBorderSide(OfficeColor.FromRgb(147, 51, 234), 2.5D, OfficeStrokeDashStyle.DashDot)));
 
-        List<OfficeDrawingShape> lines = drawing.Elements
-            .OfType<OfficeDrawingShape>()
+        List<OfficeDrawingShape> lines = EnumerateBorderBoxShapes(drawing)
             .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line)
             .ToList();
         Assert.Equal(4, lines.Count);
@@ -100,7 +100,7 @@ public partial class DrawingTests {
                 right: new OfficeBorderSide(OfficeColor.FromRgb(37, 99, 235), 1D),
                 bottom: new OfficeBorderSide(OfficeColor.FromRgb(22, 163, 74), 1D)));
 
-        List<OfficeDrawingShape> lines = drawing.Elements.OfType<OfficeDrawingShape>().ToList();
+        List<OfficeDrawingShape> lines = EnumerateBorderBoxShapes(drawing).ToList();
 
         Assert.Contains(lines, line => line.X == 40D && line.Shape.Width == 0D);
         Assert.Contains(lines, line => line.Y == 30D && line.Shape.Height == 0D);
@@ -129,6 +129,39 @@ public partial class DrawingTests {
         Assert.Contains("viewBox=\"0 0 40 30\"", svg, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(10, 12)]
+    public void OfficeDrawingBorderBoxCompositionPreservesTheChildViewportThroughSvgAndRaster(int offsetX, int offsetY) {
+        var red = new OfficeBorderSide(OfficeColor.Red, 2D, lineKind: OfficeBorderLineKind.Double, doubleLineSeparation: 8D);
+        var blue = new OfficeBorderSide(OfficeColor.Blue, 2D, lineKind: OfficeBorderLineKind.Double, doubleLineSeparation: 8D);
+        var child = new OfficeDrawing(40D, 30D).AddBorderBox(
+            0D, 0D, 40D, 30D, null, new OfficeBorderBox(top: blue, right: red, bottom: blue, left: red));
+        var drawing = new OfficeDrawing(80D, 70D).AddDrawing(child.Clone(), offsetX, offsetY);
+
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.Red, image.GetPixel(offsetX + 4, offsetY + 15));
+        Assert.Equal(OfficeColor.Red, image.GetPixel(offsetX + 36, offsetY + 15));
+        Assert.Equal(OfficeColor.Blue, image.GetPixel(offsetX + 15, offsetY + 4));
+        Assert.Equal(OfficeColor.Blue, image.GetPixel(offsetX + 15, offsetY + 26));
+        Assert.Equal(OfficeColor.White, image.GetPixel(offsetX + 44, offsetY + 15));
+        Assert.Equal(OfficeColor.White, image.GetPixel(offsetX + 15, offsetY + 34));
+        if (offsetX > 0) Assert.Equal(OfficeColor.White, image.GetPixel(offsetX - 4, offsetY + 15));
+        if (offsetY > 0) Assert.Equal(OfficeColor.White, image.GetPixel(offsetX + 15, offsetY - 4));
+
+        XDocument svg = XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+        XNamespace ns = svg.Root!.Name.Namespace;
+        XElement clip = Assert.Single(svg.Descendants(ns + "clipPath"));
+        XElement viewport = Assert.Single(clip.Elements(ns + "rect"));
+        Assert.Equal("0", (string?)viewport.Attribute("x"));
+        Assert.Equal("0", (string?)viewport.Attribute("y"));
+        Assert.Equal("40", (string?)viewport.Attribute("width"));
+        Assert.Equal("30", (string?)viewport.Attribute("height"));
+        XElement group = Assert.Single(svg.Descendants(ns + "g"), element =>
+            (string?)element.Attribute("clip-path") == "url(#" + (string?)clip.Attribute("id") + ")");
+        Assert.Equal($"translate({offsetX} {offsetY})", (string?)group.Attribute("transform"));
+    }
+
     [Fact]
     public void OfficeDrawingBorderBoxRebasesTransformsForEachSide() {
         var drawing = new OfficeDrawing(120, 80);
@@ -145,7 +178,7 @@ public partial class DrawingTests {
                 right: new OfficeBorderSide(OfficeColor.FromRgb(22, 163, 74), 1D)),
             transform);
 
-        List<OfficeDrawingShape> lines = drawing.Elements.OfType<OfficeDrawingShape>().ToList();
+        List<OfficeDrawingShape> lines = EnumerateBorderBoxShapes(drawing).ToList();
         OfficeDrawingShape top = Assert.Single(lines, line => line.X == 10D && line.Y == 12D);
         OfficeDrawingShape right = Assert.Single(lines, line => line.X == 90D);
 
@@ -153,6 +186,9 @@ public partial class DrawingTests {
         Assert.NotEqual(transform.OffsetX, right.Shape.Transform!.Value.OffsetX);
         Assert.NotEqual(transform.OffsetY, right.Shape.Transform!.Value.OffsetY);
     }
+
+    private static IEnumerable<OfficeDrawingShape> EnumerateBorderBoxShapes(OfficeDrawing drawing) => drawing.Shapes.Concat(
+        drawing.Elements.OfType<OfficeDrawingGroup>().SelectMany(group => EnumerateBorderBoxShapes(group.Drawing)));
 
     private static bool ContainsColorNear(OfficeRasterImage image, OfficeColor expected, int centerX, int centerY, int tolerance) {
         int left = Math.Max(0, centerX - 6);

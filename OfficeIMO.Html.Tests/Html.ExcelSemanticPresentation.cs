@@ -2,11 +2,38 @@ using System.Globalization;
 using AngleSharp.Html.Parser;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public class HtmlExcelSemanticPresentation {
+    [Fact]
+    public void RepeatedCellFidelityWarningsRetainTheirFirstLocationAndCountsPerSheet() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        foreach (string name in new[] { "One", "Two" }) {
+            ExcelSheet sheet = workbook.AddSheet(name);
+            for (int row = 1; row <= 3; row++) {
+                sheet.Cell(row, 1).SetValue(row)
+                    .SetBorder(ExcelCellBorders.Top | ExcelCellBorders.Bottom, ExcelBorderStyle.DashDot, OfficeColor.Black)
+                    .SetGradientFill(OfficeColor.Parse("123456"), OfficeColor.Parse("654321"));
+            }
+        }
+
+        string html = workbook.ToHtml(null, out OfficeConversionReport report);
+
+        Assert.Equal(6, new HtmlParser().ParseDocument(html).QuerySelectorAll("[data-officeimo-cell]").Length);
+        Assert.True(report.HasLoss);
+        var warnings = report.Diagnostics.Where(diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated).ToArray();
+        Assert.Equal(4, warnings.Length);
+        foreach (string name in new[] { "One", "Two" }) {
+            var border = Assert.Single(warnings, diagnostic => diagnostic.Location == "excel:cell:" + name + "!A1:top");
+            Assert.EndsWith("(6 occurrences)", border.Message, StringComparison.Ordinal);
+            var fill = Assert.Single(warnings, diagnostic => diagnostic.Location == "excel:cell:" + name + "!A1:fill");
+            Assert.EndsWith("(3 occurrences)", fill.Message, StringComparison.Ordinal);
+        }
+    }
+
     private static ExcelDocument CreateReportWorkbook() {
         ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Report");

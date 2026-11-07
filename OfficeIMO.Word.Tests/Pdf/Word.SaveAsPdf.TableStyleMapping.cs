@@ -794,7 +794,8 @@ public partial class Word {
         });
 
         Assert.Equal(11D, style.FontSize?.ToPoints());
-        Assert.Equal(1.220703125D * 259D / 240D, style.LineHeight);
+        // GridTable1Light declares single spacing (240), overriding document defaults (259).
+        Assert.Equal(1.220703125D, style.LineHeight);
         Assert.Equal(0D, style.CellPaddingTop?.ToPoints());
         Assert.Equal(0D, style.CellPaddingBottom?.ToPoints());
     }

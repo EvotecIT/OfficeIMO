@@ -101,6 +101,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText body = Assert.Single(defaultTexts, text => text.Text == "List content");
         HtmlRenderText resetBody = Assert.Single(resetTexts, text => text.Text == "List content");
 
+        Assert.Equal("list-marker", marker.SemanticRole);
         Assert.True(marker.X >= 0D);
         Assert.True(marker.X < body.X);
         Assert.InRange(body.X - resetBody.X, 39D, 41D);

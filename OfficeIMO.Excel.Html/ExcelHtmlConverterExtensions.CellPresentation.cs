@@ -121,13 +121,13 @@ public static partial class ExcelHtmlConverterExtensions {
     }
 
     /// <summary>Reports background simplification without changing authored text colours to conceal it.</summary>
-    private static void ReportCssFillFidelity(ExcelCellStyleInfo style, string source, IList<HtmlDiagnostic> diagnostics) {
+    private static void ReportCssFillFidelity(ExcelCellStyleInfo style, int row, int column, CellFidelityDiagnostics diagnostics) {
         string? pattern = style.FillPatternType;
         if (string.IsNullOrWhiteSpace(pattern) || pattern == "none" || pattern == "solid") return;
-        diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Excel.Html", HtmlConversionDiagnosticCodes.ContentApproximated,
+        diagnostics.Add(HtmlConversionDiagnosticCodes.ContentApproximated,
             pattern == "gradient" ? "The gradient cell fill is represented by its first colour."
                 : "The patterned cell fill is represented by a flat foreground colour.",
-            HtmlDiagnosticSeverity.Warning, "excel:cell:" + source + ":fill", lossKind: OfficeConversionLossKind.Approximation));
+            row, column, "fill", OfficeConversionLossKind.Approximation);
     }
 
     private static string? ToCssHex(string? argb) {

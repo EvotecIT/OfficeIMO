@@ -169,6 +169,7 @@ public static partial class ExcelHtmlConverterExtensions {
             body.Append("<tbody>");
         }
 
+        var fidelityDiagnostics = new CellFidelityDiagnostics(sheet.Name);
         SemanticCellPresentation? presentation = options.ApplyCellPresentation
             ? SemanticCellPresentation.TryCreate(sheet, firstRow, firstColumn, maxRows, maxColumns, diagnostics)
             : null;
@@ -224,9 +225,8 @@ public static partial class ExcelHtmlConverterExtensions {
                     if (options.ApplyCellPresentation) boxCss = CreateCellBoxCss(cellStyle, null, null);
                 }
                 if (options.ApplyCellPresentation) {
-                    string source = sheet.Name + "!" + ExcelA1.CellReference(cellRow, cellColumn);
-                    ReportCssBorderFidelity(cellStyle.Border, source, diagnostics);
-                    ReportCssFillFidelity(cellStyle, source, diagnostics);
+                    ReportCssBorderFidelity(cellStyle.Border, cellRow, cellColumn, fidelityDiagnostics);
+                    ReportCssFillFidelity(cellStyle, cellRow, cellColumn, fidelityDiagnostics);
                 }
                 IReadOnlyList<ExcelRichTextRun> richTextRuns = sheet.Cell(cellRow, cellColumn).GetRichText();
                 body.Append('<').Append(tag)
@@ -283,6 +283,7 @@ public static partial class ExcelHtmlConverterExtensions {
         }
 
         body.Append(firstRowIsHeader && maxRows == 1 ? "</thead></table>" : "</tbody></table>");
+        fidelityDiagnostics.AppendTo(diagnostics);
         AppendSheetTruncationDiagnostics(body, sheet.Name, maxRows, rowCount, maxColumns, columnCount, diagnostics);
 
         AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount), options, diagnostics);
@@ -794,37 +795,14 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append("</div>");
         foreach (IGrouping<string, OfficeImageExportDiagnostic> group in result.Diagnostics.GroupBy(CreateDiagnosticGroupKey)) {
             OfficeImageExportDiagnostic diagnostic = group.First();
-            diagnostics.Add(ToHtmlDiagnostic(diagnostic, group.Count()));
-            body.Append("<p class=\"officeimo-diagnostic\">")
-                .Append(OfficeHtmlText.Escape(diagnostic.Message));
             int count = group.Count();
-            if (count > 1) {
-                body.Append(" (")
-                    .Append(count.ToString(CultureInfo.InvariantCulture))
-                    .Append(" occurrences)");
-            }
-
-            body.Append("</p>");
+            diagnostics.Add(ToHtmlDiagnostic(diagnostic, count));
+            body.Append("<p class=\"officeimo-diagnostic\">")
+                .Append(OfficeHtmlText.Escape(FormatDiagnosticMessage(diagnostic.Message, count)))
+                .Append("</p>");
         }
 
         body.Append("</section>");
-    }
-
-    private static HtmlDiagnostic ToHtmlDiagnostic(OfficeImageExportDiagnostic diagnostic, int occurrenceCount) {
-        HtmlDiagnosticSeverity severity = diagnostic.Severity switch {
-            OfficeImageExportDiagnosticSeverity.Error => HtmlDiagnosticSeverity.Error,
-            OfficeImageExportDiagnosticSeverity.Warning => HtmlDiagnosticSeverity.Warning,
-            _ => HtmlDiagnosticSeverity.Info
-        };
-        return new HtmlDiagnostic(
-            "OfficeIMO.Excel.Html",
-            diagnostic.Code,
-            occurrenceCount > 1
-                ? diagnostic.Message + " (" + occurrenceCount.ToString(CultureInfo.InvariantCulture) + " occurrences)"
-                : diagnostic.Message,
-            severity,
-            diagnostic.Source,
-            lossKind: diagnostic.LossKind);
     }
 
     private static string CreateSvgNamespacePrefix(OfficeImageExportResult result, int index) {
@@ -877,10 +855,6 @@ public static partial class ExcelHtmlConverterExtensions {
                 ? match.Groups["hrefName"].Value + "=" + match.Groups["hrefq"].Value + "#" + prefix + href + match.Groups["hrefq"].Value
                 : match.Value;
         });
-    }
-
-    private static string CreateDiagnosticGroupKey(OfficeImageExportDiagnostic diagnostic) {
-        return diagnostic.Severity.ToString() + "|" + diagnostic.Code + "|" + diagnostic.Message;
     }
 
     private static ExcelImageExportOptions ResolveWorkbookVisualOptions(ExcelImageExportOptions? workbookOptions) {

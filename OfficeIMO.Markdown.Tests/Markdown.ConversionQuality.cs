@@ -155,9 +155,14 @@ namespace OfficeIMO.Tests {
             Assert.True(previous > theme.TypeScale.Body.ToPoints());
         }
 
-        [Fact]
-        public void MarkdownToWord_NormalStyleAndNumericColumnsFollowTheTheme() {
-            using var document = Omd.MarkdownDocument.Parse("| Region | Revenue |\n|---|---|\n| EMEA | 1,250 |\n| APAC | 980 |\n").ToWord();
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MarkdownToWord_NormalStyleUsesNativeDefaultsAndNumericAlignmentRequiresTheme(bool applyTheme) {
+            var markdown = Omd.MarkdownDocument.Parse("| Region | Revenue |\n|---|---|\n| EMEA | 1,250 |\n| APAC | 980 |\n");
+            using var document = applyTheme
+                ? markdown.ToWord(new MarkdownWordExportOptions { ApplyDefaultTheme = true })
+                : markdown.ToWord();
             var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
             Style normal = styles.Elements<Style>().Single(item => item.StyleId == "Normal");
             Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, normal.StyleRunProperties!.RunFonts!.Ascii!.Value);
@@ -165,7 +170,8 @@ namespace OfficeIMO.Tests {
                 normal.StyleRunProperties.FontSize!.Val!.Value);
 
             WordTable table = Assert.Single(document.Tables);
-            Assert.Equal(WordParagraphAlignment.Right, table.Rows[1].Cells[1].Paragraphs.First(p => !string.IsNullOrEmpty(p.Text)).ParagraphAlignment);
+            Assert.Equal(applyTheme ? WordParagraphAlignment.Right : (WordParagraphAlignment?)null,
+                table.Rows[1].Cells[1].Paragraphs.First(p => !string.IsNullOrEmpty(p.Text)).ParagraphAlignment);
             Assert.NotEqual(WordParagraphAlignment.Right, table.Rows[1].Cells[0].Paragraphs.First(p => !string.IsNullOrEmpty(p.Text)).ParagraphAlignment);
         }
 

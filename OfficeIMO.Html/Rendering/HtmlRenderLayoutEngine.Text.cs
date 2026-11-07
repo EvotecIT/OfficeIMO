@@ -114,7 +114,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Keeps default marker text at its list item's source entry across every marker layout route.</summary>
     private HtmlInlineRun CreateListMarkerRun(HtmlListMarker marker, IElement? owner, HtmlRenderBoxStyle? style = null) {
-        HtmlRenderBoxStyle effectiveStyle = style ?? marker.Style;
+        HtmlRenderBoxStyle effectiveStyle = (style ?? marker.Style).Clone();
+        effectiveStyle.SemanticRole = "list-marker";
         HtmlInlineRun run = marker.IsImage
             ? new HtmlInlineRun(marker.Image!, effectiveStyle, null, "list-marker", ownerElement: owner, isReplacedImage: true)
             : new HtmlInlineRun(marker.Content, effectiveStyle, null, "list-marker", ownerElement: owner);

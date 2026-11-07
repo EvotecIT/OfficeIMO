@@ -57,11 +57,20 @@ public partial class HtmlOfficeAdapters {
         table.FirstRow = true;
         table.BandedRows = false;
 
-        var html = new HtmlParser().ParseDocument(document.ToHtml());
+        var part = document.OpenXmlDocument.PresentationPart!;
+        part.DeletePart(part.TableStylesPart!);
+        using var source = new MemoryStream(document.ToBytes(), writable: false);
+        using var readOnly = PowerPointDocument.Load(source,
+            new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        string sourceTable = readOnly.Slides[0].Tables.Single().TableElement.OuterXml;
+
+        var html = new HtmlParser().ParseDocument(readOnly.ToHtml());
         Assert.Contains("background-color:#00000000", html.QuerySelector("td")!.GetAttribute("style"));
-        var png = slide.ExportImage(OfficeImageExportFormat.Png);
+        var png = readOnly.Slides[0].ExportImage(OfficeImageExportFormat.Png);
         Assert.True(OfficePngReader.TryDecode(png.Bytes, out var pixels));
         Assert.Equal(OfficeColor.Yellow, pixels!.GetPixel(32, 32));
+        Assert.Null(readOnly.OpenXmlDocument.PresentationPart!.TableStylesPart);
+        Assert.Equal(sourceTable, readOnly.Slides[0].Tables.Single().TableElement.OuterXml);
     }
 
     [Fact]

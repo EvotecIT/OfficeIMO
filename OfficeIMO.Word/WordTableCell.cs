@@ -127,7 +127,7 @@ namespace OfficeIMO.Word {
             get {
                 Shading? shading = _tableCellProperties?.Shading;
                 if (shading?.Val?.Value == ShadingPatternValues.Nil) return "";
-                var fill = WordRunFormatting.ResolveShadingFillColorHex(shading, _document) ?? shading?.Fill?.Value;
+                var fill = WordRunFormatting.ResolveShadingBackgroundColorHex(shading, _document) ?? shading?.Fill?.Value;
                 return fill != null ? fill.ToUpperInvariant() : "";
             }
             set {

@@ -23,12 +23,18 @@ public sealed partial class OfficeDrawing {
             AddShape(fill, x, y);
         }
 
-        AddHorizontalBorderLine(x, y, 0D, width, borders.Top, transform);
-        AddVerticalBorderLine(x, y, width, height, borders.Right, transform);
-        AddHorizontalBorderLine(x, y, height, width, borders.Bottom, transform);
-        AddVerticalBorderLine(x, y, 0D, height, borders.Left, transform);
-        AddDiagonalBorderLine(x, y, width, height, borders.DiagonalDown, diagonalDown: true, transform);
-        AddDiagonalBorderLine(x, y, width, height, borders.DiagonalUp, diagonalDown: false, transform);
+        // Border strokes can cross the canvas edges. Retain that viewport clip
+        // when this command is composed into another drawing.
+        var borderPaint = new OfficeDrawing(Width, Height);
+        borderPaint.AddHorizontalBorderLine(x, y, 0D, width, borders.Top, transform);
+        borderPaint.AddVerticalBorderLine(x, y, width, height, borders.Right, transform);
+        borderPaint.AddHorizontalBorderLine(x, y, height, width, borders.Bottom, transform);
+        borderPaint.AddVerticalBorderLine(x, y, 0D, height, borders.Left, transform);
+        borderPaint.AddDiagonalBorderLine(x, y, width, height, borders.DiagonalDown, diagonalDown: true, transform);
+        borderPaint.AddDiagonalBorderLine(x, y, width, height, borders.DiagonalUp, diagonalDown: false, transform);
+        if (borderPaint.Elements.Count > 0) {
+            AddClippedDrawing(borderPaint, 0D, 0D, OfficeClipPath.Rectangle(Width, Height));
+        }
         return this;
     }
 

@@ -19,21 +19,35 @@ internal static partial class WordRunFormatting {
 
     /// <summary>Resolves an authored table, cell or run fill against its document theme without changing its XML.</summary>
     internal static string? ResolveShadingFillColorHex(Shading? shading, WordDocument document) {
-        A.ColorScheme? colorScheme = document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+        A.ColorScheme? colorScheme = GetLiveColorScheme(document);
         return TryResolveShadingFillColor(shading, colorScheme, out OfficeColor fill)
             ? fill.ToRgbHex()
             : null;
     }
 
+    /// <summary>Resolves the source background independently of the foreground and pattern retained by format writers.</summary>
+    internal static string? ResolveShadingBackgroundColorHex(Shading? shading, WordDocument document) =>
+        shading == null || shading.Val?.Value == ShadingPatternValues.Nil ? null :
+            TryResolveShadingBackground(shading, GetLiveColorScheme(document), out OfficeColor background)
+                ? background.ToRgbHex() : null;
+
+    /// <summary>Resolves the source pattern foreground without flattening it into its background.</summary>
+    internal static string? ResolveShadingForegroundColorHex(Shading? shading, WordDocument document) =>
+        shading != null && TryResolveShadingForeground(shading, GetLiveColorScheme(document), out OfficeColor foreground)
+            ? foreground.ToRgbHex() : null;
+
     /// <summary>Resolves Word text color with theme references taking precedence over cached RGB.</summary>
     internal static string? ResolveColorHex(Color? color, WordDocument? document) => color == null ? null :
         ResolveThemeColor(color.ThemeColor?.InnerText, color.ThemeTint?.Value, color.ThemeShade?.Value,
-            document?.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme) ?? color.Val?.Value;
+            GetLiveColorScheme(document)) ?? color.Val?.Value;
 
     /// <summary>Resolves an authored border color while retaining automatic-color declarations.</summary>
     internal static string? ResolveBorderColorHex(BorderType? border, WordDocument document) => border == null ? null :
         ResolveThemeColor(border.ThemeColor?.InnerText, border.ThemeTint?.Value, border.ThemeShade?.Value,
-            document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme) ?? border.Color?.Value;
+            GetLiveColorScheme(document)) ?? border.Color?.Value;
+
+    private static A.ColorScheme? GetLiveColorScheme(WordDocument? document) =>
+        document?._wordprocessingDocument?.MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
 
     /// <summary>Resolves direct and styled highlighting, then table style and document defaults; explicit none stops inheritance.</summary>
     internal static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph, HighlightColorValues? tableStyleHighlight = null) {
@@ -148,7 +162,8 @@ internal static partial class WordRunFormatting {
             return hasBackground;
         }
 
-        OfficeColor foreground = ResolveShadingForeground(shading, colorScheme);
+        OfficeColor foreground = TryResolveShadingForeground(shading, colorScheme, out OfficeColor resolvedForeground)
+            ? resolvedForeground : OfficeColor.Black;
         if (pattern.Equals("solid", StringComparison.OrdinalIgnoreCase)) {
             fillColor = foreground;
             return true;
@@ -162,20 +177,14 @@ internal static partial class WordRunFormatting {
         return true;
     }
 
-    private static OfficeColor ResolveShadingForeground(Shading shading, A.ColorScheme? colorScheme) {
+    private static bool TryResolveShadingForeground(Shading shading, A.ColorScheme? colorScheme, out OfficeColor foreground) {
         string? resolvedThemeForeground = ResolveThemeColor(
             GetWordAttribute(shading, "themeColor"),
             GetWordAttribute(shading, "themeTint"),
             GetWordAttribute(shading, "themeShade"),
             colorScheme);
-        if (OfficeColor.TryParseHex(resolvedThemeForeground, out OfficeColor themeForeground)) {
-            return themeForeground;
-        }
-        if (OfficeColor.TryParseHex(shading.Color?.Value, out OfficeColor foreground)) {
-            return foreground;
-        }
-
-        return OfficeColor.Black;
+        return OfficeColor.TryParseHex(resolvedThemeForeground, out foreground)
+            || OfficeColor.TryParseHex(shading.Color?.Value, out foreground);
     }
 
     private static bool TryResolveShadingBackground(Shading shading, A.ColorScheme? colorScheme, out OfficeColor background) {

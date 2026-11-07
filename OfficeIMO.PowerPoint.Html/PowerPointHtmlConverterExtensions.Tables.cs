@@ -6,6 +6,7 @@ namespace OfficeIMO.PowerPoint.Html;
 
 public static partial class PowerPointHtmlConverterExtensions {
     private static void AppendTable(StringBuilder body, PptCore.PowerPointTable table, bool includeShapeMetadata = false, IList<HtmlDiagnostic>? diagnostics = null) {
+        DocumentFormat.OpenXml.Drawing.TableStyleEntry? tableStyle = PptCore.PowerPointSlideImageRenderer.ResolveTableStyle(table);
         body.Append("<table class=\"officeimo-table\"");
         if (includeShapeMetadata) {
             AppendSemanticShapeAttributes(body, table, "table");
@@ -39,12 +40,12 @@ public static partial class PowerPointHtmlConverterExtensions {
                     body.Append(" colspan=\"").Append(columns.ToString(CultureInfo.InvariantCulture)).Append('"');
                 }
 
-                AppendSourceTableCellStyle(body, table, cell, rowIndex, columnIndex, diagnostics);
+                AppendSourceTableCellStyle(body, table, cell, rowIndex, columnIndex, tableStyle, diagnostics);
                 body.Append('>');
                 if (includeShapeMetadata) {
                     IReadOnlyList<DocumentFormat.OpenXml.Drawing.TableCellTextStyle> tableTextStyles =
                         PptCore.PowerPointSlideImageRenderer.ResolveTableCellTextStylesForExport(
-                            table, rowIndex, columnIndex);
+                            table, rowIndex, columnIndex, tableStyle);
                     if (RequiresSemanticTableCellContent(cell, tableTextStyles)) {
                         DocumentFormat.OpenXml.Drawing.TextBody? textBody = cell.Cell.TextBody;
                         DocumentFormat.OpenXml.OpenXmlCompositeElement? masterTextStyle = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?
@@ -67,9 +68,10 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static void AppendSourceTableCellStyle(StringBuilder body, PptCore.PowerPointTable table,
-        PptCore.PowerPointTableCell cell, int row, int column, IList<HtmlDiagnostic>? diagnostics) {
+        PptCore.PowerPointTableCell cell, int row, int column, DocumentFormat.OpenXml.Drawing.TableStyleEntry? tableStyle,
+        IList<HtmlDiagnostic>? diagnostics) {
         var css = new StringBuilder();
-        AppendCss(css, "background-color", PptCore.PowerPointSlideImageRenderer.ResolveTableCellFillColorForExport(table, row, column).ToCssColor());
+        AppendCss(css, "background-color", PptCore.PowerPointSlideImageRenderer.ResolveTableCellFillColorForExport(table, row, column, tableStyle).ToCssColor());
         AppendCss(css, "padding-left", FormatNumber(cell.PaddingLeft?.ToPoints() ?? 7.2D) + "pt");
         AppendCss(css, "padding-right", FormatNumber(cell.PaddingRight?.ToPoints() ?? 7.2D) + "pt");
         AppendCss(css, "padding-top", FormatNumber(cell.PaddingTop?.ToPoints() ?? 3.6D) + "pt");
@@ -86,7 +88,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             PptCore.PowerPointTextVerticalAlignment.Bottom => "bottom",
             _ => "top"
         });
-        OfficeBorderBox borders = PptCore.PowerPointSlideImageRenderer.ResolveTableCellBordersForExport(table, row, column);
+        OfficeBorderBox borders = PptCore.PowerPointSlideImageRenderer.ResolveTableCellBordersForExport(table, row, column, tableStyle);
         AppendBorder("left", borders.Left);
         AppendBorder("top", borders.Top);
         AppendBorder("right", borders.Right);

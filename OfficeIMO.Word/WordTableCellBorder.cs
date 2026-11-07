@@ -7,6 +7,7 @@ namespace OfficeIMO.Word {
     /// diagonals—has properties for style, color, spacing and size so that
     /// callers can individually tailor each side of a cell.
     /// </summary>
+    /// <remarks>When creating an edge, assign its style before its colour, spacing or size; Word requires a style on each border descriptor.</remarks>
     public class WordTableCellBorder {
         private readonly WordTableCell _wordTableCell;
         private readonly WordTableRow _wordTableRow;

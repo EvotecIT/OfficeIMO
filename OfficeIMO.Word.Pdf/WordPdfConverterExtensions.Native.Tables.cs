@@ -121,6 +121,11 @@ namespace OfficeIMO.Word.Pdf {
             double fontSize,
             string? documentFontFamily,
             NativeFontMap? nativeFontMap = null) {
+            // An absent table declaration must still inherit document spacing;
+            // resolving it as natural single spacing would mask that fallback.
+            if (!tableStyleDefaults.LineSpacing.Value.HasValue && !tableStyleDefaults.LineSpacing.GridPitch.HasValue) {
+                return tableStyleDefaults.ParagraphLineHeight;
+            }
             return tableStyleDefaults.LineSpacing.Resolve(fontSize,
                 ResolveNativeWordSingleLineHeight(nativeFontMap, tableStyleDefaults.RunStyle.FontFamily, documentFontFamily))
                 ?? tableStyleDefaults.ParagraphLineHeight;

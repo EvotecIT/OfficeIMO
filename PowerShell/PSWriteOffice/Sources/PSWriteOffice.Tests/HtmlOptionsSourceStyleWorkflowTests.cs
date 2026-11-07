@@ -18,7 +18,7 @@ public sealed class HtmlOptionsSourceStyleWorkflowTests {
         state.Commands.Add(new SessionStateCmdletEntry("New-OfficePowerPointHtmlOptions", typeof(NewOfficePowerPointHtmlOptionsCommand), null));
         using var runspace = RunspaceFactory.CreateRunspace(state);
         runspace.Open();
-        foreach (var (arguments, expectedStyles) in new[] { ("", false), (" -Theme Modern", true), (" -Theme Modern -NoDefaultStyles", false) }) {
+        foreach (var (arguments, expectedStyles) in new[] { ("", false), (" -NoDefaultStyles:$false", true), (" -Theme Modern", true), (" -Theme Modern -NoDefaultStyles", false) }) {
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
             shell.AddScript(command + arguments);

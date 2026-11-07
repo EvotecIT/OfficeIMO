@@ -90,14 +90,14 @@ Narrative body text.
         }
 
         [Fact]
-        public void MarkdownToWord_AppliesDefaultSharedVisualThemeWhenThemeIsOmitted() {
+        public void MarkdownToWord_AppliesDefaultSharedVisualThemeWhenExplicitlyRequested() {
             string md = """
 # Heading
 
 Narrative body text.
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { ApplyDefaultTheme = true });
 
             var heading = doc.Paragraphs.First(p => p.Text == "Heading");
             Assert.Contains(heading.GetRuns(), run => run.Color == OfficeColor.Parse("111827"));
@@ -106,14 +106,14 @@ Narrative body text.
         }
 
         [Fact]
-        public void MarkdownToWord_CanDisableDefaultSharedVisualTheme() {
+        public void MarkdownToWord_OmittedThemePreservesPlainRunColors() {
             string md = """
 # Heading
 
 Narrative body text.
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { ApplyDefaultTheme = false });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord();
 
             var heading = doc.Paragraphs.First(p => p.Text == "Heading");
             Assert.DoesNotContain(heading.GetRuns(), run => run.Color.HasValue);
