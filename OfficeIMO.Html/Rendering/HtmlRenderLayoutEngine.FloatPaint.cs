@@ -93,13 +93,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     : child.WithPaintOrder(filtered.Count, owned: !ReferenceEquals(child, groupChildren[index])));
             }
             if (filtered == null) return null;
-            // Group constructors copy their children, so the working list can be passed directly.
+            IReadOnlyList<HtmlRenderVisual> fragmentChildren = filtered;
+            if (pendingGroup == null && visual is HtmlRenderSemanticGroup
+                && filtered.Count == groupChildren.Count) {
+                bool unchanged = true;
+                for (int index = 0; index < filtered.Count; index++) {
+                    if (ReferenceEquals(filtered[index], groupChildren[index])) continue;
+                    unchanged = false;
+                    break;
+                }
+                if (unchanged) fragmentChildren = groupChildren;
+            }
+            // Changed children remain private working lists; unchanged semantic children retain their snapshot.
             HtmlRenderVisual fragment = pendingGroup != null
                 ? visual.CopyStackingContextTo(pendingGroup.WithPendingChildren(filtered, pendingOffsets!))
                 : visual is HtmlRenderLogicalTextGroup text
                 ? visual.CopyStackingContextTo(text.ProjectPaint(filtered, 0D, 0D, visual.PaintOrder,
                     ownsLogicalText: phase == HtmlRenderPaintPhase.Content))
-                : CloneGroupWithChildren(visual, filtered);
+                : CloneGroupWithChildren(visual, fragmentChildren);
             if (!projectionIdentities.TryGetValue(visual, out object? identity)) {
                 identity = visual.PaintProjectionIdentity ?? new object();
                 projectionIdentities.Add(visual, identity);

@@ -136,20 +136,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (visual is HtmlRenderSemanticGroup semantic) {
-            return new HtmlRenderSemanticGroup(
-                semantic.Role,
-                semantic.X,
-                semantic.Y,
-                semantic.Width,
-                semantic.Height,
-                children,
-                semantic.PaintOrder,
-                semantic.Source,
-                semantic.ColumnSpan,
-                semantic.RowSpan,
-                semantic.HeaderScope,
-                semantic.LayoutY,
-                semantic.StructureElementKey, semantic.LayoutHeight, semantic.AlternativeText, semantic.MathMlSource, semantic.LogicalOrder, semantic.ListStyleType);
+            return semantic.ProjectPaint(children, 0D, 0D, semantic.PaintOrder);
         }
 
 

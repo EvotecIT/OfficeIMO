@@ -102,7 +102,7 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         double y,
         double width,
         double height,
-        PendingVisuals pending,
+        PendingVisuals? pending,
         int paintOrder,
         string? source,
         int columnSpan,
@@ -113,7 +113,7 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         double layoutHeight,
         string? alternativeText,
         HtmlMathMlSource? mathMlSource,
-        int? logicalOrder, string? listStyleType)
+        int? logicalOrder, string? listStyleType, ReadOnlyCollection<HtmlRenderVisual>? ownVisuals = null)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight, allowZeroWidth: true) {
         Role = role;
         AlternativeText = alternativeText;
@@ -125,6 +125,7 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         RowSpan = rowSpan;
         HeaderScope = headerScope;
         _pending = pending;
+        _visuals = ownVisuals;
     }
 
     /// <summary>Semantic role of this group.</summary>
@@ -236,9 +237,27 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         internal HtmlRenderOffset[] Offsets { get; }
     }
 
-    internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, visuals,
+    internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) {
+        if (offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder
+            && Volatile.Read(ref _pending) == null
+            && Volatile.Read(ref _visuals) is { } ownVisuals
+            && ReferenceEquals(visuals, ownVisuals)) {
+            // Membership is private and immutable; internal paint-order changes still require the ordinary sort.
+            bool ordered = true;
+            for (int index = 1; index < ownVisuals.Count; index++) {
+                if (ownVisuals[index - 1].PaintOrder <= ownVisuals[index].PaintOrder) continue;
+                ordered = false;
+                break;
+            }
+            if (ordered) {
+                return new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, null,
+                    paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey,
+                    LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType, ownVisuals: ownVisuals);
+            }
+        }
+        return new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, visuals,
             paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
+    }
 
     private static ReadOnlyCollection<HtmlRenderVisual> OrderVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         ArgumentNullException.ThrowIfNull(visuals);

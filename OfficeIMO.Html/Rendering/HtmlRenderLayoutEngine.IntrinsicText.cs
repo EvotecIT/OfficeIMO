@@ -18,18 +18,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool hasContent = false;
         bool pendingAtomicBreak = false;
         UnicodeCategory? precedingCategory = null;
-        var cloned = new List<(HtmlRenderBoxStyle Style, double Start, double End)>();
-        var ends = new Dictionary<HtmlRenderBoxStyle, double>();
+        List<(HtmlRenderBoxStyle Style, double Start, double End)>? cloned = null;
+        Dictionary<HtmlRenderBoxStyle, double>? ends = null;
         foreach (IntrinsicTextRun edge in runs.Where(run => run.IsInlineInset && run.IsInlineInsetEnd)) {
-            ends[edge.Style] = edge.ReplacedWidth;
+            (ends ??= new())[edge.Style] = edge.ReplacedWidth;
         }
         void AddAdvance(double advance) {
             current += advance;
             hasContent = true;
         }
         void FinishSegment() {
-            if (hasContent) maximum = Math.Max(maximum, firstLineIndent + current + cloned.Sum(edge => edge.End));
-            current = cloned.Sum(edge => edge.Start);
+            if (hasContent) maximum = Math.Max(maximum, firstLineIndent + current + (cloned?.Sum(edge => edge.End) ?? 0D));
+            current = cloned?.Sum(edge => edge.Start) ?? 0D;
             firstLineIndent = 0D;
             hasContent = false;
             pendingAtomicBreak = false;
@@ -46,10 +46,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 AddAdvance(run.ReplacedMinWidth);
                 if (run.Style.BoxDecorationBreak == "clone") {
                     if (run.IsInlineInsetEnd) {
-                        cloned.RemoveAll(edge => ReferenceEquals(edge.Style, run.Style));
+                        cloned?.RemoveAll(edge => ReferenceEquals(edge.Style, run.Style));
                     } else {
-                        ends.TryGetValue(run.Style, out double trailing);
-                        cloned.Add((run.Style, run.ReplacedWidth, trailing));
+                        double trailing = 0D;
+                        ends?.TryGetValue(run.Style, out trailing);
+                        (cloned ??= new()).Add((run.Style, run.ReplacedWidth, trailing));
                     }
                 }
                 continue;

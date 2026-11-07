@@ -124,16 +124,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (strut is IOfficeFontBaselineMetrics baseline) return Metrics(strut, baseline, style.Font.Size);
         } else {
             IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, style.Font.FamilyName, style.FontDescriptor);
-            var metrics = new HtmlTextFaceMetrics[runs.Count];
-            for (int index = 0; index < metrics.Length; index++) {
+            HtmlTextFaceMetrics[]? metrics = null;
+            for (int index = 0; index < runs.Count; index++) {
                 OfficeFontFallbackRun run = runs[index];
                 if (!_fonts.TryResolveFaceForText(run.Text, run.FamilyName, style.FontDescriptor, style.Font.Size, out OfficeFontFace? face)
                     || face?.Program is not IOfficeFontBaselineMetrics baseline) {
                     return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);
                 }
+                metrics ??= new HtmlTextFaceMetrics[runs.Count];
                 metrics[index] = Metrics(face.Program, baseline, style.Font.Size);
             }
-            HtmlTextFaceMetrics? combined = HtmlTextFaceMetrics.Combine(metrics);
+            HtmlTextFaceMetrics? combined = HtmlTextFaceMetrics.Combine(metrics ?? Array.Empty<HtmlTextFaceMetrics>());
             if (combined.HasValue) return combined;
         }
         return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);
