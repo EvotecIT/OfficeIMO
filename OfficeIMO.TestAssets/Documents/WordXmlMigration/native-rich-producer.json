@@ -1,0 +1,42 @@
+{
+  "Producer": "Microsoft Word 16.0 build 16.0.20527",
+  "CreatedUtc": "2026-11-06T17:56:15.4314415Z",
+  "OwnedPid": 130344,
+  "BodyText": "Migration rich source\rFirst tab\tsecond tab\rOpen interoperability reference\rR1C1\rR1C2\r\u0007R1C3\r\u0007\r\u0007R2C1\r\u0007R2C2\r\u0007R2C3\r\u0007\r\u0007After merged table\rBody image 1: \r\u0001Body image 2: \r\u0001\r",
+  "BodyTables": 1,
+  "BodyImages": 2,
+  "HeaderTables": 1,
+  "HeaderImages": 1,
+  "Hyperlinks": 1,
+  "Page": {
+    "Width": 841.95,
+    "Height": 595.35,
+    "Top": 42.0,
+    "Bottom": 48.0,
+    "Left": 36.0,
+    "Right": 54.0,
+    "Header": 18.0,
+    "Footer": 20.0,
+    "Columns": 2,
+    "Spacing": 24.0
+  },
+  "Cases": [
+    {
+      "Kind": "Docx",
+      "File": "word-rich-native.docx",
+      "Sha256": "CDC08EAB2D867681EB4DA2E9E0457A7FF56790EF9EACF387190C742F114E532B"
+    },
+    {
+      "Kind": "FlatOpc",
+      "File": "word-rich-native-flat-opc.xml",
+      "Sha256": "7C2DA54D8F3686868BF430387526B48DF3A10CC1D316617410E87352DA49CB1E"
+    },
+    {
+      "Kind": "WordMl",
+      "File": "word-rich-native-2003-xml.xml",
+      "Sha256": "0DDF97522D6FFDE937B004EC8D046B8C5FF712E04A26C9C664EF6A5765E7DF17"
+    }
+  ],
+  "ImageSha256": "5E3D382DB4DD83D59AA5742793AD6B7903409E865C83BCBC54835049F043BC15",
+  "HeaderImageCountEvidence": "Saved native DOCX word/header2.xml contains one editable drawing and one table; collection on the collapsed insertion range reports zero."
+}

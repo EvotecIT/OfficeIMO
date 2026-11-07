@@ -188,6 +188,7 @@ namespace OfficeIMO.Word {
                 if (values == null) throw new ArgumentException("Rows cannot contain null value dictionaries.", nameof(rows));
 
                 var clonedRow = (TableRow)templateRow.CloneNode(true);
+                WordTable.CopyGridNormalizationState(templateRow, clonedRow);
                 ReplaceMergeFields(clonedRow, values, removeFields);
                 templateRow.InsertBeforeSelf(clonedRow);
             }
@@ -231,6 +232,7 @@ namespace OfficeIMO.Word {
                 if (group == null) throw new ArgumentException("Groups cannot contain null items.", nameof(groups));
 
                 var clonedGroupRow = (TableRow)groupTemplateRow.CloneNode(true);
+                WordTable.CopyGridNormalizationState(groupTemplateRow, clonedGroupRow);
                 ReplaceMergeFields(clonedGroupRow, group.Values, removeFields);
                 groupTemplateRow.InsertBeforeSelf(clonedGroupRow);
 
@@ -238,6 +240,7 @@ namespace OfficeIMO.Word {
                     if (rowValues == null) throw new ArgumentException("Group rows cannot contain null value dictionaries.", nameof(groups));
 
                     var clonedDetailRow = (TableRow)detailTemplateRow.CloneNode(true);
+                    WordTable.CopyGridNormalizationState(detailTemplateRow, clonedDetailRow);
                     ReplaceMergeFields(clonedDetailRow, rowValues, removeFields);
                     groupTemplateRow.InsertBeforeSelf(clonedDetailRow);
                     detailRowCount++;

@@ -17,9 +17,7 @@ internal static partial class OpenDocumentReaderAdapter {
         ReaderOptions effective = options ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(path, effective.MaxInputBytes);
         ReaderOpenDocumentOptions formatOptions = (openDocumentOptions ?? new ReaderOpenDocumentOptions()).Clone();
-        OdfDocument document = string.Equals(Path.GetExtension(path), ".fodg", StringComparison.OrdinalIgnoreCase)
-            ? OdgDocument.LoadFlatXml(path, CreateOpenOptions(effective, formatOptions))
-            : OdfDocument.Load(path, CreateOpenOptions(effective, formatOptions));
+        OdfDocument document = LoadSource(path, effective, formatOptions, cancellationToken);
         foreach (ReaderChunk chunk in ReadDocument(document, Path.GetFullPath(path), effective, formatOptions, cancellationToken)) yield return chunk;
     }
 
@@ -36,13 +34,56 @@ internal static partial class OpenDocumentReaderAdapter {
         try {
             ReaderOpenDocumentOptions formatOptions = (openDocumentOptions ?? new ReaderOpenDocumentOptions()).Clone();
             string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "document.odf" : sourceName!.Trim();
-            OdfDocument document = string.Equals(Path.GetExtension(logicalName), ".fodg", StringComparison.OrdinalIgnoreCase)
-                ? OdgDocument.LoadFlatXml(parseStream, CreateOpenOptions(effective, formatOptions))
-                : OdfDocument.Load(parseStream, CreateOpenOptions(effective, formatOptions));
+            OdfDocument document = LoadSource(parseStream, logicalName, effective, formatOptions, cancellationToken);
             foreach (ReaderChunk chunk in ReadDocument(document, logicalName, effective, formatOptions, cancellationToken)) yield return chunk;
         } finally {
             if (ownsStream) parseStream.Dispose();
         }
+    }
+
+    private static OdfDocument LoadSource(string path, ReaderOptions readerOptions,
+        ReaderOpenDocumentOptions formatOptions, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
+        var options = CreateOpenOptions(readerOptions, formatOptions);
+        string extension = Path.GetExtension(path).ToLowerInvariant();
+        if (GetFlatKind(extension) is OdfDocumentKind flatKind)
+            return RequireFlatKind(OdfDocument.LoadFlatXml(path, options), flatKind);
+
+        if (IsPackagedExtension(extension)) return OdfDocument.Load(path, options);
+        using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        return LoadSource(input, path, readerOptions, formatOptions, token);
+    }
+
+    private static OdfDocument LoadSource(Stream input, string sourceName, ReaderOptions readerOptions,
+        ReaderOpenDocumentOptions formatOptions, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
+        var options = CreateOpenOptions(readerOptions, formatOptions);
+        string extension = Path.GetExtension(sourceName).ToLowerInvariant();
+        if (GetFlatKind(extension) is OdfDocumentKind flatKind)
+            return RequireFlatKind(OdfDocument.LoadFlatXml(input, options), flatKind);
+
+        return !IsPackagedExtension(extension) && DocumentReaderEngine.HasXmlRoot(input, "document",
+            "urn:oasis:names:tc:opendocument:xmlns:office:1.0", readerOptions.DetectionMaxProbeBytes, token)
+            ? OdfDocument.LoadFlatXml(input, options)
+            : OdfDocument.Load(input, options);
+    }
+
+    private static bool IsPackagedExtension(string extension) => extension is ".odt" or ".ods" or ".odp" or ".odg";
+
+    private static OdfDocumentKind? GetFlatKind(string extension) =>
+        extension switch {
+            ".fodt" => OdfDocumentKind.Text,
+            ".fods" => OdfDocumentKind.Spreadsheet,
+            ".fodp" => OdfDocumentKind.Presentation,
+            ".fodg" => OdfDocumentKind.Graphics,
+            _ => null
+        };
+
+    private static OdfDocument RequireFlatKind(OdfDocument document, OdfDocumentKind expected) {
+        if (document.Kind != expected) {
+            throw new InvalidDataException($"Flat OpenDocument content has kind {document.Kind}; the source extension requires {expected}.");
+        }
+        return document;
     }
 
     private static IEnumerable<ReaderChunk> ReadDocument(OdfDocument document, string sourceName, ReaderOptions options, ReaderOpenDocumentOptions formatOptions,

@@ -11,6 +11,10 @@ namespace OfficeIMO.Excel.Utilities {
         /// </summary>
         internal static double GetMaximumDigitWidth(WorksheetPart? worksheetPart, OfficeFontFaceCollection? fonts = null) => GetMaximumDigitWidth(worksheetPart, out _, fonts);
 
+        /// <summary>Quantizes a physical column length to whole 96-DPI pixels and the stored 1/256-character grid.</summary>
+        internal static double ToStoredWidth(double pixels, double maximumDigitWidth) =>
+            Math.Truncate(Math.Round(pixels, MidpointRounding.AwayFromZero) / maximumDigitWidth * 256D) / 256D;
+
         internal static double GetMaximumDigitWidth(WorksheetPart? worksheetPart, out bool resolved, OfficeFontFaceCollection? fonts = null) {
             resolved = false;
             if (fonts?.Faces.Count == 0) fonts = null;

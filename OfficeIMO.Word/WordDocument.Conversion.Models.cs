@@ -8,7 +8,11 @@ namespace OfficeIMO.Word {
         /// <summary>Office Open XML Word document.</summary>
         Docx,
         /// <summary>Word 97-2003 binary document.</summary>
-        Doc
+        Doc,
+        /// <summary>Standalone Flat OPC XML containing a Word Open XML package.</summary>
+        FlatOpc,
+        /// <summary>Standalone Word 2003 XML source, projected into an editable Word document.</summary>
+        WordMl2003
     }
 
     /// <summary>Represents the destination artifact and report produced by a Word file conversion.</summary>

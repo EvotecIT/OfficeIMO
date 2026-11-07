@@ -39,10 +39,10 @@ internal static partial class ExcelReaderAdapter {
         ReaderOptions readerOptions,
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
-        using ExcelDocument document = Load(path, readerOptions);
+        using ExcelDocument document = LoadForProjection(path, readerOptions, cancellationToken, out var sourceWarnings);
         using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         options = ResolveSheet(options, reader);
-        IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
+        IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         ReaderChunk[] chunks = Extract(reader, path, readerOptions, options, warnings, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectExcel(
             document.OpenXmlDocument, path, readerOptions, options.SheetName, options.A1Range, cancellationToken);
@@ -63,11 +63,11 @@ internal static partial class ExcelReaderAdapter {
         ReaderOptions readerOptions,
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
-        using ExcelDocument document = Load(stream, sourceName, readerOptions);
+        using ExcelDocument document = LoadForProjection(stream, sourceName, readerOptions, cancellationToken, out var sourceWarnings);
         using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         options = ResolveSheet(options, reader);
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "workbook.xlsx" : sourceName!;
-        IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
+        IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         ReaderChunk[] chunks = Extract(reader, logicalName, readerOptions, options, warnings, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectExcel(
             document.OpenXmlDocument, logicalName, readerOptions, options.SheetName, options.A1Range, cancellationToken);
@@ -123,7 +123,7 @@ internal static partial class ExcelReaderAdapter {
         long position = stream.Position;
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            using ExcelDocument document = Load(stream, sourceName, options);
+            using ExcelDocument document = Load(stream, sourceName, options, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return document.OpenXmlDocument.GetAllParts().Any(static part =>
                 string.Equals(part.Uri.OriginalString, "/xl/workbook.xml",
@@ -141,7 +141,7 @@ internal static partial class ExcelReaderAdapter {
         }
     }
 
-    internal static ExcelDocument Load(string path, ReaderOptions options) {
+    internal static ExcelDocument Load(string path, ReaderOptions options, CancellationToken cancellationToken = default) {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowBinaryProjection = options.Projection == ReaderProjection.Full,
@@ -152,13 +152,14 @@ internal static partial class ExcelReaderAdapter {
                 : null
         };
         try {
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(path, loadOptions));
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(path, loadOptions, cancellationToken));
         } catch (Exception exception) when (OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.LoadEncrypted(path, options.OpenPassword!, loadOptions));
+            loadOptions.Password = options.OpenPassword;
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(path, loadOptions, cancellationToken));
         }
     }
 
-    internal static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options) {
+    internal static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken = default) {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowBinaryProjection = options.Projection == ReaderProjection.Full,
@@ -170,10 +171,11 @@ internal static partial class ExcelReaderAdapter {
         };
         if (stream.CanSeek) stream.Position = 0;
         try {
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions));
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions, cancellationToken));
         } catch (Exception exception) when (stream.CanSeek && OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
             stream.Position = 0;
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.LoadEncrypted(stream, options.OpenPassword!, loadOptions));
+            loadOptions.Password = options.OpenPassword;
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions, cancellationToken));
         }
     }
 

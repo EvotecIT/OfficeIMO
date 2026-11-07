@@ -145,14 +145,18 @@ public sealed class ReaderOdfRtfProjectionPrerequisiteTests {
     [InlineData("ods")]
     [InlineData("odp")]
     [InlineData("odg")]
+    [InlineData("fodt")]
+    [InlineData("fods")]
+    [InlineData("fodp")]
     [InlineData("fodg")]
     public void OpenDocumentProjectionKeepsLocatedTextAcrossRegisteredNativeKinds(string format) {
         OdfDocument document;
-        if (format == "ods") { OdsDocument sheets = OdsDocument.Create(); sheets.AddSheet("Data").Cell(0, 0).SetString("visible text"); document = sheets; }
-        else if (format == "odp") { OdpPresentation slides = OdpPresentation.Create(); slides.AddSlide("Data").AddTextBox(OdfRect.FromCentimeters(1, 1, 3, 3), "visible text"); document = slides; }
+        if (format == "fodt") { OdtDocument text = OdtDocument.Create(); text.AddParagraph("visible text"); document = text; }
+        else if (format is "ods" or "fods") { OdsDocument sheets = OdsDocument.Create(); sheets.AddSheet("Data").Cell(0, 0).SetString("visible text"); document = sheets; }
+        else if (format is "odp" or "fodp") { OdpPresentation slides = OdpPresentation.Create(); slides.AddSlide("Data").AddTextBox(OdfRect.FromCentimeters(1, 1, 3, 3), "visible text"); document = slides; }
         else { OdgDocument drawing = OdgDocument.Create(); drawing.AddPage().Shapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 3, 3), "visible text"); document = drawing; }
         byte[] bytes;
-        if (format == "fodg") { using var source = new MemoryStream(); document.ToFlatXml().Save(source); bytes = source.ToArray(); }
+        if (format.StartsWith("f", StringComparison.Ordinal)) { using var source = new MemoryStream(); document.ToFlatXml().Save(source); bytes = source.ToArray(); }
         else bytes = document.ToBytes();
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler(new ReaderOpenDocumentOptions { HeadersInFirstRow = false }).Build();
         OfficeDocumentReadResult result = reader.ReadDocument(bytes, "source." + format, new ReaderOptions { Projection = ReaderProjection.TextAndMetadata });

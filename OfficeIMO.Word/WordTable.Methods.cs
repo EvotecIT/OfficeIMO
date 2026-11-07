@@ -155,12 +155,10 @@ namespace OfficeIMO.Word {
                     return;
                 }
 
-                // An absent preferred width leaves an existing physical grid authoritative.
-                // Recomputing percentages during save would change a grid preserved by Width = null.
-                bool preserveGrid = _tableProperties?.TableWidth == null &&
-                    _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Any() == true;
                 ConvertHorizontalMergesToGridSpan();
-                if (!preserveGrid) RefreshGrid();
+                // A complete source or explicitly authored grid carries geometry independent of preferences.
+                // A spanning cell cannot recover the individual columns it covers.
+                if (HasDerivedGrid || !HasCompletePhysicalGrid()) RefreshGrid();
 
                 // Supply missing host cell margins without replacing direct authoring values.
                 if (IsNestedTable) EnsureHostCellVerticalMargins(72);
@@ -169,6 +167,39 @@ namespace OfficeIMO.Word {
                 // the first row has a top border if absent (nested tables only).
                 if (IsNestedTable) EnsureFirstRowTopBorder();
             } catch { }
+        }
+
+        private bool HasCompletePhysicalGrid() {
+            TableGrid? grid = _table.GetFirstChild<TableGrid>();
+            if (grid == null) return false;
+            int columns = 0;
+            long total = 0;
+            foreach (GridColumn column in grid.Elements<GridColumn>()) {
+                if (!int.TryParse(column.Width?.Value, out int width) || width <= 0) return false;
+                total += width;
+                if (total > int.MaxValue) return false;
+                columns++;
+            }
+            if (columns == 0) return false;
+            foreach (TableRow row in WordTableContent.Rows(_table)) {
+                int occupied = 0;
+                foreach (OpenXmlElement offset in row.TableRowProperties?.Elements() ?? Enumerable.Empty<OpenXmlElement>()) {
+                    if (offset is not GridBefore && offset is not GridAfter) continue;
+                    string? value = offset is GridBefore before ? before.Val?.InnerText : ((GridAfter)offset).Val?.InnerText;
+                    if (!int.TryParse(value, out int count) || count < 0)
+                        return false;
+                    occupied += count;
+                    if (occupied > columns) return false;
+                }
+                foreach (TableCell cell in WordTableContent.Cells(row)) {
+                    int span = 1;
+                    if (cell.TableCellProperties?.GridSpan is { } declared &&
+                        (!int.TryParse(declared.Val?.InnerText, out span) || span <= 0)) return false;
+                    occupied += span;
+                    if (occupied > columns) return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>
@@ -292,7 +323,8 @@ namespace OfficeIMO.Word {
         /// A bookmark stays with the original, as it does when Word copies a table: its id and name must be
         /// unique in the document.
         /// </summary>
-        private void PrepareCopy(OpenXmlElement copy) {
+        private void PrepareCopy(OpenXmlElement source, OpenXmlElement copy) {
+            CopyGridNormalizationState(source, copy);
             _document.AssignNewSdtIds(copy);
             foreach (OpenXmlElement bookmark in copy.Descendants().Where(element => element is BookmarkStart or BookmarkEnd).ToList()) {
                 bookmark.Remove();
@@ -318,7 +350,7 @@ namespace OfficeIMO.Word {
 
             // Clone the row to avoid the "part of a tree" error
             var clonedRow = (TableRow)row._tableRow.CloneNode(true);
-            PrepareCopy(clonedRow);
+            PrepareCopy(row._tableRow, clonedRow);
 
             // Insert the new row after the last row
             WordTableContent.InsertRowAfter(_table, lastRow, clonedRow);
@@ -535,6 +567,7 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
+            RefreshGrid();
             return this;
         }
 
@@ -559,6 +592,7 @@ namespace OfficeIMO.Word {
             }
             _tableProperties.TableWidth.Type = TableWidthUnitValues.Pct;
             _tableProperties.TableWidth.Width = (percentage * 50).ToString(); // Convert percentage to Word units (50 = 1%)
+            RefreshGrid();
             return this;
         }
 
@@ -650,6 +684,7 @@ namespace OfficeIMO.Word {
                     tcPr.TableCellWidth.Width = widths[columnIndex].ToString();
                 }
             }
+            RefreshGrid();
             return this;
         }
 
@@ -709,7 +744,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable CloneAfterSelf() {
             var clonedTable = (Table)_table.CloneNode(true);
-            PrepareCopy(clonedTable);
+            PrepareCopy(_table, clonedTable);
             _table.InsertAfterSelf(clonedTable);
             return new WordTable(_document, clonedTable);
         }
@@ -725,7 +760,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable CloneBeforeSelf() {
             var clonedTable = (Table)_table.CloneNode(true);
-            PrepareCopy(clonedTable);
+            PrepareCopy(_table, clonedTable);
             _table.InsertBeforeSelf(clonedTable);
             return new WordTable(_document, clonedTable);
         }
@@ -743,7 +778,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable Clone(WordParagraph paragraph, bool after = true) {
             var clonedTable = (Table)_table.CloneNode(true);
-            PrepareCopy(clonedTable);
+            PrepareCopy(_table, clonedTable);
             if (after) {
                 paragraph._paragraph.InsertAfterSelf(clonedTable);
             } else {
@@ -765,7 +800,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable Clone(WordTable table, bool after = true) {
             var clonedTable = (Table)_table.CloneNode(true);
-            PrepareCopy(clonedTable);
+            PrepareCopy(_table, clonedTable);
             if (after) {
                 table._table.InsertAfterSelf(clonedTable);
             } else {

@@ -63,6 +63,7 @@ namespace OfficeIMO.Word {
                     var workingContainer = new SdtContentBlock();
                     foreach (OpenXmlElement templateElement in templateElements) {
                         var clonedElement = templateElement.CloneNode(true);
+                        WordTable.CopyGridNormalizationState(templateElement, clonedElement);
                         workingContainer.Append(clonedElement);
                     }
 

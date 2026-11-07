@@ -105,7 +105,6 @@ public sealed partial class StudioMobileWorkspaceTests {
                         window.MouseMove(hoverPoint, RawInputModifiers.None);
                         Assert.True(opener.IsPointerOver);
                     } finally { ToolTip.RemoveToolTipOpeningHandler(opener, prepareManualTooltip); }
-                    // Establish a real hover before checking that pointer exit closes its tooltip.
                     ToolTip.SetIsOpen(opener, true);
                     Layout(window, width, height);
                     Assert.True(ToolTip.GetIsOpen(opener));

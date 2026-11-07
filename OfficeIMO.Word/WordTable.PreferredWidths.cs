@@ -1,9 +1,38 @@
 using System.Globalization;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
 public partial class WordTable {
+    // Model-only state: source and directly authored grids have their own geometry. Grids
+    // generated from preferences must continue to follow later edits to those preferences.
+    private sealed class DerivedGrid { }
+
+    private bool HasDerivedGrid => _table.Annotation<DerivedGrid>() != null;
+
+    internal static void CopyGridNormalizationState(WordprocessingDocument source, WordprocessingDocument copy) {
+        Dictionary<Uri, OpenXmlPart> parts = copy.GetAllParts().GroupBy(part => part.Uri)
+            .ToDictionary(group => group.Key, group => group.First());
+        foreach (OpenXmlPart part in source.GetAllParts()) {
+            if (part.IsRootElementLoaded && part.RootElement is { } original && parts.TryGetValue(part.Uri, out OpenXmlPart? copiedPart) &&
+                copiedPart.RootElement is { } cloned) CopyGridNormalizationState(original, cloned);
+        }
+    }
+
+    internal static void CopyGridNormalizationState(OpenXmlElement source, OpenXmlElement copy) {
+        if (source is Table sourceTable && copy is Table copiedTable) Copy(sourceTable, copiedTable);
+        using var originals = source.Descendants<Table>().GetEnumerator();
+        using var copies = copy.Descendants<Table>().GetEnumerator();
+        while (originals.MoveNext() && copies.MoveNext()) Copy(originals.Current, copies.Current);
+
+        static void Copy(Table original, Table cloned) {
+            cloned.RemoveAnnotations<DerivedGrid>();
+            if (original.Annotation<DerivedGrid>() != null) cloned.AddAnnotation(new DerivedGrid());
+        }
+    }
+
     private int TableWidthNativeValue => WordTableWidthNative.NumericValue(_tableProperties?.TableWidth) ?? 0;
     private double TableWidthFraction => WordTableWidthNative.Percentage(_tableProperties?.TableWidth?.Width?.Value) ?? 0;
 
@@ -62,6 +91,8 @@ public partial class WordTable {
                 columns.Add(global::OfficeIMO.OfficeLength.Emus((long)twips * 635));
             }
             GridColumnWidth = columns;
+            _table.RemoveAnnotations<DerivedGrid>();
+            _table.AddAnnotation(new DerivedGrid());
         } catch (NotSupportedException) {
             // Unsupported native preferences retain their original declarations and grid.
         } catch (OverflowException) {

@@ -15,6 +15,11 @@ For CSV import and export, install the separate `OfficeIMO.Excel.Csv` adapter.
 Keeping conversion outside the Reader package avoids pulling CSV behavior into
 applications that only need generic Excel document extraction.
 
+To read Excel 2003 XML SpreadsheetML, register `AddExcelHandler()` and set
+`ReaderOptions.DetectionMode` to `ReaderDetectionMode.PreferContent`. The Reader
+recognizes the SpreadsheetML `Workbook` namespace and uses the existing
+spreadsheet importer. For editable migration, use `ExcelDocument.ImportSpreadsheetXml`.
+
 ## Select a worksheet
 
 Set `ReaderExcelOptions.SheetName` to a literal worksheet name, or `SheetNumber`

@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Xlsb;
+using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>Excel package type used when creating a workbook without a destination extension.</summary>
@@ -30,6 +31,12 @@ namespace OfficeIMO.Excel {
 
     /// <summary>Controls access, persistence, and package behavior when loading an Excel workbook.</summary>
     public sealed partial class ExcelLoadOptions : DocumentLoadOptions {
+        /// <summary>Cancellation for one snapshotted load, including buffering and native projection.</summary>
+        internal CancellationToken LoadCancellationToken {
+            get => _xlsbImportOptions?.CancellationToken ?? default;
+            set => XlsbImportOptions.CancellationToken = value;
+        }
+
         internal ExcelLoadOptions Snapshot() {
             var copy = (ExcelLoadOptions)MemberwiseClone();
             copy.PackageSecurity = PackageSecurity?.Snapshot();

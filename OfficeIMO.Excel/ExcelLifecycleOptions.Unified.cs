@@ -36,6 +36,7 @@ public sealed partial class ExcelLoadOptions {
         MaxDecodedImageBytes = MaxDecodedImageBytes,
         ReportUnsupportedContent = ReportUnsupportedContent,
         PreserveExternalWorkbookLinks = PreserveExternalWorkbookLinks,
-        Password = Password
+        Password = Password,
+        CancellationToken = LoadCancellationToken
     };
 }
