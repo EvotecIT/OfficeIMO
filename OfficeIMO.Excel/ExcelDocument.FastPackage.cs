@@ -169,7 +169,7 @@ namespace OfficeIMO.Excel {
 
             PrepareDestinationStreamForWrite(writeTarget);
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.PrepareDestination");
-            ExtendedWorkbookPackageWriter.Write(writeTarget, model, ct, Execution);
+            ExtendedWorkbookPackageWriter.Write(writeTarget, model, ct, Execution, _defaultFontTheme);
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.WritePackage");
 
             writeTarget.Flush();

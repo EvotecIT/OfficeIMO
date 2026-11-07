@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (stylesPart.Stylesheet == null) {
-                stylesPart.Stylesheet = CreateDefaultStylesheet();
+                stylesPart.Stylesheet = CreateDefaultStylesheet(_defaultFontTheme);
                 stylesPart.Stylesheet.Save();
                 changed = true;
             }
@@ -134,10 +134,10 @@ namespace OfficeIMO.Excel {
             return changed;
         }
 
-        internal static Stylesheet CreateDefaultStylesheet() {
+        internal static Stylesheet CreateDefaultStylesheet(OfficeTheme? theme = null) {
             var stylesheet = new Stylesheet();
 
-            stylesheet.Fonts = new Fonts(CreateDefaultFont());
+            stylesheet.Fonts = new Fonts(CreateDefaultFont(theme));
             stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
 
             stylesheet.Fills = new Fills(
