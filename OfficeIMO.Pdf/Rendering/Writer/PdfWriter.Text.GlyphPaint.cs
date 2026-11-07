@@ -4,6 +4,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    /// <summary>Retains the writer's exact arithmetic order for one encoded glyph's native placement.</summary>
+    private readonly record struct GlyphPaintPlacement(double X, double Baseline, double OffsetX, double OffsetY,
+        double HorizontalScale, double Shear, bool SyntheticBold) {
+        internal OfficePoint TransformPoint(OfficePoint point) =>
+            new(X + (OffsetX + point.X - point.Y * Shear) * HorizontalScale, Baseline + OffsetY - point.Y);
+    }
+
     /// <summary>Encloses selected glyph paint in PDF coordinates; whitespace has no painted bounds.</summary>
     private static (double Left, double Bottom, double Right, double Top)? GetGlyphPaintBounds(
         RichSeg segment, string text, double x, double baseline, PdfCreateOptions options,
@@ -22,12 +29,12 @@ internal static partial class PdfWriter {
     }
 
     /// <summary>Uses selected PDF glyphs and PDF-unit positioning, never a separately shaped approximation.</summary>
-    /// <remarks>A supplied outline resolver must return private contours for placement. Font-cache eviction also releases its dependent outlines.</remarks>
+    /// <remarks>A supplied diagnostic resolver returns private contours, or null only after proving that this glyph loses no paint. Font-cache eviction also releases its dependent outlines.</remarks>
     private static IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> EnumerateGlyphPaintContours(
         RichSeg segment, string text, double x, double baseline, PdfCreateOptions options,
         Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfCreateOptions? encodingOptions = null,
         PdfTextShowCommand? paintCommand = null,
-        Func<IOfficeBoundedFontProgram, int, double, List<List<OfficePoint>>>? glyphOutline = null,
+        Func<IOfficeBoundedFontProgram, int, double, GlyphPaintPlacement, List<List<OfficePoint>>?>? glyphOutline = null,
         Action? fontCacheCleared = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(text)) yield break;
         PdfTextShowCommand command = paintCommand ?? (text == segment.Text && segment.KerningCommand != null ? segment.KerningCommand
@@ -68,22 +75,27 @@ internal static partial class PdfWriter {
             double offsetY = glyphs != null ? glyphs[index].OffsetY1000 * size / 1000D : 0D;
             if (glyphId > 0) {
                 // The writer's rounded PDF advances, rather than outline-engine advances, own every origin.
-                List<List<OfficePoint>> contours;
-                if (glyphOutline != null) contours = glyphOutline(outline, glyphId, size);
+                double shear = options.NeedsSyntheticOblique(segment.Font, segment.NamedFont) ? ContentStreamBuilder.SyntheticObliqueShear : 0D;
+                bool syntheticBold = options.NeedsSyntheticBold(segment.Font, segment.NamedFont);
+                var placement = new GlyphPaintPlacement(x + cursor, baseline, offsetX, offsetY, scale, shear, syntheticBold);
+                List<List<OfficePoint>>? contours;
+                if (glyphOutline != null) contours = glyphOutline(outline, glyphId, size, placement);
                 else {
                     var shaped = new OfficeTextShapingResult(new[] { new OfficeShapedGlyph(glyphId, "x", 0) });
                     double ascent = ((IOfficeFontBaselineMetrics)outline).BaselineOffset(size);
                     contours = outline.GetShapedTextContoursBounded("x", shaped, 0D, -ascent, size, 65536, cancellationToken);
                 }
-                double shear = options.NeedsSyntheticOblique(segment.Font, segment.NamedFont) ? ContentStreamBuilder.SyntheticObliqueShear : 0D;
+                // The diagnostic resolver can prove containment without borrowing mutable placement points.
+                if (contours == null) {
+                    cursor += GetRichGlyphAdvance(segment, text, command, index, options);
+                    continue;
+                }
                 foreach (var contour in contours) for (int p = 0; p < contour.Count; p++) {
-                    OfficePoint point = contour[p];
-                    contour[p] = new OfficePoint(x + cursor + (offsetX + point.X - point.Y * shear) * scale,
-                        baseline + offsetY - point.Y);
+                    contour[p] = placement.TransformPoint(contour[p]);
                 }
                 // The fill consumer can map its borrowed points before enumeration resumes.
                 // Preserve placed points for the later synthetic stroke.
-                OfficeFlattenedPathContour[]? strokePaths = options.NeedsSyntheticBold(segment.Font, segment.NamedFont)
+                OfficeFlattenedPathContour[]? strokePaths = syntheticBold
                     ? contours.Select(points => new OfficeFlattenedPathContour(points.ToArray(), true)).ToArray()
                     : null;
                 yield return (contours, false);

@@ -57,7 +57,9 @@ internal static partial class PdfWriter {
 
         private readonly struct DiagnosticPaintBounds {
             internal DiagnosticPaintBounds(double left, double top, double right, double bottom) {
-                Left = left; Top = top; Right = right; Bottom = bottom; IsFinite = true;
+                Left = left; Top = top; Right = right; Bottom = bottom;
+                IsFinite = left <= right && top <= bottom && !double.IsInfinity(left) && !double.IsInfinity(top)
+                    && !double.IsInfinity(right) && !double.IsInfinity(bottom);
             }
             internal double Left { get; }
             internal double Top { get; }
