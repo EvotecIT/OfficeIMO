@@ -190,8 +190,8 @@ namespace OfficeIMO.Tests {
 
             using var conversionOutput = new MemoryStream(new byte[] { 7, 8, 9 }, writable: true);
             NotSupportedException conversionException = Assert.Throws<NotSupportedException>(() =>
-                document.Save(conversionOutput, ExcelFileFormat.Xlsx));
-            Assert.Contains(nameof(ExcelSaveOptions.LossPolicy), conversionException.Message);
+                document.Save(conversionOutput, new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx }));
+            Assert.Contains(nameof(ExcelSaveOptions.AllowLoss), conversionException.Message);
             Assert.Equal(new byte[] { 7, 8, 9 }, conversionOutput.ToArray());
 
             using var output = new MemoryStream();
@@ -222,14 +222,14 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-                document.Save(output, ExcelFileFormat.Xls));
+                document.Save(output, new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
 
-            Assert.Contains(nameof(ExcelSaveOptions.LossPolicy), exception.Message);
+            Assert.Contains(nameof(ExcelSaveOptions.AllowLoss), exception.Message);
             Assert.Equal(new byte[] { 1, 2, 3, 4 }, output.ToArray());
 
             using var allowedOutput = new MemoryStream();
-            document.Save(allowedOutput, ExcelFileFormat.Xls, new ExcelSaveOptions {
-                LossPolicy = OfficeConversionLossPolicy.Allow
+            document.Save(allowedOutput, new ExcelSaveOptions {
+                Format = ExcelFileFormat.Xls, AllowLoss = true
             });
             Assert.Equal(
                 olePayload,

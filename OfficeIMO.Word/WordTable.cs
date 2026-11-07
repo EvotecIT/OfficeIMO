@@ -111,6 +111,7 @@ namespace OfficeIMO.Word {
                 CheckTableProperties();
                 if (!value.HasValue) {
                     _tableProperties!.TableWidth?.Remove();
+                    if (!_suppressGridRefresh) _table.RemoveAnnotations<DerivedGrid>();
                     return;
                 }
                 var width = new TableWidth();
@@ -324,6 +325,7 @@ namespace OfficeIMO.Word {
             document.MarkTableNormalizationRequired();
             document.EnsureStyleDefinitionsInitialized();
             Table table = new Table();
+            table.AddAnnotation(new DerivedGrid());
 
             TableProperties tableProperties1 = new TableProperties();
             TableStyle tableStyle1 = WordTableStyles.GetStyle(tableStyle);

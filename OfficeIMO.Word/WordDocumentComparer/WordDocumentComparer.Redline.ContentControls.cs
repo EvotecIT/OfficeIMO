@@ -82,6 +82,7 @@ namespace OfficeIMO.Word {
             }
 
             SdtElement deletedControl = (SdtElement)sourceControls[sourceIndex].ContentControl.CloneNode(true);
+            WordTable.CopyGridNormalizationState(sourceControls[sourceIndex].ContentControl, deletedControl);
             if (!RewriteContentControlWithTrackedText(deletedControl, GetContentControlRedlineText(sourceControls, sourceIndex, finding.SourceText), null, options)) {
                 return false;
             }
@@ -310,9 +311,11 @@ namespace OfficeIMO.Word {
 
             for (int index = 0; index < templateCells.Count; index++) {
                 TableCell templateCell = templateCells[index];
-                row.Append(index == 0
+                TableCell cell = index == 0
                     ? CreateTrackedTableCell(templateCell, sourceText, targetText, options)
-                    : (TableCell)templateCell.CloneNode(true));
+                    : (TableCell)templateCell.CloneNode(true);
+                if (index != 0) WordTable.CopyGridNormalizationState(templateCell, cell);
+                row.Append(cell);
             }
 
             return row;

@@ -23,7 +23,7 @@ namespace OfficeIMO;
 public static partial class OfficeConverter {
     private static readonly HashSet<string> BuiltinRouteIds = new HashSet<string>(new[] {
         "email-pdf", "epub-pdf", "reader-visio-pdf", "doc-pdf", "docx-pdf", "xls-pdf", "xlsb-pdf", "xlsx-pdf", "ppt-pdf", "pptx-pdf", "markdown-pdf", "html-pdf", "txt-pdf",
-        "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "docx-html", "pptx-html", "docx-markdown", "html-docx", "html-markdown", "markdown-docx", "markdown-html"
+        "word-xml-docx", "spreadsheet-xml-xlsx", "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "docx-html", "pptx-html", "docx-markdown", "html-docx", "html-markdown", "markdown-docx", "markdown-html"
     }.Concat(OfficeConversionCapabilityCatalog.All.Where(route => route.Id.StartsWith("native-", StringComparison.Ordinal)).Select(route => route.Id)), StringComparer.OrdinalIgnoreCase);
 
     private static async Task<OfficeConversionReport> ConvertCapturedCoreAsync(Stream input, Stream output,
@@ -56,6 +56,28 @@ public static partial class OfficeConverter {
             case "reader-visio-pdf":
                 result = await ConvertReaderPdfAsync(input, output, settings, token).ConfigureAwait(false);
                 break;
+            case "word-xml-docx": {
+                using WordDocument document = await WordDocument.LoadAsync(input, WordInputOptions(settings), token).ConfigureAwait(false);
+                if (document.SourceFormat is not (WordFileFormat.FlatOpc or WordFileFormat.WordMl2003) ||
+                    document.OpenXmlDocument.DocumentType != DocumentFormat.OpenXml.WordprocessingDocumentType.Document)
+                    throw new NotSupportedException("This route requires Word 2003 XML or a plain Word Flat OPC document.");
+                sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
+                if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
+                await document.SaveAsync(output, settings.WordSave, token).ConfigureAwait(false);
+                result = new OfficeConversionReport(settings.SourceName!, settings.TargetName!, itemsWritten: 1);
+                break;
+            }
+            case "spreadsheet-xml-xlsx": {
+                var xmlOptions = new ExcelSpreadsheetXmlOptions { CancellationToken = token };
+                xmlOptions.MaxInputBytes = (int)Math.Min(xmlOptions.MaxInputBytes, settings.MaximumInputBytes);
+                var converted = ExcelDocument.ImportSpreadsheetXml(input, xmlOptions);
+                using ExcelDocument document = converted.Value;
+                sourceReport = converted.Report;
+                if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
+                await document.SaveAsync(output, settings.ExcelSave, token).ConfigureAwait(false);
+                result = new OfficeConversionReport(settings.SourceName!, settings.TargetName!, itemsWritten: 1);
+                break;
+            }
             case "doc-pdf":
             case "docx-pdf":
             case "docx-html":

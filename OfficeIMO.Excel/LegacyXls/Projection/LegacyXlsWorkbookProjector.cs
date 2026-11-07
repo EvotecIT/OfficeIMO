@@ -715,7 +715,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
                 foreach (LegacyXlsColumnLayout column in legacySheet.Columns) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    LegacyXlsCellFormat? columnFormat = workbook.GetEffectiveCellFormat(column.StyleIndex);
+                    LegacyXlsCellFormat? columnFormat = column.StyleIndex.HasValue
+                        ? workbook.GetEffectiveCellFormat(column.StyleIndex.Value) : null;
                     uint? projectedColumnStyleIndex = columnFormat != null
                         ? currentSheet.GetOrCreateLegacyCellFormatStyleIndex(workbook, columnFormat)
                         : null;

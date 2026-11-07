@@ -15,6 +15,11 @@ For CSV import and export, install the separate `OfficeIMO.Excel.Csv` adapter.
 Keeping conversion outside the Reader package avoids pulling CSV behavior into
 applications that only need generic Excel document extraction.
 
+To read Excel 2003 XML SpreadsheetML, register `AddExcelHandler()` and set
+`ReaderOptions.DetectionMode` to `ReaderDetectionMode.PreferContent`. The Reader
+recognizes the SpreadsheetML `Workbook` namespace and uses the existing
+spreadsheet importer. For editable migration, use `ExcelDocument.ImportSpreadsheetXml`.
+
 ## Select a worksheet
 
 Set `ReaderExcelOptions.SheetName` to a literal worksheet name, or `SheetNumber`
@@ -61,6 +66,8 @@ when `Inspection` is null. Configured ceilings produce terminal
 retried as password failures. These are package admission bounds, not a hard
 limit on process memory or every decoder's actual work.
 
+
+The standard Excel handler also reads raw BIFF2–4 XLS worksheets and BIFF4 XLW workbooks in the full projection. The result carries the early BIFF import profile and loss warnings. See the [Excel 2–4 worksheet guide](../Docs/officeimo.excel-guide.md#recover-excel-24-worksheets) for the supported values and workbook boundaries.
 
 Selected Lotus 1-2-3, Quattro Pro, Multiplan, Works, SYLK (`.slk`), and DIF (`.dif`) spreadsheet sources are included in `OfficeIMO.Excel` but remain opt-in at the Reader registration boundary:
 

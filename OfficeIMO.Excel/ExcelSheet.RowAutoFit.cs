@@ -314,7 +314,7 @@ namespace OfficeIMO.Excel {
                     sheetFormat = new SheetFormatProperties();
                     worksheet.AddChild(sheetFormat, true);
                 }
-                if (sheetFormat.DefaultRowHeight == null || sheetFormat.DefaultRowHeight.Value <= 0) {
+                if (sheetFormat.DefaultRowHeight == null || sheetFormat.DefaultRowHeight.Value < 0) {
                     sheetFormat.DefaultRowHeight = 15D;
                 }
                 // Do not set CustomHeight here; it's for default height semantics, not per-row
@@ -372,7 +372,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 SheetData sheetData = GetOrCreateSheetData();
                 Row row = GetOrCreateRowElement(sheetData, rowIndex);
-                row.Hidden = hidden ? true : (bool?)null;
+                row.Hidden = hidden ? true : DefaultRowsHidden ? false : (bool?)null;
             });
         }
 

@@ -46,32 +46,34 @@ byte[] doc = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc 
 
 For an independent copy that does not change the current document association, use `SaveCopy`. For a writable stream, pass `new WordSaveOptions { Format = WordFileFormat.Docx }` or `new WordSaveOptions { Format = WordFileFormat.Doc }` to `Save(stream, options)`.
 
-For a file-to-file conversion with a structured result:
+To review import findings before editing or saving, use the `Load` overload that returns a conversion report:
 
 ```csharp
-WordDocumentConversionResult result = WordDocument.Convert(
-    "input.doc",
-    "output.docx",
-    new WordDocumentConversionOptions {
-        FileConflictPolicy = OfficeConversionFileConflictPolicy.FailIfExists,
-        LossPolicy = OfficeConversionLossPolicy.Block
-    });
+using OfficeIMO;
+using OfficeIMO.Word;
 
-foreach (OfficeConversionDiagnostic diagnostic in result.Diagnostics) {
+using WordDocument imported = WordDocument.Load("input.doc",
+    new WordLoadOptions { ReportUnsupportedContent = true },
+    out OfficeConversionReport report);
+
+foreach (OfficeDiagnostic diagnostic in report.Diagnostics) {
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 }
+report.ThrowIfLoss();
+
+imported.AddParagraph("Reviewed for migration.");
+imported.Save("output.docx");
 ```
 
-The defaults are intentionally conservative:
+The normal load/save contract is:
 
 - content, not only the extension, determines the source format;
-- same-format conversion is rejected;
-- an existing destination is not replaced unless `Replace` is selected, and a read-only destination is never replaced;
-- known conversion loss blocks conversion and normal saves;
+- an existing writable destination is replaced, and a read-only destination is never replaced;
+- normal saves block unsupported or preserve-only legacy content unless loss is explicitly allowed;
 - output is staged and committed atomically, so a failed save does not expose a partial file;
 - cross-family OLE input, such as XLS passed to Word, is rejected with a format-specific error.
 
-Set `AllowLoss = true` only after reviewing the reported legacy features. The policy is available on both `WordDocumentConversionOptions` and `WordSaveOptions`.
+Call `report.ThrowIfLoss()` before saving when any reported import loss must block output. Set `AllowLoss = true` on `WordSaveOptions` only after reviewing and accepting the reported legacy features.
 
 ## DOC import capability
 
@@ -166,7 +168,7 @@ foreach (OfficeDiagnostic diagnostic in report.Diagnostics)
 report.ThrowIfLoss();
 ```
 
-Load options use `MaxInputBytes` and `ReportUnsupportedContent`. Conversion diagnostics describe recognized source features and any loss during projection into the editable document. File conversion always enables unsupported-content discovery, so a loss policy cannot be bypassed by disabling diagnostic reporting. Import limits are selected from the detected physical content, even when a source has a misleading extension.
+Load options use `MaxInputBytes` and `ReportUnsupportedContent`. Conversion diagnostics describe recognized source features and any loss during projection into the editable document. Keep `ReportUnsupportedContent` enabled when using `report.ThrowIfLoss()` as an import gate. Import limits are selected from the detected physical content, even when a source has a misleading extension.
 
 ## Validation
 

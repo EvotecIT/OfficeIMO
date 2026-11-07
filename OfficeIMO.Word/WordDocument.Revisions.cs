@@ -258,6 +258,7 @@ namespace OfficeIMO.Word {
             OpenXmlElement next = revisionElement;
             foreach (OpenXmlElement child in revisionElement.ChildElements.ToList()) {
                 OpenXmlElement promoted = child.CloneNode(true);
+                WordTable.CopyGridNormalizationState(child, promoted);
                 if (restoreDeletedText) {
                     if (promoted is Run promotedRun) {
                         RestoreDeletedText(promotedRun);
@@ -381,6 +382,7 @@ namespace OfficeIMO.Word {
             OpenXmlElement anchor = fallbackAnchor;
             foreach (OpenXmlElement child in revision.ChildElements.ToList()) {
                 OpenXmlElement promoted = child.CloneNode(true);
+                WordTable.CopyGridNormalizationState(child, promoted);
                 if (restoreDeletedText) {
                     if (promoted is Run promotedRun) {
                         RestoreDeletedText(promotedRun);

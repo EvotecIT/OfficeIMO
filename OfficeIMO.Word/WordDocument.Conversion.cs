@@ -285,6 +285,10 @@ namespace OfficeIMO.Word {
                     representsDataLoss: false));
             }
 
+            foreach (OfficeDiagnostic finding in document._xmlSourceDiagnostics) {
+                diagnostics.Add(CreateWordDataLossDiagnostic(finding.Code, finding.Message,
+                    compatibilityMode, preserveLossySource, OfficeCompatibilityImpact.Semantic, finding.Location));
+            }
             foreach (LegacyDocUnsupportedFeature feature in document.LegacyDocUnsupportedFeatures) {
                 diagnostics.Add(CreateWordDataLossDiagnostic(
                     feature.Code,

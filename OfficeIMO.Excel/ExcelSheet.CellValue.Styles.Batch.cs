@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.LegacyXls.Model;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -73,10 +74,14 @@ namespace OfficeIMO.Excel {
             private readonly StyleBatch? _parent;
             private List<CellFormat>? _cellFormats;
             private Dictionary<string, uint>? _cellFormatIndexes;
+            private List<Border>? _borders;
+            private Dictionary<string, uint>? _borderIndexes;
+            private Borders? _bordersElement;
             private List<Fill>? _fills;
             private Dictionary<string, uint>? _fillIndexes;
             private List<DocumentFormat.OpenXml.Spreadsheet.Font>? _fonts;
             private Dictionary<string, uint>? _fontIndexes;
+            private Dictionary<(LegacyXlsWorkbook Workbook, LegacyXlsFont Font, uint BaseFont), uint>? _legacyFontIndexes;
             private Dictionary<string, uint>? _numberFormatIds;
             private Dictionary<(uint BaseIndex, string Operation, string? Argument), uint>? _derivedFormatIndexes;
             private CellFormats? _cellFormatsElement;
@@ -157,6 +162,35 @@ namespace OfficeIMO.Excel {
                 return index;
             }
 
+            internal Border? Border(uint index) {
+                RefreshBorders();
+                return index < _borders!.Count ? _borders[(int)index] : null;
+            }
+
+            internal uint BorderIndex(Border candidate) {
+                RefreshBorders();
+                string key = candidate.OuterXml;
+                if (_borderIndexes!.TryGetValue(key, out uint index)) return index;
+                var borders = Stylesheet.Borders!;
+                index = (uint)_borders!.Count;
+                borders.Append(candidate);
+                _borders.Add(candidate);
+                _borderIndexes.Add(key, index);
+                borders.Count = (uint)_borders.Count;
+                _modified = true;
+                return index;
+            }
+
+            private void RefreshBorders() {
+                var borders = Stylesheet.Borders ??= new Borders(new Border());
+                if (_borders is not null && ReferenceEquals(borders, _bordersElement)
+                    && _borders.Count == borders.ChildElements.Count) return;
+                _bordersElement = borders;
+                _borders = borders.Elements<Border>().ToList();
+                _borderIndexes = IndexXml(_borders);
+                _derivedFormatIndexes?.Clear();
+            }
+
             internal uint FillIndex(Fill candidate) {
                 var fills = Stylesheet.Fills ??= new Fills();
                 if (_fills is null || _fills.Count != fills.ChildElements.Count) {
@@ -192,6 +226,16 @@ namespace OfficeIMO.Excel {
                 fonts.Count = (uint)_fonts.Count;
                 _modified = true;
                 return index;
+            }
+
+            internal bool TryGetLegacyFont(LegacyXlsWorkbook workbook, LegacyXlsFont font, uint baseFont, out uint index) {
+                RefreshFonts();
+                _legacyFontIndexes ??= new();
+                return _legacyFontIndexes.TryGetValue((workbook, font, baseFont), out index);
+            }
+
+            internal void RememberLegacyFont(LegacyXlsWorkbook workbook, LegacyXlsFont font, uint baseFont, uint index) {
+                _legacyFontIndexes![(workbook, font, baseFont)] = index;
             }
 
             internal uint NumberFormatId(string code) {
@@ -257,6 +301,7 @@ namespace OfficeIMO.Excel {
                 if (_fonts is not null && _fonts.Count == fonts.ChildElements.Count) return;
                 _fonts = fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
                 _fontIndexes = IndexXml(_fonts);
+                _legacyFontIndexes?.Clear();
                 _derivedFormatIndexes?.Clear();
             }
 

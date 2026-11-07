@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     internal sealed partial class WordDocumentMerge {
@@ -75,6 +76,17 @@ namespace OfficeIMO.Word {
         /// since its content refers to them by id.
         /// </summary>
         private void CopyPartRelationships(OpenXmlPart sourcePart, OpenXmlPart cloned) {
+            // AddPart copies stored XML; loaded stories can contain unsaved edits and a different table order.
+            if (sourcePart.IsRootElementLoaded) {
+                if (sourcePart is HeaderPart { Header: { } sourceHeader } && cloned is HeaderPart headerPart) {
+                    headerPart.Header = (Header)sourceHeader.CloneNode(true);
+                    WordTable.CopyGridNormalizationState(sourceHeader, headerPart.Header);
+                } else if (sourcePart is FooterPart { Footer: { } sourceFooter } && cloned is FooterPart footerPart) {
+                    footerPart.Footer = (Footer)sourceFooter.CloneNode(true);
+                    WordTable.CopyGridNormalizationState(sourceFooter, footerPart.Footer);
+                }
+            }
+
             foreach (ExternalRelationship external in sourcePart.ExternalRelationships) {
                 if (!cloned.ExternalRelationships.Any(_ => _.Id == external.Id)) {
                     cloned.AddExternalRelationship(external.RelationshipType, external.Uri, external.Id);

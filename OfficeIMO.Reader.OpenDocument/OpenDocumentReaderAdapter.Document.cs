@@ -7,9 +7,7 @@ internal static partial class OpenDocumentReaderAdapter {
         ReaderOpenDocumentOptions formatOptions, CancellationToken token) {
         ReaderInputLimits.EnforceFileSize(path, options.MaxInputBytes);
         token.ThrowIfCancellationRequested();
-        OdfDocument document = OdfReaderAdmission.Run(() => string.Equals(Path.GetExtension(path), ".fodg", StringComparison.OrdinalIgnoreCase)
-            ? OdgDocument.LoadFlatXml(path, CreateOpenOptions(options, formatOptions))
-            : OdfDocument.Load(path, CreateOpenOptions(options, formatOptions)));
+        OdfDocument document = OdfReaderAdmission.Run(() => LoadSource(path, options, formatOptions, token));
         return ProjectDocument(document, Path.GetFullPath(path), options, formatOptions, token);
     }
 
@@ -19,9 +17,7 @@ internal static partial class OpenDocumentReaderAdapter {
         try {
             token.ThrowIfCancellationRequested();
             string source = string.IsNullOrWhiteSpace(name) ? "document.odf" : name!;
-            OdfDocument document = OdfReaderAdmission.Run(() => string.Equals(Path.GetExtension(source), ".fodg", StringComparison.OrdinalIgnoreCase)
-                ? OdgDocument.LoadFlatXml(input, CreateOpenOptions(options, formatOptions))
-                : OdfDocument.Load(input, CreateOpenOptions(options, formatOptions)));
+            OdfDocument document = OdfReaderAdmission.Run(() => LoadSource(input, source, options, formatOptions, token));
             return ProjectDocument(document, source, options, formatOptions, token);
         } finally { if (owns) input.Dispose(); }
     }

@@ -1,6 +1,6 @@
 # OfficeIMO.Reader.OpenDocument
 
-Native ODT, ODS, ODP, ODG, and FODG ingestion for `OfficeIMO.Reader.Core`. The adapter uses `OfficeIMO.OpenDocument` and does not invoke LibreOffice or Microsoft Office at runtime.
+Native ODT, ODS, ODP, and ODG ingestion, including their flat XML forms FODT, FODS, FODP, and FODG, for `OfficeIMO.Reader.Core`. The adapter uses `OfficeIMO.OpenDocument` and does not invoke LibreOffice or Microsoft Office at runtime.
 
 Configure a reader once, then reuse it:
 
@@ -39,7 +39,7 @@ OfficeDocumentReadResult document = reader.ReadDocument("report.odt", new Reader
 
 This projection emits located native text and metadata while omitting secondary Markdown, image/object assets, visual and form projections. It uses the native deferred binary profile and reports binary entry paths, declared lengths and payload state with `not-requested` coverage. `SupportsTextAndMetadata` in the capability manifest describes this qualified profile. Native input, ZIP expansion and XML limits still apply; Reader output limits are separate.
 
-Encrypted ODF containing non-XML binary entries is refused with the native `UnsupportedProfile` classification before key derivation. Encrypted XML/RDF-only input retains ordinary decryption checks. FODG with inline `office:binary-data` is refused before Base64 decoding. The adapter does not fall back to `Full` when this projection is requested. Use the native document's bounded embedded-payload session for explicit selected reads. The default `Full` projection retains rich extraction.
+Encrypted ODF containing non-XML binary entries is refused with the native `UnsupportedProfile` classification before key derivation. Encrypted XML/RDF-only input retains ordinary decryption checks. Flat OpenDocument XML with inline `office:binary-data` is refused before Base64 decoding. The adapter does not fall back to `Full` when this projection is requested. Use the native document's bounded embedded-payload session for explicit selected reads. The default `Full` projection retains rich extraction.
 
 For one native load shared by Reader projection and selected payload reads, call the loaded model extension:
 

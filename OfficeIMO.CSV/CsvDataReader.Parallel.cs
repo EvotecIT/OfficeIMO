@@ -15,7 +15,7 @@ public partial class CsvDataReader
 {
     internal bool HasIncrementalSource =>
 #if NET8_0_OR_GREATER
-        _textRowSource is ICsvAsyncDataReaderRowSource;
+        _asyncTextRowSource is not null;
 #else
         false;
 #endif

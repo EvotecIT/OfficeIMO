@@ -44,7 +44,8 @@ internal static class SpreadsheetXmlGeometry {
         double digit = format != null || part.Worksheet.GetFirstChild<Columns>()?.Elements<Column>().Any(item => item.Width != null) == true ? DigitWidth(part, context) : 7;
         if (format != null) {
             if (format.DefaultRowHeight != null) Attribute(writer, "DefaultRowHeight", format.DefaultRowHeight.Value);
-            Attribute(writer, "DefaultColumnWidth", ExcelColumnGeometry.GetWidthPixels(null, format, digit, true) * 72d / 96d);
+            Attribute(writer, "DefaultColumnWidth", format.DefaultColumnWidth?.Value == 0
+                ? 0 : ExcelColumnGeometry.GetWidthPixels(null, format, digit, true) * 72d / 96d);
         }
         uint previous = 0;
         foreach (Column column in part.Worksheet.GetFirstChild<Columns>()?.Elements<Column>() ?? Enumerable.Empty<Column>()) {
@@ -55,7 +56,8 @@ internal static class SpreadsheetXmlGeometry {
             if (end > 256) { context.Omitted("column formatting beyond XML Spreadsheet column 256"); if (start > 256) continue; end = 256; }
             writer.WriteStartElement("Column", Ss.NamespaceName); Attribute(writer, "Index", start);
             if (end > start) Attribute(writer, "Span", end - start);
-            if (column.Width != null) Attribute(writer, "Width", ExcelColumnGeometry.GetWidthPixels(column, format, digit, true) * 72d / 96d);
+            if (column.Width != null && (column.Width.Value != 0 || column.CustomWidth?.Value == true)) Attribute(writer, "Width", column.Width.Value == 0
+                ? 0 : ExcelColumnGeometry.GetWidthPixels(column, format, digit, true) * 72d / 96d);
             if (column.Hidden?.Value == true) Attribute(writer, "Hidden", 1);
             if (column.Style != null) {
                 if (column.Style.Value >= styleCount) throw new InvalidDataException("Invalid column style.");
@@ -70,13 +72,14 @@ internal static class SpreadsheetXmlGeometry {
         if (context.Options.DefaultFontMaximumDigitWidth is OfficeLength measured) return measured.ToPixels();
         double digit = ExcelColumnGeometry.GetMaximumDigitWidth(part, out bool resolved);
         if (!resolved) context.Approximate("Default font metrics are unavailable; column point conversion uses a seven-pixel digit width at 96 DPI.");
+        else context.Approximate("Column point conversion uses whole-pixel default-font metrics at 96 DPI. Native Excel can rasterize the font at a different window DPI, so physical column widths can differ.");
         return digit;
     }
     internal static double Dimension(string text, double maximum) => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
         && !double.IsInfinity(value) && !double.IsNaN(value) && value >= 0 && value <= maximum ? value : throw new InvalidDataException("Invalid XML Spreadsheet dimension.");
     private static double Width(string text, double digit) {
         double points = Dimension(text, 65535);
-        double width = Math.Round(points * 96d / 72d / digit * 256d) / 256d;
+        double width = ExcelColumnGeometry.ToStoredWidth(points * 96d / 72d, digit);
         return width <= 255 ? width : throw new InvalidDataException("Column width exceeds the Open XML limit for this workbook font.");
     }
     internal static bool Flag(string text) => text switch { "1" or "true" or "True" => true, "0" or "false" or "False" => false, _ => throw new InvalidDataException("Invalid XML Spreadsheet Boolean.") };

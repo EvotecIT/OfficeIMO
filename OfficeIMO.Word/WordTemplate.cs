@@ -170,7 +170,9 @@ namespace OfficeIMO.Word {
             foreach (object? item in items!) {
                 var working = new SdtContentBlock();
                 foreach (OpenXmlElement templateElement in templateElements) {
-                    working.Append(templateElement.CloneNode(true));
+                    OpenXmlElement clone = templateElement.CloneNode(true);
+                    WordTable.CopyGridNormalizationState(templateElement, clone);
+                    working.Append(clone);
                 }
 
                 state.NormalizeRepeatedClone(working);

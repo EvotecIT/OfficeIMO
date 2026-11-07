@@ -53,6 +53,7 @@ namespace OfficeIMO.Word {
         }
 
         private void CopyLegacyDocAssessmentStateTo(WordDocument clone) {
+            WordTable.CopyGridNormalizationState(_wordprocessingDocument, clone._wordprocessingDocument);
             clone.SourceFormat = SourceFormat;
             clone.IsWord69Source = IsWord69Source;
             clone.AutoUpdateToc = AutoUpdateToc;

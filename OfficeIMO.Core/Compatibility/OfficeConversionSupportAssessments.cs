@@ -12,6 +12,12 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId.StartsWith("native-", StringComparison.Ordinal)) return Targeted(
             "Native format conversion fixtures exercise package types, source carriers, compatibility modes, encryption, loss rejection and reopened artifacts through the owning format codecs.",
             "The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.");
+        if (routeId == "word-xml-docx") return Targeted(
+            "Word XML fixture controls cover standalone package admission, editable content and reopened DOCX.",
+            "DOCX output accepts ordinary Word documents. Macro-enabled and template Flat OPC packages require a matching native package destination through the Word API. Word 2003 XML import reports unsupported features.");
+        if (routeId == "spreadsheet-xml-xlsx") return Targeted(
+            "Native Excel XML Spreadsheet fixtures cover typed cells, styles, geometry and cached formula results in the supported profile.",
+            "Uses the bounded Excel XML Spreadsheet 2003 codec. Unsupported workbook features are reported and formula execution is outside import.");
         if (routeId is "xls-pdf" or "xlsb-pdf" or "ppt-pdf") return Targeted(
             "Native binary import and existing PDF adapter fixtures cover recovered editable content and separately reported rendering findings.",
             "Binary source projection is bounded and incomplete. Unsupported source records, preserved-only content and PDF layout approximations remain explicit findings; native application visual equivalence is not promised.");

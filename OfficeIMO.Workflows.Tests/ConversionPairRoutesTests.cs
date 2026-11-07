@@ -57,6 +57,13 @@ public sealed class ConversionPairRoutesTests {
         Assert.Contains("version=\"1.3\"", content, StringComparison.Ordinal);
         var (office, _) = await ConvertFileAsync(reverse, targetExtension, odf, sourceExtension);
         Assert.Contains("Marker", PackageXml(office), StringComparison.Ordinal);
+
+        using var packagedInput = new MemoryStream(odf);
+        using OdfDocument flatModel = OdfDocument.Load(packagedInput);
+        using var flat = new MemoryStream();
+        flatModel.SaveFlatXml(flat);
+        var (officeFromFlat, _) = await ConvertFileAsync(reverse, ".f" + targetExtension.Substring(1), flat.ToArray(), sourceExtension);
+        Assert.Contains("Marker", PackageXml(officeFromFlat), StringComparison.Ordinal);
     }
 
     [Fact]

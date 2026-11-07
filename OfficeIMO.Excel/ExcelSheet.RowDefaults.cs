@@ -31,6 +31,11 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Gets the unpadded base column width used when no default width is authored.</summary>
+        internal void SetImportedBaseColumnWidth(uint width) {
+            if (width > 255) throw new InvalidDataException("Invalid imported base column width.");
+            WriteLockConditional(() => GetOrCreateSheetFormatProperties().BaseColumnWidth = width);
+        }
+
         internal double BaseColumnWidth => WorksheetRoot.GetFirstChild<SheetFormatProperties>()
             ?.BaseColumnWidth?.Value ?? 8U;
 
@@ -43,8 +48,20 @@ namespace OfficeIMO.Excel {
         public void SetDefaultRowHeight(ExcelColumnWidth height, bool hidden = false, bool save = true) =>
             SetDefaultRowHeightCore(height.ToRowPoints(this), hidden, save, roundToHundredths: true);
 
-        internal void SetDefaultRowHeightExact(double height, bool hidden = false, bool save = true) =>
-            SetDefaultRowHeightCore(height, hidden, save, roundToHundredths: false);
+        /// <summary>Retains native imported height zero independently of the hidden default.</summary>
+        internal void SetDefaultRowHeightExact(double height, bool hidden = false, bool save = true) {
+            if (height != 0d) {
+                SetDefaultRowHeightCore(height, hidden, save, roundToHundredths: false);
+                return;
+            }
+            WriteLock(() => {
+                SheetFormatProperties sheetFormat = GetOrCreateSheetFormatProperties();
+                sheetFormat.DefaultRowHeight = 0d;
+                sheetFormat.CustomHeight = true;
+                sheetFormat.ZeroHeight = hidden;
+                if (save) WorksheetRoot.Save();
+            });
+        }
 
         private void SetDefaultRowHeightCore(double height, bool hidden, bool save,
             bool roundToHundredths) {
@@ -96,7 +113,7 @@ namespace OfficeIMO.Excel {
                 return sheetFormat;
             }
 
-            sheetFormat = new SheetFormatProperties();
+            sheetFormat = new SheetFormatProperties { DefaultRowHeight = GetDefaultRowHeightPoints() };
             Columns? columns = worksheet.GetFirstChild<Columns>();
             if (columns != null) {
                 worksheet.InsertBefore(sheetFormat, columns);

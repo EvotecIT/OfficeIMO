@@ -2083,8 +2083,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void WriteUInt16(byte[] buffer, int offset, ushort value) {
+#if NET8_0_OR_GREATER
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(offset, sizeof(ushort)), value);
+#else
             buffer[offset] = (byte)(value & 0xff);
             buffer[offset + 1] = (byte)((value >> 8) & 0xff);
+#endif
         }
 
         private static ushort ReadUInt16(byte[] buffer, int offset) {
@@ -2092,10 +2096,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void WriteUInt32(byte[] buffer, int offset, uint value) {
+#if NET8_0_OR_GREATER
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(offset, sizeof(uint)), value);
+#else
             buffer[offset] = (byte)(value & 0xff);
             buffer[offset + 1] = (byte)((value >> 8) & 0xff);
             buffer[offset + 2] = (byte)((value >> 16) & 0xff);
             buffer[offset + 3] = (byte)((value >> 24) & 0xff);
+#endif
         }
 
         private static void WriteFormulaFollowUpRecords(Stream stream, LegacyXlsCell cell) {
