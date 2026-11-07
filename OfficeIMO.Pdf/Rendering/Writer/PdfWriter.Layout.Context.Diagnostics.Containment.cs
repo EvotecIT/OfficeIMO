@@ -4,6 +4,31 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
+        /// <summary>Intersects this synchronous paint scope's private simple clips without rechecking their paths per glyph.</summary>
+        private DiagnosticPaintBounds DiagnosticContainmentIntersection(
+            List<OfficeTextInkClip> sourceClips, List<OfficeTextInkClip> targetClips,
+            OfficeTextInkClip frameClip, OfficeTextInkClip pageClip,
+            TableCellContentFrame? secondClip, OfficeTransform transform) {
+            if (sourceClips.Count + targetClips.Count + (secondClip.HasValue ? 3 : 2) > 64) return default;
+            double left = double.NegativeInfinity, top = double.NegativeInfinity;
+            double right = double.PositiveInfinity, bottom = double.PositiveInfinity;
+            if (!Include(frameClip) || !Include(pageClip)) return default;
+            foreach (OfficeTextInkClip clip in sourceClips) if (!Include(clip)) return default;
+            foreach (OfficeTextInkClip clip in targetClips) if (!Include(clip)) return default;
+            if (secondClip.HasValue && !Include(DiagnosticRectangleClip(secondClip.Value, transform))) return default;
+            return new DiagnosticPaintBounds(left, top, right, bottom);
+
+            bool Include(OfficeTextInkClip clip) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (clip.FilledContours == null || !OfficeTextInkClip.TryGetAxisAlignedRectangle(clip.FilledContours,
+                    out double clipLeft, out double clipTop, out double clipRight, out double clipBottom)) return false;
+                if (!new DiagnosticPaintBounds(clipLeft, clipTop, clipRight, clipBottom).IsFinite) return false;
+                left = Math.Max(left, clipLeft); top = Math.Max(top, clipTop);
+                right = Math.Min(right, clipRight); bottom = Math.Min(bottom, clipBottom);
+                return true;
+            }
+        }
+
         /// <summary>Proves that all nominal paint lies within every applicable simple rectangular clip.</summary>
         private bool DiagnosticPaintContained(DiagnosticPaintBounds bounds,
             List<OfficeTextInkClip> sourceClips, List<OfficeTextInkClip> targetClips,

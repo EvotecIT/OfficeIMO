@@ -84,6 +84,11 @@ internal static partial class PdfWriter {
                     TableCellContentFrame effectiveFrame = clipsToFrame ? frame
                         : new TableCellContentFrame(origin, frame.Top, available, frame.Height);
                     OfficeTextInkClip frameClip = DiagnosticRectangleClip(effectiveFrame, transform);
+                    // This value has exactly the lifetime and clip bindings of ContainsGlyph below.
+                    DiagnosticPaintBounds glyphClipBounds = transform.M12 == 0D && transform.M21 == 0D
+                        && transform.M11 > 0D && transform.M22 > 0D
+                        ? DiagnosticContainmentIntersection(sourceClips, targetClips, frameClip, pageClip, secondClip, transform)
+                        : default;
                     foreach (var part in line.Select((segment, partIndex) => (segment, partIndex))) {
                         RichSeg segment = part.segment;
                         double gap = segment.LeadingSpace ? segment.LeadingAdvance +
@@ -167,15 +172,16 @@ internal static partial class PdfWriter {
                         foreach (var paint in DiagnosticDecorationContours(x, x + width, y, style)) Paint(paint);
                     }
                     bool ContainsGlyph(DiagnosticPaintBounds bounds) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         // Keep the original staged floating-point operations. A positive diagonal
                         // page transform preserves coordinate extrema without a rounding tolerance.
-                        if (!bounds.IsFinite || transform.M12 != 0D || transform.M21 != 0D
-                            || transform.M11 <= 0D || transform.M22 <= 0D) return false;
+                        if (!bounds.IsFinite || !glyphClipBounds.IsFinite) return false;
                         OfficePoint first = transform.TransformPoint(new OfficePoint(bounds.Left, bounds.Top));
                         OfficePoint second = transform.TransformPoint(new OfficePoint(bounds.Right, bounds.Bottom));
                         var pageBounds = new DiagnosticPaintBounds(first.X, first.Y, second.X, second.Y);
-                        return pageBounds.IsFinite && DiagnosticPaintContained(pageBounds, sourceClips, targetClips,
-                            frameClip, pageClip, secondClip, transform);
+                        return pageBounds.IsFinite && pageBounds.Left >= glyphClipBounds.Left
+                            && pageBounds.Top >= glyphClipBounds.Top && pageBounds.Right <= glyphClipBounds.Right
+                            && pageBounds.Bottom <= glyphClipBounds.Bottom;
                     }
                     void Paint(List<List<OfficePoint>> contours, List<OfficeTextInkClip>? imageClips = null, bool nominalGlyphBounds = false) {
                         foreach (var contour in contours) for (int p = 0; p < contour.Count; p++) contour[p] = transform.TransformPoint(contour[p]);

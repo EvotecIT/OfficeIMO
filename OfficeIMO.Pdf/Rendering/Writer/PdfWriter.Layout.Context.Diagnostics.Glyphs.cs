@@ -5,15 +5,15 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         /// <summary>Uses the selected PDF glyphs and PDF-unit positioning, never a separately shaped text approximation.</summary>
-        /// <remarks>Consume each glyph before advancing: embedded outlines use the writer's borrowed placement workspace.</remarks>
+        /// <remarks>Callers enumerate immediately and consume each glyph before advancing; embedded outlines use the writer's borrowed placement workspace.</remarks>
         private IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> DiagnosticGlyphContours(RichSeg segment, string text, double x, double baseline,
             Func<DiagnosticPaintBounds, bool>? contained = null) {
-            if (string.IsNullOrWhiteSpace(text)) yield break;
+            if (string.IsNullOrWhiteSpace(text)) return Array.Empty<(List<List<OfficePoint>> Contours, bool NominalBounds)>();
             List<List<OfficePoint>>? ResolveOutline(IOfficeBoundedFontProgram font, int glyph, double size, GlyphPaintPlacement placement) =>
                 DiagnosticGlyphOutline(font, glyph, size, placement, contained);
-            foreach (var glyph in EnumerateGlyphPaintContours(segment, text, x, baseline, currentOpts,
+            return EnumerateGlyphPaintContours(segment, text, x, baseline, currentOpts,
                 _diagnosticFonts, DiagnosticTextOptions, DiagnosticTextCommand(segment, text), cancellationToken: cancellationToken,
-                glyphOutline: ResolveOutline, fontCacheCleared: ClearDiagnosticGlyphCache)) yield return glyph;
+                glyphOutline: ResolveOutline, fontCacheCleared: ClearDiagnosticGlyphCache);
         }
 
         private const int DiagnosticTextCommandLimit = 4096;
