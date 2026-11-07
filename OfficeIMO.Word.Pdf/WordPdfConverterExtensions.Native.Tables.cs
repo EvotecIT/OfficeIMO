@@ -54,13 +54,11 @@ namespace OfficeIMO.Word.Pdf {
                 style.MinimumBodyRowsOnFirstPage = 0;
                 style.MinimumBodyRowsOnLastPage = 0;
                 style.FontSize ??= global::OfficeIMO.OfficeLength.Points(nativeDefaults.FontSize);
-                double? tableParagraphLineHeight = ShouldApplyNativeTableStyleParagraphLineHeight(table)
-                    ? ResolveNativeTableStyleParagraphLineHeight(
-                        tableStyleDefaults,
-                        style.FontSize?.ToPoints() ?? nativeDefaults.FontSize,
-                        nativeDefaults.FontFamily,
-                        nativeFontMap)
-                    : null;
+                double? tableParagraphLineHeight = ResolveNativeTableStyleParagraphLineHeight(
+                    tableStyleDefaults,
+                    style.FontSize?.ToPoints() ?? nativeDefaults.FontSize,
+                    nativeDefaults.FontFamily,
+                    nativeFontMap);
                 style.LineHeight ??= tableParagraphLineHeight ?? nativeDefaults.ParagraphLineHeight;
             }
 
@@ -89,9 +87,8 @@ namespace OfficeIMO.Word.Pdf {
                 table,
                 style,
                 usesConfiguredDefaultStyle,
-                ShouldApplyNativeTableStyleCellPadding(table) ? tableStyleDefaults : NativeTableStyleDefaults.Empty);
+                tableStyleDefaults);
             ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults, rowCount, layout);
-            ApplyNativeTableConditionalFills(table, layout, style, tableStyleDefaults);
             if (HasNativeConditionalCellBorders(table, tableStyleDefaults)) {
                 MaterializeNativeTableBorderGrid(style, layout);
             }
@@ -108,6 +105,7 @@ namespace OfficeIMO.Word.Pdf {
             }
             ApplyNativeTableRowOptions(table, style);
             SuppressNativeTableRoleBoundariesCrossedByRowSpans(style, layout);
+            ApplyNativeTableCellBackgrounds(table, layout, style);
             return style;
         }
 
@@ -148,6 +146,41 @@ namespace OfficeIMO.Word.Pdf {
                 RowStripeFill = null,
                 DropPaddingInNarrowColumns = true
             };
+        }
+
+        /// <summary>Projects source shading once per cell, preserving explicit no-fill over opted-in PDF presentation defaults.</summary>
+        private static void ApplyNativeTableCellBackgrounds(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style) {
+            var fills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
+            for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
+                bool header = rowIndex < style.HeaderRowCount;
+                bool footer = !header && style.FooterRowCount > 0 && rowIndex >= layout.Rows.Count - style.FooterRowCount;
+                global::OfficeIMO.OfficeColor? rowFill = header ? style.HeaderFill : footer ? style.FooterFill
+                    : (rowIndex - style.HeaderRowCount) % 2 == 1 ? style.RowStripeFill : null;
+                int column = GetNativeTableRowStartColumn(layout, rowIndex);
+                foreach (WordTableCell cell in layout.Rows[rowIndex]) {
+                    if (IsNativeHorizontalMergeContinuation(cell)) continue;
+                    int span = GetNativeCellColumnSpan(cell);
+                    if (!IsNativeVerticalMergeContinuation(cell)) {
+                        W.Shading? source = WordRunFormatting.ResolveTableCellShading(cell);
+                        global::OfficeIMO.OfficeColor? fill;
+                        if (source != null) {
+                            fill = ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(source, table.Document));
+                        } else {
+                            fill = rowFill;
+                            if (!header && !footer && style.BodyColumnFills != null && column < style.BodyColumnFills.Count)
+                                fill = style.BodyColumnFills[column] ?? fill;
+                            if (style.CellFills?.TryGetValue((rowIndex, column), out global::OfficeIMO.OfficeColor configured) == true)
+                                fill = configured;
+                        }
+                        if (fill.HasValue) fills[(rowIndex, column)] = fill.Value;
+                    }
+                    column += span;
+                }
+            }
+            style.CellFills = fills.Count == 0 ? null : fills;
+            // Generic row and column paint would remain visible beneath a source nil/clear cell.
+            style.HeaderFill = style.FooterFill = style.RowStripeFill = null;
+            style.BodyColumnFills = null;
         }
 
         private static void ApplyNativeTableConditionalStyles(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults, int rowCount, TableLayout layout) {
@@ -233,10 +266,6 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeHeaderConditionalStyle(PdfCore.PdfTableStyle style, NativeTableConditionalStyleDefaults conditionalStyle) {
-            if (conditionalStyle.CellFill.HasValue) {
-                style.HeaderFill = conditionalStyle.CellFill.Value;
-            }
-
             if (conditionalStyle.TextColor.HasValue) {
                 style.HeaderTextColor = conditionalStyle.TextColor.Value;
             }
@@ -253,10 +282,6 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeFooterConditionalStyle(PdfCore.PdfTableStyle style, NativeTableConditionalStyleDefaults conditionalStyle) {
-            if (conditionalStyle.CellFill.HasValue) {
-                style.FooterFill = conditionalStyle.CellFill.Value;
-            }
-
             if (conditionalStyle.TextColor.HasValue) {
                 style.FooterTextColor = conditionalStyle.TextColor.Value;
             }
@@ -376,7 +401,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeTableBorders(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
-            W.TableBorders? directBorders = table._tableProperties?.TableBorders;
+            W.TableBorders? directBorders = ResolveNativeTableBorderColors(table._tableProperties?.TableBorders, table.Document);
             if (directBorders?.HasChildren != true) directBorders = null;
             W.TableBorders? tableBorders = directBorders == null
                 ? tableStyleDefaults.Borders
@@ -566,45 +591,13 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            // Word's Normal Table has no borders and no conditional formatting:
-            // its first row is never emphasized, whatever tblLook says.
-            if (PdfCore.PdfTableStyles.TryGetCanonicalWordStyleName(wordStyle!, out string? canonicalStyleName) &&
-                string.Equals(canonicalStyleName, "TableNormal", StringComparison.OrdinalIgnoreCase)) {
+            if (IsNativeNormalTableStyleId(wordStyle)) {
                 return null;
             }
 
-            return PdfCore.PdfTableStyles.TryFromWordTableStyle(wordStyle!, out PdfCore.PdfTableStyle? style)
-                ? style
-                : null;
-        }
-
-        private static bool ShouldApplyNativeTableStyleParagraphLineHeight(WordTable table) {
-            string? styleId = GetNativeTableStyleId(table);
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                return false;
-            }
-
-            if (!PdfCore.PdfTableStyles.TryGetCanonicalWordStyleName(styleId!, out string? canonicalStyleName)) {
-                return true;
-            }
-
-            return string.Equals(canonicalStyleName, "TableGrid", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool ShouldApplyNativeTableStyleCellPadding(WordTable table) {
-            string? styleId = GetNativeTableStyleId(table);
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                // An unnamed table still inherits the document's default table style.
-                return true;
-            }
-
-            if (!PdfCore.PdfTableStyles.TryGetCanonicalWordStyleName(styleId!, out string? canonicalStyleName)) {
-                return true;
-            }
-
-            return string.Equals(canonicalStyleName, "TableGrid", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(canonicalStyleName, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(canonicalStyleName, "PlainTable1", StringComparison.OrdinalIgnoreCase);
+            // Style IDs identify authored XML, not a presentation preset. The
+            // resolved style chain supplies its actual borders, fills and text.
+            return CreateNativeDefaultTableStyle(null);
         }
 
         private static int GetNativeTableVisualHeaderRowCount(WordTable table, int rowCount, int repeatedHeaderRowCount) {

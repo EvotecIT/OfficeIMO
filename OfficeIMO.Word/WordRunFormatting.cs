@@ -14,11 +14,26 @@ namespace OfficeIMO.Word;
 internal static partial class WordRunFormatting {
     /// <summary>Resolves run shading, including theme colors and a blended fill for shading patterns.</summary>
     internal static string? ResolveRunShadingFillColorHex(WordParagraph paragraph) {
-        A.ColorScheme? colorScheme = paragraph._document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
-        return TryResolveShadingFillColor(ResolveRunShading(paragraph), colorScheme, out OfficeColor shading)
-            ? shading.ToRgbHex()
+        return ResolveShadingFillColorHex(ResolveRunShading(paragraph), paragraph._document);
+    }
+
+    /// <summary>Resolves an authored table, cell or run fill against its document theme without changing its XML.</summary>
+    internal static string? ResolveShadingFillColorHex(Shading? shading, WordDocument document) {
+        A.ColorScheme? colorScheme = document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+        return TryResolveShadingFillColor(shading, colorScheme, out OfficeColor fill)
+            ? fill.ToRgbHex()
             : null;
     }
+
+    /// <summary>Resolves Word text color with theme references taking precedence over cached RGB.</summary>
+    internal static string? ResolveColorHex(Color? color, WordDocument? document) => color == null ? null :
+        ResolveThemeColor(color.ThemeColor?.InnerText, color.ThemeTint?.Value, color.ThemeShade?.Value,
+            document?.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme) ?? color.Val?.Value;
+
+    /// <summary>Resolves an authored border color while retaining automatic-color declarations.</summary>
+    internal static string? ResolveBorderColorHex(BorderType? border, WordDocument document) => border == null ? null :
+        ResolveThemeColor(border.ThemeColor?.InnerText, border.ThemeTint?.Value, border.ThemeShade?.Value,
+            document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme) ?? border.Color?.Value;
 
     /// <summary>Resolves direct and styled highlighting, then table style and document defaults; explicit none stops inheritance.</summary>
     internal static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph, HighlightColorValues? tableStyleHighlight = null) {

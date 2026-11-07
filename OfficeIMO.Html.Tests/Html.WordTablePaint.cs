@@ -1,0 +1,96 @@
+using AngleSharp.Html.Parser;
+using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public class WordHtmlTablePaintTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TablePaintUsesSourceInheritanceConditionsAndThemeEvenWithoutDefaultCss(bool includeCss) {
+        var theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.Parse("#123456")));
+        using var document = WordDocument.Create(new WordCreateOptions { Theme = theme });
+        var table = document.AddTable(5, 2, WordTableStyle.TableNormal);
+        table.ConditionalFormattingFirstRow = true;
+        table.ConditionalFormattingLastRow = true;
+        table.ConditionalFormattingFirstColumn = true;
+        table.ConditionalFormattingNoHorizontalBand = false;
+        table.ConditionalFormattingNoVerticalBand = true;
+        table.RepeatHeaderRowAtTheTopOfEachPage = false;
+        foreach (var cell in table.Rows.SelectMany(row => row.Cells)) cell.Paragraphs[0].Text = "Source";
+
+        var baseStyle = new Style(new StyleTableCellProperties(
+            new Shading { Val = ShadingPatternValues.Clear, Fill = "ABABAB" })) { Type = StyleValues.Table, StyleId = "BasePaint" };
+        var derived = new Style(new BasedOn { Val = "BasePaint" },
+            new TableStyleProperties(new TableStyleConditionalFormattingTableCellProperties(
+                new TableCellBorders(new BottomBorder { Val = BorderValues.Single, Size = 2U, Color = "00FF00", ThemeColor = ThemeColorValues.Accent1 }),
+                new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000", ThemeFill = ThemeColorValues.Accent1 })) { Type = TableStyleOverrideValues.FirstRow },
+            new TableStyleProperties(new TableStyleConditionalFormattingTableCellProperties(
+                new Shading { Val = ShadingPatternValues.Clear, Fill = "0000FF" })) { Type = TableStyleOverrideValues.LastRow },
+            new TableStyleProperties(new TableStyleConditionalFormattingTableCellProperties(
+                new Shading { Val = ShadingPatternValues.Clear, Fill = "00FF00" })) { Type = TableStyleOverrideValues.Band1Horizontal },
+            new TableStyleProperties(new TableStyleConditionalFormattingTableCellProperties(
+                new Shading { Val = ShadingPatternValues.Clear, Fill = "222222" })) { Type = TableStyleOverrideValues.FirstColumn }) {
+            Type = StyleValues.Table, StyleId = "DerivedPaint"
+        };
+        document.MainDocumentPartRoot.StyleDefinitionsPart!.Styles!.Append(baseStyle, derived);
+        table.SetStyleId("DerivedPaint");
+        table.Rows[1].Cells[0]._tableCell.TableCellProperties!.Append(new Shading { Val = ShadingPatternValues.Nil, Fill = "FF0000" });
+        table.Rows[3].Cells[0]._tableCell.TableCellProperties!.Append(new Shading { Val = ShadingPatternValues.Clear, Fill = "auto" });
+
+        var html = new HtmlParser().ParseDocument(document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = includeCss }));
+        var rows = html.QuerySelectorAll("tr").ToArray();
+        string CellStyle(int row, int column) => rows[row].Children[column].GetAttribute("style")!;
+
+        Assert.Contains("background-color:#123456", CellStyle(0, 0));
+        Assert.Contains("border-bottom:0.25pt solid #123456", CellStyle(0, 0));
+        Assert.Contains("background-color:transparent", CellStyle(1, 0));
+        Assert.Contains("background-color:#00FF00", CellStyle(1, 1));
+        Assert.Contains("background-color:#222222", CellStyle(2, 0));
+        Assert.Contains("background-color:#ABABAB", CellStyle(2, 1));
+        Assert.Contains("background-color:transparent", CellStyle(3, 0));
+        Assert.Contains("background-color:#00FF00", CellStyle(3, 1));
+        Assert.Contains("background-color:#0000FF", CellStyle(4, 0));
+
+        table._tableProperties!.Shading = new Shading { Val = ShadingPatternValues.Clear, Fill = "333333" };
+        var directTableHtml = new HtmlParser().ParseDocument(document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = includeCss }));
+        Assert.Contains("background-color:#333333", directTableHtml.QuerySelectorAll("tr")[0].Children[0].GetAttribute("style"));
+        Assert.Contains("background-color:transparent", directTableHtml.QuerySelectorAll("tr")[1].Children[0].GetAttribute("style"));
+
+        table._tableProperties.Shading = new Shading { Val = ShadingPatternValues.Nil, Fill = "FF0000" };
+        var clearedTableHtml = new HtmlParser().ParseDocument(document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = includeCss }));
+        Assert.Contains("background-color:transparent", clearedTableHtml.QuerySelector("table")!.GetAttribute("style"));
+        Assert.Contains("background-color:transparent", clearedTableHtml.QuerySelectorAll("tr")[0].Children[0].GetAttribute("style"));
+    }
+
+    [Fact]
+    public void InheritedBordersFollowMergedCellFramesAndRetainExplicitNilAndNone() {
+        using var document = WordDocument.Create();
+        var table = document.AddTable(2, 2, WordTableStyle.TableNormal);
+        table._tableProperties!.TableBorders = new TableBorders(
+            new TopBorder { Val = BorderValues.Single, Size = 8U, Color = "FF0000" },
+            new LeftBorder { Val = BorderValues.Single, Size = 24U, Color = "0000FF" },
+            new BottomBorder { Val = BorderValues.Single, Size = 16U, Color = "00FF00" },
+            new RightBorder { Val = BorderValues.Single, Size = 32U, Color = "000000" },
+            new InsideHorizontalBorder { Val = BorderValues.Dotted, Size = 2U, Color = "444444" },
+            new InsideVerticalBorder { Val = BorderValues.Dashed, Size = 1U, Color = "666666" });
+        table.MergeCells(0, 0, 2, 1);
+        table.Rows[1].Cells[1].Borders.TopStyle = WordBorderStyle.Nil;
+        table.Rows[1].Cells[1].Borders.LeftStyle = WordBorderStyle.None;
+
+        var html = new HtmlParser().ParseDocument(document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = false }));
+        string merged = html.QuerySelector("td[rowspan='2']")!.GetAttribute("style")!;
+        string last = html.QuerySelectorAll("tr")[1].Children[0].GetAttribute("style")!;
+
+        Assert.Contains("border-top:1pt solid #FF0000", merged, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("border-bottom:2pt solid #00FF00", merged, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("border-left:3pt solid #0000FF", merged, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("border-right:0.125pt dashed #666666", merged);
+        Assert.Contains("border-top:hidden", last);
+        Assert.Contains("border-left:none", last);
+        Assert.Contains("border-right:4pt solid #000000", last);
+    }
+}

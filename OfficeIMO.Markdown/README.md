@@ -205,11 +205,14 @@ string fragment = document.ToHtml(new MarkdownHtmlExportOptions { Kind = Markdow
 string fullPage = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
 MarkdownHtmlParts parts = document.ToHtmlParts();
 
-// Without options, SaveAsHtml writes a complete, styled page.
+// Without options, SaveAsHtml writes a complete, unstyled page.
 document.SaveAsHtml("status.html");
 ```
 
-The default `Clean` style follows the Office theme: it declares `--office-*` custom properties (colours, font stacks, type scale and table tokens) and uses tabular figures with right-aligned numeric columns. Choose `MarkdownHtmlStyle.Word`, a GitHub style or `Plain` for other looks.
+The default `Plain` style keeps the source markup and table alignment without a
+stylesheet. Select `MarkdownHtmlStyle.Clean`, `Word`, a GitHub style, or an
+explicit `Theme` to add presentation styling. `Clean` declares `--office-*`
+custom properties for colours, fonts, type scale and table tokens.
 
 ### Parse, inspect, and rewrite a document
 

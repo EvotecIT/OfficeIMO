@@ -23,7 +23,6 @@ namespace OfficeIMO.Word.Pdf {
             bool usesAutoFitLayout = ShouldUseNativeAutoFitTableLayout(
                 table._table.GetFirstChild<W.TableProperties>(), tableStyleDefaults);
             var rows = new List<PdfCore.PdfTableCell[]>();
-            var cellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
             var directCellBorders = new Dictionary<(int Row, int Column), WordTableCellBorder>();
             var cellPaddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
             var cellAlignments = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>();
@@ -101,13 +100,6 @@ namespace OfficeIMO.Word.Pdf {
                             nativeDefaults, cellStyleDefaults, nativeFontMap)
                     });
 
-                    global::OfficeIMO.OfficeColor? fill =
-                        ParseNativeColor(cell.ShadingFillValue) ??
-                        cellStyleDefaults.CellFill;
-                    if (fill.HasValue) {
-                        cellFills[(rowIndex, logicalColumnIndex)] = fill.Value;
-                    }
-
                     if (HasNativeDirectCellBorder(cell.Borders)) {
                         directCellBorders[(rowIndex, logicalColumnIndex)] = cell.Borders;
                     }
@@ -157,16 +149,6 @@ namespace OfficeIMO.Word.Pdf {
                     style.LeftIndent = global::OfficeIMO.OfficeLength.Points(0);
                 }
             }
-            if (cellFills.Count > 0) {
-                if (style.CellFills == null) {
-                    style.CellFills = cellFills;
-                } else {
-                    foreach (var cellFill in cellFills) {
-                        style.CellFills[cellFill.Key] = cellFill.Value;
-                    }
-                }
-            }
-
             ApplyNativeDirectCellBorders(style, layout, directCellBorders);
             if (style.CellBorders != null && !UsesNativeSeparateTableCellBorders(table, style, tableStyleDefaults)) {
                 ReconcileNativeSharedBorders(table, layout, tableStyleDefaults, style, directCellBorders, options);

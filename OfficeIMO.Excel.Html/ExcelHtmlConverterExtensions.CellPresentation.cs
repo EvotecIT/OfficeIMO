@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Excel.Html;
 
@@ -22,7 +23,8 @@ public static partial class ExcelHtmlConverterExtensions {
 
         private static long Key(int row, int column) => ((long)row << 20) | (uint)column;
 
-        internal static SemanticCellPresentation? TryCreate(ExcelSheet sheet, int firstRow, int firstColumn, int rowCount, int columnCount) {
+        internal static SemanticCellPresentation? TryCreate(ExcelSheet sheet, int firstRow, int firstColumn, int rowCount, int columnCount,
+            IList<HtmlDiagnostic> diagnostics) {
             if (rowCount <= 0 || columnCount <= 0) return null;
             var options = new ExcelImageExportOptions {
                 IncludeHidden = true,
@@ -41,6 +43,10 @@ public static partial class ExcelHtmlConverterExtensions {
             } catch (ArgumentException) {
                 return null;
             }
+            foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
+                if (diagnostic.Code == ExcelImageExportDiagnosticCodes.MergedCellBorderOmitted)
+                    diagnostics.Add(ToHtmlDiagnostic(diagnostic, 1));
+            }
 
             var cells = new Dictionary<long, ExcelVisualCell>(snapshot.Cells.Count);
             foreach (ExcelVisualCell cell in snapshot.Cells) cells[Key(cell.Row, cell.Column)] = cell;
@@ -50,9 +56,15 @@ public static partial class ExcelHtmlConverterExtensions {
         }
     }
 
-    /// <summary>Box-level CSS for a semantic cell: fill, data bar and spreadsheet alignment.</summary>
+    /// <summary>Box-level CSS for a semantic cell: resolved borders, fill, data bar and spreadsheet alignment.</summary>
     private static string? CreateCellBoxCss(ExcelCellStyleInfo style, ExcelVisualCellValueKind? valueKind, ExcelVisualConditionalDataBar? dataBar) {
         var css = new StringBuilder();
+        if (style.Border is ExcelCellBorderInfo border) {
+            AppendCellBorderCss(css, "top", border.Top);
+            AppendCellBorderCss(css, "right", border.Right);
+            AppendCellBorderCss(css, "bottom", border.Bottom);
+            AppendCellBorderCss(css, "left", border.Left);
+        }
         string? fill = ResolveCellFillHex(style);
         if (fill != null) AppendCss(css, "background-color", "#" + fill);
         if (dataBar != null && ToCssHex(dataBar.ColorArgb) is string barColor) {
@@ -96,7 +108,7 @@ public static partial class ExcelHtmlConverterExtensions {
         return valueKind switch {
             ExcelVisualCellValueKind.Number or ExcelVisualCellValueKind.Date => "right",
             ExcelVisualCellValueKind.Boolean or ExcelVisualCellValueKind.Error => "center",
-            _ => null
+            _ => "left"
         };
     }
 
@@ -106,17 +118,6 @@ public static partial class ExcelHtmlConverterExtensions {
         if (style.FillPatternType == "solid") return style.FillColorHex ?? ToCssHex(style.FillPatternForegroundColorArgb);
         // Pattern fills are approximated by their dominant foreground colour.
         return ToCssHex(style.FillPatternForegroundColorArgb) ?? style.FillColorHex;
-    }
-
-    /// <summary>
-    /// White or near-white text without a fill disappears on the page background. That happens
-    /// when the fill comes from a feature HTML cannot reproduce, so keep the text readable.
-    /// </summary>
-    private static bool IsInvisibleOnPage(ExcelCellStyleInfo style, bool hasBackground) {
-        if (hasBackground || style.FontColorHex is not string color || color.Length != 6) return false;
-        if (!int.TryParse(color, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int rgb)) return false;
-        int r = (rgb >> 16) & 0xFF, g = (rgb >> 8) & 0xFF, b = rgb & 0xFF;
-        return r >= 0xF0 && g >= 0xF0 && b >= 0xF0;
     }
 
     private static string? ToCssHex(string? argb) {

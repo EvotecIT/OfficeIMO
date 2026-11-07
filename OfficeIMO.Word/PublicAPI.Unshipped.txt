@@ -103,7 +103,7 @@ OfficeIMO.Word.WordFieldUpdateOptions.UseLayoutPagination.set -> void
 *REMOVED*OfficeIMO.Word.WordFooters.WordFooters() -> void
 *REMOVED*OfficeIMO.Word.WordFormattedRun.Strike.get -> bool
 OfficeIMO.Word.WordFormattedRun.Strikethrough.get -> bool
-OfficeIMO.Word.WordHeaderFooter.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordHeaderFooter.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
 *REMOVED*OfficeIMO.Word.WordHeaders
 *REMOVED*OfficeIMO.Word.WordHeaders.Default.get -> OfficeIMO.Word.WordHeader?
 *REMOVED*OfficeIMO.Word.WordHeaders.Default.set -> void
@@ -181,8 +181,8 @@ OfficeIMO.Word.WordPageSetup.Margins.get -> OfficeIMO.Word.WordMargins!
 OfficeIMO.Word.WordPageSetup.Orientation.get -> OfficeIMO.OfficePageOrientation
 OfficeIMO.Word.WordPageSetup.Orientation.set -> void
 OfficeIMO.Word.WordPageSetup.Size.get -> OfficeIMO.Word.WordPageSizes!
-OfficeIMO.Word.WordParagraph.AddTableAfter(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
-OfficeIMO.Word.WordParagraph.AddTableBefore(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordParagraph.AddTableAfter(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordParagraph.AddTableBefore(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordParagraph.BackgroundColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Word.WordParagraph.BackgroundColor.set -> void
 *REMOVED*OfficeIMO.Word.WordParagraph.ColorHex.get -> string!
@@ -244,7 +244,7 @@ OfficeIMO.Word.WordRunInfo.DoubleStrikethrough.get -> bool
 OfficeIMO.Word.WordRunInfo.Strikethrough.get -> bool
 OfficeIMO.Word.WordSearchResult.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordParagraph!>!
 *REMOVED*OfficeIMO.Word.WordSection.AddHeadersAndFooters() -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
-OfficeIMO.Word.WordSection.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordSection.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
 *REMOVED*OfficeIMO.Word.WordSection.DifferentFirstPage.get -> bool
 *REMOVED*OfficeIMO.Word.WordSection.DifferentFirstPage.set -> void
 *REMOVED*OfficeIMO.Word.WordSection.DifferentOddAndEvenPages.get -> bool
@@ -309,7 +309,7 @@ OfficeIMO.Word.WordTable.SetFixedWidth(int percentage) -> OfficeIMO.Word.WordTab
 *REMOVED*OfficeIMO.Word.WordTable.SetFixedWidth(int percentage) -> void
 OfficeIMO.Word.WordTable.SetWidthPercentage(int percentage) -> OfficeIMO.Word.WordTable!
 *REMOVED*OfficeIMO.Word.WordTable.SetWidthPercentage(int percentage) -> void
-OfficeIMO.Word.WordTableCell.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern, bool removePrecedingParagraph = false) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordTableCell.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid, bool removePrecedingParagraph = false) -> OfficeIMO.Word.WordTable!
 *REMOVED*OfficeIMO.Word.WordTableCell.ShadingFillColorHex.get -> string!
 *REMOVED*OfficeIMO.Word.WordTableCell.ShadingFillColorHex.set -> void
 *REMOVED*OfficeIMO.Word.WordTableCellBorder.BottomColor.get -> OfficeIMO.OfficeColor
@@ -435,3 +435,9 @@ OfficeIMO.Word.WordDocumentStatisticsInfo.Words.get -> int
 OfficeIMO.Word.WordSearchResult.EndnoteParagraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordParagraph!>!
 OfficeIMO.Word.WordSearchResult.FootnoteParagraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordParagraph!>!
 OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind.Formatting = 20 -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind
+*REMOVED*OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
+*REMOVED*OfficeIMO.Word.WordDocument.CreateTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordDocument.CreateTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
+*REMOVED*static OfficeIMO.Word.WordTable.Create(OfficeIMO.Word.WordDocument! document, int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+static OfficeIMO.Word.WordTable.Create(OfficeIMO.Word.WordDocument! document, int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!

@@ -131,7 +131,7 @@ namespace OfficeIMO.Word {
         /// <param name="columns">Number of columns.</param>
         /// <param name="tableStyle">Table style to apply.</param>
         /// <returns>The created <see cref="WordTable"/>.</returns>
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             if (_footer != null) {
                 return new WordTable(_document, _footer, rows, columns, tableStyle);
             } else if (_header != null) {

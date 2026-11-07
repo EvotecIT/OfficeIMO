@@ -50,7 +50,7 @@ internal static partial class WordRunFormatting {
     private sealed class TableRunPaintState {
         internal readonly Style[] Chain;
         internal readonly Dictionary<TableCell, (int Row, int Column, int Span)> Cells = new();
-        internal readonly int Mask, HeaderRows, FooterStart, ColumnCount;
+        internal readonly int Mask, HeaderRows, FooterStart, ColumnCount, RowCount;
         internal readonly int RowBandSize, ColumnBandSize;
         internal readonly bool HasConditionalPaint;
 
@@ -63,12 +63,17 @@ internal static partial class WordRunFormatting {
             ColumnBandSize = Chain.Select(style => style.StyleTableProperties?.GetFirstChild<TableStyleColumnBandSize>()?.Val?.Value)
                 .FirstOrDefault(size => size.HasValue) ?? 1;
             HasConditionalPaint = Chain.Any(style => style.Elements<TableStyleProperties>()
-                .Any(conditional => HasRunBackground(conditional.GetFirstChild<RunPropertiesBaseStyle>())));
-            if (!HasConditionalPaint) return;
+                .Any(conditional => HasRunBackground(conditional.GetFirstChild<RunPropertiesBaseStyle>()) ||
+                    conditional.GetFirstChild<TableStyleConditionalFormattingTableCellProperties>() is { } cellProperties &&
+                    (cellProperties.GetFirstChild<Shading>() != null || cellProperties.GetFirstChild<TableCellBorders>() != null)));
+            bool hasTableBorders = table.GetFirstChild<TableProperties>()?.TableBorders != null ||
+                Chain.Any(style => style.StyleTableProperties?.TableBorders != null);
+            if (!HasConditionalPaint && !hasTableBorders) return;
 
             TableLook? look = table.GetFirstChild<TableProperties>()?.TableLook;
             Mask = look == null ? 0 : WordTable.GetTableLookMask(look);
             TableRow[] rows = WordTableContent.Rows(table).ToArray();
+            RowCount = rows.Length;
             bool inHeader = true;
             int maximumColumns = 0;
             for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {

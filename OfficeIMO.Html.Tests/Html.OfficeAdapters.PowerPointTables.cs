@@ -281,9 +281,10 @@ public class HtmlOfficeAdaptersPowerPointTables {
         using PowerPointDocument imported = result.Value;
         PowerPointTable importedTable = Assert.Single(Assert.Single(imported.Slides).Tables);
 
-        Assert.Contains("<td rowspan=\"2\" colspan=\"2\">", html, StringComparison.Ordinal);
+        var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+        Assert.NotNull(parsed.QuerySelector("td[rowspan='2'][colspan='2']"));
         Assert.Contains("Merged heading", html, StringComparison.Ordinal);
-        Assert.Contains("<td colspan=\"2\">", html, StringComparison.Ordinal);
+        Assert.NotNull(parsed.QuerySelector("td[colspan='2']:not([rowspan])"));
         Assert.Equal(2, result.MergedRanges);
         Assert.Equal((2, 2), importedTable.GetCell(0, 0).Merge);
         Assert.True(importedTable.GetCell(0, 1).IsMergedCell);

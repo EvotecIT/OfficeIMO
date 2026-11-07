@@ -22,12 +22,15 @@ public class WordCreationThemeTables {
         public int Count { get; set; } = 12;
     }
 
-    private static WordTable AddRows(WordDocument document, string route, OfficeTableOptions? options = null) => route switch {
-        "typed" => document.AddTable(new[] { new ThemeRow() }, options),
-        "matrix" => document.AddTable(new object?[,] { { "Name", "Count" }, { "Alpha", 12 } }, options),
-        "text" => document.AddTable(new IReadOnlyList<string>[] { new[] { "Name", "Count" }, new[] { "Alpha", "12" } }, options),
-        _ => throw new ArgumentOutOfRangeException(nameof(route))
-    };
+    private static WordTable AddRows(WordDocument document, string route, OfficeTableOptions? options = null) {
+        options ??= new WordTableOptions { Style = WordTableStyle.OfficeIMOModern };
+        return route switch {
+            "typed" => document.AddTable(new[] { new ThemeRow() }, options),
+            "matrix" => document.AddTable(new object?[,] { { "Name", "Count" }, { "Alpha", 12 } }, options),
+            "text" => document.AddTable(new IReadOnlyList<string>[] { new[] { "Name", "Count" }, new[] { "Alpha", "12" } }, options),
+            _ => throw new ArgumentOutOfRangeException(nameof(route))
+        };
+    }
 
     private static OfficeTheme CustomTheme(string accent, string bodyFont) {
         OfficeTheme baseline = OfficeTheme.Modern;
@@ -112,7 +115,7 @@ public class WordCreationThemeTables {
     [InlineData("typed", true)]
     [InlineData("matrix", true)]
     [InlineData("text", true)]
-    public void AllRoutesUseNativeModernStyleAndSelectedTheme(string route, bool custom) {
+    public void AllRoutesHonorExplicitModernStyleAndSelectedTheme(string route, bool custom) {
         OfficeTheme theme = custom ? CustomTheme("157A67", "Arial") : OfficeTheme.Modern;
         using var document = WordDocument.Create(custom ? new WordCreateOptions { Theme = theme } : null);
         WordTable table = AddRows(document, route);
@@ -142,7 +145,7 @@ public class WordCreationThemeTables {
     [InlineData("text")]
     public void HeaderlessRoutesDisableHeaderTreatment(string route) {
         using var document = WordDocument.Create();
-        WordTable table = AddRows(document, route, new OfficeTableOptions { IncludeHeaders = false });
+        WordTable table = AddRows(document, route, new WordTableOptions { Style = WordTableStyle.OfficeIMOModern, IncludeHeaders = false });
         Assert.False(table.ConditionalFormattingFirstRow);
         Assert.False(table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
         var native = ReadNative(document.ToBytes());
@@ -179,7 +182,7 @@ public class WordCreationThemeTables {
     [Fact]
     public void ProjectionFormattingAndExplicitAlignmentWinAndSurviveReload() {
         OfficeTheme theme = CustomTheme("157A67", "Arial");
-        var options = new OfficeTableOptions();
+        var options = new WordTableOptions { Style = WordTableStyle.OfficeIMOModern };
         options.Order.Add("Count");
         options.HeaderRenames["Count"] = "Quantity";
         options.Formatters["Count"] = value => "Count=" + value;
@@ -210,7 +213,7 @@ public class WordCreationThemeTables {
     [InlineData("text")]
     public void ExplicitNumericAlignmentOverridesTheSharedDefault(string route) {
         using var document = WordDocument.Create(new WordCreateOptions { Theme = CustomTheme("157A67", "Arial") });
-        var options = new OfficeTableOptions();
+        var options = new WordTableOptions { Style = WordTableStyle.OfficeIMOModern };
         options.Alignments.Add(null);
         options.Alignments.Add(OfficeAlignment.Left);
         WordTable table = AddRows(document, route, options);
@@ -404,7 +407,7 @@ public class WordCreationThemeTables {
     }
 
     [Fact]
-    public void DefaultGeometryFillsTheCurrentSectionAndExplicitGridIsStillAvailable() {
+    public void ModernTableGeometryFillsTheCurrentSectionAndExplicitGridIsStillAvailable() {
         using var document = WordDocument.Create();
         document.Sections.Last().PageSetup.Size.Width = OfficeLength.Inches(10);
         document.Sections.Last().PageSetup.Margins.Left = OfficeLength.Inches(1);

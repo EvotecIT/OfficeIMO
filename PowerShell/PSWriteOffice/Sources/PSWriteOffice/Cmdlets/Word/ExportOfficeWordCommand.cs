@@ -50,9 +50,9 @@ public sealed class ExportOfficeWordCommand : OfficeCmdlet {
     [Parameter, OfficeThemeTransformation]
     public OfficeThemeInput? Theme { get; set; }
 
-    /// <summary>Native table style; Modern includes a repeating first-row header.</summary>
+    /// <summary>Native table style. Defaults to TableGrid; choose OfficeIMOModern explicitly for themed table presentation.</summary>
     [Parameter]
-    public WordTableStyle Style { get; set; } = WordTableStyle.OfficeIMOModern;
+    public WordTableStyle Style { get; set; } = WordTableStyle.TableGrid;
 
     /// <summary>Omit the column-name row and repeating header.</summary>
     [Parameter]

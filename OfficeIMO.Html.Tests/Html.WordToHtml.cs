@@ -432,7 +432,7 @@ namespace OfficeIMO.Tests {
             var exportedTable = Assert.Single(parsed.QuerySelectorAll("table"));
             var rows = exportedTable.QuerySelectorAll("tr");
             Assert.Equal(2, rows.Length);
-            Assert.Equal(new[] { "th", "th" }, rows[0].Children.Select(cell => cell.LocalName));
+            Assert.Equal(new[] { "td", "td" }, rows[0].Children.Select(cell => cell.LocalName));
             Assert.Equal(new[] { "td", "td" }, rows[1].Children.Select(cell => cell.LocalName));
             Assert.Equal(new[] { "A", "B", "C", "D" }, exportedTable.QuerySelectorAll("th, td").Select(cell => cell.TextContent.Trim()));
         }
@@ -477,9 +477,9 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_WordToHtml_ModernTableDefault_ExportsTheadAndTh() {
+        public void Test_WordToHtml_ExplicitModernTable_ExportsTheadAndTh() {
             using var doc = WordDocument.Create();
-            var table = doc.AddTable(2, 2);
+            var table = doc.AddTable(2, 2, WordTableStyle.OfficeIMOModern);
             Assert.True(table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Score";
@@ -633,10 +633,19 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeTableColumnGroups = true });
 
-            Assert.Contains("<table style=\"width:100%\"><colgroup>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<col style=\"width:13.5%\">", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<col style=\"width:86.5%\">", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("</colgroup><tr><td style=\"width:13.5%\"><p>A</p></td><td style=\"width:86.5%\"><p>B</p></td></tr></table>", html, StringComparison.OrdinalIgnoreCase);
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            var exportedTable = Assert.Single(parsed.QuerySelectorAll("table"));
+            Assert.Contains("width:100%", exportedTable.GetAttribute("style"));
+            var columns = exportedTable.QuerySelectorAll("colgroup > col").ToArray();
+            Assert.Equal(2, columns.Length);
+            Assert.Equal("width:13.5%", columns[0].GetAttribute("style"));
+            Assert.Equal("width:86.5%", columns[1].GetAttribute("style"));
+            var cells = exportedTable.QuerySelectorAll("td").ToArray();
+            Assert.Equal(2, cells.Length);
+            Assert.Contains("width:13.5%", cells[0].GetAttribute("style"));
+            Assert.Contains("width:86.5%", cells[1].GetAttribute("style"));
+            Assert.Equal("A", cells[0].TextContent);
+            Assert.Equal("B", cells[1].TextContent);
         }
 
         [Fact]
@@ -1194,7 +1203,7 @@ namespace OfficeIMO.Tests {
             string html = doc.ToHtml();
 
             Assert.Contains("<table style=\"width:100%;border-collapse:collapse\">", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<td style=\"width:50%;text-align:center;border:1px solid black\">", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<td style=\"width:50%;text-align:center;border:1pt solid black\">", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Theory]
@@ -1211,9 +1220,9 @@ namespace OfficeIMO.Tests {
             string html = document.ToHtml();
 
             Assert.Contains("border-right:" + expectedCss, html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("border-left:1px solid black", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border-left:1pt solid black", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("border-collapse:collapse", html, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("<table style=\"border:1px solid black", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<table style=\"border:1pt solid black", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -1315,7 +1324,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("background-color:#ff0000", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("text-align:right", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("border:1px solid #00ff00", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border:1pt solid #00ff00", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

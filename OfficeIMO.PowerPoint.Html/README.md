@@ -19,6 +19,12 @@ OfficeConversionReport report = source.SaveAsPowerPoint(output);
 
 Semantic output carries a versioned OfficeIMO envelope and keeps slide order and visibility, unified drawing order across text boxes, tables, pictures, charts, SmartArt, and media, shape geometry and transforms, presenter notes, table merge spans, embedded pictures, supported chart data, master/layout inventory, poster frames, and supported picture adjustments. SmartArt and advanced effects use static snapshots or diagnosed fallbacks; media is never executed. Generic HTML `rowspan` and `colspan` values become native PowerPoint table merges.
 
+Semantic tables retain supported source fills, borders, grid dimensions, cell
+padding and alignment. The default document shell adds no theme stylesheet;
+choose a named presentation profile or enable `DocumentOutput.IncludeDefaultStyles`
+explicitly to add one. Unsupported CSS border patterns are reported as
+approximations.
+
 `ToPowerPoint(options, out report)` returns the presentation with its `OfficeConversionReport` and throws `HtmlConversionException` when no semantic `section.officeimo-slide` envelope exists; `SaveAsPowerPoint` writes it and returns the report. On export, `ToHtml(options, out report)` and `SaveAsHtml` return the `OfficeConversionReport`; set `FailOnLoss` to make reported loss an error. Master/layout projection, SmartArt fallback, inert media, advanced effects, unavailable pictures or charts, and visual-renderer fallbacks are represented in the immutable operation report so `ThrowIfLoss()` cannot accept a simplified review silently.
 
 To turn ordinary HTML sections into slides, select the shared generic path:

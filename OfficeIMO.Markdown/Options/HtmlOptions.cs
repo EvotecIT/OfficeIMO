@@ -68,8 +68,8 @@ public sealed class MarkdownHtmlExportOptions {
 
     /// <summary>Fragment vs full document. Default: <see cref="MarkdownHtmlKind.Fragment"/>.</summary>
     public MarkdownHtmlKind Kind { get; set; } = MarkdownHtmlKind.Fragment;
-    /// <summary>Built-in style preset. Default: <see cref="MarkdownHtmlStyle.Clean"/>.</summary>
-    public MarkdownHtmlStyle Style { get; set; } = MarkdownHtmlStyle.Clean;
+    /// <summary>Built-in style preset. Defaults to unstyled <see cref="MarkdownHtmlStyle.Plain"/> output.</summary>
+    public MarkdownHtmlStyle Style { get; set; } = MarkdownHtmlStyle.Plain;
     /// <summary>How to deliver CSS. Default: <see cref="MarkdownCssDelivery.Inline"/>.</summary>
     public MarkdownCssDelivery CssDelivery { get; set; } = MarkdownCssDelivery.Inline;
     /// <summary>Connectivity mode for external assets (CDNs). Default: <see cref="MarkdownAssetMode.Online"/>.</summary>
@@ -302,8 +302,8 @@ public sealed class MarkdownHtmlExportOptions {
     /// <summary>Parser settings used by source-to-HTML conversion routes before rendering. An already parsed document keeps its existing syntax tree.</summary>
     public MarkdownLoadOptions? ReaderOptions { get; set; }
 
-    /// <summary>Applies the shared default visual theme when <see cref="Theme"/> is omitted and the selected HTML style supports document theming.</summary>
-    public bool ApplyDefaultTheme { get; set; } = true;
+    /// <summary>Opts into the shared default visual theme when <see cref="Theme"/> is omitted and the selected HTML style supports document theming.</summary>
+    public bool ApplyDefaultTheme { get; set; }
 
     /// <summary>
     /// Optional additional color overrides for links, headings, and TOC.

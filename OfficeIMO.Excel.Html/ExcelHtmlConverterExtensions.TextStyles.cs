@@ -9,17 +9,16 @@ public static partial class ExcelHtmlConverterExtensions {
         StringBuilder body,
         ExcelCellStyleInfo style,
         bool includeDecorations,
-        string? boxCss = null,
-        bool suppressFontColor = false) {
+        string? boxCss = null) {
         var css = new StringBuilder();
         if (!string.IsNullOrEmpty(boxCss)) css.Append(boxCss);
-        AppendCss(css, "font-weight", style.Bold ? "700" : null);
+        AppendCss(css, "font-weight", style.Bold ? "700" : "normal");
         AppendCss(css, "font-style", style.Italic ? "italic" : null);
         AppendCss(css, "font-family", style.IsFontFamilyExplicit && !string.IsNullOrWhiteSpace(style.FontName)
             ? CssFontFamily(style.FontName!) : null);
         AppendCss(css, "font-size", style.FontSize.HasValue
             ? style.FontSize.Value.ToPoints().ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
-        AppendCss(css, "color", !suppressFontColor && !string.IsNullOrWhiteSpace(style.FontColorHex) ? "#" + style.FontColorHex : null);
+        AppendCss(css, "color", !string.IsNullOrWhiteSpace(style.FontColorHex) ? "#" + style.FontColorHex : null);
         ExcelUnderlineStyle underlineStyle = style.Underline
             ? style.UnderlineStyle ?? ExcelUnderlineStyle.Single
             : ExcelUnderlineStyle.None;

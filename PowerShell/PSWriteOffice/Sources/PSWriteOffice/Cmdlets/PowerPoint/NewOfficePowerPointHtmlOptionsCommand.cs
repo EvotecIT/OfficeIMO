@@ -19,7 +19,7 @@ public sealed class NewOfficePowerPointHtmlOptionsCommand : OfficeCmdlet {
     [Parameter(ParameterSetName = "Default")]
     public PowerPointHtmlExportProfile Profile { get; set; } = PowerPointHtmlExportProfile.SemanticSlides;
 
-    /// <summary>Shared HTML theme: a built-in name, OfficeTheme or Office document template path. Defaults to Modern.</summary>
+    /// <summary>Optional shared HTML theme. Selecting one enables presentation styles unless NoDefaultStyles is set.</summary>
     [Parameter, OfficeThemeTransformation]
     public OfficeThemeInput? Theme { get; set; }
 
@@ -78,9 +78,10 @@ public sealed class NewOfficePowerPointHtmlOptionsCommand : OfficeCmdlet {
             IncludeHeading = FeatureEnabled("Heading"),
             IncludeSlideHeadings = FeatureEnabled("SlideHeadings"),
             IncludeRenderDiagnostics = FeatureEnabled("RenderDiagnostics"),
-            IncludeDefaultStyles = FeatureEnabled("DefaultStyles")
+            IncludeDefaultStyles = Theme != null
         };
-        options.DocumentOutput.DocumentTheme = Theme?.Resolve(OfficeTheme.FromDocument) ?? OfficeTheme.Modern;
+        if (Theme != null) options.DocumentOutput.DocumentTheme = Theme.Resolve(OfficeTheme.FromDocument);
+        if (BoundSwitch(nameof(NoDefaultStyles)) is bool noStyles) options.IncludeDefaultStyles = !noStyles;
         if (Title != null) options.Title = Title;
         if (BoundSwitch(nameof(IncludeHiddenSlides)) is bool hiddenSlides) options.IncludeHiddenSlides = hiddenSlides;
         if (BoundSwitch(nameof(IncludeHiddenShapes)) is bool hiddenShapes) options.IncludeHiddenShapes = hiddenShapes;

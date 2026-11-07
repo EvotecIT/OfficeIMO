@@ -67,32 +67,6 @@ namespace OfficeIMO.Word.Html {
             "Roboto Mono", "Ubuntu Mono", "Noto Sans Mono", "Andale Mono", "monospace"
         };
 
-        private static bool[] ResolveNumericColumns(WordTable table, int headerRowCount) {
-            static string CellText(WordTableCell cell) => string.Concat(cell._tableCell.Descendants<Text>().Select(value => value.Text)).Trim();
-            // A first row of labels is a header even when Word does not mark it as one.
-            if (headerRowCount == 0 && table.Rows.Count > 1
-                && table.Rows[0].Cells.All(cell => !global::OfficeIMO.Internal.OfficeThemeCssTokens.IsNumericText(CellText(cell)))) {
-                headerRowCount = 1;
-            }
-            if (table.Rows.Count <= headerRowCount) return Array.Empty<bool>();
-            int columns = table.Rows.Max(row => row.Cells.Count);
-            var numeric = new bool[columns];
-            for (int column = 0; column < columns; column++) {
-                bool any = false;
-                bool all = true;
-                for (int rowIndex = headerRowCount; rowIndex < table.Rows.Count && all; rowIndex++) {
-                    var cells = table.Rows[rowIndex].Cells;
-                    if (column >= cells.Count) continue;
-                    string text = CellText(cells[column]);
-                    if (text.Length == 0) continue;
-                    any = true;
-                    all = global::OfficeIMO.Internal.OfficeThemeCssTokens.IsNumericText(text);
-                }
-                numeric[column] = any && all;
-            }
-            return numeric;
-        }
-
         // A monospace run is code unless monospace is simply the document's own default font.
         private static bool IsInlineCodeRun(WordParagraph run, string? documentFont) =>
             IsMonospaceFontFamily(run.FontFamily)
@@ -282,22 +256,20 @@ namespace OfficeIMO.Word.Html {
                 string? normalizedColor = NormalizeSixDigitHexColor(colorHex);
                 string color = normalizedColor != null ? $"#{normalizedColor}" : "black";
                 double widthPt = size != null ? size.Value / 8.0 : 1.0;
-                double widthPx = widthPt * 96 / 72;
-                string width = $"{Math.Round(widthPx)}px";
+                string width = widthPt.ToString("0.###", CultureInfo.InvariantCulture) + "pt";
                 return $"{width} {cssStyle} {color}";
             }
 
             List<string> GetBorderCss(WordTableCell cell) {
                 List<string> styles = new();
-                var b = cell.Borders;
-                if (b == null) {
-                    return styles;
+                string? ReadBorder(WordTableBorderSide side) {
+                    BorderType? border = WordRunFormatting.ResolveTableCellBorder(cell, side);
+                    return BuildBorderCss(border?.Val?.Value, WordRunFormatting.ResolveBorderColorHex(border, cell.Document), border?.Size);
                 }
-
-                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorValue, WordBorderLengths.ToSize(b.LeftSize));
-                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorValue, WordBorderLengths.ToSize(b.RightSize));
-                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorValue, WordBorderLengths.ToSize(b.TopSize));
-                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorValue, WordBorderLengths.ToSize(b.BottomSize));
+                var left = ReadBorder(WordTableBorderSide.Left);
+                var right = ReadBorder(WordTableBorderSide.Right);
+                var top = ReadBorder(WordTableBorderSide.Top);
+                var bottom = ReadBorder(WordTableBorderSide.Bottom);
 
                 if (left == null && right == null && top == null && bottom == null) {
                     return styles;
@@ -328,7 +300,7 @@ namespace OfficeIMO.Word.Html {
                 var b = p.Borders;
                 if (b == null) return styles;
 
-                // Keep native eighth-point quantization before rounding the CSS pixel width.
+                // Preserve native eighth-point quantization in the CSS point width.
                 var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorValue, WordBorderLengths.ToSize(b.LeftSize));
                 var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorValue, WordBorderLengths.ToSize(b.RightSize));
                 var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorValue, WordBorderLengths.ToSize(b.TopSize));
@@ -349,11 +321,10 @@ namespace OfficeIMO.Word.Html {
             }
 
             bool CellHasBorder(WordTableCell cell) {
-                var b = cell.Borders;
-                return b != null && (IsVisibleBorder(b.LeftStyle?.ToOpenXml()) ||
-                    IsVisibleBorder(b.RightStyle?.ToOpenXml()) ||
-                    IsVisibleBorder(b.TopStyle?.ToOpenXml()) ||
-                    IsVisibleBorder(b.BottomStyle?.ToOpenXml()));
+                return IsVisibleBorder(WordRunFormatting.ResolveTableCellBorder(cell, WordTableBorderSide.Left)?.Val?.Value) ||
+                    IsVisibleBorder(WordRunFormatting.ResolveTableCellBorder(cell, WordTableBorderSide.Right)?.Val?.Value) ||
+                    IsVisibleBorder(WordRunFormatting.ResolveTableCellBorder(cell, WordTableBorderSide.Top)?.Val?.Value) ||
+                    IsVisibleBorder(WordRunFormatting.ResolveTableCellBorder(cell, WordTableBorderSide.Bottom)?.Val?.Value);
             }
 
             bool IsVisibleBorder(BorderValues? style) =>

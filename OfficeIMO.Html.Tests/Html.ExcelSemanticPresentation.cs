@@ -26,11 +26,15 @@ public class HtmlExcelSemanticPresentation {
     [Fact]
     public void SemanticTablesShowFillsNumberFormatsAndSpreadsheetAlignmentByDefault() {
         using ExcelDocument workbook = CreateReportWorkbook();
+        workbook.Sheets[0].Cell(5, 1).SetValue("Authored near-white").SetColor(OfficeColor.Parse("F8F8F8"));
         string html = workbook.ToHtml();
 
         // The fill travels with the white text, so the title stays readable.
         Assert.Contains("background-color:#17365D", html, StringComparison.Ordinal);
         Assert.Contains("color:#FFFFFF", html, StringComparison.Ordinal);
+        string unfilledStyle = new HtmlParser().ParseDocument(html)
+            .QuerySelector("[data-officeimo-cell=A5]")!.GetAttribute("style")!;
+        Assert.Contains("color:#F8F8F8", unfilledStyle, StringComparison.Ordinal);
         // Values use their number formats and keep the raw value for round trips.
         Assert.Contains(">1,234,567.50<", html, StringComparison.Ordinal);
         Assert.Contains(">37.6%<", html, StringComparison.Ordinal);

@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Markdown {
 
             public WordParagraph CreateParagraph() => _document.AddParagraph(string.Empty);
             public WordList CreateList(WordListStyle style) => _document.AddList(style);
-            public WordTable CreateTable(int rows, int columns) => _document.AddTable(rows, columns);
+            public WordTable CreateTable(int rows, int columns) => _document.AddTable(rows, columns, WordTableStyle.TableNormal);
             public bool TryAddTableOfContents(int minLevel, int maxLevel, string? title) {
                 var toc = _document.AddTableOfContent(minLevel: minLevel, maxLevel: maxLevel);
                 toc.Text = string.IsNullOrWhiteSpace(title) ? string.Empty : title!;
@@ -81,7 +81,7 @@ namespace OfficeIMO.Word.Markdown {
 
             public WordTable CreateTable(int rows, int columns) {
                 _wroteContent = true;
-                return _cell.AddTable(rows, columns);
+                return _cell.AddTable(rows, columns, WordTableStyle.TableNormal);
             }
 
             public bool TryAddTableOfContents(int minLevel, int maxLevel, string? title) => false;
@@ -102,7 +102,7 @@ namespace OfficeIMO.Word.Markdown {
 
             public WordParagraph CreateParagraph() => _headerFooter.AddParagraph(string.Empty);
             public WordList CreateList(WordListStyle style) => _headerFooter.AddList(style);
-            public WordTable CreateTable(int rows, int columns) => _headerFooter.AddTable(rows, columns);
+            public WordTable CreateTable(int rows, int columns) => _headerFooter.AddTable(rows, columns, WordTableStyle.TableNormal);
             public bool TryAddTableOfContents(int minLevel, int maxLevel, string? title) => false;
             public bool SupportsHtmlInsertion => false;
             public void InsertHtml(string html) { }
@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Markdown {
             public WordTable CreateTable(int rows, int columns) {
                 var seed = CreateSeedParagraph();
                 try {
-                    return seed.AddTableAfter(rows, columns);
+                    return seed.AddTableAfter(rows, columns, WordTableStyle.TableNormal);
                 } finally {
                     seed.Remove();
                 }

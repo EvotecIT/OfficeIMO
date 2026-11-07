@@ -17,7 +17,7 @@
       "kind": "behavior",
       "action": "change",
       "new": "OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices",
-      "reason": "Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. New-OfficePowerPointHtmlOptions defaults its shared document theme to Modern.",
+      "reason": "Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. Native document HTML exports keep source table presentation by default. New-OfficePowerPointHtmlOptions and New-OfficeExcelHtmlOptions enable the shared theme only when Theme or the style switch is explicitly selected.",
       "file": "OfficeIMO.Html/OfficeHtmlDocumentOptions.cs",
       "category": "conversion",
       "phase": "M5",

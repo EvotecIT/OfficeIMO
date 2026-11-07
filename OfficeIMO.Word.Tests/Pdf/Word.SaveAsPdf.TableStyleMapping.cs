@@ -231,7 +231,6 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.Equal(1, style.HeaderRowCount);
-        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), style.HeaderFill);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255), style.HeaderTextColor);
     }
 
@@ -283,7 +282,6 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.Equal(1, style.FooterRowCount);
-        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), style.FooterFill);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255), style.FooterTextColor);
     }
 
@@ -533,7 +531,6 @@ public partial class Word {
         Assert.Equal(8D, style.CellPaddingX.ToPoints());
         Assert.Equal(6D, style.CellPaddingY.ToPoints());
         Assert.Null(style.BorderColor);
-        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), style.HeaderFill);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250), style.HeaderTextColor);
         Assert.Null(style.RowStripeFill);
         Assert.Equal(12.5D, style.FontSize?.ToPoints());

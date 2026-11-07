@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using PdfCore = OfficeIMO.Pdf;
-
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         // Use the source table's body range and band sizes for every projected property.
@@ -22,27 +19,5 @@ namespace OfficeIMO.Word.Pdf {
                 ? defaults.Band1VerticalStyle : defaults.Band2VerticalStyle;
         }
 
-        private static void ApplyNativeTableConditionalFills(WordTable table, TableLayout layout,
-            PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults) {
-            int columns = GetNativeTableColumnCount(layout);
-            int footerStart = table.ConditionalFormattingLastRow == true && layout.Rows.Count > style.HeaderRowCount
-                ? layout.Rows.Count - 1 : layout.Rows.Count;
-            var fills = style.CellFills == null ? new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>()
-                : new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>(style.CellFills);
-            for (int row = 0; row < layout.Rows.Count; row++) {
-                int column = GetNativeTableRowStartColumn(layout, row);
-                foreach (WordTableCell cell in layout.Rows[row]) {
-                    if (IsNativeHorizontalMergeContinuation(cell)) continue;
-                    int span = GetNativeCellColumnSpan(cell);
-                    if (!IsNativeVerticalMergeContinuation(cell)) {
-                        var resolved = GetNativeTableCellStyleDefaults(table, defaults, row, column, span,
-                            columns, style.HeaderRowCount, footerStart);
-                        if (resolved.CellFill.HasValue) fills[(row, column)] = resolved.CellFill.Value;
-                    }
-                    column += span;
-                }
-            }
-            if (fills.Count > 0) style.CellFills = fills;
-        }
     }
 }

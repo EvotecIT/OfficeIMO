@@ -160,7 +160,9 @@ public static partial class ExcelHtmlConverterExtensions {
         }
 
         bool firstRowIsHeader = options.HeaderMode == ExcelHtmlHeaderMode.FirstRow;
-        body.Append("<table class=\"officeimo-table\">");
+        body.Append(options.ApplyCellPresentation
+            ? "<table class=\"officeimo-table\" style=\"border-collapse:collapse\">"
+            : "<table class=\"officeimo-table\">");
         if (firstRowIsHeader) {
             body.Append("<thead>");
         } else {
@@ -168,7 +170,7 @@ public static partial class ExcelHtmlConverterExtensions {
         }
 
         SemanticCellPresentation? presentation = options.ApplyCellPresentation
-            ? SemanticCellPresentation.TryCreate(sheet, firstRow, firstColumn, maxRows, maxColumns)
+            ? SemanticCellPresentation.TryCreate(sheet, firstRow, firstColumn, maxRows, maxColumns, diagnostics)
             : null;
         // A first row that the sheet itself styles (a filled band or a merged title) keeps that
         // look; a plain first row keeps the theme's header band.
@@ -198,12 +200,12 @@ public static partial class ExcelHtmlConverterExtensions {
                 if (mergeCursor.IsCoveredCell(cellColumn)) {
                     continue;
                 }
+                bool isMergedCell = mergeCursor.TryGetOrigin(cellColumn, out ExcelMergeExportRange merge);
 
                 bool hasSnapshot = sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelNativeCellValueInfo? snapshot) && snapshot != null;
                 string cellText = ReadCellText(sheet, cellRow, cellColumn, options.EmptyCellText);
                 ExcelCellStyleInfo cellStyle;
                 string? boxCss = null;
-                bool suppressFontColor = false;
                 if (presentation != null && presentation.TryGetCell(cellRow, cellColumn, out ExcelVisualCell visualCell)) {
                     cellStyle = visualCell.Style;
                     if (!string.IsNullOrEmpty(visualCell.Text)) cellText = visualCell.Text;
@@ -213,19 +215,21 @@ public static partial class ExcelHtmlConverterExtensions {
                     presentation.TryGetDataBar(cellRow, cellColumn, out ExcelVisualConditionalDataBar dataBar);
                     boxCss = CreateCellBoxCss(cellStyle, visualCell.ValueKind, dataBar);
                     bool hasFill = ResolveCellFillHex(cellStyle) != null;
-                    suppressFontColor = IsInvisibleOnPage(cellStyle, hasFill);
                     // An unfilled first-row cell keeps the sheet's own look instead of the theme's header band,
                     // so a worksheet title row does not turn into a grey bar.
                     if (tag == "th" && !hasFill && firstRowIsStyledBySheet) boxCss = boxCss == null ? "background-color:transparent" : boxCss + ";background-color:transparent";
                 } else {
                     cellStyle = sheet.Cell(cellRow, cellColumn).GetStyle();
+                    if (options.ApplyCellPresentation && isMergedCell) cellStyle = ResolveFallbackMergedBorder(sheet, merge, cellStyle, diagnostics);
+                    if (options.ApplyCellPresentation) boxCss = CreateCellBoxCss(cellStyle, null, null);
                 }
+                if (options.ApplyCellPresentation) ReportCssBorderFidelity(cellStyle.Border, sheet.Name + "!" + ExcelA1.CellReference(cellRow, cellColumn), diagnostics);
                 IReadOnlyList<ExcelRichTextRun> richTextRuns = sheet.Cell(cellRow, cellColumn).GetRichText();
                 body.Append('<').Append(tag)
                     .Append(" data-officeimo-cell=\"")
                     .Append(OfficeHtmlText.EscapeAttribute(ExcelA1.CellReference(cellRow, cellColumn)))
                     .Append('"');
-                if (mergeCursor.TryGetOrigin(cellColumn, out ExcelMergeExportRange merge)) {
+                if (isMergedCell) {
                     AppendMergeAttributes(body, merge);
                 }
 
@@ -233,7 +237,7 @@ public static partial class ExcelHtmlConverterExtensions {
                     body.Append(" scope=\"col\"");
                 }
 
-                bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0, boxCss, suppressFontColor);
+                bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0, boxCss);
 
                 if (hasSnapshot) {
                     ExcelNativeCellValueInfo cellSnapshot = snapshot!;

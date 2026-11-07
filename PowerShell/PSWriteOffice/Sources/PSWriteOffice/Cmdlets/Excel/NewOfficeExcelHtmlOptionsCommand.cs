@@ -60,7 +60,8 @@ public sealed class NewOfficeExcelHtmlOptionsCommand : PSCmdlet {
             ExportProfile = Profile == OfficeExcelHtmlProfile.VisualReview ? OfficeIMO.Excel.Html.ExcelHtmlExportProfile.VisualReview : OfficeIMO.Excel.Html.ExcelHtmlExportProfile.SemanticTables,
         };
         options.DocumentOutput.Title = Title;
-        options.DocumentOutput.IncludeDefaultStyles = !NoDefaultStyles;
+        options.DocumentOutput.IncludeDefaultStyles = Theme != null;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(NoDefaultStyles))) options.DocumentOutput.IncludeDefaultStyles = !NoDefaultStyles.IsPresent;
         if (Theme != null) options.DocumentOutput.DocumentTheme = Theme.Resolve(OfficeTheme.FromDocument);
         if (MaxRowsPerSheet.HasValue) options.MaxRowsPerSheet = MaxRowsPerSheet.Value;
         if (EmptyCellText != null) options.EmptyCellText = EmptyCellText;

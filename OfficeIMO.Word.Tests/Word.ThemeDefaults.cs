@@ -75,9 +75,9 @@ public partial class Word {
     }
 
     [Fact]
-    public void AddTable_DefaultStyleUsesThemeHeaderAndHorizontalRules() {
+    public void AddTable_ExplicitModernStyleUsesThemeHeaderAndHorizontalRules() {
         using WordDocument document = WordDocument.Create();
-        WordTable table = document.AddTable(3, 3);
+        WordTable table = document.AddTable(3, 3, WordTableStyle.OfficeIMOModern);
         Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
 
         Style style = GetStyleDefinition(document, "OfficeIMOModern");
@@ -102,7 +102,7 @@ public partial class Word {
     [InlineData("cell")]
     [InlineData("before")]
     [InlineData("after")]
-    public void NewTableOwnersSaveTheSharedModernStyle(string owner) {
+    public void NewTableOwnersSavePlainGridWithoutRepeatingHeaders(string owner) {
         using WordDocument document = WordDocument.Create();
         _ = document.PageSetup.Header;
         WordTable table = owner switch {
@@ -116,7 +116,7 @@ public partial class Word {
             _ => throw new ArgumentOutOfRangeException(nameof(owner))
         };
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Header";
-        Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
+        Assert.Equal(WordTableStyle.TableGrid, table.Style);
         using var stream = new MemoryStream(document.ToBytes());
         using var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(stream, false);
         IEnumerable<Table> saved = owner switch {
@@ -126,11 +126,10 @@ public partial class Word {
         };
         Table[] savedTables = saved.ToArray();
         Assert.Contains(savedTables, item => item.InnerText == "Header");
-        Assert.All(savedTables, item => Assert.Equal("OfficeIMOModern", item.GetFirstChild<TableProperties>()!.TableStyle!.Val!.Value));
+        Assert.All(savedTables, item => Assert.Equal("TableGrid", item.GetFirstChild<TableProperties>()!.TableStyle!.Val!.Value));
         Assert.All(savedTables, item => {
             TableRow[] rows = item.Elements<TableRow>().ToArray();
-            Assert.NotNull(rows[0].TableRowProperties?.GetFirstChild<TableHeader>());
-            Assert.All(rows.Skip(1), row => Assert.Null(row.TableRowProperties?.GetFirstChild<TableHeader>()));
+            Assert.All(rows, row => Assert.Null(row.TableRowProperties?.GetFirstChild<TableHeader>()));
         });
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(package));
     }
@@ -138,7 +137,7 @@ public partial class Word {
     [Fact]
     public void ModernTableHeaderRepeatCanBeDisabledAndStaysDisabledAfterLoad() {
         using WordDocument source = WordDocument.Create();
-        WordTable table = source.AddTable(2, 2);
+        WordTable table = source.AddTable(2, 2, WordTableStyle.OfficeIMOModern);
         Assert.True(table.RepeatHeaderRowAtTheTopOfEachPage);
         table.RepeatHeaderRowAtTheTopOfEachPage = false;
         Assert.False(table.RepeatAsHeaderRowAtTheTopOfEachPage);

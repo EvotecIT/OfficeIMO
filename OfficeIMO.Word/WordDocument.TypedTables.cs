@@ -59,7 +59,7 @@ public partial class WordDocument {
     private WordTable CreateOptionsTable(int rows, int columns, OfficeTableOptions? options) {
         var wordOptions = options as WordTableOptions;
         if (options?.Caption != null) AddParagraph(options.Caption);
-        var table = AddTable(rows, columns, wordOptions?.Style ?? WordTableStyle.OfficeIMOModern);
+        var table = AddTable(rows, columns, wordOptions?.Style ?? WordTableStyle.TableGrid);
         if (wordOptions?.LayoutMode is { } layoutMode) table.LayoutMode = layoutMode;
         table.Title = options?.Name;
         bool headers = options?.IncludeHeaders ?? true;

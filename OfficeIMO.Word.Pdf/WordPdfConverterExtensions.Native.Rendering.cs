@@ -1351,17 +1351,6 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static bool TryGetNativeRunColor(W.RunProperties? runProperties, out global::OfficeIMO.OfficeColor? color) {
-            W.Color? value = runProperties?.GetFirstChild<W.Color>();
-            if (value == null) {
-                color = null;
-                return false;
-            }
-
-            color = ParseNativeColor(value.Val?.Value);
-            return true;
-        }
-
         private static void AddNativeRunText(PdfCore.PdfParagraph builder, string text, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
             int currentTabIndex = tabIndex;
             AddNativeTextSegments(

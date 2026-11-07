@@ -5,6 +5,12 @@
 
 Word-to-PDF conversion and paginated page images live in this adapter. It references the Word and PDF engines. [PDF-to-Word reconstruction](../OfficeIMO.Pdf.Word/README.md) lives in `OfficeIMO.Pdf.Word`.
 
+Tables retain their source borders, fills, alignment, margins and header rules,
+including theme-backed colors. A familiar Word style ID does not select a PDF
+presentation preset. `WordImageExportOptions.LayoutOptions` uses the same source
+layout as PDF export. Set `PdfOptions.DefaultTableStyle` explicitly to style
+otherwise unstyled tables during conversion.
+
 ## Legacy DOC to PDF
 
 Load binary DOC with the normal Word lifecycle, then convert the source document. Set `FailOnLoss` on the load options to reject known import loss before PDF rendering:

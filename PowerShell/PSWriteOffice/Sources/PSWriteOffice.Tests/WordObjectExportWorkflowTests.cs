@@ -12,9 +12,10 @@ public sealed class WordObjectExportWorkflowTests : IDisposable {
     public void Dispose() => Directory.Delete(_root, true);
 
     [Theory]
-    [InlineData(true, true)]
-    [InlineData(false, false)]
-    public void ObjectsBecomeAnEditableModernTableWithOptionalHeader(bool pipeline, bool header) {
+    [InlineData(true, true, false)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, true)]
+    public void ObjectsBecomeEditableTablesWithOptionalHeadersAndOptInModernStyle(bool pipeline, bool header, bool modern) {
         string path = Path.Combine(_root, "Services [current].docx");
         using var runspace = Open(path);
         using var shell = Shell(runspace);
@@ -24,7 +25,7 @@ public sealed class WordObjectExportWorkflowTests : IDisposable {
                 [pscustomobject]@{ Name='Directory'; Count=2; Tags=@('Core','Identity') },
                 [pscustomobject]@{ Name='Messaging'; Count=3; Tags=@('Mail') }
             )
-            """ + "\n" + command + " -Path $target -Title 'Services' -PassThru" + (header ? "" : " -NoHeader"));
+            """ + "\n" + command + " -Path $target -Title 'Services' -PassThru" + (header ? "" : " -NoHeader") + (modern ? " -Style OfficeIMOModern" : ""));
         var output = shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
         Assert.Equal(path, Assert.IsType<FileInfo>(Assert.Single(output).BaseObject).FullName);
@@ -32,7 +33,7 @@ public sealed class WordObjectExportWorkflowTests : IDisposable {
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal("Services", Assert.Single(saved.Paragraphs).Text);
         WordTable table = Assert.Single(saved.Tables);
-        Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
+        Assert.Equal(modern ? WordTableStyle.OfficeIMOModern : WordTableStyle.TableGrid, table.Style);
         Assert.Equal(header, table.RepeatHeaderRowAtTheTopOfEachPage);
         Assert.Equal(header ? 3 : 2, table.Rows.Count);
         int firstDataRow = header ? 1 : 0;

@@ -4,6 +4,22 @@ using Xunit;
 
 namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_VisualTheme_Tests {
+        [Fact]
+        public void MarkdownHtmlTableStylingRequiresAnExplicitPresetOrTheme() {
+            var document = MarkdownDocument.Parse("| Item | Count |\n| --- | ---: |\n| A | 12 |\n");
+            string plain = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
+            Assert.Contains("<table", plain);
+            Assert.DoesNotContain("<style", plain);
+
+            foreach (var options in new[] {
+                new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document, Style = MarkdownHtmlStyle.Clean },
+                new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document, ApplyDefaultTheme = true },
+                new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document, Theme = MarkdownVisualTheme.Report() }
+            }) {
+                Assert.Contains("<style", document.ToHtml(options));
+            }
+        }
+
         [Theory]
         [InlineData("#abc", "AABBCC")]
         [InlineData("aabbcc", "AABBCC")]

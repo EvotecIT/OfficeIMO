@@ -110,7 +110,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append('>');
         if (options.IncludeSlideHeadings) body.Append("<h2>Slide ").Append(visibleIndex.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
 
-        AppendSemanticShapes(body, slide, options);
+        AppendSemanticShapes(body, slide, options, diagnostics);
 
         AppendSlideFeatureInventory(body, slide, options, diagnostics);
         AppendExtractionProof(body, extractionProof, options);
@@ -685,60 +685,6 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
 
         body.Append("</div>");
-    }
-
-    private static void AppendTable(StringBuilder body, PptCore.PowerPointTable table, bool includeShapeMetadata = false) {
-        body.Append("<table class=\"officeimo-table\"");
-        if (includeShapeMetadata) {
-            AppendSemanticShapeAttributes(body, table, "table");
-        }
-
-        body.Append("><tbody>");
-        IReadOnlyList<PptCore.PowerPointTableRow> rowItems = table.Rows;
-        for (int rowIndex = 0; rowIndex < rowItems.Count; rowIndex++) {
-            PptCore.PowerPointTableRow row = rowItems[rowIndex];
-            body.Append("<tr>");
-            IReadOnlyList<PptCore.PowerPointTableCell> cells = row.Cells;
-            for (int columnIndex = 0; columnIndex < cells.Count; columnIndex++) {
-                PptCore.PowerPointTableCell cell = cells[columnIndex];
-                if (cell.IsMergedCell) {
-                    continue;
-                }
-
-                body.Append("<td");
-                (int rows, int columns) = cell.Merge;
-                if (rows > 1) {
-                    body.Append(" rowspan=\"").Append(rows.ToString(CultureInfo.InvariantCulture)).Append('"');
-                }
-
-                if (columns > 1) {
-                    body.Append(" colspan=\"").Append(columns.ToString(CultureInfo.InvariantCulture)).Append('"');
-                }
-
-                body.Append('>');
-                if (includeShapeMetadata) {
-                    IReadOnlyList<DocumentFormat.OpenXml.Drawing.TableCellTextStyle> tableTextStyles =
-                        PptCore.PowerPointSlideImageRenderer.ResolveTableCellTextStylesForExport(
-                            table, rowIndex, columnIndex);
-                    if (RequiresSemanticTableCellContent(cell, tableTextStyles)) {
-                        DocumentFormat.OpenXml.Drawing.TextBody? textBody = cell.Cell.TextBody;
-                        DocumentFormat.OpenXml.OpenXmlCompositeElement? masterTextStyle = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?
-                            .SlideMaster?.TextStyles?.OtherStyle;
-                        AppendSemanticParagraphContent(
-                            body, cell.Paragraphs, textBody?.ListStyle, masterTextStyle, tableTextStyles);
-                    } else {
-                        body.Append(OfficeHtmlText.Escape(NormalizeText(cell.Text)));
-                    }
-                } else {
-                    body.Append(OfficeHtmlText.Escape(NormalizeText(cell.Text)));
-                }
-                body.Append("</td>");
-            }
-
-            body.Append("</tr>");
-        }
-
-        body.Append("</tbody></table>");
     }
 
     private static void AppendExtractionProof(StringBuilder body, string? extractionProof, PowerPointHtmlExportOptions options) {

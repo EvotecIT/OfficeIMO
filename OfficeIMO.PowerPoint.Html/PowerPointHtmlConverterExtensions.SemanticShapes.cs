@@ -5,7 +5,7 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Html;
 
 public static partial class PowerPointHtmlConverterExtensions {
-    private static void AppendSemanticShapes(StringBuilder body, PptCore.PowerPointSlide slide, PowerPointHtmlExportOptions options) {
+    private static void AppendSemanticShapes(StringBuilder body, PptCore.PowerPointSlide slide, PowerPointHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         foreach (PptCore.PowerPointShape shape in slide.Shapes.OrderBy(shape => shape.DrawingOrder)) {
             if (!options.IncludeHiddenShapes && shape.Hidden) {
                 continue;
@@ -23,7 +23,7 @@ public static partial class PowerPointHtmlConverterExtensions {
                 AppendSemanticParagraphContent(body, paragraphs, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
                 body.Append("</p>");
             } else if (shape is PptCore.PowerPointTable table && options.IncludeTables) {
-                AppendTable(body, table, includeShapeMetadata: true);
+                AppendTable(body, table, includeShapeMetadata: true, diagnostics);
             }
         }
     }

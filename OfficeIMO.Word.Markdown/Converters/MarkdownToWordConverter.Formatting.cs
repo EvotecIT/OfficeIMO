@@ -82,16 +82,15 @@ namespace OfficeIMO.Word.Markdown {
             styles.Append(style);
         }
 
-        private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.MarkdownColumnAlignment alignment) {
+        private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.MarkdownColumnAlignment alignment, MarkdownWordExportOptions options) {
             if (quoteDepth > 0) {
                 paragraph.IndentationBefore = OfficeLength.Points(IndentTwipsPerLevel * quoteDepth / 20D);
-                // A quote reads as a quote, not just an indent: a rule on the left in the theme's border colour.
-                paragraph.Borders.LeftStyle = WordBorderStyle.Single;
-                paragraph.Borders.LeftColorValue = OfficeTheme.Default.TableStyle.BorderColor.IsThemeRole
-                    ? OfficeTheme.Default.TableStyle.BorderColor.Resolve(OfficeTheme.Default).ToRgbHex()
-                    : OfficeTheme.Default.TableStyle.BorderColor.ToRgbHex();
-                paragraph.Borders.LeftSize = OfficeLength.Points(2.25D);
-                paragraph.Borders.LeftSpace = OfficeLength.Points(8);
+                if (ResolveTheme(options) is { } theme) {
+                    paragraph.Borders.LeftStyle = WordBorderStyle.Single;
+                    paragraph.Borders.LeftColorValue = theme.PaletteSnapshot.Border.ToRgbHex();
+                    paragraph.Borders.LeftSize = OfficeLength.Points(2.25D);
+                    paragraph.Borders.LeftSpace = OfficeLength.Points(8);
+                }
             }
 
             ApplyAlignment(alignment, paragraph);

@@ -21,6 +21,14 @@ namespace OfficeIMO.Word {
             }
             return _wordTableCell._tableCellProperties!;
         }
+        /// <summary>A literal color replaces theme color references, as Word's direct color selection does.</summary>
+        private static void SetLiteralColor(BorderType border, string? value) {
+            border.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+            border.ThemeColor = null;
+            border.ThemeTint = null;
+            border.ThemeShade = null;
+        }
+
         private TableCellBorders? BordersOrNull => TcPr?.TableCellBorders;
         private TableCellBorders EnsureBorders() {
             var pr = EnsurePr();
@@ -66,11 +74,10 @@ namespace OfficeIMO.Word {
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? LeftColorValue {
             get {
-                return BordersOrNull?.LeftBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
+                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.LeftBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
-                var lb = EnsureLeft();
-                lb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+                SetLiteralColor(EnsureLeft(), value);
             }
         }
 
@@ -125,11 +132,10 @@ namespace OfficeIMO.Word {
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? RightColorValue {
             get {
-                return BordersOrNull?.RightBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
+                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.RightBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
-                var rb = EnsureRight();
-                rb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+                SetLiteralColor(EnsureRight(), value);
             }
         }
 
@@ -186,11 +192,10 @@ namespace OfficeIMO.Word {
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? TopColorValue {
             get {
-                return BordersOrNull?.TopBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
+                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.TopBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
-                var tb = EnsureTop();
-                tb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+                SetLiteralColor(EnsureTop(), value);
             }
         }
 
@@ -250,11 +255,10 @@ namespace OfficeIMO.Word {
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? BottomColorValue {
             get {
-                return BordersOrNull?.BottomBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
+                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.BottomBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
-                var bb = EnsureBottom();
-                bb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+                SetLiteralColor(EnsureBottom(), value);
             }
         }
 
@@ -316,11 +320,10 @@ namespace OfficeIMO.Word {
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? InsideHorizontalColorValue {
             get {
-                return BordersOrNull?.InsideHorizontalBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
+                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.InsideHorizontalBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
-                var hb = EnsureInsideHorizontal();
-                hb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+                SetLiteralColor(EnsureInsideHorizontal(), value);
             }
         }
 
@@ -382,11 +385,10 @@ namespace OfficeIMO.Word {
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? InsideVerticalColorValue {
             get {
-                return BordersOrNull?.InsideVerticalBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
+                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.InsideVerticalBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
-                var vb = EnsureInsideVertical();
-                vb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+                SetLiteralColor(EnsureInsideVertical(), value);
             }
         }
 
@@ -445,11 +447,10 @@ namespace OfficeIMO.Word {
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? StartColorValue {
             get {
-                return BordersOrNull?.StartBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
+                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.StartBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
-                var sb = EnsureStart();
-                sb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+                SetLiteralColor(EnsureStart(), value);
             }
         }
 
@@ -508,11 +509,10 @@ namespace OfficeIMO.Word {
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? EndColorValue {
             get {
-                return BordersOrNull?.EndBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
+                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.EndBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
-                var eb = EnsureEnd();
-                eb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+                SetLiteralColor(EnsureEnd(), value);
             }
         }
 
@@ -578,11 +578,10 @@ namespace OfficeIMO.Word {
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? TopLeftToBottomRightColorValue {
             get {
-                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
+                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.TopLeftToBottomRightCellBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
-                var d = EnsureTLBR();
-                d.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+                SetLiteralColor(EnsureTLBR(), value);
             }
         }
 
@@ -639,11 +638,10 @@ namespace OfficeIMO.Word {
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? TopRightToBottomLeftColorValue {
             get {
-                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
+                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.TopRightToBottomLeftCellBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
-                var d = EnsureTRBL();
-                d.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
+                SetLiteralColor(EnsureTRBL(), value);
             }
         }
 
