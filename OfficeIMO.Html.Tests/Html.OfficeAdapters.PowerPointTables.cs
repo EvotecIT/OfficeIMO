@@ -505,7 +505,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.Equal("Header", cells[0].TextContent);
         Assert.Contains("background-color:#123456", cells[0].GetAttribute("style"));
         Assert.Contains("border-bottom:3pt solid #FFFFFF", cells[0].GetAttribute("style")!, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("background-color:#00000000", cells[^1].GetAttribute("style"));
+        Assert.Contains("background-color:#00000000", cells[cells.Length - 1].GetAttribute("style"));
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Message.Contains("4097 rows", StringComparison.Ordinal));
         Assert.Null(readOnlyPart.TableStylesPart);
         Assert.Equal(sourceTable, readOnly.Slides[0].Tables.Single().TableElement.OuterXml);
