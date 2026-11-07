@@ -234,6 +234,38 @@ public sealed class EarlyBiffLayoutTests {
         Assert.Null(Assert.Single(worksheet.Descendants(Ns + "row")).Attribute("hidden"));
     }
 
+    [Theory]
+    [InlineData("absent", 15d, false)]
+    [InlineData("zero-visible", 0d, false)]
+    [InlineData("zero-hidden", 0d, true)]
+    [InlineData("positive-visible", 18d, false)]
+    [InlineData("positive-hidden", 18d, true)]
+    public void ColumnDefaultsRetainAValidDefaultHeightAndVisibility(string source, double height, bool hidden) {
+        using var input = new MemoryStream(source == "absent" ? Array.Empty<byte>()
+            : CreateWorksheet(4, (ushort)(height * 20), hiddenByDefault: hidden));
+        using ExcelDocument document = source == "absent" ? ExcelDocument.Create() : ExcelDocument.Load(input);
+        ExcelSheet sheet = source == "absent" ? document.AddSheet("Data") : document.Sheets[0];
+        if (source == "absent") {
+            sheet.Cell(1, 1).SetValue(42.25d);
+            Assert.Null(sheet.DefaultRowHeight);
+        }
+
+        sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(13.25d));
+
+        using var destination = new MemoryStream();
+        XDocument worksheet = SaveWorksheet(document, destination);
+        XElement format = worksheet.Root!.Element(Ns + "sheetFormatPr")!;
+        Assert.Equal(height, (double)format.Attribute("defaultRowHeight")!);
+        Assert.Equal(hidden, (bool?)format.Attribute("zeroHeight") ?? false);
+        Assert.Equal(13.25d, (double)format.Attribute("defaultColWidth")!);
+        destination.Position = 0;
+        using ExcelDocument reopened = ExcelDocument.Load(destination);
+        ExcelSheet saved = reopened.Sheets[0];
+        Assert.Equal(OfficeLength.Points(height), saved.DefaultRowHeight!.Value.ToLength(saved));
+        Assert.Equal(hidden, saved.DefaultRowsHidden);
+        Assert.Equal(42.25d, saved.Cell(1, 1).GetValue<double>());
+    }
+
     private static XDocument SaveWorksheet(ExcelDocument document, MemoryStream destination, bool allowLoss = false) {
         document.Save(destination, new ExcelSaveOptions { AllowLoss = allowLoss, ValidateOpenXml = true });
         destination.Position = 0;

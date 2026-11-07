@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using DocumentFormat.OpenXml;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,9 +16,8 @@ namespace OfficeIMO.Excel {
 
             EnsureDestinationFileWritable(filePath);
             EnsureDirectoryWritable(filePath);
-            byte[] bytes = ToBytes(format, options);
+            byte[] bytes = PrepareSaveCopyBytes(filePath, format, options);
             OfficeFileCommit.WriteAllBytes(filePath, bytes);
-            FinalizeSaveCopyPackageType(filePath, format);
         }
 
         /// <summary>Asynchronously saves an independent copy without changing this workbook's associated destination.</summary>
@@ -31,10 +31,9 @@ namespace OfficeIMO.Excel {
             EnsureDestinationFileWritable(filePath);
             EnsureDirectoryWritable(filePath);
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] bytes = ToBytes(format, options);
+            byte[] bytes = PrepareSaveCopyBytes(filePath, format, options);
             await OfficeFileCommit.WriteAllBytesAsync(filePath, bytes, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
-            FinalizeSaveCopyPackageType(filePath, format);
         }
 
         private static ExcelFileFormat GetSaveCopyFormat(string filePath) {
@@ -49,17 +48,25 @@ namespace OfficeIMO.Excel {
             throw new NotSupportedException("SaveCopy supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xls, and .xlsb destinations.");
         }
 
-        private static void FinalizeSaveCopyPackageType(string filePath, ExcelFileFormat format) {
+        private byte[] PrepareSaveCopyBytes(string filePath, ExcelFileFormat format, ExcelSaveOptions? options) {
             if (format != ExcelFileFormat.Xlsx) {
-                return;
+                return ToBytes(format, options);
             }
 
+            EnsureWritableForSave();
+            SpreadsheetDocumentType originalType = _spreadSheetDocument.DocumentType;
+            bool containsMacroContent = HasMacros
+                || originalType == SpreadsheetDocumentType.MacroEnabledWorkbook
+                || originalType == SpreadsheetDocumentType.MacroEnabledTemplate;
+            EnsureMacroCompatibleCopy(containsMacroContent, filePath);
             try {
-                EnsureMacroCompatibleCopy(filePath, filePath);
-                NormalizeTemplateWorkbookContentType(filePath);
-            } catch {
-                OfficeFileCommit.DeleteIfExists(filePath);
-                throw;
+                AlignSpreadsheetDocumentTypeWithFilePath(filePath);
+                return ToBytes(format, options);
+            } finally {
+                if (_spreadSheetDocument.DocumentType != originalType) {
+                    ChangeSpreadsheetDocumentType(originalType);
+                    MarkPackageDirty();
+                }
             }
         }
     }

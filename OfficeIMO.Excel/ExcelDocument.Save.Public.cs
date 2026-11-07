@@ -360,9 +360,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Encodes the workbook in the selected physical format.</summary>
         internal byte[] ToBytes(ExcelFileFormat format, ExcelSaveOptions? options = null) {
-            using var stream = new MemoryStream();
-            SaveToStreamCore(stream, format, options);
-            return stream.ToArray();
+            ExcelSaveOptions settings = options?.Clone() ?? new ExcelSaveOptions();
+            settings.Format = format;
+            return ToBytes(settings);
         }
 
 

@@ -113,7 +113,7 @@ namespace OfficeIMO.Excel {
                 return sheetFormat;
             }
 
-            sheetFormat = new SheetFormatProperties();
+            sheetFormat = new SheetFormatProperties { DefaultRowHeight = GetDefaultRowHeightPoints() };
             Columns? columns = worksheet.GetFirstChild<Columns>();
             if (columns != null) {
                 worksheet.InsertBefore(sheetFormat, columns);

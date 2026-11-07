@@ -102,6 +102,7 @@ internal sealed partial class EarlyBiffWorkbook {
         }
 
         if (_model.Sheets.Count == 0) throw new InvalidDataException("The early BIFF workbook contains no supported worksheets.");
+        ObserveDefaultFontMetrics();
         if (_formulaOmitted) AddLoss("early-biff-formula-cache", "Formula", "Stored formula results were imported as values. Source expressions were omitted.");
         if (_unprojected.Count != 0) {
             string identifiers = string.Join(", ", _unprojected.OrderBy(static value => value).Take(24).Select(static value => $"0x{value:X4}"));

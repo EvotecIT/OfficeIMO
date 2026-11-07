@@ -1,9 +1,37 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel.Legacy;
 
 internal sealed partial class EarlyBiffWorkbook {
+    private void ObserveDefaultFontMetrics() {
+        OfficeFontInfo? baseline = null;
+        foreach (LegacySpreadsheetSheet sheet in _model.Sheets) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (sheet.StyleWorkbook?.Fonts.Count is not > 0) continue;
+            LegacyXlsFont font = sheet.StyleWorkbook.Fonts[0];
+            OfficeFontStyle face = OfficeFontStyle.Regular;
+            if (font.Bold) face |= OfficeFontStyle.Bold;
+            if (font.Italic) face |= OfficeFontStyle.Italic;
+            var current = new OfficeFontInfo(font.Name, font.Size ?? OfficeFontInfo.Default.Size, face);
+            if (baseline == null) {
+                baseline = current;
+                continue;
+            }
+            OfficeFontInfo first = baseline.Value;
+            if (string.Equals(first.FamilyName, current.FamilyName, StringComparison.OrdinalIgnoreCase)
+                && first.Size.Equals(current.Size) && first.Face.Equals(current.Face)) continue;
+            const string code = "early-biff-default-font-metrics";
+            const string message = "This worksheet uses different default-font metrics from the workbook projection. Column character units were retained, but physical widths may differ.";
+            if (message.Length > _limits.MaxTextCharacters - _textCharacters) throw new InvalidDataException("Early BIFF input exceeds the configured text limit.");
+            _textCharacters += message.Length;
+            _model.Findings.Add(new OfficeCompatibilityFinding(code, "Layout", message, OfficeCompatibilityState.Approximated,
+                OfficeCompatibilitySeverity.Warning, OfficeCompatibilityImpact.Visual, true, sheet.Name));
+            _findingCodes.Add(code);
+        }
+    }
+
     private LegacyXlsWorkbook ReadStyles(List<Record> records, ushort bof, Encoding encoding, string[] formats) {
         var workbook = new LegacyXlsWorkbook();
         // Excel 2-4 uses the first sixteen entries of the shared standard palette.
