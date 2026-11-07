@@ -24,7 +24,7 @@ internal static partial class CsvParser
 
         private readonly CsvParsingSettings _options;
         private readonly Encoding _encoding;
-        private Dictionary<string, string>? _stringCache;
+        private CsvStringCache? _stringCache;
         private readonly byte _delimiter;
         private readonly byte _commentCharacter;
         private readonly Vector256<byte> _delimiterVector;
@@ -377,7 +377,7 @@ internal static partial class CsvParser
             }
 
             _disposed = true;
-            Dictionary<string, string>? cache = Interlocked.Exchange(ref _stringCache, null);
+            CsvStringCache? cache = Interlocked.Exchange(ref _stringCache, null);
             try
             {
                 _fallback?.Dispose();

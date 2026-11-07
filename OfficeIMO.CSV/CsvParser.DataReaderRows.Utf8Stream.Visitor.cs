@@ -211,7 +211,7 @@ internal static partial class CsvParser
         }
 
         /// <summary>Completes requested per-read string sharing before exposing the row.</summary>
-        internal void InternFields(Dictionary<string, string>? cache)
+        internal void InternFields(CsvStringCache? cache)
         {
             if (cache is null) return;
             int count = SourceColumnCount > 0 ? Math.Min(FieldCount, SourceColumnCount) : FieldCount;
