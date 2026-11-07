@@ -20,6 +20,33 @@ internal enum OfficeLineBreakClass : byte {
 internal static partial class OfficeUnicodeTextData {
     internal const string UnicodeVersion = "16.0.0";
 
+    private static readonly byte[] AsciiBidiClassValues = {
+        9, 9, 9, 9, 9, 9, 9, 9, 9, 11, 10, 11, 12, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 10, 10, 10, 11, 12, 13, 13, 5, 5, 5, 13, 13, 13, 13, 13, 4, 7, 4, 7, 7,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 7, 13, 13, 13, 13, 13, 13, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 13, 13, 13, 13,
+        13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 13, 13, 13, 13, 9
+    };
+
+    private static readonly byte[] AsciiLineBreakValues = {
+        4, 4, 4, 4, 4, 4, 4, 4, 4, 13, 3, 1, 1, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+        4, 4, 4, 4, 4, 4, 4, 4, 10, 19, 23, 31, 27, 26, 31, 23, 22, 18, 31, 27, 24, 15, 24, 28,
+        25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 24, 24, 31, 31, 31, 19, 31, 31, 31, 31, 31, 31, 31, 31,
+        31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 22, 27, 18, 31, 31,
+        31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31,
+        31, 31, 31, 22, 13, 17, 31, 4
+    };
+
+    private static readonly byte[] AsciiEastAsianWideValues = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    };
+
     private static readonly int[] BidiClassStarts = {
         0x0, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0x1C, 0x1F, 0x20,
         0x21, 0x23, 0x26, 0x2B, 0x2C, 0x2D, 0x2E, 0x30, 0x3A, 0x3B,
@@ -826,14 +853,20 @@ internal static partial class OfficeUnicodeTextData {
     };
 
     internal static OfficeBidiClass GetBidiClass(int scalar) =>
-        (OfficeBidiClass)BidiClassValues[FindRange(BidiClassStarts, scalar)];
+        (uint)scalar < 128
+            ? (OfficeBidiClass)AsciiBidiClassValues[scalar]
+            : (OfficeBidiClass)BidiClassValues[FindRange(BidiClassStarts, scalar)];
 
     internal static OfficeLineBreakClass GetLineBreakClass(int scalar) =>
-        (OfficeLineBreakClass)LineBreakValues[FindRange(LineBreakStarts, scalar)];
+        (uint)scalar < 128
+            ? (OfficeLineBreakClass)AsciiLineBreakValues[scalar]
+            : (OfficeLineBreakClass)LineBreakValues[FindRange(LineBreakStarts, scalar)];
 
     /// <summary>East_Asian_Width is Fullwidth, Wide or Halfwidth.</summary>
     internal static bool IsEastAsianWide(int scalar) =>
-        EastAsianWideValues[FindRange(EastAsianWideStarts, scalar)] != 0;
+        ((uint)scalar < 128
+            ? AsciiEastAsianWideValues[scalar]
+            : EastAsianWideValues[FindRange(EastAsianWideStarts, scalar)]) != 0;
 
     internal static bool IsExtendedPictographic(int scalar) =>
         ExtendedPictographicValues[FindRange(ExtendedPictographicStarts, scalar)] != 0;
