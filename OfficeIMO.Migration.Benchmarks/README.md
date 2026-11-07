@@ -33,10 +33,10 @@ dotnet build OfficeIMO.Migration.Benchmarks/OfficeIMO.Migration.Benchmarks.cspro
 Run a small smoke case before the full matrix:
 
 ```powershell
-./Build/Benchmarks/Run-MigrationBenchmarks.ps1 -Profile Word69 -Scale Small -Plan
-./Build/Benchmarks/Run-MigrationBenchmarks.ps1 -Profile Word69 -Scale Small -WarmupCount 1 -IterationCount 3
+./Build/Benchmarks/Run-MigrationBenchmarks.ps1 -BenchmarkProfile Word69 -Scale Small -Plan
+./Build/Benchmarks/Run-MigrationBenchmarks.ps1 -BenchmarkProfile Word69 -Scale Small -WarmupCount 1 -IterationCount 3
 ./Build/Benchmarks/Run-MigrationBenchmarks.ps1
-./Build/Benchmarks/Run-MigrationBenchmarks.ps1 -Profile Dbx -Operation SearchContent
+./Build/Benchmarks/Run-MigrationBenchmarks.ps1 -BenchmarkProfile Dbx -Operation SearchContent
 ```
 
 `-BinaryRoot` selects a directory containing the workload host and the exact product

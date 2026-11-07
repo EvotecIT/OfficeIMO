@@ -245,9 +245,9 @@ Describe 'Legacy Office conversion cmdlets' {
         $lastBodyPhrase = $bodyText.IndexOf('Thank you for choosing Internet Explorer and Outlook Express 6.', [StringComparison]::Ordinal)
         $firstBodyPhrase | Should -BeGreaterThan -1
         $lastBodyPhrase | Should -BeGreaterThan $firstBodyPhrase
-        $matches = @($document | Search-OfficeDocument -Pattern 'Welcome to Outlook Express 6' -SimpleMatch -ErrorAction Stop)
-        $matches.Count | Should -BeGreaterThan 0
-        $matches.Path | Select-Object -Unique | Should -Be $source
+        $searchResults = @($document | Search-OfficeDocument -Pattern 'Welcome to Outlook Express 6' -SimpleMatch -ErrorAction Stop)
+        $searchResults.Count | Should -BeGreaterThan 0
+        $searchResults.Path | Select-Object -Unique | Should -Be $source
         (Get-FileHash -LiteralPath $source).Hash | Should -Be $sourceHash
     }
 

@@ -3,7 +3,7 @@ param(
     [string] $OutputRoot = (Join-Path $PSScriptRoot '../../Ignore/Benchmarks/Migration'),
     [string] $ModulePath = 'PSPublishModule',
     [string] $ProductSource = '',
-    [ValidateSet('Word69', 'Biff4', 'IWork09', 'Dbx', 'OfficeXml')] [string[]] $Profile = @('Word69', 'Biff4', 'IWork09', 'Dbx', 'OfficeXml'),
+    [ValidateSet('Word69', 'Biff4', 'IWork09', 'Dbx', 'OfficeXml')] [string[]] $BenchmarkProfile = @('Word69', 'Biff4', 'IWork09', 'Dbx', 'OfficeXml'),
     [ValidateSet('Small', 'Medium', 'Large')] [string[]] $Scale = @('Small', 'Medium', 'Large'),
     [ValidateSet('LoadInspect', 'ConvertSave', 'SearchContent')] [string[]] $Operation = @('LoadInspect', 'ConvertSave'),
     [ValidateRange(0, 100)] [int] $WarmupCount = 2,
@@ -21,11 +21,11 @@ foreach ($name in 'OfficeIMO.Core', 'OfficeIMO.Rtf', 'OfficeIMO.Word', 'OfficeIM
     if ($assembly.Location -ne $path) { throw "The isolated benchmark process bound $name from another directory." }
 }
 Import-Module $ModulePath -ErrorAction Stop
-$caseNames = @(foreach ($family in $Profile) { foreach ($size in $Scale) { "$family-$size" } })
+$caseNames = @(foreach ($family in $BenchmarkProfile) { foreach ($size in $Scale) { "$family-$size" } })
 $settings = @{
     Path = Join-Path $PSScriptRoot 'migration.benchmark.ps1'
     OutputRoot = $OutputRoot
-    Variable = @{ BinaryRoot = $BinaryRoot; Profiles = $Profile; Scales = $Scale; MeasureRetainedMemory = [bool] $MeasureRetainedMemory; ProductSource = $ProductSource }
+    Variable = @{ BinaryRoot = $BinaryRoot; Profiles = $BenchmarkProfile; Scales = $Scale; MeasureRetainedMemory = [bool] $MeasureRetainedMemory; ProductSource = $ProductSource }
     Case = $caseNames
     Operation = $Operation
     WarmupCount = $WarmupCount
