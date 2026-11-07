@@ -1520,3 +1520,42 @@ Unicode strings that span CONTINUE records, cached formula strings and rich-text
 shared strings keep their output, and the pooled-cache clearing contract still
 holds. The focused XLS, XLSB, reader, shared-string and mapping run passes 2,349
 cases with two skips. Excel builds for netstandard2.0, net8.0, net10.0 and net472.
+
+## Typed CSV object writes on 7 November 2026
+
+`CsvDocument.WriteObjects` and `CsvRowWriter.WriteObject` stage known invariant
+scalar properties through the existing span formatter. This avoids boxing and
+per-property formatted strings. Core owns the property schema and compiled
+getter plan, while CSV retains escaping and row output. Text-only schemas use
+the existing text projector. Getter and formatter order, captured row culture,
+large-field fallback and validation retain their existing contracts.
+
+I compared the merged `d791174e30` baseline with the same public typed benchmark,
+50,000 prepared mixed ten-column records, complete UTF-8 output and `ToArray`.
+Setup validates every property and header through both readers. The two mirrored
+run orders use twelve warmups, twelve measurements, sixteen invocations, normal
+priority and retained outliers on the M4 host with .NET 10.0.14.
+
+| Public benchmark method | ABBA baseline to candidate ms | BAAB baseline to candidate ms | Reduction |
+| --- | ---: | ---: | ---: |
+| `OfficeIMO_Write` | 9.2160 to 6.0831 | 9.2836 to 6.0949 | 34.0% / 34.3% |
+| `OfficeIMO_WriteStream` | 9.0419 to 6.0866 | 9.1823 to 6.0946 | 32.7% / 33.6% |
+
+Both paths allocate about 6.8 MB less per complete write. A separate four-shape
+comparison retains flat text-only results, 12–14% quoted-row gains and 40–44%
+large quoted-row gains. A simpler object-value routing trial lost 15–16% and was
+removed. I retain repeatable smaller gains alongside the 20% research target.
+
+The opt-in comparison is reproducible with the existing runner.
+
+```sh
+dotnet run --project OfficeIMO.CSV.Benchmarks.Modern -c Release -f net10.0 -- --filter '*CsvGeneratedModernTypedBenchmarks*' --inProcess --warmupCount 12 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove
+```
+
+The library compiles for all four targets. The final .NET 10 suites pass 8,120
+Excel cases with five existing skips and 983 CSV cases. The .NET 8 CSV suite
+passes 974 cases, and CSV tests compile for net472. The NativeAOT program also
+executes a metadata-preserved `WriteObject` call. Its new regression reproduced
+a baseline failure when property metadata tokens were unavailable. Property
+ordering now reuses the existing exception-safe helper. Reflection compatibility
+calls retain their explicit metadata-preservation requirement.
