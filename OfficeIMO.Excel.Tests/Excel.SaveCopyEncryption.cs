@@ -1,6 +1,8 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -87,18 +89,22 @@ public sealed class ExcelSaveCopyEncryptionTests {
     }
 
     [Theory]
-    [InlineData(false, ".xlsx", SpreadsheetDocumentType.Workbook)]
-    [InlineData(true, ".xlsx", SpreadsheetDocumentType.Workbook)]
-    [InlineData(false, ".xlsm", SpreadsheetDocumentType.MacroEnabledWorkbook)]
-    [InlineData(true, ".xlsm", SpreadsheetDocumentType.MacroEnabledWorkbook)]
-    [InlineData(false, ".xltx", SpreadsheetDocumentType.Template)]
-    [InlineData(true, ".xltx", SpreadsheetDocumentType.Template)]
-    [InlineData(false, ".xltm", SpreadsheetDocumentType.MacroEnabledTemplate)]
-    [InlineData(true, ".xltm", SpreadsheetDocumentType.MacroEnabledTemplate)]
-    [InlineData(false, ".xlam", SpreadsheetDocumentType.AddIn)]
-    [InlineData(true, ".xlam", SpreadsheetDocumentType.AddIn)]
-    public async Task EncryptedCopiesFinalizeTheirOwnPackageTypeAndRetainLiveSourceSheets(
-        bool asynchronous, string extension, SpreadsheetDocumentType expectedType) {
+    [InlineData(false, ".xlsx", SpreadsheetDocumentType.Workbook, true)]
+    [InlineData(true, ".xlsx", SpreadsheetDocumentType.Workbook, true)]
+    [InlineData(false, ".xlsm", SpreadsheetDocumentType.MacroEnabledWorkbook, true)]
+    [InlineData(true, ".xlsm", SpreadsheetDocumentType.MacroEnabledWorkbook, true)]
+    [InlineData(false, ".xltx", SpreadsheetDocumentType.Template, true)]
+    [InlineData(true, ".xltx", SpreadsheetDocumentType.Template, true)]
+    [InlineData(false, ".xltm", SpreadsheetDocumentType.MacroEnabledTemplate, true)]
+    [InlineData(true, ".xltm", SpreadsheetDocumentType.MacroEnabledTemplate, true)]
+    [InlineData(false, ".xlam", SpreadsheetDocumentType.AddIn, true)]
+    [InlineData(true, ".xlam", SpreadsheetDocumentType.AddIn, true)]
+    [InlineData(false, ".xltx", SpreadsheetDocumentType.Template, false)]
+    [InlineData(true, ".xltx", SpreadsheetDocumentType.Template, false)]
+    [InlineData(false, ".xlam", SpreadsheetDocumentType.AddIn, false)]
+    [InlineData(true, ".xlam", SpreadsheetDocumentType.AddIn, false)]
+    public async Task CopiesFinalizeTheirOwnPackageTypeAndRetainLiveSourceSheets(
+        bool asynchronous, string extension, SpreadsheetDocumentType expectedType, bool encrypted) {
         string directory = CreateDirectory();
         try {
             using var document = ExcelDocument.Create();
@@ -106,15 +112,23 @@ public sealed class ExcelSaveCopyEncryptionTests {
             sheet.Cell(1, 1).SetValue(42d);
             string destination = Path.Combine(directory, "copy" + extension);
 
-            await Copy(document, destination, new ExcelSaveOptions { Password = Password }, asynchronous);
+            await Copy(document, destination, new ExcelSaveOptions {
+                Password = encrypted ? Password : null,
+                DisableFastPackageWriter = !encrypted
+            }, asynchronous);
 
-            AssertEncrypted(destination, Password, 42d);
-            using (var copy = ExcelDocument.Load(destination, new ExcelLoadOptions { Password = Password })) {
+            if (encrypted) AssertEncrypted(destination, Password, 42d);
+            using (var copy = ExcelDocument.Load(destination, encrypted ? new ExcelLoadOptions { Password = Password } : null)) {
                 using var plain = new MemoryStream(copy.ToBytes(new ExcelSaveOptions { Password = null }));
                 using var package = SpreadsheetDocument.Open(plain, false);
                 Assert.Equal(expectedType, package.DocumentType);
             }
             Assert.Null(document.FilePath);
+            using (var immediateBytes = new MemoryStream(document.ToBytes()))
+            using (var immediatePackage = SpreadsheetDocument.Open(immediateBytes, false)) {
+                Assert.Equal(SpreadsheetDocumentType.Workbook, immediatePackage.DocumentType);
+                Assert.Empty(new OpenXmlValidator().Validate(immediatePackage));
+            }
             sheet.Cell(1, 2).SetValue("After copy");
             using var sourceBytes = new MemoryStream(document.ToBytes());
             using (var package = SpreadsheetDocument.Open(sourceBytes, false)) {
