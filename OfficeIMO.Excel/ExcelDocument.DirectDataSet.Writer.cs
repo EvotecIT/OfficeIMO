@@ -274,7 +274,8 @@ namespace OfficeIMO.Excel {
                 builder.Append(((theme ?? OfficeTheme.Default).TypeScale.Body.ToPoints()).ToString(CultureInfo.InvariantCulture));
                 builder.Append("\"/><color theme=\"1\"/><name val=\"");
                 AppendEscaped(builder, (theme ?? OfficeTheme.Default).Fonts.Body.Family);
-                builder.Append("\"/><family val=\"2\"/><scheme val=\"minor\"/></font></fonts>");
+                // Keep Normal literal, as editable workbooks do, when the workbook theme is replaced.
+                builder.Append("\"/><family val=\"2\"/></font></fonts>");
                 builder.Append("<fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill></fills>");
                 builder.Append("<borders count=\"1\"><border><left/><right/><top/><bottom/><diagonal/></border></borders>");
                 builder.Append("<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>");

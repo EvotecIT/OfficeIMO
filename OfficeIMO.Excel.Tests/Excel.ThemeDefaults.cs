@@ -101,16 +101,24 @@ namespace OfficeIMO.Tests {
         // Font zero is the Normal style font, whose digit width sizes every column, so it must be
         // the creation theme's body font whichever package writer saves the content.
         [Theory]
-        [InlineData("cells", false)]
-        [InlineData("dataSet", false)]
-        [InlineData("dataWithChart", false)]
-        [InlineData("cells", true)]
-        [InlineData("dataSet", true)]
-        [InlineData("dataWithChart", true)]
-        public void NewWorkbooksUseTheCreationThemeInEditableAndTabularExports(string content, bool themed) {
+        [InlineData("cells", false, false, false)]
+        [InlineData("dataSet", false, false, false)]
+        [InlineData("dataWithChart", false, false, false)]
+        [InlineData("cells", true, false, false)]
+        [InlineData("dataSet", true, false, false)]
+        [InlineData("dataWithChart", true, false, false)]
+        [InlineData("cells", true, true, false)]
+        [InlineData("dataSet", true, true, false)]
+        [InlineData("dataWithChart", true, true, false)]
+        [InlineData("dataSet", true, true, true)]
+        public void NewWorkbooksPreserveTheCreationFontAcrossSaveRoutes(string content, bool themed, bool applyTheme, bool disableFastWriter) {
             OfficeTheme? creationTheme = themed ? OfficeTheme.Minimal : null;
             OfficeTheme expected = creationTheme ?? OfficeTheme.Default;
+            OfficeTheme workbookTheme = applyTheme
+                ? OfficeTheme.Classic.WithTypeScale(OfficeTheme.Classic.TypeScale.With(body: OfficeLength.Points(19D)))
+                : expected;
             using ExcelDocument document = ExcelDocument.Create(new ExcelCreateOptions { Theme = creationTheme });
+            if (applyTheme) document.ApplyTheme(workbookTheme);
             if (content == "dataSet") {
                 var data = new DataTable("Data");
                 data.Columns.Add("Region");
@@ -126,23 +134,24 @@ namespace OfficeIMO.Tests {
                 document.AddSheet("Data").Cell(1, 1).SetValue("Europe");
             }
 
-            using var stream = new MemoryStream(document.ToBytes());
+            using var stream = new MemoryStream(document.ToBytes(new ExcelSaveOptions { DisableFastPackageWriter = disableFastWriter }));
             using SpreadsheetDocument package = SpreadsheetDocument.Open(stream, false);
             var workbook = package.WorkbookPart!;
             Font font = workbook.WorkbookStylesPart!.Stylesheet.Fonts!.Elements<Font>().First();
             Assert.Equal(expected.Fonts.Body.Family, font.FontName!.Val!.Value);
             Assert.Equal(expected.TypeScale.Body.ToPoints(), font.FontSize!.Val!.Value);
+            Assert.Empty(font.Elements<FontScheme>());
             using var themeStream = workbook.ThemePart!.GetStream();
             XElement theme = XDocument.Load(themeStream).Root!;
             XNamespace ns = theme.Name.Namespace;
             XElement elements = theme.Element(ns + "themeElements")!;
             XElement colors = elements.Element(ns + "clrScheme")!;
-            Assert.Equal(expected.Palette.Accent1.ToRgbHex(),
+            Assert.Equal(workbookTheme.Palette.Accent1.ToRgbHex(),
                 colors.Element(ns + "accent1")!.Element(ns + "srgbClr")!.Attribute("val")!.Value);
             XElement fonts = elements.Element(ns + "fontScheme")!;
-            Assert.Equal(expected.Fonts.Heading.Family,
+            Assert.Equal(workbookTheme.Fonts.Heading.Family,
                 fonts.Element(ns + "majorFont")!.Element(ns + "latin")!.Attribute("typeface")!.Value);
-            Assert.Equal(expected.Fonts.Body.Family,
+            Assert.Equal(workbookTheme.Fonts.Body.Family,
                 fonts.Element(ns + "minorFont")!.Element(ns + "latin")!.Attribute("typeface")!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(package));
         }
@@ -167,6 +176,7 @@ namespace OfficeIMO.Tests {
             Font font = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet.Fonts!.Elements<Font>().First();
             Assert.Equal(OfficeTheme.Minimal.Fonts.Body.Family, font.FontName!.Val!.Value);
             Assert.Equal(OfficeTheme.Minimal.TypeScale.Body.ToPoints(), font.FontSize!.Val!.Value);
+            Assert.Empty(font.Elements<FontScheme>());
             Assert.Empty(new OpenXmlValidator().Validate(package));
         }
     }
