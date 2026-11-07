@@ -168,17 +168,18 @@ BenchmarkDotNet output. Compare this explicit prepared-input cohort separately
 from historical runs that generated PDFs independently in each worker and did
 not retain their byte hashes.
 
-Pass `-KeepBenchmarkFiles` when worker binaries are needed for identity
-verification. It forwards BenchmarkDotNet's `--keepFiles` option and records the
-choice in provenance. For example, keep build and result files in owned paths:
+Pass `-KeepBenchmarkFiles` when worker binaries and child build binlogs are
+needed for identity verification and diagnostics. It forwards BenchmarkDotNet's
+`--keepFiles` and `--generateBinLog` options and records both in provenance.
+For example, keep build and result files in owned paths:
 
 ```powershell
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode full -Framework net10.0 -BuildArtifactsPath Ignore/Benchmarks/PdfComparisons/retained-build -OutputRoot Ignore/Benchmarks/PdfComparisons/retained-run -KeepBenchmarkFiles
 ```
 
-Capture the generated worker, dependency/runtime configuration, product binaries
-and copied fixtures immediately after each lane, before another run can reuse
-the worker directory. Retention is off by default. Remove the retained files from
+Capture the generated worker, dependency/runtime configuration, product binaries,
+copied fixtures and build binlogs immediately after each lane, before another run
+can reuse the worker directory. Retention is off by default. Remove the retained files from
 your task-owned build/output paths after verification; this option does not
 change timed methods, warmups or iteration policy.
 

@@ -960,6 +960,7 @@ foreach ($name in $selected) {
     }
     if ($KeepBenchmarkFiles) {
         $provenanceMetadata['benchmark.workload.keepBenchmarkFiles'] = 'true'
+        $provenanceMetadata['benchmark.workload.generateBinLog'] = 'true'
     }
     if ($definition.ValidatedSizeEvidence) {
         $provenanceMetadata['benchmark.workload.sizeEvidencePath'] = 'validated-size-evidence.json'
@@ -1082,7 +1083,7 @@ foreach ($name in $selected) {
         $arguments += @('--buildTimeout', '600')
     }
     if ($KeepBenchmarkFiles) {
-        $arguments += '--keepFiles'
+        $arguments += @('--keepFiles', '--generateBinLog')
     }
     if ($RunMode -eq 'quick') {
         $arguments += @('--job', 'Dry')
