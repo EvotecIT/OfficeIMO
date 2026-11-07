@@ -15,14 +15,21 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
         sb.Append("<< /Type /StructTreeRoot /K ");
         AppendReferenceArray(sb, childElementIds);
         if (parentTreeId > 0) {
-            sb.Append(" /ParentTree ")
-                .Append(PdfSyntaxEscaper.IndirectReference(parentTreeId))
-                .Append(" /ParentTreeNextKey ")
+            sb.Append(" /ParentTree ");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, parentTreeId);
+            sb.Append(" /ParentTreeNextKey ")
                 .Append(parentTreeNextKey.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
-        if (idTreeId.HasValue) sb.Append(" /IDTree ").Append(PdfSyntaxEscaper.IndirectReference(idTreeId.Value));
-        if (namespaceId.HasValue) sb.Append(" /Namespaces [").Append(PdfSyntaxEscaper.IndirectReference(namespaceId.Value)).Append(']');
+        if (idTreeId.HasValue) {
+            sb.Append(" /IDTree ");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, idTreeId.Value);
+        }
+        if (namespaceId.HasValue) {
+            sb.Append(" /Namespaces [");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, namespaceId.Value);
+            sb.Append(']');
+        }
         sb.Append(" /RoleMap <<");
         foreach (string role in (structureTypes ?? Enumerable.Empty<string>())
             .Where(role => role == "H7" || role == "H8" || role == "H9")
@@ -36,9 +43,9 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
     internal static string BuildDocumentStructElement(int structTreeRootId, IReadOnlyList<int> childElementIds, string? language = null) {
         Guard.NotNull(childElementIds, nameof(childElementIds));
         var sb = new StringBuilder();
-        sb.Append("<< /Type /StructElem /S /Document /P ")
-            .Append(PdfSyntaxEscaper.IndirectReference(structTreeRootId))
-            .Append(" /K ");
+        sb.Append("<< /Type /StructElem /S /Document /P ");
+        PdfSyntaxEscaper.AppendIndirectReference(sb, structTreeRootId);
+        sb.Append(" /K ");
         AppendReferenceArray(sb, childElementIds);
         if (!string.IsNullOrWhiteSpace(language)) {
             sb.Append(" /Lang ")
@@ -65,11 +72,11 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
         var sb = new StringBuilder();
         sb.Append("<< /Type /StructElem /S /")
             .Append(structureType)
-            .Append(" /P ")
-            .Append(PdfSyntaxEscaper.IndirectReference(parentId));
+            .Append(" /P ");
+        PdfSyntaxEscaper.AppendIndirectReference(sb, parentId);
         if (includePageReference) {
-            sb.Append(" /Pg ")
-                .Append(PdfSyntaxEscaper.IndirectReference(pageId));
+            sb.Append(" /Pg ");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, pageId);
         }
 
         sb.Append(" /K ");
@@ -104,11 +111,11 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
         var sb = new StringBuilder();
         sb.Append("<< /Type /StructElem /S /")
             .Append(PdfSyntaxEscaper.Name(structureType))
-            .Append(" /P ")
-            .Append(PdfSyntaxEscaper.IndirectReference(parentId))
-            .Append(" /Pg ")
-            .Append(PdfSyntaxEscaper.IndirectReference(pageId))
-            .Append(" /K ");
+            .Append(" /P ");
+        PdfSyntaxEscaper.AppendIndirectReference(sb, parentId);
+        sb.Append(" /Pg ");
+        PdfSyntaxEscaper.AppendIndirectReference(sb, pageId);
+        sb.Append(" /K ");
         if (markedContentId.HasValue) {
             sb.Append('[');
             AppendMarkedContentReference(sb, pageId, markedContentId.Value, contentStreamObjectId);
@@ -119,28 +126,32 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
                 }
             }
 
-            sb.Append(" << /Type /OBJR /Obj ")
-                .Append(PdfSyntaxEscaper.IndirectReference(annotationObjectId))
-                .Append(" >>");
+            sb.Append(" << /Type /OBJR /Obj ");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, annotationObjectId);
+            sb.Append(" >>");
             AppendAdditionalObjectReferences(sb, additionalAnnotationObjectIds);
             sb.Append(']');
         } else if (childElementIds != null && childElementIds.Count > 0) {
             sb.Append('[');
-            foreach (int child in childElementIds) sb.Append(PdfSyntaxEscaper.IndirectReference(child)).Append(' ');
-            sb.Append("<< /Type /OBJR /Obj ").Append(PdfSyntaxEscaper.IndirectReference(annotationObjectId)).Append(" >>");
+            foreach (int child in childElementIds) {
+                PdfSyntaxEscaper.AppendIndirectReference(sb, child);
+                sb.Append(' ');
+            }
+            sb.Append("<< /Type /OBJR /Obj ");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, annotationObjectId);
+            sb.Append(" >>");
             AppendAdditionalObjectReferences(sb, additionalAnnotationObjectIds);
             sb.Append(']');
         } else if (hasAdditionalAnnotationObjects) {
-            sb.Append('[')
-                .Append("<< /Type /OBJR /Obj ")
-                .Append(PdfSyntaxEscaper.IndirectReference(annotationObjectId))
-                .Append(" >>");
+            sb.Append('[').Append("<< /Type /OBJR /Obj ");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, annotationObjectId);
+            sb.Append(" >>");
             AppendAdditionalObjectReferences(sb, additionalAnnotationObjectIds);
             sb.Append(']');
         } else {
-            sb.Append("<< /Type /OBJR /Obj ")
-                .Append(PdfSyntaxEscaper.IndirectReference(annotationObjectId))
-                .Append(" >>");
+            sb.Append("<< /Type /OBJR /Obj ");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, annotationObjectId);
+            sb.Append(" >>");
         }
 
         if (!string.IsNullOrWhiteSpace(alternativeText)) {
@@ -163,9 +174,9 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
                 throw new ArgumentOutOfRangeException(nameof(additionalAnnotationObjectIds), objectId, "PDF annotation object id must be positive.");
             }
 
-            sb.Append(" << /Type /OBJR /Obj ")
-                .Append(PdfSyntaxEscaper.IndirectReference(objectId))
-                .Append(" >>");
+            sb.Append(" << /Type /OBJR /Obj ");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, objectId);
+            sb.Append(" >>");
         }
     }
 
@@ -174,11 +185,11 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
             throw new ArgumentOutOfRangeException(nameof(markedContentId), markedContentId, "PDF marked-content id must be non-negative.");
         }
 
-        sb.Append("<< /Type /MCR /Pg ")
-            .Append(PdfSyntaxEscaper.IndirectReference(pageId));
+        sb.Append("<< /Type /MCR /Pg ");
+        PdfSyntaxEscaper.AppendIndirectReference(sb, pageId);
         if (contentStreamObjectId.HasValue) {
-            sb.Append(" /Stm ")
-                .Append(PdfSyntaxEscaper.IndirectReference(contentStreamObjectId.Value));
+            sb.Append(" /Stm ");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, contentStreamObjectId.Value);
         }
 
         sb.Append(" /MCID ")
@@ -190,11 +201,11 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
         var sb = new StringBuilder();
         sb.Append("<< /Type /StructElem /S /")
             .Append(structureType)
-            .Append(" /P ")
-            .Append(PdfSyntaxEscaper.IndirectReference(parentId))
-            .Append(" /Pg ")
-            .Append(PdfSyntaxEscaper.IndirectReference(pageId))
-            .Append(" /K ");
+            .Append(" /P ");
+        PdfSyntaxEscaper.AppendIndirectReference(sb, parentId);
+        sb.Append(" /Pg ");
+        PdfSyntaxEscaper.AppendIndirectReference(sb, pageId);
+        sb.Append(" /K ");
         if (additionalMarkedContentIds != null && additionalMarkedContentIds.Count > 0) {
             sb.Append('[');
             AppendMarkedContentReference(sb, pageId, markedContentId, contentStreamObjectId);
@@ -284,7 +295,7 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
             if (orderedEntries[i].IsArrayEntry) {
                 AppendNullableReferenceArray(sb, orderedEntries[i].StructElementIds);
             } else {
-                sb.Append(PdfSyntaxEscaper.IndirectReference(orderedEntries[i].StructElementId));
+                PdfSyntaxEscaper.AppendIndirectReference(sb, orderedEntries[i].StructElementId);
             }
         }
 
@@ -299,7 +310,7 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
                 sb.Append(' ');
             }
 
-            sb.Append(PdfSyntaxEscaper.IndirectReference(objectIds[i]));
+            PdfSyntaxEscaper.AppendIndirectReference(sb, objectIds[i]);
         }
 
         sb.Append(']');
@@ -309,7 +320,7 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
         sb.Append('[');
         for (int i = 0; i < objectIds.Count; i++) {
             if (i > 0) sb.Append(' ');
-            if (objectIds[i].HasValue) sb.Append(PdfSyntaxEscaper.IndirectReference(objectIds[i]!.Value));
+            if (objectIds[i].HasValue) PdfSyntaxEscaper.AppendIndirectReference(sb, objectIds[i]!.Value);
             else sb.Append("null");
         }
 
