@@ -6,9 +6,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>Creates the default font used by both editable and streaming workbook writers.</summary>
-        internal static Font CreateDefaultFont() => new Font(
-            new FontSize { Val = OfficeTheme.Default.TypeScale.Body.ToPoints() },
-            new FontName { Val = OfficeTheme.Default.Fonts.Body.Family });
+        /// <param name="theme">Theme whose body font and size the Normal style uses; the shared default when null.</param>
+        internal static Font CreateDefaultFont(OfficeTheme? theme = null) {
+            OfficeTheme source = theme ?? OfficeTheme.Default;
+            return new Font(
+                new FontSize { Val = source.TypeScale.Body.ToPoints() },
+                new FontName { Val = source.Fonts.Body.Family });
+        }
 
         /// <summary>Retains the Office effect and script-font schemes while applying the shared visual identity.</summary>
         private static byte[] CreateDefaultThemeBytes() {

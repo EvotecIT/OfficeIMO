@@ -151,7 +151,7 @@ namespace OfficeIMO.Excel {
             PrepareDestinationStreamForWrite(writeTarget);
             bool disableSharedStrings = packageModel.Sheets.Count == 1
                 && !packageModel.Sheets[0].IncludeCellReferences;
-            DirectDataSetWorkbookWriter.Write(writeTarget, packageModel, ct, GetWorkbookThemeXml(), disableSharedStrings);
+            DirectDataSetWorkbookWriter.Write(writeTarget, packageModel, ct, GetWorkbookThemeXml(), disableSharedStrings, theme: _defaultFontTheme);
             try { writeTarget.Flush(); } catch (NotSupportedException) { }
             if (boundedOrStagedPackage is FileStream stagedPackage) {
                 CommitStagedPackageToStream(stagedPackage, destination, options);

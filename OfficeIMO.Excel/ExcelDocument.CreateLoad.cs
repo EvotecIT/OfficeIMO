@@ -147,7 +147,8 @@ namespace OfficeIMO.Excel {
                 FilePath = filePath,
                 _spreadSheetDocument = spreadSheetDocument,
                 _persistenceMode = persistenceMode,
-                _creationTheme = theme ?? OfficeTheme.Default
+                _creationTheme = theme ?? OfficeTheme.Default,
+                _defaultFontTheme = theme
             };
 
             // Add a WorkbookPart to the document.
