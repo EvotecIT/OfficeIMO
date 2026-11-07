@@ -68,15 +68,19 @@ internal static class NativeFormState {
     internal static void CopyTree(INode source, INode target, CancellationToken cancellationToken = default) {
         using var sources = Walk(source, cancellationToken).GetEnumerator();
         using var targets = Walk(target, cancellationToken).GetEnumerator();
+        bool stateCopied = false;
         while (sources.MoveNext()) {
             if (!targets.MoveNext()) throw new InvalidOperationException("The provider clone changed the document structure.");
             if (sources.Current is IElement original && targets.Current is IElement clone) {
-                Attach(clone, Get(original));
+                HtmlFormControlState? state = Get(original);
+                Attach(clone, state);
+                stateCopied |= state != null;
                 NativeSourceMarkup.Attach(clone, NativeSourceMarkup.Get(original));
             }
         }
         if (targets.MoveNext()) throw new InvalidOperationException("The provider clone changed the document structure.");
-        ApplyTree(target, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (stateCopied) ApplyTree(target, cancellationToken);
     }
 
     private static void Apply(IElement element, HtmlFormControlState state) {
