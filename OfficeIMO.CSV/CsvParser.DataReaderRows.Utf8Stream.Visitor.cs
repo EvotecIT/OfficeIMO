@@ -14,18 +14,21 @@ internal static partial class CsvParser
         private readonly byte[] _buffer;
         private readonly Encoding _encoding;
         private static readonly string[] SingleCharacterStrings = CreateSingleCharacterStrings();
-        private int[] _starts;
-        private int[] _lengths;
-        private string?[] _materialized;
+        private Field[] _fields;
+
+        private struct Field
+        {
+            internal int Start;
+            internal int Length;
+            internal string? Materialized;
+        }
         private bool _allFieldsAscii;
 
         internal CsvUtf8DataReaderRowVisitor(byte[] buffer, Encoding encoding)
         {
             _buffer = buffer;
             _encoding = encoding;
-            _starts = new int[32];
-            _lengths = new int[32];
-            _materialized = new string?[32];
+            _fields = new Field[32];
             FieldCount = 0;
             SourceColumnCount = 0;
         }
@@ -44,22 +47,23 @@ internal static partial class CsvParser
 
         internal void VisitFieldRange(int fieldIndex, int start, int length)
         {
-            if ((uint)fieldIndex >= (uint)_starts.Length)
+            if ((uint)fieldIndex >= (uint)_fields.Length)
             {
                 EnsureCapacity(fieldIndex + 1);
             }
 
             FieldCount = fieldIndex + 1;
-            _starts[fieldIndex] = start;
-            _lengths[fieldIndex] = length;
-            _materialized[fieldIndex] = null;
+            ref Field field = ref _fields[fieldIndex];
+            field.Start = start;
+            field.Length = length;
+            field.Materialized = null;
         }
 
         internal void ShiftStarts(int offset)
         {
             for (int index = 0; index < FieldCount; index++)
             {
-                _starts[index] += offset;
+                _fields[index].Start += offset;
             }
         }
 
@@ -83,9 +87,9 @@ internal static partial class CsvParser
             int expectedCount = SourceColumnCount > 0 ? SourceColumnCount : fieldCount;
             for (int index = fieldCount; index < expectedCount; index++)
             {
-                _starts[index] = -1;
-                _lengths[index] = -1;
-                _materialized[index] = null;
+                _fields[index].Start = -1;
+                _fields[index].Length = -1;
+                _fields[index].Materialized = null;
             }
         }
 
@@ -93,16 +97,17 @@ internal static partial class CsvParser
         internal string GetString(int ordinal)
         {
             ValidateOrdinal(ordinal);
-            int length = _lengths[ordinal];
+            ref Field field = ref _fields[ordinal];
+            int length = field.Length;
             if (length <= 0)
             {
                 return string.Empty;
             }
 
-            string? materialized = _materialized[ordinal];
+            string? materialized = field.Materialized;
             if (materialized is null)
             {
-                int start = _starts[ordinal];
+                int start = field.Start;
                 if (length == 1 && _buffer[start] < SingleCharacterStrings.Length)
                 {
                     materialized = SingleCharacterStrings[_buffer[start]];
@@ -115,7 +120,7 @@ internal static partial class CsvParser
                         : _encoding.GetString(bytes);
                 }
 
-                _materialized[ordinal] = materialized;
+                field.Materialized = materialized;
             }
 
             return materialized;
@@ -184,39 +189,39 @@ internal static partial class CsvParser
             for (int ordinal = 0; ordinal < count; ordinal++)
             {
 #if NET9_0_OR_GREATER
-                int length = _lengths[ordinal];
+                int length = _fields[ordinal].Length;
                 if (length > 0 && length <= characters.Length)
                 {
-                    ReadOnlySpan<byte> bytes = _buffer.AsSpan(_starts[ordinal], length);
+                    ReadOnlySpan<byte> bytes = _buffer.AsSpan(_fields[ordinal].Start, length);
                     if (_allFieldsAscii || Ascii.IsValid(bytes))
                     {
                         int written = Encoding.Latin1.GetChars(bytes, characters);
-                        _materialized[ordinal] = ReuseFieldSpan(characters.Slice(0, written), cache);
+                        _fields[ordinal].Materialized = ReuseFieldSpan(characters.Slice(0, written), cache);
                         continue;
                     }
                 }
 #endif
-                _materialized[ordinal] = ReuseFieldString(GetString(ordinal), cache);
+                _fields[ordinal].Materialized = ReuseFieldString(GetString(ordinal), cache);
             }
         }
 
         internal bool IsMissing(int ordinal)
         {
             ValidateOrdinal(ordinal);
-            return _lengths[ordinal] < 0;
+            return _fields[ordinal].Length < 0;
         }
 
         internal bool TryGetUtf8Text(int ordinal, out ReadOnlySpan<byte> text)
         {
             ValidateOrdinal(ordinal);
-            int length = _lengths[ordinal];
+            int length = _fields[ordinal].Length;
             if (length < 0)
             {
                 text = default;
                 return false;
             }
 
-            ReadOnlySpan<byte> bytes = _buffer.AsSpan(_starts[ordinal], length);
+            ReadOnlySpan<byte> bytes = _buffer.AsSpan(_fields[ordinal].Start, length);
             // A permissive decoder replaces malformed bytes. Such a raw segment would not
             // represent GetString's normalized text and cannot be borrowed as UTF-8.
             if (!_allFieldsAscii && !System.Text.Unicode.Utf8.IsValid(bytes))
@@ -241,20 +246,18 @@ internal static partial class CsvParser
 
         private void EnsureCapacity(int count)
         {
-            if (count <= _starts.Length)
+            if (count <= _fields.Length)
             {
                 return;
             }
 
-            int capacity = _starts.Length;
+            int capacity = _fields.Length;
             while (capacity < count)
             {
                 capacity = checked(capacity * 2);
             }
 
-            Array.Resize(ref _starts, capacity);
-            Array.Resize(ref _lengths, capacity);
-            Array.Resize(ref _materialized, capacity);
+            Array.Resize(ref _fields, capacity);
         }
 
         private static string[] CreateSingleCharacterStrings()

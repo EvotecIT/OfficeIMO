@@ -52,7 +52,7 @@ internal static partial class CsvWriter
         AppendQuotedText(writer, text);
     }
 
-    private static void WriteEscapedDefault(StringBuilder writer, string text, char delimiter)
+    internal static void WriteEscapedDefault(StringBuilder writer, string text, char delimiter)
     {
         int specialIndex = IndexOfCsvSpecial(text, delimiter);
         if (specialIndex < 0)
