@@ -428,7 +428,7 @@ namespace OfficeIMO.Excel {
             Stylesheet targetStylesheet = targetStylesPart.Stylesheet ??= CreateDefaultStylesheet();
             EnsureStylesheetPrimitives(targetStylesheet);
 
-            WorksheetStyleCopyMap styleMap = new StylesheetMerger(sourceWorkbookPart, sourceStylesheet, targetStylesheet).Merge();
+            WorksheetStyleCopyMap styleMap = new StylesheetMerger(sourceWorkbookPart, sourceStylesheet, targetWorkbookPart, targetStylesheet).Merge();
             IReadOnlyDictionary<uint, uint> cellFormatMap = styleMap.CellFormats;
             var inheritedStyleCells = BuildInheritedStyleCellSet(worksheet);
 
@@ -577,8 +577,8 @@ namespace OfficeIMO.Excel {
                 _indexedColors = indexedColors;
             }
 
-            internal static WorkbookStyleColorResolver Create(WorkbookPart workbookPart, Stylesheet sourceStylesheet) {
-                return new WorkbookStyleColorResolver(workbookPart, ReadIndexedColors(sourceStylesheet));
+            internal static WorkbookStyleColorResolver Create(WorkbookPart workbookPart, Stylesheet stylesheet) {
+                return new WorkbookStyleColorResolver(workbookPart, ReadIndexedColors(stylesheet));
             }
 
             internal void NormalizeThemeAndIndexedColors(OpenXmlElement element) {
@@ -587,8 +587,40 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            /// <summary>
+            /// Returns a copy of <paramref name="element"/> that keeps each theme and palette reference
+            /// <paramref name="other"/> resolves to the same color as this workbook does, and fixes every other color, or
+            /// null when there is no such reference.
+            /// </summary>
+            internal OpenXmlElement? CloneKeepingReferencesResolvedAlike(OpenXmlElement element, WorkbookStyleColorResolver other) {
+                if (!EnumerateColorTypes(element).Any(_ => ResolvesAlike(_, other))) {
+                    return null;
+                }
+
+                OpenXmlElement copy = element.CloneNode(true);
+                foreach (ColorType color in EnumerateColorTypes(copy)) {
+                    if (!ResolvesAlike(color, other)) {
+                        NormalizeColor(color);
+                    }
+                }
+
+                return copy;
+            }
+
+            private bool ResolvesAlike(ColorType color, WorkbookStyleColorResolver other) {
+                if (color.Rgb != null || (color.Theme == null && color.Indexed == null)) {
+                    return false;
+                }
+
+                string? argb = Resolve(color);
+                return argb != null && string.Equals(argb, other.Resolve(color), StringComparison.Ordinal);
+            }
+
+            private string? Resolve(ColorType color) =>
+                Utilities.ExcelThemeColorResolver.Resolve(color, _workbookPart, _indexedColors);
+
             private void NormalizeColor(ColorType color) {
-                string? argb = Utilities.ExcelThemeColorResolver.Resolve(color, _workbookPart, _indexedColors);
+                string? argb = Resolve(color);
                 if (argb == null) {
                     return;
                 }
