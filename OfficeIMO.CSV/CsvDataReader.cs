@@ -396,7 +396,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     public override decimal GetDecimal(int ordinal)
     {
 #if NET8_0_OR_GREATER
-        if (TryGetDirectUtf8Number<decimal>(ordinal, out var utf8Decimal))
+        if (TryGetDirectUtf8Decimal(ordinal, out var utf8Decimal))
         {
             return utf8Decimal;
         }

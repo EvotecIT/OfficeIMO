@@ -1612,3 +1612,20 @@ with both valid companions preserved. Final .NET 10 suites pass 8,134 Excel case
 with five existing skips and 983 CSV cases. The same fourteen boundary cases
 pass on .NET 8 and compile for net472. All four library targets compile, and the
 NativeAOT program publishes and executes.
+
+### Invariant numeric CSV reads
+
+I measured the normal SDK builds in both launch orders with the same 50,000-row,
+10-column mixed CSV input. Typed parsing improves from 12.9584 ms to 9.4662 ms
+in ABBA and from 12.8281 ms to 9.4108 ms in BAAB, reductions of 26.95% and
+26.64%. Each order retains all nine read, typed-parse and complete-write methods,
+12 warmups, 12 measured samples, 16 invocations, normal priority and outliers.
+Allocations are unchanged. Raw reads and writes remain mixed across the two
+orders, and Windows qualification remains open.
+
+The direct UTF-8 getters try integer styles for invariant byte, Int16, Int32 and
+Int64 values. Decimal parsing uses a bounded fixed-point fast path. Other
+cultures, broader numeric formats, exponents and precision-sensitive values
+retain the existing parser. The reader-boundary regression compares complete
+decimal bits, including midpoint rounding and signed-zero scale. The matched
+benchmarks validate every value and complete output before timing.
