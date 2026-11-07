@@ -22,9 +22,15 @@ public partial class Excel {
 #endif
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void OpenDataReader_RejectsMalformedStylesAfterCellFormats(bool streamedPart) {
+    [InlineData(false, "trailing-markup")]
+    [InlineData(true, "trailing-markup")]
+    [InlineData(false, "entity")]
+    [InlineData(true, "entity")]
+    [InlineData(false, "character")]
+    [InlineData(true, "character")]
+    [InlineData(false, "duplicate-attribute")]
+    [InlineData(true, "duplicate-attribute")]
+    public void OpenDataReader_RejectsMalformedStylesAfterCellFormats(bool streamedPart, string damage) {
         string path = CreateCompactFastPathWorkbook();
         try {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes("""
@@ -42,7 +48,14 @@ public partial class Excel {
             ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes(styles));
             AssertCompactNumericRows(path);
 
-            ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes(styles + "<"));
+            string malformed = damage switch {
+                "trailing-markup" => styles + "<",
+                "entity" => styles.Replace("name=\"" + padding + "\"", "name=\"" + padding + "&missing;\""),
+                "character" => styles.Replace("name=\"" + padding + "\"", "name=\"" + padding + "bad\u0001text\""),
+                "duplicate-attribute" => styles.Replace("name=\"" + padding + "\"", "name=\"" + padding + "\" name=\"second\""),
+                _ => throw new ArgumentOutOfRangeException(nameof(damage))
+            };
+            ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes(malformed));
             Assert.Throws<System.Xml.XmlException>(() => {
                 using var reader = ExcelDocument.OpenReader(path);
                 _ = reader.FieldCount;
@@ -61,6 +74,20 @@ public partial class Excel {
     [InlineData("long-style", true)]
     [InlineData("unknown-type", false)]
     [InlineData("unknown-type", true)]
+    [InlineData("alternate-formats", false)]
+    [InlineData("alternate-formats", true)]
+    [InlineData("process-number-formats", false)]
+    [InlineData("process-number-formats", true)]
+    [InlineData("process-cell-formats", false)]
+    [InlineData("process-cell-formats", true)]
+    [InlineData("process-root", false)]
+    [InlineData("process-root", true)]
+    [InlineData("process-local-scope", false)]
+    [InlineData("process-local-scope", true)]
+    [InlineData("process-prefix-scope", false)]
+    [InlineData("process-prefix-scope", true)]
+    [InlineData("process-wildcard", false)]
+    [InlineData("process-wildcard", true)]
     public void Reader_XmlMetadataPreservesTypedAndMaterializedValues(string shape, bool date1904) {
         string path = CreateCompactFastPathWorkbook();
         try {
@@ -84,9 +111,55 @@ public partial class Excel {
                 </x:sheetData></x:worksheet>
                 """;
             ReplaceXmlMetadataWorksheet(path, xml);
-            ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes("""
+            string styles = shape == "alternate-formats" ? """
+                <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:p="urn:private:future-style">
+                  <numFmts count="1"><mc:AlternateContent>
+                    <mc:Choice Requires="p"><numFmt numFmtId="165" formatCode="0.00"/></mc:Choice>
+                    <mc:Fallback><numFmt numFmtId="165" formatCode="yyyy-mm-dd"/></mc:Fallback>
+                  </mc:AlternateContent></numFmts>
+                  <cellXfs count="2"><xf numFmtId="0"/><xf numFmtId="165" applyNumberFormat="1"/></cellXfs>
+                </styleSheet>
+                """ : """
                 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cellXfs count="2"><xf numFmtId="0"/><xf numFmtId="14" applyNumberFormat="1"/></cellXfs></styleSheet>
-                """));
+                """;
+            if (shape.StartsWith("process-", StringComparison.Ordinal)) {
+                string formats = "<numFmts count=\"1\"><numFmt numFmtId=\"165\" formatCode=\"yyyy-mm-dd\"/></numFmts>";
+                string cellFormats = "<cellXfs count=\"2\"><xf numFmtId=\"0\"/><xf numFmtId=\"165\"/></cellXfs>";
+                string processContent = "p:payload";
+                switch (shape) {
+                    case "process-number-formats":
+                        formats = formats.Replace("<numFmt numFmtId", "<p:payload><numFmt numFmtId").Replace("</numFmts>", "</p:payload></numFmts>");
+                        break;
+                    case "process-cell-formats":
+                        cellFormats = cellFormats.Replace("<xf numFmtId=\"165\"/>", "<p:payload><xf numFmtId=\"165\"/></p:payload>");
+                        break;
+                    case "process-root":
+                        formats = "<p:payload>" + formats;
+                        cellFormats += "</p:payload>";
+                        break;
+                    case "process-local-scope":
+                        processContent = "";
+                        formats = formats.Replace("<numFmts count=\"1\">", "<numFmts count=\"1\" mc:ProcessContent=\"p:payload\"><p:payload>")
+                            .Replace("</numFmts>", "</p:payload></numFmts>");
+                        cellFormats = cellFormats.Replace("<xf numFmtId=\"165\"/>", "<p:payload><xf numFmtId=\"0\"/></p:payload><xf numFmtId=\"165\"/>");
+                        break;
+                    case "process-prefix-scope":
+                        formats = formats.Replace("<numFmt numFmtId", "<p:payload><numFmt numFmtId").Replace("</numFmts>", "</p:payload></numFmts>");
+                        cellFormats = cellFormats.Replace("<cellXfs count=\"2\">", "<cellXfs count=\"2\" xmlns:p=\"urn:private:other-style\" mc:Ignorable=\"p\">")
+                            .Replace("<xf numFmtId=\"165\"/>", "<p:payload><xf numFmtId=\"0\"/></p:payload><xf numFmtId=\"165\"/>");
+                        break;
+                    case "process-wildcard":
+                        processContent = "p:*";
+                        formats = "<p:numberFormats>" + formats + "</p:numberFormats>";
+                        cellFormats = "<p:cellFormats>" + cellFormats + "</p:cellFormats>";
+                        break;
+                }
+                styles = "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\""
+                    + " xmlns:p=\"urn:private:future-style\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\""
+                    + " mc:Ignorable=\"p\" mc:ProcessContent=\"" + processContent + "\">" + formats + cellFormats + "</styleSheet>";
+            }
+            ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes(styles));
             var options = new ExcelReaderOptions { NumericAsDecimal = true, InferDataTableColumnTypes = false };
             object[][] expected = [
                 [42m, true, "Alpha", new DateTime(2024, 2, 29).AddDays(date1904 ? 1462 : 0)],

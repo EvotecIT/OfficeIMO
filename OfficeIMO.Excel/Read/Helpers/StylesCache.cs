@@ -147,27 +147,34 @@ namespace OfficeIMO.Excel {
 
         private static bool TryBuildXmlFast(Stream stream, StylesCache cache, CancellationToken cancellationToken) {
             try {
-                using var reader = XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(StylesXmlReaderSettings));
+                using var reader = XmlReader.Create(stream,
+                    OpenXmlReadNameTable.WithSchemaNames(StylesXmlReaderSettings));
+                reader.MoveToContent();
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!SpreadsheetXmlContent.IsSpreadsheetElement(reader, "styleSheet")) return false;
+                int childDepth = reader.Depth + 1;
                 Dictionary<uint, string>? nf = null;
-
+                List<(int Depth, string Namespace, string Name)>? processedContent = null;
+                TrackProcessedStyleContent(reader, ref processedContent);
                 while (reader.Read()) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (reader.NodeType != XmlNodeType.Element) {
+                    if (reader.NodeType == XmlNodeType.EndElement) {
+                        childDepth = Math.Min(childDepth, reader.Depth);
                         continue;
                     }
-
-                    if (reader.LocalName == "numFmt") {
-                        if (TryParseUIntAttribute(reader.GetAttribute("numFmtId"), out uint id)
-                            && reader.GetAttribute("formatCode") is string code) {
-                            nf ??= new Dictionary<uint, string>();
-                            nf[id] = code;
-                        }
-
+                    if (reader.NodeType != XmlNodeType.Element) continue;
+                    TrackProcessedStyleContent(reader, ref processedContent);
+                    if (reader.Depth != childDepth) continue;
+                    if (IsCompatibilityStyleContainer(reader, processedContent)) {
+                        if (!reader.IsEmptyElement) childDepth++;
                         continue;
                     }
-
-                    if (reader.LocalName == "cellXfs") {
-                        ReadCellFormatsXml(reader, cache, nf, cancellationToken);
+                    if (SpreadsheetXmlContent.IsSpreadsheetElement(reader, "numFmts")) {
+                        ReadNumberFormatsXml(reader, ref nf, ref processedContent, cancellationToken);
+                        continue;
+                    }
+                    if (SpreadsheetXmlContent.IsSpreadsheetElement(reader, "cellXfs")) {
+                        ReadCellFormatsXml(reader, cache, nf, ref processedContent, cancellationToken);
                         // Validate the remaining XML and declared package length
                         // before publishing the completed style map.
                         while (reader.Read()) cancellationToken.ThrowIfCancellationRequested();
@@ -176,67 +183,136 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                cache._dateStyleIndexes = EmptyDateStyleIndexes;
-                cache.HasDateStyles = false;
+                ClearDateStyles(cache);
                 return true;
             } catch (IOException) {
-                cache._dateStyleIndexes = EmptyDateStyleIndexes;
-                cache.HasDateStyles = false;
+                ClearDateStyles(cache);
                 return false;
             } catch (UnauthorizedAccessException) {
-                cache._dateStyleIndexes = EmptyDateStyleIndexes;
-                cache.HasDateStyles = false;
+                ClearDateStyles(cache);
                 return false;
             } catch (ObjectDisposedException) {
-                cache._dateStyleIndexes = EmptyDateStyleIndexes;
-                cache.HasDateStyles = false;
+                ClearDateStyles(cache);
                 return false;
             }
         }
 
+        private const string CompatibilityNamespace = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+
+        /// <summary>Retains inherited process-content names using their declaration's namespace bindings.</summary>
+        private static void TrackProcessedStyleContent(XmlReader reader,
+            ref List<(int Depth, string Namespace, string Name)>? processedContent) {
+            if (processedContent != null) {
+                while (processedContent.Count > 0 && processedContent[processedContent.Count - 1].Depth >= reader.Depth) {
+                    processedContent.RemoveAt(processedContent.Count - 1);
+                }
+            }
+            string? names = reader.GetAttribute("ProcessContent", CompatibilityNamespace);
+            if (string.IsNullOrEmpty(names)) return;
+            foreach (string name in names!.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)) {
+                int colon = name.IndexOf(':');
+                if (colon <= 0 || colon == name.Length - 1 || name.IndexOf(':', colon + 1) >= 0) continue;
+                string? namespaceUri = reader.LookupNamespace(name.Substring(0, colon));
+                if (string.IsNullOrEmpty(namespaceUri)) continue;
+                processedContent ??= new List<(int Depth, string Namespace, string Name)>();
+                processedContent.Add((reader.Depth, namespaceUri!, name.Substring(colon + 1)));
+            }
+        }
+
+        /// <summary>Exposes only compatibility wrappers that preserve the owning style container.</summary>
+        private static bool IsCompatibilityStyleContainer(XmlReader reader,
+            List<(int Depth, string Namespace, string Name)>? processedContent) {
+            if (reader.NamespaceURI == CompatibilityNamespace
+                && reader.LocalName is "AlternateContent" or "Choice" or "Fallback") return true;
+            if (processedContent == null || SpreadsheetXmlContent.IsSpreadsheetElement(reader, reader.LocalName)) return false;
+            foreach (var name in processedContent) {
+                if (name.Namespace == reader.NamespaceURI && (name.Name == reader.LocalName || name.Name == "*")) return true;
+            }
+            return false;
+        }
+
+        private static void ReadNumberFormatsXml(XmlReader reader,
+            ref Dictionary<uint, string>? numberingFormats,
+            ref List<(int Depth, string Namespace, string Name)>? processedContent, CancellationToken cancellationToken) {
+            if (reader.IsEmptyElement) return;
+            int depth = reader.Depth;
+            int childDepth = depth + 1;
+            while (reader.Read()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (reader.NodeType == XmlNodeType.EndElement) {
+                    if (reader.Depth == depth) break;
+                    childDepth = Math.Min(childDepth, reader.Depth);
+                    continue;
+                }
+                if (reader.NodeType != XmlNodeType.Element) continue;
+                TrackProcessedStyleContent(reader, ref processedContent);
+                if (reader.Depth != childDepth) continue;
+                if (IsCompatibilityStyleContainer(reader, processedContent)) {
+                    if (!reader.IsEmptyElement) childDepth++;
+                    continue;
+                }
+                if (SpreadsheetXmlContent.IsSpreadsheetElement(reader, "numFmt")
+                    && TryParseUIntAttribute(reader.GetAttribute("numFmtId"), out uint id)
+                    && reader.GetAttribute("formatCode") is string code) {
+                    numberingFormats ??= new Dictionary<uint, string>();
+                    numberingFormats[id] = code;
+                }
+            }
+        }
+
+        /// <summary>Removes partial XML classifications before an empty result or DOM fallback.</summary>
+        private static void ClearDateStyles(StylesCache cache) {
+            cache._dateStyleIndexes = EmptyDateStyleIndexes;
+            cache._dateSystemShiftStyleIndexes = EmptyDateStyleIndexes;
+            cache.HasDateStyles = false;
+        }
+
         private static void ReadCellFormatsXml(XmlReader reader, StylesCache cache,
-            Dictionary<uint, string>? numberingFormats, CancellationToken cancellationToken) {
+            Dictionary<uint, string>? numberingFormats,
+            ref List<(int Depth, string Namespace, string Name)>? processedContent, CancellationToken cancellationToken) {
             if (reader.IsEmptyElement) {
-                cache._dateStyleIndexes = EmptyDateStyleIndexes;
-                cache.HasDateStyles = false;
+                ClearDateStyles(cache);
                 return;
             }
 
             int depth = reader.Depth;
+            int childDepth = depth + 1;
             int index = 0;
             while (reader.Read()) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "cellXfs") {
-                    break;
-                }
-
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "xf") {
+                if (reader.NodeType == XmlNodeType.EndElement) {
+                    if (reader.Depth == depth) break;
+                    childDepth = Math.Min(childDepth, reader.Depth);
                     continue;
                 }
-
-                if (index == cache._dateStyleIndexes.Length) {
-                    int newSize = Math.Max(4, index * 2);
-                    Array.Resize(ref cache._dateStyleIndexes, newSize);
-                    Array.Resize(ref cache._dateSystemShiftStyleIndexes, newSize);
+                if (reader.NodeType != XmlNodeType.Element) continue;
+                TrackProcessedStyleContent(reader, ref processedContent);
+                if (reader.Depth != childDepth) continue;
+                if (IsCompatibilityStyleContainer(reader, processedContent)) {
+                    if (!reader.IsEmptyElement) childDepth++;
+                    continue;
                 }
-
-                if (TryParseUIntAttribute(reader.GetAttribute("numFmtId"), out uint numberFormatId)
-                    && IsDateNumberFormat(numberFormatId, numberingFormats)) {
-                    cache._dateStyleIndexes[index] = true;
-                    cache.HasDateStyles = true;
+                if (SpreadsheetXmlContent.IsSpreadsheetElement(reader, "xf")) {
+                    if (index == cache._dateStyleIndexes.Length) {
+                        int newSize = Math.Max(4, index * 2);
+                        Array.Resize(ref cache._dateStyleIndexes, newSize);
+                        Array.Resize(ref cache._dateSystemShiftStyleIndexes, newSize);
+                    }
+                    if (TryParseUIntAttribute(reader.GetAttribute("numFmtId"), out uint numberFormatId)) {
+                        if (IsDateNumberFormat(numberFormatId, numberingFormats)) {
+                            cache._dateStyleIndexes[index] = true;
+                            cache.HasDateStyles = true;
+                        }
+                        if (IsDateSystemShiftNumberFormat(numberFormatId, numberingFormats)) {
+                            cache._dateSystemShiftStyleIndexes[index] = true;
+                        }
+                    }
+                    index++;
                 }
-
-                if (TryParseUIntAttribute(reader.GetAttribute("numFmtId"), out uint shiftNumberFormatId)
-                    && IsDateSystemShiftNumberFormat(shiftNumberFormatId, numberingFormats)) {
-                    cache._dateSystemShiftStyleIndexes[index] = true;
-                }
-
-                index++;
             }
 
             if (index == 0) {
-                cache._dateStyleIndexes = EmptyDateStyleIndexes;
-                cache._dateSystemShiftStyleIndexes = EmptyDateStyleIndexes;
+                ClearDateStyles(cache);
             } else if (index < cache._dateStyleIndexes.Length) {
                 Array.Resize(ref cache._dateStyleIndexes, index);
                 if (index < cache._dateSystemShiftStyleIndexes.Length) {
