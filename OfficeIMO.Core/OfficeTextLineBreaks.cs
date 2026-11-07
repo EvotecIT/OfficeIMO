@@ -36,6 +36,9 @@ internal static class OfficeTextLineBreaks {
             return Array.Empty<int>();
         }
 
+        if (TryGetSimpleAsciiBreakPositions(text, cancellationToken, out IReadOnlyList<int> simpleAsciiPositions))
+            return simpleAsciiPositions;
+
         int[] elementStarts = StringInfo.ParseCombiningCharacters(text);
         if (elementStarts.Length < 2) {
             return Array.Empty<int>();
@@ -57,6 +60,34 @@ internal static class OfficeTextLineBreaks {
         }
 
         return positions.ToArray();
+    }
+
+    // AL/NU pairs never break; ordinary spaces permit a break only before the next word.
+    // Validate the whole subset before allocating output so all other text retains the shared UAX path.
+    private static bool TryGetSimpleAsciiBreakPositions(string text, System.Threading.CancellationToken cancellationToken,
+        out IReadOnlyList<int> positions) {
+        int count = 0;
+        for (int index = 0; index < text.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char value = text[index];
+            if (value != ' ' && !OfficeIMO.Internal.OfficeRuntimeCompatibility.IsAsciiLetterOrDigit(value)) {
+                positions = Array.Empty<int>();
+                return false;
+            }
+            if (index > 0 && text[index - 1] == ' ' && value != ' ') count++;
+        }
+        if (count == 0) {
+            positions = Array.Empty<int>();
+            return true;
+        }
+        var found = new int[count];
+        int next = 0;
+        for (int index = 1; index < text.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (text[index - 1] == ' ' && text[index] != ' ') found[next++] = index;
+        }
+        positions = found;
+        return true;
     }
 
     // Breaks that remain without CJK boundaries: after spaces and explicit break characters.

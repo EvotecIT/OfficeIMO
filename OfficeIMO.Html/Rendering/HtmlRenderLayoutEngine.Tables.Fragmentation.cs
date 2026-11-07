@@ -25,7 +25,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var forbidden = new List<HtmlRenderBreakRange>();
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             avoidedRows[rowIndex + 1] = avoidedRows[rowIndex] + (rows[rowIndex].Style.AvoidBreakInside ? 1 : 0);
-        for (int i = 0; i < rows.Count; i++) rowStarts[i + 1] = rowStarts[i] + rows[i].Height + spacing;
+        bool needsCellCutSafety = false;
+        for (int i = 0; i < rows.Count; i++) {
+            rowStarts[i + 1] = rowStarts[i] + rows[i].Height + spacing;
+            if (!needsCellCutSafety) {
+                // Without spans, oversized rows or visible tails, no source-interior
+                // opportunity can exist anywhere in this table; only row boundaries remain.
+                needsCellCutSafety = rows[i].Height + spacing > freshRowCapacity + 0.0001D
+                    || rows[i].Cells.Any(cell => cell.RowSpan > 1
+                        || cell.Style.OverflowY == "visible"
+                            && cell.Inline.PagedPaintExtent > cell.Inline.Height + 0.0001D);
+            }
+        }
         double rowY = 0D;
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             CheckCancellation();
@@ -33,6 +44,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             active.RemoveAll(span => span.LastRow <= rowIndex);
             foreach (TableCellLayout cell in row.Cells) {
                 ChargeLayoutOperation("table rowspan break ownership");
+                if (!needsCellCutSafety) continue;
                 int lastRow = rowIndex + cell.RowSpan - 1;
                 TableCellCutSafety safety = CreateTableCellCutSafety(cell,
                     lastRow, rowY + cell.ContentOffsetY,
