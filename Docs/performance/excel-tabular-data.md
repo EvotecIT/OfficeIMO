@@ -1645,3 +1645,18 @@ orders. The wider text, large-quoted and French shapes are mixed, and the first
 mixed-row cohort includes compiler activity and peer slowdowns. Native caller
 CPU checks of the French case improve by 2.60% and 1.65%. Those diagnostic CPU
 measurements remain separate from the matched wall-time comparisons.
+
+### CSV row source dispatch
+
+I cache the reader's asynchronous row source capability beside its existing
+UTF-8 and text source references. The row source is fixed at construction.
+Per-read cancellation, state validation and dynamic static-column checks keep
+their existing behavior across synchronous, asynchronous and record-batch reads.
+
+The matched 50,000-row raw-read comparison records 5.9630 ms to 5.8003 ms in
+ABBA and 5.6068 ms to 5.5357 ms in BAAB, reductions of 2.73% and 1.27%, with
+both pairs improving in each order. The reversed run includes all nine modern
+comparison methods. Native caller CPU improves by 1.04% in both pairs. The
+reader gains one private reference, adding eight bytes per reader in this
+64-bit cohort. Typed-read and write controls remain mixed. This general .NET 8+
+change retains the existing parser and public API.
