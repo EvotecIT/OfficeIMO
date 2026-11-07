@@ -24,7 +24,7 @@ internal static partial class CsvParser
 
         private readonly CsvParsingSettings _options;
         private readonly Encoding _encoding;
-        private readonly Dictionary<string, string>? _stringCache;
+        private Dictionary<string, string>? _stringCache;
         private readonly byte _delimiter;
         private readonly byte _commentCharacter;
         private readonly Vector256<byte> _delimiterVector;
@@ -58,7 +58,6 @@ internal static partial class CsvParser
         {
             _stream = stream;
             _options = options;
-            _stringCache = CreateStringCache(options);
             _encoding = encoding;
             _delimiter = checked((byte)GetDelimiterChar(options));
             _commentCharacter = checked((byte)options.CommentCharacter);
@@ -68,6 +67,7 @@ internal static partial class CsvParser
             _length = length;
             _position = position;
             _visitor = new CsvUtf8DataReaderRowVisitor(buffer, encoding);
+            _stringCache = RentStringCacheWorkspace(options);
         }
 
         internal static bool TryCreate(
@@ -377,15 +377,19 @@ internal static partial class CsvParser
             }
 
             _disposed = true;
-            _fallback?.Dispose();
-            if (!_streamTransferred)
+            Dictionary<string, string>? cache = Interlocked.Exchange(ref _stringCache, null);
+            try
             {
-                _stream.Dispose();
+                _fallback?.Dispose();
+                if (!_streamTransferred) _stream.Dispose();
             }
-
-            byte[] buffer = _buffer;
-            _buffer = Array.Empty<byte>();
-            ArrayPool<byte>.Shared.Return(buffer);
+            finally
+            {
+                byte[] buffer = _buffer;
+                _buffer = Array.Empty<byte>();
+                try { ArrayPool<byte>.Shared.Return(buffer); }
+                finally { ReturnStringCacheWorkspace(cache); }
+            }
         }
 
         private bool PrepareRecordStart(CancellationToken cancellationToken)

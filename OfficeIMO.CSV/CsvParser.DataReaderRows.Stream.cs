@@ -17,7 +17,7 @@ internal static partial class CsvParser
         private readonly TextReader _reader;
         private readonly CsvLineReader _lineReader;
         private readonly CsvParsingSettings _options;
-        private readonly Dictionary<string, string>? _stringCache;
+        private Dictionary<string, string>? _stringCache;
         private readonly char _delimiter;
         private readonly bool _trim;
         private readonly bool _strictQuotes;
@@ -301,8 +301,16 @@ internal static partial class CsvParser
             }
 
             _disposed = true;
-            _lineReader.Dispose();
-            _reader.Dispose();
+            try
+            {
+                _lineReader.Dispose();
+                _reader.Dispose();
+            }
+            finally
+            {
+                // A UTF-8 owner may reuse this storage after its fallback is closed.
+                _stringCache = null;
+            }
         }
     }
 

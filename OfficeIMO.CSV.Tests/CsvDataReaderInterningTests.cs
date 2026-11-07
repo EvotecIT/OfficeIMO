@@ -47,6 +47,39 @@ public sealed class CsvDataReaderInterningTests
         Assert.Equal("shared-value", retained);
     }
 
+    [Fact]
+    public void OverlappingInternedReadersKeepExclusiveCachesAcrossFallbackAndDisposal()
+    {
+        const string csv = "Value,Other\nshared-value-123,shared-value-123\n\"shared-value-123\",tail\nshared-value-123,tail\n";
+        byte[] bytes = Encoding.UTF8.GetBytes(csv);
+        var options = new CsvReaderOptions { DetectDelimiter = false, InternStrings = true };
+
+        using (var warmup = CsvDocument.OpenReader(new MemoryStream(bytes), options))
+            while (warmup.Read()) _ = warmup.GetString(0);
+
+        using var first = CsvDocument.OpenReader(new MemoryStream(bytes), options);
+        Assert.True(first.Read());
+        string retained = first.GetString(0);
+        Assert.Equal("shared-value-123", retained);
+        Assert.Same(retained, first.GetString(1));
+
+        using (var second = CsvDocument.OpenReader(new MemoryStream(bytes), options))
+        {
+            Assert.True(second.Read());
+            Assert.Equal(retained, second.GetString(0));
+            Assert.NotSame(retained, second.GetString(0));
+        }
+
+        Assert.True(first.Read());
+        Assert.Same(retained, first.GetString(0));
+        string tail = first.GetString(1);
+        Assert.Equal("tail", tail);
+        Assert.True(first.Read());
+        Assert.Same(retained, first.GetString(0));
+        Assert.Same(tail, first.GetString(1));
+        Assert.False(first.Read());
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
