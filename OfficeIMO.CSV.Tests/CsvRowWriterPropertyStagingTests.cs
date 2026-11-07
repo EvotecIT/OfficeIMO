@@ -43,28 +43,44 @@ public class CsvRowWriterPropertyStagingTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void WriteObject_PreservesLargeQuotedFieldsAndNullableValuesWithoutRepeatingGetters(bool useStreamFactory)
+    [InlineData(false, 0)]
+    [InlineData(false, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 0)]
+    [InlineData(true, 1)]
+    [InlineData(true, 2)]
+    public void WriteObject_PreservesLargeFieldsAndGetterFailureRecovery(bool useStreamFactory, int largePosition)
     {
         using var output = new MemoryStream();
         using var text = new StreamWriter(output, new UTF8Encoding(false), 1024, leaveOpen: true);
         var options = new CsvSaveOptions { NewLine = "\n", Culture = CultureInfo.InvariantCulture };
         var events = new List<string>();
         string large = new string('"', 7000) + ",\nzażółć🙂";
+        string prefix = largePosition == 0 ? large : "prefix";
+        string payload = largePosition == 1 ? large : "payload";
+        string suffix = largePosition == 2 ? large : "suffix";
         using (var writer = useStreamFactory
             ? CsvRowWriter.CreateStream(output, options, leaveOpen: true)
             : new CsvRowWriter(text, options, leaveOpen: true))
         {
-            writer.WriteObject(new FallbackRow(1234.50m, large, 42, 0.2500m, events));
-            writer.WriteObject(new FallbackRow(-0.25m, "short", 17, null, events));
+            writer.WriteObject(new FallbackRow(prefix, 1234.50m, payload, 42, 0.2500m, suffix, events));
+            Exception? failure = Record.Exception(() => writer.WriteObject(
+                new FallbackRow("failed-prefix", 99m, large, 43, 0.5m, "unwritten", events, failAtSuffix: true)));
+            Assert.IsType<InvalidOperationException>(failure?.GetBaseException());
+            writer.WriteObject(new FallbackRow("next-prefix", -0.25m, "short", 17, null, "next-suffix", events));
         }
         text.Flush();
         string actual = Encoding.UTF8.GetString(output.ToArray());
         string escaped = "\"" + large.Replace("\"", "\"\"") + "\"";
-        string expected = "Amount,Payload,Count,Optional\n1234.50," + escaped + ",42,0.2500\n-0.25,short,17,\n";
+        string expected = "Prefix,Amount,Payload,Count,Optional,Suffix\n"
+            + (largePosition == 0 ? escaped : prefix) + ",1234.50,"
+            + (largePosition == 1 ? escaped : payload) + ",42,0.2500,"
+            + (largePosition == 2 ? escaped : suffix) + "\n"
+            + "next-prefix,-0.25,short,17,,next-suffix\n";
         Assert.Equal(expected, actual);
-        string[] expectedEvents = ["amount", "payload", "count", "optional", "amount", "payload", "count", "optional"];
+        string[] expectedEvents = ["prefix", "amount", "payload", "count", "optional", "suffix",
+            "prefix", "amount", "payload", "count", "optional", "suffix",
+            "prefix", "amount", "payload", "count", "optional", "suffix"];
         Assert.Equal(expectedEvents, events);
     }
 
@@ -130,8 +146,17 @@ public class CsvRowWriterPropertyStagingTests
         }
     }
 
-    private sealed class FallbackRow(decimal amount, string payload, int count, decimal? optional, List<string> events)
+    private sealed class FallbackRow(string prefix, decimal amount, string payload, int count,
+        decimal? optional, string suffix, List<string> events, bool failAtSuffix = false)
     {
+        public string Prefix
+        {
+            get
+            {
+                events.Add("prefix");
+                return prefix;
+            }
+        }
         public decimal Amount
         {
             get
@@ -162,6 +187,15 @@ public class CsvRowWriterPropertyStagingTests
             {
                 events.Add("optional");
                 return optional;
+            }
+        }
+        public string Suffix
+        {
+            get
+            {
+                events.Add("suffix");
+                if (failAtSuffix) throw new InvalidOperationException("Expected getter failure.");
+                return suffix;
             }
         }
     }
