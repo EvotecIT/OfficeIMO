@@ -65,7 +65,8 @@ param(
     [switch] $ConfirmQuestPdfAuthorization,
     [switch] $AcceptNPOIOSMFLicense,
     [switch] $Publish,
-    [switch] $PlanOnly
+    [switch] $PlanOnly,
+    [switch] $KeepBenchmarkFiles
 )
 
 $ErrorActionPreference = 'Stop'
@@ -957,6 +958,9 @@ foreach ($name in $selected) {
         'benchmark.workload.sourceCommit' = $gitSha
         'benchmark.workload.framework' = $Framework
     }
+    if ($KeepBenchmarkFiles) {
+        $provenanceMetadata['benchmark.workload.keepBenchmarkFiles'] = 'true'
+    }
     if ($definition.ValidatedSizeEvidence) {
         $provenanceMetadata['benchmark.workload.sizeEvidencePath'] = 'validated-size-evidence.json'
     }
@@ -1076,6 +1080,9 @@ foreach ($name in $selected) {
     if ($isPdfComparison) {
         # The generated benchmark project can exceed the default build timeout on one CPU domain.
         $arguments += @('--buildTimeout', '600')
+    }
+    if ($KeepBenchmarkFiles) {
+        $arguments += '--keepFiles'
     }
     if ($RunMode -eq 'quick') {
         $arguments += @('--job', 'Dry')
