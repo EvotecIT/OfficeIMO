@@ -1202,8 +1202,15 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            Assert.Contains("<table style=\"width:100%;border-collapse:collapse\">", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<td style=\"width:50%;text-align:center;border:1pt solid black\">", html, StringComparison.OrdinalIgnoreCase);
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            string tableCss = parsed.QuerySelector("table")!.GetAttribute("style")!;
+            string cellCss = parsed.QuerySelector("td")!.GetAttribute("style")!;
+            Assert.Contains("width:100%", tableCss, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border-spacing:0", tableCss, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border-collapse:collapse", tableCss, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("width:50%", cellCss, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("text-align:center", cellCss, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border:1pt solid black", cellCss, StringComparison.OrdinalIgnoreCase);
         }
 
         [Theory]
