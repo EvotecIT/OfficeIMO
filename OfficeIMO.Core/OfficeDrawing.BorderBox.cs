@@ -23,20 +23,45 @@ public sealed partial class OfficeDrawing {
             AddShape(fill, x, y);
         }
 
-        // Border strokes can cross the canvas edges. Retain that viewport clip
-        // when this command is composed into another drawing.
-        var borderPaint = new OfficeDrawing(Width, Height);
+        // Retain the viewport clip through composition only when strokes may
+        // leave it. Interior table cells can add their borders directly.
+        bool clipBorders = transform.HasValue || BorderBoxMayLeaveViewport(x, y, width, height, borders);
+        OfficeDrawing borderPaint = clipBorders ? new OfficeDrawing(Width, Height) : this;
         borderPaint.AddHorizontalBorderLine(x, y, 0D, width, borders.Top, transform);
         borderPaint.AddVerticalBorderLine(x, y, width, height, borders.Right, transform);
         borderPaint.AddHorizontalBorderLine(x, y, height, width, borders.Bottom, transform);
         borderPaint.AddVerticalBorderLine(x, y, 0D, height, borders.Left, transform);
         borderPaint.AddDiagonalBorderLine(x, y, width, height, borders.DiagonalDown, diagonalDown: true, transform);
         borderPaint.AddDiagonalBorderLine(x, y, width, height, borders.DiagonalUp, diagonalDown: false, transform);
-        if (borderPaint.Elements.Count > 0) {
+        if (clipBorders && borderPaint.Elements.Count > 0) {
             AddClippedDrawing(borderPaint, 0D, 0D, OfficeClipPath.Rectangle(Width, Height));
         }
         return this;
     }
+
+    /// <summary>Conservatively includes stroke caps and both parallel lines, including diagonal borders.</summary>
+    private bool BorderBoxMayLeaveViewport(double x, double y, double width, double height, OfficeBorderBox borders) {
+        double extent = Math.Max(
+            Math.Max(Math.Max(BorderStrokeExtent(borders.Top), BorderStrokeExtent(borders.Right)),
+                Math.Max(BorderStrokeExtent(borders.Bottom), BorderStrokeExtent(borders.Left))),
+            Math.Max(BorderStrokeExtent(borders.DiagonalDown), BorderStrokeExtent(borders.DiagonalUp)));
+        return x < extent || y < extent || Width - (x + width) < extent || Height - (y + height) < extent;
+    }
+
+    /// <summary>Bounds one stroke or both parallel strokes without assuming their direction.</summary>
+    private static double BorderStrokeExtent(OfficeBorderSide? side) {
+        if (!side.HasValue || !side.Value.IsVisible) {
+            return 0D;
+        }
+
+        return (side.Value.Width / 2D) + (side.Value.LineKind == OfficeBorderLineKind.Double
+            ? ResolveBorderDoubleLineSeparation(side.Value) / 2D
+            : 0D);
+    }
+
+    /// <summary>Uses the proportional gap when the source omits an explicit double-line separation.</summary>
+    private static double ResolveBorderDoubleLineSeparation(OfficeBorderSide side) =>
+        side.DoubleLineSeparation > 0D ? side.DoubleLineSeparation : Math.Max(1D, side.Width * 3D);
 
     private void AddHorizontalBorderLine(double originX, double originY, double y, double width, OfficeBorderSide? side, OfficeTransform? transform) {
         if (!side.HasValue || !side.Value.IsVisible) {
@@ -69,7 +94,7 @@ public sealed partial class OfficeDrawing {
 
     private void AddBorderLine(double originX, double originY, double x1, double y1, double x2, double y2, OfficeBorderSide side, OfficeTransform? transform) {
         if (side.LineKind == OfficeBorderLineKind.Double) {
-            double separation = side.DoubleLineSeparation > 0D ? side.DoubleLineSeparation : Math.Max(1D, side.Width * 3D);
+            double separation = ResolveBorderDoubleLineSeparation(side);
             if (OfficeGeometry.TryGetParallelLineOffsets(x1, y1, x2, y2, separation, out double offsetX, out double offsetY)) {
                 AddSingleBorderLine(originX, originY, x1 - offsetX, y1 - offsetY, x2 - offsetX, y2 - offsetY, side, transform);
                 AddSingleBorderLine(originX, originY, x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY, side, transform);

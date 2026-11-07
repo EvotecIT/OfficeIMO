@@ -130,27 +130,43 @@ public partial class DrawingTests {
     }
 
     [Theory]
-    [InlineData(0, 0)]
-    [InlineData(10, 12)]
-    public void OfficeDrawingBorderBoxCompositionPreservesTheChildViewportThroughSvgAndRaster(int offsetX, int offsetY) {
-        var red = new OfficeBorderSide(OfficeColor.Red, 2D, lineKind: OfficeBorderLineKind.Double, doubleLineSeparation: 8D);
-        var blue = new OfficeBorderSide(OfficeColor.Blue, 2D, lineKind: OfficeBorderLineKind.Double, doubleLineSeparation: 8D);
+    [InlineData(0, 0, 0, 8, 4)]
+    [InlineData(10, 12, 0, 8, 4)]
+    [InlineData(10, 12, 3, 8, 7)]
+    [InlineData(10, 12, 3, 0, 6)]
+    [InlineData(10, 12, 8, 8, 12)]
+    public void OfficeDrawingBorderBoxCompositionPreservesTheChildViewportThroughSvgAndRaster(int offsetX, int offsetY, int inset, double separation, int innerStroke) {
+        var red = new OfficeBorderSide(OfficeColor.Red, 2D, lineKind: OfficeBorderLineKind.Double, doubleLineSeparation: separation);
+        var blue = new OfficeBorderSide(OfficeColor.Blue, 2D, lineKind: OfficeBorderLineKind.Double, doubleLineSeparation: separation);
         var child = new OfficeDrawing(40D, 30D).AddBorderBox(
-            0D, 0D, 40D, 30D, null, new OfficeBorderBox(top: blue, right: red, bottom: blue, left: red));
+            inset, inset, 40D - (2D * inset), 30D - (2D * inset), null, new OfficeBorderBox(top: blue, right: red, bottom: blue, left: red));
         var drawing = new OfficeDrawing(80D, 70D).AddDrawing(child.Clone(), offsetX, offsetY);
 
         OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
-        Assert.Equal(OfficeColor.Red, image.GetPixel(offsetX + 4, offsetY + 15));
-        Assert.Equal(OfficeColor.Red, image.GetPixel(offsetX + 36, offsetY + 15));
-        Assert.Equal(OfficeColor.Blue, image.GetPixel(offsetX + 15, offsetY + 4));
-        Assert.Equal(OfficeColor.Blue, image.GetPixel(offsetX + 15, offsetY + 26));
+        Assert.Equal(OfficeColor.Red, image.GetPixel(offsetX + innerStroke, offsetY + 15));
+        Assert.Equal(OfficeColor.Red, image.GetPixel(offsetX + 40 - innerStroke, offsetY + 15));
+        Assert.Equal(OfficeColor.Blue, image.GetPixel(offsetX + 15, offsetY + innerStroke));
+        Assert.Equal(OfficeColor.Blue, image.GetPixel(offsetX + 15, offsetY + 30 - innerStroke));
         Assert.Equal(OfficeColor.White, image.GetPixel(offsetX + 44, offsetY + 15));
         Assert.Equal(OfficeColor.White, image.GetPixel(offsetX + 15, offsetY + 34));
-        if (offsetX > 0) Assert.Equal(OfficeColor.White, image.GetPixel(offsetX - 4, offsetY + 15));
-        if (offsetY > 0) Assert.Equal(OfficeColor.White, image.GetPixel(offsetX + 15, offsetY - 4));
+        Assert.Equal(OfficeColor.White, image.GetPixel(offsetX + 40, offsetY + 15));
+        Assert.Equal(OfficeColor.White, image.GetPixel(offsetX + 15, offsetY + 30));
+        if (offsetX > 0) {
+            Assert.Equal(OfficeColor.White, image.GetPixel(offsetX - 4, offsetY + 15));
+            Assert.Equal(OfficeColor.White, image.GetPixel(offsetX - 1, offsetY + 15));
+        }
+        if (offsetY > 0) {
+            Assert.Equal(OfficeColor.White, image.GetPixel(offsetX + 15, offsetY - 4));
+            Assert.Equal(OfficeColor.White, image.GetPixel(offsetX + 15, offsetY - 1));
+        }
 
         XDocument svg = XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
         XNamespace ns = svg.Root!.Name.Namespace;
+        if (inset == 8) {
+            Assert.Equal(8, svg.Descendants(ns + "line").Count());
+            return;
+        }
+
         XElement clip = Assert.Single(svg.Descendants(ns + "clipPath"));
         XElement viewport = Assert.Single(clip.Elements(ns + "rect"));
         Assert.Equal("0", (string?)viewport.Attribute("x"));

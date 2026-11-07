@@ -1,3 +1,4 @@
+using System.Globalization;
 using AngleSharp.Html.Parser;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
@@ -9,6 +10,45 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class HtmlOfficeAdapters {
+    [Fact]
+    public void PowerPointTableBorderLossesKeepCountsAndFirstSeenOrderPerTable() {
+        using var document = PowerPointDocument.Create();
+        var slide = document.AddSlide();
+        var repeated = slide.AddTable(1, 2, OfficeLength.Points(20), OfficeLength.Points(20),
+            OfficeLength.Points(200), OfficeLength.Points(40));
+        foreach (var cell in repeated.Rows[0].Cells) {
+            cell.Text = "Repeated";
+            cell.SetBorders(PowerPointTableCellBorders.Left | PowerPointTableCellBorders.Top,
+                OfficeColor.Black, OfficeLength.Points(1), PowerPointLineDashStyle.DashDot);
+            cell.SetBorders(PowerPointTableCellBorders.DiagonalDown, OfficeColor.Black);
+        }
+        var single = slide.AddTable(1, 1, OfficeLength.Points(20), OfficeLength.Points(80),
+            OfficeLength.Points(100), OfficeLength.Points(40));
+        single.Rows[0].Cells[0].Text = "Single";
+        single.Rows[0].Cells[0].SetBorders(PowerPointTableCellBorders.Bottom,
+            OfficeColor.Black, OfficeLength.Points(1), PowerPointLineDashStyle.DashDot);
+
+        string html = document.ToHtml(null, out OfficeConversionReport report);
+
+        var cells = new HtmlParser().ParseDocument(html).QuerySelectorAll("td");
+        Assert.Equal(new[] { "Repeated", "Repeated", "Single" }, cells.Select(cell => cell.TextContent));
+        Assert.Contains("border-top:1pt dashed", cells[0].GetAttribute("style"));
+        Assert.True(report.HasLoss);
+        var warnings = report.Diagnostics.Where(diagnostic => diagnostic.Code == "powerpoint-table-border-approximated").ToArray();
+        Assert.Equal(3, warnings.Length);
+        string repeatedSource = "powerpoint:table:" + repeated.DrawingOrder.ToString(CultureInfo.InvariantCulture);
+        Assert.Equal(repeatedSource, warnings[0].Location);
+        Assert.Equal("Dash-dot table borders are approximated by CSS dashed borders. (4 occurrences)", warnings[0].Message);
+        Assert.Equal(repeatedSource, warnings[1].Location);
+        Assert.Equal("Diagonal table borders have no CSS table-border equivalent. (2 occurrences)", warnings[1].Message);
+        Assert.Equal("powerpoint:table:" + single.DrawingOrder.ToString(CultureInfo.InvariantCulture), warnings[2].Location);
+        Assert.Equal("Dash-dot table borders are approximated by CSS dashed borders.", warnings[2].Message);
+        Assert.All(warnings, warning => {
+            Assert.Equal(OfficeDiagnosticSeverity.Warning, warning.Severity);
+            Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
+        });
+    }
+
     [Fact]
     public void PowerPointSemanticTableKeepsSourceCellPaintAndGridDimensions() {
         using var document = PowerPointDocument.Create();

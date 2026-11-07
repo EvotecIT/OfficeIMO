@@ -7,6 +7,7 @@ namespace OfficeIMO.PowerPoint.Html;
 public static partial class PowerPointHtmlConverterExtensions {
     private static void AppendTable(StringBuilder body, PptCore.PowerPointTable table, bool includeShapeMetadata = false, IList<HtmlDiagnostic>? diagnostics = null) {
         DocumentFormat.OpenXml.Drawing.TableStyleEntry? tableStyle = PptCore.PowerPointSlideImageRenderer.ResolveTableStyle(table);
+        var borderLosses = diagnostics == null ? null : new List<(string Message, int Count)>();
         body.Append("<table class=\"officeimo-table\"");
         if (includeShapeMetadata) {
             AppendSemanticShapeAttributes(body, table, "table");
@@ -40,7 +41,7 @@ public static partial class PowerPointHtmlConverterExtensions {
                     body.Append(" colspan=\"").Append(columns.ToString(CultureInfo.InvariantCulture)).Append('"');
                 }
 
-                AppendSourceTableCellStyle(body, table, cell, rowIndex, columnIndex, tableStyle, diagnostics);
+                AppendSourceTableCellStyle(body, table, cell, rowIndex, columnIndex, tableStyle, borderLosses);
                 body.Append('>');
                 if (includeShapeMetadata) {
                     IReadOnlyList<DocumentFormat.OpenXml.Drawing.TableCellTextStyle> tableTextStyles =
@@ -65,11 +66,21 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
 
         body.Append("</tbody></table>");
+        if (borderLosses != null) {
+            string source = "powerpoint:table:" + table.DrawingOrder.ToString(CultureInfo.InvariantCulture);
+            foreach (var loss in borderLosses) {
+                string message = loss.Count > 1
+                    ? loss.Message + " (" + loss.Count.ToString(CultureInfo.InvariantCulture) + " occurrences)"
+                    : loss.Message;
+                diagnostics!.Add(new HtmlDiagnostic("OfficeIMO.PowerPoint.Html", "powerpoint-table-border-approximated", message,
+                    HtmlDiagnosticSeverity.Warning, source, lossKind: OfficeConversionLossKind.Approximation));
+            }
+        }
     }
 
     private static void AppendSourceTableCellStyle(StringBuilder body, PptCore.PowerPointTable table,
         PptCore.PowerPointTableCell cell, int row, int column, DocumentFormat.OpenXml.Drawing.TableStyleEntry? tableStyle,
-        IList<HtmlDiagnostic>? diagnostics) {
+        List<(string Message, int Count)>? borderLosses) {
         var css = new StringBuilder();
         AppendCss(css, "background-color", PptCore.PowerPointSlideImageRenderer.ResolveTableCellFillColorForExport(table, row, column, tableStyle).ToCssColor());
         AppendCss(css, "padding-left", FormatNumber(cell.PaddingLeft?.ToPoints() ?? 7.2D) + "pt");
@@ -120,9 +131,16 @@ public static partial class PowerPointHtmlConverterExtensions {
             }
         }
 
-        void ReportBorderLoss(string message) => diagnostics?.Add(new HtmlDiagnostic(
-            "OfficeIMO.PowerPoint.Html", "powerpoint-table-border-approximated", message,
-            HtmlDiagnosticSeverity.Warning, "powerpoint:table:" + table.DrawingOrder.ToString(CultureInfo.InvariantCulture),
-            lossKind: OfficeConversionLossKind.Approximation));
+        void ReportBorderLoss(string message) {
+            if (borderLosses == null) return;
+            // Only three border representations can be reported, so retain first-seen order without per-edge diagnostics.
+            for (int i = 0; i < borderLosses.Count; i++) {
+                var loss = borderLosses[i];
+                if (loss.Message != message) continue;
+                borderLosses[i] = (message, loss.Count + 1);
+                return;
+            }
+            borderLosses.Add((message, 1));
+        }
     }
 }
