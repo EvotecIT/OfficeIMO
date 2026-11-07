@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
@@ -45,7 +46,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffRecord filePassRecord,
             string password,
             List<LegacyXlsImportDiagnostic> diagnostics,
-            out byte[] decryptedWorkbookStream) {
+            out byte[] decryptedWorkbookStream,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             decryptedWorkbookStream = workbookStream;
             if (!TryReadDescriptor(filePassRecord.Payload, out XorDescriptor descriptor, out string? error)) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
@@ -82,7 +85,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            decryptedWorkbookStream = TransformWorkbookStream(workbookStream, passwordBytes, decrypt: true);
+            decryptedWorkbookStream = TransformWorkbookStream(workbookStream, passwordBytes, decrypt: true, cancellationToken);
             return true;
         }
 
@@ -112,13 +115,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
-        private static byte[] TransformWorkbookStream(byte[] workbookStream, byte[] passwordBytes, bool decrypt) {
+        private static byte[] TransformWorkbookStream(byte[] workbookStream, byte[] passwordBytes, bool decrypt,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] transformed = new byte[workbookStream.Length];
             Buffer.BlockCopy(workbookStream, 0, transformed, 0, workbookStream.Length);
             byte[] xorArray = CreateXorArray(passwordBytes);
 
             int offset = 0;
             while (offset + 4 <= transformed.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ushort recordType = BiffRecordReader.ReadUInt16(transformed, offset);
                 ushort length = BiffRecordReader.ReadUInt16(transformed, offset + 2);
                 int payloadOffset = offset + 4;
@@ -131,6 +137,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 offset = recordEnd;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             return transformed;
         }
 

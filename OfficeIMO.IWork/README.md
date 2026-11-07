@@ -1,6 +1,6 @@
 # OfficeIMO.IWork - Apple iWork reading, native creation and preservation for .NET
 
-`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages, creates native documents and saves captured sources with explicit preservation boundaries, without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
+`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages and selected iWork ’09 XML packages. It creates modern native documents and saves captured modern sources with explicit preservation boundaries, without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
 
 Authored Pages, Numbers and Keynote models support `Create(path)`, associated-path `Save()` and `ToBytes()`. Captured sources use `Load()` and retain separate preservation edit sessions. The models implement `IDisposable` without retaining caller streams. Existing-file replacement requires `overwrite: true`.
 
@@ -287,6 +287,14 @@ The [image resizing reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/nat
 `IWorkNativeSaveOptions` independently bounds the sum of input file-entry bytes and encoded ZIP length, combined decompressed bytes of changed archives, and distinct edited records. `ToBytes(out IWorkNativeSaveReport report, options)` returns caller-owned package bytes and an operation-level report with normalized content hashes, physical entry/record counts and updated identities/entry paths. Counts do not establish semantic fidelity of opaque content. Encoding completes before writing. Stream saves start at the caller's current position, leave the stream open and can leave partial bytes on copying failure or cancellation. Path saves are atomic, require `overwrite: true` for existing files and reject output inside a captured directory source, including directory aliases. Sessions are not thread safe.
 
 ## Read and inspect a source
+
+The same `IWorkSourceDocument.Load` overloads inspect iWork ’09 ZIP and directory
+packages containing `index.xml` (Pages or Numbers) or `index.apxl` (Keynote), including
+gzip-compressed indexes. See the [iWork ’09 support profile](../Docs/officeimo.iwork-support-matrix.md#iwork-09-xml)
+for recovered content and conversion limits. The XML profile recovers selected
+rich text, table cells and styles, dimensions, images and positioned text through
+the same typed projections. OOXML conversion requires explicit partial editable
+acceptance, with source and destination losses retained in the report.
 
 ```csharp
 using OfficeIMO.IWork;

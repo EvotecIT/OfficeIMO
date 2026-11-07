@@ -144,6 +144,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return;
             }
 
+            if (LegacyWord69Reader.IsProfile(wordDocumentStream)) {
+                LoadWord69(compoundFile, wordDocumentStream, options);
+                return;
+            }
             LegacyDocFib fib;
             if (!LegacyDocFib.TryRead(wordDocumentStream, out fib, out string? fibError)) {
                 AddError("doc-fib-invalid", fibError ?? "The WordDocument stream does not contain a supported File Information Block.");
@@ -162,6 +166,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 string alternateName = fib.UsesOneTableStream ? "0Table" : "1Table";
                 if (TryGetRootStream(compoundFile, alternateName, out tableStreamCandidate)) {
                     AddWarning("doc-table-stream-fallback", $"The FIB requested {tableStreamName}, but only {alternateName} was present. The available table stream was used.");
+                    tableStreamName = alternateName;
                 } else {
                     AddError("doc-table-stream-missing", $"The compound document does not contain the {tableStreamName} table stream.");
                     return;
@@ -177,6 +182,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddError("doc-piece-table-invalid", textError ?? "The legacy DOC piece table could not be decoded.");
                 return;
             }
+
+            var fieldMetadata = LegacyDocFieldMetadataReader.Read(tableStream, fib, textContent.AllCharacters, tableStreamName);
 
             IReadOnlyList<string> fontFamilies = LegacyDocFontTableReader.ReadFontFamilies(tableStream, fib, out string? fontTableWarning);
             if (fontTableWarning != null) {
@@ -262,18 +269,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 Sections,
                 bookmarkProjection,
                 pictures.PicturesByCharacterPosition,
-                options.ReportUnsupportedContent);
-            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? footnoteWarning);
+                options.ReportUnsupportedContent, fieldMetadata: fieldMetadata);
+            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? footnoteWarning, fieldMetadata);
             if (footnoteWarning != null) {
                 AddWarning("doc-footnote-plc-invalid", footnoteWarning);
             }
 
-            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? endnoteWarning);
+            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? endnoteWarning, fieldMetadata);
             if (endnoteWarning != null) {
                 AddWarning("doc-endnote-plc-invalid", endnoteWarning);
             }
 
-            Comments = LegacyDocCommentReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? commentWarning);
+            Comments = LegacyDocCommentReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? commentWarning, fieldMetadata);
             if (commentWarning != null) {
                 AddWarning("doc-comment-plc-invalid", commentWarning);
             }
@@ -286,7 +293,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 pictures.FullyProjectsDataStream,
                 options.ReportUnsupportedContent);
 
-            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? headerFooterWarning);
+            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? headerFooterWarning, fieldMetadata);
             if (headerFooterWarning != null) {
                 AddWarning("doc-plcfhdd-invalid", headerFooterWarning);
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
@@ -296,6 +303,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     detailCode: "Fib:PlcfHdd"),
                     options.ReportUnsupportedContent);
             }
+
+            AddFieldMetadataDiagnostics(fieldMetadata, options.ReportUnsupportedContent, textContent.AllCharacters, fib);
 
             ReportRemainingUnprojectedBookmarks(bookmarkProjection);
         }
@@ -313,60 +322,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, byte[] tableStream, LegacyDocFib fib, bool pictureDataFullyProjected, bool reportDiagnostic) {
             AddUnsupportedFibFlagFeatures(fib, pictureDataFullyProjected, reportDiagnostic);
 
-            AddCompoundFeatureIfPresent(
-                compoundFile,
-                entry => entry.Path.StartsWith("_VBA_PROJECT_CUR", StringComparison.OrdinalIgnoreCase)
-                    || entry.Path.StartsWith("Macros", StringComparison.OrdinalIgnoreCase)
-                    || entry.Path.IndexOf("VBA", StringComparison.OrdinalIgnoreCase) >= 0,
-                LegacyDocCompoundFeatureKind.VbaProject,
-                "doc-macros-present",
-                "The legacy DOC contains VBA project storage. Macros are preserved in the source file but are not projected into the OfficeIMO document.",
-                "Compound:VbaProjectStorage");
-
-            AddCompoundFeatureIfPresent(
-                compoundFile,
-                entry => entry.Path.IndexOf("ObjectPool", StringComparison.OrdinalIgnoreCase) >= 0,
-                LegacyDocCompoundFeatureKind.OleObject,
-                "doc-ole-objects-present",
-                "The legacy DOC contains embedded OLE object storage. Embedded objects are preserved in the source file but are not projected into the OfficeIMO document.",
-                "Compound:OleObjectStorage");
-
-            AddCompoundFeatureIfPresent(
-                compoundFile,
-                entry => entry.Path.IndexOf("ActiveX", StringComparison.OrdinalIgnoreCase) >= 0
-                    || entry.Path.IndexOf("OCX", StringComparison.OrdinalIgnoreCase) >= 0,
-                LegacyDocCompoundFeatureKind.ActiveXControl,
-                "doc-activex-controls-present",
-                "The legacy DOC contains ActiveX control storage. ActiveX controls are preserved in the source file but are not projected into the OfficeIMO document.",
-                "Compound:ActiveXControlStorage");
-
-            AddCompoundFeatureIfPresent(
-                compoundFile,
-                entry => string.Equals(entry.Name.TrimStart('\u0001'), "Ole10Native", StringComparison.OrdinalIgnoreCase)
-                    || entry.Path.IndexOf("Ole10Native", StringComparison.OrdinalIgnoreCase) >= 0
-                    || entry.Path.IndexOf("Package", StringComparison.OrdinalIgnoreCase) >= 0,
-                LegacyDocCompoundFeatureKind.EmbeddedPackage,
-                "doc-embedded-packages-present",
-                "The legacy DOC contains embedded package payload storage. Embedded packages are preserved in the source file but are not projected into the OfficeIMO document.",
-                "Compound:EmbeddedPackageStorage");
-
-            AddDataStreamCompoundFeatureIfPresent(compoundFile, pictureDataFullyProjected);
-
-            AddCompoundFeatureIfPresent(
-                compoundFile,
-                IsDigitalSignatureEntry,
-                LegacyDocCompoundFeatureKind.DigitalSignature,
-                "doc-digital-signature-present",
-                "The legacy DOC contains digital-signature storage. Rewriting the document invalidates the existing signature.",
-                "Compound:DigitalSignature");
-            AddUnsupportedCompoundEntryIfPresent(
-                compoundFile,
-                IsDigitalSignatureEntry,
-                LegacyDocUnsupportedFeatureKind.DigitalSignature,
-                "doc-digital-signature-present",
-                "The legacy DOC contains digital-signature storage. Saving is blocked by default because rewriting the document invalidates the existing signature.",
-                "Compound:DigitalSignature",
-                reportDiagnostic);
+            AddUnsupportedCompoundFeatures(compoundFile, pictureDataFullyProjected, reportDiagnostic);
 
             if (fib.CcpHdd > 0 && fib.LcbPlcfHdd == 0) {
                 AddUnsupportedStoryFeatureIfPresent(
@@ -424,6 +380,63 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     "Fib:CcpHdrTxbx",
                     reportDiagnostic);
             }
+        }
+
+        private void AddUnsupportedCompoundFeatures(OfficeCompoundFile compoundFile, bool pictureDataFullyProjected, bool reportDiagnostic) {
+            AddCompoundFeatureIfPresent(
+                compoundFile,
+                entry => entry.Path.StartsWith("_VBA_PROJECT_CUR", StringComparison.OrdinalIgnoreCase)
+                    || entry.Path.StartsWith("Macros", StringComparison.OrdinalIgnoreCase)
+                    || entry.Path.IndexOf("VBA", StringComparison.OrdinalIgnoreCase) >= 0,
+                LegacyDocCompoundFeatureKind.VbaProject,
+                "doc-macros-present",
+                "The legacy DOC contains VBA project storage. Macros are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Compound:VbaProjectStorage");
+
+            AddCompoundFeatureIfPresent(
+                compoundFile,
+                entry => entry.Path.IndexOf("ObjectPool", StringComparison.OrdinalIgnoreCase) >= 0,
+                LegacyDocCompoundFeatureKind.OleObject,
+                "doc-ole-objects-present",
+                "The legacy DOC contains embedded OLE object storage. Embedded objects are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Compound:OleObjectStorage");
+
+            AddCompoundFeatureIfPresent(
+                compoundFile,
+                entry => entry.Path.IndexOf("ActiveX", StringComparison.OrdinalIgnoreCase) >= 0
+                    || entry.Path.IndexOf("OCX", StringComparison.OrdinalIgnoreCase) >= 0,
+                LegacyDocCompoundFeatureKind.ActiveXControl,
+                "doc-activex-controls-present",
+                "The legacy DOC contains ActiveX control storage. ActiveX controls are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Compound:ActiveXControlStorage");
+
+            AddCompoundFeatureIfPresent(
+                compoundFile,
+                entry => string.Equals(entry.Name.TrimStart('\u0001'), "Ole10Native", StringComparison.OrdinalIgnoreCase)
+                    || entry.Path.IndexOf("Ole10Native", StringComparison.OrdinalIgnoreCase) >= 0
+                    || entry.Path.IndexOf("Package", StringComparison.OrdinalIgnoreCase) >= 0,
+                LegacyDocCompoundFeatureKind.EmbeddedPackage,
+                "doc-embedded-packages-present",
+                "The legacy DOC contains embedded package payload storage. Embedded packages are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Compound:EmbeddedPackageStorage");
+
+            AddDataStreamCompoundFeatureIfPresent(compoundFile, pictureDataFullyProjected);
+
+            AddCompoundFeatureIfPresent(
+                compoundFile,
+                IsDigitalSignatureEntry,
+                LegacyDocCompoundFeatureKind.DigitalSignature,
+                "doc-digital-signature-present",
+                "The legacy DOC contains digital-signature storage. Rewriting the document invalidates the existing signature.",
+                "Compound:DigitalSignature");
+            AddUnsupportedCompoundEntryIfPresent(
+                compoundFile,
+                IsDigitalSignatureEntry,
+                LegacyDocUnsupportedFeatureKind.DigitalSignature,
+                "doc-digital-signature-present",
+                "The legacy DOC contains digital-signature storage. Saving is blocked by default because rewriting the document invalidates the existing signature.",
+                "Compound:DigitalSignature",
+                reportDiagnostic);
         }
 
         private void AddCompoundFeatureIfPresent(

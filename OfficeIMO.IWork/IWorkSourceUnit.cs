@@ -9,13 +9,19 @@ public sealed class IWorkObjectIdentity {
         PayloadIndex = record.PayloadIndex;
     }
 
-    /// <summary>Gets the native IWA object identifier.</summary>
+    internal IWorkObjectIdentity(string xmlEntryPath, ulong elementIdentifier) {
+        EntryPath = xmlEntryPath;
+        RecordIdentifier = elementIdentifier;
+        PayloadIndex = -1;
+    }
+
+    /// <summary>Gets the native IWA object identifier, or the stable per-snapshot element identifier for an XML source.</summary>
     public ulong RecordIdentifier { get; }
-    /// <summary>Gets the registry message type.</summary>
+    /// <summary>Gets the registry message type, or zero for an XML source object.</summary>
     public uint MessageType { get; }
-    /// <summary>Gets the normalized IWA package entry path.</summary>
+    /// <summary>Gets the normalized IWA or XML package entry path.</summary>
     public string EntryPath { get; }
-    /// <summary>Gets the payload position within its ArchiveInfo group.</summary>
+    /// <summary>Gets the payload position within its ArchiveInfo group, or -1 for an XML source object.</summary>
     public int PayloadIndex { get; }
 }
 

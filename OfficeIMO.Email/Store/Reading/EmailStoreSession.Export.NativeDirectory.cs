@@ -76,8 +76,12 @@ public sealed partial class EmailStoreSession {
         long bytesWritten = 0;
         string? temporaryPath = null;
         string? maildirFlags = null;
+        DateTimeOffset? receivedAt = null;
         try {
             EmailStoreItem item = ReadItem(reference, EmailStoreItemReadOptions.Default, cancellationToken);
+            receivedAt = item.Document.ReceivedDate;
+            AddReceivedDateExportDiagnostic(item.Document, EmailFileFormat.Eml, options.WriteManifest,
+                reference.Id, diagnostics);
             string folder = paths.GetItemDirectory(reference);
             string currentDirectory = Path.Combine(folder, "cur");
             string newDirectory = Path.Combine(folder, "new");
@@ -124,7 +128,7 @@ public sealed partial class EmailStoreSession {
         } finally {
             if (temporaryPath != null) OfficeFileCommit.DeleteIfExists(temporaryPath);
         }
-        return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics, maildirFlags);
+        return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics, maildirFlags, receivedAt);
     }
 
     private static bool GetMaildirInfoSuffixSupport(string directory,
@@ -165,8 +169,12 @@ public sealed partial class EmailStoreSession {
         string? destinationPath = null;
         long bytesWritten = 0;
         string? temporaryPath = null;
+        DateTimeOffset? receivedAt = null;
         try {
             EmailStoreItem item = ReadItem(reference, EmailStoreItemReadOptions.Default, cancellationToken);
+            receivedAt = item.Document.ReceivedDate;
+            AddReceivedDateExportDiagnostic(item.Document, EmailFileFormat.Emlx, options.WriteManifest,
+                reference.Id, diagnostics, includeEmlxMetadata: writer.Options.IncludeMetadata);
             string extension = PropertyFlag(item.Document, "Emlx:IsPartial") ? ".partial.emlx" : ".emlx";
             string path = paths.GetItemPath(reference, item.Document.Subject, extension);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -197,7 +205,7 @@ public sealed partial class EmailStoreSession {
         } finally {
             if (temporaryPath != null) OfficeFileCommit.DeleteIfExists(temporaryPath);
         }
-        return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics);
+        return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics, receivedAt: receivedAt);
     }
 
     private static string BuildMaildirFileName(string itemId, string? flags) {

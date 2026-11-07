@@ -11,7 +11,7 @@ internal static class EmailByteReader {
         CancellationToken cancellationToken) {
         try {
             return OfficeStreamReader.ReadAllBytes(stream, cancellationToken, maximumBytes);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
             throw CreateInputLimitException(stream, maximumBytes, limitName);
         }
     }
@@ -25,7 +25,7 @@ internal static class EmailByteReader {
         CancellationToken cancellationToken) {
         try {
             return await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, maximumBytes).ConfigureAwait(false);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
             throw CreateInputLimitException(stream, maximumBytes, limitName);
         }
     }

@@ -10,7 +10,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? fieldInstruction,
             LegacyDocCharacterFormat format,
             IReadOnlyList<int> characterPositions,
-            LegacyDocHyperlinkTarget hyperlinkTarget = default) {
+            LegacyDocHyperlinkTarget hyperlinkTarget = default,
+            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null,
+            bool? fieldLocked = null) {
             return new LegacyDocTextRun(
                 resultText,
                 format.Bold,
@@ -45,7 +47,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 kerningMinimumFontSizeHalfPoints: format.KerningMinimumFontSizeHalfPoints,
                 language: format.Language,
                 eastAsiaLanguage: format.EastAsiaLanguage,
-                revision: format.Revision);
+                revision: fieldResultRuns?.Count > 0 ? default : format.Revision,
+                fieldResultRuns: fieldResultRuns,
+                fieldLocked: fieldLocked);
         }
     }
 }

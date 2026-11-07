@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Packaging;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -8,6 +10,45 @@ using Path = System.IO.Path;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+
+        [Theory]
+        [InlineData("empty", "prefixsuffix")]
+        [InlineData("plain", "prefixcontentsuffix")]
+        [InlineData("lf-only", "prefix|break|suffix")]
+        [InlineData("crlf-only", "prefix|break|suffix")]
+        [InlineData("repeated-interior", "prefixa|break||break|bsuffix")]
+        [InlineData("repeated-edges", "prefix|break||break|a|break||break|suffix")]
+        [InlineData("mixed-breaks", "prefix|break||break|suffix")]
+        public void AddTextPreservesEveryNewlineAndReturnsTheLastRun(string scenario, string expected) {
+            string text = scenario switch {
+                "empty" => string.Empty,
+                "plain" => "content",
+                "lf-only" => "\n",
+                "crlf-only" => "\r\n",
+                "repeated-interior" => "a\n\nb",
+                "repeated-edges" => "\n\na\n\n",
+                "mixed-breaks" => "\r\n\n",
+                _ => throw new ArgumentOutOfRangeException(nameof(scenario))
+            };
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("prefix");
+            WordParagraph added = paragraph.AddText(text);
+            Assert.NotNull(added);
+            added.SetBold();
+            added.AddText("suffix");
+
+            using var stream = new MemoryStream(document.ToBytes());
+            using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
+            W.Paragraph saved = Assert.Single(package.MainDocumentPart!.Document.Body!.Elements<W.Paragraph>());
+            string actual = string.Concat(saved.Descendants()
+                .Where(element => element is W.Text or W.Break)
+                .Select(element => element is W.Break ? "|break|" : ((W.Text)element).Text));
+            Assert.Equal(expected, actual);
+            W.Run[] runs = saved.Elements<W.Run>().ToArray();
+            Assert.NotNull(runs[runs.Length - 2].RunProperties?.Bold);
+            Assert.Equal("suffix", runs[runs.Length - 1].InnerText);
+            Assert.Null(runs[runs.Length - 1].RunProperties?.Bold);
+        }
 
         [Fact]
         public void Test_CreatingWordDocumentWithNewLines() {

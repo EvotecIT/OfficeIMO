@@ -34,7 +34,7 @@ public sealed class IWorkPagesDrawable {
     public int? PageIndex { get; }
 }
 
-/// <summary>Read-only Pages structure recovered from a shared IWA object graph.</summary>
+/// <summary>Read-only Pages structure recovered from a supported iWork source.</summary>
 public sealed partial class IWorkPagesProjection {
     private readonly IWorkSourceDocument _source;
     private readonly bool _supportsEditableReconstruction;
@@ -151,7 +151,9 @@ public sealed partial class IWorkSourceDocument {
     public IWorkPagesProjection ReadPages() {
         _cancellationToken.ThrowIfCancellationRequested();
         if (Kind != IWorkDocumentKind.Pages) throw new InvalidOperationException($"The source is {Kind}, not Pages.");
-        IWorkPagesProjection projection = IWorkPagesReader.Read(this);
+        IWorkPagesProjection projection = LegacyXml is { } legacy
+            ? IWorkLegacyXmlReader.ReadPages(this, legacy)
+            : IWorkPagesReader.Read(this);
         _cancellationToken.ThrowIfCancellationRequested();
         return projection;
     }

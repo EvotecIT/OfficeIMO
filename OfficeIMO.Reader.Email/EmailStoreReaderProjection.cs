@@ -55,6 +55,8 @@ internal static class EmailStoreReaderProjection {
         ArgumentNullException.ThrowIfNull(sourceName);
         ArgumentNullException.ThrowIfNull(adapterOptions);
 
+        using IDisposable? bulkRead = session.Format == EmailStoreFormat.Dbx
+            ? session.BeginBulkRead(cancellationToken) : null;
         EmailStoreInspectionReport inspection = session.Inspect();
         var documents = new List<EmailDocument>();
         var logicalPaths = new List<string?>();

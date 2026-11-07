@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 characterPositions.Add(text.Length);
                 AddHeaderFooterSpecialCharacterPositions(text.Length, story.Text, markerPositions);
                 foreach (LegacyDocWritableRun run in story.FormattedRuns) {
-                    formattedRuns.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
+                    formattedRuns.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset, run.FieldLocked));
                 }
 
                 foreach (LegacyDocWritableParagraph paragraph in story.FormattedParagraphs) {

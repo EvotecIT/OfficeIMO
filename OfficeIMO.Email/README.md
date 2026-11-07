@@ -604,6 +604,42 @@ Use `DiscardIncompleteState` when an interrupted migration must not retain its w
 
 Use `EmailDataArtifact.Open` from the included `OfficeIMO.Email.Data` namespace when an application wants one discovery entry point across individual artifacts, stores, and OAB files. No additional package is required.
 
+### Outlook Express DBX
+
+Open one Outlook Express message folder or open `Folders.dbx` by path to import
+the local folder hierarchy. Keep the referenced mailbox files beside the catalog.
+Folder names and parent links come from the catalog. An unavailable referenced
+mailbox is reported separately from an empty folder.
+
+```csharp
+using OfficeIMO.Email.Store;
+
+using EmailStoreSession source = EmailStoreSession.Open("Mail backup/Folders.dbx");
+EmailStoreExportReport export = source.ExportToDirectory("Exported EML");
+foreach (EmailStoreExportEntry entry in export.Entries) {
+    Console.WriteLine(entry.DestinationPath);
+}
+```
+
+Open a standalone message database such as `Inbox.dbx` from a path or a readable
+seekable stream. Use `EmailStoreSession.OpenSnapshot` for repeated metadata
+searches or EML export from a standalone DBX file. It copies the source into
+private temporary storage once and reuses that stable copy. Keep the original
+source stable until snapshot capture returns. `Folders.dbx` uses the live
+path-based catalog and sibling validation.
+
+DBX import reads indexed local RFC messages and their MIME attachments. It
+supports Windows-1252 catalog names and reports malformed indexes and fragment
+chains. EML export serializes the projected message. DBX writing, deleted-item
+carving, remote account recovery, and earlier Outlook Express mailbox formats
+are outside this profile.
+
+Native DBX received times fill missing MIME arrival metadata. An existing MIME
+`Received` timestamp takes precedence. Directory export appends `ReceivedAtUtc`
+to the preservation manifest, retaining arrival metadata beside EML files.
+EMLX metadata stores whole-second arrival times. With the manifest disabled,
+export reports an omitted arrival time or loss of sub-second EMLX precision.
+
 ### Apple Mail and Outlook for Mac
 
 Open an exported Apple Mail `.mbox` package, its containing folder, or a copied Mail directory
@@ -789,15 +825,15 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 8 | 0 | 0 | 0 | 6 | 0 |
-| Read | 14 | 0 | 0 | 0 | 0 | 0 |
-| Edit | 6 | 0 | 4 | 1 | 3 | 0 |
-| Preserve | 2 | 4 | 0 | 0 | 3 | 0 |
-| Inspect | 14 | 0 | 0 | 0 | 0 | 0 |
-| Validate | 10 | 0 | 0 | 0 | 0 | 3 |
+| Create | 8 | 0 | 0 | 0 | 7 | 0 |
+| Read | 15 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 6 | 0 | 4 | 1 | 4 | 0 |
+| Preserve | 2 | 4 | 0 | 0 | 4 | 0 |
+| Inspect | 15 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 11 | 0 | 0 | 0 | 0 | 3 |
 | Remove | 0 | 0 | 0 | 0 | 1 | 4 |
 | Convert | 12 | 0 | 0 | 0 | 0 | 0 |
-| Export | 5 | 0 | 0 | 0 | 0 | 0 |
+| Export | 6 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Email` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

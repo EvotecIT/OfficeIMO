@@ -47,17 +47,19 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfPageCanvas canvas, WorksheetPdfExportPlan plan, TableChunk chunk,
             IReadOnlyList<double> columnWidths, IReadOnlyList<double> rowHeights,
             double sceneX, double sceneY, double scale, Func<double, double, double, double, bool>? visible = null) {
+            double tableWidth = Math.Max(1D, columnWidths.Sum());
             foreach (var drawing in plan.DrawingObjects.OrderBy(drawing => drawing.Order)) {
                 (double width, double height) = GetWorksheetDrawingSize(plan, drawing);
                 if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, drawing.Row, drawing.Column, out double x, out double y,
                         PixelsToPoints(drawing.OffsetXPixels) + width, PixelsToPoints(drawing.OffsetYPixels) + height)) continue;
-                if (visible != null && !visible(sceneX + (x + PixelsToPoints(drawing.OffsetXPixels)) * scale,
+                double drawingX = GetWorksheetSceneObjectX(plan, tableWidth, x + PixelsToPoints(drawing.OffsetXPixels), width);
+                if (visible != null && !visible(sceneX + drawingX * scale,
                         sceneY + (y + PixelsToPoints(drawing.OffsetYPixels)) * scale, width * scale, height * scale)) continue;
                 ExcelVisualDrawingObject visual = drawing.ToVisual(0D, 0D, width / 0.75D, height / 0.75D, plan.SheetName);
                 // DrawingML's shared visual model uses logical 96-DPI pixels. PDF uses points.
                 var scene = ExcelRangeImageRenderer.CreateOfficeDrawing(visual, 0.75D * scale);
                 canvas.Drawing(scene.Drawing,
-                    global::OfficeIMO.OfficeLength.Points(sceneX + (x + PixelsToPoints(drawing.OffsetXPixels)) * scale - scene.OffsetX),
+                    global::OfficeIMO.OfficeLength.Points(sceneX + drawingX * scale - scene.OffsetX),
                     global::OfficeIMO.OfficeLength.Points(sceneY + (y + PixelsToPoints(drawing.OffsetYPixels)) * scale - scene.OffsetY),
                     global::OfficeIMO.OfficeLength.Points(scene.Drawing.Width), global::OfficeIMO.OfficeLength.Points(scene.Drawing.Height),
                     new PdfCore.PdfDrawingStyle { AlternativeText = string.IsNullOrWhiteSpace(drawing.Text) ? drawing.Name : drawing.Text });

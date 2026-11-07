@@ -15,5 +15,7 @@ public enum EmailStoreFormat {
     /// <summary>Apple Mail, Maildir, or RFC message directory tree.</summary>
     MailboxDirectory = 5,
     /// <summary>Unix mbox mailbox archive.</summary>
-    Mbox = 6
+    Mbox = 6,
+    /// <summary>Outlook Express DBX mail folder or local folder catalog.</summary>
+    Dbx = 7
 }

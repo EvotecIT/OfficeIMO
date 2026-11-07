@@ -11,6 +11,51 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed class AgentEmailInspectionTests {
     [Fact]
+    public async Task DbxCatalogSearchRequiresDirectoryScopeAndStandaloneIdsTrackExactBytes() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-dbx-agent-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string catalog = Path.Combine(root, "Folders.dbx");
+            await File.WriteAllBytesAsync(catalog, CreateEmptyDbx(catalog: true));
+            var fileOnly = new OfficeImoAgentService(new AgentPathPolicy(new[] { catalog }));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => fileOnly.InspectAsync(catalog));
+
+            var directory = new OfficeImoAgentService(new AgentPathPolicy(new[] { root }));
+            var result = await directory.SearchEmailContentAsync(catalog, "needle");
+            Assert.Empty(result.Results);
+            Assert.Equal("Dbx", (await directory.InspectAsync(catalog)).Format);
+
+            string inbox = Path.Combine(root, "Inbox.dbx");
+            byte[] messageDatabase = CreateEmptyDbx(catalog: false);
+            await File.WriteAllBytesAsync(inbox, messageDatabase);
+            var inboxOnly = new OfficeImoAgentService(new AgentPathPolicy(new[] { inbox }));
+            var first = await inboxOnly.InspectAsync(inbox);
+            DateTime timestamp = File.GetLastWriteTimeUtc(inbox);
+            messageDatabase[0x200] ^= 1;
+            await File.WriteAllBytesAsync(inbox, messageDatabase);
+            File.SetLastWriteTimeUtc(inbox, timestamp);
+            var second = await inboxOnly.InspectAsync(inbox);
+            Assert.Equal("Dbx", first.Format);
+            Assert.NotEqual(first.SourceId, second.SourceId);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static byte[] CreateEmptyDbx(bool catalog) {
+        var bytes = new byte[0x24c1];
+        Convert.FromHexString("CFAD12FEC5FD746F66E3D1119A4E00C04FA309D405000000").CopyTo(bytes, 0);
+        if (catalog) {
+            bytes[4] = 0xc6;
+        } else {
+            bytes[0x1c] = 5;
+            bytes[0x24bc] = 1;
+            bytes[0x24c0] = 3;
+        }
+        return bytes;
+    }
+
+    [Fact]
     public void MailDataRegistrationAppliesOwnerDiscoveryBoundsBeforeCreatingAnIdentity() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-registry-bound-" + Guid.NewGuid()); Directory.CreateDirectory(root);
         try {

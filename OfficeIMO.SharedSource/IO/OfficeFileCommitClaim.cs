@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using Microsoft.Win32.SafeHandles;
 
 #if OFFICEIMO_READER_CORE
 namespace OfficeIMO.Reader.Internal.IO {
@@ -74,11 +75,14 @@ namespace OfficeIMO.Core.Internal.IO {
                           (exception.HResult == unchecked((int)0x80070050) || exception.HResult == unchecked((int)0x800700B7))) ||
                          (!windows && exception.HResult == 17))) {
                         // CreateNew reports the same collision for an owned claim and an
-                        // abandoned one (Unix EEXIST is 17). Verify actual sharing;
-                        // permission and other persistent failures must remain errors.
+                        // abandoned one. Access errors and foreign-file failures must remain errors.
                         string claimPath = CreatePath(destinationPath);
                         try {
-                            using (var probe = new FileStream(claimPath, FileMode.Open, FileAccess.Read, FileShare.Delete)) { }
+                            if (!windows && CanInspectUnixClaimWithoutLocking()) {
+                                if (IsEmptyReadableUnixClaim(claimPath)) return false;
+                            } else {
+                                using (var probe = new FileStream(claimPath, FileMode.Open, FileAccess.Read, FileShare.Delete)) { }
+                            }
                         } catch (Exception probe) when (IsSharingContention(probe) ||
                             ((probe is FileNotFoundException || probe is DirectoryNotFoundException) && File.Exists(destinationPath))) {
                             return false;
@@ -96,6 +100,43 @@ namespace OfficeIMO.Core.Internal.IO {
                 }
             }
         }
+
+        private static bool CanInspectUnixClaimWithoutLocking() =>
+            IntPtr.Size == 8 &&
+            (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) &&
+            (RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.Arm64);
+
+        /// <summary>Inspects an LP64 Unix claim without taking a lock or reading, changing, or deleting its bytes.</summary>
+        private static bool IsEmptyReadableUnixClaim(string claimPath) {
+            // A creator's empty file is visible before FileStream obtains flock and enables
+            // DeleteOnClose. A managed sharing probe could take that lock first. Read-only
+            // native open avoids that race; NONBLOCK also prevents a foreign FIFO from blocking.
+            int flags = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                ? 0x01000004 // O_RDONLY | O_NONBLOCK | O_CLOEXEC on macOS.
+                : 0x00080800; // The same flags on Linux.
+            int descriptor = OpenUnixClaimReadOnly(claimPath, flags);
+            if (descriptor < 0) {
+                int error = Marshal.GetLastWin32Error();
+                if (error == 13 || error == 1) throw new UnauthorizedAccessException($"Access to claim file '{claimPath}' is denied.");
+                if (error == 2) throw new FileNotFoundException("The claim was released before it could be inspected.", claimPath);
+                if (error == 20) throw new DirectoryNotFoundException("The claim directory no longer exists.");
+                throw new IOException($"Unable to inspect claim file '{claimPath}' (OS error {error}).");
+            }
+
+            using (var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true)) {
+                // Both qualified ABIs use a signed 64-bit off_t. A failed seek, including a
+                // nonseekable object, is not an empty claim and retains the original collision.
+                // An unrelated empty file is indistinguishable from an initializing claim;
+                // leave it untouched and conservatively report contention.
+                return SeekUnixClaim(handle, 0, 2) == 0; // SEEK_END.
+            }
+        }
+
+        [DllImport("libc", EntryPoint = "open", SetLastError = true, CharSet = CharSet.Ansi)]
+        private static extern int OpenUnixClaimReadOnly(string path, int flags);
+
+        [DllImport("libc", EntryPoint = "lseek", SetLastError = true)]
+        private static extern long SeekUnixClaim(SafeFileHandle handle, long offset, int origin);
 
         /// <summary>Identifies a claim collision so the caller can apply its own retry policy.</summary>
         internal static bool IsContention(Exception exception, string destinationPath) =>

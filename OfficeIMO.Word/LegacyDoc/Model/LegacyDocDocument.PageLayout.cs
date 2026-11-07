@@ -28,29 +28,32 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             value == 0 ? RestartNumberValues.Continuous : value == 1 ? RestartNumberValues.EachSection :
             value == 2 && footnotes ? RestartNumberValues.EachPage : (RestartNumberValues?)null;
 
-        private void ReadDopMarginSettings(byte[] tableStream, LegacyDocFib fib) {
-            if (fib.FcDop < 0 || fib.FcDop > tableStream.Length - fib.LcbDop) return;
+        private void ReadDopMarginSettings(byte[] tableStream, LegacyDocFib fib) =>
+            ReadDopMarginSettings(tableStream, fib.FcDop, fib.LcbDop);
+
+        private void ReadDopMarginSettings(byte[] tableStream, int offset, int length) {
+            if (offset < 0 || length < 0 || offset > tableStream.Length - length) return;
 
             const uint mirrorMarginsFlag = 0x00200000;
-            if (fib.LcbDop >= 8) {
-                uint flags = unchecked((uint)LegacyDocFib.ReadInt32(tableStream, fib.FcDop + 4));
+            if (length >= 8) {
+                uint flags = unchecked((uint)LegacyDocFib.ReadInt32(tableStream, offset + 4));
                 MirrorMargins = (flags & mirrorMarginsFlag) != 0;
             }
             // MS-DOC DopBase stores Copts60 at byte 8; bit 5 is fNoColumnBalance.
             const int compatibilityFlagsOffset = 8;
             const ushort noColumnBalanceFlag = 0x0020;
-            if (fib.LcbDop >= compatibilityFlagsOffset + sizeof(ushort)) {
-                ushort flags = LegacyDocFib.ReadUInt16(tableStream, fib.FcDop + compatibilityFlagsOffset);
+            if (length >= compatibilityFlagsOffset + sizeof(ushort)) {
+                ushort flags = LegacyDocFib.ReadUInt16(tableStream, offset + compatibilityFlagsOffset);
                 NoColumnBalance = (flags & noColumnBalanceFlag) != 0;
             }
-            if (fib.LcbDop >= 12) {
-                ushort interval = LegacyDocFib.ReadUInt16(tableStream, fib.FcDop + 10);
+            if (length >= 12) {
+                ushort interval = LegacyDocFib.ReadUInt16(tableStream, offset + 10);
                 if (interval <= short.MaxValue) DefaultTabStop = interval;
             }
             const int viewFlagsOffset = 82;
             const ushort gutterAtTopFlag = 0x8000;
-            if (fib.LcbDop >= viewFlagsOffset + sizeof(ushort)) {
-                ushort flags = LegacyDocFib.ReadUInt16(tableStream, fib.FcDop + viewFlagsOffset);
+            if (length >= viewFlagsOffset + sizeof(ushort)) {
+                ushort flags = LegacyDocFib.ReadUInt16(tableStream, offset + viewFlagsOffset);
                 GutterAtTop = (flags & gutterAtTopFlag) != 0;
             }
         }

@@ -9,6 +9,7 @@ using OfficeIMO.Data;
 using OfficeIMO.Data.Arrow;
 
 CsvPackedTextSmoke.Run();
+CsvUtf8NumericSmoke.Run();
 CsvPropertyWriteSmoke.Run();
 
 CsvDocument document = CsvDocument.Parse("Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\n");
