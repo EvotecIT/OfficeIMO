@@ -93,6 +93,7 @@ foreach (OfficeDiagnostic finding in report.Diagnostics) {
 ## What it maps
 
 - Workbook sheets, selected sheet lists, visible used ranges, print areas, page setup, margins, orientation, and worksheet page breaks.
+- Right-to-left worksheet views reverse physical column order, keeping column widths, merged cells, repeated print titles and anchored objects with their source columns.
 - A sheet without stored margins prints with Excel's Normal margins: 0.7 inch left and right, 0.75 inch top and bottom, and 0.3 inch header and footer margins. Header and footer text lines up with the sheet's left and right margins. `Margins` or explicit `PdfOptions` margins override this.
 - A single column wider than the printable width prints once, cut at the page edge, rather than continuing on another page.
 - Repeated print-title rows and columns, headers, footers, page/date/time/sheet/workbook tokens, and supported header/footer images.

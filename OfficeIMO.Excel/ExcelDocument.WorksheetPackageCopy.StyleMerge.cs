@@ -17,20 +17,23 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Merges a source workbook's styles into the target workbook for one worksheet copy. Each source entry maps to the
         /// first target entry with the same properties and color binding, and is appended only when the target has none, so copying more sheets
-        /// from the same source, or from a source with the same styles, adds nothing. The target is indexed afresh for every
-        /// copy, so changes to either stylesheet between copies are always seen, and entries are visited in index order,
-        /// so equal inputs give equal output.
+        /// from the same source, or from a source with the same styles, adds nothing. A theme or palette reference has the
+        /// same binding as the same reference in the target when both workbooks resolve it to the same color. The target is
+        /// indexed afresh for every copy, so changes to either stylesheet between copies are always seen, and entries are
+        /// visited in index order, so equal inputs give equal output.
         /// </summary>
         private sealed class StylesheetMerger {
             private readonly Stylesheet _source;
             private readonly Stylesheet _target;
             private readonly WorkbookStyleColorResolver _sourceColors;
+            private readonly WorkbookStyleColorResolver _targetColors;
             private readonly NumberFormatRegistry _numberFormats;
 
-            internal StylesheetMerger(WorkbookPart sourceWorkbookPart, Stylesheet source, Stylesheet target) {
+            internal StylesheetMerger(WorkbookPart sourceWorkbookPart, Stylesheet source, WorkbookPart targetWorkbookPart, Stylesheet target) {
                 _source = source;
                 _target = target;
                 _sourceColors = WorkbookStyleColorResolver.Create(sourceWorkbookPart, source);
+                _targetColors = WorkbookStyleColorResolver.Create(targetWorkbookPart, target);
                 _numberFormats = NumberFormatRegistry.Create(target);
             }
 
@@ -94,7 +97,7 @@ namespace OfficeIMO.Excel {
                 where TElement : OpenXmlElement {
                 var index = new StyleEntryIndex();
                 foreach (TElement entry in target.Elements<TElement>()) {
-                    string key = BuildStyleKey(entry);
+                    string key = BuildEntryKey(entry);
                     if (reservesFills && index.Count < 2U && !IsReservedFillKey(index.Count, key)) {
                         // Excel draws the first two fills as none and gray125 whatever they hold.
                         index.AddUnmatched();
@@ -121,9 +124,17 @@ namespace OfficeIMO.Excel {
                 uint sourceIndex = 0;
                 foreach (TElement entry in source.Elements<TElement>()) {
                     OpenXmlElement copied = entry.CloneNode(true);
-                    _sourceColors.NormalizeThemeAndIndexedColors(copied);
                     prepare?.Invoke(copied);
-                    map[sourceIndex] = AppendOrReuse(target, targetIndex, copied, BuildStyleKey(copied));
+                    // A copy is appended with fixed colors, but may reuse a target entry that keeps the source's theme
+                    // and palette references, where the target resolves them to the same colors.
+                    OpenXmlElement? bound = _sourceColors.CloneKeepingReferencesResolvedAlike(copied, _targetColors);
+                    _sourceColors.NormalizeThemeAndIndexedColors(copied);
+                    string? boundKey = null;
+                    if (bound != null) {
+                        boundKey = BuildEntryKey(bound);
+                    }
+
+                    map[sourceIndex] = AppendOrReuse(target, targetIndex, copied, BuildEntryKey(copied), boundKey);
                     sourceIndex++;
                 }
 
@@ -166,8 +177,18 @@ namespace OfficeIMO.Excel {
                 return map;
             }
 
-            private static uint AppendOrReuse(OpenXmlCompositeElement target, StyleEntryIndex targetIndex, OpenXmlElement entry, string key) {
-                if (targetIndex.TryFind(key, out uint existing)) {
+            /// <summary>
+            /// Returns the first target entry with either key, or appends <paramref name="entry"/>, which has
+            /// <paramref name="key"/>.
+            /// </summary>
+            private static uint AppendOrReuse(OpenXmlCompositeElement target, StyleEntryIndex targetIndex, OpenXmlElement entry, string key, string? boundKey = null) {
+                bool found = targetIndex.TryFind(key, out uint existing);
+                if (boundKey != null && targetIndex.TryFind(boundKey, out uint bound) && (!found || bound < existing)) {
+                    existing = bound;
+                    found = true;
+                }
+
+                if (found) {
                     return existing;
                 }
 
@@ -415,6 +436,40 @@ namespace OfficeIMO.Excel {
             }
 
             return id;
+        }
+
+        private static readonly string NoneFillKey = BuildStyleKey(new Fill(new PatternFill { PatternType = PatternValues.None }));
+
+        /// <summary>
+        /// Builds the key a font, fill, border or dxf is matched by. Forms that are written differently but draw nothing
+        /// different share a key: a border side with no line style is left out, so Excel's default border with its empty
+        /// sides matches an empty border, and a fill with no pattern matches the none pattern. A dxf is keyed as written:
+        /// it overrides only what it names, so these forms are not taken as equal inside one.
+        /// </summary>
+        private static string BuildEntryKey(OpenXmlElement entry) {
+            if (entry is Fill fill && !fill.HasChildren && !fill.HasAttributes) {
+                return NoneFillKey;
+            }
+
+            if (entry is Border border && border.ChildElements.Any(IsEmptyBorderSide)) {
+                var drawn = (Border)border.CloneNode(true);
+                foreach (OpenXmlElement side in drawn.ChildElements.Where(IsEmptyBorderSide).ToList()) {
+                    side.Remove();
+                }
+
+                return BuildStyleKey(drawn);
+            }
+
+            return BuildStyleKey(entry);
+        }
+
+        private static bool IsEmptyBorderSide(OpenXmlElement side) {
+            if (side is not BorderPropertiesType || side.HasChildren) {
+                return false;
+            }
+
+            // A side without a style draws no line, as does the none style.
+            return side.GetAttributes().All(_ => string.IsNullOrEmpty(_.NamespaceUri) && _.LocalName == "style" && _.Value == "none");
         }
 
         /// <summary>

@@ -257,7 +257,6 @@ internal sealed partial class OfficeImoAgentService {
             conversionCursor > 0 || result.ConversionNextCursor.HasValue;
         while (AgentJson.Measure(result) > maxOutputCharacters &&
                (operations.Count > 0 || conversions.Count > 0 || capabilities.Count > 0)) {
-            bool removed = true;
             if (operations.Count > 1) {
                 operations.RemoveAt(operations.Count - 1);
                 result.OperationReturned = operations.Count;
@@ -270,19 +269,20 @@ internal sealed partial class OfficeImoAgentService {
                 result.ConversionNextCursor = conversionCursor + conversions.Count < conversionTotal
                     ? conversionCursor + conversions.Count
                     : null;
+            } else if (normalizedExtension != null &&
+                       capabilities.Any(capability => capability.Extensions.Count > 1)) {
+                // Keep the matching handler and the pageable operation under a tight budget.
+                foreach (AgentCapabilitySummary capability in capabilities) {
+                    string matchedExtension = capability.Extensions.First(value =>
+                        string.Equals(value, normalizedExtension, StringComparison.OrdinalIgnoreCase));
+                    capability.Extensions = new[] { matchedExtension };
+                }
             } else if (capabilities.Count > 0) {
                 capabilities.RemoveAt(capabilities.Count - 1);
                 result.Returned = capabilities.Count;
-            } else if (operations.Count > 1) {
-                operations.RemoveAt(operations.Count - 1);
-                result.OperationReturned = operations.Count;
-                result.OperationNextCursor = cursor + operations.Count < operationTotal
-                    ? cursor + operations.Count
-                    : null;
             } else {
-                removed = false;
+                break;
             }
-            if (!removed) break;
             result.Truncated = true;
         }
         int measuredCharacters = AgentJson.Measure(result);
@@ -393,6 +393,7 @@ internal sealed partial class OfficeImoAgentService {
         return extension.Equals(".pst", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".ost", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".olm", StringComparison.OrdinalIgnoreCase) ||
+               extension.Equals(".dbx", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".emlx", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".mbox", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".mbx", StringComparison.OrdinalIgnoreCase);

@@ -133,7 +133,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private static char DecodeWindows1252(byte value) {
+        internal static char DecodeWindows1252(byte value) {
             if (value < 0x80 || value >= 0xA0) {
                 return (char)value;
             }

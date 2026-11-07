@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
@@ -22,12 +23,13 @@ internal static partial class LegacyXlsCompoundEncryption {
         string workbookName = source.Streams.First(item => ReferenceEquals(item.Value, originalWorkbook)).Key;
         var streams = source.Streams.ToDictionary(item => item.Key, item => item.Value, StringComparer.OrdinalIgnoreCase);
         streams[workbookName] = decodedWorkbook;
-        BiffRecord filePass = FindFilePass(decodedWorkbook);
+        BiffRecord filePass = FindFilePass(decodedWorkbook, options.CancellationToken);
         foreach (var item in source.Streams) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (!IsAuxiliaryBiffStream(item.Key)) continue;
-            BiffRc4RecordStreamCipher.ValidateRecordStream(item.Value);
-            if (!LegacyBiffWorkbookParser.TryDecryptRecordStream(item.Value, filePass, options.Password!, diagnostics, out byte[] plaintext))
+            BiffRc4RecordStreamCipher.ValidateRecordStream(item.Value, options.CancellationToken);
+            if (!LegacyBiffWorkbookParser.TryDecryptRecordStream(item.Value, filePass, options.Password!, diagnostics,
+                    out byte[] plaintext, options.CancellationToken))
                 throw new InvalidDataException("The encrypted auxiliary BIFF stream could not be decrypted: " + item.Key);
             streams[item.Key] = plaintext;
         }
@@ -129,9 +131,10 @@ internal static partial class LegacyXlsCompoundEncryption {
             throw new InvalidDataException(collision);
     }
 
-    private static BiffRecord FindFilePass(byte[] bytes) {
+    private static BiffRecord FindFilePass(byte[] bytes, CancellationToken cancellationToken) {
         int offset = 0;
         while (offset <= bytes.Length - 4) {
+            cancellationToken.ThrowIfCancellationRequested();
             ushort type = BiffRecordReader.ReadUInt16(bytes, offset);
             int length = BiffRecordReader.ReadUInt16(bytes, offset + 2);
             if (length > bytes.Length - offset - 4) break;

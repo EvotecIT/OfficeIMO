@@ -264,6 +264,25 @@ OfficeConversionReport report = book.SaveAsPdf("Orders.pdf");
 Console.WriteLine($"{report.ItemsWritten} pages, loss: {report.HasLoss}");
 ```
 
+## Validate package signatures from a stream
+
+Pass the original XLSX/XLSM package stream and an explicit security provider.
+The managed provider is available in the optional `OfficeIMO.Security` package:
+
+```csharp
+using System.IO;
+using OfficeIMO.Excel;
+using OfficeIMO.Security;
+
+static OfficePackageSignatureValidationReport ValidateUpload(Stream upload) =>
+    ExcelDocument.ValidatePackageSignatures(upload, OfficeSecurityProvider.Default);
+```
+
+The stream stays open on success and failure. Seekable streams are read from the
+beginning and their original position is restored; non-seekable streams are read
+from the current position. The existing validation options control certificate
+policy and package limits, including the maximum bytes buffered from the stream.
+
 ## More
 
 - [Excel guide](../Docs/officeimo.excel-guide.md): styles, validation, conditional formats, pivot tables, slicers, sparklines, templates, formulas and calculation, protection, links, images, printing, legacy `.xls` and image export.

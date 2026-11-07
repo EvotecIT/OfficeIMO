@@ -35,6 +35,7 @@ namespace OfficeIMO.Excel.Pdf {
             public string BookmarkName { get; }
             public WorksheetGeometryData Geometry { get; }
             public bool ClipToExportRange { get; }
+            public bool RightToLeft { get; set; }
             public WorksheetTextMeasurer? TextMeasurer { get; set; }
             public Dictionary<WorksheetChartExportData, OfficeChartRenderingResult> ChartRenderings { get; } = new();
             public double[]? RowHeightPrefix { get; set; }

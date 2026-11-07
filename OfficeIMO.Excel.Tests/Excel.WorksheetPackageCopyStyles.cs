@@ -247,19 +247,267 @@ namespace OfficeIMO.Tests {
             File.Delete(targetPath);
         }
 
+        [Theory]
+        [InlineData("font", "theme", true)]
+        [InlineData("font", "theme", false)]
+        [InlineData("font", "tint", true)]
+        [InlineData("font", "tint", false)]
+        [InlineData("font", "indexed", true)]
+        [InlineData("font", "indexed", false)]
+        [InlineData("fill", "theme", true)]
+        [InlineData("border", "theme", true)]
+        [InlineData("dxf", "theme", true)]
+        [InlineData("dxf", "theme", false)]
+        public void Test_CopyWorksheetFrom_PackageModeReusesEntriesWhoseColorsResolveAlike(string kind, string colorKind, bool sameColor) {
+            string name = kind + "-" + colorKind + "-" + sameColor;
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyResolvedColorSource-" + name + ".xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyResolvedColorTarget-" + name + ".xlsx");
+            XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            using (var source = ExcelDocument.Create(sourcePath)) {
+                source.AddSheet("Data").Cell(1, 1).SetValue("Source");
+                SetCopyThemeColor(source, "dk1", new XElement(drawing + "sysClr", new XAttribute("val", "windowText"), new XAttribute("lastClr", "000000")));
+                SetCopyAccentColor(source, "4472C4");
+                source.Save();
+            }
+
+            // The target's theme writes the same colors another way, or holds other colors.
+            string dark = sameColor ? "000000" : "1F1F1F";
+            string accent = sameColor ? "4472C4" : "ED7D31";
+            using (var target = ExcelDocument.Create(targetPath)) {
+                target.AddSheet("Existing").Cell(1, 1).SetValue("Target");
+                SetCopyThemeColor(target, "dk1", new XElement(drawing + "srgbClr", new XAttribute("val", dark)));
+                SetCopyAccentColor(target, accent);
+                target.Save();
+            }
+
+            AddCopyColorBinding(sourcePath, "Data", kind, CreateCopyReferenceColor(colorKind));
+            AddCopyColorBinding(targetPath, "Existing", kind, CreateCopyReferenceColor(colorKind));
+            if (colorKind == "indexed" && !sameColor) {
+                SetCopyIndexedColor(targetPath, 10, "FF00FF00");
+            }
+
+            string beforeCopy = ReadStyleCounts(targetPath);
+            var options = new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package };
+            using (var source = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var target = ExcelDocument.Load(targetPath)) {
+                target.CopyWorksheetFrom(source, "Data", "Imported", ExcelSheetNameValidationMode.Strict, options);
+                target.CopyWorksheetFrom(source, "Data", "Imported again", ExcelSheetNameValidationMode.Strict, options);
+                target.Save();
+            }
+
+            string afterCopy = ReadStyleCounts(targetPath);
+            using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, false)) {
+                ColorType existing = ReadCopyStyleColor(target, "Existing", kind);
+                ColorType imported = ReadCopyStyleColor(target, "Imported", kind);
+                Assert.Equal(CreateCopyReferenceColor(colorKind).GetAttributes().Select(_ => _.LocalName + "=" + _.Value), existing.GetAttributes().Select(_ => _.LocalName + "=" + _.Value));
+                Assert.Equal(ReadCopyStyleReference(target, "Imported", kind), ReadCopyStyleReference(target, "Imported again", kind));
+                if (sameColor) {
+                    Assert.Equal(beforeCopy, afterCopy);
+                    Assert.Equal(ReadCopyStyleReference(target, "Existing", kind), ReadCopyStyleReference(target, "Imported", kind));
+                } else {
+                    Assert.NotEqual(beforeCopy, afterCopy);
+                    Assert.NotEqual(ReadCopyStyleReference(target, "Existing", kind), ReadCopyStyleReference(target, "Imported", kind));
+                    Assert.NotNull(imported.Rgb);
+                    Assert.Null(imported.Theme);
+                    Assert.Null(imported.Indexed);
+                    Assert.Null(imported.Tint);
+                }
+
+                Assert.Empty(new OpenXmlValidator().Validate(target));
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Theory]
+        [InlineData("border")]
+        [InlineData("fill")]
+        public void Test_CopyWorksheetFrom_PackageModeReusesEntriesThatDrawNothingAlike(string kind) {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyEmptyEntrySource-" + kind + ".xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyEmptyEntryTarget-" + kind + ".xlsx");
+            using (var source = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet sheet = source.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Source");
+                sheet.Cell(2, 1).SetValue(12.5);
+                source.Save();
+            }
+
+            using (var target = ExcelDocument.Create(targetPath)) {
+                target.AddSheet("Existing").Cell(1, 1).SetValue("Target");
+                target.Save();
+            }
+
+            using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourcePath, true)) {
+                Stylesheet styles = source.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                if (kind == "border") {
+                    // Excel writes each side of its default border; OfficeIMO's target writes none.
+                    WriteExcelDefaultStyles(styles, font: false, border: true);
+                } else {
+                    // A fill with no pattern draws what the target's none fill draws.
+                    styles.Fills!.Append(new Fill());
+                    styles.Fills.Count = (uint)styles.Fills.Elements<Fill>().Count();
+                    styles.CellFormats!.Append(new CellFormat { NumberFormatId = 0U, FontId = 0U, FillId = styles.Fills.Count - 1U, BorderId = 0U, FormatId = 0U });
+                    styles.CellFormats.Count = (uint)styles.CellFormats.Elements<CellFormat>().Count();
+                    WorksheetPart part = GetWorksheetPartByNameForOperations(source, "Data");
+                    part.Worksheet.Descendants<Cell>().Single(_ => _.CellReference?.Value == "A1").StyleIndex = styles.CellFormats.Count - 1U;
+                    part.Worksheet.Save();
+                }
+
+                styles.Save();
+            }
+
+            string beforeCopy = ReadStyleCounts(targetPath);
+            using (var source = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var target = ExcelDocument.Load(targetPath)) {
+                target.CopyWorksheetFrom(source, "Data", "Imported", ExcelSheetNameValidationMode.Strict, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                target.Save();
+            }
+
+            Assert.Equal(beforeCopy, ReadStyleCounts(targetPath));
+            using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, false)) {
+                Cell[] cells = GetWorksheetPartByNameForOperations(target, "Imported").Worksheet.Descendants<Cell>().ToArray();
+                Assert.Equal(new[] { "A1", "A2" }, cells.Select(_ => _.CellReference!.Value));
+                Assert.All(cells, _ => Assert.Equal(0U, _.StyleIndex?.Value ?? 0U));
+                Assert.Empty(new OpenXmlValidator().Validate(target));
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorksheetFrom_PackageModeKeepsExcelDefaultFormatOnCopiedCells() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyExcelDefaultSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyExcelDefaultTarget.xlsx");
+            XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            using (var source = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet sheet = source.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Weight");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(12.5);
+                SetCopyThemeColor(source, "dk1", new XElement(drawing + "sysClr", new XAttribute("val", "windowText"), new XAttribute("lastClr", "000000")));
+                source.Save();
+            }
+
+            using (var target = ExcelDocument.Create(targetPath)) {
+                target.AddSheet("Existing").Cell(1, 1).SetValue("Existing");
+                SetCopyThemeColor(target, "dk1", new XElement(drawing + "srgbClr", new XAttribute("val", "000000")));
+                target.Save();
+            }
+
+            // The source is laid out as Excel writes a new workbook. The target has Excel's default font, but keeps
+            // OfficeIMO's default border.
+            using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourcePath, true)) {
+                Stylesheet styles = source.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                WriteExcelDefaultStyles(styles, font: true, border: true);
+                styles.Save();
+            }
+
+            using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, true)) {
+                Stylesheet styles = target.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                WriteExcelDefaultStyles(styles, font: true, border: false);
+                styles.Save();
+            }
+
+            string beforeCopy = ReadStyleCounts(targetPath);
+            using (var source = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var target = ExcelDocument.Load(targetPath)) {
+                target.CopyWorksheetFrom(source, "Data", "Imported", ExcelSheetNameValidationMode.Strict, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                target.Save();
+            }
+
+            Assert.Equal(beforeCopy, ReadStyleCounts(targetPath));
+            using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourcePath, false))
+            using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, false)) {
+                Cell[] sourceCells = GetWorksheetPartByNameForOperations(source, "Data").Worksheet.Descendants<Cell>().ToArray();
+                Cell[] importedCells = GetWorksheetPartByNameForOperations(target, "Imported").Worksheet.Descendants<Cell>().ToArray();
+                Assert.Equal(sourceCells.Select(_ => _.CellReference!.Value), importedCells.Select(_ => _.CellReference!.Value));
+                Assert.All(sourceCells, _ => Assert.Null(_.StyleIndex));
+                Assert.All(importedCells, _ => Assert.Null(_.StyleIndex));
+                Assert.Empty(new OpenXmlValidator().Validate(target));
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
         private static void SetCopyAccentColor(ExcelDocument document, string rgb) {
+            XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            SetCopyThemeColor(document, "accent1", new XElement(drawing + "srgbClr", new XAttribute("val", rgb)));
+        }
+
+        private static void SetCopyThemeColor(ExcelDocument document, string slot, XElement color) {
             document.EnsureWorkbookTheme();
             XDocument theme = XDocument.Parse(document.GetWorkbookThemeXml()!);
             XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
-            theme.Descendants(drawing + "accent1").Single().ReplaceNodes(new XElement(drawing + "srgbClr", new XAttribute("val", rgb)));
+            theme.Descendants(drawing + slot).Single().ReplaceNodes(color);
             document.SetWorkbookThemeXml(theme.ToString(SaveOptions.DisableFormatting));
         }
 
+        /// <summary>Gives the workbook a custom palette that changes one indexed color.</summary>
+        private static void SetCopyIndexedColor(string path, int index, string argb) {
+            using SpreadsheetDocument document = SpreadsheetDocument.Open(path, true);
+            Stylesheet styles = document.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            styles.Colors = new Colors(new IndexedColors(Enumerable.Range(0, 64).Select(_ => new RgbColor { Rgb = _ == index ? argb : "FF000000" })));
+            styles.Save();
+        }
+
+        private static Color CreateCopyReferenceColor(string colorKind) {
+            if (colorKind == "theme") {
+                return new Color { Theme = 1U };
+            }
+
+            if (colorKind == "tint") {
+                return new Color { Theme = 4U, Tint = 0.39997558519241921D };
+            }
+
+            return new Color { Indexed = 10U };
+        }
+
+        /// <summary>Replaces the default font, the default border, or both, with the forms Excel writes.</summary>
+        private static void WriteExcelDefaultStyles(Stylesheet styles, bool font, bool border) {
+            if (font) {
+                Font first = styles.Fonts!.Elements<Font>().First();
+                first.RemoveAllChildren();
+                first.Append(
+                    new FontSize { Val = 11D },
+                    new Color { Theme = 1U },
+                    new FontName { Val = "Calibri" },
+                    new FontFamilyNumbering { Val = 2 },
+                    new FontScheme { Val = FontSchemeValues.Minor });
+            }
+
+            if (border) {
+                Border first = styles.Borders!.Elements<Border>().First();
+                first.RemoveAllChildren();
+                first.Append(new LeftBorder(), new RightBorder(), new TopBorder(), new BottomBorder(), new DiagonalBorder());
+            }
+        }
+
+        private static uint ReadCopyStyleReference(SpreadsheetDocument document, string sheetName, string kind) {
+            Worksheet worksheet = GetWorksheetPartByNameForOperations(document, sheetName).Worksheet;
+            if (kind == "dxf") {
+                return worksheet.Descendants<ConditionalFormattingRule>().Single().FormatId!.Value;
+            }
+
+            return worksheet.Descendants<Cell>().Single(_ => _.CellReference?.Value == "A1").StyleIndex?.Value ?? 0U;
+        }
+
         private static void AddCopyColorBinding(string path, string sheetName, string kind, bool themeLinked) {
+            Color color = themeLinked ? new Color { Theme = 4U } : new Color { Rgb = "FFFF0000" };
+            AddCopyColorBinding(path, sheetName, kind, color);
+        }
+
+        private static void AddCopyColorBinding(string path, string sheetName, string kind, Color color) {
             using SpreadsheetDocument document = SpreadsheetDocument.Open(path, true);
             Stylesheet styles = document.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
             WorksheetPart part = GetWorksheetPartByNameForOperations(document, sheetName);
-            Color color = themeLinked ? new Color { Theme = 4U } : new Color { Rgb = "FFFF0000" };
             if (kind == "dxf") {
                 styles.DifferentialFormats ??= new DifferentialFormats();
                 uint index = (uint)styles.DifferentialFormats.Elements<DifferentialFormat>().Count();
@@ -275,7 +523,8 @@ namespace OfficeIMO.Tests {
                     format.ApplyFont = true;
                 } else if (kind == "fill") {
                     format.FillId = (uint)styles.Fills!.Elements<Fill>().Count();
-                    ForegroundColor foreground = themeLinked ? new ForegroundColor { Theme = 4U } : new ForegroundColor { Rgb = "FFFF0000" };
+                    var foreground = new ForegroundColor();
+                    foreground.SetAttributes(color.GetAttributes());
                     styles.Fills.Append(new Fill(new PatternFill(foreground) { PatternType = PatternValues.Solid }));
                     styles.Fills.Count = format.FillId!.Value + 1U;
                     format.ApplyFill = true;

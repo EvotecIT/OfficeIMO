@@ -1,14 +1,15 @@
 using System.IO.Compression;
 using System.Threading;
+using System.Xml;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.IWork.Internal;
 
-/// <summary>Checks iWork ZIP structure with bounded nested-index inspection, without parsing IWA records.</summary>
+/// <summary>Checks iWork ZIP structure using bounded modern or legacy index inspection.</summary>
 internal static class IWorkContainerProbe {
-    internal static bool HasModernIndex(Stream stream, long maximumPackageBytes,
+    internal static bool HasSupportedIndex(Stream stream, IWorkDocumentKind expectedKind, long maximumPackageBytes,
         int maximumEntries, CancellationToken cancellationToken,
-        long maximumNestedIndexBytes = 128L * 1024 * 1024) {
+        long maximumIndexBytes = 128L * 1024 * 1024) {
         if (!stream.CanRead || !stream.CanSeek) return false;
         long start = stream.Position;
         try {
@@ -21,6 +22,8 @@ internal static class IWorkContainerProbe {
             if (!directory.IsValid || directory.LimitExceeded) return false;
             using var archive = new ZipArchive(window, ZipArchiveMode.Read, leaveOpen: true);
             ZipArchiveEntry? nestedIndex = null;
+            ZipArchiveEntry? legacyIndex = null;
+            bool conflictingLegacyIndexes = false;
             foreach (ZipArchiveEntry entry in archive.Entries) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string path = entry.FullName.Replace('\\', '/');
@@ -30,10 +33,21 @@ internal static class IWorkContainerProbe {
                 if (string.Equals(path, "Index/Document.iwa", StringComparison.OrdinalIgnoreCase)) {
                     return entry.Length > 0;
                 }
+                if (IWorkLegacyXmlSource.IsIndexPath(path)) {
+                    conflictingLegacyIndexes |= legacyIndex != null;
+                    legacyIndex ??= entry;
+                }
             }
-            return nestedIndex != null && HasNestedDocumentIndex(nestedIndex,
-                maximumNestedIndexBytes, maximumEntries, cancellationToken);
+            if (nestedIndex != null && HasNestedDocumentIndex(nestedIndex,
+                    maximumIndexBytes, maximumEntries, cancellationToken)) return true;
+            if (conflictingLegacyIndexes || legacyIndex == null
+                || legacyIndex.Length <= 0 || legacyIndex.Length > maximumIndexBytes) return false;
+            using Stream index = legacyIndex.Open();
+            return IWorkLegacyXmlSource.Probe(index, legacyIndex.FullName, expectedKind, maximumIndexBytes,
+                cancellationToken);
         } catch (InvalidDataException) {
+            return false;
+        } catch (XmlException) {
             return false;
         } catch (IOException) {
             return false;

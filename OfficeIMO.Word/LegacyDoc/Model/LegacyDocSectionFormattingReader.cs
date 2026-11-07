@@ -116,7 +116,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return ReadSepxGrpprl(wordDocumentStream, fcSepx + 2, cb, out warning);
         }
 
-        private static LegacyDocSectionFormat ReadSepxGrpprl(byte[] bytes, int offset, int count, out string? warning) {
+        internal static LegacyDocSectionFormat ReadSepxGrpprl(byte[] bytes, int offset, int count, out string? warning) {
             int end = offset + count;
             int? pageWidth = null;
             int? pageHeight = null;

@@ -60,6 +60,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Email.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Mhtml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Email" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
