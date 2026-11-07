@@ -6,6 +6,70 @@ namespace OfficeIMO.Tests;
 
 public partial class Excel {
     [Fact]
+    public void WorkbookWriter_XlsKeepsSharedStringsIsolatedAcrossWorkbookLifetimes() {
+        string[] warm = { "warm one", "warm two", "warm three", "warm four" };
+        AssertStrings(WriteStrings(warm), warm);
+
+        string[] first = { "first one", "first two" };
+        string[] second = { "second one", "second two" };
+        using var firstOutput = new MemoryStream();
+        using var secondOutput = new MemoryStream();
+        using (var firstWriter = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, firstOutput, leaveOpen: true)) {
+            firstWriter.WriteTable("Data", first, new[] { "Name" }, static (row, value) => row.Write(value));
+            using (var secondWriter = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, secondOutput, leaveOpen: true)) {
+                secondWriter.WriteTable("Data", second, new[] { "Name" }, static (row, value) => row.Write(value));
+            }
+        }
+        AssertStrings(firstOutput.ToArray(), first);
+        AssertStrings(secondOutput.ToArray(), second);
+
+        using (var failedOutput = new MemoryStream())
+        using (var failedWriter = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, failedOutput, leaveOpen: true)) {
+            var failure = new InvalidOperationException("Synthetic row callback failure.");
+            Assert.Same(failure, Assert.Throws<InvalidOperationException>(() => failedWriter.WriteTable(
+                "Data", new[] { "aborted private text" }, new[] { "Name" }, (row, value) => {
+                    row.Write(value);
+                    throw failure;
+                })));
+        }
+
+        string[] fresh = { "fresh one", "fresh two" };
+        AssertStrings(WriteStrings(fresh), fresh);
+
+        static byte[] WriteStrings(string[] values) {
+            using var output = new MemoryStream();
+            using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, output, leaveOpen: true)) {
+                writer.WriteTable("Data", values, new[] { "Name" }, static (row, value) => row.Write(value));
+            }
+            return output.ToArray();
+        }
+
+        static void AssertStrings(byte[] package, string[] expected) {
+
+            byte[] workbook = ReadCompoundStream(package, "Workbook");
+            uint uniqueStrings = 0;
+            for (int offset = 0; offset + 12 <= workbook.Length; offset += 4 + ReadUInt16(workbook, offset + 2)) {
+                if (ReadUInt16(workbook, offset) == 0x00fc) {
+                    uniqueStrings = ReadUInt32(workbook, offset + 8);
+                    break;
+                }
+            }
+            Assert.Equal((uint)(expected.Length + 1), uniqueStrings);
+
+            using (var reader = ExcelDocument.OpenReader(package)) {
+                Assert.Equal("Name", reader.GetName(0));
+                foreach (string value in expected) {
+                    Assert.True(reader.Read());
+                    Assert.Equal(value, reader.GetString(0));
+                }
+                Assert.False(reader.Read());
+                Assert.False(reader.NextResult());
+            }
+
+        }
+    }
+
+    [Fact]
     public void WorkbookWriter_XlsPreservesFullWidthNumericRowsAcrossRowBlocks() {
         const int columns = 256;
         const int rows = 33;

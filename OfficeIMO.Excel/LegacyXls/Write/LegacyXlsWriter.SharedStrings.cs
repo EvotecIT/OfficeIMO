@@ -26,13 +26,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private sealed class LegacyXlsSharedStringTable {
             private readonly IReadOnlyList<LegacyXlsSharedStringEntry> _entries;
             private readonly uint _totalCount;
+            private readonly int _entryCount;
             private readonly Dictionary<string, uint>? _directIndexesByValue;
 
             internal LegacyXlsSharedStringTable(
                 IReadOnlyList<LegacyXlsSharedStringEntry> entries,
                 uint totalCount,
-                Dictionary<string, uint>? directIndexesByValue = null) {
+                Dictionary<string, uint>? directIndexesByValue = null,
+                int? entryCount = null) {
                 _entries = entries;
+                _entryCount = entryCount ?? entries.Count;
                 _totalCount = totalCount;
                 _directIndexesByValue = directIndexesByValue;
             }
@@ -97,19 +100,19 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             internal void WriteRecords(Stream stream, CancellationToken cancellationToken = default, long maximumBytes = int.MaxValue) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (_entries.Count == 0) {
+                if (_entryCount == 0) {
                     return;
                 }
 
                 // Three header bytes per string provide a conservative capacity bound.
-                int segmentCapacity = (int)Math.Min(BiffMaxRecordDataLength, Math.Max(256L, 8L + 3L * _entries.Count));
+                int segmentCapacity = (int)Math.Min(BiffMaxRecordDataLength, Math.Max(256L, 8L + 3L * _entryCount));
                 var writer = new LegacyXlsStringSegmentWriter(maximumBytes, segmentCapacity);
                 writer.WriteUInt32(_totalCount);
-                writer.WriteUInt32(checked((uint)_entries.Count));
-                int stringsPerBucket = Math.Max((_entries.Count / 128) + 1, 8);
-                var stringPositions = new List<LegacyXlsStringPosition>(((_entries.Count - 1) / stringsPerBucket) + 1);
+                writer.WriteUInt32(checked((uint)_entryCount));
+                int stringsPerBucket = Math.Max((_entryCount / 128) + 1, 8);
+                var stringPositions = new List<LegacyXlsStringPosition>(((_entryCount - 1) / stringsPerBucket) + 1);
                 int nextBucketIndex = 0;
-                for (int entryIndex = 0; entryIndex < _entries.Count; entryIndex++) {
+                for (int entryIndex = 0; entryIndex < _entryCount; entryIndex++) {
                     if ((entryIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                     LegacyXlsSharedStringEntry entry = _entries[entryIndex];
                     LegacyXlsStringPosition position = writer.WriteUnicodeString(entry.Text, entry.FormattingRuns);
@@ -165,7 +168,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private sealed class LegacyXlsDirectSharedStringBuilder {
+            private const int MaximumReusableStrings = 65_536;
             private readonly Dictionary<string, uint> _indexesByValue = new(StringComparer.Ordinal);
+            private LegacyXlsSharedStringEntry[]? _reusableEntries;
             private uint _totalCount;
             private long _estimatedSerializedBytes;
 
@@ -190,17 +195,37 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return index;
             }
 
-            internal LegacyXlsSharedStringTable Build() {
-                // Indexes already preserve insertion order. Materialize exactly once,
-                // without relying on Dictionary enumeration order on older targets.
-                var entries = _indexesByValue.Count == 0
-                    ? Array.Empty<LegacyXlsSharedStringEntry>()
-                    : new LegacyXlsSharedStringEntry[_indexesByValue.Count];
+            internal LegacyXlsSharedStringTable Build(bool reuseEntries = false) {
+                int count = _indexesByValue.Count;
+                LegacyXlsSharedStringEntry[] entries;
+                if (count == 0) {
+                    entries = Array.Empty<LegacyXlsSharedStringEntry>();
+                } else if (reuseEntries && count <= MaximumReusableStrings) {
+                    if (_reusableEntries == null || _reusableEntries.Length < count) {
+                        _reusableEntries = new LegacyXlsSharedStringEntry[count];
+                    }
+                    entries = _reusableEntries;
+                } else {
+                    entries = new LegacyXlsSharedStringEntry[count];
+                }
+                // The recorded indexes keep the table independent of dictionary enumeration order.
                 foreach (KeyValuePair<string, uint> entry in _indexesByValue) {
                     entries[checked((int)entry.Value)] = new LegacyXlsSharedStringEntry(
                         entry.Key, Array.Empty<LegacyXlsTextFormattingRun>());
                 }
-                return new LegacyXlsSharedStringTable(entries, _totalCount, _indexesByValue);
+                return new LegacyXlsSharedStringTable(entries, _totalCount, _indexesByValue, count);
+            }
+
+            /// <summary>Releases all text references and counters before an exclusive workspace is reused.</summary>
+            internal bool ClearForReuse() {
+                bool retain = _indexesByValue.Count <= MaximumReusableStrings;
+                _indexesByValue.Clear();
+                _totalCount = 0;
+                _estimatedSerializedBytes = 0;
+                if (_reusableEntries != null) {
+                    Array.Clear(_reusableEntries, 0, _reusableEntries.Length);
+                }
+                return retain;
             }
         }
 
