@@ -102,7 +102,7 @@ public static partial class WordRtfConverterExtensions {
             destination.BackgroundColorIndex = GetOrAddColor(document, red, green, blue);
         }
 
-        string? foreground = source._tableCellProperties?.Shading?.Color?.Value;
+        string? foreground = WordRunFormatting.ResolveShadingForegroundColorHex(source._tableCellProperties?.Shading, source.Document);
         if (!string.IsNullOrWhiteSpace(foreground) &&
             !string.Equals(foreground, "auto", StringComparison.OrdinalIgnoreCase) &&
             TryParseHexColor(foreground!, out red, out green, out blue)) {

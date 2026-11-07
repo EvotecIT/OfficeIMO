@@ -44,6 +44,7 @@ namespace OfficeIMO.Word.Html {
             cancellationToken.ThrowIfCancellationRequested();
             var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
             long embeddedImageBytes = 0;
+            var reportedTableBorderLosses = new HashSet<string>(StringComparer.Ordinal);
 
             long MeasureCurrentHtmlCharacters() {
                 using var countingWriter = new CountingHtmlWriter();
@@ -1133,6 +1134,11 @@ namespace OfficeIMO.Word.Html {
                     SetOutputAttribute(tableEl, "aria-description", table.Description!, "Table:accessible-description");
                 }
                 var tableStyles = new List<string>();
+                if (WordTableAlignmentResolver.IsRightToLeft(table._tableProperties)) tableStyles.Add("direction:rtl");
+                if (WordRunFormatting.ResolveTableShading(table) is { } tableShading) {
+                    string? tableFill = WordRunFormatting.ResolveShadingFillColorHex(tableShading, table.Document);
+                    tableStyles.Add("background-color:" + (tableFill != null ? "#" + tableFill : "transparent"));
+                }
                 var tableWidth = nestingDepth == 0
                     ? GetTopLevelTableWidthCss(table)
                     : GetWidthCss(table.Width);
@@ -1148,9 +1154,10 @@ namespace OfficeIMO.Word.Html {
                 var tableCellSpacing = GetTableCellSpacingCss(table);
                 if (!string.IsNullOrEmpty(tableCellSpacing)) {
                     tableStyles.Add($"border-spacing:{tableCellSpacing}");
-                }
-                if (!string.IsNullOrEmpty(tableCellSpacing) || TableHasBorder(table)) {
-                    tableStyles.Add(!string.IsNullOrEmpty(tableCellSpacing) ? "border-collapse:separate" : "border-collapse:collapse");
+                    tableStyles.Add("border-collapse:separate");
+                } else {
+                    tableStyles.Add("border-spacing:0");
+                    tableStyles.Add("border-collapse:collapse");
                 }
                 if (tableStyles.Count > 0) {
                     SetOutputAttribute(tableEl, "style", string.Join(";", tableStyles), "Table:style");
@@ -1176,7 +1183,6 @@ namespace OfficeIMO.Word.Html {
                 IElement? thead = null;
                 IElement? tbody = null;
                 IElement? tfoot = null;
-                bool[] numericColumns = options.UseSharedDocumentShell ? Array.Empty<bool>() : ResolveNumericColumns(table, headerRowCount);
 
                 for (int r = 0; r < table.Rows.Count; r++) {
                     var row = table.Rows[r];
@@ -1208,13 +1214,9 @@ namespace OfficeIMO.Word.Html {
                         }
                         var cellAlignment = GetCellAlignment(cell);
                         var align = GetTextAlignCss(cellAlignment);
-                        if (string.IsNullOrEmpty(align) && c < numericColumns.Length && numericColumns[c] && colSpan == 1) {
-                            // Columns of numbers read right-aligned; only cells without an authored alignment change.
-                            align = "right";
-                        }
                         if (string.IsNullOrEmpty(align) && isHeaderRow) {
-                            // Browsers centre th; Word header cells start at the left like the data under them.
-                            align = "left";
+                            // Browser header alignment must not replace the source table's start edge.
+                            align = WordTableAlignmentResolver.IsRightToLeft(table._tableProperties) ? "right" : "left";
                         }
                         if (!string.IsNullOrEmpty(align)) {
                             cellStyles.Add($"text-align:{align}");
@@ -1229,20 +1231,22 @@ namespace OfficeIMO.Word.Html {
                             }
                             cellStyles.Add($"vertical-align:{vAlign}");
                         }
-                        var bg = cell.ShadingFillValue;
-                        string? normalizedCellBackground = NormalizeSixDigitHexColor(bg);
-                        if (normalizedCellBackground != null) {
-                            cellStyles.Add($"background-color:#{normalizedCellBackground}");
+                        Shading? cellShading = WordRunFormatting.ResolveTableCellShading(cell);
+                        if (cellShading != null) {
+                            string? cellFill = WordRunFormatting.ResolveShadingFillColorHex(cellShading, cell.Document);
+                            cellStyles.Add("background-color:" + (cellFill != null ? "#" + cellFill : "transparent"));
                         }
+                        ReportTableBorderLimitations(cell, options, reportedTableBorderLosses);
                         var borderCss = GetBorderCss(cell);
                         if (borderCss.Count > 0) {
                             cellStyles.AddRange(borderCss);
                         }
+                        if (isHeaderRow) {
+                            // Header semantics must not introduce browser-default bold text.
+                            cellStyles.Add("font-weight:normal");
+                        }
                         if (r == 0 && firstRowAppearance != null) {
-                            cellStyles.AddRange(firstRowAppearance.ToCss(
-                                normalizedCellBackground != null,
-                                borderCss.Any(css => css.StartsWith("border:", StringComparison.Ordinal) || css.StartsWith("border-top:", StringComparison.Ordinal)),
-                                borderCss.Any(css => css.StartsWith("border:", StringComparison.Ordinal) || css.StartsWith("border-bottom:", StringComparison.Ordinal))));
+                            cellStyles.AddRange(firstRowAppearance.ToCss());
                         }
                         if (cellStyles.Count > 0) {
                             SetOutputAttribute(cellElement, "style", string.Join(";", cellStyles), "TableCell:style");

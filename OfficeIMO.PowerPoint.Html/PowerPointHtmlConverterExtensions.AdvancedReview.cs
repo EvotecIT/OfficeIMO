@@ -11,7 +11,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         try {
             PptCore.PowerPointTemplateInventory inventory = PptCore.PowerPointTemplate.Inspect(presentation);
             if (inventory.Masters.Count == 0) return;
-            body.Append("<section class=\"officeimo-feature officeimo-masters\"><h2>Presentation masters</h2>")
+            body.Append("<details class=\"officeimo-feature officeimo-masters\"><summary>Presentation masters and layouts</summary>")
                 .Append("<div class=\"officeimo-diagnostic\" data-officeimo-loss=\"review-only\">")
                 .Append("Masters and layouts are exposed as inert template metadata; HTML does not execute PowerPoint inheritance or theme editing behavior.")
                 .Append("</div><ul class=\"officeimo-feature-list\">");
@@ -42,7 +42,7 @@ public static partial class PowerPointHtmlConverterExtensions {
                 }
                 body.Append("</ul></li>");
             }
-            body.Append("</ul></section>");
+            body.Append("</ul></details>");
         } catch (Exception ex) when (ex is InvalidDataException || ex is InvalidOperationException || ex is ArgumentException) {
             diagnostics.Add(new HtmlDiagnostic(
                 "OfficeIMO.PowerPoint.Html",

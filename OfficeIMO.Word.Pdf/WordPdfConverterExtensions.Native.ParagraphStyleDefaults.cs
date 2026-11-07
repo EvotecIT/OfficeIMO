@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Pdf {
                 allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? allCaps;
                 smallCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? smallCaps;
                 baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
-                colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
+                colorHex = WordRunFormatting.ResolveColorHex(runProperties?.GetFirstChild<W.Color>(), paragraph._document) ?? colorHex;
                 highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
 
                 W.StyleParagraphProperties? paragraphProperties = style.GetFirstChild<W.StyleParagraphProperties>();
@@ -296,7 +296,7 @@ namespace OfficeIMO.Word.Pdf {
                 allCaps = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Caps>()) ?? allCaps;
                 smallCaps = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.SmallCaps>()) ?? smallCaps;
                 baseline = styleRunProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
-                colorHex = styleRunProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
+                colorHex = WordRunFormatting.ResolveColorHex(styleRunProperties?.GetFirstChild<W.Color>(), document) ?? colorHex;
                 highlight = styleRunProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
             }
 

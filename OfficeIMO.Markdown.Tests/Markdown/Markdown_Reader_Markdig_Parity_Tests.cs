@@ -1308,6 +1308,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var normalized = NormalizeGenericAttributesHtmlForParity(html)
             .Replace("checked=\"\"", "checked=\"checked\"")
             .Replace("disabled=\"\"", "disabled=\"disabled\"");
+        // OfficeIMO's unstyled task items use their checkbox as the marker.
+        // Ignore only that generated default; authored style declarations remain part of parity.
+        normalized = Regex.Replace(normalized,
+            "(<li\\b[^>]*\\bclass=\"[^\"]*\\btask-list-item\\b[^\"]*\") style=\"list-style:none;\"",
+            "$1", RegexOptions.CultureInvariant);
         normalized = Regex.Replace(
             normalized,
             "<input[^>]*>",

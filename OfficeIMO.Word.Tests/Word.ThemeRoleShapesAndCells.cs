@@ -91,6 +91,8 @@ public class WordThemeRoleShapesAndCells {
         var first = loaded.Tables[0].Rows[0].Cells[0];
         var second = loaded.Tables[0].Rows[0].Cells[1];
         first.ShadingFillColor = OfficeColor.Accent1;
+        first.Borders.TopStyle = WordBorderStyle.Single;
+        first.Borders.TopColor = OfficeColor.ParseHex("456789");
         shapes[0].FillColor = OfficeColor.Accent1;
         shapes[0].StrokeColor = OfficeColor.TextMuted;
         shapes[1].FillColor = OfficeColor.Accent1;
@@ -125,6 +127,7 @@ public class WordThemeRoleShapesAndCells {
         Assert.Equal("123456", detachedShapes[0].FillColor.ToRgbHex());
         Assert.Equal(theme.Palette.TextMuted.ToRgbHex(), detachedShapes[0].StrokeColor.ToRgbHex());
         Assert.Equal("123456", detachedCell.ShadingFillColor!.Value.ToRgbHex());
+        Assert.Equal("456789", detachedCell.Borders.TopColor!.Value.ToRgbHex());
         var lazyParagraphShapes = detachedParagraphs.Select(p => p.Shape).Where(s => s != null).Cast<WordShape>().ToArray();
         Assert.Equal(2, lazyParagraphShapes.Length);
         Assert.Equal("123456", lazyParagraphShapes[0].FillColor.ToRgbHex());

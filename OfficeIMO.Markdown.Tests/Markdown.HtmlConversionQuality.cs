@@ -34,16 +34,34 @@ namespace OfficeIMO.Tests {
             HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html)).Pages
                 .SelectMany(page => FlattenScene(page.Scene)).OfType<HtmlRenderText>().ToArray();
 
-        [Fact]
-        public void MarkdownHtml_SaveAsHtmlWithoutOptionsWritesACompleteDocument() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MarkdownHtml_SaveAsHtmlWritesACompleteDocumentWithOptionalPresentation(bool applyStyle) {
             string path = Path.Combine(Path.GetTempPath(), "officeimo-md-" + Guid.NewGuid().ToString("N") + ".html");
             try {
-                Omd.MarkdownDocument.Parse("# Lumen CLI\n\nBody.").SaveAsHtml(path);
+                var document = Omd.MarkdownDocument.Parse("# Lumen CLI\n\nBody.");
+                if (applyStyle) {
+                    document.SaveAsHtml(path, new Omd.MarkdownHtmlExportOptions {
+                        Kind = Omd.MarkdownHtmlKind.Document,
+                        Style = Omd.MarkdownHtmlStyle.Clean,
+                        Title = "Lumen CLI"
+                    });
+                } else {
+                    document.SaveAsHtml(path);
+                }
                 string html = File.ReadAllText(path);
                 Assert.StartsWith("<!DOCTYPE html>", html.TrimStart(), StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("<meta charset", html, StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("<style", html, StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("<title>Lumen CLI</title>", html);
+                var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+                Assert.Equal("Lumen CLI", parsed.QuerySelector("h1")?.TextContent);
+                Assert.Equal("Body.", parsed.QuerySelector("p")?.TextContent);
+                if (applyStyle) {
+                    Assert.Contains("<style", html, StringComparison.OrdinalIgnoreCase);
+                } else {
+                    Assert.DoesNotContain("<style", html, StringComparison.OrdinalIgnoreCase);
+                }
             } finally {
                 File.Delete(path);
             }
@@ -102,9 +120,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownHtml_DefaultStyleUsesThemeTokensAndAlignsNumbers() {
+        public void MarkdownHtml_ExplicitThemeUsesThemeTokensAndAlignsNumbers() {
             string html = Omd.MarkdownDocument.Parse("| Region | Revenue | Share |\n|---|---|---|\n| EMEA | 1,250 | 12.5% |\n| APAC | 980 | 9% |\n")
-                .ToHtml(new Omd.MarkdownHtmlExportOptions { Kind = Omd.MarkdownHtmlKind.Document });
+                .ToHtml(new Omd.MarkdownHtmlExportOptions {
+                    Kind = Omd.MarkdownHtmlKind.Document,
+                    Theme = Omd.MarkdownVisualTheme.FromOfficeTheme(OfficeTheme.Default)
+                });
             OfficeTheme theme = OfficeTheme.Default;
 
             Assert.Contains("--office-accent-1: #" + theme.Palette.Accent1.ToRgbHex(), html);
@@ -117,20 +138,44 @@ namespace OfficeIMO.Tests {
             Assert.Contains("text-align:right", firstRow[2].GetAttribute("style") ?? string.Empty);
             Assert.Contains("text-align:right", parsed.QuerySelectorAll("thead th").ElementAt(1).GetAttribute("style") ?? string.Empty);
 
-            // Source alignment stays exact for Plain output.
+            // The default plain output does not infer alignment from the cell values.
             string plain = Omd.MarkdownDocument.Parse("| A | B |\n|---|---|\n| x | 1 |\n")
-                .ToHtml(new Omd.MarkdownHtmlExportOptions { Style = Omd.MarkdownHtmlStyle.Plain });
+                .ToHtml();
             Assert.DoesNotContain("text-align", plain);
         }
 
-        [Fact]
-        public void MarkdownHtml_TaskItemsKeepOrdinaryBulletsAndVisibleCheckboxes() {
-            string html = Omd.MarkdownDocument.Parse("- **Fixed:** search\n- [x] Signed\n- [ ] ARM64\n").ToHtml(
-                new Omd.MarkdownHtmlExportOptions { Kind = Omd.MarkdownHtmlKind.Document });
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        public void MarkdownHtml_TaskItemsKeepOrdinaryBulletsAndVisibleCheckboxes(bool authoredTaskMarker, bool applyStyle) {
+            string markdown = "- **Fixed:** search\n- [x] Signed"
+                + (authoredTaskMarker ? " {style=\"list-style:disc;color:#123456\"}" : string.Empty)
+                + "\n- [ ] ARM64\n";
+            var document = authoredTaskMarker
+                ? Omd.MarkdownDocument.Parse(markdown, new Omd.MarkdownLoadOptions { GenericAttributes = true })
+                : Omd.MarkdownDocument.Parse(markdown);
+            // The CommonMark writer preserves attributed list items through its public raw-HTML fallback.
+            string html = authoredTaskMarker
+                ? document.ToMarkdown(Omd.MarkdownSaveOptions.CreateCommonMarkProfile())
+                : document.ToHtml(new Omd.MarkdownHtmlExportOptions {
+                    Kind = Omd.MarkdownHtmlKind.Document,
+                    Style = applyStyle ? Omd.MarkdownHtmlStyle.Clean : Omd.MarkdownHtmlStyle.Plain
+                });
+            if (applyStyle) {
+                Assert.Contains("<style", html, StringComparison.OrdinalIgnoreCase);
+            } else {
+                Assert.DoesNotContain("<style", html, StringComparison.OrdinalIgnoreCase);
+            }
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            var items = parsed.QuerySelectorAll("li");
+            Assert.Equal(applyStyle ? null : authoredTaskMarker ? "list-style:none;list-style:disc;color:#123456" : "list-style:none;",
+                items[1].GetAttribute("style"));
             HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html));
             HtmlRenderVisual[] scene = rendered.Pages.SelectMany(page => FlattenScene(page.Scene)).ToArray();
 
-            Assert.Single(scene.OfType<HtmlRenderText>(), text => text.SemanticRole == "list-marker");
+            Assert.Equal(authoredTaskMarker ? 2 : 1,
+                scene.OfType<HtmlRenderText>().Count(text => text.SemanticRole == "list-marker"));
             HtmlRenderFormField[] boxes = scene.OfType<HtmlRenderFormField>().ToArray();
             Assert.Equal(2, boxes.Length);
             Assert.All(boxes, box => {

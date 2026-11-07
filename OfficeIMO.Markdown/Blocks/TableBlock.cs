@@ -413,7 +413,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     // Plain and GitHub-compatible output keep the source alignment exactly.
     private bool[] ResolveNumericColumns() {
         var options = HtmlRenderContext.Options;
-        if (options == null || options.Style == MarkdownHtmlStyle.Plain || options.GitHubTaskListHtml || Rows.Count == 0) {
+        if (options == null || HtmlRenderer.GetEffectiveStyle(options) == MarkdownHtmlStyle.Plain || options.GitHubTaskListHtml || Rows.Count == 0) {
             return Array.Empty<bool>();
         }
 

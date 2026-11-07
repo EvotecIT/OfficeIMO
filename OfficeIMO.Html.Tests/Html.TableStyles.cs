@@ -8,6 +8,25 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
+        public void HtmlToWord_UnstyledTableKeepsNeutralStyleAndSourceHeaders() {
+            const string html = "<table><thead><tr><th>Qty</th><th style='font-weight:normal;text-align:left'>Label</th></tr></thead><tbody><tr><td>12</td><td>First</td></tr><tr><td>3456</td><td>Second</td></tr></tbody></table>";
+            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
+            var table = Assert.Single(document.Tables);
+
+            Assert.Equal(WordTableStyle.TableNormal, table.Style);
+            Assert.True(table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.False(table.Rows[1].RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.True(table.Rows[0].Cells[0].Paragraphs[0].GetRuns().Single(run => run.Text == "Qty").Bold);
+            Assert.Equal(WordParagraphAlignment.Center, table.Rows[0].Cells[0].Paragraphs[0].ParagraphAlignment);
+            Assert.False(table.Rows[0].Cells[1].Paragraphs[0].GetRuns().Single(run => run.Text == "Label").Bold);
+            Assert.Equal(WordParagraphAlignment.Left, table.Rows[0].Cells[1].Paragraphs[0].ParagraphAlignment);
+            Assert.All(table.Rows.Skip(1).SelectMany(row => row.Cells), cell => {
+                Assert.Null(cell.ShadingFillColor);
+                Assert.Null(cell.Paragraphs[0].ParagraphAlignment);
+            });
+        }
+
+        [Fact]
         public void HtmlToWord_TableStyles_BorderAndShading() {
             string html = "<table style=\"border:2px solid #ff0000\"><tr style=\"background-color:#00ff00\"><td style=\"border:1px dashed #0000ff\">Cell</td></tr></table>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());

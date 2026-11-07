@@ -14,13 +14,14 @@ public sealed class HtmlAllSeverityBatch16SecurityTests {
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell.ShadingFillValue = "ffffff;background-image:url(https://tracker.invalid/pixel)";
         cell.Borders.LeftStyle = OfficeIMO.Word.WordBorderStyle.Single;
+        cell.Borders.LeftSize = OfficeLength.Points(0.125);
         cell.Borders.LeftColorValue = "ffffff;position:fixed";
 
         string html = document.ToHtml();
 
         Assert.DoesNotContain("background-image", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("position:fixed", html, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("border-left:1px solid black", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("border-left:0.125pt solid black", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -23,8 +23,8 @@ public sealed partial class PowerPointOptionWorkflowTests {
     [InlineData("OpenDocument", "-NoImages -NoSpeakerNotes -NoBasicFormatting -LossPolicy ThrowOnSkippedOrUnsupported", false)]
     [InlineData("OpenDocument", "-NoImages:$false -NoSpeakerNotes:$false -NoBasicFormatting:$false", true)]
     [InlineData("Html", "", true)]
-    [InlineData("Html", "-NoNotes -NoTables -NoHeading -NoSlideHeadings -NoRenderDiagnostics -NoMasterInventory -NoExtractionProof -NoDefaultStyles", false)]
-    [InlineData("Html", "-NoNotes:$false -NoTables:$false -NoHeading:$false -NoSlideHeadings:$false -NoRenderDiagnostics:$false -NoMasterInventory:$false -NoExtractionProof:$false -NoDefaultStyles:$false", true)]
+    [InlineData("Html", "-NoNotes -NoTables -NoHeading -NoSlideHeadings -NoRenderDiagnostics -NoMasterInventory -NoExtractionProof", false)]
+    [InlineData("Html", "-NoNotes:$false -NoTables:$false -NoHeading:$false -NoSlideHeadings:$false -NoRenderDiagnostics:$false -NoMasterInventory:$false -NoExtractionProof:$false", true)]
     public void NegativeRenderFlagsPreserveDefaultsAndExplicitFalse(string format, string arguments, bool included) {
         using var runspace = Open();
         using var shell = PowerShell.Create();
@@ -54,7 +54,6 @@ public sealed partial class PowerPointOptionWorkflowTests {
             Assert.Equal(included, options.IncludeRenderDiagnostics);
             Assert.Equal(included, options.IncludeMasterInventory);
             Assert.Equal(included, options.IncludeExtractionProof);
-            Assert.Equal(included, options.IncludeDefaultStyles);
         } else {
             var options = Assert.IsType<PowerPointImageExportOptions>(value);
             Assert.Equal(included, options.IncludePictures);

@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults) {
             if (!UsesNativeSeparateTableCellBorders(table, style, defaults) ||
                 style.Position != null || !style.ConsumesVerticalFlow) return;
-            W.TableBorders? authored = table._tableProperties?.TableBorders;
+            W.TableBorders? authored = ResolveNativeTableBorderColors(table._tableProperties?.TableBorders, table.Document);
             W.TableBorders? borders = authored?.HasChildren == true
                 ? MergeNativeTableBorders(defaults.Borders, authored) : defaults.Borders;
             var border = new PdfCore.PdfCellBorder {
@@ -41,8 +41,8 @@ namespace OfficeIMO.Word.Pdf {
                 GetNativeTableRowStartColumn(layout, 0), right: false);
             style.BorderFrame = new PdfCore.PdfTableBorderFrame {
                 Spacing = style.CellSpacing.ToPoints(), Border = border, HorizontalInset = horizontalInset,
-                Background = table._tableProperties?.GetFirstChild<W.Shading>() is { } shading
-                    ? ParseNativeColor(shading.Fill?.Value) : defaults.CellFill
+                Background = ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(
+                    WordRunFormatting.ResolveTableShading(table), table.Document))
             };
             ApplyNativeFramedRowHeights(table, layout, style, sourceSpacing, border.TopBorder?.PaintThickness ?? 0D);
         }

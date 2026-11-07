@@ -172,7 +172,7 @@ Accept wildcard characters: False
 ```
 
 ### -Style
-Native table style; Modern includes a repeating first-row header.
+Native table style. Defaults to TableGrid; choose OfficeIMOModern explicitly for themed table presentation.
 
 ```yaml
 Type: WordTableStyle

@@ -328,10 +328,12 @@ namespace OfficeIMO.Word {
         /// <param name="columns">Number of columns to create.</param>
         /// <param name="tableStyle">Optional table style to apply.</param>
         /// <returns>The inserted <see cref="WordTable"/> instance.</returns>
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
+#pragma warning disable RS0026 // This existing count-based overload changes only its default style; its required int arguments remain distinct.
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this, rows, columns, tableStyle);
             return wordTable;
         }
+#pragma warning restore RS0026
 
         /// <summary>
         /// Creates a table without inserting it into the document.
@@ -340,7 +342,7 @@ namespace OfficeIMO.Word {
         /// <param name="columns">Number of columns to create.</param>
         /// <param name="tableStyle">Optional table style to apply.</param>
         /// <returns>The newly created <see cref="WordTable"/>.</returns>
-        public WordTable CreateTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
+        public WordTable CreateTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             return WordTable.Create(this, rows, columns, tableStyle);
         }
 

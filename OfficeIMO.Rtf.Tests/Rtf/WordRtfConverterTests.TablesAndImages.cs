@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -858,8 +859,10 @@ public partial class WordRtfConverterTests {
         return headerAndPalette.Concat(firstFrame).Concat(secondFrame).Append((byte)0x3B).ToArray();
     }
 
-    [Fact]
-    public void Word_Rtf_Bridge_Carries_Table_Row_And_Cell_Formatting() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Word_Rtf_Bridge_Carries_Table_Row_And_Cell_Formatting(bool themeBacked) {
         using WordDocument word = WordDocument.Create();
         WordTable table = word.AddTable(2, 3);
         table.Alignment = WordTableAlignment.Center;
@@ -880,6 +883,16 @@ public partial class WordRtfConverterTests {
         table.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("E6F2FF");
         table.Rows[0].Cells[0].ShadingPattern = WordShadingPattern.Percent37;
         table.Rows[0].Cells[0]._tableCellProperties!.Shading!.Color = "00AA55";
+        if (themeBacked) {
+            A.ColorScheme scheme = word._wordprocessingDocument.MainDocumentPart!.ThemePart!.Theme.ThemeElements!.ColorScheme!;
+            scheme.Accent1Color = new A.Accent1Color(new A.RgbColorModelHex { Val = "E6F2FF" });
+            scheme.Accent2Color = new A.Accent2Color(new A.RgbColorModelHex { Val = "00AA55" });
+            Shading shading = table.Rows[0].Cells[0]._tableCellProperties!.Shading!;
+            shading.Fill = "112233";
+            shading.Color = "445566";
+            shading.ThemeFill = ThemeColorValues.Accent1;
+            shading.ThemeColor = ThemeColorValues.Accent2;
+        }
         table.Rows[0].Cells[0].MarginTop = global::OfficeIMO.OfficeLength.Points(6D);
         table.Rows[0].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Points(9D);
         table.Rows[0].Cells[0].MarginBottom = global::OfficeIMO.OfficeLength.Points(12D);

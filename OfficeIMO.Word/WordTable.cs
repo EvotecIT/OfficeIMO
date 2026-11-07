@@ -401,7 +401,7 @@ namespace OfficeIMO.Word {
         /// <param name="columns">Number of columns.</param>
         /// <param name="tableStyle">Style to apply to the table.</param>
         /// <returns>The newly created <see cref="WordTable"/>.</returns>
-        public static WordTable Create(WordDocument document, int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
+        public static WordTable Create(WordDocument document, int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             return new WordTable(document, rows, columns, tableStyle, insert: false);
         }
 

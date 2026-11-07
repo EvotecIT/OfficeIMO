@@ -11,6 +11,7 @@ public sealed class PowerPointHtmlExportOptions {
     private OfficeHtmlDocumentOptions _documentOutput = new() {
         Title = null,
         Theme = OfficeVisualThemeKind.WordLike,
+        IncludeDefaultStyles = false,
         BodyClass = "officeimo-html officeimo-powerpoint-html"
     };
 
@@ -48,13 +49,15 @@ public sealed class PowerPointHtmlExportOptions {
     /// <summary>Creates semantic slide export settings.</summary>
     public static PowerPointHtmlExportOptions CreateSemanticSlidesProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) => new() {
         ExportProfile = PowerPointHtmlExportProfile.SemanticSlides,
-        Theme = theme
+        Theme = theme,
+        IncludeDefaultStyles = true
     };
 
     /// <summary>Creates positioned visual-review export settings.</summary>
     public static PowerPointHtmlExportOptions CreateVisualReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) => new() {
         ExportProfile = PowerPointHtmlExportProfile.VisualReview,
-        Theme = theme
+        Theme = theme,
+        IncludeDefaultStyles = true
     };
 
     /// <summary>Composed document-versus-fragment, theme, title, language, style, and newline settings.</summary>

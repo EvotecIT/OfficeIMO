@@ -25,11 +25,14 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 
 ## Table style, headers and section settings
 
-New tables use `WordTableStyle.OfficeIMOModern`, with a tinted header,
-horizontal rules and alternating body rows. Pass `WordTableStyle.TableGrid`
-when you want borders around every cell. Assigning a plain numeric value in an
-unaligned Modern table cell right-aligns it; explicit alignment and rich text
-retain their formatting. Loaded tables retain their own style.
+Count-based tables use `WordTableStyle.TableGrid`, with borders around every
+cell and no inferred repeating header. Columns fit the section's text area.
+Pass `WordTableStyle.OfficeIMOModern` explicitly for a tinted header, horizontal
+rules and alternating body rows. Typed tables select it through
+`new WordTableOptions { Style = WordTableStyle.OfficeIMOModern }`.
+Only Modern tables infer theme-based alignment for plain numeric values;
+explicit alignment and rich text retain their formatting. Loaded tables and
+PDF/image conversions retain the source style.
 
 Native DOC output uses a 16-colour palette for borders and fills. Saving an RGB
 colour that needs approximation throws `OfficeConversionException` with a

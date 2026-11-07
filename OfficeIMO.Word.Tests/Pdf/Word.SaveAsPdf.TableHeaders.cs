@@ -21,7 +21,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRepeatingHeaderTable-" + repeatHeader + ".pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(46, 2);
+            WordTable table = document.AddTable(46, 2, WordTableStyle.OfficeIMOModern);
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));

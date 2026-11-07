@@ -160,15 +160,18 @@ public static partial class ExcelHtmlConverterExtensions {
         }
 
         bool firstRowIsHeader = options.HeaderMode == ExcelHtmlHeaderMode.FirstRow;
-        body.Append("<table class=\"officeimo-table\">");
+        body.Append(options.ApplyCellPresentation
+            ? "<table class=\"officeimo-table\" style=\"border-collapse:collapse\">"
+            : "<table class=\"officeimo-table\">");
         if (firstRowIsHeader) {
             body.Append("<thead>");
         } else {
             body.Append("<tbody>");
         }
 
+        var fidelityDiagnostics = new CellFidelityDiagnostics(sheet.Name);
         SemanticCellPresentation? presentation = options.ApplyCellPresentation
-            ? SemanticCellPresentation.TryCreate(sheet, firstRow, firstColumn, maxRows, maxColumns)
+            ? SemanticCellPresentation.TryCreate(sheet, firstRow, firstColumn, maxRows, maxColumns, diagnostics)
             : null;
         // A first row that the sheet itself styles (a filled band or a merged title) keeps that
         // look; a plain first row keeps the theme's header band.
@@ -198,12 +201,12 @@ public static partial class ExcelHtmlConverterExtensions {
                 if (mergeCursor.IsCoveredCell(cellColumn)) {
                     continue;
                 }
+                bool isMergedCell = mergeCursor.TryGetOrigin(cellColumn, out ExcelMergeExportRange merge);
 
                 bool hasSnapshot = sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelNativeCellValueInfo? snapshot) && snapshot != null;
                 string cellText = ReadCellText(sheet, cellRow, cellColumn, options.EmptyCellText);
                 ExcelCellStyleInfo cellStyle;
                 string? boxCss = null;
-                bool suppressFontColor = false;
                 if (presentation != null && presentation.TryGetCell(cellRow, cellColumn, out ExcelVisualCell visualCell)) {
                     cellStyle = visualCell.Style;
                     if (!string.IsNullOrEmpty(visualCell.Text)) cellText = visualCell.Text;
@@ -213,19 +216,24 @@ public static partial class ExcelHtmlConverterExtensions {
                     presentation.TryGetDataBar(cellRow, cellColumn, out ExcelVisualConditionalDataBar dataBar);
                     boxCss = CreateCellBoxCss(cellStyle, visualCell.ValueKind, dataBar);
                     bool hasFill = ResolveCellFillHex(cellStyle) != null;
-                    suppressFontColor = IsInvisibleOnPage(cellStyle, hasFill);
                     // An unfilled first-row cell keeps the sheet's own look instead of the theme's header band,
                     // so a worksheet title row does not turn into a grey bar.
                     if (tag == "th" && !hasFill && firstRowIsStyledBySheet) boxCss = boxCss == null ? "background-color:transparent" : boxCss + ";background-color:transparent";
                 } else {
                     cellStyle = sheet.Cell(cellRow, cellColumn).GetStyle();
+                    if (options.ApplyCellPresentation && isMergedCell) cellStyle = ResolveFallbackMergedBorder(sheet, merge, cellStyle, diagnostics);
+                    if (options.ApplyCellPresentation) boxCss = CreateCellBoxCss(cellStyle, null, null);
+                }
+                if (options.ApplyCellPresentation) {
+                    ReportCssBorderFidelity(cellStyle.Border, cellRow, cellColumn, fidelityDiagnostics);
+                    ReportCssFillFidelity(cellStyle, cellRow, cellColumn, fidelityDiagnostics);
                 }
                 IReadOnlyList<ExcelRichTextRun> richTextRuns = sheet.Cell(cellRow, cellColumn).GetRichText();
                 body.Append('<').Append(tag)
                     .Append(" data-officeimo-cell=\"")
                     .Append(OfficeHtmlText.EscapeAttribute(ExcelA1.CellReference(cellRow, cellColumn)))
                     .Append('"');
-                if (mergeCursor.TryGetOrigin(cellColumn, out ExcelMergeExportRange merge)) {
+                if (isMergedCell) {
                     AppendMergeAttributes(body, merge);
                 }
 
@@ -233,7 +241,7 @@ public static partial class ExcelHtmlConverterExtensions {
                     body.Append(" scope=\"col\"");
                 }
 
-                bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0, boxCss, suppressFontColor);
+                bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0, boxCss, options.IncludeDefaultStyles);
 
                 if (hasSnapshot) {
                     ExcelNativeCellValueInfo cellSnapshot = snapshot!;
@@ -275,6 +283,7 @@ public static partial class ExcelHtmlConverterExtensions {
         }
 
         body.Append(firstRowIsHeader && maxRows == 1 ? "</thead></table>" : "</tbody></table>");
+        fidelityDiagnostics.AppendTo(diagnostics);
         AppendSheetTruncationDiagnostics(body, sheet.Name, maxRows, rowCount, maxColumns, columnCount, diagnostics);
 
         AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount), options, diagnostics);
@@ -579,28 +588,10 @@ public static partial class ExcelHtmlConverterExtensions {
     /// family the browser falls back to a serif. Give single-family SVG text a sans-serif chain.
     /// </summary>
     private static string AddGenericFontFallbacks(string svg) =>
-        System.Text.RegularExpressions.Regex.Replace(svg, "font-family=(['\"])(?<family>[^'\",]+)\\1", match => {
-            string family = match.Groups["family"].Value.Trim();
-            string? chain = GetGenericFontFallback(family);
-            if (chain == null) return match.Value;
-            string quote = match.Groups[1].Value;
-            return "font-family=" + quote + family + ", " + chain + quote;
+        System.Text.RegularExpressions.Regex.Replace(svg, "font-family=(?:\"(?<family>[^\",]+)\"|'(?<family>[^',]+)')", match => {
+            string family = System.Net.WebUtility.HtmlDecode(match.Groups["family"].Value).Trim();
+            return "font-family=\"" + OfficeHtmlText.EscapeAttribute(OfficeHtmlText.CssFontFamily(family)) + "\"";
         });
-
-    /// <summary>The generic fallback chain to append after an Office font name, or null for a generic family.</summary>
-    private static string? GetGenericFontFallback(string family) {
-        string lower = family.Trim().Trim('\'', '"').ToLowerInvariant();
-        if (lower is "serif" or "sans-serif" or "monospace" or "cursive" or "fantasy" or "system-ui" || lower.StartsWith("var(", StringComparison.Ordinal)) return null;
-        if (lower.Contains("mono") || lower.Contains("courier") || lower.Contains("consolas")) return "monospace";
-        if (lower.Contains("times") || lower.Contains("georgia") || lower.Contains("cambria") || lower.Contains("garamond")) return "serif";
-        return lower.Contains("arial") ? "sans-serif" : "Arial, sans-serif";
-    }
-
-    private static string CssFontFamily(string family) {
-        string quoted = OfficeHtmlText.QuoteCssString(family);
-        string? fallback = GetGenericFontFallback(family);
-        return fallback == null ? quoted : quoted + "," + fallback;
-    }
 
     private static string StripXmlDeclaration(string svg) {
         string trimmed = svg.TrimStart();
@@ -804,37 +795,14 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append("</div>");
         foreach (IGrouping<string, OfficeImageExportDiagnostic> group in result.Diagnostics.GroupBy(CreateDiagnosticGroupKey)) {
             OfficeImageExportDiagnostic diagnostic = group.First();
-            diagnostics.Add(ToHtmlDiagnostic(diagnostic, group.Count()));
-            body.Append("<p class=\"officeimo-diagnostic\">")
-                .Append(OfficeHtmlText.Escape(diagnostic.Message));
             int count = group.Count();
-            if (count > 1) {
-                body.Append(" (")
-                    .Append(count.ToString(CultureInfo.InvariantCulture))
-                    .Append(" occurrences)");
-            }
-
-            body.Append("</p>");
+            diagnostics.Add(ToHtmlDiagnostic(diagnostic, count));
+            body.Append("<p class=\"officeimo-diagnostic\">")
+                .Append(OfficeHtmlText.Escape(FormatDiagnosticMessage(diagnostic.Message, count)))
+                .Append("</p>");
         }
 
         body.Append("</section>");
-    }
-
-    private static HtmlDiagnostic ToHtmlDiagnostic(OfficeImageExportDiagnostic diagnostic, int occurrenceCount) {
-        HtmlDiagnosticSeverity severity = diagnostic.Severity switch {
-            OfficeImageExportDiagnosticSeverity.Error => HtmlDiagnosticSeverity.Error,
-            OfficeImageExportDiagnosticSeverity.Warning => HtmlDiagnosticSeverity.Warning,
-            _ => HtmlDiagnosticSeverity.Info
-        };
-        return new HtmlDiagnostic(
-            "OfficeIMO.Excel.Html",
-            diagnostic.Code,
-            occurrenceCount > 1
-                ? diagnostic.Message + " (" + occurrenceCount.ToString(CultureInfo.InvariantCulture) + " occurrences)"
-                : diagnostic.Message,
-            severity,
-            diagnostic.Source,
-            lossKind: diagnostic.LossKind);
     }
 
     private static string CreateSvgNamespacePrefix(OfficeImageExportResult result, int index) {
@@ -887,10 +855,6 @@ public static partial class ExcelHtmlConverterExtensions {
                 ? match.Groups["hrefName"].Value + "=" + match.Groups["hrefq"].Value + "#" + prefix + href + match.Groups["hrefq"].Value
                 : match.Value;
         });
-    }
-
-    private static string CreateDiagnosticGroupKey(OfficeImageExportDiagnostic diagnostic) {
-        return diagnostic.Severity.ToString() + "|" + diagnostic.Code + "|" + diagnostic.Message;
     }
 
     private static ExcelImageExportOptions ResolveWorkbookVisualOptions(ExcelImageExportOptions? workbookOptions) {

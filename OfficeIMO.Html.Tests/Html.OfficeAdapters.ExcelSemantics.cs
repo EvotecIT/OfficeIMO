@@ -2,6 +2,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
 using OfficeIMO.Html;
 using Xunit;
+using AngleSharp.Html.Parser;
 
 namespace OfficeIMO.Tests;
 
@@ -12,15 +13,22 @@ public class HtmlOfficeAdaptersExcelSemantics {
         ExcelSheet sheet = workbook.AddSheet("Data");
         sheet.Cell(1, 1).SetValue("Not a header");
         sheet.Cell(2, 1).SetValue("Second row");
+        sheet.Cell(1, 2).SetValue(12);
 
         string defaultHtml = workbook.ToHtml();
-        string dataOnlyHtml = workbook.ToHtml(new ExcelHtmlExportOptions {
-            HeaderMode = ExcelHtmlHeaderMode.None
+        string headerHtml = workbook.ToHtml(new ExcelHtmlExportOptions {
+            HeaderMode = ExcelHtmlHeaderMode.FirstRow
         });
 
-        Assert.Contains("<thead><tr><th data-officeimo-cell=\"A1\" scope=\"col\"", defaultHtml, StringComparison.Ordinal);
-        Assert.Contains("<tbody><tr><td data-officeimo-cell=\"A1\"", dataOnlyHtml, StringComparison.Ordinal);
-        Assert.DoesNotContain("<thead>", dataOnlyHtml, StringComparison.Ordinal);
+        Assert.Contains("<thead><tr><th data-officeimo-cell=\"A1\" scope=\"col\"", headerHtml, StringComparison.Ordinal);
+        Assert.Contains("<tbody><tr><td data-officeimo-cell=\"A1\"", defaultHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<thead>", defaultHtml, StringComparison.Ordinal);
+        var parsed = new HtmlParser().ParseDocument(headerHtml);
+        string textStyle = parsed.QuerySelector("[data-officeimo-cell=A1]")!.GetAttribute("style")!;
+        string numberStyle = parsed.QuerySelector("[data-officeimo-cell=B1]")!.GetAttribute("style")!;
+        Assert.Contains("font-weight:normal", textStyle);
+        Assert.Contains("text-align:left", textStyle);
+        Assert.Contains("text-align:right", numberStyle);
     }
 
     [Fact]

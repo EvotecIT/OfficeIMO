@@ -27,6 +27,9 @@ internal static class ExcelImageExportDiagnosticCodes {
     /// <summary>Rich text fell back to an approximate or plain-text layout path.</summary>
     public const string CellRichTextLayoutApproximation = "excel-cell-rich-text-layout-approximation";
 
+    /// <summary>A merged perimeter contains differing segments that cannot be represented by one cell edge.</summary>
+    public const string MergedCellBorderOmitted = "excel-merged-cell-border-omitted";
+
     /// <summary>Excel gradient fills are not rendered by the dependency-free exporter yet.</summary>
     public const string FillGradientUnsupported = "excel-fill-gradient-unsupported";
 
