@@ -8,14 +8,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // Paragraph markers carry the originating box; inline descendants retain it.
     private IReadOnlyList<IntrinsicTextRun> PrepareIntrinsicFirstLetterRuns(IReadOnlyList<IntrinsicTextRun> rawRuns) {
         if (rawRuns.Count == 0) return rawRuns;
-        var transformRuns = new List<HtmlInlineRun>(rawRuns.Count);
-        foreach (IntrinsicTextRun run in rawRuns) {
-            transformRuns.Add(new HtmlInlineRun(run.Text, run.Style, null, "intrinsic-text",
-                textTransformPending: run.TextTransformPending && !run.IsParagraphStart && !run.IsForcedBreak && !run.IsReplaced) {
-                IsInlineStrutMarker = run.IsInlineInset
-            });
+        List<HtmlInlineRun>? transformRuns = null;
+        if (rawRuns.Any(static run => run.TextTransformPending
+            && !run.IsParagraphStart && !run.IsForcedBreak && !run.IsReplaced
+            && (!string.Equals(run.Style.TextTransform, "none", StringComparison.OrdinalIgnoreCase)
+                || run.Style.ApproximateSmallCaps))) {
+            transformRuns = new List<HtmlInlineRun>(rawRuns.Count);
+            foreach (IntrinsicTextRun run in rawRuns) {
+                transformRuns.Add(new HtmlInlineRun(run.Text, run.Style, null, "intrinsic-text",
+                    textTransformPending: run.TextTransformPending && !run.IsParagraphStart && !run.IsForcedBreak && !run.IsReplaced) {
+                    IsInlineStrutMarker = run.IsInlineInset
+                });
+            }
+            ApplyPendingInlineTextTransforms(transformRuns, retainSuppressedText: true);
         }
-        ApplyPendingInlineTextTransforms(transformRuns, retainSuppressedText: true);
 
         var prepared = new List<IntrinsicTextRun>(rawRuns.Count);
         IElement? firstLetterOwner = null;
@@ -41,7 +47,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            string text = transformRuns[index].Text;
+            string text = transformRuns != null ? transformRuns[index].Text : run.Text;
             bool firstLineBlocked = false;
             if (firstLetterOwner == null
                 || !TryFindFirstLetterBounds(text, run.Style.PreserveWhitespace, out int start, out int end,

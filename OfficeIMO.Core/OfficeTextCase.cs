@@ -94,6 +94,12 @@ public static class OfficeTextCaseTransformer {
             throw new ArgumentOutOfRangeException(nameof(textCase), textCase, "Unsupported text casing transformation.");
         }
 
+        if (textCase == OfficeTextCase.None) {
+            var unchanged = new string[segments.Count];
+            for (int index = 0; index < unchanged.Length; index++) unchanged[index] = segments[index] ?? string.Empty;
+            return unchanged;
+        }
+
         var source = new StringBuilder();
         var boundaries = new int[segments.Count];
         var result = new StringBuilder[segments.Count];
@@ -102,11 +108,6 @@ public static class OfficeTextCaseTransformer {
             source.Append(value);
             boundaries[index] = source.Length;
             result[index] = new StringBuilder(value.Length);
-        }
-
-        if (textCase == OfficeTextCase.None) {
-            for (int index = 0; index < segments.Count; index++) result[index].Append(segments[index] ?? string.Empty);
-            return ToStrings(result);
         }
 
         bool sentenceStart = true;
