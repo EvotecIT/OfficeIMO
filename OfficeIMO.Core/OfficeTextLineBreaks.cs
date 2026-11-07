@@ -36,8 +36,8 @@ internal static class OfficeTextLineBreaks {
             return Array.Empty<int>();
         }
 
-        if (TryGetSimpleAsciiBreakPositions(text, cancellationToken, out IReadOnlyList<int> simpleAsciiPositions))
-            return simpleAsciiPositions;
+        if (TryGetSimpleBreakPositions(text, cancellationToken, out IReadOnlyList<int> simplePositions))
+            return simplePositions;
 
         int[]? elementStarts = null;
         int[]? scalarStarts = null;
@@ -71,17 +71,28 @@ internal static class OfficeTextLineBreaks {
         return positions.ToArray();
     }
 
-    // AL/NU pairs never break; ordinary spaces permit a break only before the next word.
+    // This validated AL/NU grammar has only SP-to-word breaks, including attached IS and numeric hyphens.
     // Validate the whole subset before allocating output so all other text retains the shared UAX path.
-    private static bool TryGetSimpleAsciiBreakPositions(string text, System.Threading.CancellationToken cancellationToken,
+    private static bool TryGetSimpleBreakPositions(string text, System.Threading.CancellationToken cancellationToken,
         out IReadOnlyList<int> positions) {
         int count = 0;
         for (int index = 0; index < text.Length; index++) {
             if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             char value = text[index];
-            if (value != ' ' && !OfficeIMO.Internal.OfficeRuntimeCompatibility.IsAsciiLetterOrDigit(value)) {
-                positions = Array.Empty<int>();
-                return false;
+            if (value != ' ' && !OfficeIMO.Internal.OfficeRuntimeCompatibility.IsAsciiLetterOrDigit(value) &&
+                !IsSimpleLineBreakWord(value)) {
+                char before = index > 0 ? text[index - 1] : '\0';
+                char after = index + 1 < text.Length ? text[index + 1] : '\0';
+                bool beforeDigit = before >= '0' && before <= '9';
+                bool afterDigit = after >= '0' && after <= '9';
+                bool infix = (value == '.' || value == ',') &&
+                    (index + 1 == text.Length || after == ' ' ||
+                        IsSimpleLineBreakWord(after) && (!afterDigit || beforeDigit));
+                if (index == 0 || !IsSimpleLineBreakWord(before) ||
+                    !(infix || value == '-' && afterDigit)) {
+                    positions = Array.Empty<int>();
+                    return false;
+                }
             }
             if (index > 0 && text[index - 1] == ' ' && value != ' ') count++;
         }
@@ -97,6 +108,17 @@ internal static class OfficeTextLineBreaks {
         }
         positions = found;
         return true;
+    }
+
+    // Admitted letters in these ranges have independent UTF-16 graphemes; marks and other classes stay general.
+    private static bool IsSimpleLineBreakWord(char value) {
+        if (value < '\u0080') return OfficeIMO.Internal.OfficeRuntimeCompatibility.IsAsciiLetterOrDigit(value);
+        if (value == '\u00B7') return true;
+        if (value >= '\u0300' && (value < '\u0370' || value > '\u052F')) return false;
+        UnicodeCategory category = OfficeUnicodeLineBreaker.GetCategory(value);
+        if (category is not (UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or UnicodeCategory.TitlecaseLetter))
+            return false;
+        return OfficeUnicodeTextData.GetLineBreakClass(value) is OfficeLineBreakClass.AL or OfficeLineBreakClass.AI;
     }
 
     // Breaks that remain without CJK boundaries: after spaces and explicit break characters.
