@@ -25,11 +25,14 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 
 ## Table style, headers and section settings
 
-New tables use `WordTableStyle.OfficeIMOModern`, with a tinted header,
-horizontal rules and alternating body rows. Pass `WordTableStyle.TableGrid`
-when you want borders around every cell. Assigning a plain numeric value in an
-unaligned Modern table cell right-aligns it; explicit alignment and rich text
-retain their formatting. Loaded tables retain their own style.
+Count-based tables use `WordTableStyle.TableGrid`, with borders around every
+cell and no inferred repeating header. Columns fit the section's text area.
+Pass `WordTableStyle.OfficeIMOModern` explicitly for a tinted header, horizontal
+rules and alternating body rows. Typed tables select it through
+`new WordTableOptions { Style = WordTableStyle.OfficeIMOModern }`.
+Only Modern tables infer theme-based alignment for plain numeric values;
+explicit alignment and rich text retain their formatting. Loaded tables and
+PDF/image conversions retain the source style.
 
 Native DOC output uses a 16-colour palette for borders and fills. Saving an RGB
 colour that needs approximation throws `OfficeConversionException` with a
@@ -741,6 +744,48 @@ the control. Replacing a picture or repeating section also rejects locked nested
 controls that would be removed. Direct control setters remain authoring APIs for
 intentional document edits.
 
+### Word XML interchange
+
+Use `WordDocument.Load` to open Word Flat OPC and Word 2003 XML. The XML content
+identifies the format. Flat OPC reconstructs the Open XML package, including
+document and template parts. The import preserves XML part roots and their
+namespace bindings. Import rejects sources containing package signature parts
+with `NotSupportedException`. XML declarations, processing instructions and
+comments outside part roots do not travel through the standalone XML representation.
+
+Word 2003 XML projects named paragraph, character and table styles, their
+inheritance and font defaults, rich run formatting, paragraph spacing, indents,
+tabs and borders into an editable document. Tables retain their grid, widths,
+cell spans, row settings, shading and borders. Embedded raster pictures retain
+their bytes and VML geometry; hyperlinks use native package relationships.
+Headers and footers have their own parts and image relationships. Section page
+sizes, margins, columns and document grids retain their supported native values.
+
+The load report records unsupported elements and formatting attributes, including
+unmapped list definitions, floating text frames, non-picture drawings, active
+content and unsupported document settings. `WordLoadOptions.FailOnLoss` rejects
+sources that require those omissions. Import never retrieves linked resources.
+Legacy enumeration spellings map to native values. An unsupported value omits
+its containing property and appears in the load report.
+
+```csharp
+using var document = WordDocument.Load("source.xml", new WordLoadOptions(), out var report);
+report.ThrowIfLoss();
+document.SaveCopy("converted.docx");
+```
+
+Word XML input is detached from the source. Save to an explicit Word destination.
+For a standalone XML consumer, call `ExportFlatOpc` on the Word document.
+
+```csharp
+using var document = WordDocument.Load("report.docx");
+File.WriteAllBytes("report.xml", document.ExportFlatOpc());
+```
+
+Word XML interchange has a 64 MiB input and reconstructed package limit. Flat OPC
+export follows the signed-document save policy and emits clear XML. Set the save
+password explicitly to null to export an encrypted source as clear XML.
+
 ### Legacy DOC files
 
 ```csharp
@@ -775,9 +820,12 @@ stylesheet.
 
 Floating drawings, unsupported image effects and transforms, embedded objects,
 and other unprojected legacy content are diagnosed or blocked. File optimization
-workflows refuse to publish incomplete legacy projections. `WordDocument.Convert`
-uses the same load/save paths and blocks known conversion loss by default. Set
-`AllowLoss = true` on `WordSaveOptions` only after reviewing that loss.
+workflows refuse to publish incomplete legacy projections. Use the
+`WordDocument.Load(..., out OfficeConversionReport report)` overload to review
+import diagnostics, and call `report.ThrowIfLoss()` before saving when any
+reported loss must block output. Normal saves block unsupported or preserve-only
+legacy content; set `AllowLoss = true` on `WordSaveOptions` only after reviewing
+and accepting that loss.
 See [DOC and DOCX compatibility](../Docs/officeimo.word.legacy-doc-compatibility.md)
 for the current capability matrix and safety contract. Use the
 [migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.

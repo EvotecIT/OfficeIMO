@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,10 +7,13 @@ namespace OfficeIMO.Excel {
     /// Options for importing worksheets from one workbook into another.
     /// </summary>
     public sealed class ExcelWorkbookMergeOptions {
-        /// <summary>Creates an independent copy of the workbook import settings and selected sheet names.</summary>
+        /// <summary>Creates an independent copy of the workbook import settings, selected sheet names and target sheet names.</summary>
         public ExcelWorkbookMergeOptions Clone() => new ExcelWorkbookMergeOptions {
             SheetNames = SheetNames?.ToArray(),
             SheetNamePrefix = SheetNamePrefix,
+            TargetSheetNames = TargetSheetNames is Dictionary<string, string> targetSheetNames
+                ? new Dictionary<string, string>(targetSheetNames, targetSheetNames.Comparer)
+                : TargetSheetNames?.ToDictionary(_ => _.Key, _ => _.Value, StringComparer.Ordinal),
             SheetNameValidationMode = SheetNameValidationMode,
             CopyMode = CopyMode,
             CopyExternalWorkbookReferences = CopyExternalWorkbookReferences,
@@ -29,6 +33,17 @@ namespace OfficeIMO.Excel {
         /// Gets or sets an optional prefix added to every imported worksheet name.
         /// </summary>
         public string? SheetNamePrefix { get; set; }
+
+        /// <summary>
+        /// Gets or sets explicit target worksheet names keyed by source worksheet name. Keys match source
+        /// worksheet names case-insensitively and must name imported worksheets. A worksheet with an entry takes
+        /// that name as given, without <see cref="SheetNamePrefix"/>; a worksheet without one keeps the prefixed
+        /// source name. Names are validated with <see cref="SheetNameValidationMode"/>. When this map is nonempty and
+        /// <see cref="ExcelSheetNameValidationMode.Strict"/> is selected, every requested name is checked before any worksheet is imported.
+        /// References between imported worksheets map each source name directly to its target name, so a target
+        /// name may reuse the name of another source worksheet.
+        /// </summary>
+        public IReadOnlyDictionary<string, string>? TargetSheetNames { get; set; }
 
         /// <summary>
         /// Gets or sets sheet name validation behavior for imported worksheets.

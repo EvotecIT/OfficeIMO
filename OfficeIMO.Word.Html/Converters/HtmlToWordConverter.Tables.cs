@@ -60,8 +60,8 @@ namespace OfficeIMO.Word.Html {
             } else {
                 wordTable = section.AddTable(rows, cols);
             }
-            // Import the source header semantics explicitly; a new Modern table's authoring default
-            // must not promote an HTML body row to a repeating header.
+            // Source HTML supplies table styling and header semantics independently of Word authoring defaults.
+            wordTable.Style = WordTableStyle.TableNormal;
             wordTable.RepeatHeaderRowAtTheTopOfEachPage = false;
             wordTable.ConditionalFormattingFirstRow = tableElem.Head?.Rows.Length > 0 ||
                 (tableElem.Rows.Length > 0 && tableElem.Rows[0].Cells.Any(sourceCell =>
@@ -153,6 +153,8 @@ namespace OfficeIMO.Word.Html {
                             foreach (var p in wordCell.Paragraphs) {
                                 p.ParagraphAlignment = alignment.Value.ToOfficeEnum();
                             }
+                        } else if (htmlCell.TagName.Equals("th", StringComparison.OrdinalIgnoreCase)) {
+                            foreach (var p in wordCell.Paragraphs) p.ParagraphAlignment ??= WordParagraphAlignment.Center;
                         }
 
                         if (rowSpan > 1 || colSpan > 1) {

@@ -9,21 +9,29 @@ public partial class ExcelDocument {
     /// <summary>Loads a workbook with cancellation during native XLSB record projection.</summary>
     public static ExcelDocument Load(string path, ExcelLoadOptions? options, CancellationToken cancellationToken) {
         ExcelLoadOptions settings = (options ?? new ExcelLoadOptions()).Snapshot();
-        settings.XlsbImportOptions.CancellationToken = cancellationToken;
+        settings.LoadCancellationToken = cancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
-        ExcelDocument document = Load(path, settings);
-        try { cancellationToken.ThrowIfCancellationRequested(); return document; }
-        catch { document._persistenceMode = DocumentPersistenceMode.Explicit; document._copyPackageToSourceOnDispose = false; document._copyPackageToFilePathOnDispose = false; document.Dispose(); throw; }
+        return CompleteCancellableLoad(Load(path, settings), cancellationToken);
     }
 
     /// <summary>Loads a caller-owned stream with cancellation during native XLSB record projection.</summary>
     public static ExcelDocument Load(Stream stream, ExcelLoadOptions? options, CancellationToken cancellationToken) {
         ExcelLoadOptions settings = (options ?? new ExcelLoadOptions()).Snapshot();
-        settings.XlsbImportOptions.CancellationToken = cancellationToken;
+        settings.LoadCancellationToken = cancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
-        ExcelDocument document = Load(stream, settings);
+        return CompleteCancellableLoad(Load(stream, settings), cancellationToken);
+    }
+
+    private static ExcelDocument CompleteCancellableLoad(ExcelDocument document, CancellationToken cancellationToken) {
         try { cancellationToken.ThrowIfCancellationRequested(); return document; }
-        catch { document._persistenceMode = DocumentPersistenceMode.Explicit; document._copyPackageToSourceOnDispose = false; document._copyPackageToFilePathOnDispose = false; document.Dispose(); throw; }
+        catch {
+            // Cancelling a load must not save a partially loaded workbook during disposal.
+            document._persistenceMode = DocumentPersistenceMode.Explicit;
+            document._copyPackageToSourceOnDispose = false;
+            document._copyPackageToFilePathOnDispose = false;
+            document.Dispose();
+            throw;
+        }
     }
 
     private string? _loadedPassword;

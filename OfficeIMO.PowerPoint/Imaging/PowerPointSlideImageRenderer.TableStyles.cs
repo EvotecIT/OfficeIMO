@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint {
             Bottom
         }
 
-        private static A.TableStyleEntry? ResolveTableStyle(PowerPointTable table) {
+        internal static A.TableStyleEntry? ResolveTableStyle(PowerPointTable table) {
             string? styleId = table.StyleId;
             if (string.IsNullOrWhiteSpace(styleId)) {
                 return null;
@@ -30,10 +30,6 @@ namespace OfficeIMO.PowerPoint {
                 .OfType<PresentationPart>()
                 .FirstOrDefault();
             if (presentationPart != null) {
-                if (presentationPart.TableStylesPart?.TableStyleList == null) {
-                    PowerPointUtils.CreateTableStylesPart(presentationPart);
-                }
-
                 A.TableStyleEntry? packageStyle = FindTableStyle(presentationPart.TableStylesPart?.TableStyleList, resolvedStyleId);
                 if (packageStyle != null) {
                     return packageStyle;
@@ -66,7 +62,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeColor? ResolveTableStyleFillColor(PowerPointTable table, int row, int column, A.TableStyleEntry? tableStyle, A.ColorScheme? colorScheme) {
             foreach (A.TablePartStyleType region in EnumerateApplicableTableStyleRegions(table, row, column, tableStyle)) {
-                A.SolidFill? solidFill = region.TableCellStyle?.GetFirstChild<A.FillProperties>()?.SolidFill;
+                A.FillProperties? fill = region.TableCellStyle?.GetFirstChild<A.FillProperties>();
+                if (fill?.GetFirstChild<A.NoFill>() != null) return OfficeColor.Transparent;
+                A.SolidFill? solidFill = fill?.SolidFill;
                 OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(solidFill, colorScheme);
                 if (color.HasValue) {
                     return color;
@@ -79,7 +77,13 @@ namespace OfficeIMO.PowerPoint {
         internal static IReadOnlyList<A.TableCellTextStyle> ResolveTableCellTextStylesForExport(
             PowerPointTable table,
             int row,
-            int column) => EnumerateApplicableTableStyleRegions(table, row, column, ResolveTableStyle(table))
+            int column) => ResolveTableCellTextStylesForExport(table, row, column, ResolveTableStyle(table));
+
+        internal static IReadOnlyList<A.TableCellTextStyle> ResolveTableCellTextStylesForExport(
+            PowerPointTable table,
+            int row,
+            int column,
+            A.TableStyleEntry? tableStyle) => EnumerateApplicableTableStyleRegions(table, row, column, tableStyle)
                 .Select(region => region.TableCellTextStyle)
                 .Where(static style => style != null)
                 .Cast<A.TableCellTextStyle>()

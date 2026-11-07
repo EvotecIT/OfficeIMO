@@ -88,6 +88,10 @@ internal static class MarkdownListRendering {
         }
 
         AppendOpenList(0, 0, isTopLevel: true);
+        var renderOptions = HtmlRenderContext.Options;
+        bool needsInlineTaskMarker = renderOptions == null
+            || renderOptions.CssDelivery == MarkdownCssDelivery.None
+            || HtmlRenderer.GetEffectiveStyle(renderOptions) == MarkdownHtmlStyle.Plain;
         var scopeStartByLevel = new List<int> { 0 };
         int currentLevel = 0;
         bool liOpen = false;
@@ -120,8 +124,23 @@ internal static class MarkdownListRendering {
             var itemAttributes = renderItemAttributes
                 ? item.Attributes
                 : null;
+            string taskMarkerStyle = string.Empty;
+            if (item.IsTask && !useGitHubTaskListHtml && needsInlineTaskMarker) {
+                string? authoredStyle = itemAttributes?.GetAttribute("style");
+                if (itemAttributes != null && itemAttributes.TryGetAttribute("style", out _)) {
+                    itemAttributes = MarkdownAttributeSet.Create(itemAttributes.ElementId, itemAttributes.Classes,
+                        itemAttributes.Attributes.Where(pair => !string.Equals(pair.Key, "style", StringComparison.OrdinalIgnoreCase)));
+                }
+                // The checkbox is the task marker, including without a presentation stylesheet.
+                // Retain authored CSS after the safe default so source declarations win.
+                string retainedStyle = (options?.RawHtmlHandling ?? MarkdownRawHtmlHandling.Allow) == MarkdownRawHtmlHandling.Allow
+                    ? authoredStyle ?? string.Empty
+                    : string.Empty;
+                taskMarkerStyle = " style=\"list-style:none;" + HtmlTextEncoder.Encode(retainedStyle, options) + "\"";
+            }
             sb.Append("<li")
                 .Append(MarkdownHtmlAttributes.Render(itemAttributes, options, additionalClasses: itemClasses))
+                .Append(taskMarkerStyle)
                 .Append('>')
                 .Append(item.RenderHtml(renderLoose, renderGenericAttributeConsumedWhitespace: !renderItemAttributes));
             liOpen = true;

@@ -10,6 +10,7 @@ public sealed class ExcelHtmlExportOptions {
     private OfficeHtmlDocumentOptions _documentOutput = new() {
         Title = null,
         Theme = OfficeVisualThemeKind.WordLike,
+        IncludeDefaultStyles = false,
         BodyClass = "officeimo-html officeimo-excel-html"
     };
 
@@ -59,13 +60,17 @@ public sealed class ExcelHtmlExportOptions {
     /// <summary>Creates semantic worksheet-table export settings.</summary>
     public static ExcelHtmlExportOptions CreateSemanticTablesProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) => new() {
         ExportProfile = ExcelHtmlExportProfile.SemanticTables,
-        Theme = theme
+        Theme = theme,
+        IncludeDefaultStyles = true,
+        HeaderMode = ExcelHtmlHeaderMode.FirstRow
     };
 
     /// <summary>Creates positioned visual-review export settings.</summary>
     public static ExcelHtmlExportOptions CreateVisualReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) => new() {
         ExportProfile = ExcelHtmlExportProfile.VisualReview,
-        Theme = theme
+        Theme = theme,
+        IncludeDefaultStyles = true,
+        HeaderMode = ExcelHtmlHeaderMode.FirstRow
     };
 
     /// <summary>Composed document-versus-fragment, theme, title, language, style, and newline settings.</summary>
@@ -108,10 +113,9 @@ public sealed class ExcelHtmlExportOptions {
     public string EmptyCellText { get; set; } = string.Empty;
 
     /// <summary>
-    /// Controls worksheet header semantics. Defaults to <see cref="ExcelHtmlHeaderMode.FirstRow"/>
-    /// for compatibility with earlier OfficeIMO HTML output.
+    /// Controls worksheet header semantics. Defaults to <see cref="ExcelHtmlHeaderMode.None"/>.
     /// </summary>
-    public ExcelHtmlHeaderMode HeaderMode { get; set; } = ExcelHtmlHeaderMode.FirstRow;
+    public ExcelHtmlHeaderMode HeaderMode { get; set; } = ExcelHtmlHeaderMode.None;
 
     /// <summary>Options used by the existing Excel SVG visual export lane.</summary>
     public ExcelImageExportOptions? VisualOptions { get; set; }

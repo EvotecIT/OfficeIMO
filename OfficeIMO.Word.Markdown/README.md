@@ -55,6 +55,11 @@ The factory returns a fresh reader configuration with the Word semantic fences a
 
 ## What it maps
 
+Markdown-to-Word tables use plain native formatting and keep authored column
+alignment by default. Pass `MarkdownWordExportOptions.Theme` or set
+`ApplyDefaultTheme = true` to add OfficeIMO table decoration and inferred numeric
+alignment.
+
 - Word to Markdown with headings, paragraphs, lists, task items, tables, images, links, code, footnotes, and GitHub-friendly output.
 - Markdown to Word through the typed `OfficeIMO.Markdown` model.
 - Markdown image layout options such as local-image allowance and page-content-width fitting.

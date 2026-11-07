@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            Stylesheet stylesheet = ExcelDocument.CreateDefaultStylesheet();
+            Stylesheet stylesheet = ExcelDocument.CreateDefaultStylesheet(theme);
             uint dateId = ExcelSheet.AddDefinitionNumberFormat(stylesheet, "yyyy-mm-dd hh:mm");
             uint timeId = ExcelSheet.AddDefinitionNumberFormat(stylesheet, "[h]:mm:ss");
             // Preserve the existing temporal indices used by normal row-writer overloads.

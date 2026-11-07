@@ -8,7 +8,7 @@ public partial class CsvDataReader
 {
     /// <summary>Advances an internal record consumer without adapting completed incremental reads to Task.</summary>
     internal ValueTask<bool> ReadRecordAsync(CancellationToken cancellationToken) =>
-        _textRowSource is ICsvAsyncDataReaderRowSource asynchronousRows
+        _asyncTextRowSource is { } asynchronousRows
             ? ReadIncrementalAsync(asynchronousRows, asynchronous: true, cancellationToken)
             : new ValueTask<bool>(ReadAsync(cancellationToken));
 

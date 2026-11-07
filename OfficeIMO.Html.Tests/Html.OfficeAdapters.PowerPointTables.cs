@@ -7,6 +7,80 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Tests;
 
 public class HtmlOfficeAdaptersPowerPointTables {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PowerPointSemanticTableFontsFollowSourceAndExplicitProfileIntent(bool styledProfile) {
+        using var presentation = PowerPointDocument.Create();
+        presentation.SetThemeLatinFonts("Source Major", "Source Minor");
+        var slide = presentation.AddSlide();
+        var table = slide.AddTable(1, 4, OfficeLength.Points(20), OfficeLength.Points(30),
+            OfficeLength.Points(480), OfficeLength.Points(60));
+        table.StyleId = null;
+        table.ApplyStyle(PowerPointTableStylePreset.Plain);
+        string[] labels = { "Default", "Theme linked", "Explicit", "Master inherited" };
+        for (int column = 0; column < labels.Length; column++) {
+            table.GetCell(0, column).Text = labels[column];
+            table.GetCell(0, column).Runs[0].Run.RunProperties = new A.RunProperties();
+        }
+        table.GetCell(0, 1).Runs[0].RunProperties.Append(new A.LatinFont { Typeface = "+mj-lt" });
+        table.GetCell(0, 2).Runs[0].FontFamily = "Explicit Family";
+        var otherStyle = slide.SlidePart.SlideLayoutPart!.SlideMasterPart!.SlideMaster.TextStyles!.OtherStyle!;
+        // Level 0 resolves the master's Level 1 and default paragraph properties before the theme fallback.
+        foreach (var properties in otherStyle.ChildElements.OfType<A.TextParagraphPropertiesType>()
+                     .Where(properties => properties is A.Level1ParagraphProperties or A.DefaultParagraphProperties)) {
+            if (properties.GetFirstChild<A.DefaultRunProperties>() is { } defaults) {
+                defaults.RemoveAllChildren<A.LatinFont>();
+                defaults.RemoveAllChildren<A.EastAsianFont>();
+                defaults.RemoveAllChildren<A.ComplexScriptFont>();
+            }
+        }
+        otherStyle.RemoveAllChildren<A.Level2ParagraphProperties>();
+        otherStyle.Append(new A.Level2ParagraphProperties(new A.DefaultRunProperties(
+            new A.LatinFont { Typeface = "Master Family" })));
+        table.GetCell(0, 3).Paragraphs[0].Level = 1;
+
+        string html = presentation.ToHtml(styledProfile ? PowerPointHtmlExportOptions.CreateSemanticSlidesProfile() : null);
+        var parsed = HtmlConversionDocument.Parse(html);
+        var computed = HtmlComputedStyleEngine.Compute(parsed);
+        var cells = parsed.Document.QuerySelectorAll(".officeimo-slide td").ToArray();
+        Assert.Equal(4, cells.Length);
+        if (styledProfile) {
+            Assert.Equal(computed[parsed.Document.Body!].GetValue("font-family"), computed[cells[0]].GetValue("font-family"));
+        } else {
+            Assert.Empty(parsed.Document.Head!.QuerySelectorAll("style"));
+            Assert.Contains("Source Minor", computed[cells[0]].GetValue("font-family"));
+        }
+        Assert.Null(cells[0].QuerySelector("[data-officeimo-powerpoint-font-family]"));
+        string[] expectedFamilies = { "Source Major", "Explicit Family", "Master Family" };
+        for (int column = 1; column < cells.Length; column++) {
+            var run = Assert.Single(cells[column].QuerySelectorAll("[data-officeimo-powerpoint-run]"));
+            Assert.Equal(expectedFamilies[column - 1], run.GetAttribute("data-officeimo-powerpoint-font-family"));
+            Assert.Contains(expectedFamilies[column - 1], computed[run].GetValue("font-family"));
+        }
+        Assert.DoesNotContain("+mj-lt", html);
+    }
+
+    [Fact]
+    public void PowerPointMasterInventoryIsCollapsedAndRetainsTemplateMetadata() {
+        using var presentation = PowerPointDocument.Create();
+        var slide = presentation.AddSlide();
+        slide.AddTable(1, 1).GetCell(0, 0).Text = "Slide content";
+        var inventory = PowerPointTemplate.Inspect(presentation);
+        var html = HtmlConversionDocument.Parse(presentation.ToHtml());
+
+        var details = Assert.Single(html.Document.QuerySelectorAll("details.officeimo-masters"));
+        Assert.False(details.HasAttribute("open"));
+        Assert.Equal("Presentation masters and layouts", details.QuerySelector("summary")!.TextContent);
+        var masters = details.QuerySelectorAll("[data-officeimo-feature='slide-master']");
+        Assert.NotEmpty(masters);
+        Assert.Equal(inventory.Masters.Count, masters.Count);
+        Assert.Equal(inventory.Masters.Sum(master => master.Layouts.Count),
+            details.QuerySelectorAll("[data-officeimo-feature='slide-layout']").Count);
+        Assert.Contains("Slide content", html.Document.QuerySelector(".officeimo-slide")!.TextContent);
+        Assert.Null(details.QuerySelector(".officeimo-slide"));
+    }
+
     [Fact]
     public void PowerPointHtml_ImportsRoleTableAsEditableGrid() {
         const string html = """
@@ -281,9 +355,10 @@ public class HtmlOfficeAdaptersPowerPointTables {
         using PowerPointDocument imported = result.Value;
         PowerPointTable importedTable = Assert.Single(Assert.Single(imported.Slides).Tables);
 
-        Assert.Contains("<td rowspan=\"2\" colspan=\"2\">", html, StringComparison.Ordinal);
+        var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+        Assert.NotNull(parsed.QuerySelector("td[rowspan='2'][colspan='2']"));
         Assert.Contains("Merged heading", html, StringComparison.Ordinal);
-        Assert.Contains("<td colspan=\"2\">", html, StringComparison.Ordinal);
+        Assert.NotNull(parsed.QuerySelector("td[colspan='2']:not([rowspan])"));
         Assert.Equal(2, result.MergedRanges);
         Assert.Equal((2, 2), importedTable.GetCell(0, 0).Merge);
         Assert.True(importedTable.GetCell(0, 1).IsMergedCell);
@@ -376,7 +451,12 @@ public class HtmlOfficeAdaptersPowerPointTables {
         table.GetCell(0, 0).Text = "Header";
         table.GetCell(1, 0).Text = "Body";
 
-        string html = presentation.ToHtml();
+        using var source = new MemoryStream(presentation.ToBytes(), writable: false);
+        using PowerPointDocument readOnly = PowerPointDocument.Load(source,
+            new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        string sourceTable = readOnly.Slides[0].Tables.Single().TableElement.OuterXml;
+        string sourceStyles = readOnly.OpenXmlDocument.PresentationPart!.TableStylesPart!.TableStyleList!.OuterXml;
+        string html = readOnly.ToHtml();
 
         Assert.Contains("font-weight:700", html, StringComparison.Ordinal);
         Assert.Contains("font-family:&#39;Arial&#39;", html, StringComparison.Ordinal);
@@ -384,5 +464,52 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.Contains("font-style:italic", html, StringComparison.Ordinal);
         Assert.Contains("font-family:&#39;Consolas&#39;", html, StringComparison.Ordinal);
         Assert.Contains("color:#112233", html, StringComparison.Ordinal);
+        Assert.Equal(sourceTable, readOnly.Slides[0].Tables.Single().TableElement.OuterXml);
+        Assert.Equal(sourceStyles, readOnly.OpenXmlDocument.PresentationPart!.TableStylesPart!.TableStyleList!.OuterXml);
+    }
+
+    [Fact]
+    public void PowerPointHtml_VisualReviewKeepsLargeReadOnlyTablesWithoutAStylePart() {
+        using var presentation = PowerPointDocument.Create();
+        presentation.SetThemeColor(PowerPointThemeColor.Accent1, "123456");
+        presentation.SetThemeColor(PowerPointThemeColor.Light1, "FFFFFF");
+        PowerPointSlide slide = presentation.AddSlide();
+        PowerPointTable table = slide.AddTable(2, 1, OfficeLength.Points(20), OfficeLength.Points(30),
+            OfficeLength.Points(220), OfficeLength.Points(100));
+        table.StyleId = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
+        table.FirstRow = true;
+        table.BandedRows = false;
+        table.GetCell(0, 0).Text = "Header";
+        table.GetCell(1, 0).Text = "Body";
+        A.TableRow template = table.TableElement.Elements<A.TableRow>().Last();
+        // The snapshot skips this table; its HTML metadata must still read the source style.
+        for (int row = 2; row < 4097; row++) table.TableElement.Append(template.CloneNode(true));
+        table.GetCell(4096, 0).NoFill = true;
+        var presentationPart = presentation.OpenXmlDocument.PresentationPart!;
+        presentationPart.DeletePart(presentationPart.TableStylesPart!);
+        byte[] package = presentation.ToBytes();
+
+        using var source = new MemoryStream(package, writable: false);
+        using PowerPointDocument readOnly = PowerPointDocument.Load(source,
+            new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        var readOnlyPart = readOnly.OpenXmlDocument.PresentationPart!;
+        Assert.Null(readOnlyPart.TableStylesPart);
+        string sourceTable = readOnly.Slides[0].Tables.Single().TableElement.OuterXml;
+        string[] sourceRelationships = readOnlyPart.Parts.Select(part => part.RelationshipId).OrderBy(id => id).ToArray();
+
+        string html = readOnly.ToHtml(PowerPointHtmlExportOptions.CreateVisualReviewProfile(), out OfficeConversionReport report);
+
+        var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+        var cells = parsed.QuerySelectorAll("td");
+        Assert.Equal(4097, cells.Length);
+        Assert.Equal("Header", cells[0].TextContent);
+        Assert.Contains("background-color:#123456", cells[0].GetAttribute("style"));
+        Assert.Contains("border-bottom:3pt solid #FFFFFF", cells[0].GetAttribute("style")!, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("background-color:#00000000", cells[cells.Length - 1].GetAttribute("style"));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Message.Contains("4097 rows", StringComparison.Ordinal));
+        Assert.Null(readOnlyPart.TableStylesPart);
+        Assert.Equal(sourceTable, readOnly.Slides[0].Tables.Single().TableElement.OuterXml);
+        Assert.Equal(sourceRelationships, readOnlyPart.Parts.Select(part => part.RelationshipId).OrderBy(id => id).ToArray());
+        Assert.Equal(package, source.ToArray());
     }
 }

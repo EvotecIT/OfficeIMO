@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
 
         private static class ExtendedWorkbookPackageWriter {
-            internal static void Write(Stream destination, ExtendedWorkbookPackageModel model, CancellationToken ct, ExcelExecutionPolicy? execution = null) {
+            internal static void Write(Stream destination, ExtendedWorkbookPackageModel model, CancellationToken ct, ExcelExecutionPolicy? execution = null, OfficeTheme? defaultFontTheme = null) {
                 Stopwatch? stageWatch = execution?.OnTiming == null ? null : Stopwatch.StartNew();
                 void ReportTiming(string operation) {
                     if (stageWatch == null || execution == null) {
@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
                 foreach (var part in model.Parts) {
                     ct.ThrowIfCancellationRequested();
                     if (directWritePlan != null && !keepsWorkbookStyles && part.Part is WorkbookStylesPart) {
-                        DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan);
+                        DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan, defaultFontTheme);
                         wroteDirectStyles = true;
                         ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
                     } else if (directWritePlan?.HasSharedStrings == true && part.Part is SharedStringTablePart) {
@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (directWritePlan != null && !wroteDirectStyles && !keepsWorkbookStyles) {
-                    DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan);
+                    DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan, defaultFontTheme);
                     ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
                 }
 

@@ -312,7 +312,16 @@ public sealed partial class MarkdownPdfStyle {
         CalloutPanelStyle = Panel(248, 250, 252, 37, 99, 235, 1, 10, 8, 4, 8),
         DetailsPanelStyle = Panel(249, 250, 251, 203, 213, 225, 0.5, 8, 6, 0, 6),
         TocPanelStyle = Panel(248, 250, 252, 203, 213, 225, 0.6, 10, 8, 4, 9),
-        TableStyle = MarkdownTable(PdfCore.PdfTableStyles.Light(), 10.25, 10.25, 1.22, 6, 5, 5, 10),
+        TableStyle = new PdfCore.PdfTableStyle {
+            BorderColor = null,
+            BorderWidth = global::OfficeIMO.OfficeLength.Zero,
+            HeaderFill = null,
+            FooterFill = null,
+            RowStripeFill = null,
+            HeaderBold = false,
+            FooterBold = false,
+            AutoFitColumns = true
+        },
         ChecklistTableStyle = ChecklistTable(203, 213, 225, 31, 41, 55, 10, 4),
         DefinitionListTableStyle = DefinitionTable(226, 232, 240, 0.4, 5, 4),
         FrontMatterTableStyle = FrontMatterTable(),
@@ -349,6 +358,7 @@ public sealed partial class MarkdownPdfStyle {
         MarkdownPdfStyle theme = Plain();
         theme.Name = "WordLike";
         theme.DocumentTheme = PdfCore.PdfTheme.WordLike();
+        theme.TableStyle = MarkdownTable(PdfCore.PdfTableStyles.Light(), 10.25, 10.25, 1.22, 6, 5, 5, 10);
         return theme;
     }
 
@@ -587,7 +597,7 @@ public sealed partial class MarkdownPdfStyle {
     internal PdfCore.PdfPanelStyle QuotePanelStyleSnapshot => (_quotePanelStyle ?? Plain()._quotePanelStyle)!.Clone();
     internal PdfCore.PdfPanelStyle DetailsPanelStyleSnapshot => (_detailsPanelStyle ?? Plain()._detailsPanelStyle)!.Clone();
     internal PdfCore.PdfPanelStyle TocPanelStyleSnapshot => (_tocPanelStyle ?? Plain()._tocPanelStyle)!.Clone();
-    internal PdfCore.PdfTableStyle TableStyleSnapshot => (_tableStyle ?? PdfCore.PdfTableStyles.Light()).Clone();
+    internal PdfCore.PdfTableStyle TableStyleSnapshot => (_tableStyle ?? Plain()._tableStyle)!.Clone();
     internal PdfCore.PdfTableStyle ChecklistTableStyleSnapshot => (_checklistTableStyle ?? Plain()._checklistTableStyle)!.Clone();
     internal PdfCore.PdfTableStyle DefinitionListTableStyleSnapshot => (_definitionListTableStyle ?? Plain()._definitionListTableStyle)!.Clone();
     internal PdfCore.PdfTableStyle FrontMatterTableStyleSnapshot => (_frontMatterTableStyle ?? PdfCore.PdfTableStyles.Minimal()).Clone();

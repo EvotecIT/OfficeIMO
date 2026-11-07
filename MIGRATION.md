@@ -1653,7 +1653,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.Word.WordDocument.AddMacro(Stream stream, long? maxBytes = null)` | Changed | `OfficeIMO.Word.WordDocument.AddMacro(...) : WordMacroProject` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.Word.WordDocument.AddMacro(string filePath)` | Changed | `OfficeIMO.Word.WordDocument.AddMacro(...) : WordMacroProject` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.Word.WordDocument.AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null)` | Changed | `OfficeIMO.Word.WordDocument.AddPageNumbering(...) : WordPageNumberSettings` | Add\* methods return the created object. |
-| Authoring | `OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, WordTableStyle tableStyle = TableGrid)` | Changed | `OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, WordTableStyle tableStyle = OfficeIMOModern)` | New tables follow the shared Modern theme. Pass TableGrid explicitly to retain cell grid borders. Body, section, header, footer, nested and paragraph-adjacent creation use the same default. Assigning a plain numeric value in an unaligned Modern table cell applies the theme numeric alignment; explicit alignment and rich text retain their formatting. Plain header labels over numeric columns follow the same theme alignment unless the header already has explicit alignment, a paragraph style or rich content. New OfficeIMOModern tables mark the first row as a repeating header (w:tblHeader), including in Word PDF output. Set table.RepeatHeaderRowAtTheTopOfEachPage = false to turn repetition off. Headerless object tables keep every row as body data; loading an existing table does not add a repeating header. HTML conversion preserves source body/header rows; PDF import honours the explicit RepeatHeaderRows setting, including with Modern tables. |
+| Authoring | `OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, WordTableStyle tableStyle = TableGrid)` | Kept | `OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, WordTableStyle tableStyle = TableGrid)` | Count-based tables use the plain TableGrid style. Select OfficeIMOModern explicitly for themed headers, banding and numeric alignment. Body, section, header, footer, nested and paragraph-adjacent creation share this default; existing source styles remain authoritative during conversion. |
 | Authoring | `OfficeIMO.Word.WordDocument.AddTableFromObjects(IEnumerable<object> items, WordTableStyle style = TableGrid, bool includeHeader = True, WordTableLayoutMode? layout = null)` | Merged | `OfficeIMO.Word.WordDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : WordTable` | Typed data in, styled output out, the same in Word, Excel and PowerPoint. |
 | Authoring | `OfficeIMO.Word.WordDocument.AsFluent()` | Removed | &mdash; | Use the WordDocument object model directly. |
 | Authoring | `OfficeIMO.Word.WordDocument.DifferentFirstPage` | Moved | `OfficeIMO.Word.WordDocument.PageSetup.DifferentFirstPage` | document.PageSetup.DifferentFirstPage |
@@ -4423,7 +4423,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Conversion | `HTML p elements: margin-top 0; margin-bottom 1em` | Changed | `HTML p elements: margin-top 1em; margin-bottom 1em` | HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. Word-to-HTML output keeps paragraphs inside list items at zero margin, so exported Word lists retain their compact spacing. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout. |
-| Conversion | `OfficeHtmlDocumentOptions.Theme selects only OfficeVisualThemeKind presets` | Changed | `OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices` | Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. `New-OfficePowerPointHtmlOptions` defaults its shared document theme to Modern. |
+| Conversion | `OfficeHtmlDocumentOptions.Theme selects only OfficeVisualThemeKind presets` | Changed | `OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices` | Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. Native document HTML exports keep source table presentation by default. `New-OfficePowerPointHtmlOptions` and `New-OfficeExcelHtmlOptions` enable the shared theme only when Theme or the style switch is explicitly selected. |
 | Naming | `OfficeIMO.Html.HtmlRenderFidelityPolicy.RequireNoLoss` | Renamed | `OfficeIMO.Html.HtmlRenderFidelityPolicy.FailOnLoss` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
 | Options | `HtmlRenderOptions batch image selection` | Changed | `HtmlRenderOptions.PageSelection (PdfPageSelection)` | Batch image export can select noncontiguous one-based retained surfaces in caller order, including repeats, through the canonical PDF page selector and selected-count limits. The request page set, HTML layout, PDF output, archives and single-image operations retain their existing selection contracts. |
 | cancellation | `HtmlConversionDocument.SaveAsPng / SaveAsJpeg / SaveAsTiff / SaveAsWebp / SaveAsSvg(path \| stream, HtmlRenderOptions options = null, int pageIndex = 0)` | Changed | `... same, plus CancellationToken cancellationToken = default (package OfficeIMO.Html.Pdf)` | Cancellable operations take a final CancellationToken. |
@@ -5287,6 +5287,13 @@ Modern accents. Chart typography, gridlines, line widths and bar spacing follow
 the shared theme. Regenerate worksheet and chart preview baselines; the default
 font can also change column widths in pixels. Loaded documents keep their styles.
 
+A workbook created with `ExcelCreateOptions.Theme` takes its Normal font from
+that theme's body font and size, as `CreateWriter` output does, now including
+writers with declared styles. Column widths follow that font, so regenerate
+baselines for workbooks created with a non-default theme. `ApplyTheme` replaces
+the theme part but keeps the workbook's Normal font; pass the theme at creation
+to set both.
+
 On a loaded workbook, `Success`, `Warning` and `Danger` need a known shared
 palette; raw Excel theme XML has no slots for these roles. Pass
 `color.Resolve(theme)` as a literal, or call `book.ApplyTheme(theme)` before
@@ -5338,14 +5345,17 @@ columns to the section's text width instead of 2400 twips each. Loaded documents
 keep their own styles. To keep the previous look in a new document, set the
 heading style definitions and column widths explicitly.
 
-New tables use `WordTableStyle.OfficeIMOModern`: a tinted header, horizontal
-rules and alternating body rows. Pass `WordTableStyle.TableGrid` explicitly to
-keep the grid style. This applies to body, section, header, footer, nested and
-paragraph-adjacent table creation. Assigning a plain numeric value in an
-unaligned Modern table cell now applies the theme's numeric alignment. Set
-`ParagraphAlignment` explicitly to choose a different alignment.
+Count-based tables use `WordTableStyle.TableGrid`, with borders around every
+cell and no inferred repeating header. Columns still fit the section's text
+area. Select `WordTableStyle.OfficeIMOModern` explicitly for a tinted header,
+horizontal rules, banding and theme-based numeric alignment. For typed tables,
+pass `new WordTableOptions { Style = WordTableStyle.OfficeIMOModern }`. This
+applies to body, section, header, footer, nested and paragraph-adjacent creation.
+Recompile callers that omit the style argument: C# stores optional defaults in
+the calling assembly. PDF and image conversion retain the source table style;
+they do not substitute a presentation preset for a recognized Word style ID.
 
-New `OfficeIMOModern` tables mark the first row as a repeating header (`w:tblHeader`),
+Explicit `OfficeIMOModern` tables mark the first row as a repeating header (`w:tblHeader`),
 including in Word PDF output. Set `table.RepeatHeaderRowAtTheTopOfEachPage = false` to
 turn repetition off. Headerless object tables keep every row as body data; loading an
 existing table does not add a repeating header. HTML conversion preserves source
@@ -5737,10 +5747,10 @@ Layout and master placeholder prompts are not slide content. Create a concrete s
 
 Regenerate visual baselines for Markdown to HTML, Markdown to Word, Word to HTML and HTML rendering; the defaults below change layout and markup.
 
-- `MarkdownDocument.SaveAsHtml(path)` and `SaveAsHtmlAsync(path)` without options write a complete HTML document with a stylesheet. Pass `new MarkdownHtmlExportOptions()` to keep writing a fragment.
-- `MarkdownHtmlStyle.Clean`, the default style, no longer switches to the Word stylesheet when no `Theme` is set. It declares the `--office-*` theme tokens and uses them. Set `Style = MarkdownHtmlStyle.Word` for the previous look. Styled output right-aligns table columns of numbers that have no authored alignment; `Plain` keeps the source alignment.
-- Markdown to Word writes code blocks with a `CodeLang_<language>` paragraph style, wraps headings in bookmarks and turns `#fragment` links into in-document links. Relative image paths resolve against `BaseUri` or the Markdown file's folder. Images that cannot be embedded are reported as `image-skipped-by-policy` or `image-load-failed` omissions, so `HasLoss` and `FailOnLoss` see them; set `AllowLocalImages = true` to embed local files. `WordMarkdownImageLayoutOptions.FitMode` defaults to `ContextContentWidth`; set `None` for natural image size. New documents get theme heading and Normal styles, quotes get a left rule and table columns are sized from their content.
-- Word to HTML rebuilds a table of contents from the headings and reports `toc-regenerated-from-headings`. Monospace runs become `<code>`, and the default stylesheet uses the theme tokens.
+- `MarkdownDocument.SaveAsHtml(path)` and `SaveAsHtmlAsync(path)` without options write a complete, unstyled HTML document. Pass `new MarkdownHtmlExportOptions()` to write a fragment. Select a `Style` or `Theme` explicitly to add a stylesheet.
+- Markdown HTML defaults to `MarkdownHtmlStyle.Plain`. Set `Style = MarkdownHtmlStyle.Clean` for Office theme tokens, or select another named style or `Theme`. Markdown Word and PDF conversion default `ApplyDefaultTheme` to `false`; set it to `true` or pass a theme for presentation styling. Plain tables keep authored column alignment without inferring numeric alignment or adding themed borders and fills.
+- Markdown to Word writes code blocks with a `CodeLang_<language>` paragraph style, wraps headings in bookmarks and turns `#fragment` links into in-document links. Relative image paths resolve against `BaseUri` or the Markdown file's folder. Images that cannot be embedded are reported as `image-skipped-by-policy` or `image-load-failed` omissions, so `HasLoss` and `FailOnLoss` see them; set `AllowLocalImages = true` to embed local files. `WordMarkdownImageLayoutOptions.FitMode` defaults to `ContextContentWidth`; set `None` for natural image size. New documents get heading and Normal styles, and table columns are sized from their content. A selected visual theme supplies table decoration and code-block presentation.
+- Word to HTML rebuilds a table of contents from the headings and reports `toc-regenerated-from-headings`. Monospace runs become `<code>`. Native Word, Excel and PowerPoint HTML exports preserve source table presentation without applying a shared theme by default; choose an explicit themed profile or enable its default styles to add that presentation. Excel HTML no longer assumes the first worksheet row is a header; set `HeaderMode = ExcelHtmlHeaderMode.FirstRow` when that is intended.
 - HTML rendering keeps the monospace default for `code`, `pre`, `kbd` and `samp` when an ancestor sets a font family, in Document mode as well; set `font-family: inherit` on them for the previous result. `font-variant: small-caps` is synthesized from smaller capitals. An image that does not load and has no size takes the space of its alternative text. HTML to PDF loads `file:` resources when `PdfResourcePolicy.AllowLocalFileAccess` is true. `HtmlRenderMathMlSourceNormalized` is now an `Info` diagnostic.
 
 ## HTML default-font metrics

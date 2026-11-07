@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
             private static readonly string?[] SharedStringCellCache = new string?[CachedSharedStringCellLimit];
             private static readonly string[][] CellReferencePrefixCache = CreateCellReferencePrefixCache();
 
-            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, string? themeXml, bool disableSharedStrings = false, bool collectSharedStrings = false) {
+            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, string? themeXml, bool disableSharedStrings = false, bool collectSharedStrings = false, OfficeTheme? theme = null) {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
                 var sharedStrings = disableSharedStrings ? null
@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel {
                     : new ExcelPositionReportingWriteStream(stream);
                 Stream packageDestination = positionReportingDestination ?? stream;
                 using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
-                WritePackagePreamble(archive, model, stylePlan, sharedStrings != null, themeXml);
+                WritePackagePreamble(archive, model, stylePlan, sharedStrings != null, themeXml, theme);
                 if (sharedStrings != null && !collectSharedStrings) {
                     WriteSharedStrings(archive, sharedStrings, ct);
                 }
@@ -116,8 +116,8 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            internal static void WriteExtendedStyles(ZipArchive archive, ExtendedDirectWritePlan plan) {
-                WriteStyles(archive, plan.StylePlan);
+            internal static void WriteExtendedStyles(ZipArchive archive, ExtendedDirectWritePlan plan, OfficeTheme? theme) {
+                WriteStyles(archive, plan.StylePlan, theme);
             }
 
             internal static void WriteExtendedSharedStrings(ZipArchive archive, ExtendedDirectWritePlan plan) {
@@ -274,7 +274,8 @@ namespace OfficeIMO.Excel {
                 builder.Append(((theme ?? OfficeTheme.Default).TypeScale.Body.ToPoints()).ToString(CultureInfo.InvariantCulture));
                 builder.Append("\"/><color theme=\"1\"/><name val=\"");
                 AppendEscaped(builder, (theme ?? OfficeTheme.Default).Fonts.Body.Family);
-                builder.Append("\"/><family val=\"2\"/><scheme val=\"minor\"/></font></fonts>");
+                // Keep Normal literal, as editable workbooks do, when the workbook theme is replaced.
+                builder.Append("\"/><family val=\"2\"/></font></fonts>");
                 builder.Append("<fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill></fills>");
                 builder.Append("<borders count=\"1\"><border><left/><right/><top/><bottom/><diagonal/></border></borders>");
                 builder.Append("<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>");

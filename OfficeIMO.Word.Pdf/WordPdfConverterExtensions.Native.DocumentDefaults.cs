@@ -87,7 +87,7 @@ namespace OfficeIMO.Word.Pdf {
                     null,
                     ReadNativeOnOff(defaultRuns?.GetFirstChild<W.Caps>()),
                     defaultRuns?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value,
-                    defaultRuns?.GetFirstChild<W.Color>()?.Val?.Value,
+                    WordRunFormatting.ResolveColorHex(defaultRuns?.GetFirstChild<W.Color>(), document),
                     null) {
                     SmallCaps = ReadNativeOnOff(defaultRuns?.GetFirstChild<W.SmallCaps>())
                 },

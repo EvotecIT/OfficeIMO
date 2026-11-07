@@ -6,6 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Renders rectangular border boxes through the shared raster and SVG primitives.
 /// </summary>
+/// <remarks>Finite negative origins are supported for geometry clipped by the target canvas or SVG viewport.</remarks>
 public static class OfficeBorderBoxRenderer {
     /// <summary>
     /// Draws a border box onto a raster canvas using line-on-bounds geometry.
@@ -74,15 +75,15 @@ public static class OfficeBorderBoxRenderer {
         side.DoubleLineSeparation > 0D ? side.DoubleLineSeparation : Math.Max(1D, side.Width * 3D);
 
     private static void ValidateBounds(double x, double y, double width, double height) {
-        ValidateFiniteNonNegative(x, nameof(x));
-        ValidateFiniteNonNegative(y, nameof(y));
+        ValidateFinite(x, nameof(x));
+        ValidateFinite(y, nameof(y));
         ValidatePositiveFinite(width, nameof(width));
         ValidatePositiveFinite(height, nameof(height));
     }
 
-    private static void ValidateFiniteNonNegative(double value, string paramName) {
-        if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D) {
-            throw new ArgumentOutOfRangeException(paramName, "Border box coordinates must be finite non-negative numbers.");
+    private static void ValidateFinite(double value, string paramName) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new ArgumentOutOfRangeException(paramName, "Border box coordinates must be finite numbers.");
         }
     }
 

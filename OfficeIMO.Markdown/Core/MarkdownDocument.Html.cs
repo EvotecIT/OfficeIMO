@@ -25,7 +25,7 @@ public partial class MarkdownDocument {
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    // A file opened in a browser needs a doctype, charset and the stylesheet; a bare fragment renders unstyled.
+    // A file opened in a browser needs a doctype and charset rather than a bare fragment.
     private MarkdownHtmlExportOptions CreateFileDocumentOptions() => new MarkdownHtmlExportOptions {
         Kind = MarkdownHtmlKind.Document,
         Title = ResolveDefaultHtmlTitle()
@@ -55,7 +55,7 @@ public partial class MarkdownDocument {
     }
 
     /// <summary>Writes HTML to a file, including an external CSS sidecar when requested.</summary>
-    /// <remarks>Without options the file is a complete, styled HTML document; pass options to write a fragment.</remarks>
+    /// <remarks>Without options the file is a complete HTML document without a presentation stylesheet. Pass options to select a theme, style, or fragment output.</remarks>
     public OfficeConversionReport SaveAsHtml(string path, MarkdownHtmlExportOptions? options = null) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var timer = Stopwatch.StartNew();
@@ -77,7 +77,7 @@ public partial class MarkdownDocument {
     }
 
     /// <summary>Asynchronously writes HTML to a file, including an external CSS sidecar when requested.</summary>
-    /// <remarks>Without options the file is a complete, styled HTML document; pass options to write a fragment.</remarks>
+    /// <remarks>Without options the file is a complete HTML document without a presentation stylesheet. Pass options to select a theme, style, or fragment output.</remarks>
     public async Task<OfficeConversionReport> SaveAsHtmlAsync(string path, MarkdownHtmlExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         options = (options ?? CreateFileDocumentOptions()).CloneForRender();

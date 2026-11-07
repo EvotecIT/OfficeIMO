@@ -1,3 +1,4 @@
+using OfficeIMO.Excel;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Pdf;
@@ -6,6 +7,38 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Tests;
 
 public sealed class OfficeConverterConversionTests {
+
+    [Fact]
+    public void OfficeXmlStreamRoutesProduceEditablePackages() {
+        const string spreadsheetXml = """
+            <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+                xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+              <Worksheet ss:Name="Migration"><Table><Row>
+                <Cell><Data ss:Type="String">Visible text</Data></Cell>
+                <Cell><Data ss:Type="Number">42</Data></Cell>
+              </Row></Table></Worksheet>
+            </Workbook>
+            """;
+        using var spreadsheet = new MemoryStream(Encoding.UTF8.GetBytes(spreadsheetXml));
+        using var xlsx = new MemoryStream();
+        OfficeConverter.Convert(spreadsheet, OfficeDocumentFormat.Xml, xlsx, OfficeDocumentFormat.Excel);
+        xlsx.Position = 0;
+        using ExcelDocument workbook = ExcelDocument.Load(xlsx);
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+        Assert.Equal("Migration", sheet.Name);
+        Assert.Equal("Visible text", sheet.Cell(1, 1).GetValue<string>());
+        Assert.Equal(42d, sheet.Cell(1, 2).GetValue<double>());
+
+        using WordDocument word = WordDocument.Create();
+        word.AddParagraph("Editable text");
+        using var flat = new MemoryStream(word.ExportFlatOpc());
+        using var docx = new MemoryStream();
+        OfficeConverter.Convert(flat, OfficeDocumentFormat.Xml, docx, OfficeDocumentFormat.Word);
+        docx.Position = 0;
+        using WordDocument reopened = WordDocument.Load(docx);
+        Assert.Equal(WordFileFormat.Docx, reopened.SourceFormat);
+        Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "Editable text");
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

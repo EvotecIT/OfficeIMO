@@ -95,7 +95,10 @@ Word export has named profiles for the intended fidelity contract:
 - `CreateDocumentRoundTripProfile()` enables editable structure, comments, section metadata, headers, footers, and trusted round-trip details.
 - `CreatePrintReviewProfile()` produces a static browser and print review without claiming browser/Word pagination parity.
 
-`ToHtml()` and `SaveAsHtml(path)` produce a complete HTML5 document with the default OfficeIMO theme styles. Set `IncludeDefaultCss = false` to supply your own CSS, or combine it with `EmitDocumentShell = false` to embed an unstyled fragment in another page.
+`ToHtml()` and `SaveAsHtml(path)` produce a complete HTML5 document with source
+table formatting and basic document CSS. They do not infer numeric alignment or
+add table decoration. Set `IncludeDefaultCss = false` to supply your own CSS, or
+combine it with `EmitDocumentShell = false` to embed a fragment in another page.
 
 Each named profile uses the shared responsive OfficeIMO document shell and accepts an `OfficeVisualThemeKind`. The shell styles headings, tables, forms, figures, code, document regions, compact screens, and print output. It does not enable JavaScript, remote execution, or live browser behavior. `UseSharedDocumentShell` selects this shell explicitly for custom options.
 

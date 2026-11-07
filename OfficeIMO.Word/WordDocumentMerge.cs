@@ -33,7 +33,9 @@ namespace OfficeIMO.Word {
             var staging = new Body();
             foreach (OpenXmlElement element in sourceBody.ChildElements) {
                 if (element is not SectionProperties) {
-                    staging.Append(element.CloneNode(true));
+                    OpenXmlElement clone = element.CloneNode(true);
+                    WordTable.CopyGridNormalizationState(element, clone);
+                    staging.Append(clone);
                 }
             }
 
@@ -81,6 +83,7 @@ namespace OfficeIMO.Word {
                 PreventDestinationHeaderFooterInheritance(destinationBody, firstSourceSection);
             }
             PlaceContent(destinationBody, staging, sourceSection);
+            _destination.MarkTableNormalizationRequired();
         }
 
         /// <summary>

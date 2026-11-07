@@ -11,6 +11,113 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
     private static readonly XNamespace X = "urn:schemas-microsoft-com:office:excel";
     private static byte[] Xml(string content) => Encoding.UTF8.GetBytes("<Workbook xmlns='" + Ss + "' xmlns:ss='" + Ss + "' xmlns:x='" + X + "'>" + content + "</Workbook>");
 
+    [Theory]
+    [InlineData(105.5, 7, 20.140625, 105.75)]
+    [InlineData(7.875, 8, 1.375, 8.25)]
+    [InlineData(0, 7, 0, 0)]
+    public void Physical_column_width_quantization_is_stable_after_saved_xlsx_and_xml_reimport(
+        double points, double digitPixels, double storedWidth, double serializedPoints) {
+        string sourcePoints = points.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        byte[] source = Xml("<Worksheet ss:Name='Data'><Table ss:DefaultColumnWidth='" + sourcePoints
+            + "'><Column ss:Width='" + sourcePoints + "'/></Table></Worksheet>");
+        var options = new ExcelSpreadsheetXmlOptions { DefaultFontMaximumDigitWidth = OfficeLength.Pixels(digitPixels) };
+        using ExcelDocument document = ExcelDocument.ImportSpreadsheetXml(source, options).Value;
+        using var saved = new MemoryStream();
+        document.Save(saved);
+        saved.Position = 0;
+        using ExcelDocument reopened = ExcelDocument.Load(saved);
+        Assert.Equal(storedWidth, reopened.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single().Width!.Value);
+        Assert.Equal(storedWidth, reopened.OpenXmlDocument.WorkbookPart.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<SheetFormatProperties>()!.DefaultColumnWidth!.Value);
+        byte[] exported = reopened.ExportSpreadsheetXml(options).Value;
+        XDocument xml = XDocument.Parse(Encoding.UTF8.GetString(exported));
+        Assert.Equal(serializedPoints, (double)xml.Descendants(Ss + "Column").Single().Attribute(Ss + "Width")!);
+        Assert.Equal(serializedPoints, (double)xml.Descendants(Ss + "Table").Single().Attribute(Ss + "DefaultColumnWidth")!);
+        using ExcelDocument reimported = ExcelDocument.ImportSpreadsheetXml(exported, options).Value;
+        Assert.Equal(storedWidth, reimported.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single().Width!.Value);
+        Assert.Equal(storedWidth, reimported.OpenXmlDocument.WorkbookPart.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<SheetFormatProperties>()!.DefaultColumnWidth!.Value);
+    }
+
+    [Fact]
+    public void Xml_export_preserves_implicit_zero_width_and_explicit_column_geometry() {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Data");
+        for (int index = 1; index <= 5; index++) sheet.Cell(1, index).SetValue("Column " + index);
+        document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet.AddChild(new Columns(
+            new Column { Min = 1, Max = 1, Width = 0, CustomWidth = false },
+            new Column { Min = 2, Max = 2, Width = 0 },
+            new Column { Min = 3, Max = 3, Width = 0, CustomWidth = true },
+            new Column { Min = 4, Max = 4, Width = 0, CustomWidth = false, Hidden = true },
+            new Column { Min = 5, Max = 5, Width = 8, CustomWidth = false }), true);
+        using var loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
+        var options = new ExcelSpreadsheetXmlOptions { DefaultFontMaximumDigitWidth = OfficeLength.Pixels(8) };
+
+        byte[] exported = loaded.ExportSpreadsheetXml(options).Value;
+        var columns = XDocument.Parse(Encoding.UTF8.GetString(exported)).Descendants(Ss + "Column").ToArray();
+        Assert.Equal(new string?[] { null, null, "0", null, "48" },
+            columns.Select(column => (string?)column.Attribute(Ss + "Width")));
+        Assert.Equal(new string?[] { null, null, null, "1", null },
+            columns.Select(column => (string?)column.Attribute(Ss + "Hidden")));
+
+        using var imported = ExcelDocument.ImportSpreadsheetXml(exported, options).Value;
+        var importedColumns = imported.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToArray();
+        Assert.Equal(new double?[] { null, null, 0, null, 8 },
+            importedColumns.Select(column => column.Width?.Value));
+        Assert.Equal(new[] { false, false, true, false, true },
+            importedColumns.Select(column => column.CustomWidth?.Value == true));
+        Assert.Equal(new[] { false, false, false, true, false },
+            importedColumns.Select(column => column.Hidden?.Value == true));
+    }
+
+    [Fact]
+    public void Xml_export_preserves_implicit_zero_height_and_explicit_row_geometry() {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Data");
+        for (int index = 1; index <= 5; index++) sheet.Cell(index, 1).SetValue("Row " + index);
+        var rows = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().ToArray();
+        for (int index = 0; index < rows.Length; index++) {
+            rows[index].Height = index == 4 ? 8 : 0;
+            rows[index].CustomHeight = index == 2;
+        }
+        rows[1].CustomHeight = null;
+        rows[3].Hidden = true;
+        using var loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
+
+        byte[] exported = loaded.ExportSpreadsheetXml().Value;
+        var xmlRows = XDocument.Parse(Encoding.UTF8.GetString(exported)).Descendants(Ss + "Row").ToArray();
+        Assert.Equal(new string?[] { null, null, "0", null, "8" },
+            xmlRows.Select(row => (string?)row.Attribute(Ss + "Height")));
+        Assert.Equal(new string?[] { null, null, null, "1", null },
+            xmlRows.Select(row => (string?)row.Attribute(Ss + "Hidden")));
+
+        using var imported = ExcelDocument.ImportSpreadsheetXml(exported).Value;
+        var importedRows = imported.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single()
+            .Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().ToArray();
+        Assert.Equal(new double?[] { null, null, 0, null, 8 },
+            importedRows.Select(row => row.Height?.Value));
+        Assert.Equal(new[] { false, false, true, false, true },
+            importedRows.Select(row => row.CustomHeight?.Value == true));
+        Assert.Equal(new[] { false, false, false, true, false },
+            importedRows.Select(row => row.Hidden?.Value == true));
+    }
+
+    [Fact]
+    public void Automatic_font_metrics_report_the_physical_column_width_approximation() {
+        byte[] source = Xml("<Styles><Style ss:ID='Default'><Font ss:FontName='Calibri' ss:Size='11'/></Style></Styles>"
+            + "<Worksheet ss:Name='Data'><Table><Column ss:Width='105.5'/></Table></Worksheet>");
+        var imported = ExcelDocument.ImportSpreadsheetXml(source);
+        using ExcelDocument document = imported.Value;
+        Assert.Contains(imported.Report.Diagnostics, item => item.Code == "excel-xml-approximation"
+            && item.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Contains(document.ExportSpreadsheetXml().Report.Diagnostics, item => item.Code == "excel-xml-approximation"
+            && item.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
     [Fact]
     public void Native_Excel_geometry_comments_and_font_are_imported_and_reexported() {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "SpreadsheetXmlCorpus", "excel-geometry.xml");

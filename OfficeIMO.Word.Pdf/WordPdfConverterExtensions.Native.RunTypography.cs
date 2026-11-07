@@ -127,7 +127,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
             string? fontFamily = ResolveNativeTextRunFontFamily(paragraph, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
 
-            global::OfficeIMO.OfficeColor? color = TryGetNativeRunColor(runProperties, out global::OfficeIMO.OfficeColor? directColor)
+            global::OfficeIMO.OfficeColor? color = TryGetNativeRunColor(runProperties, paragraph._document, out global::OfficeIMO.OfficeColor? directColor)
                 ? directColor
                 : ResolveNativeInheritedRunColor(characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
             color = ResolveNativeGroupedHeaderFooterTextColor(paragraph, color);
@@ -144,6 +144,13 @@ namespace OfficeIMO.Word.Pdf {
                 ListMarkerTextSpacing = resolvedNativeDefaults.TextSpacing.Merge(tableRunStyleDefaults.TextSpacing)
                     .Merge(styleDefaults.TextSpacing).Merge(markerCharacterStyle.TextSpacing).Merge(markerProperties).Resolve(resolvedNativeDefaults.OpenTypeFeaturesEnabled)
             };
+        }
+
+        private static bool TryGetNativeRunColor(W.RunProperties? properties, WordDocument document, out global::OfficeIMO.OfficeColor? color) {
+            W.Color? declaration = properties?.GetFirstChild<W.Color>();
+            color = ParseNativeColor(WordRunFormatting.ResolveColorHex(declaration, document));
+            // An authored automatic color also stops inheritance.
+            return declaration != null;
         }
 
         private static void ResetNativeTextStyle(PdfCore.PdfParagraph builder) {

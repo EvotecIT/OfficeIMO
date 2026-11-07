@@ -69,6 +69,7 @@ namespace OfficeIMO.Excel {
 
                 case ExcelImageExportDiagnosticCodes.CellTextClipped:
                 case ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing:
+                case ExcelImageExportDiagnosticCodes.MergedCellBorderOmitted:
                 case ExcelImageExportDiagnosticCodes.FillGradientUnsupported:
                 case ExcelImageExportDiagnosticCodes.ConditionalRuleUnsupported:
                 case ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded:

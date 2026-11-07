@@ -73,7 +73,7 @@ namespace OfficeIMO.Word.Markdown {
 
             private void RenderFallback(Omd.IMarkdownBlock block) {
                 var fallback = _host.CreateParagraph();
-                ApplyBlockParagraphFormatting(fallback, _quoteDepth, _alignment);
+                ApplyBlockParagraphFormatting(fallback, _quoteDepth, _alignment, _options);
                 fallback.AddText(block.RenderMarkdown());
                 ApplyBodyTextTheme(fallback, _options);
             }
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitHeadingBlock(Omd.HeadingBlock block) {
                 var headingParagraph = _host.CreateParagraph();
-                ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
+                ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment, _options);
                 ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                 headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
                 ApplyHeadingTheme(headingParagraph, _options);
@@ -98,13 +98,13 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitParagraphBlock(Omd.ParagraphBlock block) {
                 var paragraph = _host.CreateParagraph();
-                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
                 ProcessInlinesOmd(block.Inlines, paragraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
             }
 
             protected override void VisitImageBlock(Omd.ImageBlock block) {
                 var paragraph = _host.CreateParagraph();
-                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
                 RenderMarkdownImageIntoParagraph(
                     paragraph,
                     block.Path ?? string.Empty,
@@ -119,7 +119,7 @@ namespace OfficeIMO.Word.Markdown {
 
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
-                    ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
+                    ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment, _options);
                     captionParagraph.AddText(block.Caption!);
                     ApplyBodyTextTheme(captionParagraph, _options);
                 }
@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitSemanticFencedBlock(Omd.SemanticFencedBlock block) {
-                if (TryRenderWordPageBreakSemanticBlock(block, _host, _quoteDepth, _alignment)) {
+                if (TryRenderWordPageBreakSemanticBlock(block, _host, _quoteDepth, _alignment, _options)) {
                     return;
                 }
 
@@ -160,7 +160,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             private void ApplyCodeBlockParagraphFormatting(WordParagraph paragraph) {
-                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
                 if (_listLevel > 0)
                     paragraph.IndentationBefore = (paragraph.IndentationBefore ?? OfficeLength.Zero) + OfficeLength.Points(_listLevel * IndentTwipsPerLevel / 20D);
             }
@@ -217,7 +217,7 @@ namespace OfficeIMO.Word.Markdown {
 
                     int effectiveLevel = Math.Max(0, _listLevel + entry.Level - baseLevel);
                     var paragraph = list.AddItem((string?)null, effectiveLevel);
-                    ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                    ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
                     string? entryBookmark = string.IsNullOrWhiteSpace(entry.Anchor)
                         ? null
                         : ResolveInternalLinkBookmark("#" + entry.Anchor.TrimStart('#'), _options);
@@ -238,7 +238,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 var headingParagraph = _host.CreateParagraph();
-                ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
+                ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment, _options);
                 headingParagraph.AddText(block.Title.Trim());
                 headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(NormalizeTocTitleLevel(block.TitleLevel));
                 ApplyHeadingTheme(headingParagraph, _options);
@@ -273,7 +273,7 @@ namespace OfficeIMO.Word.Markdown {
                     return;
                 } else {
                     var htmlParagraph = _host.CreateParagraph();
-                    ApplyBlockParagraphFormatting(htmlParagraph, _quoteDepth, _alignment);
+                    ApplyBlockParagraphFormatting(htmlParagraph, _quoteDepth, _alignment, _options);
                     htmlParagraph.AddText(((Omd.IMarkdownBlock)block).RenderMarkdown());
                     _options.DiagnosticSink?.Invoke(new WordMarkdownConversionDiagnostic(
                         OfficeDiagnosticCodes.HtmlBlockAsText,
@@ -288,7 +288,7 @@ namespace OfficeIMO.Word.Markdown {
                     _host.InsertHorizontalRule();
                 } else {
                     var ruleParagraph = _host.CreateParagraph();
-                    ApplyBlockParagraphFormatting(ruleParagraph, _quoteDepth, _alignment);
+                    ApplyBlockParagraphFormatting(ruleParagraph, _quoteDepth, _alignment, _options);
                     ruleParagraph.AddText("---");
                     ApplyBodyTextTheme(ruleParagraph, _options);
                 }
@@ -322,7 +322,7 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitDetailsBlock(Omd.DetailsBlock block) {
                 if (block.Summary != null) {
                     var summaryParagraph = _host.CreateParagraph();
-                    ApplyBlockParagraphFormatting(summaryParagraph, _quoteDepth, _alignment);
+                    ApplyBlockParagraphFormatting(summaryParagraph, _quoteDepth, _alignment, _options);
                     ProcessInlinesOmd(block.Summary.Inlines, summaryParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                     foreach (var run in summaryParagraph.GetRuns()) {
                         run.SetBold();
@@ -336,7 +336,7 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitSummaryBlock(Omd.SummaryBlock block) {
                 var summaryParagraph = _host.CreateParagraph();
-                ApplyBlockParagraphFormatting(summaryParagraph, _quoteDepth, _alignment);
+                ApplyBlockParagraphFormatting(summaryParagraph, _quoteDepth, _alignment, _options);
                 ProcessInlinesOmd(block.Inlines, summaryParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                 foreach (var run in summaryParagraph.GetRuns()) {
                     run.SetBold();
@@ -353,7 +353,7 @@ namespace OfficeIMO.Word.Markdown {
 
                 for (int i = 0; i < lines.Length; i++) {
                     var paragraph = _host.CreateParagraph();
-                    ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                    ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
                     paragraph.AddFormattedText(lines[i]).SetFontFamily(monoFont);
                     ApplyCodeTheme(paragraph, _options);
                 }
@@ -410,7 +410,7 @@ namespace OfficeIMO.Word.Markdown {
                                 listItemParagraph.AddCheckBox(item.Checked);
                             }
 
-                            ApplyBlockParagraphFormatting(listItemParagraph, _quoteDepth, _alignment);
+                            ApplyBlockParagraphFormatting(listItemParagraph, _quoteDepth, _alignment, _options);
                             ProcessInlinesOmd(paragraph.Inlines, listItemParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, effectiveLevel + 1, _quoteDepth);
                             firstParagraph = false;
                             continue;

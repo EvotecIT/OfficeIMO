@@ -257,6 +257,9 @@ namespace OfficeIMO.Excel {
             bool includeProjectedChartSheets = false,
             bool preserveLinkedVbaProject = false,
             bool preserveNativeRecords = false) {
+            if (EarlyBiffImportReport?.HasLoss == true && options?.LossPolicy != OfficeConversionLossPolicy.Allow) {
+                throw new NotSupportedException("Saving the early BIFF projection would omit source features. Review the load report and set ExcelSaveOptions.AllowLoss to true to accept that loss.");
+            }
             if (preserveNativeRecords && CanPreserveNativeLegacyXls(options)) return;
             if (SourceFormat != ExcelFileFormat.Xls
                 || !HasLossyLegacyXlsImportState(includeProjectedChartSheets, preserveLinkedVbaProject)
@@ -278,7 +281,7 @@ namespace OfficeIMO.Excel {
                 .Distinct(StringComparer.Ordinal)
                 .Take(8));
             string details = string.IsNullOrWhiteSpace(codes) ? string.Empty : $" Findings: {codes}.";
-            throw new NotSupportedException($"Saving is blocked because this workbook was loaded from {source} with unsupported, preserve-only, or non-projected legacy content.{details} Review LegacyXlsUnsupportedFeatures, LegacyXlsPreservedFeatures, LegacyXlsUnsupportedSheets, and LegacyXlsCompoundFeatures, or set ExcelSaveOptions.LossPolicy to OfficeConversionLossPolicy.Allow when that loss is intentional.");
+            throw new NotSupportedException($"Saving is blocked because this workbook was loaded from {source} with unsupported, preserve-only, or non-projected legacy content.{details} Review LegacyXlsUnsupportedFeatures, LegacyXlsPreservedFeatures, LegacyXlsUnsupportedSheets, and LegacyXlsCompoundFeatures, or set ExcelSaveOptions.AllowLoss to true when that loss is intentional.");
         }
 
         private bool TrySaveNativeLegacyXlsToFile(string path, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {

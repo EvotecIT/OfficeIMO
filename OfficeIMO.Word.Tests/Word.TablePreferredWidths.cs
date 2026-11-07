@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
@@ -11,6 +12,135 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData("derived", false)]
+    [InlineData("authored", false)]
+    [InlineData("authored", true)]
+    [InlineData("source", false)]
+    [InlineData("source", true)]
+    public void PreferredWidths_SparseGridPreservesIndependentGeometryAndRefreshesDerivedWidths(string origin, bool clearWidth) {
+        using WordDocument source = WordDocument.Create();
+        WordTable sourceTable = source.AddTable(1, 2);
+        sourceTable.ColumnWidth = new List<WordTableWidth?> {
+            WordTableWidth.Length(OfficeLength.Points(72)), WordTableWidth.Length(OfficeLength.Points(144))
+        };
+        if (origin != "derived") sourceTable.GridColumnWidth = new List<OfficeLength> { OfficeLength.Points(100), OfficeLength.Points(200) };
+        using WordDocument? loaded = origin == "source" ? WordDocument.Load(new MemoryStream(source.ToBytes())) : null;
+        WordDocument document = loaded ?? source;
+        WordTable table = Assert.Single(document.Tables);
+        table.Rows[0].Cells[1].Remove();
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(OfficeLength.Points(90));
+        if (clearWidth) table.Width = null;
+
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        W.Table output = Assert.Single(saved.MainDocumentPart!.Document.Body!.Elements<W.Table>());
+        Assert.Equal(origin == "derived" ? new[] { "1800", "2880" } : new[] { "2000", "4000" },
+            output.GetFirstChild<W.TableGrid>()!.Elements<W.GridColumn>().Select(column => column.Width!.Value));
+        Assert.Equal("1800", Assert.Single(Assert.Single(output.Elements<W.TableRow>()).Elements<W.TableCell>())
+            .TableCellProperties!.TableCellWidth!.Width!.Value);
+        if (clearWidth) Assert.Null(output.TableProperties!.TableWidth);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PreferredWidths_PackageStateTransferHandlesSharedPartsWithoutLoadingUnrelatedRoots(bool authored) {
+        using WordDocument source = WordDocument.Create();
+        using WordDocument copy = WordDocument.Create();
+        WordTable sourceTable = source.AddTable(1, 2);
+        sourceTable.ColumnWidth = new List<WordTableWidth?> {
+            WordTableWidth.Length(OfficeLength.Points(72)), WordTableWidth.Length(OfficeLength.Points(144))
+        };
+        if (authored) sourceTable.GridColumnWidth = new List<OfficeLength> { OfficeLength.Points(105), OfficeLength.Points(135) };
+        WordTable placeholder = copy.AddTable(1, 2);
+        placeholder._table.Parent!.ReplaceChild(sourceTable._table.CloneNode(true), placeholder._table);
+        HeaderPart sourceHeader = AddSharedPartAndUnloadedHeader(source._wordprocessingDocument);
+        HeaderPart copiedHeader = AddSharedPartAndUnloadedHeader(copy._wordprocessingDocument);
+        Assert.False(sourceHeader.IsRootElementLoaded);
+        Assert.False(copiedHeader.IsRootElementLoaded);
+
+        WordTable.CopyGridNormalizationState(source._wordprocessingDocument, copy._wordprocessingDocument);
+
+        Assert.False(sourceHeader.IsRootElementLoaded);
+        Assert.False(copiedHeader.IsRootElementLoaded);
+        WordTable cloned = Assert.Single(copy.Tables);
+        cloned.Rows[0].Cells[0].Width = WordTableWidth.Length(OfficeLength.Points(90));
+        cloned.Rows[0].Cells[1].Width = WordTableWidth.Length(OfficeLength.Points(150));
+        copy.NormalizeTablesForOnline();
+        using var savedXml = new MemoryStream();
+        copy._wordprocessingDocument.MainDocumentPart!.Document.Save(savedXml);
+        using var readback = new MemoryStream(savedXml.ToArray());
+        XNamespace word = WordWidthNamespace;
+        Assert.Equal(authored ? new[] { "2100", "2700" } : new[] { "1800", "3000" },
+            XDocument.Load(readback).Descendants(word + "gridCol").Select(column => (string?)column.Attribute(word + "w")));
+
+        static HeaderPart AddSharedPartAndUnloadedHeader(WordprocessingDocument package) {
+            ExtendedPart shared = package.AddExtendedPart("urn:officeimo:test:shared", "application/octet-stream", ".bin", "rIdSharedRoot");
+            using (var content = new MemoryStream(new byte[] { 1, 2, 3 })) shared.FeedData(content);
+            package.MainDocumentPart!.AddPart(shared, "rIdSharedChild");
+            HeaderPart header = package.MainDocumentPart.AddNewPart<HeaderPart>();
+            using var headerContent = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+                "<w:hdr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" />"));
+            header.FeedData(headerContent);
+            return header;
+        }
+    }
+
+    [Theory]
+    [InlineData("table", false)]
+    [InlineData("table", true)]
+    [InlineData("row", false)]
+    [InlineData("row", true)]
+    [InlineData("section", false)]
+    [InlineData("section", true)]
+    [InlineData("document", false)]
+    [InlineData("document", true)]
+    [InlineData("template", false)]
+    [InlineData("template", true)]
+    public void PreferredWidths_CloningRetainsDerivedVersusAuthoredNestedGeometry(string boundary, bool authored) {
+        using WordDocument source = WordDocument.Create();
+        using WordDocument destination = WordDocument.Create();
+        if (boundary == "template") source.AddParagraph("{{#each Items}}");
+        WordTable outer = source.AddTable(1, 1);
+        WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 2);
+        nested.Rows[0].Cells[0].Width = WordTableWidth.Length(OfficeLength.Points(72));
+        nested.Rows[0].Cells[1].Width = WordTableWidth.Length(OfficeLength.Points(144));
+        if (authored) nested.GridColumnWidth = new List<OfficeLength> { OfficeLength.Points(105), OfficeLength.Points(135) };
+        if (boundary == "template") source.AddParagraph("{{/each Items}}");
+        WordTable clone;
+        WordDocument result = source;
+        switch (boundary) {
+            case "table": clone = Assert.Single(outer.CloneAfterSelf().Rows[0].Cells[0].NestedTables); break;
+            case "row": clone = Assert.Single(outer.CopyRow(outer.Rows[0]).Cells[0].NestedTables); break;
+            case "section":
+                source.Sections[0].CloneSection();
+                clone = Assert.Single(source.Tables.Last().Rows[0].Cells[0].NestedTables);
+                break;
+            case "template":
+                WordTemplate.Apply(source, new Dictionary<string, object?> {
+                    ["Items"] = new[] { new Dictionary<string, object?>(), new Dictionary<string, object?>() }
+                });
+                clone = Assert.Single(source.Tables.Last().Rows[0].Cells[0].NestedTables);
+                break;
+            default:
+                destination.AppendDocument(source);
+                result = destination;
+                clone = Assert.Single(destination.Tables.Single().Rows[0].Cells[0].NestedTables);
+                break;
+        }
+        clone.Rows[0].Cells[0].Paragraphs[0].Text = "CLONED GRID";
+        clone.Rows[0].Cells[0].Width = WordTableWidth.Length(OfficeLength.Points(90));
+        clone.Rows[0].Cells[1].Width = WordTableWidth.Length(OfficeLength.Points(150));
+        using var bytes = new MemoryStream(result.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        W.Table table = Assert.Single(saved.MainDocumentPart!.Document.Body!.Descendants<W.Table>(), candidate =>
+            candidate.Elements<W.TableRow>().SelectMany(row => row.Elements<W.TableCell>())
+                .SelectMany(cell => cell.Elements<W.Paragraph>()).Any(paragraph => paragraph.InnerText == "CLONED GRID"));
+        Assert.Equal(authored ? new[] { "2100", "2700" } : new[] { "1800", "3000" },
+            table.GetFirstChild<W.TableGrid>()!.Elements<W.GridColumn>().Select(column => column.Width!.Value));
+    }
+
     [Theory]
     [InlineData(WordTableWidthKind.Length, 72.03, "dxa", "1441")]
     [InlineData(WordTableWidthKind.Percent, 37.02, "pct", "1851")]
@@ -187,6 +317,17 @@ public partial class Word {
         table.SetColumnWidthsPercentage(1, 3, 6);
         Assert.Equal(WordTableLayoutMode.Fixed, table.LayoutMode);
         Assert.Equal(new WordTableWidth?[] { WordTableWidth.Percent(10), WordTableWidth.Percent(30), WordTableWidth.Percent(60) }, table.ColumnWidth);
+        int fullWidth = table.EstimateTableWidthInDxa();
+        Assert.Equal(fullWidth, table.GridColumnWidth.Sum(width => width.ToTwips()));
+        Assert.InRange(table.GridColumnWidth[1].ToTwips() / (double)table.GridColumnWidth[0].ToTwips(), 2.99, 3.01);
+        table.SetFixedWidth(50);
+        Assert.InRange(table.GridColumnWidth.Sum(width => width.ToTwips()), fullWidth / 2 - 1, fullWidth / 2 + 1);
+        table.AutoFitToWindow();
+        Assert.Equal(fullWidth, table.GridColumnWidth.Sum(width => width.ToTwips()));
+        Assert.InRange(table.GridColumnWidth.Max(width => width.ToTwips()) - table.GridColumnWidth.Min(width => width.ToTwips()), 0, 4);
+        using (WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes()))) {
+            Assert.Equal(table.GridColumnWidth, reopened.Tables[0].GridColumnWidth);
+        }
         Assert.Throws<ArgumentException>(() => table.SetColumnWidthsPercentage(1, 2));
         Assert.Throws<ArgumentException>(() => table.SetColumnWidthsPercentage(0, 0, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => table.SetColumnWidthsPercentage(-1, 2, 3));

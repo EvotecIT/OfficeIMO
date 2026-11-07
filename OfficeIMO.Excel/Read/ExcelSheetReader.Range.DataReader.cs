@@ -138,21 +138,7 @@ namespace OfficeIMO.Excel {
             CancellationToken ct,
             bool trackCellPresence,
             bool rowsAlreadyQualified = false) {
-            if (chunkRows <= 0 || chunkRows > _opt.MaxDataReaderChunkRows) {
-                throw new ArgumentOutOfRangeException(nameof(chunkRows),
-                    $"Chunk row count must be between 1 and {_opt.MaxDataReaderChunkRows}.");
-            }
-            if (schemaSampleRows < 0) {
-                throw new ArgumentOutOfRangeException(nameof(schemaSampleRows), "Schema sample row count cannot be negative.");
-            }
-            if (schemaSampleRows > _opt.MaxDataReaderSchemaSampleRows) {
-                throw new ArgumentOutOfRangeException(nameof(schemaSampleRows),
-                    $"Schema sample row count exceeds {_opt.MaxDataReaderSchemaSampleRows}.");
-            }
-            if (_opt.MaxDataReaderColumns <= 0 || _opt.MaxDataReaderChunkRows <= 0 ||
-                _opt.MaxDataReaderSchemaSampleRows < 0 || _opt.MaxDataReaderBufferedCells <= 0L) {
-                throw new InvalidOperationException("Excel data-reader safety limits must be positive.");
-            }
+            ValidateDataReaderRangeOptions(_opt, chunkRows, schemaSampleRows);
 
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) {
@@ -161,28 +147,17 @@ namespace OfficeIMO.Excel {
 
             int cols = c2 - c1 + 1;
             int rows = r2 - r1 + 1;
-            if (cols > _opt.MaxDataReaderColumns) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderColumns), _opt.MaxDataReaderColumns, $"Range data-reader column count exceeds {nameof(ExcelReaderOptions.MaxDataReaderColumns)}.");
-            }
-            long sampleCells = (long)Math.Min(Math.Max(0, rows - (headersInFirstRow ? 1 : 0)), schemaSampleRows) * cols;
-            if (sampleCells > _opt.MaxDataReaderBufferedCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
-            }
+            ValidateDataReaderRangeShape(_opt, rows, cols, headersInFirstRow, schemaSampleRows);
             if (schemaSampleRows == 0
                 && (!_hasSdkWorksheetPart || rows > BufferedRangeStreamRowLimit)
                 && CanUseRangeStreamXmlReader()) {
-                if (cols > _opt.MaxDataReaderBufferedCells) {
-                    throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
-                }
+                ValidateDataReaderBufferedRows(_opt, 1, cols);
 
                 return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct,
                     trackCellPresence: trackCellPresence, rowsAlreadyQualified: rowsAlreadyQualified);
             }
 
-            long chunkCells = (long)Math.Min(rows, chunkRows) * cols;
-            if (chunkCells > _opt.MaxDataReaderBufferedCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
-            }
+            ValidateDataReaderBufferedRows(_opt, Math.Min(rows, chunkRows), cols);
 
             IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct, trackCellPresence);
             return new ExcelRangeDataReader(chunks, r1, r2, cols, headersInFirstRow, schemaSampleRows, _opt, ct);

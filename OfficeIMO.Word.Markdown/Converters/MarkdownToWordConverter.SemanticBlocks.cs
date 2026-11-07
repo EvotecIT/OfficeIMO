@@ -115,18 +115,19 @@ namespace OfficeIMO.Word.Markdown {
             Omd.SemanticFencedBlock block,
             IWordBlockRenderHost host,
             int quoteDepth,
-            Omd.MarkdownColumnAlignment alignment) {
+            Omd.MarkdownColumnAlignment alignment,
+            MarkdownWordExportOptions options) {
             if (block == null ||
                 !string.Equals(block.SemanticKind, WordMarkdownSemanticBlocks.PageBreakSemanticKind, StringComparison.OrdinalIgnoreCase)) {
                 return false;
             }
 
             var paragraph = host.CreateParagraph();
-            ApplyBlockParagraphFormatting(paragraph, quoteDepth, alignment);
+            ApplyBlockParagraphFormatting(paragraph, quoteDepth, alignment, options);
             paragraph.AddBreak(WordBreakType.Page);
             if (!string.IsNullOrWhiteSpace(block.Caption)) {
                 var captionParagraph = host.CreateParagraph();
-                ApplyBlockParagraphFormatting(captionParagraph, quoteDepth, alignment);
+                ApplyBlockParagraphFormatting(captionParagraph, quoteDepth, alignment, options);
                 captionParagraph.AddText(block.Caption!);
             }
 
@@ -251,7 +252,7 @@ namespace OfficeIMO.Word.Markdown {
 
             if (hasTerm || (entry.DefinitionBlocks.Count > 0 && entry.DefinitionBlocks[0] is Omd.ParagraphBlock)) {
                 leadParagraph = host.CreateParagraph();
-                ApplyBlockParagraphFormatting(leadParagraph, quoteDepth, alignment);
+                ApplyBlockParagraphFormatting(leadParagraph, quoteDepth, alignment, options);
             }
 
             if (hasTerm && leadParagraph != null) {
@@ -261,7 +262,7 @@ namespace OfficeIMO.Word.Markdown {
             if (entry.DefinitionBlocks.Count > 0 && entry.DefinitionBlocks[0] is Omd.ParagraphBlock firstParagraph) {
                 if (leadParagraph == null) {
                     leadParagraph = host.CreateParagraph();
-                    ApplyBlockParagraphFormatting(leadParagraph, quoteDepth, alignment);
+                    ApplyBlockParagraphFormatting(leadParagraph, quoteDepth, alignment, options);
                 }
 
                 if (hasTerm) {
@@ -278,7 +279,7 @@ namespace OfficeIMO.Word.Markdown {
 
             if (entry.DefinitionBlocks.Count == 0 && hasTerm && leadParagraph == null) {
                 leadParagraph = host.CreateParagraph();
-                ApplyBlockParagraphFormatting(leadParagraph, quoteDepth, alignment);
+                ApplyBlockParagraphFormatting(leadParagraph, quoteDepth, alignment, options);
                 ProcessInlinesOmd(entry.Term, leadParagraph, options, document, _currentFootnotes);
             }
 
@@ -302,7 +303,8 @@ namespace OfficeIMO.Word.Markdown {
             MarkdownWordExportOptions options,
             WordDocument document,
             double pageContentWidthPixels) {
-            var headerCells = table.HeaderCells;
+            bool hasHeaderRow = table.HeaderRow != null;
+            var headerCells = hasHeaderRow ? table.HeaderCells : Array.Empty<Omd.TableCell>();
             var rowCells = table.RowCells;
             var cols = headerCells.Count > 0
                 ? headerCells.Count
@@ -311,9 +313,11 @@ namespace OfficeIMO.Word.Markdown {
             var wordTable = host.CreateTable(rows, cols);
             int rowIndex = 0;
             bool[] numericColumns = ResolveNumericColumns(table, cols);
+            bool applyPresentationAlignment = ResolveTheme(options) != null;
             Omd.MarkdownColumnAlignment ColumnAlignment(int columnIndex) {
                 var authored = columnIndex < table.Alignments.Count ? table.Alignments[columnIndex] : Omd.MarkdownColumnAlignment.None;
-                return authored == Omd.MarkdownColumnAlignment.None && numericColumns[columnIndex] ? Omd.MarkdownColumnAlignment.Right : authored;
+                return applyPresentationAlignment && authored == Omd.MarkdownColumnAlignment.None && numericColumns[columnIndex]
+                    ? Omd.MarkdownColumnAlignment.Right : authored;
             }
 
             if (headerCells.Count > 0) {
@@ -349,7 +353,9 @@ namespace OfficeIMO.Word.Markdown {
                 rowIndex++;
             }
 
-            ApplyTableTheme(wordTable, options, headerCells.Count > 0);
+            ApplyTableTheme(wordTable, options, hasHeaderRow);
+            wordTable.RepeatHeaderRowAtTheTopOfEachPage = hasHeaderRow;
+            wordTable.ConditionalFormattingFirstRow = hasHeaderRow;
             ApplyContentProportionalColumnWidths(wordTable, pageContentWidthPixels);
         }
 
@@ -493,7 +499,7 @@ namespace OfficeIMO.Word.Markdown {
             double pageContentWidthPixels,
             Omd.MarkdownColumnAlignment alignment) {
             var titleParagraph = host.CreateParagraph();
-            ApplyBlockParagraphFormatting(titleParagraph, quoteDepth, alignment);
+            ApplyBlockParagraphFormatting(titleParagraph, quoteDepth, alignment, options);
             if (callout.TitleInlines != null && callout.TitleInlines.Nodes.Count > 0) {
                 ProcessInlinesOmd(callout.TitleInlines, titleParagraph, options, document, _currentFootnotes);
                 foreach (var run in titleParagraph.GetRuns()) {
@@ -509,7 +515,7 @@ namespace OfficeIMO.Word.Markdown {
                 RenderSharedBlocksOmd(callout.ChildBlocks, host, options, document, quoteDepth: quoteDepth, pageContentWidthPixels: pageContentWidthPixels, alignment: alignment);
             } else if (!string.IsNullOrWhiteSpace(callout.Body)) {
                 var bodyParagraph = host.CreateParagraph();
-                ApplyBlockParagraphFormatting(bodyParagraph, quoteDepth, alignment);
+                ApplyBlockParagraphFormatting(bodyParagraph, quoteDepth, alignment, options);
                 bodyParagraph.AddText(callout.Body);
                 ApplyBodyTextTheme(bodyParagraph, options);
             }

@@ -29,6 +29,9 @@ public partial class ExcelDocument {
     /// <summary>Prepares native XLS bytes, or writes an eligible fresh direct workbook to the supplied destination.</summary>
     private byte[] BuildNativeLegacyXls(ExcelSaveOptions? options, CancellationToken cancellationToken, out bool direct, out bool preserved, Stream? directDestination = null) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (EarlyBiffImportReport != null) {
+            throw new NotSupportedException("Early BIFF imports do not support legacy binary workbook output.");
+        }
         direct = false; preserved = false;
         var calculation = PrepareNativeCalculationForSave(options);
         if (SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && _legacyXlsPreservationSnapshot?.TryCreatePlan(this, out var plan, cancellationToken) == true) {

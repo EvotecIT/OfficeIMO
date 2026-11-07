@@ -199,6 +199,11 @@ report.ThrowIfLoss();
 
 ## Visual themes
 
+Conversion uses plain table formatting and authored column alignment by default.
+Pass `Theme`, set `ApplyDefaultTheme = true`, or select a styled export profile
+to add presentation styling. An explicit `Style.TableStyle.RightAlignNumeric`
+can infer numeric alignment when that is wanted.
+
 ```csharp
 var options = new MarkdownPdfExportOptions {
     Theme = OfficeIMO.Markdown.MarkdownVisualTheme.TechnicalDocument()

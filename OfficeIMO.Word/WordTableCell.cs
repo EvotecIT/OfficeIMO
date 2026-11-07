@@ -125,7 +125,9 @@ namespace OfficeIMO.Word {
         /// <summary>Native cell shading fill (hexadecimal or <c>auto</c>); empty removes the shading.</summary>
         internal string ShadingFillValue {
             get {
-                var fill = _tableCellProperties?.Shading?.Fill?.Value;
+                Shading? shading = _tableCellProperties?.Shading;
+                if (shading?.Val?.Value == ShadingPatternValues.Nil) return "";
+                var fill = WordRunFormatting.ResolveShadingBackgroundColorHex(shading, _document) ?? shading?.Fill?.Value;
                 return fill != null ? fill.ToUpperInvariant() : "";
             }
             set {
@@ -511,7 +513,7 @@ namespace OfficeIMO.Word {
         /// <param name="tableStyle"></param>
         /// <param name="removePrecedingParagraph"></param>
         /// <returns></returns>
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern, bool removePrecedingParagraph = false) {
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid, bool removePrecedingParagraph = false) {
             // Remove preceding empty paragraph by default (safe), or when explicitly requested.
             var paragraph = _tableCell.ChildElements.OfType<Paragraph>().LastOrDefault();
             if (paragraph != null) {

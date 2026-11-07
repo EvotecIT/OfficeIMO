@@ -109,7 +109,7 @@ internal static class SpreadsheetXmlWriter {
             writer.WriteStartElement("Row", Ss.NamespaceName); Attribute(writer, "Index", rowIndex.ToString(CultureInfo.InvariantCulture));
             InspectAttributes(row, context, "r", "ht", "customHeight", "hidden", "spans", "s", "customFormat");
             if (row.Hidden?.Value == true) Attribute(writer, "Hidden", "1");
-            if (row.Height != null) Attribute(writer, "Height", row.Height.Value.ToString("R", CultureInfo.InvariantCulture));
+            if (row.Height != null && (row.Height.Value != 0 || row.CustomHeight?.Value == true)) Attribute(writer, "Height", row.Height.Value.ToString("R", CultureInfo.InvariantCulture));
             if (row.StyleIndex != null) {
                 if (row.StyleIndex.Value >= styleCount) throw new InvalidDataException("Invalid row style.");
                 Attribute(writer, "StyleID", SpreadsheetXmlStyles.StyleId(row.StyleIndex.Value));

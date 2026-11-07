@@ -72,6 +72,7 @@ namespace OfficeIMO.Word {
             Dictionary<Table, OpenXmlElement> insertedAfterTableAnchors,
             Dictionary<string, OpenXmlElement> appendedDeletedTables) {
             var deletedTable = (Table)sourceEntry.Table.CloneNode(true);
+            WordTable.CopyGridNormalizationState(sourceEntry.Table, deletedTable);
             RewriteTableWithTrackedText(deletedTable, trackInserted: false, options);
             RemoveEmptyWordColorAttributes(deletedTable);
 

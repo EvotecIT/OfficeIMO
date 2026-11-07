@@ -12,16 +12,9 @@ namespace OfficeIMO.Word.Html {
         private sealed class TableFirstRowAppearance {
             internal bool Bold { get; set; }
             internal string? Color { get; set; }
-            internal string? Fill { get; set; }
-            internal string? TopBorder { get; set; }
-            internal string? BottomBorder { get; set; }
-
-            internal IEnumerable<string> ToCss(bool hasDirectFill, bool hasDirectTopBorder, bool hasDirectBottomBorder) {
+            internal IEnumerable<string> ToCss() {
                 if (Bold) yield return "font-weight:bold";
                 if (Color != null) yield return "color:#" + Color;
-                if (Fill != null && !hasDirectFill) yield return "background-color:#" + Fill;
-                if (TopBorder != null && !hasDirectTopBorder) yield return "border-top:" + TopBorder;
-                if (BottomBorder != null && !hasDirectBottomBorder) yield return "border-bottom:" + BottomBorder;
             }
         }
 
@@ -50,17 +43,16 @@ namespace OfficeIMO.Word.Html {
 
             var appearance = new TableFirstRowAppearance();
             bool? bold = null;
+            bool colorSpecified = false;
             foreach (TableStyleProperties conditional in conditionals) {
                 RunPropertiesBaseStyle? run = conditional.GetFirstChild<RunPropertiesBaseStyle>();
                 if (bold == null && run?.GetFirstChild<Bold>() is Bold boldElement) {
                     bold = boldElement.Val == null || boldElement.Val.Value;
                 }
-                appearance.Color ??= NormalizeStyleColor(run?.GetFirstChild<Color>()?.Val?.Value);
-                var cell = conditional.GetFirstChild<TableStyleConditionalFormattingTableCellProperties>();
-                appearance.Fill ??= NormalizeStyleColor(cell?.GetFirstChild<Shading>()?.Fill?.Value);
-                TableCellBorders? borders = cell?.GetFirstChild<TableCellBorders>();
-                appearance.TopBorder ??= FormatStyleBorderCss(borders?.TopBorder);
-                appearance.BottomBorder ??= FormatStyleBorderCss(borders?.BottomBorder);
+                if (!colorSpecified && run?.GetFirstChild<Color>() is { } color) {
+                    appearance.Color = NormalizeStyleColor(WordRunFormatting.ResolveColorHex(color, table.Document));
+                    colorSpecified = true;
+                }
             }
             appearance.Bold = bold == true;
             return appearance;
@@ -85,24 +77,5 @@ namespace OfficeIMO.Word.Html {
             return trimmed.Length == 6 && trimmed.All(Uri.IsHexDigit) ? trimmed.ToUpperInvariant() : null;
         }
 
-        private static string? FormatStyleBorderCss(BorderType? border) {
-            if (border?.Val == null) {
-                return null;
-            }
-            BorderValues value = border.Val.Value;
-            if (value == BorderValues.Nil || value == BorderValues.None) {
-                return null;
-            }
-            string style = value == BorderValues.Double ? "double"
-                : value == BorderValues.Dotted ? "dotted"
-                : value == BorderValues.Dashed || value == BorderValues.DashSmallGap ? "dashed"
-                : "solid";
-            double widthPoints = Math.Max(0.5D, (border.Size?.Value ?? 4U) / 8D);
-            if (style == "double") {
-                widthPoints = Math.Max(widthPoints, 2.25D);
-            }
-            string color = NormalizeStyleColor(border.Color?.Value) ?? "000000";
-            return Math.Round(widthPoints, 2).ToString("0.##", CultureInfo.InvariantCulture) + "pt " + style + " #" + color;
-        }
     }
 }

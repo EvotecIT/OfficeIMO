@@ -111,6 +111,7 @@ namespace OfficeIMO.Excel {
                 _loadedPassword = password;
                 return;
             }
+            EnsureEarlyBiffOutputPath(path);
             bool saveCompleted = true;
             try {
             var originalFilePath = FilePath;
@@ -207,6 +208,7 @@ namespace OfficeIMO.Excel {
             }
 
             string path = string.IsNullOrEmpty(filePath) ? FilePath! : filePath;
+            EnsureEarlyBiffOutputPath(path);
             var originalFilePath = FilePath;
             if (TrySaveEncryptedBinaryToFile(path, password, saveOptions)) return;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
@@ -271,6 +273,7 @@ namespace OfficeIMO.Excel {
 
             string target = (string.IsNullOrEmpty(filePath) ? FilePath : filePath)
                 ?? throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call Save(Stream).");
+            EnsureEarlyBiffOutputPath(target);
             if (ResolveSavePassword(options) is string password) {
                 await SaveEncryptedFileAsync(target, password, options, cancellationToken).ConfigureAwait(false);
                 return;
@@ -357,9 +360,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Encodes the workbook in the selected physical format.</summary>
         internal byte[] ToBytes(ExcelFileFormat format, ExcelSaveOptions? options = null) {
-            using var stream = new MemoryStream();
-            SaveToStreamCore(stream, format, options);
-            return stream.ToArray();
+            ExcelSaveOptions settings = options?.Clone() ?? new ExcelSaveOptions();
+            settings.Format = format;
+            return ToBytes(settings);
         }
 
 
@@ -394,6 +397,7 @@ namespace OfficeIMO.Excel {
         private void SaveToStreamCore(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options) {
             ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureEarlyBiffOutputStream(destination, format);
             EnsureXlsbStreamTargetSupported(format, options);
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
@@ -490,6 +494,7 @@ namespace OfficeIMO.Excel {
             ArgumentNullException.ThrowIfNull(destination);
             ArgumentNullException.ThrowIfNull(password);
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureEarlyBiffOutputStream(destination, ExcelFileFormat.Xlsx);
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
             EnsureXlsbStringStorageSupported(isXlsbTarget: false, saveOptions);
@@ -531,8 +536,10 @@ namespace OfficeIMO.Excel {
         public Task SaveAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
             if (ResolveSavePassword(options) is string password) {
                 cancellationToken.ThrowIfCancellationRequested();
+                ExcelFileFormat format = options?.Format ?? ExcelFileFormat.Xlsx;
+                EnsureEarlyBiffOutputStream(destination, format);
                 using var staging = new MemoryStream();
-                SaveEncrypted(staging, password, options?.Format ?? ExcelFileFormat.Xlsx, options);
+                SaveEncrypted(staging, password, format, options);
                 return OfficeStreamWriter.WriteAllBytesAsync(destination, staging.ToArray(), cancellationToken);
             }
             return SaveAsync(destination, options?.Format ?? ExcelFileFormat.Xlsx, options, cancellationToken);
@@ -551,6 +558,7 @@ namespace OfficeIMO.Excel {
         private async Task SaveToStreamAsyncCore(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options, CancellationToken cancellationToken) {
             ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureEarlyBiffOutputStream(destination, format);
             EnsureXlsbStreamTargetSupported(format, options);
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(

@@ -25,9 +25,14 @@ Semantic output carries a versioned OfficeIMO envelope and preserves worksheet n
 
 Named Excel tables export as worksheet cells without their native table definitions. Table names, table-scoped filters, table styles and totals metadata are not restored; workbook and worksheet export reports mark this omission. Ordinary HTML table IDs do not create named Excel tables.
 
-Semantic tables show the worksheet as it reads in Excel: cell and table-style fills with their font colours, conditional fills and data bars, number formats (dates, percentages, grouping), Excel's general alignment for numbers, dates and Boolean values, and charts drawn as inline SVG with their data in a collapsible table. The raw value of every cell stays in `data-officeimo-value` for round trips. Set `ApplyCellPresentation = false` for raw cell text, and `RenderCharts = false` to keep charts as data tables only. The formula inventory (`IncludeFormulaInventory`) and visible object metadata such as chart type, anchor cell and pixel size (`IncludeObjectMetadata`) are opt-in; formulas still travel with their cells. The page title uses the `Title` option, then the workbook's title property, then the file name.
+Semantic tables show the worksheet as it reads in Excel: cell and table-style fills with their font colours, conditional fills and data bars, number formats (dates, percentages, grouping), Excel's general alignment for numbers, dates and Boolean values, and charts drawn as inline SVG with their data in a collapsible table. Gradient and patterned backgrounds currently use a flat colour and report an approximation; authored text colours remain intact. The raw value of every cell stays in `data-officeimo-value` for round trips. Set `ApplyCellPresentation = false` for raw cell text, and `RenderCharts = false` to keep charts as data tables only. The formula inventory (`IncludeFormulaInventory`) and visible object metadata such as chart type, anchor cell and pixel size (`IncludeObjectMetadata`) are opt-in; formulas still travel with their cells. The page title uses the `Title` option, then the workbook's title property, then the file name.
 
-`HeaderMode` makes the first-row assumption explicit. `FirstRow` is the compatibility default and emits a real `thead` with column headers. Use `None` when every row is data.
+`HeaderMode` defaults to `None`, so ordinary worksheet rows remain data. Select
+`FirstRow` to emit a `thead` with column headers. Source cell borders and text
+formatting are serialized directly, including the workbook font with browser
+fallbacks for unavailable families. The default document shell adds no theme
+stylesheet; choose a named presentation profile or enable
+`DocumentOutput.IncludeDefaultStyles` explicitly to add one.
 
 `ToExcel(options, out report)` returns the workbook with its `OfficeConversionReport` and throws `HtmlConversionException` when no semantic `section.officeimo-sheet` envelope exists; `SaveAsExcel` writes it and returns the report. Set `FailOnLoss` to make reported loss an error. Export callers use `ToHtml(options, out report)` or `SaveAsHtml` for the same report.
 

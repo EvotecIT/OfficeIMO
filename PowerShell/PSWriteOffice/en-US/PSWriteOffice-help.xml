@@ -83492,7 +83492,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Style</maml:name>
           <maml:description>
-            <maml:para>Native table style; Modern includes a repeating first-row header.</maml:para>
+            <maml:para>Native table style. Defaults to TableGrid; choose OfficeIMOModern explicitly for themed table presentation.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">WordTableStyle</command:parameterValue>
           <command:parameterValueGroup>
@@ -83751,7 +83751,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Style</maml:name>
         <maml:description>
-          <maml:para>Native table style; Modern includes a repeating first-row header.</maml:para>
+          <maml:para>Native table style. Defaults to TableGrid; choose OfficeIMOModern explicitly for themed table presentation.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">WordTableStyle</command:parameterValue>
         <command:parameterValueGroup>
@@ -140602,7 +140602,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Theme</maml:name>
           <maml:description>
-            <maml:para>Shared HTML theme: a built-in name, OfficeTheme or Office document template path. Defaults to Modern.</maml:para>
+            <maml:para>Optional shared HTML theme. Selecting one enables presentation styles unless NoDefaultStyles is set.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeThemeInput</command:parameterValue>
           <dev:type>
@@ -140765,7 +140765,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Theme</maml:name>
         <maml:description>
-          <maml:para>Shared HTML theme: a built-in name, OfficeTheme or Office document template path. Defaults to Modern.</maml:para>
+          <maml:para>Optional shared HTML theme. Selecting one enables presentation styles unless NoDefaultStyles is set.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficeThemeInput</command:parameterValue>
         <dev:type>

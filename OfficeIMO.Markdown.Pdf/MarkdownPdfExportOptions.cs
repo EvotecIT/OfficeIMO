@@ -51,8 +51,8 @@ public sealed class MarkdownPdfExportOptions {
     /// <summary>When true, supported image references are rendered. Resource access is still governed by <see cref="ResourcePolicy"/>.</summary>
     public bool IncludeImages { get; set; } = true;
 
-    /// <summary>Applies the built-in Word-like PDF theme before rendering Markdown blocks.</summary>
-    public bool ApplyDefaultTheme { get; set; } = true;
+    /// <summary>Opts into the built-in Word-like PDF theme before rendering Markdown blocks. Defaults to false.</summary>
+    public bool ApplyDefaultTheme { get; set; }
 
     private MarkdownVisualTheme? _theme;
     private MarkdownPdfStyle? _style;

@@ -15,9 +15,12 @@ namespace OfficeIMO.Core.Internal {
         internal static bool IsSizeLimitException(InvalidDataException exception) =>
             exception.Data.Contains(SizeLimitMarker);
 
-        private static InvalidDataException SizeLimitExceeded(string message) {
+        internal static long? GetExceededSizeLimit(InvalidDataException exception) =>
+            exception.Data[SizeLimitMarker] is long limit ? limit : (long?)null;
+
+        private static InvalidDataException SizeLimitExceeded(string message, long limit) {
             var exception = new InvalidDataException(message);
-            exception.Data[SizeLimitMarker] = true;
+            exception.Data[SizeLimitMarker] = limit;
             return exception;
         }
 
@@ -42,21 +45,35 @@ namespace OfficeIMO.Core.Internal {
         public static byte[] ReadRemainingBytes(
             Stream source,
             CancellationToken cancellationToken,
-            long? maxBytes = null) {
+            long? maxBytes = null) =>
+            ReadRemainingBytes(source, cancellationToken, maxBytes, 0, null);
+
+        /// <summary>Reads remaining content with a bounded format-prefix probe and cooperative cancellation.</summary>
+        public static byte[] ReadRemainingBytes(
+            Stream source,
+            CancellationToken cancellationToken,
+            long? maxBytes, int probeLength, Func<byte[], int, long?>? probeLimit) {
             ValidateRemainingSource(source, maxBytes);
-            return ReadToEnd(source, cancellationToken, maxBytes);
+            return ReadToEnd(source, cancellationToken, maxBytes, probeLength, probeLimit);
         }
 
         /// <summary>Reads a complete artifact with cooperative cancellation.</summary>
         public static byte[] ReadAllBytes(
             Stream source,
             CancellationToken cancellationToken,
-            long? maxBytes = null) {
+            long? maxBytes = null) =>
+            ReadAllBytes(source, cancellationToken, maxBytes, 0, null);
+
+        /// <summary>Reads a complete artifact with a bounded format-prefix probe and cooperative cancellation.</summary>
+        public static byte[] ReadAllBytes(
+            Stream source,
+            CancellationToken cancellationToken,
+            long? maxBytes, int probeLength, Func<byte[], int, long?>? probeLimit) {
             ValidateSource(source, maxBytes);
             long originalPosition = source.CanSeek ? source.Position : 0;
             try {
                 if (source.CanSeek) source.Seek(0, SeekOrigin.Begin);
-                return ReadToEnd(source, cancellationToken, maxBytes);
+                return ReadToEnd(source, cancellationToken, maxBytes, probeLength, probeLimit);
             } finally {
                 if (source.CanSeek) source.Seek(originalPosition, SeekOrigin.Begin);
             }
@@ -65,15 +82,22 @@ namespace OfficeIMO.Core.Internal {
         /// <summary>
         /// Asynchronously reads a complete artifact while preserving the position of seekable caller-owned streams.
         /// </summary>
-        public static async Task<byte[]> ReadAllBytesAsync(
+        public static Task<byte[]> ReadAllBytesAsync(
             Stream source,
             CancellationToken cancellationToken = default,
-            long? maxBytes = null) {
+            long? maxBytes = null) =>
+            ReadAllBytesAsync(source, cancellationToken, maxBytes, 0, null);
+
+        /// <summary>Asynchronously snapshots an artifact using a bounded format-prefix probe.</summary>
+        public static async Task<byte[]> ReadAllBytesAsync(
+            Stream source,
+            CancellationToken cancellationToken,
+            long? maxBytes, int probeLength, Func<byte[], int, long?>? probeLimit) {
             ValidateSource(source, maxBytes);
             long originalPosition = source.CanSeek ? source.Position : 0;
             try {
                 if (source.CanSeek) source.Seek(0, SeekOrigin.Begin);
-                return await ReadToEndAsync(source, cancellationToken, maxBytes).ConfigureAwait(false);
+                return await ReadToEndAsync(source, cancellationToken, maxBytes, probeLength, probeLimit).ConfigureAwait(false);
             } finally {
                 if (source.CanSeek) source.Seek(originalPosition, SeekOrigin.Begin);
             }
@@ -85,16 +109,39 @@ namespace OfficeIMO.Core.Internal {
         public static Task<byte[]> ReadRemainingBytesAsync(
             Stream source,
             CancellationToken cancellationToken = default,
-            long? maxBytes = null) {
+            long? maxBytes = null) =>
+            ReadRemainingBytesAsync(source, cancellationToken, maxBytes, 0, null);
+
+        /// <summary>Asynchronously reads remaining content using a bounded format-prefix probe.</summary>
+        public static Task<byte[]> ReadRemainingBytesAsync(
+            Stream source,
+            CancellationToken cancellationToken,
+            long? maxBytes, int probeLength, Func<byte[], int, long?>? probeLimit) {
             ValidateRemainingSource(source, maxBytes);
-            return ReadToEndAsync(source, cancellationToken, maxBytes);
+            return ReadToEndAsync(source, cancellationToken, maxBytes, probeLength, probeLimit);
         }
 
         private static async Task<byte[]> ReadToEndAsync(
             Stream source,
             CancellationToken cancellationToken,
-            long? maxBytes) {
+            long? maxBytes, int probeLength, Func<byte[], int, long?>? probeLimit) {
             cancellationToken.ThrowIfCancellationRequested();
+            byte[] prefix = Array.Empty<byte>();
+            int prefixCount = 0;
+            if (probeLimit != null) {
+                prefix = new byte[GetProbeLength(probeLength, maxBytes)];
+                long start = source.CanSeek ? source.Position : 0;
+                while (prefixCount < prefix.Length) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int count = await source.ReadAsync(prefix, prefixCount, prefix.Length - prefixCount, cancellationToken).ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (count == 0) break;
+                    prefixCount += count;
+                }
+                maxBytes = CombineLimits(maxBytes, probeLimit(prefix, prefixCount));
+                if (source.CanSeek) source.Position = start;
+                else EnsureWithinLimit(prefixCount, maxBytes);
+            }
             if (source.CanSeek) {
                 long remaining = Math.Max(0, source.Length - source.Position);
                 EnsureWithinLimit(remaining, maxBytes);
@@ -113,6 +160,7 @@ namespace OfficeIMO.Core.Internal {
                         offset,
                         result.Length - offset,
                         cancellationToken).ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (exactRead == 0) {
                         Array.Resize(ref result, offset);
                         return result;
@@ -122,11 +170,13 @@ namespace OfficeIMO.Core.Internal {
                 }
 
                 var trailingByte = new byte[1];
+                cancellationToken.ThrowIfCancellationRequested();
                 int trailingRead = await source.ReadAsync(
                     trailingByte,
                     0,
                     1,
                     cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
                 if (trailingRead == 0) return result;
 
                 long expandedTotal = checked((long)result.Length + 1);
@@ -135,12 +185,15 @@ namespace OfficeIMO.Core.Internal {
                 expanded.Write(result, 0, result.Length);
                 expanded.WriteByte(trailingByte[0]);
                 var expandedBuffer = new byte[BufferSize];
-                int expandedRead;
-                while ((expandedRead = await source.ReadAsync(
-                    expandedBuffer,
-                    0,
-                    GetReadSize(expandedTotal, maxBytes),
-                    cancellationToken).ConfigureAwait(false)) > 0) {
+                while (true) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int expandedRead = await source.ReadAsync(
+                        expandedBuffer,
+                        0,
+                        GetReadSize(expandedTotal, maxBytes),
+                        cancellationToken).ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (expandedRead <= 0) break;
                     expandedTotal = checked(expandedTotal + expandedRead);
                     EnsureWithinLimit(expandedTotal, maxBytes);
                     expanded.Write(expandedBuffer, 0, expandedRead);
@@ -150,9 +203,13 @@ namespace OfficeIMO.Core.Internal {
 
             using var output = new MemoryStream();
             var buffer = new byte[BufferSize];
-            long total = 0;
-            int read;
-            while ((read = await source.ReadAsync(buffer, 0, GetReadSize(total, maxBytes), cancellationToken).ConfigureAwait(false)) > 0) {
+            output.Write(prefix, 0, prefixCount);
+            long total = prefixCount;
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = await source.ReadAsync(buffer, 0, GetReadSize(total, maxBytes), cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (read <= 0) break;
                 total = checked(total + read);
                 EnsureWithinLimit(total, maxBytes);
                 await output.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
@@ -160,8 +217,24 @@ namespace OfficeIMO.Core.Internal {
             return output.ToArray();
         }
 
-        private static byte[] ReadToEnd(Stream source, CancellationToken cancellationToken, long? maxBytes) {
+        private static byte[] ReadToEnd(Stream source, CancellationToken cancellationToken, long? maxBytes,
+            int probeLength, Func<byte[], int, long?>? probeLimit) {
             cancellationToken.ThrowIfCancellationRequested();
+            byte[]? prefix = null;
+            int prefixCount = 0;
+            if (probeLimit != null) {
+                prefix = new byte[GetProbeLength(probeLength, maxBytes)];
+                long start = source.CanSeek ? source.Position : 0;
+                while (prefixCount < prefix.Length) {
+                    int count = source.Read(prefix, prefixCount, prefix.Length - prefixCount);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (count == 0) break;
+                    prefixCount += count;
+                }
+                maxBytes = CombineLimits(maxBytes, probeLimit(prefix, prefixCount));
+                if (source.CanSeek) source.Position = start;
+                else EnsureWithinLimit(prefixCount, maxBytes);
+            }
             if (source.CanSeek) {
                 long remaining = Math.Max(0, source.Length - source.Position);
                 EnsureWithinLimit(remaining, maxBytes);
@@ -205,20 +278,25 @@ namespace OfficeIMO.Core.Internal {
                 return expanded.ToArray();
             }
 
-            return ReadForwardBytes(source, cancellationToken, maxBytes);
+            return ReadForwardBytes(source, cancellationToken, maxBytes, prefix, prefixCount);
         }
 
         /// <summary>
         /// Reads forward without inspecting length or seeking, consuming at most one byte beyond a configured limit.
         /// Leaves caller-owned streams open, including when a limit or cancellation stops the read.
         /// </summary>
-        internal static byte[] ReadForwardBytes(Stream source, CancellationToken cancellationToken, long? maxBytes = null) {
+        internal static byte[] ReadForwardBytes(Stream source, CancellationToken cancellationToken, long? maxBytes = null) =>
+            ReadForwardBytes(source, cancellationToken, maxBytes, null, 0);
+
+        private static byte[] ReadForwardBytes(Stream source, CancellationToken cancellationToken, long? maxBytes,
+            byte[]? prefix, int prefixCount) {
             ArgumentNullException.ThrowIfNull(source);
             if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
             if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             using var output = new MemoryStream();
             var buffer = new byte[BufferSize];
-            long total = 0;
+            if (prefix != null) output.Write(prefix, 0, prefixCount);
+            long total = prefixCount;
             int read;
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -232,6 +310,12 @@ namespace OfficeIMO.Core.Internal {
             return output.ToArray();
         }
 
+        private static int GetProbeLength(int requested, long? maxBytes) =>
+            maxBytes.HasValue && maxBytes.Value < requested ? (int)maxBytes.Value : requested;
+
+        private static long? CombineLimits(long? original, long? detected) =>
+            original.HasValue && detected.HasValue ? Math.Min(original.Value, detected.Value) : detected ?? original;
+
         private static int GetReadSize(long total, long? maxBytes) {
             if (!maxBytes.HasValue) return BufferSize;
             long remaining = maxBytes.Value - total;
@@ -243,7 +327,7 @@ namespace OfficeIMO.Core.Internal {
             if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
             if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             if (source.CanSeek && maxBytes.HasValue && source.Length > maxBytes.Value) {
-                throw SizeLimitExceeded($"Stream exceeds the configured maximum size ({maxBytes.Value} bytes).");
+                throw SizeLimitExceeded($"Stream exceeds the configured maximum size ({maxBytes.Value} bytes).", maxBytes.Value);
             }
         }
 
@@ -252,13 +336,13 @@ namespace OfficeIMO.Core.Internal {
             if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
             if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             if (source.CanSeek && maxBytes.HasValue && source.Length - source.Position > maxBytes.Value) {
-                throw SizeLimitExceeded($"Remaining stream content exceeds the configured maximum size ({maxBytes.Value} bytes).");
+                throw SizeLimitExceeded($"Remaining stream content exceeds the configured maximum size ({maxBytes.Value} bytes).", maxBytes.Value);
             }
         }
 
         private static void EnsureWithinLimit(long total, long? maxBytes) {
             if (maxBytes.HasValue && total > maxBytes.Value) {
-                throw SizeLimitExceeded($"Stream exceeds the configured maximum size ({maxBytes.Value} bytes).");
+                throw SizeLimitExceeded($"Stream exceeds the configured maximum size ({maxBytes.Value} bytes).", maxBytes.Value);
             }
         }
     }

@@ -127,7 +127,7 @@ namespace OfficeIMO.Word {
         /// <param name="rows">Number of rows.</param>
         /// <param name="columns">Number of columns.</param>
         /// <param name="tableStyle">Table style to apply.</param>
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             var table = WordTable.Create(_document, rows, columns, tableStyle);
             AppendElementToSection(table._table);
             return table;
@@ -413,12 +413,14 @@ namespace OfficeIMO.Word {
             OpenXmlElement reference = sectionEnd;
             for (int i = startIndex; i < endIndex; i++) {
                 var clone = bodyElements[i].CloneNode(true);
+                WordTable.CopyGridNormalizationState(bodyElements[i], clone);
                 reference = reference.InsertAfterSelf(clone);
             }
 
             WordSection newSection;
             if (sectionEnd is Paragraph paragraph) {
                 var clonedParagraph = (Paragraph)paragraph.CloneNode(true);
+                WordTable.CopyGridNormalizationState(paragraph, clonedParagraph);
                 reference = reference.InsertAfterSelf(clonedParagraph);
                 var sectPr = clonedParagraph.ParagraphProperties?.SectionProperties;
                 newSection = new WordSection(_document, sectPr, clonedParagraph);

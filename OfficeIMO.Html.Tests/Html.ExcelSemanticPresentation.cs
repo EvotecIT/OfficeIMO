@@ -2,11 +2,38 @@ using System.Globalization;
 using AngleSharp.Html.Parser;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public class HtmlExcelSemanticPresentation {
+    [Fact]
+    public void RepeatedCellFidelityWarningsRetainTheirFirstLocationAndCountsPerSheet() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        foreach (string name in new[] { "One", "Two" }) {
+            ExcelSheet sheet = workbook.AddSheet(name);
+            for (int row = 1; row <= 3; row++) {
+                sheet.Cell(row, 1).SetValue(row)
+                    .SetBorder(ExcelCellBorders.Top | ExcelCellBorders.Bottom, ExcelBorderStyle.DashDot, OfficeColor.Black)
+                    .SetGradientFill(OfficeColor.Parse("123456"), OfficeColor.Parse("654321"));
+            }
+        }
+
+        string html = workbook.ToHtml(null, out OfficeConversionReport report);
+
+        Assert.Equal(6, new HtmlParser().ParseDocument(html).QuerySelectorAll("[data-officeimo-cell]").Length);
+        Assert.True(report.HasLoss);
+        var warnings = report.Diagnostics.Where(diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated).ToArray();
+        Assert.Equal(4, warnings.Length);
+        foreach (string name in new[] { "One", "Two" }) {
+            var border = Assert.Single(warnings, diagnostic => diagnostic.Location == "excel:cell:" + name + "!A1:top");
+            Assert.EndsWith("(6 occurrences)", border.Message, StringComparison.Ordinal);
+            var fill = Assert.Single(warnings, diagnostic => diagnostic.Location == "excel:cell:" + name + "!A1:fill");
+            Assert.EndsWith("(3 occurrences)", fill.Message, StringComparison.Ordinal);
+        }
+    }
+
     private static ExcelDocument CreateReportWorkbook() {
         ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Report");
@@ -26,11 +53,23 @@ public class HtmlExcelSemanticPresentation {
     [Fact]
     public void SemanticTablesShowFillsNumberFormatsAndSpreadsheetAlignmentByDefault() {
         using ExcelDocument workbook = CreateReportWorkbook();
-        string html = workbook.ToHtml();
+        workbook.Sheets[0].Cell(5, 1).SetValue("Authored near-white").SetColor(OfficeColor.Parse("F8F8F8"));
+        workbook.Sheets[0].Cell(6, 1).SetValue("White on gradient").SetColor(OfficeColor.White)
+            .SetGradientFill(OfficeColor.Parse("123456"), OfficeColor.Parse("654321"));
+        string html = workbook.ToHtml(null, out OfficeConversionReport report);
 
         // The fill travels with the white text, so the title stays readable.
         Assert.Contains("background-color:#17365D", html, StringComparison.Ordinal);
         Assert.Contains("color:#FFFFFF", html, StringComparison.Ordinal);
+        string unfilledStyle = new HtmlParser().ParseDocument(html)
+            .QuerySelector("[data-officeimo-cell=A5]")!.GetAttribute("style")!;
+        Assert.Contains("color:#F8F8F8", unfilledStyle, StringComparison.Ordinal);
+        string gradientStyle = new HtmlParser().ParseDocument(html)
+            .QuerySelector("[data-officeimo-cell=A6]")!.GetAttribute("style")!;
+        Assert.Contains("color:#FFFFFF", gradientStyle, StringComparison.Ordinal);
+        Assert.Contains("background-color:#123456", gradientStyle, StringComparison.Ordinal);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Location == "excel:cell:Report!A6:fill"
+            && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         // Values use their number formats and keep the raw value for round trips.
         Assert.Contains(">1,234,567.50<", html, StringComparison.Ordinal);
         Assert.Contains(">37.6%<", html, StringComparison.Ordinal);
@@ -45,7 +84,29 @@ public class HtmlExcelSemanticPresentation {
         Assert.Contains("background-color:#F8D7DA", html, StringComparison.Ordinal);
         Assert.Contains("background-color:#C9ECD3", html, StringComparison.Ordinal);
         // Office fonts fall back to a sans-serif face instead of the browser's serif.
-        Assert.DoesNotContain("font-family:&#39;Aptos&#39;\"", html, StringComparison.Ordinal);
+        string titleStyle = new HtmlParser().ParseDocument(html)
+            .QuerySelector("[data-officeimo-cell=A1]")!.GetAttribute("style")!;
+        Assert.Contains("font-family:'Aptos'", titleStyle, StringComparison.Ordinal);
+        Assert.Contains(",sans-serif", titleStyle, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExplicitFontsSurviveWhileSelectedThemesCanSupplyImplicitFonts(bool themed) {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddSheet("Fonts");
+        sheet.Cell(1, 1).SetValue("Workbook default");
+        sheet.Cell(2, 1).SetValue("Authored serif").SetFontFamily("Georgia");
+        var options = themed ? ExcelHtmlExportOptions.CreateSemanticTablesProfile() : new ExcelHtmlExportOptions();
+
+        var html = new HtmlParser().ParseDocument(workbook.ToHtml(options));
+        string defaultStyle = html.QuerySelector("[data-officeimo-cell=A1]")!.GetAttribute("style")!;
+        string explicitStyle = html.QuerySelector("[data-officeimo-cell=A2]")!.GetAttribute("style")!;
+        if (themed) Assert.DoesNotContain("font-family:", defaultStyle, StringComparison.Ordinal);
+        else Assert.Contains("font-family:'Aptos'", defaultStyle, StringComparison.Ordinal);
+        Assert.Contains("font-family:'Georgia'", explicitStyle, StringComparison.Ordinal);
+        Assert.Contains(",serif", explicitStyle, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -65,12 +126,16 @@ public class HtmlExcelSemanticPresentation {
         sheet.Cell(2, 1).SetValue("Q1"); sheet.Cell(2, 2).SetValue(42);
         sheet.Cell(3, 1).SetValue("Q2"); sheet.Cell(3, 2).SetValue(58);
         sheet.Cell(4, 2).SetFormula("SUM(B2:B3)");
-        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new ExcelChartOptions { Row = 6, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(200), Title = "Actual by quarter" });
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new ExcelChartOptions { Row = 6, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(200), Title = "Actual by quarter" })
+            .SetTitleTextStyle(fontFamily: "AT&T's Chart Sans");
 
         string html = workbook.ToHtml();
 
         Assert.Contains("<figure class=\"officeimo-chart\"", html, StringComparison.Ordinal);
         Assert.Contains("<svg", html, StringComparison.OrdinalIgnoreCase);
+        var title = Assert.Single(new HtmlParser().ParseDocument(html).QuerySelectorAll("svg text"), text => text.TextContent == "Actual by quarter");
+        Assert.StartsWith("'AT&T\\'s Chart Sans',", title.GetAttribute("font-family"), StringComparison.Ordinal);
+        Assert.EndsWith(",sans-serif", title.GetAttribute("font-family"), StringComparison.Ordinal);
         Assert.Contains("<details class=\"officeimo-chart-details\"><summary>Chart data</summary>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Type: ColumnClustered", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Series: 1; Categories: 2", html, StringComparison.Ordinal);

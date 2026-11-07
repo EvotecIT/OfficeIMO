@@ -55,10 +55,10 @@ namespace OfficeIMO.Word.Markdown {
         internal OfficeIMO.Markdown.MarkdownVisualTheme? ThemeSnapshot => _theme?.Clone();
 
         /// <summary>
-        /// Applies the shared default visual theme when <see cref="Theme"/> is omitted.
+        /// Opts into the shared default visual theme when <see cref="Theme"/> is omitted.
         /// Set to <see langword="false"/> for plain output that relies only on Word defaults.
         /// </summary>
-        public bool ApplyDefaultTheme { get; set; } = true;
+        public bool ApplyDefaultTheme { get; set; }
 
         /// <summary>
         /// Optional font family applied to created runs during conversion.

@@ -298,6 +298,36 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
+        private static void ReportTableBorderLimitations(WordTableCell cell, WordHtmlExportOptions options, HashSet<string> reported) {
+            const string patternCode = "word-table-border-pattern-approximated";
+            if (!reported.Contains(patternCode) &&
+                (IsApproximate(WordTableBorderSide.Top) || IsApproximate(WordTableBorderSide.Bottom) ||
+                 IsApproximate(WordTableBorderSide.Left) || IsApproximate(WordTableBorderSide.Right))) {
+                reported.Add(patternCode);
+                AddExportDiagnostic(options, patternCode,
+                    "Word table border patterns without a CSS equivalent are represented by solid borders.",
+                    OfficeConversionLossKind.Approximation);
+            }
+            const string diagonalCode = "word-table-diagonal-border-omitted";
+            if (!reported.Contains(diagonalCode) &&
+                (IsVisible(WordRunFormatting.ResolveTableCellDiagonalBorder(cell, true)) ||
+                 IsVisible(WordRunFormatting.ResolveTableCellDiagonalBorder(cell, false)))) {
+                reported.Add(diagonalCode);
+                AddExportDiagnostic(options, diagonalCode,
+                    "Diagonal Word table-cell borders have no CSS table-border equivalent and are omitted.",
+                    OfficeConversionLossKind.Omission);
+            }
+
+            bool IsApproximate(WordTableBorderSide side) {
+                W.BorderType? border = WordRunFormatting.ResolveTableCellBorder(cell, side);
+                W.BorderValues? value = border?.Val?.Value;
+                return IsVisible(border) && value != W.BorderValues.Single && value != W.BorderValues.Dashed &&
+                    value != W.BorderValues.Dotted && value != W.BorderValues.Double;
+            }
+            static bool IsVisible(W.BorderType? border) => border?.Val?.Value is { } value &&
+                value != W.BorderValues.Nil && value != W.BorderValues.None;
+        }
+
         private static bool HasNonDefaultPageGeometry(DocumentFormat.OpenXml.Wordprocessing.SectionProperties sectionProperties) {
             DocumentFormat.OpenXml.Wordprocessing.PageSize? pageSize = sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>();
             if (pageSize?.Orient?.Value == DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues.Landscape) return true;

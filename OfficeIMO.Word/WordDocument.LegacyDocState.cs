@@ -19,14 +19,18 @@ namespace OfficeIMO.Word {
         public WordFileFormat SourceFormat { get; private set; } = WordFileFormat.Docx;
 
         /// <summary>Gets the concrete source format, including modern template and macro variants.</summary>
-        public OfficeFormatDescriptor SourceFormatDescriptor => SourceFormat == WordFileFormat.Doc
-            ? WordFormatCatalog.GetDescriptor(SourceFormat, _legacyDocSourcePath)
-            : WordFormatCatalog.GetDescriptor(_wordprocessingDocument.DocumentType);
+        public OfficeFormatDescriptor SourceFormatDescriptor => SourceFormat switch {
+            WordFileFormat.Doc => WordFormatCatalog.GetDescriptor(SourceFormat, _legacyDocSourcePath),
+            WordFileFormat.FlatOpc or WordFileFormat.WordMl2003 => GetXmlSourceFormatDescriptor(),
+            _ => WordFormatCatalog.GetDescriptor(_wordprocessingDocument.DocumentType)
+        };
 
-        /// <summary>Gets the original legacy source path, or the current Open XML file association.</summary>
-        public string? SourcePath => SourceFormat == WordFileFormat.Doc
-            ? _legacyDocSourcePath
-            : string.IsNullOrWhiteSpace(FilePath) ? null : FilePath;
+        /// <summary>Gets the original binary or standalone XML source path, or the current Open XML file association.</summary>
+        public string? SourcePath => SourceFormat switch {
+            WordFileFormat.Doc => _legacyDocSourcePath,
+            WordFileFormat.FlatOpc or WordFileFormat.WordMl2003 => _xmlSourcePath,
+            _ => string.IsNullOrWhiteSpace(FilePath) ? null : FilePath
+        };
 
         /// <summary>
         /// Gets diagnostics produced while importing the legacy `.doc` document.
@@ -106,7 +110,7 @@ namespace OfficeIMO.Word {
             string source = string.IsNullOrWhiteSpace(_legacyDocSourcePath)
                 ? "a legacy binary DOC source"
                 : $"legacy binary DOC source '{_legacyDocSourcePath}'";
-            throw new NotSupportedException($"Saving is blocked because this document was loaded from {source} with unsupported or preserve-only content. Review LegacyDocUnsupportedFeatures, LegacyDocPreservedFeatures, and LegacyDocCompoundFeatures, or set WordSaveOptions.LossPolicy to OfficeConversionLossPolicy.Allow when that loss is intentional.");
+            throw new NotSupportedException($"Saving is blocked because this document was loaded from {source} with unsupported or preserve-only content. Review the load report, LegacyDocUnsupportedFeatures, LegacyDocPreservedFeatures, and LegacyDocCompoundFeatures. Set WordSaveOptions.AllowLoss to true only when that loss is intentional.");
         }
     }
 }

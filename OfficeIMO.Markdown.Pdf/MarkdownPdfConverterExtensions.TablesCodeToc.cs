@@ -37,7 +37,6 @@ public static partial class MarkdownPdfConverterExtensions {
         PdfCore.PdfTableStyle style = visualTheme.TableStyleSnapshot;
         style.HeaderRowCount = table.Headers.Count > 0 ? 1 : 0;
         style.RepeatHeaderRowCount = table.Headers.Count > 0 ? 1 : 0;
-        style.RightAlignNumeric = true;
         ApplyMarkdownTableAlignments(style, table, columnCount, rows.Count);
         ApplyMarkdownTableCellAlignments(style, table);
         ApplyMarkdownTableColumnWidths(style, table, columnCount);

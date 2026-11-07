@@ -116,7 +116,7 @@ namespace OfficeIMO.Word.Pdf {
                 allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? allCaps;
                 smallCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? smallCaps;
                 baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
-                colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
+                colorHex = WordRunFormatting.ResolveColorHex(runProperties?.GetFirstChild<W.Color>(), table.Document) ?? colorHex;
                 highlight = WordRunFormatting.ReadRunHighlight(runProperties) ?? highlight;
 
                 W.StyleTableProperties? tableProperties = style.GetFirstChild<W.StyleTableProperties>();
@@ -149,15 +149,15 @@ namespace OfficeIMO.Word.Pdf {
                     marginRight = right ?? marginRight;
                 }
 
-                W.Shading? shading = tableProperties?.GetFirstChild<W.Shading>();
+                W.StyleTableCellProperties? tableCellProperties = style.GetFirstChild<W.StyleTableCellProperties>();
+                W.Shading? shading = tableCellProperties?.GetFirstChild<W.Shading>() ?? tableProperties?.GetFirstChild<W.Shading>();
                 if (shading != null) {
-                    cellFill = ParseNativeColor(shading.Fill?.Value);
+                    cellFill = ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(shading, table.Document));
                 }
 
-                W.StyleTableCellProperties? tableCellProperties = style.GetFirstChild<W.StyleTableCellProperties>();
                 cellVerticalAlignment = MapNativeNullableCellVerticalAlign(tableCellProperties?.GetFirstChild<W.TableCellVerticalAlignment>()?.Val?.Value) ?? cellVerticalAlignment;
 
-                W.TableBorders? styleTableBorders = tableProperties?.GetFirstChild<W.TableBorders>();
+                W.TableBorders? styleTableBorders = ResolveNativeTableBorderColors(tableProperties?.GetFirstChild<W.TableBorders>(), table.Document);
                 if (styleTableBorders != null) {
                     tableBorder = GetNativeUniformTableBorder(styleTableBorders);
                     tableBorders = styleTableBorders;
@@ -304,15 +304,15 @@ namespace OfficeIMO.Word.Pdf {
             NativeTableConditionalStyleDefaults result = inherited;
             foreach (W.TableStyleProperties properties in style.Elements<W.TableStyleProperties>().Where(properties => properties.Type?.Value == type)) {
                 W.TableStyleConditionalFormattingTableCellProperties? cellProperties = properties.GetFirstChild<W.TableStyleConditionalFormattingTableCellProperties>();
-                global::OfficeIMO.OfficeColor? cellFill = ParseNativeColor(cellProperties?.GetFirstChild<W.Shading>()?.Fill?.Value);
-                W.TableCellBorders? cellBorders = cellProperties?.GetFirstChild<W.TableCellBorders>();
+                global::OfficeIMO.OfficeColor? cellFill = ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(cellProperties?.GetFirstChild<W.Shading>(), document));
+                W.TableCellBorders? cellBorders = ResolveNativeTableBorderColors(cellProperties?.GetFirstChild<W.TableCellBorders>(), document);
                 PdfCore.PdfCellPadding? cellPadding = CreateNativeConditionalTableCellPadding(cellProperties?.GetFirstChild<W.TableCellMargin>());
                 PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = MapNativeNullableCellVerticalAlign(cellProperties?.GetFirstChild<W.TableCellVerticalAlignment>()?.Val?.Value);
 
                 W.RunPropertiesBaseStyle? runProperties = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
                 NativeLatinFontFamilies fontFamilies = GetNativeRunFontFamilies(document, runProperties?.GetFirstChild<W.RunFonts>()).Inherit(result.FontFamilies);
                 string? fontFamily = fontFamilies.Primary;
-                global::OfficeIMO.OfficeColor? textColor = ParseNativeColor(runProperties?.GetFirstChild<W.Color>()?.Val?.Value);
+                global::OfficeIMO.OfficeColor? textColor = ParseNativeColor(WordRunFormatting.ResolveColorHex(runProperties?.GetFirstChild<W.Color>(), document));
                 double? fontSize = GetNativeRunPropertiesBaseStyleFontSize(runProperties);
                 bool? bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>());
                 bool? italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>());

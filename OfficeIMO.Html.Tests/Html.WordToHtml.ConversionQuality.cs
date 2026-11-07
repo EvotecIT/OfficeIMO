@@ -32,26 +32,40 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "toc-regenerated-from-headings");
         }
 
-        [Fact]
-        public void Test_WordToHtml_DefaultCssUsesThemeTokensAndNumbersAlignRight() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_WordToHtml_DefaultCssPreservesSourceTableFormatting(bool includeCss) {
             using WordDocument document = WordDocument.Create();
-            var table = document.AddTable(3, 2);
+            var table = document.AddTable(3, 2, WordTableStyle.TableNormal);
+            table.RepeatHeaderRowAtTheTopOfEachPage = true;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Region";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Revenue";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "EMEA";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "1,250";
             table.Rows[2].Cells[0].Paragraphs[0].Text = "APAC";
             table.Rows[2].Cells[1].Paragraphs[0].Text = "-12.5%";
+            table.Rows[2].Cells[1].Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
 
-            string output = document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = true });
+            string output = document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = includeCss });
             var html = new HtmlParser().ParseDocument(output);
 
-            Assert.Contains("--office-accent-1: #" + OfficeTheme.Default.Palette.Accent1.ToRgbHex(), output);
-            Assert.Contains("tabular-nums", output);
+            if (includeCss) Assert.Contains("--office-accent-1: #" + OfficeTheme.Default.Palette.Accent1.ToRgbHex(), output);
             var rows = html.QuerySelectorAll("tr").ToArray();
+            Assert.All(rows[0].Children, cell => {
+                if (!includeCss) Assert.Contains("font-weight:normal", cell.GetAttribute("style"));
+                Assert.Contains("text-align:left", cell.GetAttribute("style"));
+            });
             Assert.DoesNotContain("text-align:right", rows[1].Children[0].GetAttribute("style") ?? string.Empty);
-            Assert.Contains("text-align:right", rows[1].Children[1].GetAttribute("style") ?? string.Empty);
+            Assert.DoesNotContain("text-align:right", rows[1].Children[1].GetAttribute("style") ?? string.Empty);
             Assert.Contains("text-align:right", rows[2].Children[1].GetAttribute("style") ?? string.Empty);
+            var cssDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(output);
+            var computed = OfficeIMO.Html.HtmlComputedStyleEngine.Compute(cssDocument);
+            Assert.All(cssDocument.Document.QuerySelectorAll("td"), cell => {
+                Assert.Empty(computed[cell].GetValue("background-color"));
+                Assert.Empty(computed[cell].GetValue("border-bottom-style"));
+                Assert.Empty(computed[cell].GetValue("padding-top"));
+            });
         }
 
         [Fact]

@@ -19,12 +19,7 @@ namespace OfficeIMO.Excel {
             ExcelLoadOptions options) {
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete, 8192, FileOptions.Asynchronous)) {
-                long? inputLimit = ResolveInputLimit(options);
-                return options.PackageSecurity != null
-                    && inputLimit == options.PackageSecurity.MaxPackageBytes
-                    ? await OfficePackageSecurityInspector.ReadBoundedAsync(fs, options.PackageSecurity, ct)
-                        .ConfigureAwait(false)
-                    : await OfficeStreamReader.ReadAllBytesAsync(fs, ct, inputLimit).ConfigureAwait(false);
+                return await ReadAllBytesAsync(fs, ct, options).ConfigureAwait(false);
             }
         }
 

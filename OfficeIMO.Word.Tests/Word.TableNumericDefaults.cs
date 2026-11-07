@@ -12,7 +12,7 @@ public partial class Word {
     [InlineData("1250", true)]
     public void ModernTablePlainNumericValuesSaveWithThemeAlignment(string value, bool dataFirst) {
         using WordDocument source = WordDocument.Create();
-        WordTable table = source.AddTable(2, 2);
+        WordTable table = source.AddTable(2, 2, WordTableStyle.OfficeIMOModern);
         if (!dataFirst) table.Rows[0].Cells[0].Paragraphs[0].Text = "Revenue";
         table.Rows[1].Cells[0].Paragraphs[0].Text = value;
         if (dataFirst) table.Rows[0].Cells[0].Paragraphs[0].Text = "Revenue";
@@ -28,7 +28,7 @@ public partial class Word {
     [Fact]
     public void NumericDefaultsPreserveExplicitAlignmentStylesAndRichCellContent() {
         using WordDocument document = WordDocument.Create();
-        var modern = document.AddTable(3, 2);
+        var modern = document.AddTable(3, 2, WordTableStyle.OfficeIMOModern);
         var header = modern.Rows[0].Cells[0].Paragraphs[0];
         header.ParagraphAlignment = WordParagraphAlignment.Left;
         header.Text = "Revenue";

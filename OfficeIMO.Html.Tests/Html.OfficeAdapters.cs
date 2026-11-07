@@ -41,7 +41,9 @@ public partial class HtmlOfficeAdapters {
 
         string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
-            Theme = OfficeVisualThemeKind.Report
+            Theme = OfficeVisualThemeKind.Report,
+            IncludeDefaultStyles = true,
+            HeaderMode = ExcelHtmlHeaderMode.FirstRow
         });
 
         Assert.Contains("data-officeimo-profile=\"ExcelSemanticTables\"", html, StringComparison.Ordinal);
@@ -1635,9 +1637,7 @@ public partial class HtmlOfficeAdapters {
             slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(60));
         }
 
-        string html = presentation.ToHtml(new PowerPointHtmlExportOptions {
-            Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
-        });
+        string html = presentation.ToHtml(PowerPointHtmlExportOptions.CreateVisualReviewProfile());
 
         Assert.Matches(
             @"(?s)\.officeimo-shape-picture img,.*?display:\s*block;.*?width:\s*100%;.*?height:\s*100%;.*?\.officeimo-shape-picture img\s*\{\s*object-fit:\s*fill;",

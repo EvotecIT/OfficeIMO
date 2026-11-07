@@ -25,10 +25,10 @@ public partial class Word {
         document.AddParagraph("Body marker");
         _ = document.PageSetup.Header;
         WordTable table = scope switch {
-            "body" => document.AddTable(2, 2),
-            "nested" => document.AddTable(1, 1).Rows[0].Cells[0].AddTable(2, 2),
-            "header" => document.PageSetup.Header.AddTable(2, 2),
-            "footer" => document.PageSetup.Footer.AddTable(2, 2),
+            "body" => document.AddTable(2, 2, WordTableStyle.OfficeIMOModern),
+            "nested" => document.AddTable(1, 1).Rows[0].Cells[0].AddTable(2, 2, WordTableStyle.OfficeIMOModern),
+            "header" => document.PageSetup.Header.AddTable(2, 2, WordTableStyle.OfficeIMOModern),
+            "footer" => document.PageSetup.Footer.AddTable(2, 2, WordTableStyle.OfficeIMOModern),
             _ => throw new ArgumentOutOfRangeException(nameof(scope))
         };
         int row = role == "header" ? 0 : 1;

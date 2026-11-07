@@ -59,17 +59,25 @@ namespace OfficeIMO.PowerPoint {
                 ?? OfficeColor.White;
 
         internal static OfficeColor ResolveTableCellFillColorForExport(
-            PowerPointTable table, int row, int column) {
+            PowerPointTable table, int row, int column) =>
+            ResolveTableCellFillColorForExport(table, row, column, ResolveTableStyle(table));
+
+        internal static OfficeColor ResolveTableCellFillColorForExport(
+            PowerPointTable table, int row, int column, A.TableStyleEntry? tableStyle) {
             A.ColorScheme? colorScheme = table.OwnerSlide == null
                 ? PowerPointEffectiveRunStyleResolver.ResolveColorScheme(table.RelationshipOwnerPart)
                 : GetSlideColorScheme(table.OwnerSlide);
             return ResolveTableCellFillColor(table,
                 table.GetCell(row, column), row, column,
-                ResolveTableStyle(table), colorScheme);
+                tableStyle, colorScheme);
         }
 
         internal static OfficeBorderBox ResolveTableCellBordersForExport(
-            PowerPointTable table, int row, int column) {
+            PowerPointTable table, int row, int column) =>
+            ResolveTableCellBordersForExport(table, row, column, ResolveTableStyle(table));
+
+        internal static OfficeBorderBox ResolveTableCellBordersForExport(
+            PowerPointTable table, int row, int column, A.TableStyleEntry? tableStyle) {
             A.ColorScheme? colorScheme = table.OwnerSlide == null
                 ? PowerPointEffectiveRunStyleResolver.ResolveColorScheme(table.RelationshipOwnerPart)
                 : GetSlideColorScheme(table.OwnerSlide);
@@ -77,7 +85,7 @@ namespace OfficeIMO.PowerPoint {
             (int rowSpan, int columnSpan) = cell.Merge;
             return ResolveTableCellBorders(table,
                 cell, row, column, Math.Max(1, rowSpan), Math.Max(1, columnSpan),
-                ResolveTableStyle(table), colorScheme);
+                tableStyle, colorScheme);
         }
 
         internal static OfficeColor ResolveTableCellFillColorForBinary(
@@ -114,6 +122,11 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor color = OfficeOpenXmlThemeColorResolver.ResolveColor(line?.GetFirstChild<A.SolidFill>(), colorScheme)
                 ?? OfficeColor.FromRgb(191, 191, 191);
             A.PresetDash? dash = line?.GetFirstChild<A.PresetDash>();
+            // DrawingML's double-line width includes both strokes and the intervening gap.
+            if (line?.CompoundLineType?.Value == A.CompoundLineValues.Double) {
+                return new OfficeBorderSide(color, width / 3D, MapDash(dash?.Val?.Value),
+                    OfficeBorderLineKind.Double, 2D * width / 3D);
+            }
             return new OfficeBorderSide(color, width, MapDash(dash?.Val?.Value));
         }
 

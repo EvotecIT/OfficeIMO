@@ -247,7 +247,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static bool CanUseZipContainerFallback(ReaderDetectionResult detection) {
-        return detection.Kind == ReaderInputKind.OpenDocument;
+        return detection.Kind == ReaderInputKind.OpenDocument && !detection.Evidence.Contains("text:flat-opendocument-root");
     }
 
     private static async Task<HandlerDetectionResolution> ResolvePathHandlerAsync(
@@ -614,6 +614,20 @@ internal static partial class DocumentReaderEngine {
             string localRootName = prefixSeparator >= 0 ? qualifiedRootName.Substring(prefixSeparator + 1) : qualifiedRootName;
             bool hasResolvedNamespace = TryResolveXmlRootNamespace(
                 qualifiedRootName, rootTag, xmlDocumentType, out string rootNamespace);
+            if (hasResolvedNamespace && xmlDocumentType.Length == 0) {
+                if (localRootName == "document" && rootNamespace == "urn:oasis:names:tc:opendocument:xmlns:office:1.0") {
+                    return DetectionCandidate.High(ReaderInputKind.OpenDocument, "application/xml", "text:flat-opendocument-root");
+                }
+                if (localRootName == "Workbook" && rootNamespace == "urn:schemas-microsoft-com:office:spreadsheet") {
+                    return DetectionCandidate.High(ReaderInputKind.Excel, "application/vnd.ms-excel", "text:spreadsheet-xml-root");
+                }
+                if (localRootName == "wordDocument" && rootNamespace == "http://schemas.microsoft.com/office/word/2003/wordml") {
+                    return DetectionCandidate.High(ReaderInputKind.Word, "application/msword", "text:wordml-2003-root");
+                }
+                if (localRootName == "package" && rootNamespace == FlatOpcPackageNamespace && ContainsFlatOpcWordMainPart(xmlProbe)) {
+                    return DetectionCandidate.High(ReaderInputKind.Word, "application/xml", "text:flat-opc-word-main-part");
+                }
+            }
             if (qualifiedRootName == "opml" && hasResolvedNamespace && rootNamespace.Length == 0) {
                 return DetectionCandidate.High(ReaderInputKind.Opml, "text/x-opml", "text:opml-root");
             }

@@ -217,7 +217,7 @@ public static partial class OfficeConverter {
         ".html" or ".htm" => OfficeDocumentFormat.Html, ".txt" => OfficeDocumentFormat.Text,
         ".eml" or ".msg" or ".oft" or ".tnef" or ".dat" => OfficeDocumentFormat.Email,
         ".rtf" => OfficeDocumentFormat.Rtf, ".xps" or ".oxps" => OfficeDocumentFormat.Xps,
-        ".pub" => OfficeDocumentFormat.Publisher, ".odg" or ".fodg" or ".odt" or ".ods" or ".odp" => OfficeDocumentFormat.OpenDocument,
+        ".pub" => OfficeDocumentFormat.Publisher, ".odg" or ".fodg" or ".odt" or ".ods" or ".odp" or ".fodt" or ".fods" or ".fodp" => OfficeDocumentFormat.OpenDocument,
         ".pages" or ".numbers" or ".key" => OfficeDocumentFormat.IWork,
         ".csv" or ".tsv" => OfficeDocumentFormat.Csv, ".json" => OfficeDocumentFormat.Json, ".xml" => OfficeDocumentFormat.Xml,
         ".epub" => OfficeDocumentFormat.Epub, ".vsdx" or ".vdx" or ".vtx" => OfficeDocumentFormat.Visio,

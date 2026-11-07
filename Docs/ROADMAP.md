@@ -584,6 +584,8 @@ TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split arc
 
 ## Document-format depth
 
+- [ ] Qualify XML Spreadsheet 2003 physical column widths against native Excel across Normal fonts and window DPI settings. Cover point-to-character conversion, default and explicit widths, zero-width hidden columns, and repeated XML/XLSX conversion. Extend the current reported 96-DPI approximation only with independent evidence for the receiving environment. See the [Excel compatibility contract](../OfficeIMO.Excel/COMPATIBILITY.md).
+
 ### OpenDocument qualification and depth
 
 - [ ] Extend the native ODS evaluator with named references, date arithmetic, logical functions, and conditional evaluation. Qualify each accepted subset against independent Calc-produced values, including errors, scalar-versus-reference coercion, dependency cycles, and resource bounds; preserve unsupported formulas and report failed recalculations.
@@ -869,6 +871,7 @@ Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix
   - [ ] Microsoft Word for DOS 4-6: replace text salvage with versioned stream and formatting-table parsing for character/paragraph styles, lists, tables, annotations, footnotes/endnotes, fields, graphics/objects, layout, and metadata while keeping executable content inert.
   - [ ] Establish a provenance-recorded cross-producer corpus for every structured word profile, including code-page, malformed/truncated, active-content, external-resource, and resource-limit cases; add semantic and rendered conversion evidence for DOCX, ODT, HTML, Markdown, PDF, and plain text before promoting each profile beyond its documented maturity.
 - [ ] Complete the legacy-spreadsheet read-and-convert product beyond the bounded profiles documented in the [OfficeIMO.Excel support matrix](officeimo.excel-guide.md#profile-coverage). Keep the shared Excel model, cached-value policy, formula allow-listing, loss diagnostics, inert macro/link behavior, conversion routes, and no-save-back boundary while closing the adopted family gaps below. A record reader for one version does not complete the family.
+  - [ ] Broaden [Excel 2–4 worksheet recovery](officeimo.excel-guide.md#recover-excel-24-worksheets) with independently produced Macintosh and non-Western code-page samples, defined-name and workbook-link expressions, shared/array formula groups, and cross-reader qualification of more BIFF4 workbook sheet types. Preserve the source-safe XLSX conversion boundary and exact loss reports.
   - [ ] Lotus 1-2-3: deepen WK1 and the selected later record profiles with remaining formatting, names, database and print metadata, and safely understood chart/link records; qualify additional BOF generations and broaden independent-producer coverage for WK3/WK4 numeric/formula layouts. Current profiles and evidence are in `OfficeIMO.Excel/README.md`.
   - [ ] Quattro Pro: add bounded WQ1/WQ2 formula/reference decoding, extend WB1 beyond its current cell/internal-reference profile, and qualify WB2/WB3 and QPW structures, names, formatting, comments, and charts.
   - [ ] Multiplan DOS 1-3: replace text/tabular salvage with versioned cell-zone parsing for sheets, cells, cached values, the safely understood formula grammar, names, formatting, comments, chart metadata where present, and exact unsupported-record diagnostics.

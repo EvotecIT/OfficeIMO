@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel {
         public ISet<string> AllowedHosts { get; private set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// Gets or sets whether the downloaded workbook must look like a ZIP/OpenXML package.
+        /// Gets or sets whether a download must begin with a ZIP, compound Excel, or supported raw BIFF workbook header.
         /// </summary>
         public bool ValidateZipHeader { get; set; } = true;
 

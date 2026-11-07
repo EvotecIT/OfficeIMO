@@ -25,7 +25,7 @@ public partial class CsvDataReader
         {
             if (_textRowSource is not null &&
 #if NET8_0_OR_GREATER
-                _textRowSource is not ICsvAsyncDataReaderRowSource { HasStaticValues: true } &&
+                _asyncTextRowSource is not { HasStaticValues: true } &&
 #endif
                 (_stringNullValue is null || !_textRowSource.IsNull(ordinal, _stringNullValue)))
             {

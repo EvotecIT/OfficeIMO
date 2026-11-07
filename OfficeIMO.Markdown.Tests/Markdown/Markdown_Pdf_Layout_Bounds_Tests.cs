@@ -71,17 +71,24 @@ public sealed class Markdown_Pdf_Layout_Bounds_Tests {
         Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == "panel-indent-reduced");
     }
 
-    [Fact]
-    public void TableWiderThanItsCellPaddingAllowsDropsThePaddingWithAWarning() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WideTablesDropOnlySelectedPaddingWhenItWillNotFit(bool padded) {
         const int columns = 60;
         string markdown = "|" + string.Join("|", Enumerable.Range(0, columns).Select(index => "h" + index)) + "|\n"
             + "|" + string.Concat(Enumerable.Repeat("---|", columns)) + "\n"
             + "|" + string.Join("|", Enumerable.Range(0, columns).Select(index => "c" + index)) + "|\n";
 
-        (byte[] pdf, OfficeConversionReport report) = Export(markdown);
+        var options = new MarkdownPdfExportOptions();
+        if (padded) options.Style = new MarkdownPdfStyle {
+            TableStyle = new PdfTableStyle { CellPaddingX = OfficeLength.Points(8) }
+        };
+        byte[] pdf = MarkdownDocument.Parse(markdown).ToPdf(options, out OfficeConversionReport report).ToBytes();
 
-        Assert.NotEmpty(PdfTextExtractor.ExtractAllText(pdf));
-        Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == "table-cell-padding-dropped");
+        Assert.Equal(columns, PdfTextExtractor.ExtractAllText(pdf).Count(character => character == 'c'));
+        if (padded) Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == "table-cell-padding-dropped");
+        else Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code == "table-cell-padding-dropped");
     }
 
     private static (byte[] Pdf, OfficeConversionReport Report) Export(string markdown) {

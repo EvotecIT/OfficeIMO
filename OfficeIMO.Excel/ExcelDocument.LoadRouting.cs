@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
                     : ExcelFileFormat.Xlsx;
             }
 
-            if (HasLegacyXlsExtension(filePath)) {
+            if (Legacy.EarlyBiffWorkbook.Identify(bytes) != null || HasLegacyXlsExtension(filePath)) {
                 return ExcelFileFormat.Xls;
             }
 
