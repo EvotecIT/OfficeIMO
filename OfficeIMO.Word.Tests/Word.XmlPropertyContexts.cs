@@ -141,6 +141,99 @@ public sealed class WordMlPropertyContextTests {
         Assert.Throws<OfficeConversionException>(() => WordDocument.Load(strict, new WordLoadOptions { FailOnLoss = true }));
     }
 
+    [Theory]
+    [InlineData("cols", "two", "num")]
+    [InlineData("cols", "46", "num")]
+    [InlineData("tab", "31681", "pos")]
+    [InlineData("pgSz", "12pt", "w")]
+    [InlineData("pgSz", "31681", "w")]
+    [InlineData("color", "ZZZZZZ", "val")]
+    public void UnsupportedScalarsAreReportedWithoutDiscardingValidSiblings(string property, string value, string attribute) {
+        string body = property switch {
+            "cols" => "<w:p><w:r><w:t>Retained</w:t></w:r></w:p><w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/><w:cols w:num=\"" + value + "\"/></w:sectPr>",
+            "pgSz" => "<w:p><w:r><w:t>Retained</w:t></w:r></w:p><w:sectPr><w:pgSz w:w=\"" + value + "\" w:h=\"15840\"/><w:cols w:num=\"2\"/></w:sectPr>",
+            "tab" => "<w:p><w:pPr><w:pBdr/><w:tabs><w:tab w:val=\"left\" w:pos=\"720\"/><w:tab w:val=\"right\" w:pos=\"" + value + "\"/></w:tabs></w:pPr><w:r><w:t>Retained</w:t></w:r></w:p>",
+            _ => "<w:p><w:r><w:rPr><w:rFonts w:ascii=\"  Times New Roman  \"/><w:b/><w:color w:val=\"" + value + "\"/></w:rPr><w:t>Retained</w:t></w:r></w:p>"
+        };
+        byte[] source = Encoding.UTF8.GetBytes(Source(body));
+        using var input = new MemoryStream(source);
+        using WordDocument document = WordDocument.Load(input, new WordLoadOptions(), out OfficeConversionReport report);
+        Assert.True(report.HasLoss);
+        OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics);
+        Assert.Equal("WORDML2003_OMITTED", diagnostic.Code);
+        Assert.Equal((Word + property).ToString(), diagnostic.Location);
+        Assert.Contains(attribute + "='" + value + "'", diagnostic.Message);
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(saved));
+        Assert.Equal("Retained", saved.MainDocumentPart!.Document.InnerText);
+        XElement root = XElement.Parse(saved.MainDocumentPart.Document.OuterXml);
+        Assert.DoesNotContain(root.Descendants(Modern + property).Attributes(), item => item.Value == value);
+        if (property == "cols") Assert.Equal("12240", (string?)Assert.Single(root.Descendants(Modern + "pgSz")).Attribute(Modern + "w"));
+        else if (property == "pgSz") Assert.Equal("2", (string?)Assert.Single(root.Descendants(Modern + "cols")).Attribute(Modern + "num"));
+        else if (property == "tab") {
+            Assert.Equal("720", (string?)Assert.Single(root.Descendants(Modern + "tab")).Attribute(Modern + "pos"));
+            Assert.Empty(Assert.Single(root.Descendants(Modern + "pBdr")).Elements());
+        } else {
+            Assert.Single(root.Descendants(Modern + "b"));
+            Assert.Equal("  Times New Roman  ", (string?)Assert.Single(root.Descendants(Modern + "rFonts")).Attribute(Modern + "ascii"));
+        }
+        using var strict = new MemoryStream(source);
+        Assert.Throws<OfficeConversionException>(() => WordDocument.Load(strict, new WordLoadOptions { FailOnLoss = true }));
+    }
+
+    [Fact]
+    public void SupportedScalarLexemesPreserveStringsAndNormalizeOnlyHexWhitespace() {
+        const string prefix = "<w:fonts><w:font w:name=\"  Times New Roman  \"><w:panose-1 w:val=\" 02020603050405020304 \"/><w:charset w:val=\" 00 \"/><w:family w:val=\"roman\"/><w:pitch w:val=\"variable\"/></w:font></w:fonts>" +
+            "<w:styles><w:style w:type=\"paragraph\" w:styleId=\"ParagraphFormat\"><w:name w:val=\"Paragraph format\"/></w:style><w:style w:type=\"character\" w:styleId=\"CharacterFormat\"><w:name w:val=\"Character format\"/></w:style></w:styles>";
+        const string body = "<w:p><w:pPr><w:pStyle w:val=\"ParagraphFormat\"/><w:pBdr><w:top w:val=\"single\" w:sz=\"8\" w:color=\" aBcD12 \"/></w:pBdr>" +
+            "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\" 001122 \"/><w:tabs><w:tab w:val=\"left\" w:pos=\"31680\"/></w:tabs><w:spacing w:line=\"-240\"/><w:ind w:left=\"-720\"/></w:pPr>" +
+            "<w:r><w:rPr><w:rStyle w:val=\"CharacterFormat\"/><w:rFonts w:ascii=\"  Times New Roman  \"/><w:color w:val=\" FF0000 \"/><w:sz w:val=\" 22 \"/><w:u w:val=\"single\" w:color=\" FF0000 \"/><w:lang w:val=\"en-US\" w:fareast=\"ja-JP\" w:bidi=\"ar-SA\"/></w:rPr><w:t>Retained</w:t></w:r></w:p>" +
+            "<w:tbl><w:tblPr><w:tblLook w:val=\" 04A0 \"/></w:tblPr><w:tblGrid/><w:tr><w:tc><w:tcPr><w:cnfStyle w:val=\"100000000000\"/></w:tcPr><w:p/></w:tc></w:tr></w:tbl>" +
+            "<w:sectPr><w:pgSz w:w=\"31680\" w:h=\"15840\"/><w:cols w:num=\"45\"/></w:sectPr>";
+        using var source = new MemoryStream(Encoding.UTF8.GetBytes(Source(body, prefix)));
+        using WordDocument document = WordDocument.Load(source, new WordLoadOptions { FailOnLoss = true }, out OfficeConversionReport report);
+        Assert.False(report.HasLoss);
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(saved));
+        XElement root = XElement.Parse(saved.MainDocumentPart!.Document.OuterXml);
+        Assert.Equal("Retained", saved.MainDocumentPart.Document.InnerText);
+        Assert.Equal("aBcD12", (string?)Assert.Single(root.Descendants(Modern + "top")).Attribute(Modern + "color"));
+        Assert.Equal("FF0000", (string?)Assert.Single(root.Descendants(Modern + "color")).Attribute(Modern + "val"));
+        XElement underline = Assert.Single(root.Descendants(Modern + "u"));
+        Assert.Equal("single", (string?)underline.Attribute(Modern + "val"));
+        Assert.Equal("FF0000", (string?)underline.Attribute(Modern + "color"));
+        Assert.Equal("001122", (string?)Assert.Single(root.Descendants(Modern + "shd")).Attribute(Modern + "fill"));
+        Assert.Equal("auto", (string?)Assert.Single(root.Descendants(Modern + "shd")).Attribute(Modern + "color"));
+        Assert.Equal("  Times New Roman  ", (string?)Assert.Single(root.Descendants(Modern + "rFonts")).Attribute(Modern + "ascii"));
+        Assert.Equal("ParagraphFormat", (string?)Assert.Single(root.Descendants(Modern + "pStyle")).Attribute(Modern + "val"));
+        Assert.Equal("CharacterFormat", (string?)Assert.Single(root.Descendants(Modern + "rStyle")).Attribute(Modern + "val"));
+        Assert.Equal("en-US", (string?)Assert.Single(root.Descendants(Modern + "lang")).Attribute(Modern + "val"));
+        Assert.Equal("-240", (string?)Assert.Single(root.Descendants(Modern + "spacing")).Attribute(Modern + "line"));
+        Assert.Equal("-720", (string?)Assert.Single(root.Descendants(Modern + "ind")).Attribute(Modern + "start"));
+        Assert.Equal("31680", (string?)Assert.Single(root.Descendants(Modern + "tab")).Attribute(Modern + "pos"));
+        Assert.Equal("45", (string?)Assert.Single(root.Descendants(Modern + "cols")).Attribute(Modern + "num"));
+        Assert.Equal("04A0", (string?)Assert.Single(root.Descendants(Modern + "tblLook")).Attribute(Modern + "val"));
+        Assert.Equal("100000000000", (string?)Assert.Single(root.Descendants(Modern + "cnfStyle")).Attribute(Modern + "val"));
+        Assert.Single(Assert.Single(root.Descendants(Modern + "tblGrid")).Elements(Modern + "gridCol"));
+        XElement font = XElement.Parse(Assert.Single(saved.MainDocumentPart.FontTablePart!.Fonts.Elements<Font>()).OuterXml);
+        Assert.Equal("  Times New Roman  ", (string?)font.Attribute(Modern + "name"));
+        Assert.Equal("02020603050405020304", (string?)font.Element(Modern + "panose1")!.Attribute(Modern + "val"));
+        Assert.Equal("00", (string?)font.Element(Modern + "charset")!.Attribute(Modern + "val"));
+    }
+
+    [Fact]
+    public void MappedPropertyValidationRejectsACappedInvalidGroupBeforePartialEmission() {
+        int count = new OpenXmlValidator(FileFormatVersions.Microsoft365).MaxNumberOfErrors + 1;
+        string grid = string.Concat(Enumerable.Repeat("<w:gridCol w:w=\"invalid\"/>", count));
+        string xml = Source("<w:tbl><w:tblGrid>" + grid + "</w:tblGrid><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl>");
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => WordDocument.Load(input));
+        Assert.Contains("SDK validation error limit", error.Message);
+        Assert.True(input.CanRead);
+    }
+
     private static string Source(string body, string prefix = "") =>
         "<w:wordDocument xmlns:w=\"" + Word + "\">" + prefix + "<w:body>" + body + "</w:body></w:wordDocument>";
 }

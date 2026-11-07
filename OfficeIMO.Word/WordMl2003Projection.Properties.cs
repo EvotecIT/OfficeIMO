@@ -63,7 +63,7 @@ internal sealed partial class WordMl2003Projection {
     };
     private static readonly Dictionary<string, string> ElementNames = new(StringComparer.Ordinal) {
         ["b-cs"] = "bCs", ["i-cs"] = "iCs", ["sz-cs"] = "szCs",
-        ["hmerge"] = "hMerge", ["vmerge"] = "vMerge"
+        ["hmerge"] = "hMerge", ["vmerge"] = "vMerge", ["panose-1"] = "panose1"
     };
     private static readonly Dictionary<string, string> AttributeNames = new(StringComparer.Ordinal) {
         ["h-ansi"] = "hAnsi", ["fareast"] = "eastAsia", ["line-rule"] = "lineRule",
@@ -95,7 +95,9 @@ internal sealed partial class WordMl2003Projection {
                 continue;
             }
             string target = AttributeNames.TryGetValue(local, out string? mapped) ? mapped : local;
-            if (!TryMapPropertyValue(context, local, parent, attribute.Value, out string value)) {
+            string sourceValue = IsHexPropertyAttribute(context, local)
+                ? attribute.Value.Trim(' ', '\t', '\r', '\n') : attribute.Value;
+            if (!TryMapPropertyValue(context, local, parent, sourceValue, out string value)) {
                 string token = attribute.Value.Length <= 80 ? attribute.Value : attribute.Value.Substring(0, 80) + "...";
                 Omit(attribute.Name, context + " property with unsupported " + local + " enum value '" + token + "'");
                 return null;
@@ -128,6 +130,12 @@ internal sealed partial class WordMl2003Projection {
     }
 
     private T NormalizeMappedProperties<T>(T properties) where T : OpenXmlCompositeElement {
+        OrderMappedProperties(properties);
+        AdmitMappedProperties(properties);
+        return properties;
+    }
+
+    private void OrderMappedProperties(OpenXmlCompositeElement properties) {
         // These particles contain choices or repeated values whose source order is meaningful.
         bool preserveOrder = properties is TableRowProperties or TableStyleConditionalFormattingTableRowProperties
             or TableGrid or Tabs or Columns;
@@ -138,17 +146,24 @@ internal sealed partial class WordMl2003Projection {
                 existing.LocalName == child.LocalName && existing.NamespaceUri == child.NamespaceUri);
             if (child is OpenXmlUnknownElement || duplicate || !preserveOrder && !properties.AddChild(child, false)) {
                 if (preserveOrder) child.Remove();
-                string name = child.LocalName;
-                foreach (KeyValuePair<string, string> mapping in ElementNames) {
-                    if (mapping.Value == name) { name = mapping.Key; break; }
-                }
+                string name = LegacyPropertyName(child.LocalName);
                 Omit(Word + name, duplicate ? "duplicate " + properties.LocalName + " property"
                     : properties.LocalName + " property not supported in this formatting context");
                 continue;
             }
-            if (child is OpenXmlCompositeElement nested) NormalizeMappedProperties(nested);
+            if (child is OpenXmlCompositeElement nested) OrderMappedProperties(nested);
         }
-        return properties;
+    }
+
+    private static bool IsHexPropertyAttribute(string context, string attribute) =>
+        attribute is "color" or "fill" ||
+        attribute == "val" && context is "color" or "tblLook" or "panose-1" or "charset";
+
+    private static string LegacyPropertyName(string name) {
+        foreach (KeyValuePair<string, string> mapping in ElementNames) {
+            if (mapping.Value == name) return mapping.Key;
+        }
+        return name;
     }
 
     private static bool IsMetadataAttribute(XAttribute attribute) =>
