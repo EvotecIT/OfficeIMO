@@ -282,7 +282,7 @@ internal static class IWorkDrawingReader {
         && value != "." && value != ".."
         && value.IndexOf('/') < 0 && value.IndexOf('\\') < 0;
 
-    private static string MediaType(string path, byte[] bytes) {
+    internal static string MediaType(string path, byte[] bytes) {
         string extension = Path.GetExtension(path).ToLowerInvariant();
         if (extension == ".png") return "image/png";
         if (extension is ".jpg" or ".jpeg") return "image/jpeg";

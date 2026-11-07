@@ -267,25 +267,41 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void Xlsb_DirectTabularSave_StagesUnsupportedValueFallbackBeforeDestinationWrite() {
-            Guid expected = Guid.NewGuid();
-            var table = new DataTable("Data");
-            table.Columns.Add("Id", typeof(Guid));
-            table.Rows.Add(expected);
-            var dataSet = new DataSet();
-            dataSet.Tables.Add(table);
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Xlsb_DirectTabularSave_PreservesValuesThroughUnsupportedValueFallback(bool capturedSnapshot) {
+            Guid expected = new("3cd8c138-9492-4934-9529-a1f89f586f32");
+            int rowCount = capturedSnapshot ? 4096 : 1;
+            object Value(int row) => row == rowCount - 1 ? expected : "Row " + row + new string('x', 40);
             using ExcelDocument document = ExcelDocument.Create();
-            document.InsertDataSet(dataSet, createTables: false, includeAutoFilter: false);
+            int selectorCalls = 0;
+            if (capturedSnapshot) {
+                document.AddSheet("Data").WriteData(Enumerable.Range(0, rowCount),
+                    ("Id", row => { selectorCalls++; return Value(row); }));
+                Assert.Equal(rowCount, selectorCalls);
+            } else {
+                var table = new DataTable("Data");
+                table.Columns.Add("Id", typeof(Guid));
+                table.Rows.Add(expected);
+                var dataSet = new DataSet();
+                dataSet.Tables.Add(table);
+                document.InsertDataSet(dataSet, createTables: false, includeAutoFilter: false);
+            }
             using var destination = new MemoryStream();
 
             document.Save(destination, ExcelFileFormat.Xlsb);
 
+            Assert.Equal(capturedSnapshot ? rowCount : 0, selectorCalls);
             Assert.NotEqual(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(destination.ToArray());
-            Assert.True(reader.Read());
-            Assert.Equal(expected.ToString(), reader.GetString(0));
+            Assert.Equal("Id", reader.GetName(0));
+            for (int row = 0; row < rowCount; row++) {
+                Assert.True(reader.Read());
+                Assert.Equal(Value(row).ToString(), reader.GetString(0));
+            }
             Assert.False(reader.Read());
+            Assert.False(reader.NextResult());
         }
 
         private static void AssertSingleValue(byte[] workbook, int expected) {

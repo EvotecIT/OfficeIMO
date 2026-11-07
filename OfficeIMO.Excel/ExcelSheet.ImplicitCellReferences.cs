@@ -5,6 +5,36 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>Resolves a native cell without requiring its optional coordinate attributes.</summary>
+        private bool TryGetEffectiveCellCoordinates(Cell target, out int rowIndex, out int columnIndex) {
+            if (ExcelA1.TryParseCellReferenceFast(target.CellReference?.Value, out rowIndex, out columnIndex)) return true;
+            rowIndex = columnIndex = 0;
+            if (target.Parent is not Row targetRow) return false;
+            uint effectiveRow = targetRow.RowIndex?.Value ?? 0U;
+            if (effectiveRow == 0U) {
+                uint previous = 0U;
+                bool found = false;
+                foreach (Row row in WorksheetRoot.GetFirstChild<SheetData>()?.Elements<Row>() ?? Enumerable.Empty<Row>()) {
+                    effectiveRow = GetEffectiveRowIndex(row, previous);
+                    if (ReferenceEquals(row, targetRow)) { found = true; break; }
+                    previous = effectiveRow;
+                }
+                if (!found) return false;
+            }
+            int previousColumn = 0;
+            foreach (Cell cell in targetRow.Elements<Cell>()) {
+                int column = ExcelA1.TryParseCellReferenceFast(cell.CellReference?.Value, out _, out int explicitColumn)
+                    ? explicitColumn : checked(previousColumn + 1);
+                if (ReferenceEquals(cell, target)) {
+                    rowIndex = checked((int)effectiveRow);
+                    columnIndex = column;
+                    return true;
+                }
+                previousColumn = column;
+            }
+            return false;
+        }
+
         private IEnumerable<(Cell Cell, int Row, int Column)> EnumerateCellsWithEffectiveCoordinates() {
             uint previousRow = 0U;
             foreach (Row row in WorksheetRoot.GetFirstChild<SheetData>()?.Elements<Row>()

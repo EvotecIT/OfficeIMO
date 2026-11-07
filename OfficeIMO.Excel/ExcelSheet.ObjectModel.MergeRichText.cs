@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel {
                 var inline = new InlineString();
                 bool hasLineBreak = false;
                 foreach (var run in runs) {
-                    var text = new Text(run.Text ?? string.Empty) { Space = SpaceProcessingModeValues.Preserve };
+                    var text = new Text(Utilities.ExcelSanitizer.EncodeXString(run.Text ?? string.Empty)) { Space = SpaceProcessingModeValues.Preserve };
                     hasLineBreak |= text.Text.IndexOf('\n') >= 0 || text.Text.IndexOf('\r') >= 0;
                     var properties = new RunProperties();
                     if (run.BoldSpecified) properties.Append(new Bold { Val = run.Bold });
@@ -126,6 +126,7 @@ namespace OfficeIMO.Excel {
                     inline.Append(openXmlRun);
                 }
 
+                PrepareTableHeaderRichText(row, column, inline);
                 var cell = GetCell(row, column);
                 ClearCellValueMetadata(cell);
                 cell.CellFormula = null;
@@ -163,7 +164,7 @@ namespace OfficeIMO.Excel {
             var runs = new List<ExcelRichTextRun>();
             foreach (var run in openXmlRuns) {
                 var properties = run.RunProperties;
-                var text = run.Text?.Text ?? string.Empty;
+                var text = Utilities.ExcelSanitizer.DecodeXString(run.Text?.Text ?? string.Empty);
                 runs.Add(ExcelRichTextRun.FromOpenXml(text, properties));
             }
 

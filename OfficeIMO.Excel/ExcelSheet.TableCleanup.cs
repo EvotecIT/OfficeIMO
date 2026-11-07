@@ -42,9 +42,16 @@ namespace OfficeIMO.Excel {
 
             table.Id = NormalizeTableId(table.Id?.Value, usedTableIds);
 
-            string normalizedName = NormalizeTableName(table.Name?.Value ?? table.DisplayName?.Value, table.Id!.Value, usedTableNames);
+            // Native object-model names may differ from formula-facing display names.
+            // Preserve a unique, bounded name instead of applying display-name syntax to it.
+            string? nativeName = table.Name?.Value;
+            string normalizedName = !string.IsNullOrWhiteSpace(nativeName) && nativeName!.Length <= 255 && usedTableNames.Add(nativeName!)
+                ? nativeName! : NormalizeTableName(nativeName ?? table.DisplayName?.Value, table.Id!.Value, usedTableNames);
             table.Name = normalizedName;
-            table.DisplayName = normalizedName;
+            // Its own name is also a permitted display alias, rather than a collision.
+            usedTableNames.Remove(normalizedName);
+            table.DisplayName = NormalizeTableName(table.DisplayName?.Value ?? normalizedName, table.Id!.Value, usedTableNames);
+            usedTableNames.Add(normalizedName);
 
             uint headerRowCount = table.HeaderRowCount?.Value ?? 1U;
             if (headerRowCount > 1U) {
@@ -62,7 +69,6 @@ namespace OfficeIMO.Excel {
             bool requiresRebuild = table.TableColumns == null ||
                                    existingColumns.Count != width ||
                                    existingColumns.Any(column => (column.Id?.Value ?? 0U) == 0U ||
-                                                                 column.Id!.Value > (uint)width ||
                                                                  string.IsNullOrWhiteSpace(column.Name?.Value)) ||
                                    existingColumns.Select(column => column.Id!.Value).Distinct().Count() != existingColumns.Count;
 
@@ -71,12 +77,28 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var rebuiltColumns = new TableColumns { Count = (uint)width };
+            var rebuiltColumns = table.TableColumns != null ? (TableColumns)table.TableColumns.CloneNode(true) : new TableColumns();
+            rebuiltColumns.RemoveAllChildren<TableColumn>();
+            rebuiltColumns.Count = (uint)width;
             var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            // Column IDs are identities, not positions. Reserve valid IDs before repairing
+            // missing/duplicate columns so dependent query and slicer bindings stay intact.
+            var retainedIds = new HashSet<uint>(existingColumns.Take(width)
+                .Select(column => column.Id?.Value ?? 0U)
+                .Where(id => id != 0U)
+                .GroupBy(id => id)
+                .Where(group => group.Count() == 1)
+                .Select(group => group.Key));
+            var usedIds = new HashSet<uint>(retainedIds);
+            uint nextId = 1U;
             for (int index = 0; index < width; index++) {
                 var source = index < existingColumns.Count ? existingColumns[index] : null;
                 var rebuilt = source != null ? (TableColumn)source.CloneNode(true) : new TableColumn();
-                rebuilt.Id = (uint)(index + 1);
+                uint sourceId = source?.Id?.Value ?? 0U;
+                if (!retainedIds.Contains(sourceId)) {
+                    while (!usedIds.Add(nextId)) nextId++;
+                    rebuilt.Id = nextId;
+                }
                 rebuilt.Name = EnsureUniqueColumnName(ResolveTableColumnName(source, startRow, startColumn + index, hasHeaderRow, index), usedNames);
                 rebuiltColumns.Append(rebuilt);
             }
@@ -211,6 +233,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void DeleteTableDefinitionPart(TableDefinitionPart tableDefinitionPart) {
+            _excelDocument.RemoveReservedTableName(tableDefinitionPart.Table?.DisplayName?.Value ?? string.Empty);
             string? tableName = tableDefinitionPart.Table?.Name?.Value;
             if (!string.IsNullOrWhiteSpace(tableName)) {
                 _excelDocument.RemoveReservedTableName(tableName!);
@@ -251,6 +274,8 @@ namespace OfficeIMO.Excel {
                     if (!string.IsNullOrWhiteSpace(name)) {
                         usedNames.Add(name!);
                     }
+                    string? displayName = tableDefinitionPart.Table?.DisplayName?.Value;
+                    if (!string.IsNullOrWhiteSpace(displayName)) usedNames.Add(displayName!);
                 }
             }
 
@@ -268,6 +293,8 @@ namespace OfficeIMO.Excel {
                     if (!string.IsNullOrWhiteSpace(name)) {
                         cache.Add(name!);
                     }
+                    string? displayName = tableDefinitionPart.Table?.DisplayName?.Value;
+                    if (!string.IsNullOrWhiteSpace(displayName)) cache.Add(displayName!);
                 }
             }
         }

@@ -245,7 +245,7 @@ internal static partial class CsvWriter
         return DataReaderFieldKind.Object;
     }
 
-    private static void AppendKnownValueDefault<T>(
+    internal static void AppendKnownValueDefault<T>(
         StringBuilder buffer,
         T value,
         char delimiter,

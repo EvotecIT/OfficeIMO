@@ -628,15 +628,7 @@ namespace OfficeIMO.Excel {
 
             var encryptedBytes = await ReadAllBytesCompatAsync(filePath, cancellationToken, resolved)
                 .ConfigureAwait(false);
-            if (resolved.PackageSecurity != null) {
-                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
-            }
-            if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
-                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved), encryptedBytes, resolved, "encrypted-source-container");
-            }
-
-            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password, cancellationToken);
-            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
+            return LoadEncryptedInput(encryptedBytes, password, resolved, filePath, cancellationToken);
         }
 
         /// <summary>
@@ -688,27 +680,21 @@ namespace OfficeIMO.Excel {
 
             var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken, resolved)
                 .ConfigureAwait(false);
-            if (resolved.PackageSecurity != null) {
-                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
-            }
-            if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
-                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved), encryptedBytes, resolved, "encrypted-source-container");
-            }
-
-            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password, cancellationToken);
-            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
+            return LoadEncryptedInput(encryptedBytes, password, resolved, sourcePath: null, cancellationToken);
         }
 
-        private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password, bool readOnly, ExcelLoadOptions options) {
+        private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password, bool readOnly,
+            ExcelLoadOptions options, CancellationToken cancellationToken = default) {
             if (!options.AllowBinaryProjection) throw new NotSupportedException("This load profile accepts XML workbook packages only; encrypted XLS projection is disabled.");
             LegacyXlsImportOptions importOptions = CreateLegacyImportOptions(options);
             importOptions.Password = password;
+            importOptions.CancellationToken = cancellationToken;
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, importOptions);
-            options.LoadCancellationToken.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
             if (!workbook.WasEncryptedSource) {
                 throw new InvalidDataException("LoadEncrypted requires a password-encrypted legacy XLS workbook.");
             }
-            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null, readOnly, options.LoadCancellationToken);
+            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null, readOnly, cancellationToken);
         }
 
     }

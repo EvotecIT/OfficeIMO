@@ -1526,7 +1526,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Preflight_NormalizesPageBreakContainersBeforeSave() {
+        public void RepairWorkbook_NormalizesPageBreakContainersBeforeSave() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
@@ -1556,6 +1556,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
+                doc.RepairWorkbook(new ExcelWorkbookRepairOptions { Save = false });
                 doc.Save(savePath);
             }
 

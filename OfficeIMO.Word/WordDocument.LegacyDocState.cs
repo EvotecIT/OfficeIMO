@@ -75,18 +75,21 @@ namespace OfficeIMO.Word {
             return false;
         }
 
+        internal bool IsWord69Source { get; private set; }
+
         internal OfficeCompoundFile? LegacyDocSourceCompoundFile => _legacyDocSourceCompoundFile;
 
         internal void MarkLoadedFromLegacyDoc(string? sourcePath, LegacyDocDocument document, bool attachSourcePathForSave = false) {
             SourceFormat = WordFileFormat.Doc;
-            _legacyDocSourcePath = sourcePath;
+            IsWord69Source = document.IsWord69;
+            _legacyDocSourcePath = IsWord69Source && sourcePath != null ? Path.GetFullPath(sourcePath) : sourcePath;
             _legacyDocImportDiagnostics = document.Diagnostics.ToArray();
             _legacyDocPreservedFeatures = document.PreservedFeatures.ToArray();
             _legacyDocCompoundFeatures = document.CompoundFeatures.ToArray();
             _legacyDocUnsupportedFeatures = document.UnsupportedFeatures.ToArray();
             _legacyDocSourceCompoundFile = document.SourceCompoundFile;
             _openXmlOriginalPackageBytes = null;
-            FilePath = attachSourcePathForSave && sourcePath != null
+            FilePath = attachSourcePathForSave && !IsWord69Source && sourcePath != null
                 ? sourcePath
                 : null;
         }

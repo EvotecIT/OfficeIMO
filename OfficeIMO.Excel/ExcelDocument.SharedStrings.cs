@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel {
 
             // Add new string
             int newIndex = tableCount;
-            sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+            sharedStringTable.AppendChild(new SharedStringItem(CreateSharedStringText(text)));
             _sharedStringTableCount = newIndex + 1;
             _sharedStringTableDirty = true;
             MarkPackageDirty();
@@ -168,7 +168,7 @@ namespace OfficeIMO.Excel {
             containsLineBreak = ContainsLineBreak(text);
 
             int newIndex = tableCount;
-            sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+            sharedStringTable.AppendChild(new SharedStringItem(CreateSharedStringText(text)));
             _sharedStringTableCount = newIndex + 1;
             _sharedStringTableDirty = true;
             MarkPackageDirty();
@@ -238,7 +238,7 @@ namespace OfficeIMO.Excel {
 
             containsLineBreak = ContainsLineBreak(text);
             index = tableCount;
-            sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+            sharedStringTable.AppendChild(new SharedStringItem(CreateSharedStringText(text)));
             _sharedStringTableCount = index + 1;
             _sharedStringTableDirty = true;
             MarkPackageDirty();
@@ -294,7 +294,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     int newIndex = tableCount++;
-                    sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+                    sharedStringTable.AppendChild(new SharedStringItem(CreateSharedStringText(text)));
                     _sharedStringCache[text] = newIndex;
                     result[text] = newIndex;
                     changed = true;
@@ -310,6 +310,11 @@ namespace OfficeIMO.Excel {
                 return result;
             }
         }
+
+        private static Text CreateSharedStringText(string text) => new Text(ExcelSanitizer.EncodeXString(text)) {
+            Space = text.Length > 0 && (char.IsWhiteSpace(text[0]) || char.IsWhiteSpace(text[text.Length - 1]))
+                ? SpaceProcessingModeValues.Preserve : null
+        };
 
         internal int[] GetSharedStringIndexArray(IReadOnlyList<string> texts, bool assumeDistinct = false) {
             ArgumentNullException.ThrowIfNull(texts);
@@ -336,7 +341,7 @@ namespace OfficeIMO.Excel {
 
                     if (!_sharedStringCache.TryGetValue(text, out int sharedStringIndex)) {
                         sharedStringIndex = tableCount++;
-                        sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+                        sharedStringTable.AppendChild(new SharedStringItem(CreateSharedStringText(text)));
                         _sharedStringCache[text] = sharedStringIndex;
                         changed = true;
                     }
@@ -360,7 +365,7 @@ namespace OfficeIMO.Excel {
             if (_sharedStringCache.Count == 0) {
                 int idx = 0;
                 foreach (SharedStringItem item in sharedStringTable.Elements<SharedStringItem>()) {
-                    _sharedStringCache[item.InnerText] = idx;
+                    _sharedStringCache[item.Text != null ? ExcelSanitizer.DecodeXString(item.Text.Text) : SharedStringCache.GetRunText(item)] = idx;
                     idx++;
                 }
 

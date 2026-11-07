@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
                 case ExcelBufferedCellKind.Text:
                 case ExcelBufferedCellKind.Blank:
                     cell.DataType = XCellValues.String;
-                    cell.CellValue = new CellValue(buffered.Reference as string ?? string.Empty);
+                    cell.CellValue = new CellValue(Utilities.ExcelSanitizer.EncodeXString(buffered.Reference as string ?? string.Empty));
                     break;
                 case ExcelBufferedCellKind.Boolean:
                     cell.DataType = XCellValues.Boolean;

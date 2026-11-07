@@ -79,6 +79,7 @@ namespace OfficeIMO.Excel {
             }
 
             WriteLockConditional(() => {
+                EnsureCellPayloadWritable(row, column);
                 Cell cell = GetCell(row, column);
                 ExcelWorksheetScan.SetValueText(cell, errorText);
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;

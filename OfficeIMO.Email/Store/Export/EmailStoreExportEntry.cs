@@ -4,12 +4,13 @@ namespace OfficeIMO.Email.Store;
 public sealed class EmailStoreExportEntry {
     internal EmailStoreExportEntry(EmailStoreItemReference reference, string? destinationPath,
         long bytesWritten, IReadOnlyList<EmailStoreDiagnostic> diagnostics,
-        string? maildirFlags = null) {
+        string? maildirFlags = null, DateTimeOffset? receivedAt = null) {
         Reference = reference;
         DestinationPath = destinationPath;
         BytesWritten = bytesWritten;
         Diagnostics = diagnostics;
         MaildirFlags = maildirFlags;
+        ReceivedAt = receivedAt;
     }
 
     /// <summary>Stable source item reference.</summary>
@@ -29,6 +30,8 @@ public sealed class EmailStoreExportEntry {
     /// This remains populated when the destination file system cannot encode the <c>:2,</c> suffix.
     /// </summary>
     public string? MaildirFlags { get; }
+
+    internal DateTimeOffset? ReceivedAt { get; }
 
     /// <summary>Whether an artifact was written without an error diagnostic.</summary>
     public bool Succeeded => DestinationPath != null &&

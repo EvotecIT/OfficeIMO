@@ -134,6 +134,10 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend {
     }
 
     private void ValidateCatalog(CancellationToken cancellationToken) {
+        if (_dbxCatalogPath != null) {
+            ValidateDbxCatalog(cancellationToken);
+            return;
+        }
         List<MailboxCandidate> current = ScanCatalog(cancellationToken, false, out HashSet<string> folders);
         if (!folders.SetEquals(_catalogFolderPaths) || current.Count != _files.Count ||
             !new HashSet<string>(current.Select(file => file.RelativePath), StringComparer.Ordinal)

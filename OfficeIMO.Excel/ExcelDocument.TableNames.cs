@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
         /// <summary>
-        /// Returns the workbook-level cache of table names, initializing it from the current
+        /// Returns the workbook-level cache of table names and display aliases, initializing it from the current
         /// document if needed. Case-insensitive comparison.
         /// </summary>
         internal HashSet<string> GetOrInitTableNameCache() {
@@ -31,6 +31,8 @@ namespace OfficeIMO.Excel {
                     foreach (var tdp in ws.TableDefinitionParts) {
                         var n = tdp.Table?.Name?.Value;
                         if (!string.IsNullOrEmpty(n)) set.Add(n!);
+                        var display = tdp.Table?.DisplayName?.Value;
+                        if (!string.IsNullOrEmpty(display)) set.Add(display!);
                     }
                 }
                 _tableNameCache = set;
@@ -46,6 +48,8 @@ namespace OfficeIMO.Excel {
                     foreach (var tdp in ws.TableDefinitionParts) {
                         var n = tdp.Table?.Name?.Value;
                         if (!string.IsNullOrEmpty(n)) set.Add(n!);
+                        var display = tdp.Table?.DisplayName?.Value;
+                        if (!string.IsNullOrEmpty(display)) set.Add(display!);
                     }
                 }
                 _tableNameCache = set;

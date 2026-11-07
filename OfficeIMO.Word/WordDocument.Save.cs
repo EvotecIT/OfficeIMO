@@ -534,6 +534,11 @@ namespace OfficeIMO.Word {
                 string.Equals(Path.GetExtension(filePath), ".xml", StringComparison.OrdinalIgnoreCase)) {
                 throw new NotSupportedException("Word package save requires a non-XML destination. Use ExportFlatOpc for Flat OPC XML.");
             }
+            if (IsWord69Source && _legacyDocSourcePath != null
+                && OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(_legacyDocSourcePath, filePath)) {
+                throw new NotSupportedException("Saving would replace the Word 6/95 source. Choose a separate DOCX destination.");
+            }
+
             if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
                 throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
             }

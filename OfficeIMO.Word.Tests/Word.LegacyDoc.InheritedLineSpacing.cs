@@ -108,8 +108,9 @@ public partial class Word {
         var reopenedMainPart = reopened._wordprocessingDocument.MainDocumentPart!;
         var reopenedRoots = new[] { reopenedMainPart.Document }.Cast<OpenXmlPartRootElement>()
             .Concat(reopenedMainPart.Parts.Select(part => part.OpenXmlPart.RootElement).OfType<OpenXmlPartRootElement>());
+        string expectedText = route is "footnote" or "endnote" ? " Inherited" : "Inherited";
         Paragraph paragraph = Assert.Single(reopenedRoots.SelectMany(root => root.Descendants<Paragraph>()),
-            paragraph => paragraph.InnerText == "Inherited");
+            paragraph => paragraph.InnerText == expectedText);
         SpacingBetweenLines? spacing = paragraph.ParagraphProperties?.SpacingBetweenLines;
         string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value ?? "Normal";
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 using System.Xml.Linq;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Security;
 
@@ -97,6 +98,19 @@ internal static class OfficePackageSignatureService {
         options ??= new OfficePackageSignatureValidationOptions();
         options.Inspection.VerifyDigests = true;
         byte[] packageBytes = ReadPackage(filePath, options.Inspection);
+        return Validate(packageBytes, securityProvider, options);
+    }
+
+    /// <summary>Validates an original encoded package from a caller-owned stream with bounded reading.</summary>
+    public static OfficePackageSignatureValidationReport Validate(
+        Stream source,
+        IOfficeSecurityProvider securityProvider,
+        OfficePackageSignatureValidationOptions? options = null) {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(securityProvider);
+        options ??= new OfficePackageSignatureValidationOptions();
+        options.Inspection.Validate();
+        byte[] packageBytes = OfficeStreamReader.ReadAllBytes(source, options.Inspection.MaxPackageBytes);
         return Validate(packageBytes, securityProvider, options);
     }
 

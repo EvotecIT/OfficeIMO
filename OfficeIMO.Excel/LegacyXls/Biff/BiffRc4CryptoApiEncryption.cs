@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using System.Security.Cryptography;
@@ -22,11 +23,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal static bool TryDecrypt(byte[] workbookStream, BiffRecord filePassRecord,
-            string password, List<LegacyXlsImportDiagnostic> diagnostics, out byte[] decryptedWorkbookStream) {
+            string password, List<LegacyXlsImportDiagnostic> diagnostics, out byte[] decryptedWorkbookStream,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             decryptedWorkbookStream = workbookStream;
             try {
                 var session = OpenSession(filePassRecord, password);
-                decryptedWorkbookStream = BiffRc4RecordStreamCipher.Transform(workbookStream, session);
+                decryptedWorkbookStream = BiffRc4RecordStreamCipher.Transform(workbookStream, session, cancellationToken);
                 return true;
             } catch (CryptographicException) {
                 AddError(diagnostics, filePassRecord, "xls-biff-filepass-password-invalid",

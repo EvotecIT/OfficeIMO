@@ -10,6 +10,7 @@ try
     XmlTableSmoke.Run();
     RecordReadSmoke.Run();
     PipelinedReadSmoke.Run();
+    BufferedXlsbSaveSmoke.Run();
     foreach (ExcelFileFormat format in new[] { ExcelFileFormat.Xlsx, ExcelFileFormat.Xlsb, ExcelFileFormat.Xls })
     {
         using (var asyncRows = new MemoryStream())

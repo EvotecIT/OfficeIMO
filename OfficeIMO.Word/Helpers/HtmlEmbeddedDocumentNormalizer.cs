@@ -1,7 +1,7 @@
 namespace OfficeIMO.Word;
 
 /// <summary>
-/// Normalizes HTML list markup before it is handed to Word's AltChunk importer.
+/// Prepares HTML documents and fragments for Word's AltChunk importer.
 /// </summary>
 /// <remarks>
 /// Word interprets a <c>value</c> attribute on an item in an unordered list as
@@ -9,22 +9,27 @@ namespace OfficeIMO.Word;
 /// remove it only when the nearest containing list is a <c>ul</c>. Ordered-list
 /// values remain intact.
 /// </remarks>
-internal static class HtmlListSemanticsNormalizer {
+internal static class HtmlEmbeddedDocumentNormalizer {
     internal static string Normalize(string html) {
-        if (string.IsNullOrEmpty(html)
-            || html.IndexOf("<li", StringComparison.OrdinalIgnoreCase) < 0
-            || html.IndexOf("<ul", StringComparison.OrdinalIgnoreCase) < 0) {
-            return html;
-        }
-
+        ArgumentNullException.ThrowIfNull(html);
         var output = new StringBuilder(html.Length);
         var listAncestors = new List<string>();
         string? rawTextElement = null;
+        bool hasHtmlElement = false;
+        bool hasDocumentStructure = false;
+        int preambleEnd = 0;
         int position = 0;
 
         while (position < html.Length) {
             if (rawTextElement != null) {
                 int rawEnd = html.IndexOf("</" + rawTextElement, position, StringComparison.OrdinalIgnoreCase);
+                while (rawEnd >= 0) {
+                    int nameEnd = rawEnd + rawTextElement.Length + 2;
+                    if (nameEnd < html.Length && (char.IsWhiteSpace(html[nameEnd]) || html[nameEnd] is '>' or '/')) {
+                        break;
+                    }
+                    rawEnd = html.IndexOf("</" + rawTextElement, nameEnd, StringComparison.OrdinalIgnoreCase);
+                }
                 if (rawEnd < 0) {
                     output.Append(html, position, html.Length - position);
                     break;
@@ -64,6 +69,11 @@ internal static class HtmlListSemanticsNormalizer {
 
             string tag = html.Substring(tagStart, tagEnd - tagStart + 1);
             if (TryReadTag(tag, out string tagName, out bool closing, out bool selfClosing)) {
+                if (!closing) {
+                    hasHtmlElement |= string.Equals(tagName, "html", StringComparison.OrdinalIgnoreCase);
+                    hasDocumentStructure |= string.Equals(tagName, "head", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(tagName, "body", StringComparison.OrdinalIgnoreCase);
+                }
                 if (!closing
                     && string.Equals(tagName, "li", StringComparison.OrdinalIgnoreCase)
                     && listAncestors.Count > 0
@@ -80,15 +90,31 @@ internal static class HtmlListSemanticsNormalizer {
                     }
                 } else if (!closing && !selfClosing
                     && (string.Equals(tagName, "script", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase))) {
+                        || string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(tagName, "textarea", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(tagName, "title", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(tagName, "xmp", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(tagName, "iframe", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(tagName, "noembed", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(tagName, "noframes", StringComparison.OrdinalIgnoreCase))) {
                     rawTextElement = tagName;
                 }
             }
 
             output.Append(tag);
+            if (tag.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase)) {
+                preambleEnd = output.Length;
+            }
             position = tagEnd + 1;
         }
 
+        // Word rejects a bare HTML import even though the containing DOCX is schema-valid.
+        if (!hasHtmlElement) {
+            output.Insert(preambleEnd, hasDocumentStructure
+                ? "<html>"
+                : "<html><head><meta charset=\"utf-8\"></head><body>");
+            output.Append(hasDocumentStructure ? "</html>" : "</body></html>");
+        }
         return output.ToString();
     }
 

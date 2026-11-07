@@ -149,6 +149,7 @@ namespace OfficeIMO.Excel.Pdf {
             private readonly bool _showRowStripes;
             private readonly bool _showColumnStripes;
             private readonly ExcelBuiltInTableStylePalette? _palette;
+            private readonly bool _rightToLeft;
 
             internal StructuredTableVisualData(
                 int firstRow,
@@ -161,7 +162,8 @@ namespace OfficeIMO.Excel.Pdf {
                 bool showLastColumn,
                 bool showRowStripes,
                 bool showColumnStripes,
-                ExcelBuiltInTableStylePalette? palette) {
+                ExcelBuiltInTableStylePalette? palette,
+                bool rightToLeft = false) {
                 _firstRow = firstRow;
                 _firstColumn = firstColumn;
                 _lastRow = lastRow;
@@ -173,7 +175,15 @@ namespace OfficeIMO.Excel.Pdf {
                 _showRowStripes = showRowStripes;
                 _showColumnStripes = showColumnStripes;
                 _palette = palette;
+                _rightToLeft = rightToLeft;
             }
+
+            // Addresses continue to identify logical table columns for banding and
+            // emphasis. Only the derived outline's physical sides change direction.
+            internal StructuredTableVisualData WithRightToLeftLayout() => new(
+                _firstRow, _firstColumn, _lastRow, _lastColumn, _hasHeader, _hasTotals,
+                _showFirstColumn, _showLastColumn, _showRowStripes, _showColumnStripes,
+                _palette, rightToLeft: true);
 
             internal bool IsHeaderCell(int row, int column) =>
                 _hasHeader && row == _firstRow && column >= _firstColumn && column <= _lastColumn;
@@ -222,6 +232,7 @@ namespace OfficeIMO.Excel.Pdf {
                         break;
                 }
 
+                if (_rightToLeft) (left, right) = (right, left);
                 visual = new StructuredTableCellVisual(
                     fill,
                     header ? _palette.HeaderText : _palette.BodyText,

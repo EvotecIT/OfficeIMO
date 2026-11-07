@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private HashSet<string> _loadedCustomPropertyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// Sets or replaces a custom workbook property.
         /// </summary>
@@ -44,6 +46,7 @@ namespace OfficeIMO.Excel {
 
         internal void LoadCustomDocumentProperties() {
             var loadedProperties = new Dictionary<string, ExcelCustomProperty>(StringComparer.OrdinalIgnoreCase);
+            _loadedCustomPropertyNames.Clear();
             _customDocumentPropertiesDirty = false;
             CustomFilePropertiesPart? customPart = _spreadSheetDocument.CustomFilePropertiesPart;
             if (customPart?.Properties == null) {
@@ -57,11 +60,18 @@ namespace OfficeIMO.Excel {
                 }
 
                 try {
-                    loadedProperties[property.Name!.Value!] = new ExcelCustomProperty(property);
+                    var loaded = new ExcelCustomProperty(property);
+                    string name = property.Name!.Value!.Trim();
+                    if (CustomProperties.TryGetValue(name, out ExcelCustomProperty existing)) {
+                        existing.ReloadFrom(loaded);
+                        loaded = existing;
+                    }
+                    loadedProperties[name] = loaded;
+                    _loadedCustomPropertyNames.Add(name);
                 } catch (Exception exception) when (exception is FormatException
                                                      || exception is OverflowException
                                                      || exception is ArgumentException) {
-                    // Malformed optional metadata must not prevent the workbook itself from loading.
+                    // Malformed optional metadata stays opaque and must not prevent loading.
                 }
             }
 
@@ -70,29 +80,61 @@ namespace OfficeIMO.Excel {
 
         internal void SaveCustomDocumentProperties() {
             CustomFilePropertiesPart? customPart = _spreadSheetDocument.CustomFilePropertiesPart;
-            if (CustomProperties.Count == 0) {
-                if (_customDocumentPropertiesDirty && customPart != null) {
-                    _spreadSheetDocument.DeletePart(customPart);
-                }
-
-                _customDocumentPropertiesDirty = false;
+            if (CustomProperties.Count == 0 && !_customDocumentPropertiesDirty) {
                 return;
             }
 
             if (customPart == null) {
+                if (CustomProperties.Count == 0) {
+                    _customDocumentPropertiesDirty = false;
+                    _loadedCustomPropertyNames.Clear();
+                    return;
+                }
                 customPart = _spreadSheetDocument.AddCustomFilePropertiesPart();
             }
 
-            customPart.Properties = new Properties();
-            int propertyId = 2;
-            foreach (var pair in CustomProperties.OrderBy(property => property.Key, StringComparer.OrdinalIgnoreCase)) {
-                CustomDocumentProperty property = pair.Value.ToOpenXml(pair.Key);
-                property.PropertyId = propertyId++;
-                customPart.Properties.Append(property);
+            Properties properties = customPart.Properties ??= new Properties();
+            var existingProperties = properties.Elements<CustomDocumentProperty>()
+                .Where(property => !string.IsNullOrWhiteSpace(property.Name?.Value))
+                .GroupBy(property => property.Name!.Value!.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Last(), StringComparer.OrdinalIgnoreCase);
+            var savedProperties = CustomProperties.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(pair => pair.Value.ToOpenXml(pair.Key,
+                    existingProperties.TryGetValue(pair.Key, out CustomDocumentProperty? previous) ? previous : null)).ToList();
+            // Keep root metadata and unmodeled children. Named properties are supplied by
+            // the live collection; each loaded value retains its native XML until edited.
+            foreach (CustomDocumentProperty property in properties.Elements<CustomDocumentProperty>().ToList()) {
+                string? name = property.Name?.Value?.Trim();
+                if (!string.IsNullOrEmpty(name) && (_loadedCustomPropertyNames.Contains(name!) || CustomProperties.ContainsKey(name!))) {
+                    property.Remove();
+                }
             }
 
-            customPart.Properties.Save();
+            var retainedIds = new HashSet<int>(properties.Elements<CustomDocumentProperty>()
+                .Concat(savedProperties)
+                .Select(property => property.PropertyId?.Value ?? 0)
+                .Where(id => id >= 2)
+                .GroupBy(id => id)
+                .Where(group => group.Count() == 1)
+                .Select(group => group.Key));
+            var usedIds = new HashSet<int>(retainedIds);
+            int propertyId = 2;
+            foreach (CustomDocumentProperty property in savedProperties) {
+                if (!retainedIds.Contains(property.PropertyId?.Value ?? 0)) {
+                    while (!usedIds.Add(propertyId)) propertyId++;
+                    property.PropertyId = propertyId;
+                }
+                properties.Append(property);
+            }
+
+            if (!properties.HasChildren && properties.GetAttributes().Count == 0) {
+                _spreadSheetDocument.DeletePart(customPart);
+            } else {
+                properties.Save();
+            }
+
             _customDocumentPropertiesDirty = false;
+            _loadedCustomPropertyNames = new HashSet<string>(CustomProperties.Keys, StringComparer.OrdinalIgnoreCase);
         }
 
         private static ExcelCustomProperty CreateCustomProperty(object? value) {

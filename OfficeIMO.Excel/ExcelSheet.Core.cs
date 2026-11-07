@@ -370,9 +370,14 @@ namespace OfficeIMO.Excel {
         /// values written into a template keep its number formats and fonts.
         /// </summary>
         private static void ApplyInheritedCellStyle(Cell cell, SheetData sheetData, Row? row, int column) {
+            uint style = ResolveInheritedCellStyle(sheetData, row, column);
+            if (style != 0U) cell.StyleIndex = style;
+        }
+
+        /// <summary>Resolves the existing row-before-column inheritance without creating a temporary cell.</summary>
+        private static uint ResolveInheritedCellStyle(SheetData sheetData, Row? row, int column) {
             if (row != null && row.CustomFormat?.Value == true && row.StyleIndex?.Value is uint rowStyle) {
-                if (rowStyle != 0U) cell.StyleIndex = rowStyle;
-                return;
+                return rowStyle;
             }
 
             // <cols> precedes <sheetData>; walking siblings avoids an enumerator per created cell.
@@ -382,12 +387,12 @@ namespace OfficeIMO.Excel {
                     if (child is Column definition
                         && definition.Min?.Value is uint min && min <= (uint)column
                         && definition.Max?.Value is uint max && (uint)column <= max) {
-                        if (definition.Style?.Value is uint columnStyle && columnStyle != 0U) cell.StyleIndex = columnStyle;
-                        return;
+                        return definition.Style?.Value ?? 0U;
                     }
                 }
-                return;
+                return 0U;
             }
+            return 0U;
         }
 
         /// <summary>
@@ -680,11 +685,11 @@ namespace OfficeIMO.Excel {
                 var inline = ExcelWorksheetScan.FindInlineString(cell);
                 if (inline != null) {
                     if (inline.Text != null) {
-                        return inline.Text.Text ?? string.Empty;
+                        return Utilities.ExcelSanitizer.DecodeXString(inline.Text.Text ?? string.Empty);
                     }
                     var sb = new StringBuilder();
                     foreach (var r in inline.Elements<Run>()) {
-                        if (r.Text != null) sb.Append(r.Text.Text);
+                        if (r.Text != null) sb.Append(Utilities.ExcelSanitizer.DecodeXString(r.Text.Text));
                     }
                     return sb.ToString();
                 }
@@ -692,7 +697,8 @@ namespace OfficeIMO.Excel {
             }
 
             // Default: take cell value as-is (numbers, booleans, etc.)
-            return ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.InnerText) ?? string.Empty;
+            string cellText = ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.InnerText) ?? string.Empty;
+            return cell.DataType?.Value == CellValues.String ? Utilities.ExcelSanitizer.DecodeXString(cellText) : cellText;
         }
 
         internal SharedStringCache BuildCellTextSharedStringSnapshot() {

@@ -437,3 +437,4 @@ OfficeIMO.Word.WordSearchResult.FootnoteParagraphs.get -> System.Collections.Gen
 OfficeIMO.Word.WordDocument.ExportFlatOpc(OfficeIMO.Word.WordSaveOptions? options = null) -> byte[]!
 OfficeIMO.Word.WordFileFormat.FlatOpc = 2 -> OfficeIMO.Word.WordFileFormat
 OfficeIMO.Word.WordFileFormat.WordMl2003 = 3 -> OfficeIMO.Word.WordFileFormat
+OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind.Formatting = 20 -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind

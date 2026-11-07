@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Html;
 using System.Net.Http;
 using System.Threading;
@@ -7,14 +8,20 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static readonly Lazy<HttpClient> _sharedHttpClient = new(() =>
-            new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }));
+        private static readonly Lazy<HttpClient> _sharedHttpClient = new(CreateSharedHttpClient);
         private const int MaximumRemoteResourceRedirects = 50;
+        private OfficeHttpCookieScope? _remoteResourceCookies;
+
+        private static HttpClient CreateSharedHttpClient() {
+            var handler = new HttpClientHandler { AllowAutoRedirect = false };
+            OfficeHttpCookieScope.DisableAutomaticCookies(handler);
+            return new HttpClient(handler);
+        }
 
         private async Task<HttpResponseMessage> FetchRemoteResourceAsync(Uri uri,
             HashSet<string> allowedSchemes, HashSet<string> allowedHosts, CancellationToken cancellationToken,
             HtmlUrlPolicy? urlPolicy = null) {
-            // A supplied client owns its transport and redirect behavior.
+            // A supplied client owns its cookies, transport and redirect behavior.
             if (_options.HttpClient is { } client) {
                 using var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
@@ -24,10 +31,12 @@ namespace OfficeIMO.Word.Html {
             HttpClient sharedClient = _sharedHttpClient.Value;
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(sharedClient.Timeout);
+            OfficeHttpCookieScope cookies = LazyInitializer.EnsureInitialized(
+                ref _remoteResourceCookies, static () => new OfficeHttpCookieScope())!;
             for (int redirects = 0; ; redirects++) {
                 using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                HttpResponseMessage response = await sharedClient.SendAsync(
-                    request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
+                HttpResponseMessage response = await cookies.SendAsync(
+                    sharedClient, request, uri, timeout.Token).ConfigureAwait(false);
                 int status = (int)response.StatusCode;
                 bool redirect = status is 300 or 301 or 302 or 303 or 307;
 #if !NETFRAMEWORK

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Linq;
 
@@ -20,7 +21,13 @@ public partial class ExcelDocument {
         return this;
     }
 
-    private static string CreateWorkbookThemeXml(OfficeTheme theme) {
+    // Reuse completed XML for immutable themes without retaining custom theme instances.
+    private static readonly ConditionalWeakTable<OfficeTheme, string> WorkbookThemeXmlCache = new();
+
+    private static string CreateWorkbookThemeXml(OfficeTheme theme) =>
+        WorkbookThemeXmlCache.GetValue(theme, BuildWorkbookThemeXml);
+
+    private static string BuildWorkbookThemeXml(OfficeTheme theme) {
         var xml = XDocument.Parse(Encoding.UTF8.GetString(DefaultThemeBytes.Value));
         XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
         var root = xml.Root!;

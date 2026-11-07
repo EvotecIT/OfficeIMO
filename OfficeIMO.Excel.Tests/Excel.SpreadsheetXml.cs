@@ -95,6 +95,54 @@ public sealed class ExcelSpreadsheetXmlTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Xml_export_decodes_native_string_leaves_before_emitting_text_and_formula_caches(bool expandedStorage) {
+        string payload = expandedStorage ? string.Concat(Enumerable.Repeat("_x0041_", 5000)) : "word _x005F_x0041_ _x0042_ &#xD; 😀";
+        string expected = expandedStorage ? new string('A', 5000) : "word _x0041_ B \r 😀";
+        using var document = ExcelDocument.Load(new MemoryStream(ExcelXStringPersistenceTests.CreateNativeStringFixture(payload)));
+        var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
+        worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>()!.Elements<DocumentFormat.OpenXml.Spreadsheet.Row>().Single()
+            .Append(new DocumentFormat.OpenXml.Spreadsheet.Cell {
+                CellReference = "G1", DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String,
+                CellFormula = new DocumentFormat.OpenXml.Spreadsheet.CellFormula("\"cached\""),
+                CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(payload.Replace("&#xD;", "\r"))
+            });
+
+        byte[] output = document.ExportSpreadsheetXml().Value;
+
+        XNamespace ss = Ss;
+        XElement[] values = XDocument.Parse(Encoding.UTF8.GetString(output), LoadOptions.PreserveWhitespace).Descendants(ss + "Data").ToArray();
+        Assert.Equal(7, values.Length);
+        for (int column = 0; column < values.Length; column++)
+            Assert.Equal(column == 5 ? "word _x0041_" : expected, values[column].Value);
+        using var imported = ExcelDocument.ImportSpreadsheetXml(output).Value;
+        for (int column = 1; column <= 7; column++)
+            Assert.Equal(column == 6 ? "word _x0041_" : expected, imported.Sheets[0].Cell(1, column).GetValue<string>());
+        Assert.True(Assert.Single(imported.Sheets[0].Cell(1, 4).GetRichText()).Bold);
+        Assert.Equal("\"cached\"", imported.Sheets[0].GetFormulaText(1, 7));
+    }
+
+    [Theory]
+    [InlineData("_x0001_")]
+    [InlineData("_xD800_")]
+    [InlineData("_xDC00_")]
+    [InlineData("_xFFFF_")]
+    public void Xml_export_rejects_unrepresentable_text_without_rewriting_source_payloads(string payload) {
+        using var document = ExcelDocument.Load(new MemoryStream(ExcelXStringPersistenceTests.CreateNativeStringFixture(payload)));
+        var workbook = document.OpenXmlDocument.WorkbookPart!;
+        var cells = workbook.WorksheetParts.Single().Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().ToArray();
+        string[] before = cells.Select(cell => cell.OuterXml).ToArray();
+        string sharedBefore = workbook.SharedStringTablePart!.SharedStringTable!.OuterXml;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml());
+
+        Assert.Contains("XML Spreadsheet cannot represent cell text", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(before, cells.Select(cell => cell.OuterXml).ToArray());
+        Assert.Equal(sharedBefore, workbook.SharedStringTablePart.SharedStringTable.OuterXml);
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void Xml_export_preserves_caches_and_never_invokes_save_calculation(bool evaluate) {

@@ -11,7 +11,7 @@ internal static class EmbeddedFragmentContentNormalizer {
         string content,
         WordAlternativeFormatImportPartType partType) {
         return partType switch {
-            WordAlternativeFormatImportPartType.Html => HtmlListSemanticsNormalizer.Normalize(content),
+            WordAlternativeFormatImportPartType.Html => HtmlEmbeddedDocumentNormalizer.Normalize(content),
             WordAlternativeFormatImportPartType.Rtf => RtfListSemanticsNormalizer.Normalize(content, mainDocumentPart),
             _ => content
         };

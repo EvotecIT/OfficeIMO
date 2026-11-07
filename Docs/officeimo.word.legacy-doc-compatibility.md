@@ -6,9 +6,28 @@ This document is the current capability contract.
 
 Native DOC uses the legacy behavior for a manual page break at the end of a paragraph: the paragraph mark moves onto the next page and consumes its line height and after spacing. Import projects this behavior through `CompatibilitySettings.SplitPageBreakAndParagraphMark = true` and Word 2003 compatibility mode, so DOCX and PDF conversion retain it. Native DOC saving rejects an explicitly disabled value. Use DOCX to retain `false`; Word 2013 compatibility mode ignores this stored setting during layout.
 
+## Import Word 6 and Word 95 documents
+
+Load an unencrypted, non-fast-saved Windows-1252 Word 6 or Word 95 document with `WordDocument.Load`. The supported File Information Block versions are 101 and 104. Import projects body paragraphs, paragraph styles and their inheritance, character formatting, simple tables, tracked text revisions, and the default tab stop into editable Word content. Edit-protected files are rejected.
+
+Section layout retains supported section starts, paper dimensions, orientation, margins, gutter, header/footer distances, columns, vertical alignment and page-number settings. Default, first-page and even-page headers and footers retain supported paragraphs, tables and fields. Running stories use the source document's formatting and font-code-page checks. Explicit paragraph tabs, spacing, and supported single, double, dotted and dashed paragraph/table borders remain editable. Paragraph border clears, border shadows, thick borders and range-based tab changes are reported as unsupported formatting.
+
+Supported page-count, date/time, document-property, `FILENAME` and `STYLEREF` fields retain their editable representation. Filename and style references retain the source instruction, switches and cached text. Cached result runs retain their formatting and revision marks in DOCX. A style reference without a matching projected source style is reported explicitly. Unsupported or localized field instructions retain cached text under an explicit loss policy. Import does not evaluate fields.
+
+Declared field tables retain supported field locks in body and header/footer stories. The inverse field-code/result display preference (`fDiffer`) has no projected view-state equivalent and reports `doc-field-display-approximation`; the instruction and cache remain available under an explicit loss policy. Private and OLE-backed field-result states also report unsupported field state. Files without declared field tables retain the existing text-carrier import behavior without asserting a known lock state. The older lock grammar is source-qualified for versions 101 and 104; an independently produced locked Word 6/95 fixture remains unqualified.
+
+`EQ` fields, including equations displayed inside hyperlinks, retain their source instructions and cached runs. Their native Word appearance is unqualified across regional settings: a fraction argument delimiter accepted on one system can display an error on another. Import reports `doc-word69-equation-appearance-unqualified` at the source character position, so saving requires `AllowLoss = true`. Import does not rewrite the equation instruction to match the target locale.
+
+    using OfficeIMO.Word;
+
+    using WordDocument document = WordDocument.Load("archive.doc");
+    document.Save("editable.docx");
+
+Save to a separate DOCX path. Word 6/95 sources have no associated save path and binary DOC output is unavailable for those documents. Review `LegacyDocUnsupportedFeatures` before conversion. Strict DOCX saving blocks when the reader reports lost content, including pictures, embedded objects, footnotes/endnotes, comments, text boxes, legacy numbering, unsupported formatting, or text that uses another font code page. Set `WordSaveOptions.AllowLoss` to `true` only when those reported losses are acceptable.
+
 ## Normal API
 
-Use the same `WordDocument` surface for both formats:
+Use `WordDocument` for modern DOCX and Word 97–2003 binary DOC:
 
 ```csharp
 using OfficeIMO.Word;
@@ -71,6 +90,7 @@ The DOC reader projects supported content into the normal OfficeIMO Word model. 
 | Bookmarks and supported internal/external hyperlinks | Projected |
 | Static and supported field display results | Projected |
 | SECTIONPAGES fields | Projected as editable fields, retaining the source instruction, format switches and cached result |
+| FILENAME and STYLEREF fields | Projected as editable fields, retaining the source instruction, switches and cached text |
 | Footnotes and endnotes, including supported formatting | Projected |
 | Comments with readable comment tables | Projected |
 | Revision-tracking settings | Projected |
@@ -90,6 +110,12 @@ Default, first-page, and even-page headers and footers retain supported tables a
 
 SECTIONPAGES fields remain editable through native import and save in the body, supported table cells, headers, footers, footnotes and endnotes. Simple and supported adjacent-run complex fields retain their instruction, format switches, cached result and result formatting. The binary writer emits the parsed SECTIONPAGES field type. A field without a cached result receives a placeholder of `1`; import and native saving do not calculate pagination. `InspectFields()` exposes the imported instruction and cached text, and the existing typed `AddField(WordFieldType.SectionPages, ...)` API authors the field. Layout-dependent field evaluation and PDF rendering have separate contracts.
 
+Word 97–2003 native saving retains supported field caches as separate formatted runs, including basic tracked insertions and deletions and bookmark offsets within the result. Nonempty `PAGE` and `NUMPAGES` caches retain their stored text and instruction switches. Imported `PAGE` results use editable fields whose cached text is exposed through `Paragraph.Text`; import does not replace that text with an empty page-number run or calculate the current page. `AddPageNumber` authors fields through the normal field API.
+
+Native writing retains an empty cache for supported non-count fields, including note fields and equations; absent `PAGE`, `NUMPAGES` and `SECTIONPAGES` caches use the existing placeholder `1`. Native import has a narrower profile: supported non-count fields and `PAGE`/`NUMPAGES` with empty results, either after a separator or without a result separator, are not yet projected as editable fields. This includes `HYPERLINK` targets or anchors without cached display text. Main, header/footer, footnote, endnote, readable comment and readable body-textbox sources report `doc-field-empty-result-unprojected` with the instruction, story and source positions; strict saving blocks their omission unless `AllowLoss` is explicit. Empty `SECTIONPAGES` remains editable and uses its existing placeholder. Unreadable comments/body textboxes and header/footer textboxes retain their whole-story loss reports. Native writing support does not qualify an empty-cache import round trip.
+
+Supported field locks survive native import, DOCX save/reopen and native resave across body paragraphs, tables, headers, footers, footnotes and endnotes. Locking prevents recalculation; import and save do not evaluate the field. Native cache edit-history flags receive an informational disposition and are not interpreted as a DOCX invalidation (`dirty`) flag. Native saving retains the stored instruction and cache for newly authored fields; it does not evaluate or preserve a per-field DOCX update request. Malformed or mismatched declared field tables report a strict loss rather than assuming the field is unlocked.
+
 Lists retain supported native numbering formats, marker text, alignment, suffixes, paragraph/run formatting, abstract starting values and per-instance start or formatting overrides. An explicit instance restart takes precedence over the abstract start. Native definitions contain level 0 alone or all nine levels; starts range from 0 through 32,767 and instance IDs from 1 through 32,767. Sparse instance IDs keep their paragraph references. A marker can contain at most one placeholder per available level: one at level 0, two at level 1, up to nine at level 8. Linked numbering styles, picture bullets, section-break restarts, unsupported level properties and references to absent instances or levels raise `NotSupportedException` before output is committed. Missing or malformed binary list tables produce a `Numbering` entry in `LegacyDocUnsupportedFeatures`; review that loss before explicitly allowing output.
 
 List-tab alignment and positions remain editable when importing native numbering definitions, saving DOC, or projecting to DOCX. Native import reads Word's list-level tab additions in `sprmPChgTabs` when that operation has no range deletions. Paragraph, style and numbering tabs share the native alignment and leader mapping, including list tabs. Native output sorts tab positions and accepts up to 64 additions and 64 clears per tab operation, subject to the binary operand size limit. Larger tab sets raise `NotSupportedException`; save as DOCX to retain them. Native `sprmPChgTabs` operations containing range deletions are not projected. Retaining the tab metadata alone does not qualify numbering layout compatibility options in PDF output.
@@ -105,6 +131,8 @@ Paragraph and style pagination flags retain explicit false values as well as tru
 Page setup retains section gutter widths and right-edge gutter settings. Document options retain the default tab interval, mirrored margins and top gutters alongside revision tracking and odd/even header selection.
 
 Native DOC output retains footnote and endnote placement, numbering format, starting number and restart policy. The emitted Word 97 and Word 2000 formats store these options for the whole document. Sections with different effective note options raise `NotSupportedException`; save as DOCX to retain those section-specific settings. When importing later Word formats, the reader uses the effective FIB version and retains their authoritative section note settings.
+
+DOC import retains literal spaces following a footnote or endnote reference in editable runs and DOCX output, including their formatting, revisions and bookmark positions. Native DOC output retains an explicit leading space without adding another separator. When a note has no leading literal space, native output keeps the existing one-space separator default; this normalizes an exact zero-space DOCX source to one space. DOCX saving preserves the literal zero-space source.
 
 Each section retains its own start type: continuous, next-column, next-page, odd-page, or even-page. Native section marks remain distinct from manual page breaks within paragraphs. An empty section-mark paragraph retains its paragraph and paragraph-mark formatting; import attaches the section to that paragraph without adding another terminator. `AddSection()` continues page numbering; explicit numbering restarts remain properties of the new section. PDF and image export resolve odd/even starts and numbering restarts through their layout engines.
 

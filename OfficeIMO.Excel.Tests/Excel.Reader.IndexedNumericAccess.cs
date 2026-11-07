@@ -32,6 +32,17 @@ public partial class Excel {
             ("12.3400", 12.34, "45355", 45355),
             ("-12.3400", -12.34, "45356.125", 45356.125),
             ("000.00", 0d, "45357", 45357),
+            ("35.840000000000003", 35.840000000000003, "45358", 45358),
+            ("-165258.23999999999", -165258.23999999999, "45359", 45359),
+            ("1.00000000000000001", 1.00000000000000001, "45360", 45360),
+            ("9.99999999999999999", 9.99999999999999999, "45361", 45361),
+            ("999999999999999.999", 999999999999999.999, "45362", 45362),
+            ("1.23456789012345499", 1.23456789012345499, "45363", 45363),
+            ("0.10000000000000001", 0.10000000000000001, "45364", 45364),
+            ("1.234567890123450", 1.234567890123450, "45365", 45365),
+            ("-1.234567890123450", -1.234567890123450, "45366", 45366),
+            ("1.234567890123459", 1.234567890123459, "45367", 45367),
+            ("-1.234567890123459", -1.234567890123459, "45368", 45368),
         };
         string cells = string.Concat(rows.Select(row =>
             $"<row><c><v>{row.NumberXml}</v></c><c s=\"1\"><v>{row.DateXml}</v></c><c/></row>"))
@@ -47,7 +58,7 @@ public partial class Excel {
                     Assert.Equal(BitConverter.DoubleToInt64Bits(expectedNumber), BitConverter.DoubleToInt64Bits(reader.GetDouble(0)));
                     Assert.Equal(row.Serial, reader.GetDouble(1));
                 } else {
-                    if (numericAsDecimal) Assert.Equal((decimal)row.Number, Assert.IsType<decimal>(reader.GetValue(0)));
+                    if (numericAsDecimal) Assert.Equal(decimal.GetBits((decimal)row.Number), decimal.GetBits(Assert.IsType<decimal>(reader.GetValue(0))));
                     else Assert.Equal(row.Number, Assert.IsType<double>(reader.GetValue(0)));
                 }
                 DateTime expectedDate = elapsed ? DateTime.FromOADate(row.Serial)
@@ -56,7 +67,7 @@ public partial class Excel {
                 Assert.Equal(expectedDate, Assert.IsType<DateTime>(reader.GetValue(1)));
                 Assert.Equal(row.Serial, reader.GetDouble(1));
                 Assert.Equal(BitConverter.DoubleToInt64Bits(expectedNumber), BitConverter.DoubleToInt64Bits(reader.GetDouble(0)));
-                if (numericAsDecimal) Assert.Equal((decimal)row.Number, Assert.IsType<decimal>(reader.GetValue(0)));
+                if (numericAsDecimal) Assert.Equal(decimal.GetBits((decimal)row.Number), decimal.GetBits(Assert.IsType<decimal>(reader.GetValue(0))));
                 else Assert.Equal(BitConverter.DoubleToInt64Bits(row.Number), BitConverter.DoubleToInt64Bits(Assert.IsType<double>(reader.GetValue(0))));
                 Assert.True(reader.IsDBNull(2));
                 var values = new object[3];

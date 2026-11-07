@@ -14,12 +14,17 @@ public sealed class EmailStoreReader {
         ArgumentNullException.ThrowIfNull(path);
         if (Directory.Exists(path)) return EmailStoreFormat.MailboxDirectory;
         using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-            return DetectFormat(stream, Path.GetFileName(path));
+            EmailStoreFormat format = DetectFormat(stream, Path.GetFileName(path), out bool isDbxCatalog);
+            return isDbxCatalog && DbxDatabase.IsCatalogFileName(path) ? EmailStoreFormat.Dbx : format;
         }
     }
 
     /// <summary>Detects a store format without changing a seekable stream's position.</summary>
-    public static EmailStoreFormat DetectFormat(Stream stream, string? sourceName = null) {
+    public static EmailStoreFormat DetectFormat(Stream stream, string? sourceName = null) =>
+        DetectFormat(stream, sourceName, out _);
+
+    internal static EmailStoreFormat DetectFormat(Stream stream, string? sourceName, out bool isDbxCatalog) {
+        isDbxCatalog = false;
         ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("The source stream must be readable.", nameof(stream));
 
@@ -41,6 +46,10 @@ public sealed class EmailStoreReader {
             if (header[8] == 0x53 && header[9] == 0x4F) return EmailStoreFormat.Ost;
             if (header[8] == 0x53 && header[9] == 0x4D) return EmailStoreFormat.Pst;
         }
+
+        if (DbxDatabase.HasSignature(header, count)) return EmailStoreFormat.Dbx;
+        isDbxCatalog = DbxDatabase.HasSignature(header, count, folderDatabase: true);
+        if (isDbxCatalog) return EmailStoreFormat.Unknown;
 
         string extension = Path.GetExtension(sourceName ?? string.Empty);
         if (string.Equals(extension, ".olm", StringComparison.OrdinalIgnoreCase) &&

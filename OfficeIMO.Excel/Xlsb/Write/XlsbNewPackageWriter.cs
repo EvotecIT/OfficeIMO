@@ -123,8 +123,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 ZipArchiveEntry entry = archive.CreateEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest);
                 entry.LastWriteTime = ReproducibleEntryTime;
                 using (Stream output = entry.Open()) {
+                    using var pipeline = pooledSnapshot && source.Rows.RowCount >= 4096
+                        && document.Execution.AllowsBackgroundProcessing ? new XlsbCompressionPipeline(output) : null;
                     if (!XlsbWorksheetPartWriter.TryWriteDirectTabular(
-                        dateSystem, sheet, source, output, cancellationToken, sharedStrings)) return false;
+                        dateSystem, sheet, source, pipeline ?? output, cancellationToken, sharedStrings)) return false;
+                    pipeline?.Complete();
                 }
 
                 // Dates can add styles and text can populate the shared-string table

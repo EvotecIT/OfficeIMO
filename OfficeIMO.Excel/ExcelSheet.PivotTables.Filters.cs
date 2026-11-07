@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
 
         private static PageField CreatePageField(int fieldIndex, ExcelPivotFieldOptions? options, IReadOnlyList<string> values) {
             var pageField = new PageField { Field = fieldIndex };
-            if (options == null || string.IsNullOrWhiteSpace(options.SelectedItem)) {
+            if (options == null || options.SelectedItem == null) {
                 return pageField;
             }
 

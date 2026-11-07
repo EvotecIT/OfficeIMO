@@ -122,7 +122,7 @@ namespace OfficeIMO.Excel {
                 if (headerRowCount > 0) {
                     for (int column = 0; column < columnNames.Count; column++) {
                         cancellationToken.ThrowIfCancellationRequested();
-                        CellValueCoreNoMaterialize(current.r1, current.c1 + column, columnNames[column]);
+                        WriteOwnedTableSchemaHeader(current.r1, current.c1 + column, columnNames[column]);
                     }
                 }
                 for (int row = 0; row < rows.Count; row++) {

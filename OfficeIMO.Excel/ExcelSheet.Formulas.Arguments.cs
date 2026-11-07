@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -77,7 +78,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static string FormulaValueToText(FormulaArgumentValue value) {
-            return value.ErrorCode ?? value.Text ?? (value.Number.HasValue ? InvariantNumberText.Get(value.Number.Value) : string.Empty);
+            if (value.IsError) return value.ErrorCode ?? string.Empty;
+            if (value.IsBoolean) return value.Number == 0 ? "FALSE" : "TRUE";
+            if (value.Number.HasValue && value.SourceCellKind != ExcelCellDataKind.Text)
+                return SpreadsheetNumberText.FormatInvariant(value.Number.Value);
+            return value.Text ?? string.Empty;
         }
 
         private bool TryResolveFormulaArgument(string token, out FormulaArgumentValue value, bool allowScalarExpression = true) {

@@ -181,10 +181,12 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                CoerceValueHelper.ValidateSharedStringLength(replaced, nameof(bindings));
+                var inline = new InlineString(new Text(Utilities.ExcelSanitizer.EncodeXString(replaced)));
                 cell.CellFormula = null;
                 cell.CellValue = null;
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;
-                cell.InlineString = new InlineString(new Text(Utilities.ExcelSanitizer.SanitizeString(replaced)));
+                cell.InlineString = inline;
                 replacements += cellReplacements;
             }
 

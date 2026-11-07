@@ -18,6 +18,9 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellValueCoreNoMaterialize(int row, int column, object? value) {
+            // Materialization replays physical cells already admitted to the buffer.
+            if (!_materializingPendingCellValueDirectSaveBuffer && !_excelDocument.IsMaterializingDeferredDataSetImport
+                && TrySetTableHeaderValue(row, column, value)) return;
             if (value == null || value == DBNull.Value) {
                 CellEmptyStringValueCore(row, column);
                 return;
@@ -179,7 +182,7 @@ namespace OfficeIMO.Excel {
 
         private void SetExistingCellPlainStringValue(Cell cell, string value) {
             CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
-            ExcelWorksheetScan.SetValueText(cell, value);
+            ExcelWorksheetScan.SetValueText(cell, Utilities.ExcelSanitizer.EncodeXString(value));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
             ExcelWorksheetScan.RemoveInlineString(cell);
             if (value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0) {

@@ -1520,3 +1520,128 @@ Unicode strings that span CONTINUE records, cached formula strings and rich-text
 shared strings keep their output, and the pooled-cache clearing contract still
 holds. The focused XLS, XLSB, reader, shared-string and mapping run passes 2,349
 cases with two skips. Excel builds for netstandard2.0, net8.0, net10.0 and net472.
+
+## Typed CSV object writes on 7 November 2026
+
+`CsvDocument.WriteObjects` and `CsvRowWriter.WriteObject` stage known invariant
+scalar properties through the existing span formatter. This avoids boxing and
+per-property formatted strings. Core owns the property schema and compiled
+getter plan, while CSV retains escaping and row output. Text-only schemas use
+the existing text projector. Getter and formatter order, captured row culture,
+large-field fallback and validation retain their existing contracts.
+
+I compared the merged `d791174e30` baseline with the same public typed benchmark,
+50,000 prepared mixed ten-column records, complete UTF-8 output and `ToArray`.
+Setup validates every property and header through both readers. The two mirrored
+run orders use twelve warmups, twelve measurements, sixteen invocations, normal
+priority and retained outliers on the M4 host with .NET 10.0.14.
+
+| Public benchmark method | ABBA baseline to candidate ms | BAAB baseline to candidate ms | Reduction |
+| --- | ---: | ---: | ---: |
+| `OfficeIMO_Write` | 9.2160 to 6.0831 | 9.2836 to 6.0949 | 34.0% / 34.3% |
+| `OfficeIMO_WriteStream` | 9.0419 to 6.0866 | 9.1823 to 6.0946 | 32.7% / 33.6% |
+
+Both paths allocate about 6.8 MB less per complete write. A separate four-shape
+comparison retains flat text-only results, 12–14% quoted-row gains and 40–44%
+large quoted-row gains. A simpler object-value routing trial lost 15–16% and was
+removed. I retain repeatable smaller gains alongside the 20% research target.
+
+The opt-in comparison is reproducible with the existing runner.
+
+```sh
+dotnet run --project OfficeIMO.CSV.Benchmarks.Modern -c Release -f net10.0 -- --filter '*CsvGeneratedModernTypedBenchmarks*' --inProcess --warmupCount 12 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove
+```
+
+The library compiles for all four targets. The final .NET 10 suites pass 8,120
+Excel cases with five existing skips and 983 CSV cases. The .NET 8 CSV suite
+passes 974 cases, and CSV tests compile for net472. The NativeAOT program also
+executes a metadata-preserved `WriteObject` call. Its new regression reproduced
+a baseline failure when property metadata tokens were unavailable. Property
+ordering now reuses the existing exception-safe helper. Reflection compatibility
+calls retain their explicit metadata-preservation requirement.
+
+## XLSX metadata and namespace validation on 7 November 2026
+
+The UTF-8 reader reuses complete indexed body validation when an unprefixed
+`sheetData` subtree accompanies prefixed worksheet metadata. The same
+`XmlReader` and namespace validator check the original enclosing markup.
+Prefix-bearing body attributes and richer namespace contexts retain the full
+traversal. XML errors retry the original input to preserve line and column
+information. The optimization applies to .NET 8 and later.
+
+The shared canonical helper also defers whitespace-sensitive namespace URIs and
+noncanonical `xml:space` values to the authoritative reader. This rejects
+duplicate expanded attribute names after XML whitespace normalization and
+invalid reserved attribute values before a row becomes observable.
+
+I compared the merged `3dd47927ac` source with this change using fixed
+Windows-produced workbooks containing 50,000 four-column records. Each raw
+read materializes every field, and each typed read maps and observes every
+record. Setup independently validates all intended values and headers. The
+M4 host uses .NET 10.0.14, normal priority, twelve warmups, twelve measurements,
+sixteen invocations, retained outliers and ABBA ordering.
+
+| Worksheet shape and operation | Baseline ms | Candidate ms | Reduction |
+| --- | ---: | ---: | ---: |
+| Plain raw read | 23.2295 | 5.8486 | 74.8% |
+| Escaped raw read | 29.8088 | 9.2170 | 69.1% |
+| Plain typed read | 24.6216 | 7.2551 | 70.5% |
+| Escaped typed read | 31.5563 | 11.0064 | 65.1% |
+
+The final comparison retains all six methods and unchanged participants across
+48 cases and 576 samples. Earlier reverse-order confirmation improves all four
+OfficeIMO lanes. An initial plain-read launch took 12.265 ms and remains in the
+retained evidence. Allocation falls by about 32 KB for plain data and 29 KB for
+escaped data per complete read. These reductions apply to the affected XML
+shape. Windows qualification is separate.
+
+The authentic 65,535-row, fourteen-column sales workbook uses prefixed row
+attributes and keeps full XML traversal. A monotonic tracking guard avoids
+repeated attribute-state writes. Its focused reversed comparison improves
+4.35%, with a 0.56% movement in the unchanged control. The final corrected-source
+comparison moves 48.5473 to 45.5231 ms, while its control improves 2.22%.
+Baseline launch variation and the earlier 7.3% and 2.2% losses before the guard
+remain in the evidence.
+
+The single reader-boundary theory covers fourteen valid and rejection cases,
+including strict namespaces, prefixed body attributes, malformed enclosing and
+body XML, normalized namespace aliases and reserved XML values. Its suffix
+case independently checks original BCL line and column information. The two
+canonical namespace regressions fail on the old code and pass after correction,
+with both valid companions preserved. Final .NET 10 suites pass 8,134 Excel cases
+with five existing skips and 983 CSV cases. The same fourteen boundary cases
+pass on .NET 8 and compile for net472. All four library targets compile, and the
+NativeAOT program publishes and executes.
+
+### Invariant numeric CSV reads
+
+I measured the normal SDK builds in both launch orders with the same 50,000-row,
+10-column mixed CSV input. Typed parsing improves from 12.9584 ms to 9.4662 ms
+in ABBA and from 12.8281 ms to 9.4108 ms in BAAB, reductions of 26.95% and
+26.64%. Each order retains all nine read, typed-parse and complete-write methods,
+12 warmups, 12 measured samples, 16 invocations, normal priority and outliers.
+Allocations are unchanged. Raw reads and writes remain mixed across the two
+orders, and Windows qualification remains open.
+
+The direct UTF-8 getters try integer styles for invariant byte, Int16, Int32 and
+Int64 values. Decimal parsing uses a bounded fixed-point fast path. Other
+cultures, broader numeric formats, exponents and precision-sensitive values
+retain the existing parser. The reader-boundary regression compares complete
+decimal bits, including midpoint rounding and signed-zero scale. The matched
+benchmarks validate every value and complete output before timing.
+
+### Typed CSV row staging
+
+I retain normal typed rows in the existing row buffer and collect fallback
+metadata after a large field exceeds that buffer. The escaped prefix and the
+remaining fields are delivered after every getter and formatter completes.
+The existing writer theory covers large first, middle and last fields, nullable
+values and recovery after a late getter throws, on both output transports.
+
+The reversed matched 50,000-row comparison records complete writes of
+6.1209 ms to 5.8977 ms and stream writes of 5.9818 ms to 5.8236 ms, reductions of
+3.65% and 2.65%, with both pairs improving. Quoted-field gains repeat in both
+orders. The wider text, large-quoted and French shapes are mixed, and the first
+mixed-row cohort includes compiler activity and peer slowdowns. Native caller
+CPU checks of the French case improve by 2.60% and 1.65%. Those diagnostic CPU
+measurements remain separate from the matched wall-time comparisons.

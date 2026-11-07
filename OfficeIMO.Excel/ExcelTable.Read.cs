@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
                 cancellationToken, effective.CancellationToken);
             CancellationToken token = linked.Token;
             token.ThrowIfCancellationRequested();
-            var layout = Sheet.GetTableReadLayout(NameOrRange);
+            var layout = Sheet.GetTableReadLayout(NameOrRange, token);
             if (layout.Range is null) yield break;
 
             using ExcelWorkbookDataReader reader = Sheet.CreateDataReader(
@@ -41,8 +41,8 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         // Resolve the native schema instead of using the first data row as headers.
         // A table wrapper can identify a table by its name, display name or range.
-        internal (string? Range, bool HasHeaderRow, string[] Columns) GetTableReadLayout(string nameOrRange) =>
-            Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
+        internal (string? Range, bool HasHeaderRow, string[] Columns) GetTableReadLayout(string nameOrRange, CancellationToken cancellationToken = default) =>
+            _excelDocument.ExecuteReadAfterMaterializing(() => {
                 Table table = FindTableByRangeNameOrDisplayName(nameOrRange)
                     ?? throw new InvalidOperationException($"Table '{nameOrRange}' was not found on worksheet '{Name}'.");
                 string? range = table.Reference?.Value;
@@ -61,6 +61,6 @@ namespace OfficeIMO.Excel {
                 string? readRange = dataEnd < firstRow ? null
                     : $"{ExcelA1.CellReference(firstRow, firstColumn)}:{ExcelA1.CellReference((int)dataEnd, lastColumn)}";
                 return (readRange, headers, columns);
-            });
+            }, cancellationToken);
     }
 }

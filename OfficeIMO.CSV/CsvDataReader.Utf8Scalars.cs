@@ -1,4 +1,5 @@
 #if NET8_0_OR_GREATER
+using System.Buffers.Text;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -43,7 +44,38 @@ public partial class CsvDataReader
     {
         if (TryGetDirectUtf8Text(ordinal, out var text))
         {
+            if (ReferenceEquals(_culture, CultureInfo.InvariantCulture)
+                && (typeof(T) == typeof(byte) || typeof(T) == typeof(short)
+                    || typeof(T) == typeof(int) || typeof(T) == typeof(long))
+                && T.TryParse(text, NumberStyles.Integer, _culture, out value))
+            {
+                return true;
+            }
+
             return T.TryParse(text, NumberStyles.Any, _culture, out value);
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Parses short fixed-point values without rounding. Longer coefficients and
+    /// exponents retain the culture-aware parser's precision and signed zero.
+    /// </summary>
+    private bool TryGetDirectUtf8Decimal(int ordinal, out decimal value)
+    {
+        if (TryGetDirectUtf8Text(ordinal, out var text))
+        {
+            if (ReferenceEquals(_culture, CultureInfo.InvariantCulture)
+                && text.Length <= 28
+                && Utf8Parser.TryParse(text, out value, out int consumed, standardFormat: 'F')
+                && consumed == text.Length)
+            {
+                return true;
+            }
+
+            return decimal.TryParse(text, NumberStyles.Any, _culture, out value);
         }
 
         value = default;

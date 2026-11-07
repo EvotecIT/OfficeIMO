@@ -149,7 +149,7 @@ namespace OfficeIMO.Excel {
                 right = new FormulaArgumentValue(0d, "0");
             int comparison;
             if (left.Number.HasValue && right.Number.HasValue) {
-                comparison = left.Number.Value.CompareTo(right.Number.Value);
+                comparison = CompareFormulaNumbers(left.Number.Value, right.Number.Value);
             } else {
                 string leftText = left.Text ?? (left.Number.HasValue ? InvariantNumberText.Get(left.Number.Value) : string.Empty);
                 string rightText = right.Text ?? (right.Number.HasValue ? InvariantNumberText.Get(right.Number.Value) : string.Empty);
@@ -299,10 +299,22 @@ namespace OfficeIMO.Excel {
         private static double CalculateMedian(List<double> numbers) {
             var sorted = numbers.OrderBy(value => value).ToList();
             int middle = sorted.Count / 2;
-            return sorted.Count % 2 == 1
-                ? sorted[middle]
-                : (sorted[middle - 1] + sorted[middle]) / 2d;
+            if (sorted.Count % 2 == 1) return sorted[middle];
+            double left = sorted[middle - 1], right = sorted[middle];
+            return left >= 0d || right <= 0d ? left + (right - left) / 2d : (left + right) / 2d;
         }
+
+        private static int CompareFormulaNumbers(double left, double right) {
+            // Comparison follows spreadsheet decimal precision without changing the
+            // full-precision numbers stored in caches or passed to financial solvers.
+            double normalizedLeft = NormalizeFormulaComparisonNumber(left);
+            double normalizedRight = NormalizeFormulaComparisonNumber(right);
+            return normalizedLeft.CompareTo(normalizedRight);
+        }
+
+        private static double NormalizeFormulaComparisonNumber(double value) =>
+            double.TryParse(value.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double normalized) && !double.IsInfinity(normalized) ? normalized : value;
 
         private static bool TryGetWholeNumber(double value, out int number) {
             number = (int)Math.Round(value, MidpointRounding.AwayFromZero);

@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
                 cell.CellValue = new CellValue(SharedStringIndexText.Get(sharedStringIndex));
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
             } else {
-                cell.CellValue = new CellValue(update.Text);
+                cell.CellValue = new CellValue(update.DataType == CellValues.String ? Utilities.ExcelSanitizer.EncodeXString(update.Text) : update.Text);
                 cell.DataType = update.DataType;
             }
         }

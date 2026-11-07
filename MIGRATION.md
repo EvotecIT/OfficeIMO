@@ -22,6 +22,7 @@ For PowerShell scripts:
 - **Content blocks.** Styled text is written with child commands (`WordText`, `PowerPointText`, `PdfText`, `ExcelText`); `-Run` hashtables of parallel arrays are removed. Each DSL command has exactly one alias, with the format name spelled out: `PowerPointSlide` replaces `PptSlide`. Plural, spelling, verb-last and unprefixed alias twins are removed.
 - **`-WhatIf` and `-Confirm`** cover file-system effects: `New`, `Save`, `Export`, `Convert`, `Repair`, `Protect` and `Remove` commands.
 - **Electronic invoices** are no longer part of PSWriteOffice (13 commands and aliases removed). Use the OfficeIMO.Invoicing packages from .NET.
+- **Excel header edits and text matching.** `Set-OfficeExcelCell`, `Set-OfficeExcelRow`, `Set-OfficeExcelColumn` and `Update-OfficeExcelText` keep table column names and structured references in sync when they change a header; blank and duplicate header names are rejected. Clearing values retains table labels; select data rows when assigning formulas. `Set-OfficeExcelColumn` text-based styling matches formatted text, so a numeric cell formatted as `0.00` matches `1.00` rather than `1`.
 - **Removed-command hints.** When a script calls a command or alias that no longer exists, PSWriteOffice prints its replacement, taken from the reference tables below.
 
 For .NET code:
@@ -34,6 +35,8 @@ For .NET code:
 - **Conversion limits.** Lists deeper than `MarkdownLoadOptions.MaxNestingDepth` (default 64) now throw `InvalidDataException`; raise the option if you parse deeper lists. `WordHtmlExportOptions.AdditionalLinkTags` now follow the hyperlink URL policy, so `file:` and `data:` entries such as an embedded favicon are dropped with an `unsafe-link-dropped` diagnostic; serve them over `https:` or add them to the page after export.
 - **Conversion checkpoints.** Checkpoints written before 3.6 can no longer be resumed: `ConvertAsync` rejects them with `InvalidDataException`. Start the job with a new `ResumeFrom` manifest and a new output folder.
 - **Renames in option and inspection types.** `OfficeWorkflowLimits` is now `OfficeOperationLimits` with the same properties, and `ExcelDocument.CreateInspectionSnapshot` is now `ExcelDocument.Inspect`, which takes `ExcelReaderOptions` and returns `ExcelWorkbookInfo`.
+- **Excel text and table headers.** `GetFormattedText()` now applies stored number and text formats; use `GetValue<T>()` for raw values. Writing a table header through the cell API also updates its column name and structured references. Header names use the existing schema validation, so blank or duplicate names are rejected; use `SetTableSchema` for a coordinated rename of several columns. Clearing values retains table header labels. Formula-writing ranges must exclude headers.
+- **Excel empty tables.** `AddTable("A1:B1")` keeps a header-only range instead of extending it to `A1:B2`. It has zero data records and its first append starts at row 2. Include the blank data row explicitly in the table range if it represents a real record; the native `insertRow` flag does not turn a declared data row into a placeholder.
 - **Argument validation.** Nonblank string guards use the .NET throw helpers: null values throw `ArgumentNullException`, while empty or whitespace-only values throw `ArgumentException`. If you match exact exception types or messages, handle null separately and check `ParamName` instead of localized message text. Catching `ArgumentException` still catches both.
 
 ### Common jobs
@@ -9543,6 +9546,14 @@ Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false
 Loading a binary `.doc` file uses single line spacing and zero paragraph spacing when the source omits those values. Imported built-in styles inherit omitted spacing from their source base styles. Explicit source spacing remains in effect. This changes layout for files that previously acquired DOCX authoring spacing during import; remove any compensating spacing overrides that are no longer needed.
 
 Setting `WordParagraph.ParagraphAlignment` or `VerticalCharacterAlignmentOnLine` to `null` removes that direct paragraph setting and restores style inheritance. Set `WordParagraphAlignment.Left` or `WordVerticalCharacterAlignment.Auto` explicitly when an inherited setting should be overridden.
+
+### Native DOC note reference spaces
+
+Loading a binary `.doc` retains literal spaces after footnote and endnote reference markers. `WordParagraph.Text` for the first paragraph returned by `WordFootNote.Paragraphs` or `WordEndNote.Paragraphs` can now include the source separator space; previously the first space was discarded. Update exact text comparisons, offsets and saved-output snapshots that assumed this implicit trimming. The [DOC and DOCX compatibility contract](Docs/officeimo.word.legacy-doc-compatibility.md) describes the native output separator default separately.
+
+### Native DOC empty field results
+
+Importing Word 97–2003 `.doc` files now reports `doc-field-empty-result-unprojected` for previously silent omissions of empty supported fields, including truly empty `PAGE`/`NUMPAGES`, in main text, headers/footers, notes, readable comments and body textboxes. Strict conversion can reject these documents. Review `LegacyDocUnsupportedFeatures` and the import diagnostics, and use the existing `WordSaveOptions.AllowLoss` only after accepting the reported omission. Native writing still supplies its established count-field placeholder; empty `SECTIONPAGES` import remains supported. See the [empty-cache import boundary](Docs/officeimo.word.legacy-doc-compatibility.md) before updating conversion handling.
 
 ## Upgrade checklist
 

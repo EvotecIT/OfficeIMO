@@ -68,8 +68,9 @@ namespace OfficeIMO.Excel {
 
                     uint style = GetEffectiveBufferedStyle(buffer, cellIndex);
                     if (cell.Reference is string text && (sharedTexts.Contains(text) || _excelDocument.TryGetExistingSharedStringIndex(text, out _, out _, out _))) {
-                        if (!string.IsNullOrWhiteSpace(text) && uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, style, text, null))) {
-                            measurements.Add(new AutoFitMeasurement(targetIndex, style, text, null));
+                        string displayText = FormatAutoFitTextValue(text, style, textContext);
+                        if (!string.IsNullOrWhiteSpace(displayText) && uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, style, displayText, null))) {
+                            measurements.Add(new AutoFitMeasurement(targetIndex, style, displayText, null));
                         }
 
                         continue;
@@ -131,7 +132,7 @@ namespace OfficeIMO.Excel {
             string raw;
             switch (cell.Kind) {
                 case ExcelBufferedCellKind.Text:
-                    raw = (string)cell.Reference!;
+                    raw = Utilities.ExcelSanitizer.EncodeXString((string)cell.Reference!);
                     break;
                 case ExcelBufferedCellKind.Number:
                     raw = InvariantNumberText.Get(cell.NumberValue);

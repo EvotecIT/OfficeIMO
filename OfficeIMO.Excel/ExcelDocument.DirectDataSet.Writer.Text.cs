@@ -57,6 +57,7 @@ namespace OfficeIMO.Excel {
             }
 
             private static void WriteSanitizedEscaped(TextWriter writer, string value) {
+                value = Utilities.ExcelSanitizer.EncodeXString(Utilities.ExcelSanitizer.SanitizeString(value, int.MaxValue));
                 int specialIndex = IndexOfXmlTextSpecial(value, 0);
                 if (specialIndex < 0) {
                     writer.Write(value);

@@ -391,7 +391,7 @@ namespace OfficeIMO.Excel {
 
                 case XmlCellKind.String:
                 case XmlCellKind.InlineString:
-                    return TrySetStringTextBinding(rawText, binding, target);
+                    return TrySetStringTextBinding(Utilities.ExcelSanitizer.DecodeXString(rawText), binding, target);
 
                 case XmlCellKind.Date:
                     if (binding.SetDateTime != null

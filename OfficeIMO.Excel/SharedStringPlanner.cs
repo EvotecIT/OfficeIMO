@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel {
             } else {
                 // Fallback: if not found (shouldn't happen), keep as string cell
                 var sanitized = Utilities.ExcelSanitizer.SanitizeString(text);
-                prepared.Val = new CellValue(sanitized);
+                prepared.Val = new CellValue(Utilities.ExcelSanitizer.EncodeXString(sanitized));
                 prepared.Type = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
             }
         }

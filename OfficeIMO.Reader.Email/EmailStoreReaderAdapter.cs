@@ -62,6 +62,11 @@ internal static class EmailStoreReaderAdapter {
         CancellationToken cancellationToken) {
         EmailStoreReaderOptions effective = ReaderEmailStoreOptionsCloner.CreateEffective(adapterOptions, readerOptions);
         using (EmailStoreSession session = EmailStoreSession.Open(path, effective, cancellationToken)) {
+            bool isDbx = session.Format == EmailStoreFormat.Dbx;
+            // A DBX catalog projects sibling files. Hash the store source that supplies the content.
+            string? dbxSourceHash = isDbx && adapterOptions.ComputeSourceHash
+                ? session.GetDurableSourceFingerprint(cancellationToken)
+                : null;
             EmailStoreProjection projection = EmailStoreReaderProjection.Create(
                 session, path, adapterOptions, cancellationToken);
             OfficeDocumentReadResult result = EmailReaderProjection.ProjectEmailDocumentsToPathResult(
@@ -73,7 +78,15 @@ internal static class EmailStoreReaderAdapter {
                 path,
                 readerOptions,
                 cancellationToken,
-                computeSourceHash: adapterOptions.ComputeSourceHash, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions), concealedTextPolicy: adapterOptions.ConcealedTextPolicy);
+                computeSourceHash: adapterOptions.ComputeSourceHash && !isDbx,
+                includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions),
+                concealedTextPolicy: adapterOptions.ConcealedTextPolicy,
+                capturedSourceHash: dbxSourceHash,
+                capturedSourceLength: isDbx ? session.SourceLength : null);
+            if (dbxSourceHash != null && !string.Equals(dbxSourceHash,
+                session.GetDurableSourceFingerprint(cancellationToken), StringComparison.Ordinal)) {
+                throw new InvalidDataException("The DBX source changed during Reader projection. Reopen the source and retry.");
+            }
             return EmailStoreReaderProjection.EnrichResult(result, projection);
         }
     }

@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (length < 0) return false;
-                value = DecodeString(_valueStarts![cellIndex], length);
+                value = Utilities.ExcelSanitizer.DecodeXString(DecodeString(_valueStarts![cellIndex], length));
                 return true;
             }
         }

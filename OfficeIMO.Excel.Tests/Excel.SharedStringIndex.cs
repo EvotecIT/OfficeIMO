@@ -80,13 +80,14 @@ public sealed partial class SharedStringIndexTests {
     }
 
     [Theory]
-    [InlineData('a', "_x0041_")]
-    [InlineData('a', "_X0041_")]
-    [InlineData('a', "\u007f")]
-    [InlineData(' ', " ")]
-    public void IndexedTable_LongTextKeepsCanonicalFallbackAndReleasesBufferedStorage(char prefix, string suffix) {
+    [InlineData('a', "_x0041_", "A")]
+    [InlineData('a', "_x005F_x0041_", "_x0041_")]
+    [InlineData('a', "_X0041_", "_X0041_")]
+    [InlineData('a', "\u007f", "\u007f")]
+    [InlineData(' ', " ", " ")]
+    public void IndexedTable_LongTextKeepsCanonicalFallbackAndReleasesBufferedStorage(char prefix, string suffix, string expectedSuffix) {
         string value = new string(prefix, 16 * 1024 - 1) + suffix;
-        string expected = value;
+        string expected = new string(prefix, 16 * 1024 - 1) + expectedSuffix;
         using OpenXmlPooledPartStream stream = CreateStream("<si><t>" + value + "</t></si>", declaredCount: "1");
         using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReaderOptions());
 

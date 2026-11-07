@@ -596,7 +596,7 @@ namespace OfficeIMO.Excel {
                     ApplyCapturedDirectOverlayNumber(cell, ExcelDateSystemConverter.ToSerial(dateTime, dateSystem));
                     break;
                 default:
-                    cell.CellValue = new CellValue(System.Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
+                    cell.CellValue = new CellValue(Utilities.ExcelSanitizer.EncodeXString(System.Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty));
                     cell.DataType = CellValues.String;
                     break;
             }

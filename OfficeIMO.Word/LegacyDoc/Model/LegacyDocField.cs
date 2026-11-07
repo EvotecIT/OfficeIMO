@@ -1,5 +1,5 @@
 namespace OfficeIMO.Word.LegacyDoc.Model {
-    internal static class LegacyDocField {
+    internal static partial class LegacyDocField {
         internal const char Begin = '\u0013';
         internal const char Separator = '\u0014';
         internal const char End = '\u0015';
@@ -154,6 +154,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal static bool TryReadPageNumber(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startIndex,
+            out string instruction,
             out int resultStartIndex,
             out int resultEndIndex,
             out int fieldEndIndex) {
@@ -164,7 +165,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (!TryReadField(
                 characters,
                 startIndex,
-                out string instruction,
+                out instruction,
                 out resultStartIndex,
                 out resultEndIndex,
                 out fieldEndIndex)) {
@@ -177,6 +178,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal static bool TryReadNumberOfPages(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startIndex,
+            out string instruction,
             out int resultStartIndex,
             out int resultEndIndex,
             out int fieldEndIndex) {
@@ -187,7 +189,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (!TryReadField(
                 characters,
                 startIndex,
-                out string instruction,
+                out instruction,
                 out resultStartIndex,
                 out resultEndIndex,
                 out fieldEndIndex)) {
@@ -259,7 +261,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return false;
             }
 
-            return IsDocumentPropertyInstruction(instruction);
+            return IsDocumentPropertyInstruction(instruction) || IsTextReferenceInstruction(instruction);
         }
 
         internal static bool TryReadEquationField(
