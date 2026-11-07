@@ -218,7 +218,7 @@ namespace OfficeIMO.Word.Markdown {
 
                     if (header && tableStyle.EmphasizeHeader) {
                         ApplyCellFillColor(cell, palette.TableHeaderBackground);
-                        ApplyCellRunColor(cell, palette.TableHeaderText);
+                        ApplyHeaderCellTextStyle(cell, palette.TableHeaderText);
                     } else if (stripe) {
                         ApplyCellFillColor(cell, palette.TableStripeBackground);
                     }
@@ -253,15 +253,11 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyCellRunColor(WordTableCell cell, OfficeColor color) {
-            if (color.A == 0) {
-                return;
-            }
-
-            string colorHex = color.ToRgbHex();
+        private static void ApplyHeaderCellTextStyle(WordTableCell cell, OfficeColor color) {
             foreach (var paragraph in cell.Paragraphs) {
                 foreach (var run in paragraph.GetRuns()) {
-                    run.SetColor(OfficeIMO.OfficeColor.Parse(colorHex));
+                    if (color.A > 0) run.SetColor(color);
+                    run.SetBold();
                 }
             }
         }

@@ -303,13 +303,14 @@ namespace OfficeIMO.Word.Markdown {
             MarkdownWordExportOptions options,
             WordDocument document,
             double pageContentWidthPixels) {
-            var headerCells = table.HeaderCells;
+            var headerCells = table.HeaderRow == null ? Array.Empty<Omd.TableCell>() : table.HeaderCells;
             var rowCells = table.RowCells;
             var cols = headerCells.Count > 0
                 ? headerCells.Count
                 : (rowCells.Count > 0 ? rowCells[0].Count : 1);
             var rows = rowCells.Count + (headerCells.Count > 0 ? 1 : 0);
             var wordTable = host.CreateTable(rows, cols);
+            wordTable.RepeatHeaderRowAtTheTopOfEachPage = headerCells.Count > 0;
             int rowIndex = 0;
             bool[] numericColumns = ResolveNumericColumns(table, cols);
             bool applyPresentationAlignment = ResolveTheme(options) != null;

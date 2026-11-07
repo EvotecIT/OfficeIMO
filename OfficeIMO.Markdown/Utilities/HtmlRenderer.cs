@@ -402,6 +402,9 @@ internal static class HtmlRenderer {
         return options.Style;
     }
 
+    internal static MarkdownHtmlStyle GetEffectiveStyle(MarkdownHtmlExportOptions options) =>
+        NormalizeHtmlStyle(GetEffectiveStyle(options, ResolveVisualTheme(options)));
+
     private static MarkdownHtmlStyle NormalizeHtmlStyle(MarkdownHtmlStyle style) => style switch {
         MarkdownHtmlStyle.Plain => style,
         MarkdownHtmlStyle.Clean => style,

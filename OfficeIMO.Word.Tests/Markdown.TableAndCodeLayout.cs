@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownQuoteRuleRequiresATheme(bool themed) {
             using var document = OfficeIMO.Markdown.MarkdownDocument.Parse("> Source quote\n").ToWord(
                 new MarkdownWordExportOptions { ApplyDefaultTheme = themed });
-            var quote = Assert.Single(document.Paragraphs);
+            var quote = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Source quote");
             Assert.True(quote.IndentationBefore > OfficeLength.Zero);
             Assert.Equal(themed ? WordBorderStyle.Single : (WordBorderStyle?)null, quote.Borders.LeftStyle);
         }
@@ -23,13 +23,40 @@ namespace OfficeIMO.Tests {
             using var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord();
             var table = Assert.Single(document.Tables);
             Assert.Equal(WordTableStyle.TableNormal, table.Style);
+            Assert.True(table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.False(table.Rows[1].RepeatHeaderRowAtTheTopOfEachPage);
             foreach (var cell in table.Rows.SelectMany(row => row.Cells)) {
                 Assert.Null(cell.ShadingFillColor);
                 Assert.True(cell.Borders.BottomStyle is null or WordBorderStyle.None);
                 Assert.True(cell.Borders.LeftStyle is null or WordBorderStyle.None);
+                Assert.All(cell.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()), run => Assert.False(run.Bold));
             }
             Assert.Null(table.Rows[1].Cells[1].Paragraphs[0].ParagraphAlignment);
             Assert.Equal(WordParagraphAlignment.Right, table.Rows[1].Cells[2].Paragraphs[0].ParagraphAlignment);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MarkdownWordLikeThemeRepeatsOnlyAuthoredTableHeadersAndKeepsSelectedEmphasis(bool emphasizeHeader) {
+            var markdown = OfficeIMO.Markdown.MarkdownDocument.Parse("| Header | Count |\n| --- | --- |\n| A | 12 |\n");
+            markdown.AddTable(table => table.Row("B", "34"));
+            var theme = OfficeIMO.Markdown.MarkdownVisualTheme.WordLike();
+            theme.Table.EmphasizeHeader = emphasizeHeader;
+            using var document = markdown.ToWord(new MarkdownWordExportOptions {
+                Theme = theme
+            });
+
+            Assert.Equal(2, document.Tables.Count);
+            Assert.True(document.Tables[0].Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.False(document.Tables[0].Rows[1].RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.Equal(emphasizeHeader, document.Tables[0].Rows[0].Cells[0].Paragraphs[0].GetRuns().Single(run => run.Text == "Header").Bold);
+            Assert.False(document.Tables[0].Rows[1].Cells[0].Paragraphs[0].GetRuns().Single(run => run.Text == "A").Bold);
+            var headerlessRow = Assert.Single(document.Tables[1].Rows);
+            Assert.False(headerlessRow.RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.Equal("B", string.Concat(headerlessRow.Cells[0].Paragraphs[0].GetRuns().Select(run => run.Text)));
+            Assert.All(document.Tables[1].Rows.SelectMany(row => row.Cells).SelectMany(cell => cell.Paragraphs).SelectMany(paragraph => paragraph.GetRuns()),
+                run => Assert.False(run.Bold));
         }
 
         [Fact]

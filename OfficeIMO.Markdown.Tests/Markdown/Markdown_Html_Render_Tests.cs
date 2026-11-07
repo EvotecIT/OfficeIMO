@@ -25,11 +25,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void Default_Style_Emits_OfficeTheme_Tokens_And_Word_Style_Keeps_WordLike_Css() {
+        public void Explicit_OfficeTheme_And_Word_Style_Emit_Their_Stylesheets() {
             string clean = MarkdownDocument.Create()
                 .H1("Title")
                 .P("Hello")
-                .ToHtml(new global::OfficeIMO.Markdown.MarkdownHtmlExportOptions { Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document });
+                .ToHtml(new global::OfficeIMO.Markdown.MarkdownHtmlExportOptions {
+                    Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document,
+                    Theme = MarkdownVisualTheme.FromOfficeTheme(global::OfficeIMO.OfficeTheme.Default)
+                });
 
             Assert.Contains("--office-text: #" + global::OfficeIMO.OfficeTheme.Default.Palette.Text.ToRgbHex(), clean, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("var(--office-font-heading", clean, StringComparison.Ordinal);
@@ -38,7 +41,11 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             string html = MarkdownDocument.Create()
                 .H1("Title")
                 .P("Hello")
-                .ToHtml(new global::OfficeIMO.Markdown.MarkdownHtmlExportOptions { Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document, Style = global::OfficeIMO.Markdown.MarkdownHtmlStyle.Word });
+                .ToHtml(new global::OfficeIMO.Markdown.MarkdownHtmlExportOptions {
+                    Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document,
+                    Style = global::OfficeIMO.Markdown.MarkdownHtmlStyle.Word,
+                    Theme = MarkdownVisualTheme.WordLike()
+                });
 
             Assert.Contains("article.markdown-body { color: #1f2937; background: #ffffff; }", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);
@@ -199,17 +206,20 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void Cdn_Offline_Inlines_Style() {
             var doc = MarkdownDocument.Create().H1("Title");
+            const string authoredCss = "h1 { color: #123456; }";
             var html = doc.ToHtml(new MarkdownHtmlExportOptions
             {
                 CssDelivery = MarkdownCssDelivery.LinkHref,
                 CssHref = "https://cdn.example.com/style.css",
                 AssetMode = MarkdownAssetMode.Offline,
+                ExternalTextResolver = _ => authoredCss,
                 BodyClass = "markdown-body",
 
                 Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
             });
             Assert.DoesNotContain("<link", html);
             Assert.Contains("<style", html);
+            Assert.Contains(authoredCss, html);
         }
 
         [Fact]
