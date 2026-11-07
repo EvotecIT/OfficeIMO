@@ -27,8 +27,10 @@ internal sealed partial class EarlyBiffWorkbook {
                     }
                 }
                 if (sheet.Rows.Count >= MaximumRows) throw new InvalidDataException("Too many early BIFF row definitions.");
-                sheet.Rows.Add(new LegacyXlsRowLayout(row + 1, (height & 0x7FFF) / 20d,
-                    (flags & 32) != 0, (height & 0x8000) == 0, style, (byte)(flags & 7), (flags & 16) != 0));
+                bool customHeight = (height & 0x8000) == 0;
+                ushort rowHeight = (ushort)(height & 0x7FFF);
+                sheet.Rows.Add(new LegacyXlsRowLayout(row + 1, customHeight ? ProjectHeight(rowHeight) : rowHeight / 20d,
+                    (flags & 32) != 0, customHeight, style, (byte)(flags & 7), (flags & 16) != 0));
                 return true;
             case 0x0024 when biff2:
                 RequireLength(record, 4);
@@ -43,8 +45,9 @@ internal sealed partial class EarlyBiffWorkbook {
             case 0x0025 when biff2:
             case 0x0225 when !biff2:
                 RequireLength(record, biff2 ? 2 : 4);
-                ushort defaultHeight = (ushort)(ReadUInt16(record, biff2 ? 0 : 2) & 0x7FFF);
-                if (defaultHeight > 0) sheet.DefaultRowHeight = defaultHeight / 20d;
+                ushort defaultHeight = ReadUInt16(record, biff2 ? 0 : 2);
+                if (biff2) defaultHeight &= 0x7FFF;
+                sheet.DefaultRowHeight = ProjectHeight(defaultHeight);
                 sheet.DefaultRowsHidden = !biff2 && (ReadUInt16(record, 0) & 2) != 0;
                 return true;
             case 0x00AB:
@@ -59,7 +62,7 @@ internal sealed partial class EarlyBiffWorkbook {
                 return true;
             case 0x0099:
                 RequireLength(record, 2);
-                sheet.DefaultColumnWidth = ReadUInt16(record, 0) / 256d;
+                sheet.DefaultColumnWidth = ProjectWidth(ReadUInt16(record, 0));
                 return true;
             default:
                 return false;
@@ -73,7 +76,25 @@ internal sealed partial class EarlyBiffWorkbook {
             }
             if (first > last) return;
             if (sheet.Columns.Count >= MaximumColumns) throw new InvalidDataException("Too many early BIFF column definitions.");
-            sheet.Columns.Add(new LegacyXlsColumnLayout(first + 1, last + 1, width / 256d, hidden, styleIndex, outline, collapsed));
+            sheet.Columns.Add(new LegacyXlsColumnLayout(first + 1, last + 1, ProjectWidth(width), hidden, styleIndex, outline, collapsed));
+        }
+
+        double ProjectHeight(ushort twips) {
+            if (twips > 8180) {
+                AddLoss("early-biff-row-height", "Layout", "One or more early BIFF row heights exceeded 409 points and were bounded to the editable worksheet limit.");
+                return 409d;
+            }
+            return twips / 20d;
+        }
+
+        double ProjectWidth(ushort width) {
+            if (width == 0) {
+                AddLoss("early-biff-zero-column-width", "Layout", "An authored zero column width uses the editable worksheet default width. Its explicit visibility was retained.");
+            } else if (width > 65280) {
+                AddLoss("early-biff-column-width", "Layout", "One or more early BIFF column widths exceeded 255 character units and were bounded to the editable worksheet limit.");
+                return 255d;
+            }
+            return width / 256d;
         }
     }
 }

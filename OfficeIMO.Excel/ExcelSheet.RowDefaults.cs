@@ -48,8 +48,20 @@ namespace OfficeIMO.Excel {
         public void SetDefaultRowHeight(ExcelColumnWidth height, bool hidden = false, bool save = true) =>
             SetDefaultRowHeightCore(height.ToRowPoints(this), hidden, save, roundToHundredths: true);
 
-        internal void SetDefaultRowHeightExact(double height, bool hidden = false, bool save = true) =>
-            SetDefaultRowHeightCore(height, hidden, save, roundToHundredths: false);
+        /// <summary>Retains native imported height zero independently of the hidden default.</summary>
+        internal void SetDefaultRowHeightExact(double height, bool hidden = false, bool save = true) {
+            if (height != 0d) {
+                SetDefaultRowHeightCore(height, hidden, save, roundToHundredths: false);
+                return;
+            }
+            WriteLock(() => {
+                SheetFormatProperties sheetFormat = GetOrCreateSheetFormatProperties();
+                sheetFormat.DefaultRowHeight = 0d;
+                sheetFormat.CustomHeight = true;
+                sheetFormat.ZeroHeight = hidden;
+                if (save) WorksheetRoot.Save();
+            });
+        }
 
         private void SetDefaultRowHeightCore(double height, bool hidden, bool save,
             bool roundToHundredths) {

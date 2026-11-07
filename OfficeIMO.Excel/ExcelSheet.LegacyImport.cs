@@ -4,6 +4,24 @@ using OfficeIMO.Excel.LegacyXls.Model;
 namespace OfficeIMO.Excel;
 
 public partial class ExcelSheet {
+    /// <summary>Retains native custom height zero and explicit visibility independently of worksheet defaults.</summary>
+    internal void SetImportedRowGeometry(int rowIndex, double? customHeight, bool hidden) {
+        if (rowIndex <= 0) return;
+        WriteLockConditional(() => {
+            Row row = GetOrCreateRowElement(GetOrCreateSheetData(), rowIndex);
+            if (customHeight.HasValue) {
+                if (customHeight.Value == 0d) {
+                    row.Height = 0d;
+                    row.CustomHeight = true;
+                } else {
+                    SetRowHeightCore(row, customHeight.Value, roundToHundredths: false);
+                }
+                UpdateSheetFormat(customHeightSet: row.CustomHeight?.Value == true);
+            }
+            row.Hidden = hidden;
+        });
+    }
+
     /// <summary>Materializes bounded legacy column ranges once, retaining widths, visibility, outlines and styles.</summary>
     internal void SetImportedColumnLayouts(IReadOnlyList<LegacyXlsColumnLayout> source, Func<ushort, uint?> resolveStyle) {
         if (source.Count == 0) return;

@@ -111,18 +111,17 @@ public static class LegacySpreadsheetImporter {
                         if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) currentSheet.Cell(cell.Row, cell.Column).SetNumberFormat(cell.NumberFormat!);
                         if (!string.IsNullOrWhiteSpace(cell.Comment)) comments.Add((cell.Row, cell.Column, cell.Comment!));
                     }
-                    if (sourceSheet.DefaultRowHeight.HasValue) currentSheet.SetDefaultRowHeightExact(sourceSheet.DefaultRowHeight.Value, sourceSheet.DefaultRowsHidden, save: false);
                     if (sourceSheet.BaseColumnWidth.HasValue) currentSheet.SetImportedBaseColumnWidth(sourceSheet.BaseColumnWidth.Value);
                     if (sourceSheet.DefaultColumnWidth.HasValue && sourceSheet.DefaultColumnWidth.Value > 0) currentSheet.SetDefaultColumnWidthExact(sourceSheet.DefaultColumnWidth.Value, save: false);
                     currentSheet.SetImportedColumnLayouts(sourceSheet.Columns, ResolveStyle);
                     foreach (var row in sourceSheet.Rows.OrderBy(layout => layout.Row)) {
                         cancellationToken.ThrowIfCancellationRequested();
-                        if (row.CustomHeight && row.Height > 0) currentSheet.SetRowHeightExact(row.Row, row.Height);
-                        currentSheet.SetRowHidden(row.Row, row.Hidden);
+                        currentSheet.SetImportedRowGeometry(row.Row, row.CustomHeight ? row.Height : null, row.Hidden);
                         currentSheet.SetRowOutline(row.Row, row.OutlineLevel, row.Collapsed, save: false);
                         uint? style = row.StyleIndex.HasValue ? ResolveStyle(row.StyleIndex.Value) : null;
                         if (style.HasValue) currentSheet.SetRowStyleIndex(row.Row, style.Value, save: false);
                     }
+                    if (sourceSheet.DefaultRowHeight.HasValue) currentSheet.SetDefaultRowHeightExact(sourceSheet.DefaultRowHeight.Value, sourceSheet.DefaultRowsHidden, save: false);
 
                     uint? ResolveStyle(ushort index) {
                         if (sourceSheet.StyleWorkbook == null) return null;

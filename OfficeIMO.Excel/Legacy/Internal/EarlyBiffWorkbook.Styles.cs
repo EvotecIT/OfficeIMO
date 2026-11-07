@@ -141,5 +141,6 @@ internal sealed partial class EarlyBiffWorkbook {
         _model.Findings.Add(new OfficeCompatibilityFinding(code, category, message, OfficeCompatibilityState.Approximated,
             OfficeCompatibilitySeverity.Warning, OfficeCompatibilityImpact.Semantic | OfficeCompatibilityImpact.Visual, true,
             "'" + sheet.Replace("'", "''") + "'!" + ExcelA1.CellReference(row + 1, column + 1)));
+        _findingCodes.Add(code);
     }
 }

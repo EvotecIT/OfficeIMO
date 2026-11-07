@@ -385,8 +385,8 @@ public sealed partial class EarlyBiffImportTests {
         try {
             File.WriteAllBytes(original, raw);
             using ExcelDocument fromFile = ExcelDocument.Load(original);
-            var allow = new ExcelSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow };
-            var encrypted = new ExcelSaveOptions { Password = "validation", LossPolicy = OfficeConversionLossPolicy.Allow };
+            var allow = new ExcelSaveOptions { AllowLoss = true };
+            var encrypted = new ExcelSaveOptions { Password = "validation", AllowLoss = true };
             string alias = Path.Combine(Path.GetDirectoryName(original)!, ".", Path.GetFileName(original));
             Assert.Throws<NotSupportedException>(() => fromFile.SaveCopy(alias, allow));
             Assert.Throws<NotSupportedException>(() => fromFile.Save(alias, encrypted));
@@ -400,7 +400,8 @@ public sealed partial class EarlyBiffImportTests {
             Assert.Equal(raw, originalStream.ToArray());
 
             using var destination = new MemoryStream();
-            Assert.Throws<NotSupportedException>(() => fromFile.Save(destination));
+            NotSupportedException refusal = Assert.Throws<NotSupportedException>(() => fromFile.Save(destination));
+            Assert.Contains(nameof(ExcelSaveOptions.AllowLoss), refusal.Message);
             Assert.Throws<NotSupportedException>(() => fromFile.Save(destination,
                 new ExcelSaveOptions { Password = "validation", Format = ExcelFileFormat.Xls, LossPolicy = OfficeConversionLossPolicy.Allow }));
             Assert.Equal(0, destination.Length);

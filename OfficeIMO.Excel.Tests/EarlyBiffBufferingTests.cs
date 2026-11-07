@@ -26,7 +26,7 @@ public sealed class EarlyBiffBufferingTests {
         }
 
         using var cancellation = new CancellationTokenSource();
-        using var source = new CancelAfterFirstReadStream(worksheet, cancellation, seekable);
+        using var source = new ProbeReadStream(worksheet, cancellation, seekable);
         if (seekable) source.Position = 3;
 
         OperationCanceledException error = Assert.ThrowsAny<OperationCanceledException>(
@@ -59,7 +59,7 @@ public sealed class EarlyBiffBufferingTests {
         }
 
         using var cancellation = new CancellationTokenSource();
-        using var source = new CancelAfterFirstReadStream(worksheet, cancellation, seekable);
+        using var source = new ProbeReadStream(worksheet, cancellation, seekable);
         if (seekable) source.Position = 3;
 
         OperationCanceledException error = await Assert.ThrowsAnyAsync<OperationCanceledException>(
@@ -74,6 +74,45 @@ public sealed class EarlyBiffBufferingTests {
         if (seekable) Assert.Equal(3, source.Position);
     }
 
+    [Theory]
+    [InlineData(false, false, 24, 64)]
+    [InlineData(false, true, 24, 64)]
+    [InlineData(true, false, 24, 64)]
+    [InlineData(true, true, 24, 64)]
+    [InlineData(false, false, 64, 24)]
+    [InlineData(false, true, 64, 24)]
+    [InlineData(true, false, 64, 24)]
+    [InlineData(true, true, 64, 24)]
+    [InlineData(false, false, 24, 24)]
+    [InlineData(false, true, 24, 24)]
+    [InlineData(true, false, 24, 24)]
+    [InlineData(true, true, 24, 24)]
+    public async Task LoadReportsTheBindingFormatOrPackageLimit(bool asynchronous, bool seekable, int legacyLimit, int packageLimit) {
+        using var cancellation = new CancellationTokenSource();
+        using var source = new ProbeReadStream(CreateProbeWorksheet(), cancellation, seekable, cancelOnFirstRead: false);
+        if (seekable) source.Position = 3;
+        var options = new ExcelLoadOptions {
+            MaxLegacyInputBytes = legacyLimit,
+            PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = packageLimit }
+        };
+        Exception? failure = await Record.ExceptionAsync(async () => {
+            using ExcelDocument document = asynchronous
+                ? await ExcelDocument.LoadAsync(source, options)
+                : ExcelDocument.Load(source, options);
+        });
+        if (packageLimit <= legacyLimit) {
+            OfficePackageSecurityException package = Assert.IsType<OfficePackageSecurityException>(failure);
+            Assert.Equal(OfficePackageSecurityRule.PackageSize, package.Rule);
+            Assert.Equal(24D, package.Limit);
+        } else {
+            InvalidDataException format = Assert.IsType<InvalidDataException>(failure);
+            Assert.Contains("24 bytes", format.Message);
+        }
+        Assert.Equal(seekable ? packageLimit <= legacyLimit ? 0 : 10 : 25, source.BytesRead);
+        Assert.True(source.CanRead);
+        if (seekable) Assert.Equal(3, source.Position);
+    }
+
     // BIFF4 BOF, NUMBER(A1 = 42.25), EOF. The complete BOF occupies ten bytes.
     private static byte[] CreateProbeWorksheet() => new byte[] {
         0x09, 0x04, 0x06, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
@@ -82,14 +121,16 @@ public sealed class EarlyBiffBufferingTests {
         0x0A, 0x00, 0x00, 0x00
     };
 
-    private sealed class CancelAfterFirstReadStream : MemoryStream {
+    private sealed class ProbeReadStream : MemoryStream {
         private readonly CancellationTokenSource _cancellation;
         private readonly bool _seekable;
+        private readonly bool _cancelOnFirstRead;
 
-        internal CancelAfterFirstReadStream(byte[] bytes, CancellationTokenSource cancellation, bool seekable)
+        internal ProbeReadStream(byte[] bytes, CancellationTokenSource cancellation, bool seekable, bool cancelOnFirstRead = true)
             : base(bytes, writable: false) {
             _cancellation = cancellation;
             _seekable = seekable;
+            _cancelOnFirstRead = cancelOnFirstRead;
         }
 
         public override bool CanSeek => _seekable && base.CanSeek;
@@ -109,7 +150,7 @@ public sealed class EarlyBiffBufferingTests {
             if (_cancellation.IsCancellationRequested) ReadAttemptsAfterCancellation++;
             int read = base.Read(buffer, offset, count);
             BytesRead += read;
-            if (++ReadCalls == 1) _cancellation.Cancel();
+            if (++ReadCalls == 1 && _cancelOnFirstRead) _cancellation.Cancel();
             return read;
         }
 

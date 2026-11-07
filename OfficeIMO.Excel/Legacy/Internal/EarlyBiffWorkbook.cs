@@ -40,6 +40,7 @@ internal sealed partial class EarlyBiffWorkbook {
         PreserveBlankCoordinates = true
     };
     private readonly HashSet<ushort> _unprojected = new();
+    private readonly HashSet<string> _findingCodes = new(StringComparer.Ordinal);
     private int _records;
     private int _textCharacters;
     private bool _formulaOmitted;
@@ -265,7 +266,7 @@ internal sealed partial class EarlyBiffWorkbook {
     }
 
     private void AddLoss(string code, string category, string message) {
-        if (_model.Findings.Any(finding => finding.Code == code)) return;
+        if (!_findingCodes.Add(code)) return;
         _model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding(code, category, message));
     }
 
