@@ -1650,8 +1650,8 @@ measurements remain separate from the matched wall-time comparisons.
 
 I cache the reader's asynchronous row source capability beside its existing
 UTF-8 and text source references. The row source is fixed at construction.
-Per-read cancellation, state validation and dynamic static-column checks keep
-their existing behavior across synchronous, asynchronous and record-batch reads.
+Per-read cancellation, state validation and dynamic static-column checks cover
+synchronous, asynchronous and record-batch reads.
 
 The matched 50,000-row raw-read comparison records 5.9630 ms to 5.8003 ms in
 ABBA and 5.6068 ms to 5.5357 ms in BAAB, reductions of 2.73% and 1.27%, with
@@ -1659,7 +1659,7 @@ both pairs improving in each order. The reversed run includes all nine modern
 comparison methods. Native caller CPU improves by 1.04% in both pairs. The
 reader gains one private reference, adding eight bytes per reader in this
 64-bit cohort. Typed-read and write controls remain mixed. This general .NET 8+
-change retains the existing parser and public API.
+change applies across supported modern runtimes.
 
 ### Synchronous Excel table rows
 
@@ -1700,3 +1700,13 @@ XLSX-method check with 200 completed warmups and 200 native measurements per
 launch records caller CPU 0.96% faster, process CPU 1.15% faster and wall time
 0.84% faster, with both pairs improving. I retain the wall-time and CPU cohorts
 separately and report the wider XLSX result as mixed.
+
+After integrating current master, a fresh nine-method comparison records typed
+XLS at 9.8963 ms to 9.5382 ms, a 3.62% reduction with both pairs improving.
+Typed XLSB moves from 7.2287 ms to 7.0020 ms, while its peer moves from
+5.5525 ms to 5.4067 ms. Modern CSV raw reads move from 5.6927 ms to 5.5542 ms,
+with mixed pairs and peer movement. The large pooled XLSX reduction includes a
+first baseline launch of 18.9449 ms. Its other three launches range from
+10.2794 ms to 10.3961 ms. I retain that launch and keep the wider XLSX
+assessment mixed. These results continue the same complete-output validation,
+12 warmups, 12 measured samples and 16 invocations.
