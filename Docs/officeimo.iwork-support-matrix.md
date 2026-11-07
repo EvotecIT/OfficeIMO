@@ -1,6 +1,6 @@
 # Apple iWork support
 
-OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources through the bounded `OfficeIMO.IWork` package. Opt-in adapter packages project supported semantics into the existing Word, Excel, and PowerPoint owners. Source snapshots remain immutable; separate native edit sessions preserve captured content and apply the bounded mutations below. The default destination packages do not depend on iWork.
+OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources and the [qualified iWork ’09 XML profile](#iwork-09-xml) through the bounded `OfficeIMO.IWork` package. Opt-in adapter packages project supported semantics into the existing Word, Excel, and PowerPoint owners. Source snapshots remain immutable. Separate native edit sessions preserve captured modern content and apply the bounded mutations below.
 
 The same package owns separate bounded native Keynote, Pages and Numbers creation models. Their scope and independent acceptance evidence are listed below; they do not edit loaded iWork sources.
 
@@ -19,6 +19,57 @@ The current level is **extended semantic reconstruction**. Normal document conte
 `OfficeIMO.Reader.IWork` registers directory bundles as individual documents. Path reading, async reading, folder ingestion, and discovery retain the package owner's bounds, physical-root checks, cancellation, and captured content hash. Resources inside a registered bundle are not ingested as separate documents. `ContainerLengthBytes` records ZIP bytes or physical bundle file bytes before nested expansion; `ComputePackageContentHash()` hashes the captured normalized entries and does not reopen the filesystem.
 
 `OfficeIMO.Workflows.IWork` registers all three Apple-to-OOXML routes without adding iWork to the default workflow dependency graph. Local ZIP files, local directory packages, provider ZIP streams and provider directory packages use bounded captured inputs, destination reopen validation, source verification, and safe publication. Defaults reject explicitly partial editable reconstruction and visual previews without known complete coverage. `ConversionEvidence` retains typed fidelity categories and compact source/projection facts after destination disposal. Directory packages use a deterministic private ZIP transport snapshot, with package-root identity and file membership/content checked again before publication. Destinations inside the package or aliased to a package member are rejected. The snapshot checksum describes that transport archive. Provider directory intake uses `OfficeWorkflowDirectoryPackageInput` with a permission-aware identity/output-separation guard; the shared runner stages bounded member snapshots and verifies provider membership and bytes before publication. Native sandbox/bookmark acceptance remains separate. The CLI exposes these routes through `officeimo convert`. Studio uses the same runner for file-picker, drop, and startup intake, with per-job representation and acceptance settings, captured source SHA-256, retained fidelity evidence, and saved-output preview. These workflow settings are copied before asynchronous source capture.
+
+## iWork ’09 XML
+
+The read-only XML profile accepts Apple’s `92008102400` grammar in root
+`index.xml` and `index.apxl` entries, including `.gz` variants. The application
+comes from the XML namespace and root element. Package, XML size, nesting, node,
+and projection bounds apply. XML declarations of external entities are rejected.
+
+| Source | Recovered source content | Omitted content |
+|---|---|---|
+| Pages ’09 | Body paragraphs, selected rich styles and text bullets, links, inline tables and images, positioned text boxes and images, page dimensions and margins | Section layout, headers, footers, footnotes, vector shape appearance, wrapping and unqualified objects |
+| Numbers ’09 | Direct sheets and tables, selected typed cells and scalar formula/control caches, rich cell text, selected styles and fills, scalar/date/duration formats, dimensions and merges | Formula expressions, non-table drawables, borders, unsupported formats and interactive control behavior |
+| Keynote ’09 | Ordered slides, directly referenced title/body placeholders, presenter notes, direct text boxes, tables and images, canvas size and selected geometry | Masters, grouped shapes, vector shape appearance, image masks/crops, playback and application-only fields |
+
+Scoped stylesheet and style inheritance recovers selected font families, sizes,
+bold, italic, underline, strikethrough, RGB colors, paragraph alignment, indents,
+spacing and pagination flags. Missing or ambiguous selected references retain
+loss diagnostics. Cycles and excessive inheritance depth are rejected. Text
+retains tabs and manual line breaks. Embedded PNG/JPEG resources use the shared
+bounded image decoder and retain their original bytes. Crop and alpha masks
+remain reported omissions.
+
+Independent Pages image fixtures exercise inline and positioned PNG uses,
+including a document spanning multiple pages. Keynote fixtures exercise six
+ordered image slides and shared image references. Saved/reopened OOXML retains
+the embedded PNG payloads, editable tables, selected text formatting, text boxes
+and bullet markers. The image sources are the CC-BY-SA 4.0 `Pages/4/images.pages`,
+`Pages/4/images-multipage.pages` and `Keynote/5/images.key` cases in the
+[libetonyek test corpus](https://git.libreoffice.org/libetonyek-test) at
+`a548a9569c18cdffc24d3ba5d549f6b423c449d3`. Independent Numbers cases retain native
+table dimensions, currency formats, header typography, merges and formula caches.
+Destination adapters report additional approximations and omissions, including
+cell padding and application-specific number/date display.
+The source model retains recovered point dimensions. Native Excel quantizes row
+heights and resolves column widths using font and display metrics, so physical
+grid sizes can differ from those source points. XLSX conversion reports this
+display approximation separately from scalar and style preservation.
+
+Native Microsoft Word and PowerPoint 16 build 20527 open the converted image,
+table, formatted-text, textbox and bullet cases. Word retains the two-page image
+layout, editable tables, inline/floating pictures and native image frames.
+PowerPoint retains all six image slides and their editable picture shapes,
+the 1024 × 768-point canvas and the native table. These cases qualify the named
+static content; crop and alpha-mask appearance remains outside the profile.
+
+Use
+`AllowPartialEditableReconstruction = true` on the existing OOXML conversion
+options to accept these omissions. The report identifies the legacy index and
+omitted content. Raw IWA records are empty for XML packages. `BeginEdit()` rejects
+legacy sources. Earlier XML generations, protected documents and complete editable
+PDF conversion are outside this profile.
 
 ## Supporting library owners
 
@@ -193,7 +244,7 @@ The gate retains executable hashes, exit codes and output before deleting isolat
 | Object envelope | Bounded ArchiveInfo and MessageInfo protobuf parsing with field-count, depth, record-count, record-size, wire-type, varint, reference, and unique primary-object validation |
 | Preservation | Defensive access to all package entries and all primary or auxiliary IWA payloads; conversion reports retain source payloads for inspection through `PreservedRecords`, including consumed, partially consumed, and auxiliary records; this count does not measure omitted content |
 | Active content | No macros, scripts, external links, embedded executables, or application services are executed |
-| Legacy packages | Pre-IWA `index.xml` and `index.apxl` packages are rejected as unsupported rather than guessed |
+| iWork ’09 XML | Recognizes grammar `92008102400` in root `index.xml` and `index.apxl` entries, including gzip variants. XML depth, node, attribute, and projection limits apply. |
 
 Public source and adapter path/stream APIs accept cancellation; source byte-array loading accepts it as well. The source token governs subsequent projections and conversions. `source.WithCancellation(token)` shares the loaded source and parsed-message cache with an independent replacement token; it permits reuse after the original token is cancelled. Destination construction checks cancellation between objects, cells, paragraphs, and runs and disposes a partially constructed destination on failure. Caller-owned streams remain open. Fixed cancellation latency, allocation, and retained-memory budgets remain unqualified. The opt-in [runtime evidence lane](../OfficeIMO.IWork.Benchmarks/README.md) measures synthetic scale workloads and hash-pinned native fixtures, with complete saved-package semantic readback. The [portable run](benchmarks/officeimo.iwork-portable-runtime-2026-10-04.md) records 6,390 validated samples on Linux x64, macOS arm64 and Windows x64, including repeated managed baselines, sampled managed/resident changes and active I/O cancellation. Sampled maxima are lower bounds on peaks; the observations do not establish attributed native-memory retention, portable ceilings or native appearance.
 

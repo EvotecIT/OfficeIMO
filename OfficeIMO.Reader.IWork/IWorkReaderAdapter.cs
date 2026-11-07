@@ -8,11 +8,11 @@ internal static class IWorkReaderAdapter {
         ReaderIWorkOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(sourceName) || !stream.CanSeek) return false;
-        if (!ExpectedKind(sourceName!).HasValue) return false;
+        if (ExpectedKind(sourceName!) is not { } expectedKind) return false;
         IWorkLoadOptions readOptions = options.ReadOptions ?? new IWorkLoadOptions();
         long maximumPackageBytes = Math.Min(readOptions.MaxPackageBytes,
             readerOptions.MaxInputBytes ?? readOptions.MaxPackageBytes);
-        return IWorkContainerProbe.HasModernIndex(stream, maximumPackageBytes,
+        return IWorkContainerProbe.HasSupportedIndex(stream, expectedKind, maximumPackageBytes,
             readOptions.MaxEntryCount, cancellationToken,
             readOptions.MaxEntryBytes);
     }

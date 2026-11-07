@@ -2,7 +2,7 @@ using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>Read-only Numbers structure recovered from a shared IWA object graph.</summary>
+/// <summary>Read-only Numbers structure recovered from a supported iWork source.</summary>
 public sealed partial class IWorkNumbersProjection {
     private readonly IWorkSourceDocument _source;
     private readonly bool _supportsEditableReconstruction;
@@ -75,7 +75,9 @@ public sealed partial class IWorkSourceDocument {
     public IWorkNumbersProjection ReadNumbers() {
         _cancellationToken.ThrowIfCancellationRequested();
         if (Kind != IWorkDocumentKind.Numbers) throw new InvalidOperationException($"The source is {Kind}, not Numbers.");
-        IWorkNumbersProjection projection = IWorkNumbersReader.Read(this);
+        IWorkNumbersProjection projection = LegacyXml is { } legacy
+            ? IWorkLegacyXmlReader.ReadNumbers(this, legacy)
+            : IWorkNumbersReader.Read(this);
         _cancellationToken.ThrowIfCancellationRequested();
         return projection;
     }

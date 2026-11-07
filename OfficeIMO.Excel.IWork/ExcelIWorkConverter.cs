@@ -82,6 +82,14 @@ public static partial class ExcelIWorkConverter {
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(FractionFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DurationFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DateTimeFormatDiagnostics(projection)).ToArray();
+        if (editable && source.LegacyXml != null && projection.Sheets.SelectMany(sheet => sheet.Tables)
+            .Any(table => table.RowHeights.Count > 0 || table.ColumnWidths.Count > 0)) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_GRID_DISPLAY_APPROXIMATED",
+                    "Recovered row heights and column widths are retained on the source projection. XLSX width units depend on font and display metrics, and native Excel quantizes dimensions; physical sizes can differ from source points.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+            }).ToArray();
+        }
         if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables)
             .Any(table => table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
