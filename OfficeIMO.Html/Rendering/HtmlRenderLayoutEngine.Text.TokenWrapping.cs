@@ -366,6 +366,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         || style.WordBreak == "break-word";
 
     private IReadOnlyList<InlineSegment> MergeAdjacentInlineSegments(IReadOnlyList<InlineSegment> segments) {
+        if (segments.Count < 2) return segments;
         if (TryCoalesceSimpleInlineLine(segments) is InlineSegment simple) return new[] { simple };
         var merged = new List<InlineSegment>(segments.Count);
         foreach (InlineSegment segment in segments) {

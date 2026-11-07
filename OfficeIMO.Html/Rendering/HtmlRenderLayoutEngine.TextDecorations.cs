@@ -8,6 +8,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IDictionary<IElement, List<HtmlRenderVisual>> ownedVisuals, HtmlInlineRun run,
         IElement? formattingContainer, IReadOnlyList<HtmlRenderVisual> textVisuals, bool aboveText) {
         HtmlRenderBoxStyle style = run.Style;
+        if (aboveText ? style.StrikethroughStyle == OfficeTextDecorationStyle.None
+            : style.UnderlineStyle == OfficeTextDecorationStyle.None
+                && style.OverlineStyle == OfficeTextDecorationStyle.None) return;
         bool hasPreparedText = textVisuals.OfType<HtmlRenderText>().Any(text => text.PreparedShaping != null);
         if (!style.VectorTextDecoration && !hasPreparedText) return;
         double thickness = style.DecorationThickness ?? Math.Max(1D, style.Font.Size / 16D);
