@@ -15,6 +15,10 @@ internal static partial class PdfWriter {
     private static bool TryBeginOptionalBreakText(StringBuilder sb, RichParagraphBlock block,
         List<List<RichSeg>> lines, bool suppressed, PdfCreateOptions options, double x, double y, double width, double height) {
         if (suppressed) return false;
+        int runIndex = 0;
+        while (runIndex < block.Runs.Count && block.Runs[runIndex].Text.IndexOf('\u200B') < 0)
+            runIndex++;
+        if (runIndex == block.Runs.Count) return false;
         string source = string.Concat(block.Runs.Select(run => run.Text));
         if (source.IndexOf('\u200B') < 0 || source.Any(char.IsWhiteSpace) || block.Runs.Any(run => run.InlineElement != null)) return false;
         string logicalText = string.Concat(lines.SelectMany(line => line).Select(segment => segment.Text)).Replace("\u200B", string.Empty);
