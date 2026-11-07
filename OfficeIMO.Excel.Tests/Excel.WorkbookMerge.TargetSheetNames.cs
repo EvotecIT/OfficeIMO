@@ -198,13 +198,14 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_ExcelWorkbookMerge_TargetSheetNamesCloneIndependently() {
-            var targetSheetNames = new Dictionary<string, string> { ["North"] = "Region N" };
+            var targetSheetNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["North"] = "Region N" };
             var options = new ExcelWorkbookMergeOptions { TargetSheetNames = targetSheetNames };
 
             ExcelWorkbookMergeOptions clone = options.Clone();
             targetSheetNames["North"] = "Changed";
 
             Assert.Equal("Region N", clone.TargetSheetNames!["North"]);
+            Assert.Equal("Region N", clone.TargetSheetNames["north"]);
         }
 
         [Fact]
