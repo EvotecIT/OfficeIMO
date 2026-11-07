@@ -65,6 +65,28 @@ internal static partial class CsvWriter
         AppendQuotedText(writer, text, specialIndex);
     }
 
+#if NET8_0_OR_GREATER
+    /// <summary>Copies a field into a caller-reserved span with the default quoting rules.</summary>
+    internal static int WriteEscapedDefault(Span<char> destination, string text, char delimiter)
+    {
+        if (IndexOfCsvSpecial(text, delimiter) < 0)
+        {
+            text.AsSpan().CopyTo(destination);
+            return text.Length;
+        }
+        destination[0] = '"';
+        if (text.IndexOf('"') < 0)
+        {
+            text.AsSpan().CopyTo(destination.Slice(1));
+            destination[text.Length + 1] = '"';
+            return text.Length + 2;
+        }
+        int written = EscapeQuotedChunk(text.AsSpan(), destination.Slice(1));
+        destination[written + 1] = '"';
+        return written + 2;
+    }
+#endif
+
     private static void WriteEscapedDefault(TextWriter writer, string? text, char delimiter)
     {
         if (text == null) return;
@@ -117,8 +139,8 @@ internal static partial class CsvWriter
     }
 
 #if NET6_0_OR_GREATER
-    // Each caller supplies at most 256 source characters and reserves enough
-    // room to double every quote. The field's closing quote follows all chunks.
+    // Callers reserve enough room to double every quote. The field's closing
+    // quote follows the escaped contents.
     private static int EscapeQuotedChunk(ReadOnlySpan<char> text, Span<char> escaped)
     {
         int count = 0;
