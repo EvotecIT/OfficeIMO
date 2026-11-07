@@ -39,12 +39,21 @@ internal static class OfficeTextLineBreaks {
         if (TryGetSimpleAsciiBreakPositions(text, cancellationToken, out IReadOnlyList<int> simpleAsciiPositions))
             return simpleAsciiPositions;
 
-        int[] elementStarts = StringInfo.ParseCombiningCharacters(text);
-        if (elementStarts.Length < 2) {
-            return Array.Empty<int>();
+        int[]? elementStarts = null;
+        int[]? scalarStarts = null;
+        int[] scalars;
+        if (OfficeTextElements.HasOnlySingleCodeUnitElements(text, cancellationToken)) {
+            if (text.Length < 2) return Array.Empty<int>();
+            scalars = new int[text.Length];
+            for (int index = 0; index < text.Length; index++) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                scalars[index] = text[index];
+            }
+        } else {
+            elementStarts = StringInfo.ParseCombiningCharacters(text);
+            if (elementStarts.Length < 2) return Array.Empty<int>();
+            scalars = OfficeUnicodeBidi.ToScalars(text, out scalarStarts);
         }
-
-        int[] scalars = OfficeUnicodeBidi.ToScalars(text, out int[] scalarStarts);
         OfficeUnicodeLineBreaker.BreakAction[] actions = OfficeUnicodeLineBreaker.Analyze(scalars, cancellationToken);
         var positions = new List<int>();
         for (int index = 1; index < scalars.Length; index++) {
@@ -52,8 +61,8 @@ internal static class OfficeTextLineBreaks {
             if (actions[index] == OfficeUnicodeLineBreaker.BreakAction.Prohibited) continue;
             // A soft hyphen breaks only by inserting a visible hyphen; discretionary hyphenation owns it.
             if (scalars[index - 1] == 0x00AD) continue;
-            int boundary = scalarStarts[index];
-            if (Array.BinarySearch(elementStarts, boundary) < 0) continue;
+            int boundary = scalarStarts == null ? index : scalarStarts[index];
+            if (elementStarts != null && Array.BinarySearch(elementStarts, boundary) < 0) continue;
             if (!allowCjkBreaks && actions[index] != OfficeUnicodeLineBreaker.BreakAction.Mandatory &&
                 !IsExplicitBreakAfter(scalars[index - 1]) && !IsExplicitBreakBefore(scalars[index])) continue;
             positions.Add(boundary);

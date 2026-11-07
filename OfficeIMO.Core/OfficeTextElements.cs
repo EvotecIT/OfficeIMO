@@ -54,8 +54,10 @@ internal static class OfficeTextElements {
     private const char FirstCombiningMark = '\u0300';
     private static readonly string?[] SingleCodeUnitElements = new string?[FirstCombiningMark];
 
-    private static bool HasOnlySingleCodeUnitElements(string value) {
+    /// <summary>Recognizes the shared subset that needs no Unicode grapheme segmentation.</summary>
+    internal static bool HasOnlySingleCodeUnitElements(string value, System.Threading.CancellationToken cancellationToken = default) {
         for (int index = 0; index < value.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             char current = value[index];
             if (current >= FirstCombiningMark || current == '\r') return false;
         }
