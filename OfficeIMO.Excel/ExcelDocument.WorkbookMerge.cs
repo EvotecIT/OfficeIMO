@@ -13,6 +13,12 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Imports selected or all worksheets from another workbook into this workbook.
         /// </summary>
+        /// <remarks>
+        /// Imported worksheets are named by <see cref="ExcelWorkbookMergeOptions.TargetSheetNames"/> or
+        /// <see cref="ExcelWorkbookMergeOptions.SheetNamePrefix"/>. References between imported worksheets are
+        /// rewritten from each source name to its target name in one step. Imported worksheets keep no tab
+        /// selection from their source workbook, so only the active worksheet stays selected.
+        /// </remarks>
         public ExcelWorkbookMergeResult MergeWorkbookFrom(ExcelDocument sourceDocument, ExcelWorkbookMergeOptions? options = null) {
             ArgumentNullException.ThrowIfNull(sourceDocument);
 
@@ -28,6 +34,7 @@ namespace OfficeIMO.Excel {
                 options.MaxInCellImageBytes,
                 options.MaxTotalInCellImageBytes);
             List<ExcelSheet> sourceSheets = ResolveWorkbookMergeSheets(sourceDocument, options).ToList();
+            Dictionary<string, string>? targetSheetNames = ResolveWorkbookMergeTargetSheetNames(sourceSheets, options);
             if (options.CopyMode == ExcelWorksheetCopyMode.Package) {
                 foreach (ExcelSheet sourceSheet in sourceSheets) {
                     sourceSheet.PreflightInCellImages(inCellImageContext);
@@ -46,7 +53,7 @@ namespace OfficeIMO.Excel {
             var externalReferenceMaps = new Dictionary<string, IReadOnlyDictionary<int, int>>(StringComparer.OrdinalIgnoreCase);
 
             foreach (ExcelSheet sourceSheet in sourceSheets) {
-                string requestedName = (options.SheetNamePrefix ?? string.Empty) + sourceSheet.Name;
+                string requestedName = ResolveWorkbookMergeSheetName(sourceSheet, options, targetSheetNames);
                 ExcelSheet targetSheet;
                 if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
                     targetSheet = CopyWorksheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
@@ -95,6 +102,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            ClearMergedWorksheetTabSelection(createdTargetNames);
             MarkPackageDirty();
             return new ExcelWorkbookMergeResult(importedSourceNames, createdTargetNames);
         }
@@ -105,6 +113,101 @@ namespace OfficeIMO.Excel {
             }
 
             return options.SheetNames.Select(sourceDocument.GetSheet);
+        }
+
+        private static string ResolveWorkbookMergeSheetName(
+            ExcelSheet sourceSheet,
+            ExcelWorkbookMergeOptions options,
+            IReadOnlyDictionary<string, string>? targetSheetNames) {
+            if (targetSheetNames != null && targetSheetNames.TryGetValue(sourceSheet.Name, out string? targetSheetName)) {
+                return targetSheetName!;
+            }
+
+            return (options.SheetNamePrefix ?? string.Empty) + sourceSheet.Name;
+        }
+
+        private Dictionary<string, string>? ResolveWorkbookMergeTargetSheetNames(
+            IReadOnlyList<ExcelSheet> sourceSheets,
+            ExcelWorkbookMergeOptions options) {
+            if (options.TargetSheetNames == null || options.TargetSheetNames.Count == 0) {
+                return null;
+            }
+
+            var importedSourceNames = new HashSet<string>(sourceSheets.Select(_ => _.Name), StringComparer.OrdinalIgnoreCase);
+            var targetSheetNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, string> entry in options.TargetSheetNames) {
+                if (entry.Key == null || !importedSourceNames.Contains(entry.Key)) {
+                    throw new ArgumentException(
+                        $"TargetSheetNames names source worksheet '{entry.Key}', which this merge does not import.",
+                        nameof(options));
+                }
+
+                if (entry.Value == null) {
+                    throw new ArgumentException(
+                        $"TargetSheetNames has no target name for source worksheet '{entry.Key}'.",
+                        nameof(options));
+                }
+
+                if (targetSheetNames.ContainsKey(entry.Key)) {
+                    throw new ArgumentException(
+                        $"TargetSheetNames names source worksheet '{entry.Key}' more than once.",
+                        nameof(options));
+                }
+
+                targetSheetNames.Add(entry.Key, entry.Value);
+            }
+
+            if (options.SheetNameValidationMode == ExcelSheetNameValidationMode.Strict) {
+                PreflightStrictWorkbookMergeSheetNames(sourceSheets, options, targetSheetNames);
+            }
+
+            return targetSheetNames;
+        }
+
+        /// <summary>
+        /// Applies the strict per-sheet validation to every requested name, and checks the names against each other,
+        /// so an invalid or colliding name fails the merge before any worksheet is imported.
+        /// </summary>
+        private void PreflightStrictWorkbookMergeSheetNames(
+            IReadOnlyList<ExcelSheet> sourceSheets,
+            ExcelWorkbookMergeOptions options,
+            IReadOnlyDictionary<string, string> targetSheetNames) {
+            Locking.ExecuteRead(EnsureLock(), () => {
+                var plannedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (ExcelSheet sourceSheet in sourceSheets) {
+                    string requestedName = ResolveWorkbookMergeSheetName(sourceSheet, options, targetSheetNames);
+                    string validatedName = ValidateOrSanitizeSheetName(requestedName, ExcelSheetNameValidationMode.Strict, currentSheetName: null);
+                    if (!plannedNames.Add(validatedName)) {
+                        throw new ArgumentException($"Worksheet name '{validatedName}' is requested for more than one imported worksheet.", nameof(options));
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// Copied worksheet XML keeps the source workbook's tab selection, which makes spreadsheet applications open
+        /// the merged workbook with tabs grouped. Only the active worksheet keeps its selection.
+        /// </summary>
+        private void ClearMergedWorksheetTabSelection(IReadOnlyList<string> createdTargetNames) {
+            string? activeSheetName = ActiveWorksheet?.Name;
+            foreach (string createdTargetName in createdTargetNames) {
+                if (string.Equals(createdTargetName, activeSheetName, StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                Worksheet worksheet = GetSheet(createdTargetName).WorksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+                bool changed = false;
+                foreach (SheetView sheetView in worksheet.Elements<SheetViews>().SelectMany(_ => _.Elements<SheetView>())) {
+                    if (sheetView.TabSelected?.Value == true) {
+                        sheetView.TabSelected = null;
+                        changed = true;
+                    }
+                }
+
+                if (changed) {
+                    worksheet.Save();
+                }
+            }
         }
 
         private void RewriteMergedWorksheetReferences(
