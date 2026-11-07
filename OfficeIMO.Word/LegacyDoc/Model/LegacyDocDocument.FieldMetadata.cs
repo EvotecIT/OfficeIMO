@@ -5,7 +5,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             ISet<int>? emptyResultEnds = null;
             if (characters != null && fib.HasValue) {
                 emptyResultEnds = LegacyDocField.ReportUnprojectedEmptyResults(characters, fib.Value,
-                    finding => AddUnsupportedFeature(finding, reportUnsupportedContent));
+                    finding => AddUnsupportedFeature(finding, reportUnsupportedContent),
+                    readableComments: !_unsupportedFeatures.Any(feature => feature.Code == "doc-comment-stories-present"),
+                    readableBodyTextBox: TextBoxStories.Any(story => !story.IsHeaderFooterTextBox));
             }
             foreach (LegacyDocUnsupportedFeature finding in metadata.Findings.Concat(metadata.UnprojectedLocks(emptyResultEnds))) {
                 AddUnsupportedFeature(finding, reportUnsupportedContent);

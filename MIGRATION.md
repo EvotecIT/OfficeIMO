@@ -9548,6 +9548,10 @@ Setting `WordParagraph.ParagraphAlignment` or `VerticalCharacterAlignmentOnLine`
 
 Loading a binary `.doc` retains literal spaces after footnote and endnote reference markers. `WordParagraph.Text` for the first paragraph returned by `WordFootNote.Paragraphs` or `WordEndNote.Paragraphs` can now include the source separator space; previously the first space was discarded. Update exact text comparisons, offsets and saved-output snapshots that assumed this implicit trimming. The [DOC and DOCX compatibility contract](Docs/officeimo.word.legacy-doc-compatibility.md) describes the native output separator default separately.
 
+### Native DOC empty field results
+
+Importing Word 97–2003 `.doc` files now reports `doc-field-empty-result-unprojected` for previously silent omissions of empty supported fields, including truly empty `PAGE`/`NUMPAGES`, in main text, headers/footers, notes, readable comments and body textboxes. Strict conversion can reject these documents. Review `LegacyDocUnsupportedFeatures` and the import diagnostics, and use the existing `WordSaveOptions.AllowLoss` only after accepting the reported omission. Native writing still supplies its established count-field placeholder; empty `SECTIONPAGES` import remains supported. See the [empty-cache import boundary](Docs/officeimo.word.legacy-doc-compatibility.md) before updating conversion handling.
+
 ## Upgrade checklist
 
 - Upgrade every OfficeIMO package in the application together.

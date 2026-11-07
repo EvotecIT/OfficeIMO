@@ -10,6 +10,118 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void LegacyDoc_EmptyFieldCaches_ReadableCommentsAndBodyTextboxesReportOmittedFields(bool textBox, bool separator) {
+        foreach (string instruction in new[] { "DATE", "FILENAME", "DOCPROPERTY Title", "EQ \\f(1,2)", "PAGE", "NUMPAGES", "SECTIONPAGES" }) {
+            bool acceptsEmpty = instruction == "SECTIONPAGES";
+            foreach (string cache in new[] { string.Empty, "CACHE" }) {
+                string field = "\u0013 " + instruction + " " + (separator ? "\u0014" + cache : cache) + "\u0015";
+                if (!separator && cache.Length != 0) continue;
+                byte[] bytes = CreateReadableStoryFieldCarrier(textBox, field, separator);
+                using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
+                string visible = textBox ? Assert.Single(loaded.TextBoxes).Content!.InnerText : Assert.Single(loaded.Comments).Text;
+                string expectedCache = cache.Length != 0 ? cache : acceptsEmpty ? "1" : string.Empty;
+                Assert.Equal("Before " + expectedCache + " After", visible);
+                var findings = loaded.LegacyDocUnsupportedFeatures;
+                using var output = new MemoryStream();
+                if (!acceptsEmpty && cache.Length == 0) {
+                    var finding = Assert.Single(findings);
+                    Assert.Equal("doc-field-empty-result-unprojected", finding.Code);
+                    Assert.Equal(textBox ? "Field:TextBox:EmptyResult" : "Field:Comment:EmptyResult", finding.DetailCode);
+                    Assert.Contains(instruction, finding.Description);
+                    Assert.Throws<NotSupportedException>(() => loaded.Save(output));
+                    Assert.Equal(0, output.Length);
+                    loaded.Save(output, new WordSaveOptions { AllowLoss = true });
+                } else {
+                    Assert.Empty(findings);
+                    loaded.Save(output);
+                }
+                using var package = new System.IO.Compression.ZipArchive(new MemoryStream(output.ToArray()));
+                string part = textBox ? "word/document.xml" : "word/comments.xml";
+                using Stream xml = package.GetEntry(part)!.Open();
+                var root = System.Xml.Linq.XDocument.Load(xml);
+                System.Xml.Linq.XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+                var fields = root.Descendants(w + "fldSimple").ToArray();
+                if (!acceptsEmpty && cache.Length == 0) Assert.Empty(fields);
+                else {
+                    var projected = Assert.Single(fields);
+                    Assert.Equal(instruction, ((string?)projected.Attribute(w + "instr"))?.Trim());
+                    Assert.Equal(expectedCache, projected.Value);
+                }
+            }
+        }
+
+        byte[] emptyOnly = CreateReadableStoryFieldCarrier(textBox, "\u0013 DATE " + (separator ? "\u0014" : "") + "\u0015", separator, surroundingText: false);
+        using (WordDocument loaded = WordDocument.Load(new MemoryStream(emptyOnly))) {
+            string expected = textBox ? "doc-textbox-stories-present" : "doc-field-empty-result-unprojected";
+            Assert.Equal(expected, Assert.Single(loaded.LegacyDocUnsupportedFeatures).Code);
+            using var output = new MemoryStream();
+            Assert.Throws<NotSupportedException>(() => loaded.Save(output));
+        }
+        byte[] unprojectedStory = CreateReadableStoryFieldCarrier(textBox, "\u0013 DATE " + (separator ? "\u0014" : "") + "\u0015", separator);
+        Assert.True(OfficeCompoundFileReader.TryRead(unprojectedStory, out OfficeCompoundFile? generic, out _));
+        byte[] word = generic!.Streams["WordDocument"];
+        if (textBox) {
+            Buffer.BlockCopy(word, 0x64, word, 0x68, 4);
+            Array.Clear(word, 0x64, 4);
+        } else Array.Clear(word, 0xBE, 4); // Unreadable comment reference PLC.
+        byte[] guarded = OfficeCompoundFileWriter.Write(generic.Streams.Select(stream => new OfficeCompoundStream(stream.Key, stream.Value)).ToArray());
+        using (WordDocument loaded = WordDocument.Load(new MemoryStream(guarded))) {
+            Assert.Equal(textBox ? "doc-header-textbox-stories-present" : "doc-comment-stories-present", Assert.Single(loaded.LegacyDocUnsupportedFeatures).Code);
+            Assert.DoesNotContain(loaded.LegacyDocImportDiagnostics, diagnostic => diagnostic.Code == "doc-field-empty-result-unprojected");
+            using var output = new MemoryStream();
+            Assert.Throws<NotSupportedException>(() => loaded.Save(output));
+        }
+    }
+
+    private static byte[] CreateReadableStoryFieldCarrier(bool textBox, string field, bool separator, bool surroundingText = true) {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Body");
+        int prefixLength = surroundingText ? 7 : 0;
+        string placeholder = (surroundingText ? "Before " : "") + new string('X', field.Length) + (surroundingText ? " After" : "");
+        if (textBox) source.AddParagraph(placeholder);
+        else source.Paragraphs[0].AddComment("Author", "AR", placeholder);
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+        try {
+            source.Save(path);
+            Assert.True(OfficeCompoundFileReader.TryRead(File.ReadAllBytes(path), out OfficeCompoundFile? compound, out _));
+            byte[] main = compound!.Streams["WordDocument"].ToArray();
+            byte[] table = compound.Streams["1Table"].ToArray();
+            string text = Encoding.ASCII.GetString(main);
+            int offset = text.IndexOf(new string('X', field.Length), StringComparison.Ordinal);
+            Assert.True(offset >= 0);
+            Encoding.ASCII.GetBytes(field).CopyTo(main, offset);
+            int storyCount = BitConverter.ToInt32(main, textBox ? 0x4C : 0x5C);
+            if (textBox) {
+                Buffer.BlockCopy(BitConverter.GetBytes(5), 0, main, 0x4C, 4);
+                storyCount -= 5;
+                Buffer.BlockCopy(BitConverter.GetBytes(storyCount), 0, main, 0x64, 4);
+            }
+            int end = prefixLength + field.Length - 1;
+            int split = field.IndexOf('\u0014');
+            int[] cps = separator ? new[] { prefixLength, prefixLength + split, end } : new[] { prefixLength, end };
+            int start = table.Length;
+            int length = 4 + cps.Length * 6;
+            Array.Resize(ref table, start + length);
+            for (int index = 0; index < cps.Length; index++) Buffer.BlockCopy(BitConverter.GetBytes(cps[index]), 0, table, start + index * 4, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(storyCount), 0, table, start + cps.Length * 4, 4);
+            int properties = start + (cps.Length + 1) * 4;
+            for (int index = 0; index < cps.Length; index++) {
+                table[properties + index * 2] = (byte)(index == 0 ? 0x13 : index == cps.Length - 1 ? 0x15 : 0x14);
+                table[properties + index * 2 + 1] = (byte)(index == cps.Length - 1 && separator ? 0x80 : 0);
+            }
+            int directory = textBox ? 0x262 : 0x132;
+            Buffer.BlockCopy(BitConverter.GetBytes(start), 0, main, directory, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(length), 0, main, directory + 4, 4);
+            return OfficeCompoundFileWriter.Write(compound.Streams.Select(stream => new OfficeCompoundStream(stream.Key,
+                stream.Key == "WordDocument" ? main : stream.Key == "1Table" ? table : stream.Value)).ToArray());
+        } finally { DeleteIfExists(path); }
+    }
+
+    [Theory]
     [InlineData("FILENAME")]
     [InlineData("STYLEREF \"Heading 1\"")]
     [InlineData("DATE")]
@@ -39,7 +151,7 @@ public partial class Word {
                 continue;
             }
             foreach (string instruction in instructions) {
-                paragraph.Append(new W.SimpleField { Instruction = " " + instruction + " ", FieldLock = true },
+                paragraph.Append(new W.SimpleField { Instruction = " " + instruction + " ", FieldLock = profile != "COUNTS" },
                     new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Begin }),
                     new W.Run(new W.FieldCode(" " + instruction + " ")),
                     new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Separate }),
@@ -75,28 +187,33 @@ public partial class Word {
                 Assert.All(matching, field => Assert.Equal(profile == "COUNTS" ? "1" : string.Empty, field.Result));
             }
 
-            byte[][] importProfiles = profile == "COUNTS" ? new[] { encoded } : new[] { encoded, RemoveEmptyFieldSeparators(encoded) };
-            foreach (byte[] importProfile in importProfiles) {
+            byte[] emptyCounts = profile == "COUNTS" ? ClearCountCaches(encoded) : encoded;
+            byte[][] importProfiles = profile == "COUNTS" ? new[] { encoded, emptyCounts, RemoveEmptyFieldSeparators(emptyCounts) } : new[] { encoded, RemoveEmptyFieldSeparators(encoded) };
+            for (int importIndex = 0; importIndex < importProfiles.Length; importIndex++) {
+                byte[] importProfile = importProfiles[importIndex];
+                bool unchangedCounts = profile == "COUNTS" && importIndex == 0;
+                int expectedLosses = profile == "COUNTS" ? 20 : 10;
                 using WordDocument loaded = WordDocument.Load(new MemoryStream(importProfile));
                 var findings = loaded.LegacyDocUnsupportedFeatures.Where(feature => feature.Code == "doc-field-empty-result-unprojected").ToArray();
-                if (profile == "COUNTS") {
+                if (unchangedCounts) {
                     Assert.Empty(findings);
                     Assert.Empty(loaded.LegacyDocUnsupportedFeatures);
                     Assert.Equal(30, loaded.InspectFields().Count);
                 } else {
-                    Assert.Equal(10, findings.Length);
-                    Assert.Equal(10, loaded.LegacyDocUnsupportedFeatures.Count);
-                    Assert.Equal(10, loaded.LegacyDocImportDiagnostics.Count(diagnostic => diagnostic.Code == "doc-field-empty-result-unprojected"));
+                    Assert.Equal(expectedLosses, findings.Length);
+                    Assert.Equal(expectedLosses, loaded.LegacyDocUnsupportedFeatures.Count);
+                    Assert.Equal(expectedLosses, loaded.LegacyDocImportDiagnostics.Count(diagnostic => diagnostic.Code == "doc-field-empty-result-unprojected"));
                     Assert.DoesNotContain(loaded.LegacyDocUnsupportedFeatures, feature => feature.Code == "doc-field-lock-unprojected");
                     Assert.Contains(findings, feature => feature.DetailCode == "Field:Main:EmptyResult");
                     Assert.Contains(findings, feature => feature.DetailCode == "Field:Header:EmptyResult");
                     Assert.Contains(findings, feature => feature.DetailCode == "Field:Footnote:EmptyResult");
                     Assert.Contains(findings, feature => feature.DetailCode == "Field:Endnote:EmptyResult");
-                    Assert.Empty(loaded.InspectFields());
+                    if (profile == "COUNTS") Assert.Equal(10, loaded.InspectFields().Count);
+                    else Assert.Empty(loaded.InspectFields());
                     Assert.False(loaded.AssessLegacyDocWrite().IsSupported);
                 }
                 using var strict = new MemoryStream();
-                if (profile == "COUNTS") loaded.Save(strict);
+                if (unchangedCounts) loaded.Save(strict);
                 else {
                     Assert.Throws<NotSupportedException>(() => loaded.Save(strict));
                     Assert.Equal(0, strict.Length);
@@ -105,6 +222,33 @@ public partial class Word {
                 Assert.True(strict.Length > 0);
             }
         } finally { DeleteIfExists(path); }
+    }
+
+    private static byte[] ClearCountCaches(byte[] source) {
+        Assert.True(OfficeCompoundFileReader.TryRead(source, out OfficeCompoundFile? compound, out _));
+        byte[] main = compound!.Streams["WordDocument"].ToArray();
+        byte[] table = compound.Streams["1Table"].ToArray();
+        for (int index = BitConverter.ToInt32(main, 0x18); index < BitConverter.ToInt32(main, 0x1C); index++) {
+            if (main[index] != 0x14) continue;
+            Assert.Equal((byte)'1', main[index + 1]);
+            Assert.Equal(0x15, main[index + 2]);
+            main[index + 1] = 0x15;
+            main[index + 2] = (byte)' ';
+        }
+        foreach (int directory in new[] { 0x11A, 0x122, 0x12A, 0x132, 0x21A }) {
+            int length = BitConverter.ToInt32(main, directory + 4);
+            if (length == 0) continue;
+            int start = BitConverter.ToInt32(main, directory);
+            int count = (length - 4) / 6;
+            int properties = start + (count + 1) * 4;
+            for (int index = 0; index < count; index++) {
+                if ((table[properties + index * 2] & 0x1F) != 0x15) continue;
+                int cp = BitConverter.ToInt32(table, start + index * 4);
+                Buffer.BlockCopy(BitConverter.GetBytes(cp - 1), 0, table, start + index * 4, 4);
+            }
+        }
+        return OfficeCompoundFileWriter.Write(compound.Streams.Select(stream => new OfficeCompoundStream(stream.Key,
+            stream.Key == "WordDocument" ? main : stream.Key == "1Table" ? table : stream.Value)).ToArray());
     }
 
     private static byte[] RemoveEmptyFieldSeparators(byte[] source) {

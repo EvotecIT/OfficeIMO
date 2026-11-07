@@ -55,9 +55,11 @@ public sealed class AtomicFileWriterTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Output_respects_a_destination_claim_owned_by_a_canonical_writer(bool unique)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Output_respects_an_existing_destination_claim(bool unique, bool sharedReadableClaim)
     {
         var directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO-output-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -65,6 +67,9 @@ public sealed class AtomicFileWriterTests
         {
             var destination = Path.Combine(directory, "report.txt");
             var uniquePath = Path.Combine(directory, "report-2.txt");
+            var claimPath = OfficeFileCommitClaim.CreatePath(destination);
+            var claimBytes = Encoding.UTF8.GetBytes("claim awaiting its exclusive lock");
+            if (sharedReadableClaim) File.WriteAllBytes(claimPath, claimBytes);
             var writeCount = 0;
             Action<string> serialize = temporaryPath =>
             {
@@ -72,8 +77,20 @@ public sealed class AtomicFileWriterTests
                 File.WriteAllText(temporaryPath, "new-payload");
             };
 
-            using (OfficeFileCommitClaim.Acquire(destination))
+            // A Unix claim becomes visible before FileStream obtains its exclusive lock.
+            using (sharedReadableClaim
+                ? (IDisposable)new FileStream(claimPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)
+                : OfficeFileCommitClaim.Acquire(destination))
             {
+                if (sharedReadableClaim)
+                {
+                    var acquired = OfficeFileCommitClaim.TryAcquire(destination, out var competingClaim);
+                    using (competingClaim)
+                    {
+                        Assert.False(acquired);
+                        Assert.Null(competingClaim);
+                    }
+                }
                 if (unique)
                 {
                     Assert.Equal(uniquePath, OfficeFileOutput.WriteUnique(directory, "report.txt", serialize));
@@ -85,9 +102,14 @@ public sealed class AtomicFileWriterTests
                 }
                 Assert.False(File.Exists(destination));
                 Assert.Equal(1, writeCount);
+                if (sharedReadableClaim) Assert.Equal(claimBytes, File.ReadAllBytes(claimPath));
             }
 
-            Assert.Equal(unique ? new[] { uniquePath } : Array.Empty<string>(), Directory.GetFileSystemEntries(directory));
+            if (sharedReadableClaim) Assert.Equal(claimBytes, File.ReadAllBytes(claimPath));
+            var expectedEntries = (unique ? new[] { uniquePath } : Array.Empty<string>())
+                .Concat(sharedReadableClaim ? new[] { claimPath } : Array.Empty<string>());
+            Assert.Equal(expectedEntries.OrderBy(path => path, StringComparer.Ordinal),
+                Directory.GetFileSystemEntries(directory).OrderBy(path => path, StringComparer.Ordinal));
         }
         finally
         {

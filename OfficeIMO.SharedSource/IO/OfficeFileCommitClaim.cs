@@ -69,12 +69,16 @@ namespace OfficeIMO.Core.Internal.IO {
                     claim = null;
                     if (File.Exists(destinationPath) || IsSharingContention(exception)) return false;
                     bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+                    if (!windows && exception is IOException && exception.HResult == 17) {
+                        // A Unix claim is occupied before its creator acquires flock. A sharing
+                        // probe can take that lock first and prevent DeleteOnClose initialization.
+                        return false;
+                    }
                     if (exception is IOException &&
-                        ((windows &&
-                          (exception.HResult == unchecked((int)0x80070050) || exception.HResult == unchecked((int)0x800700B7))) ||
-                         (!windows && exception.HResult == 17))) {
+                        windows &&
+                        (exception.HResult == unchecked((int)0x80070050) || exception.HResult == unchecked((int)0x800700B7))) {
                         // CreateNew reports the same collision for an owned claim and an
-                        // abandoned one (Unix EEXIST is 17). Verify actual sharing;
+                        // abandoned one. Verify actual Windows sharing;
                         // permission and other persistent failures must remain errors.
                         string claimPath = CreatePath(destinationPath);
                         try {
