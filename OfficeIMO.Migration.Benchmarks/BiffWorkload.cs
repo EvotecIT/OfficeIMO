@@ -157,4 +157,3 @@ internal sealed class BiffWorkload : MigrationWorkload {
         writer.Write(bytes.ToArray());
     }
 }
-

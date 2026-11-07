@@ -13,6 +13,8 @@ optional process-memory sampling and JSON/CSV/Markdown reports.
 | `Dbx` | 6 / 64 / 512 messages | Indexed messages with distinct bodies, identities and attachment bytes |
 | `OfficeXml` | 100 / 1,000 / 10,000 paragraphs | WordML 2003 with repeated paragraph and run property groups |
 
+The [2026-11-07 two-domain comparison](../Docs/benchmarks/officeimo.migration-runtime-2026-11-07.md) records all 1,848 validated samples, exact source/binary identities, allocation gains, slower observations and launch variation.
+
 Input generation and complete output validation occur outside timing. The inputs
 are synthetic scale workloads. Independent producer fixtures belong to the format
 correctness evidence and do not establish a timing comparison when one revision
@@ -71,7 +73,3 @@ observed process-memory maxima as lower bounds in a separate instrumented run.
 `-MeasureRetainedMemory` records a collected, process-wide managed-heap observation
 after validation and result release; it includes host and cache effects. Neither
 observation isolates native allocations or proves an unsampled peak.
-
-
-
-

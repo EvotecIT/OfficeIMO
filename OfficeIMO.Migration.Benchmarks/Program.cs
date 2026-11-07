@@ -23,4 +23,3 @@ try {
     Console.Error.WriteLine(exception);
     return 1;
 }
-

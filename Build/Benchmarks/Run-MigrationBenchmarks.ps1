@@ -56,4 +56,3 @@ if (-not $Plan -and $MemorySamplingIntervalMilliseconds -gt 0 -and @($result.Sam
 }).Count -gt 0) {
     throw 'The requested operation memory observations are missing or invalid.'
 }
-
