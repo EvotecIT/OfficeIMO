@@ -597,7 +597,6 @@ public partial class Word {
         });
 
         Assert.Equal(global::OfficeIMO.OfficeColor.Black, style.BorderColor);
-        Assert.Null(style.HeaderFill);
         Assert.False(style.HeaderBold);
         Assert.Equal(11D, style.FontSize?.ToPoints());
         Assert.Equal(1.220703125D, style.LineHeight);

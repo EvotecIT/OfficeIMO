@@ -120,6 +120,16 @@ public static partial class ExcelHtmlConverterExtensions {
         return ToCssHex(style.FillPatternForegroundColorArgb) ?? style.FillColorHex;
     }
 
+    /// <summary>Reports background simplification without changing authored text colours to conceal it.</summary>
+    private static void ReportCssFillFidelity(ExcelCellStyleInfo style, string source, IList<HtmlDiagnostic> diagnostics) {
+        string? pattern = style.FillPatternType;
+        if (string.IsNullOrWhiteSpace(pattern) || pattern == "none" || pattern == "solid") return;
+        diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Excel.Html", HtmlConversionDiagnosticCodes.ContentApproximated,
+            pattern == "gradient" ? "The gradient cell fill is represented by its first colour."
+                : "The patterned cell fill is represented by a flat foreground colour.",
+            HtmlDiagnosticSeverity.Warning, "excel:cell:" + source + ":fill", lossKind: OfficeConversionLossKind.Approximation));
+    }
+
     private static string? ToCssHex(string? argb) {
         if (string.IsNullOrWhiteSpace(argb)) return null;
         string value = argb!.Trim().TrimStart('#');

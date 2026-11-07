@@ -44,6 +44,7 @@ namespace OfficeIMO.Word.Html {
             cancellationToken.ThrowIfCancellationRequested();
             var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
             long embeddedImageBytes = 0;
+            var reportedTableBorderLosses = new HashSet<string>(StringComparer.Ordinal);
 
             long MeasureCurrentHtmlCharacters() {
                 using var countingWriter = new CountingHtmlWriter();
@@ -1234,6 +1235,7 @@ namespace OfficeIMO.Word.Html {
                             string? cellFill = WordRunFormatting.ResolveShadingFillColorHex(cellShading, cell.Document);
                             cellStyles.Add("background-color:" + (cellFill != null ? "#" + cellFill : "transparent"));
                         }
+                        ReportTableBorderLimitations(cell, options, reportedTableBorderLosses);
                         var borderCss = GetBorderCss(cell);
                         if (borderCss.Count > 0) {
                             cellStyles.AddRange(borderCss);

@@ -7,6 +7,50 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class WordHtmlTablePaintTests {
+    [Fact]
+    public void UnsupportedSourceBorderPatternsAreReportedAndCanRejectLoss() {
+        using var document = WordDocument.Create();
+        var table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+        document.MainDocumentPartRoot.StyleDefinitionsPart!.Styles!.Append(new Style(
+            new StyleTableCellProperties(new TableCellBorders(new TopBorder {
+                Val = BorderValues.DotDash, Size = 8U, Color = "123456"
+            }))) { Type = StyleValues.Table, StyleId = "BorderPattern" });
+        table.SetStyleId("BorderPattern");
+
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = false }, out var report);
+        var diagnostic = Assert.Single(report.Diagnostics, item => item.Code == "word-table-border-pattern-approximated");
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+        Assert.Contains("border-top:1pt solid #123456", html);
+        Assert.Throws<OfficeConversionException>(() => document.ToHtml(new WordHtmlExportOptions { FailOnLoss = true }));
+
+        table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Single;
+        document.ToHtml(null, out var clearedReport);
+        Assert.DoesNotContain(clearedReport.Diagnostics, item => item.Code == "word-table-border-pattern-approximated");
+    }
+
+    [Fact]
+    public void SourceDiagonalBordersAreReportedUnlessExplicitlyCleared() {
+        using var document = WordDocument.Create();
+        var table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+        document.MainDocumentPartRoot.StyleDefinitionsPart!.Styles!.Append(new Style(
+            new StyleTableCellProperties(new TableCellBorders(new TopLeftToBottomRightCellBorder {
+                Val = BorderValues.Single, Size = 8U, Color = "123456"
+            }))) { Type = StyleValues.Table, StyleId = "DiagonalBorder" });
+        table.SetStyleId("DiagonalBorder");
+        var cell = table.Rows[0].Cells[0];
+        cell.Borders.TopRightToBottomLeftStyle = WordBorderStyle.Single;
+
+        document.ToHtml(null, out var report);
+        var diagnostic = Assert.Single(report.Diagnostics, item => item.Code == "word-table-diagonal-border-omitted");
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Throws<OfficeConversionException>(() => document.ToHtml(new WordHtmlExportOptions { FailOnLoss = true }));
+
+        cell.Borders.TopLeftToBottomRightStyle = WordBorderStyle.Nil;
+        cell.Borders.TopRightToBottomLeftStyle = WordBorderStyle.None;
+        document.ToHtml(null, out var clearedReport);
+        Assert.DoesNotContain(clearedReport.Diagnostics, item => item.Code == "word-table-diagonal-border-omitted");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -223,7 +223,11 @@ public static partial class ExcelHtmlConverterExtensions {
                     if (options.ApplyCellPresentation && isMergedCell) cellStyle = ResolveFallbackMergedBorder(sheet, merge, cellStyle, diagnostics);
                     if (options.ApplyCellPresentation) boxCss = CreateCellBoxCss(cellStyle, null, null);
                 }
-                if (options.ApplyCellPresentation) ReportCssBorderFidelity(cellStyle.Border, sheet.Name + "!" + ExcelA1.CellReference(cellRow, cellColumn), diagnostics);
+                if (options.ApplyCellPresentation) {
+                    string source = sheet.Name + "!" + ExcelA1.CellReference(cellRow, cellColumn);
+                    ReportCssBorderFidelity(cellStyle.Border, source, diagnostics);
+                    ReportCssFillFidelity(cellStyle, source, diagnostics);
+                }
                 IReadOnlyList<ExcelRichTextRun> richTextRuns = sheet.Cell(cellRow, cellColumn).GetRichText();
                 body.Append('<').Append(tag)
                     .Append(" data-officeimo-cell=\"")

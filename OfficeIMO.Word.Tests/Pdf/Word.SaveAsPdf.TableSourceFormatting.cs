@@ -124,19 +124,25 @@ public sealed class WordPdfTableSourceFormattingTests {
     [InlineData("first", true)]
     [InlineData("last", false)]
     [InlineData("configured", false)]
+    [InlineData("separated", false)]
     public void SaveAsPdf_ExplicitNoFillClearsInheritedRowPaint(string role, bool clear) {
         bool configuredHeader = role == "configured";
         bool lastRow = role == "last";
+        bool separated = role == "separated";
         string styleId = configuredHeader ? "TableNormal" : "TableGrid";
         using WordDocument document = CreateSourceTableDocument(styleId, firstRow: !lastRow);
         if (!configuredHeader) {
-            SourceStyle(document, styleId).Append(new W.TableStyleProperties(
-                new W.TableStyleConditionalFormattingTableCellProperties(ThemedFill())) {
-                Type = lastRow ? W.TableStyleOverrideValues.LastRow : W.TableStyleOverrideValues.FirstRow
-            });
+            if (separated) SourceStyle(document, styleId).StyleTableCellProperties = new W.StyleTableCellProperties(ThemedFill());
+            else SourceStyle(document, styleId).Append(new W.TableStyleProperties(
+                    new W.TableStyleConditionalFormattingTableCellProperties(ThemedFill())) {
+                    Type = lastRow ? W.TableStyleOverrideValues.LastRow : W.TableStyleOverrideValues.FirstRow
+                });
         }
         W.Table table = document.OpenXmlDocument.MainDocumentPart!.Document.Descendants<W.Table>().Single();
         table.GetFirstChild<W.TableProperties>()!.TableLook!.LastRow = lastRow;
+        if (separated) table.GetFirstChild<W.TableProperties>()!.TableCellSpacing = new W.TableCellSpacing {
+            Type = W.TableWidthUnitValues.Dxa, Width = "100"
+        };
         table.GetFirstChild<W.TableGrid>()!.GetFirstChild<W.GridColumn>()!.Width = "1800";
         table.GetFirstChild<W.TableGrid>()!.Append(new W.GridColumn { Width = "1800" });
         W.TableRow row = table.GetFirstChild<W.TableRow>()!;
@@ -144,7 +150,7 @@ public sealed class WordPdfTableSourceFormattingTests {
         first.TableCellProperties!.TableCellWidth!.Width = "1800";
         first.Descendants<W.Text>().Single().Text = "CLEAR";
         W.TableCell inherited = (W.TableCell)first.CloneNode(true);
-        inherited.Descendants<W.Text>().Single().Text = "INHERITED";
+        inherited.Descendants<W.Text>().Single().Text = "KEPT";
         row.Append(inherited);
         first.TableCellProperties.Shading = new W.Shading {
             Val = clear ? W.ShadingPatternValues.Clear : W.ShadingPatternValues.Nil,
@@ -159,7 +165,7 @@ public sealed class WordPdfTableSourceFormattingTests {
 
         using PdfPigDocument pdf = PdfPigDocument.Open(ConvertSourceTable(document, configuredStyle));
         var page = Assert.Single(pdf.GetPages());
-        var inheritedWord = Assert.Single(page.GetWords(), word => word.Text == "INHERITED");
+        var inheritedWord = Assert.Single(page.GetWords(), word => word.Text == "KEPT");
         var clearWord = Assert.Single(page.GetWords(), word => word.Text == "CLEAR");
         double inheritedX = (inheritedWord.BoundingBox.Left + inheritedWord.BoundingBox.Right) / 2D;
         double inheritedY = (inheritedWord.BoundingBox.Bottom + inheritedWord.BoundingBox.Top) / 2D;
@@ -170,6 +176,36 @@ public sealed class WordPdfTableSourceFormattingTests {
             bounds.Bottom < inheritedY && bounds.Top > inheritedY);
         Assert.DoesNotContain(page.Paths, path => path.IsFilled && path.GetBoundingRectangle() is { } bounds &&
             bounds.Left < clearX && bounds.Right > clearX && bounds.Bottom < clearY && bounds.Top > clearY);
+        Assert.Equal(before, SourceXml(document));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_SeparatedCellNoFillKeepsAuthoredTableBackdrop(bool directTable) {
+        using WordDocument document = CreateSourceTableDocument("TableGrid");
+        W.Style style = SourceStyle(document, "TableGrid");
+        style.StyleTableCellProperties = new W.StyleTableCellProperties(new W.Shading {
+            Val = W.ShadingPatternValues.Clear, Fill = "CC3300"
+        });
+        W.Table table = document.OpenXmlDocument.MainDocumentPart!.Document.Descendants<W.Table>().Single();
+        W.TableProperties properties = table.GetFirstChild<W.TableProperties>()!;
+        properties.TableCellSpacing = new W.TableCellSpacing { Type = W.TableWidthUnitValues.Dxa, Width = "100" };
+        if (directTable) properties.Shading = ThemedFill();
+        else style.StyleTableProperties = new W.StyleTableProperties(ThemedFill());
+        table.Descendants<W.TableCell>().Single().TableCellProperties!.Shading = new W.Shading {
+            Val = W.ShadingPatternValues.Nil, Fill = "FF0000"
+        };
+        Assert.Empty(document.ValidateDocument());
+        string before = SourceXml(document);
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(ConvertSourceTable(document));
+        var page = Assert.Single(pdf.GetPages());
+        var word = Assert.Single(page.GetWords(), item => item.Text == "SOURCE");
+        double x = (word.BoundingBox.Left + word.BoundingBox.Right) / 2D;
+        double y = (word.BoundingBox.Bottom + word.BoundingBox.Top) / 2D;
+        Assert.Contains(page.Paths, path => path.IsFilled && MatchesRgb(path.FillColor.ToRGBValues(), 18, 164, 94) &&
+            path.GetBoundingRectangle() is { } bounds && bounds.Left < x && bounds.Right > x && bounds.Bottom < y && bounds.Top > y);
         Assert.Equal(before, SourceXml(document));
     }
 

@@ -80,6 +80,44 @@ public class HtmlExcelTableBorders {
         Assert.Contains("background-color:#EEDDCC", style, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("A1:A2", false, false, false, true)]
+    [InlineData("A1:B1", false, false, true, false)]
+    [InlineData("A2:B2", false, false, true, true)]
+    [InlineData("B1:B2", false, false, true, true)]
+    [InlineData("A1:B2", true, false, true, true)]
+    [InlineData("A1:B2", false, true, true, true)]
+    public void MergedPerimetersRespectCroppedAndHiddenCoordinates(string range, bool hideLastRow, bool hideLastColumn,
+        bool expectRight, bool expectBottom) {
+        using ExcelDocument workbook = ExcelDocument.Create();
+        ExcelSheet sheet = workbook.AddSheet("Viewport");
+        sheet.Cell(1, 1).SetValue("Merged").SetBorder(ExcelCellBorders.Right | ExcelCellBorders.Bottom,
+            ExcelBorderStyle.Thin, OfficeColor.Parse("11AA33"));
+        sheet.Range("A1:B2").Merge();
+        sheet.Range("B1:B2").SetBorder(ExcelCellBorders.Right, ExcelBorderStyle.Medium, OfficeColor.Parse("CC1122"));
+        sheet.Range("A2:B2").SetBorder(ExcelCellBorders.Bottom, ExcelBorderStyle.Thick, OfficeColor.Parse("2244CC"));
+        sheet.SetRowHidden(2, hideLastRow);
+        sheet.SetColumnHidden(2, hideLastColumn);
+
+        string svg = Encoding.UTF8.GetString(sheet.Range(range).ExportImage(OfficeImageExportFormat.Svg,
+            new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
+        XElement image = XElement.Parse(svg);
+        string[] strokes = image.Descendants().Select(edge => (string?)edge.Attribute("stroke"))
+            .Where(stroke => stroke != null).Cast<string>().ToArray();
+
+        Assert.Equal(expectRight, strokes.Contains("#CC1122"));
+        Assert.Equal(expectBottom, strokes.Contains("#2244CC"));
+        Assert.DoesNotContain("#11AA33", strokes);
+        if (range == "A2:B2" || range == "B1:B2") {
+            var png = sheet.Range(range).ExportImage(OfficeImageExportFormat.Png,
+                new ExcelImageExportOptions { ShowGridlines = false });
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? pixels));
+            Assert.NotNull(pixels);
+            Assert.Contains(Enumerable.Range(0, pixels!.Height), y => Enumerable.Range(0, pixels.Width)
+                .Any(x => { OfficeColor color = pixels.GetPixel(x, y); return color.R > 160 && color.G < 50 && color.B < 60; }));
+        }
+    }
+
     [Fact]
     public void BorderStylesThatCannotBeRepresentedExactlyProduceFidelityDiagnostics() {
         using ExcelDocument workbook = ExcelDocument.Create();

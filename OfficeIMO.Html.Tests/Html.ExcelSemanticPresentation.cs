@@ -27,7 +27,9 @@ public class HtmlExcelSemanticPresentation {
     public void SemanticTablesShowFillsNumberFormatsAndSpreadsheetAlignmentByDefault() {
         using ExcelDocument workbook = CreateReportWorkbook();
         workbook.Sheets[0].Cell(5, 1).SetValue("Authored near-white").SetColor(OfficeColor.Parse("F8F8F8"));
-        string html = workbook.ToHtml();
+        workbook.Sheets[0].Cell(6, 1).SetValue("White on gradient").SetColor(OfficeColor.White)
+            .SetGradientFill(OfficeColor.Parse("123456"), OfficeColor.Parse("654321"));
+        string html = workbook.ToHtml(null, out OfficeConversionReport report);
 
         // The fill travels with the white text, so the title stays readable.
         Assert.Contains("background-color:#17365D", html, StringComparison.Ordinal);
@@ -35,6 +37,12 @@ public class HtmlExcelSemanticPresentation {
         string unfilledStyle = new HtmlParser().ParseDocument(html)
             .QuerySelector("[data-officeimo-cell=A5]")!.GetAttribute("style")!;
         Assert.Contains("color:#F8F8F8", unfilledStyle, StringComparison.Ordinal);
+        string gradientStyle = new HtmlParser().ParseDocument(html)
+            .QuerySelector("[data-officeimo-cell=A6]")!.GetAttribute("style")!;
+        Assert.Contains("color:#FFFFFF", gradientStyle, StringComparison.Ordinal);
+        Assert.Contains("background-color:#123456", gradientStyle, StringComparison.Ordinal);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Location == "excel:cell:Report!A6:fill"
+            && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         // Values use their number formats and keep the raw value for round trips.
         Assert.Contains(">1,234,567.50<", html, StringComparison.Ordinal);
         Assert.Contains(">37.6%<", html, StringComparison.Ordinal);

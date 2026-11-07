@@ -42,7 +42,7 @@ namespace OfficeIMO.Word.Pdf {
             style.BorderFrame = new PdfCore.PdfTableBorderFrame {
                 Spacing = style.CellSpacing.ToPoints(), Border = border, HorizontalInset = horizontalInset,
                 Background = table._tableProperties?.GetFirstChild<W.Shading>() is { } shading
-                    ? ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(shading, table.Document)) : defaults.CellFill
+                    ? ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(shading, table.Document)) : defaults.TableFill
             };
             ApplyNativeFramedRowHeights(table, layout, style, sourceSpacing, border.TopBorder?.PaintThickness ?? 0D);
         }

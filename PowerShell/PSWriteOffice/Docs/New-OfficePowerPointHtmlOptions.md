@@ -212,7 +212,7 @@ Accept wildcard characters: False
 ```
 
 ### -Theme
-Shared HTML theme: a built-in name, OfficeTheme or Office document template path. Defaults to Modern.
+Optional shared HTML theme. Selecting one enables presentation styles unless NoDefaultStyles is set.
 
 ```yaml
 Type: OfficeThemeInput

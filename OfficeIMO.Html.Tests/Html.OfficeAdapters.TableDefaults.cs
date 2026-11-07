@@ -45,6 +45,48 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("background-color:#00000000", cells[1].GetAttribute("style"));
     }
 
+    [Fact]
+    public void PowerPointInheritedNoFillKeepsTheSlideBackground() {
+        using var document = PowerPointDocument.Create();
+        document.SlideSize.SetSize(OfficeLength.Points(180), OfficeLength.Points(100));
+        var slide = document.AddSlide();
+        slide.BackgroundColor = OfficeColor.Yellow;
+        var table = slide.AddTable(1, 1, OfficeLength.Points(20), OfficeLength.Points(20),
+            OfficeLength.Points(120), OfficeLength.Points(48));
+        table.StyleId = "{3B4B98B0-60AC-42C2-AFA5-B58CD77FA1E5}";
+        table.FirstRow = true;
+        table.BandedRows = false;
+
+        var html = new HtmlParser().ParseDocument(document.ToHtml());
+        Assert.Contains("background-color:#00000000", html.QuerySelector("td")!.GetAttribute("style"));
+        var png = slide.ExportImage(OfficeImageExportFormat.Png);
+        Assert.True(OfficePngReader.TryDecode(png.Bytes, out var pixels));
+        Assert.Equal(OfficeColor.Yellow, pixels!.GetPixel(32, 32));
+    }
+
+    [Fact]
+    public void PowerPointInheritedDoubleBordersKeepTwoStrokesAndTheirOverallWidth() {
+        using var document = PowerPointDocument.Create();
+        var slide = document.AddSlide();
+        var table = slide.AddTable(2, 1, OfficeLength.Points(20), OfficeLength.Points(20),
+            OfficeLength.Points(120), OfficeLength.Points(60));
+        table.StyleId = "{B301B821-A1FF-4177-AEE7-76D212191A09}";
+        table.FirstRow = false;
+        table.LastRow = true;
+        table.BandedRows = false;
+        table.SetRowHeights(OfficeLength.Points(30), OfficeLength.Points(30));
+
+        var html = new HtmlParser().ParseDocument(document.ToHtml());
+        Assert.Contains("border-top:4pt double", html.QuerySelectorAll("td")[1].GetAttribute("style"));
+        var svg = System.Xml.Linq.XElement.Parse(Encoding.UTF8.GetString(slide.ExportImage(OfficeImageExportFormat.Svg).Bytes));
+        var strokes = svg.Descendants().Where(element => element.Name.LocalName == "line" &&
+            double.TryParse(element.Attribute("stroke-width")?.Value, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out double width) && Math.Abs(width - 4D / 3D) < .001D).ToArray();
+        Assert.Equal(2, strokes.Length);
+        double Y(System.Xml.Linq.XElement line) => double.Parse(line.Attribute("y1")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+        Assert.InRange(Math.Abs(Y(strokes[0]) - Y(strokes[1])), 2.66D, 2.67D);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

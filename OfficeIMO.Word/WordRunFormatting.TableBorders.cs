@@ -6,10 +6,17 @@ namespace OfficeIMO.Word;
 
 internal static partial class WordRunFormatting {
     /// <summary>Resolves a physical cell edge from authored cell, conditional, and table borders without changing source XML.</summary>
-    internal static BorderType? ResolveTableCellBorder(WordTableCell cell, WordTableBorderSide side) {
+    internal static BorderType? ResolveTableCellBorder(WordTableCell cell, WordTableBorderSide side) =>
+        ResolveTableCellBorder(cell, side, null);
+
+    /// <summary>Resolves a diagonal cell border through the same source cascade as physical edges.</summary>
+    internal static BorderType? ResolveTableCellDiagonalBorder(WordTableCell cell, bool descending) =>
+        ResolveTableCellBorder(cell, null, descending);
+
+    private static BorderType? ResolveTableCellBorder(WordTableCell cell, WordTableBorderSide? side, bool? descending) {
         Table? table = cell._tableCell.Ancestors<Table>().FirstOrDefault();
         bool rightToLeft = WordTableAlignmentResolver.IsRightToLeft(table?.GetFirstChild<TableProperties>());
-        BorderType? direct = ReadCellBorder(cell._tableCell.TableCellProperties?.TableCellBorders, side, rightToLeft);
+        BorderType? direct = ReadBorder(cell._tableCell.TableCellProperties?.TableCellBorders);
         if (direct != null || table == null) return direct;
         TableRunPaintState state = GetTableRunPaintState(table, cell.Document.MainDocumentPartRoot.StyleDefinitionsPart?.Styles);
         if (state.HasConditionalPaint) {
@@ -17,17 +24,17 @@ internal static partial class WordRunFormatting {
                 foreach (Style style in state.Chain) {
                     foreach (TableStyleProperties conditional in style.Elements<TableStyleProperties>()
                                  .Where(properties => properties.Type?.Value == condition).Reverse()) {
-                        BorderType? border = ReadCellBorder(conditional.GetFirstChild<TableStyleConditionalFormattingTableCellProperties>()?.GetFirstChild<TableCellBorders>(), side, rightToLeft);
+                        BorderType? border = ReadBorder(conditional.GetFirstChild<TableStyleConditionalFormattingTableCellProperties>()?.GetFirstChild<TableCellBorders>());
                         if (border != null) return border;
                     }
                 }
             }
         }
         foreach (Style style in state.Chain) {
-            BorderType? border = ReadCellBorder(style.GetFirstChild<StyleTableCellProperties>()?.GetFirstChild<TableCellBorders>(), side, rightToLeft);
+            BorderType? border = ReadBorder(style.GetFirstChild<StyleTableCellProperties>()?.GetFirstChild<TableCellBorders>());
             if (border != null) return border;
         }
-        if (!state.Cells.TryGetValue(cell._tableCell, out var position)) return null;
+        if (!side.HasValue || !state.Cells.TryGetValue(cell._tableCell, out var position)) return null;
         int physicalColumn = rightToLeft ? state.ColumnCount - position.Column - position.Span : position.Column;
         BorderType? tableBorder = ReadTableBorder(table.GetFirstChild<TableProperties>()?.TableBorders);
         if (tableBorder != null) return tableBorder;
@@ -40,10 +47,15 @@ internal static partial class WordRunFormatting {
         BorderType? ReadTableBorder(TableBorders? borders) => side switch {
             WordTableBorderSide.Top => position.Row == 0 ? borders?.TopBorder : borders?.InsideHorizontalBorder,
             WordTableBorderSide.Bottom => position.Row + cell.RowSpan >= state.RowCount ? borders?.BottomBorder : borders?.InsideHorizontalBorder,
-            WordTableBorderSide.Left => physicalColumn == 0 ? ReadCellBorder(borders, side, rightToLeft) : borders?.InsideVerticalBorder,
-            WordTableBorderSide.Right => physicalColumn + position.Span >= state.ColumnCount ? ReadCellBorder(borders, side, rightToLeft) : borders?.InsideVerticalBorder,
+            WordTableBorderSide.Left => physicalColumn == 0 ? ReadCellBorder(borders, side.Value, rightToLeft) : borders?.InsideVerticalBorder,
+            WordTableBorderSide.Right => physicalColumn + position.Span >= state.ColumnCount ? ReadCellBorder(borders, side.Value, rightToLeft) : borders?.InsideVerticalBorder,
             _ => null
         };
+
+        BorderType? ReadBorder(OpenXmlCompositeElement? borders) => side.HasValue
+            ? ReadCellBorder(borders, side.Value, rightToLeft)
+            : descending == true ? borders?.GetFirstChild<TopLeftToBottomRightCellBorder>()
+                : (BorderType?)borders?.GetFirstChild<TopRightToBottomLeftCellBorder>();
     }
 
     private static BorderType? ReadCellBorder(OpenXmlCompositeElement? borders, WordTableBorderSide side, bool rightToLeft) => side switch {

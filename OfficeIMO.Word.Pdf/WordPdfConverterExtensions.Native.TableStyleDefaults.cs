@@ -11,6 +11,8 @@ namespace OfficeIMO.Word.Pdf {
             public NativeParagraphSpacing ParagraphSpacing { get; init; }
             public bool? SeparateCellBorders { get; init; }
             public bool RightToLeft { get; init; }
+            /// <summary>Table-level shading behind separated cells, independent of cell-style shading.</summary>
+            public global::OfficeIMO.OfficeColor? TableFill { get; init; }
             // An explicit PDF default supplies missing cell typography while
             // authored run, paragraph and named table styles retain precedence.
             public bool UseConfiguredTypography { get; init; }
@@ -57,6 +59,7 @@ namespace OfficeIMO.Word.Pdf {
             double? marginLeft = null;
             double? marginRight = null;
             global::OfficeIMO.OfficeColor? cellFill = null;
+            global::OfficeIMO.OfficeColor? tableFill = null;
             PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = null;
             (global::OfficeIMO.OfficeColor Color, double Width)? tableBorder = null;
             W.TableBorders? tableBorders = null;
@@ -150,7 +153,11 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 W.StyleTableCellProperties? tableCellProperties = style.GetFirstChild<W.StyleTableCellProperties>();
-                W.Shading? shading = tableCellProperties?.GetFirstChild<W.Shading>() ?? tableProperties?.GetFirstChild<W.Shading>();
+                W.Shading? tableShading = tableProperties?.GetFirstChild<W.Shading>();
+                if (tableShading != null) {
+                    tableFill = ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(tableShading, table.Document));
+                }
+                W.Shading? shading = tableCellProperties?.GetFirstChild<W.Shading>() ?? tableShading;
                 if (shading != null) {
                     cellFill = ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(shading, table.Document));
                 }
@@ -271,7 +278,7 @@ namespace OfficeIMO.Word.Pdf {
                 band1VerticalStyle) { LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing,
                     ParagraphPagination = paragraphPagination, SeparateCellBorders = separateCellBorders, RightToLeft = rightToLeft,
                     Band2HorizontalStyle = band2HorizontalStyle, Band2VerticalStyle = band2VerticalStyle,
-                    RowBandSize = rowBandSize, ColumnBandSize = columnBandSize };
+                    RowBandSize = rowBandSize, ColumnBandSize = columnBandSize, TableFill = tableFill };
         }
 
         private static Dictionary<W.TableStyleOverrideValues, NativeDocumentDefaults> ResolveNativeConditionalFontDefaults(

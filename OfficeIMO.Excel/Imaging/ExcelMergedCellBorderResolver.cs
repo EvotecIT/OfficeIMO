@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel;
@@ -10,22 +12,32 @@ internal static class ExcelMergedCellBorderResolver {
     internal static ExcelCellBorderInfo? Resolve(
         int firstRow, int firstColumn, int lastRow, int lastColumn,
         ExcelCellBorderInfo? original, Func<int, int, ExcelCellBorderInfo?> borderAt,
-        string source, Action<OfficeImageExportDiagnostic> report) {
-        ExcelBorderSideInfo? top = Edge("top", firstRow, firstColumn, 0, 1, lastColumn - firstColumn + 1, original?.Top, static border => border?.Top);
-        ExcelBorderSideInfo? right = Edge("right", firstRow, lastColumn, 1, 0, lastRow - firstRow + 1, original?.Right, static border => border?.Right);
-        ExcelBorderSideInfo? bottom = Edge("bottom", lastRow, firstColumn, 0, 1, lastColumn - firstColumn + 1, original?.Bottom, static border => border?.Bottom);
-        ExcelBorderSideInfo? left = Edge("left", firstRow, firstColumn, 1, 0, lastRow - firstRow + 1, original?.Left, static border => border?.Left);
+        string source, Action<OfficeImageExportDiagnostic> report) =>
+        Resolve(firstRow, firstColumn, lastRow, lastColumn, original, borderAt, source, report,
+            Enumerable.Range(firstRow, lastRow - firstRow + 1), Enumerable.Range(firstColumn, lastColumn - firstColumn + 1));
+
+    /// <summary>Combines only rendered perimeter segments, excluding cropped or zero-size hidden coordinates.</summary>
+    internal static ExcelCellBorderInfo? Resolve(
+        int firstRow, int firstColumn, int lastRow, int lastColumn,
+        ExcelCellBorderInfo? original, Func<int, int, ExcelCellBorderInfo?> borderAt,
+        string source, Action<OfficeImageExportDiagnostic> report, IEnumerable<int> rows, IEnumerable<int> columns) {
+        ExcelBorderSideInfo? top = Edge("top", firstRow, true, columns, original?.Top, static border => border?.Top);
+        ExcelBorderSideInfo? right = Edge("right", lastColumn, false, rows, original?.Right, static border => border?.Right);
+        ExcelBorderSideInfo? bottom = Edge("bottom", lastRow, true, columns, original?.Bottom, static border => border?.Bottom);
+        ExcelBorderSideInfo? left = Edge("left", firstColumn, false, rows, original?.Left, static border => border?.Left);
         if (ReferenceEquals(top, original?.Top) && ReferenceEquals(right, original?.Right)
             && ReferenceEquals(bottom, original?.Bottom) && ReferenceEquals(left, original?.Left)) return original;
         return new ExcelCellBorderInfo(left, right, top, bottom, original?.Diagonal,
             original?.DiagonalUp == true, original?.DiagonalDown == true);
 
-        ExcelBorderSideInfo? Edge(string name, int row, int column, int rowStep, int columnStep, int count,
+        ExcelBorderSideInfo? Edge(string name, int fixedCoordinate, bool horizontal, IEnumerable<int> positions,
             ExcelBorderSideInfo? fallback, Func<ExcelCellBorderInfo?, ExcelBorderSideInfo?> select) {
             ExcelBorderSideInfo? first = null;
-            for (int index = 0; index < count; index++) {
-                ExcelBorderSideInfo? current = select(borderAt(row + index * rowStep, column + index * columnStep)) ?? fallback;
-                if (index == 0) first = current;
+            bool hasFirst = false;
+            foreach (int position in positions) {
+                ExcelCellBorderInfo? border = horizontal ? borderAt(fixedCoordinate, position) : borderAt(position, fixedCoordinate);
+                ExcelBorderSideInfo? current = select(border) ?? fallback;
+                if (!hasFirst) { first = current; hasFirst = true; }
                 else if (!SameEdge(first, current)) {
                     report(ExcelImageExportDiagnosticClassifier.Create(OfficeImageExportDiagnosticSeverity.Warning,
                         ExcelImageExportDiagnosticCodes.MergedCellBorderOmitted,

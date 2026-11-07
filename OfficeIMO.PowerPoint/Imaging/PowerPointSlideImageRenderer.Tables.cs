@@ -114,6 +114,11 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor color = OfficeOpenXmlThemeColorResolver.ResolveColor(line?.GetFirstChild<A.SolidFill>(), colorScheme)
                 ?? OfficeColor.FromRgb(191, 191, 191);
             A.PresetDash? dash = line?.GetFirstChild<A.PresetDash>();
+            // DrawingML's double-line width includes both strokes and the intervening gap.
+            if (line?.CompoundLineType?.Value == A.CompoundLineValues.Double) {
+                return new OfficeBorderSide(color, width / 3D, MapDash(dash?.Val?.Value),
+                    OfficeBorderLineKind.Double, 2D * width / 3D);
+            }
             return new OfficeBorderSide(color, width, MapDash(dash?.Val?.Value));
         }
 

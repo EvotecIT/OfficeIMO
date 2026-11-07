@@ -66,7 +66,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeColor? ResolveTableStyleFillColor(PowerPointTable table, int row, int column, A.TableStyleEntry? tableStyle, A.ColorScheme? colorScheme) {
             foreach (A.TablePartStyleType region in EnumerateApplicableTableStyleRegions(table, row, column, tableStyle)) {
-                A.SolidFill? solidFill = region.TableCellStyle?.GetFirstChild<A.FillProperties>()?.SolidFill;
+                A.FillProperties? fill = region.TableCellStyle?.GetFirstChild<A.FillProperties>();
+                if (fill?.GetFirstChild<A.NoFill>() != null) return OfficeColor.Transparent;
+                A.SolidFill? solidFill = fill?.SolidFill;
                 OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(solidFill, colorScheme);
                 if (color.HasValue) {
                     return color;

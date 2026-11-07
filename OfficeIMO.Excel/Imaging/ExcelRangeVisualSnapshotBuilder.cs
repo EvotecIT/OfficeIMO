@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel {
                 cells = ApplyConditionalCellFormats(cells, conditionalVisuals.CellFormats);
             }
             ApplyMergedCellBorders(cells, merges, boundedMergeGeometry, firstRow, firstColumn, lastRow, lastColumn,
-                sheet.Name, diagnostics, cancellationToken);
+                sheet, rowsByIndex, columnsByIndex, diagnostics, cancellationToken);
 
             List<ExcelVisualSparkline> sparklines = BuildSparklines(sheet, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, diagnostics);
             cancellationToken.ThrowIfCancellationRequested();
