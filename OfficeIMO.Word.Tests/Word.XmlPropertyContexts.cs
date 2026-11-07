@@ -1,0 +1,146 @@
+using System.Xml.Linq;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
+using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public sealed class WordMlPropertyContextTests {
+    private static readonly XNamespace Word = "http://schemas.microsoft.com/office/word/2003/wordml";
+    private static readonly XNamespace Modern = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
+    [Theory]
+    [InlineData("run")]
+    [InlineData("paragraph")]
+    [InlineData("section")]
+    [InlineData("paragraph-section")]
+    [InlineData("borders")]
+    [InlineData("font")]
+    public void MappedPropertyValuesUseTheDestinationSequence(string context) {
+        string content = context switch {
+            "run" => "<w:p><w:r><w:rPr><w:color w:val=\"112233\"/><w:b/><w:rFonts w:ascii=\"Arial\"/></w:rPr><w:t>Retained</w:t></w:r></w:p>",
+            "paragraph" => "<w:p><w:pPr><w:jc w:val=\"center\"/><w:spacing w:before=\"120\"/></w:pPr><w:r><w:t>Retained</w:t></w:r></w:p>",
+            "section" => "<w:p><w:r><w:t>Retained</w:t></w:r></w:p><w:sectPr><w:cols w:num=\"2\"/><w:pgSz w:w=\"12240\" w:h=\"15840\"/></w:sectPr>",
+            "paragraph-section" => "<w:p><w:pPr><w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/><w:cols w:num=\"2\"/></w:sectPr></w:pPr><w:r><w:t>Retained</w:t></w:r></w:p>",
+            "borders" => "<w:p><w:pPr><w:pBdr><w:bottom w:val=\"single\"/><w:top w:val=\"double\"/></w:pBdr></w:pPr><w:r><w:t>Retained</w:t></w:r></w:p>",
+            _ => "<w:p><w:r><w:t>Retained</w:t></w:r></w:p>"
+        };
+        string fonts = context == "font" ? "<w:fonts><w:font w:name=\"Arial\"><w:pitch w:val=\"variable\"/><w:family w:val=\"swiss\"/></w:font></w:fonts>" : "";
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(Source(content, fonts)));
+        using WordDocument document = WordDocument.Load(input, new WordLoadOptions { FailOnLoss = true }, out OfficeConversionReport report);
+        Assert.False(report.HasLoss);
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(saved));
+        Assert.Equal("Retained", saved.MainDocumentPart!.Document.InnerText);
+        XElement root = XElement.Parse(saved.MainDocumentPart.Document.OuterXml);
+        if (context == "run") {
+            XElement properties = Assert.Single(root.Descendants(Modern + "rPr"));
+            Assert.Equal(new[] { "rFonts", "b", "color" }, properties.Elements().Select(element => element.Name.LocalName));
+            Assert.Equal("Arial", (string?)properties.Element(Modern + "rFonts")!.Attribute(Modern + "ascii"));
+            Assert.Equal("112233", (string?)properties.Element(Modern + "color")!.Attribute(Modern + "val"));
+        } else if (context == "paragraph") {
+            XElement properties = Assert.Single(root.Descendants(Modern + "pPr"));
+            Assert.Equal(new[] { "spacing", "jc" }, properties.Elements().Select(element => element.Name.LocalName));
+            Assert.Equal("120", (string?)properties.Element(Modern + "spacing")!.Attribute(Modern + "before"));
+            Assert.Equal("center", (string?)properties.Element(Modern + "jc")!.Attribute(Modern + "val"));
+        } else if (context is "section" or "paragraph-section") {
+            XElement properties = Assert.Single(root.Descendants(Modern + "sectPr"),
+                section => section.Parent!.Name == Modern + (context == "paragraph-section" ? "pPr" : "body"));
+            Assert.Equal(new[] { "pgSz", "cols" }, properties.Elements().Select(element => element.Name.LocalName));
+            Assert.Equal("12240", (string?)properties.Element(Modern + "pgSz")!.Attribute(Modern + "w"));
+            Assert.Equal("2", (string?)properties.Element(Modern + "cols")!.Attribute(Modern + "num"));
+        } else if (context == "borders") {
+            XElement properties = Assert.Single(root.Descendants(Modern + "pBdr"));
+            Assert.Equal(new[] { "top", "bottom" }, properties.Elements().Select(element => element.Name.LocalName));
+            Assert.Equal("double", (string?)properties.Element(Modern + "top")!.Attribute(Modern + "val"));
+            Assert.Equal("single", (string?)properties.Element(Modern + "bottom")!.Attribute(Modern + "val"));
+        } else {
+            XElement font = XElement.Parse(Assert.Single(saved.MainDocumentPart.FontTablePart!.Fonts.Elements<Font>(), font => font.Name!.Value == "Arial").OuterXml);
+            Assert.Equal(new[] { "family", "pitch" }, font.Elements().Select(element => element.Name.LocalName));
+            Assert.Equal("swiss", (string?)font.Element(Modern + "family")!.Attribute(Modern + "val"));
+            Assert.Equal("variable", (string?)font.Element(Modern + "pitch")!.Attribute(Modern + "val"));
+        }
+    }
+
+    [Fact]
+    public void ChoiceAndRepeatedPropertiesRetainEveryValueAndSourceOrder() {
+        const string styles = "<w:styles><w:style w:type=\"table\" w:styleId=\"Example\"><w:name w:val=\"Example\"/>" +
+            "<w:tblStylePr w:type=\"first-row\"><w:trPr><w:jc w:val=\"right\"/><w:tblHeader/></w:trPr></w:tblStylePr></w:style></w:styles>";
+        const string body = "<w:p><w:pPr><w:tabs><w:tab w:val=\"right\" w:pos=\"1440\"/><w:tab w:val=\"left\" w:pos=\"720\"/></w:tabs></w:pPr></w:p>" +
+            "<w:tbl><w:tblGrid><w:gridCol w:w=\"1000\"/><w:gridCol w:w=\"3000\"/></w:tblGrid><w:tr>" +
+            "<w:trPr><w:jc w:val=\"center\"/><w:trHeight w:val=\"240\"/><w:cantSplit/></w:trPr><w:tc><w:p/></w:tc><w:tc><w:p/></w:tc></w:tr></w:tbl>" +
+            "<w:sectPr><w:cols w:equalWidth=\"off\" w:num=\"2\"><w:col w:w=\"2000\" w:space=\"360\"/><w:col w:w=\"4000\" w:space=\"0\"/></w:cols></w:sectPr>";
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(Source(body, styles)));
+        using WordDocument document = WordDocument.Load(input, new WordLoadOptions { FailOnLoss = true }, out OfficeConversionReport report);
+        Assert.False(report.HasLoss);
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(saved));
+        XElement root = XElement.Parse(saved.MainDocumentPart!.Document.OuterXml);
+        Assert.Equal(new[] { "1440", "720" }, root.Descendants(Modern + "tab").Select(tab => (string?)tab.Attribute(Modern + "pos")));
+        Assert.Equal(new[] { "1000", "3000" }, root.Descendants(Modern + "gridCol").Select(column => (string?)column.Attribute(Modern + "w")));
+        Assert.Equal(new[] { "2000", "4000" }, root.Descendants(Modern + "col").Select(column => (string?)column.Attribute(Modern + "w")));
+        XElement row = Assert.Single(root.Descendants(Modern + "trPr"));
+        Assert.Equal(new[] { "jc", "trHeight", "cantSplit" }, row.Elements().Select(element => element.Name.LocalName));
+        Assert.Equal("center", (string?)row.Element(Modern + "jc")!.Attribute(Modern + "val"));
+        Assert.Equal("240", (string?)row.Element(Modern + "trHeight")!.Attribute(Modern + "val"));
+        XElement style = XElement.Parse(Assert.Single(saved.MainDocumentPart.StyleDefinitionsPart!.Styles.Elements<Style>(), item => item.StyleId!.Value == "Example").OuterXml);
+        Assert.Equal(new[] { "jc", "tblHeader" }, Assert.Single(style.Descendants(Modern + "trPr")).Elements().Select(element => element.Name.LocalName));
+    }
+
+    [Theory]
+    [InlineData("paragraph-style-run", "rPr", "spacing")]
+    [InlineData("paragraph-style-section", "sectPr", "spacing")]
+    [InlineData("conditional-style-section", "sectPr", "spacing")]
+    [InlineData("character-style-highlight", "highlight", "b")]
+    [InlineData("table-style-width", "tblW", "jc")]
+    [InlineData("conditional-row-grid", "gridBefore", "jc")]
+    [InlineData("body-table-band", "tblStyleRowBandSize", "tblW")]
+    [InlineData("duplicate-run", "b", "color")]
+    public void UnsupportedDestinationPropertiesProduceLossInsteadOfInvalidXml(string context, string omitted, string retained) {
+        string properties = context switch {
+            "paragraph-style-run" => "<w:pPr><w:spacing w:before=\"120\"/><w:rPr><w:b/></w:rPr></w:pPr>",
+            "paragraph-style-section" => "<w:pPr><w:spacing w:before=\"120\"/><w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/></w:sectPr></w:pPr>",
+            "conditional-style-section" => "<w:tblStylePr w:type=\"firstRow\"><w:pPr><w:spacing w:before=\"120\"/><w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/></w:sectPr></w:pPr></w:tblStylePr>",
+            "character-style-highlight" => "<w:rPr><w:b/><w:highlight w:val=\"yellow\"/></w:rPr>",
+            "table-style-width" => "<w:tblPr><w:tblW w:w=\"2000\" w:type=\"dxa\"/><w:jc w:val=\"center\"/></w:tblPr>",
+            _ => "<w:tblStylePr w:type=\"first-row\"><w:trPr><w:gridBefore w:val=\"0\"/><w:jc w:val=\"center\"/></w:trPr></w:tblStylePr>"
+        };
+        string kind = context.StartsWith("paragraph-style", StringComparison.Ordinal) ? "paragraph" : context == "character-style-highlight" ? "character" : "table";
+        string styles = "<w:styles><w:style w:type=\"" + kind + "\" w:styleId=\"Example\"><w:name w:val=\"Example\"/>" + properties + "</w:style></w:styles>";
+        string body = "<w:p><w:r><w:t>Retained</w:t></w:r></w:p>";
+        if (context == "body-table-band") {
+            styles = "";
+            body += "<w:tbl><w:tblPr><w:tblStyleRowBandSize w:val=\"2\"/><w:tblW w:w=\"2000\" w:type=\"dxa\"/></w:tblPr><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl>";
+        } else if (context == "duplicate-run") {
+            styles = "";
+            body = "<w:p><w:r><w:rPr><w:b/><w:b w:val=\"off\"/><w:color w:val=\"112233\"/></w:rPr><w:t>Retained</w:t></w:r></w:p>";
+        }
+        byte[] source = Encoding.UTF8.GetBytes(Source(body, styles));
+        using var input = new MemoryStream(source);
+        using WordDocument document = WordDocument.Load(input, new WordLoadOptions(), out OfficeConversionReport report);
+        Assert.True(report.HasLoss);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "WORDML2003_OMITTED" && diagnostic.Location == (Word + omitted).ToString());
+        if (omitted == "sectPr") Assert.Single(report.Diagnostics);
+        using var bytes = new MemoryStream(document.ToBytes(new WordSaveOptions { AllowLoss = true }));
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(saved));
+        Assert.Equal("Retained", saved.MainDocumentPart!.Document.InnerText);
+        XElement target = context.IndexOf("style", StringComparison.Ordinal) >= 0 || context == "conditional-row-grid"
+            ? XElement.Parse(Assert.Single(saved.MainDocumentPart.StyleDefinitionsPart!.Styles.Elements<Style>(), item => item.StyleId!.Value == "Example").OuterXml)
+            : XElement.Parse(saved.MainDocumentPart.Document.OuterXml);
+        if (context == "duplicate-run") Assert.Single(target.Descendants(Modern + omitted));
+        else Assert.Empty(target.Descendants(Modern + omitted));
+        Assert.Single(target.Descendants(Modern + retained));
+        if (omitted == "sectPr") Assert.Equal("120", (string?)target.Descendants(Modern + retained).Single().Attribute(Modern + "before"));
+        using var strict = new MemoryStream(source);
+        Assert.Throws<OfficeConversionException>(() => WordDocument.Load(strict, new WordLoadOptions { FailOnLoss = true }));
+    }
+
+    private static string Source(string body, string prefix = "") =>
+        "<w:wordDocument xmlns:w=\"" + Word + "\">" + prefix + "<w:body>" + body + "</w:body></w:wordDocument>";
+}

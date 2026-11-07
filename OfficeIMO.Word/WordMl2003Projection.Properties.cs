@@ -1,4 +1,6 @@
 using System.Xml.Linq;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
@@ -101,7 +103,7 @@ internal sealed partial class WordMl2003Projection {
             output.SetAttributeValue(ModernWord + target, value);
         }
         foreach (XElement child in source.Elements()) {
-            if (context == "pPr" && child.Name == Word + "sectPr" ||
+            if (context == "pPr" && parent == "p" && child.Name == Word + "sectPr" ||
                 context == "sectPr" && (child.Name == Word + "hdr" || child.Name == Word + "ftr")) continue;
             if (context == "rPr" && child.Name == Auxiliary + "font") continue;
             if (child.Name.Namespace != Word || children == null || !children.Contains(child.Name.LocalName)) {
@@ -123,6 +125,30 @@ internal sealed partial class WordMl2003Projection {
         if (source.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
             Omit(source, context + " text content");
         return output;
+    }
+
+    private T NormalizeMappedProperties<T>(T properties) where T : OpenXmlCompositeElement {
+        // These particles contain choices or repeated values whose source order is meaningful.
+        bool preserveOrder = properties is TableRowProperties or TableStyleConditionalFormattingTableRowProperties
+            or TableGrid or Tabs or Columns;
+        OpenXmlElement[] children = properties.ChildElements.ToArray();
+        if (!preserveOrder) properties.RemoveAllChildren();
+        foreach (OpenXmlElement child in children) {
+            bool duplicate = !preserveOrder && properties.ChildElements.Any(existing =>
+                existing.LocalName == child.LocalName && existing.NamespaceUri == child.NamespaceUri);
+            if (child is OpenXmlUnknownElement || duplicate || !preserveOrder && !properties.AddChild(child, false)) {
+                if (preserveOrder) child.Remove();
+                string name = child.LocalName;
+                foreach (KeyValuePair<string, string> mapping in ElementNames) {
+                    if (mapping.Value == name) { name = mapping.Key; break; }
+                }
+                Omit(Word + name, duplicate ? "duplicate " + properties.LocalName + " property"
+                    : properties.LocalName + " property not supported in this formatting context");
+                continue;
+            }
+            if (child is OpenXmlCompositeElement nested) NormalizeMappedProperties(nested);
+        }
+        return properties;
     }
 
     private static bool IsMetadataAttribute(XAttribute attribute) =>

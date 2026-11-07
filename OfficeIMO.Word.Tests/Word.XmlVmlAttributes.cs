@@ -70,8 +70,15 @@ public sealed class WordMlVmlAttributeTests {
     [InlineData("imagedata", "blacklevel", "0.5", "0.5001")]
     [InlineData("imagedata", "blacklevel", "-0.5", "1")]
     [InlineData("imagedata", "blacklevel", "32768f", "1")]
+    [InlineData("imagedata", "blacklevel", "-0.25", "-1")]
+    [InlineData("imagedata", "blacklevel", "-0.5", "-0.5001")]
+    [InlineData("imagedata", "blacklevel", "+0.5", "+0.5001")]
+    [InlineData("imagedata", "blacklevel", "-32768f", "-1")]
     [InlineData("stroke", "weight", "20116800", "20116801")]
     [InlineData("stroke", "weight", "1pt", "20116801")]
+    [InlineData("stroke", "weight", "-0", "-5")]
+    [InlineData("stroke", "weight", "+20116800", "+20116801")]
+    [InlineData("stroke", "weight", "1pt", "-0.0001")]
     public void SupportedScalarValuesUseTheSdkVocabularyAndDeclaredBoundsBeforeEmission(
         string element, string attribute, string validValue, string invalidValue) {
         XElement valid = LoadSave(Source(element, attribute, validValue), element, strict: true, out OfficeConversionReport validReport);

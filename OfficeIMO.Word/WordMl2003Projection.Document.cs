@@ -41,7 +41,7 @@ internal sealed partial class WordMl2003Projection {
         if (defaultFonts != null) {
             XElement? mapped = MapProperties(defaultFonts, "rFonts");
             styles.DocDefaults = new DocDefaults(new RunPropertiesDefault(
-                new RunPropertiesBaseStyle(new XElement(ModernWord + "rPr", mapped).ToString(SaveOptions.DisableFormatting))));
+                NormalizeMappedProperties(new RunPropertiesBaseStyle(new XElement(ModernWord + "rPr", mapped).ToString(SaveOptions.DisableFormatting)))));
         }
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (XElement child in source.Elements()) {
@@ -72,18 +72,18 @@ internal sealed partial class WordMl2003Projection {
                 else if (property.Name == Word + "next") style.NextParagraphStyle = new NextParagraphStyle { Val = ReadStyleReference(property) };
                 else if (property.Name == Word + "link") style.LinkedStyle = new LinkedStyle { Val = ReadStyleReference(property) };
                 else if (property.Name == Word + "pPr") style.StyleParagraphProperties =
-                    new StyleParagraphProperties(MapProperties(property, "pPr")!.ToString(SaveOptions.DisableFormatting));
+                    NormalizeMappedProperties(new StyleParagraphProperties(MapProperties(property, "pPr")!.ToString(SaveOptions.DisableFormatting)));
                 else if (property.Name == Word + "rPr") style.StyleRunProperties =
-                    new StyleRunProperties(MapProperties(property, "rPr")!.ToString(SaveOptions.DisableFormatting));
+                    NormalizeMappedProperties(new StyleRunProperties(MapProperties(property, "rPr")!.ToString(SaveOptions.DisableFormatting)));
                 else if (property.Name == Word + "tblPr") style.StyleTableProperties =
-                    new StyleTableProperties(MapProperties(property, "tblPr")!.ToString(SaveOptions.DisableFormatting));
+                    NormalizeMappedProperties(new StyleTableProperties(MapProperties(property, "tblPr")!.ToString(SaveOptions.DisableFormatting)));
                 else if (property.Name == Word + "trPr") style.TableStyleConditionalFormattingTableRowProperties =
-                    new TableStyleConditionalFormattingTableRowProperties(MapProperties(property, "trPr")!.ToString(SaveOptions.DisableFormatting));
+                    NormalizeMappedProperties(new TableStyleConditionalFormattingTableRowProperties(MapProperties(property, "trPr")!.ToString(SaveOptions.DisableFormatting)));
                 else if (property.Name == Word + "tcPr") style.StyleTableCellProperties =
-                    new StyleTableCellProperties(MapProperties(property, "tcPr")!.ToString(SaveOptions.DisableFormatting));
+                    NormalizeMappedProperties(new StyleTableCellProperties(MapProperties(property, "tcPr")!.ToString(SaveOptions.DisableFormatting)));
                 else if (property.Name == Word + "tblStylePr") {
                     XElement? conditional = MapProperties(property, "tblStylePr");
-                    if (conditional != null) style.AppendChild(new TableStyleProperties(conditional.ToString(SaveOptions.DisableFormatting)));
+                    if (conditional != null) style.AppendChild(NormalizeMappedProperties(new TableStyleProperties(conditional.ToString(SaveOptions.DisableFormatting))));
                 }
                 else Omit(property, "style properties");
             }
@@ -117,7 +117,7 @@ internal sealed partial class WordMl2003Projection {
                 else if (property.Name == Word + "sig") Omit(property, "font signature metadata");
                 else Omit(property, "font metadata");
             }
-            fonts.AppendChild(new Font(font.ToString(SaveOptions.DisableFormatting)));
+            fonts.AppendChild(NormalizeMappedProperties(new Font(font.ToString(SaveOptions.DisableFormatting))));
         }
         if (fonts.HasChildren) {
             ReserveRelationship(_main, createsPart: true);
@@ -143,9 +143,7 @@ internal sealed partial class WordMl2003Projection {
             settings.Add(mapped);
         }
         if (settings.HasElements) {
-            var parsed = new Settings(settings.ToString(SaveOptions.DisableFormatting));
-            var ordered = new Settings();
-            foreach (OpenXmlElement child in parsed.ChildElements) ordered.AddChild(child.CloneNode(true), true);
+            var ordered = NormalizeMappedProperties(new Settings(settings.ToString(SaveOptions.DisableFormatting)));
             ReserveRelationship(_main, createsPart: true);
             _main.AddNewPart<DocumentSettingsPart>().Settings = ordered;
         }

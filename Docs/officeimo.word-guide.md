@@ -746,9 +746,9 @@ intentional document edits.
 Use `WordDocument.Load` to open Word Flat OPC and Word 2003 XML. The XML content
 identifies the format. Flat OPC reconstructs the Open XML package, including
 document and template parts. The import preserves XML part roots and their
-namespace bindings. Package signatures and XML declarations, processing
-instructions, and comments outside part roots do not travel through the
-standalone XML representation.
+namespace bindings. Import rejects sources containing package signature parts
+with `NotSupportedException`. XML declarations, processing instructions and
+comments outside part roots do not travel through the standalone XML representation.
 
 Word 2003 XML projects named paragraph, character and table styles, their
 inheritance and font defaults, rich run formatting, paragraph spacing, indents,

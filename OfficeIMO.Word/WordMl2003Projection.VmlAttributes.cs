@@ -96,8 +96,8 @@ internal sealed partial class WordMl2003Projection {
     }
 
     private static bool IsVmlNumberInRange(string value, double minimum, double maximum) {
-        // Match the SDK's numeric range constraint; native unit/fixed-point strings stay literal.
-        return !double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double number)
+        // Signed plain numbers obey the declared range; native unit/fixed-point strings stay literal.
+        return !double.TryParse(value, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double number)
             || number >= minimum && number <= maximum;
     }
 
