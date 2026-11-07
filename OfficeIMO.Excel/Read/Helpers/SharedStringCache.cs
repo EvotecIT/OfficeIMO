@@ -158,7 +158,7 @@ namespace OfficeIMO.Excel {
                 EnsureCanAddSharedString(list);
                 string value;
                 if (item.Text?.Text != null) {
-                    value = item.Text.Text;
+                    value = Utilities.ExcelSanitizer.DecodeXString(item.Text.Text);
                 } else if (item.HasChildren) {
                     value = GetRunText(item, _maxSharedStringItemCharacters, ref runTextBuffer);
                 } else {
@@ -279,7 +279,7 @@ namespace OfficeIMO.Excel {
             bool hasNode = reader.Read();
             int nodesRead = 0;
             if (hasNode && SpreadsheetXmlContent.IsDirectChildElement(reader, depth, "t")) {
-                first = reader.ReadElementContentAsString();
+                first = Utilities.ExcelSanitizer.DecodeXString(reader.ReadElementContentAsString());
                 EnsureItemCharacterBudget(0, first.Length, maxItemCharacters);
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "si") {
                     return first;
@@ -301,7 +301,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string text = reader.ReadElementContentAsString();
+                string text = Utilities.ExcelSanitizer.DecodeXString(reader.ReadElementContentAsString());
                 if (builder != null) {
                     EnsureItemCharacterBudget(builder.Length, text.Length, maxItemCharacters);
                     builder.Append(text);
@@ -338,7 +338,7 @@ namespace OfficeIMO.Excel {
             StringBuilder? builder = null;
 
             foreach (var run in parent.Elements<Run>()) {
-                string text = run.Text?.Text ?? string.Empty;
+                string text = Utilities.ExcelSanitizer.DecodeXString(run.Text?.Text ?? string.Empty);
                 if (builder != null) {
                     EnsureItemCharacterBudget(builder.Length, text.Length, maxItemCharacters);
                     builder.Append(text);

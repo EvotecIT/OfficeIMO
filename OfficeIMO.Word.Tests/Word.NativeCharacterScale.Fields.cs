@@ -12,7 +12,7 @@ public partial class Word {
     [InlineData(true, 100)]
     [InlineData(false, 150)]
     [InlineData(true, 150)]
-    public void NativeDocCharacterScaleComparesFieldRunsUsingTheParagraphRootDefault(bool complex, int explicitWidth) {
+    public void NativeDocCharacterScalePreservesFieldRunsUsingTheParagraphRootDefault(bool complex, int explicitWidth) {
         for (int story = 0; story < 4; story++) {
             using WordDocument source = WordDocument.Create();
             Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -35,15 +35,24 @@ public partial class Word {
             second.RunProperties!.AddChild(new CharacterScale { Val = explicitWidth }, true);
             Assert.Empty(source.ValidateDocument());
 
-            if (explicitWidth == 100) {
-                NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
-                Assert.Contains("display runs use one formatting set", error.Message);
-            } else {
-                using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-                MainDocumentPart main = loaded._wordprocessingDocument.MainDocumentPart!;
-                SimpleField field = Assert.Single(EnumerateFieldFormattingRoots(main).SelectMany(root => root.Descendants<SimpleField>()));
-                Assert.Equal("FIRSTSECOND", field.InnerText);
-                Assert.Empty(loaded.ValidateDocument());
+            using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
+            MainDocumentPart main = loaded._wordprocessingDocument.MainDocumentPart!;
+            SimpleField field = Assert.Single(EnumerateFieldFormattingRoots(main).SelectMany(root => root.Descendants<SimpleField>()));
+            Assert.Equal("FIRSTSECOND", field.InnerText);
+            Run first = Assert.Single(field.Descendants<Run>(), run => run.InnerText == "FIRST");
+            Run importedSecond = Assert.Single(field.Descendants<Run>(), run => run.InnerText == "SECOND");
+            Assert.Equal(150L, Scale(first));
+            Assert.Equal((long)explicitWidth, Scale(importedSecond));
+            Assert.Empty(loaded.ValidateDocument());
+
+            long Scale(Run run) {
+                long? direct = run.RunProperties?.GetFirstChild<CharacterScale>()?.Val?.Value;
+                if (direct.HasValue) return direct.Value;
+                string styleId = run.Ancestors<Paragraph>().First().ParagraphProperties?.ParagraphStyleId?.Val?.Value ?? "Normal";
+                Styles importedStyles = main.StyleDefinitionsPart!.Styles!;
+                Style style = importedStyles.Elements<Style>().Single(value => value.StyleId == styleId);
+                return style.StyleRunProperties?.GetFirstChild<CharacterScale>()?.Val?.Value
+                    ?? importedStyles.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.GetFirstChild<CharacterScale>()?.Val?.Value ?? 100L;
             }
         }
     }

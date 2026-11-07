@@ -188,6 +188,7 @@ namespace OfficeIMO.Excel {
                 int maximumPageBreakColumn = InspectMutationPlanElements(
                         WorksheetRoot.MetadataDescendants<ColumnBreaks>().SelectMany(columnBreaks => columnBreaks.Elements<Break>()),
                         budget)
+                    .Where(pageBreak => pageBreak.Id?.Value <= ExcelA1.MaxColumns)
                     .Select(pageBreak => checked((int)(pageBreak.Id?.Value ?? 0U)))
                     .DefaultIfEmpty(0).Max();
                 int maximumDrawingColumn = InspectMutationPlanElements(
@@ -282,7 +283,7 @@ namespace OfficeIMO.Excel {
                     if (!RowHasCells(row)) row.Remove();
                 }
             }
-            foreach ((int row, int column, string name) in pendingHeaders) CellValueCoreNoMaterialize(row, column, name);
+            foreach ((int row, int column, string name) in pendingHeaders) WriteOwnedTableSchemaHeader(row, column, name);
             RewriteColumnDefinitions(firstColumn, lastColumn, count, deleting);
             RemapColumnConnectionParameters(firstColumn, count, deleting, cancellationToken);
             _excelDocument.RewriteColumnMutationReferences(this, firstColumn, count, deleting);

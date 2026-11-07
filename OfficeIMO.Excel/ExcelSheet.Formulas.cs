@@ -58,6 +58,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void ClearCachedFormulaResults() {
             WriteLock(() => {
+                if (HasTableDefinitions && ExcelWorksheetScan.FormulaCells(WorksheetRoot).Any(FormulaTargetsTableHeader))
+                    throw new InvalidOperationException("Clearing these formula caches would erase a table-column header.");
                 bool changed = false;
                 var arrays = WorksheetRoot.Descendants<CellFormula>()
                     .Where(formula => formula.FormulaType?.Value == CellFormulaValues.Array)
@@ -214,6 +216,8 @@ namespace OfficeIMO.Excel {
             if (ExcelWorksheetScan.FindFormula(cell) == null) {
                 return false;
             }
+            // Imported formulas must not recalculate schema-owned literal column names.
+            if (FormulaTargetsTableHeader(cell)) return false;
 
             string formula = ResolveCellFormulaText(
                 cell,
@@ -347,8 +351,15 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static string? GetFormulaCachedText(Cell cell) {
+            string? text = ExcelWorksheetScan.FindValue(cell)?.Text;
+            return text != null && cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
+                ? Utilities.ExcelSanitizer.DecodeXString(text) : text;
+        }
+
         private static void SetFormulaCachedText(Cell cell, string text, DocumentFormat.OpenXml.Spreadsheet.CellValues type) {
-            ExcelWorksheetScan.SetValueText(cell, text);
+            ExcelWorksheetScan.SetValueText(cell, type == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
+                ? Utilities.ExcelSanitizer.EncodeXString(text) : text);
             if (cell.DataType?.Value != type) cell.DataType = type;
         }
 
@@ -423,7 +434,7 @@ namespace OfficeIMO.Excel {
                             Name,
                             cellReference,
                             formula,
-                            ExcelWorksheetScan.FindValue(cell)?.Text,
+                            GetFormulaCachedText(cell),
                             packageRequestsRecalculation
                                 || (ExcelWorksheetScan.FindFormula(cell)!.CalculateCell?.Value ?? false)
                                 || _excelDocument.HasFormulaInputMutationsAfterFormulaBaseline(_worksheetPart, cellReference)
@@ -543,12 +554,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Tries to return a formula cell's cached value.
+        /// Tries to return a formula cell's cached value, decoding string escapes while retaining numeric text precision.
         /// </summary>
         public bool TryGetCachedFormulaValue(int row, int column, out string? value) {
             // A formula cell is always a DOM cell, so a stored cell stays stored.
             var cell = TryGetDomCell(row, column);
-            value = (cell == null ? null : ExcelWorksheetScan.FindFormula(cell!)) == null ? null : ResolveRichValueError(cell!, ExcelWorksheetScan.FindValue(cell!)?.Text);
+            value = (cell == null ? null : ExcelWorksheetScan.FindFormula(cell!)) == null ? null : ResolveRichValueError(cell!, GetFormulaCachedText(cell!));
             return value != null;
         }
 
@@ -573,6 +584,7 @@ namespace OfficeIMO.Excel {
             string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula, qualifyArrayFunctions: true);
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             WriteLock(() => {
+                EnsureTableHeaderFormulaRangeWritable(r1, c1, r2, c2);
                 foreach (var cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
@@ -659,7 +671,15 @@ namespace OfficeIMO.Excel {
                 : CellAsRange(a1RangeOrCell);
 
             WriteLock(() => {
-                foreach (var cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
+                var arrayCells = ExcelWorksheetScan.FormulaCells(WorksheetRoot)
+                    .Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList();
+                foreach (Cell array in arrayCells) {
+                    if (TryFixedArrayBounds(ExcelWorksheetScan.FindFormula(array)?.Reference?.Value ?? string.Empty,
+                        out int top, out int left, out int bottom, out int right)
+                        && RangesOverlapInclusive(bounds, (top, left, bottom, right)))
+                        EnsureTableHeaderValuesNotCleared(top, left, bottom, right);
+                }
+                foreach (var cell in arrayCells) {
                     string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
                         && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)

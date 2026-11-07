@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.Pdf {
                             styles ??= new ExcelCellStyleInfo?[rows.Count, columns.Count];
                             ExcelCellStyleInfo originalStyle = source.Styles?[region.Row, region.Column] ?? new ExcelCellStyleInfo();
                             ExcelCellStyleInfo fragmentStyle = originalStyle.CopyWithBorder(
-                                CreateMergeFragmentBorder(source.Styles, region, row, column, rowSpan, columnSpan));
+                                CreateMergeFragmentBorder(source.Styles, region, row, column, rowSpan, columnSpan, plan.RightToLeft));
                             if (viewport != null && string.IsNullOrWhiteSpace(fragmentStyle.VerticalAlignment)) fragmentStyle.VerticalAlignment = "bottom";
                             styles[localRow, localColumn] = fragmentStyle;
                         }
@@ -56,8 +56,9 @@ namespace OfficeIMO.Excel.Pdf {
                 rows.Select(row => source.RowHeights.MinHeights[row]).ToList());
             ConditionalFillData? conditional = source.ConditionalFills == null ? null : new ConditionalFillData(
                 conditionalFills!, dataBars!, icons!);
-            return new SheetExportData(values, styles, hyperlinks, references, merged, widths, heights,
+            var selected = new SheetExportData(values, styles, hyperlinks, references, merged, widths, heights,
                 chunk.HeaderRowCount, source.FirstBodyRowNumber, source.StructuredTables, conditional);
+            return plan.RightToLeft ? ReverseWorksheetPageColumns(selected) : selected;
         }
 
         private static int CountMergeFragmentAxis(IReadOnlyList<int> indexes, int start, int mergeEnd, int pageEnd) {
@@ -91,7 +92,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static ExcelCellBorderInfo? CreateMergeFragmentBorder(
-            ExcelCellStyleInfo?[,]? styles, MergeRegion region, int row, int column, int rowSpan, int columnSpan) {
+            ExcelCellStyleInfo?[,]? styles, MergeRegion region, int row, int column, int rowSpan, int columnSpan, bool rightToLeft) {
             if (styles == null) return null;
             ExcelCellBorderInfo? original = styles[region.Row, region.Column]?.Border;
             int lastRow = region.Row + region.Span.RowSpan - 1;
@@ -100,8 +101,12 @@ namespace OfficeIMO.Excel.Pdf {
             ExcelCellBorderInfo? bottom = styles[lastRow, region.Column]?.Border;
             bool includesAnchor = row == region.Row && column == region.Column;
             return new ExcelCellBorderInfo(
-                left: column == region.Column ? original?.Left : null,
-                right: column + columnSpan - 1 == lastColumn ? right?.Right ?? original?.Right : null,
+                left: rightToLeft
+                    ? column + columnSpan - 1 == lastColumn ? right?.Left ?? original?.Left : null
+                    : column == region.Column ? original?.Left : null,
+                right: rightToLeft
+                    ? column == region.Column ? original?.Right : null
+                    : column + columnSpan - 1 == lastColumn ? right?.Right ?? original?.Right : null,
                 top: row == region.Row ? original?.Top : null,
                 bottom: row + rowSpan - 1 == lastRow ? bottom?.Bottom ?? original?.Bottom : null,
                 diagonal: includesAnchor ? original?.Diagonal : null,

@@ -10,7 +10,7 @@ internal static partial class EmailReaderProjection {
         attachment.ContentType?.Equals("application/ms-tnef", StringComparison.OrdinalIgnoreCase) == true ||
         attachment.ContentType?.Equals("application/mbox", StringComparison.OrdinalIgnoreCase) == true ||
         TryExtension(name)?.ToLowerInvariant() is ".eml" or ".msg" or ".oft" or ".tnef" or ".emlx" or
-            ".mbox" or ".mbx" or ".pst" or ".ost" or ".olm";
+            ".mbox" or ".mbx" or ".pst" or ".ost" or ".olm" or ".dbx";
 
     private static void AddEmbeddedMessage(EmailAttachment attachment, string attachmentPath,
         Projection parent, ReaderOptions options, EmailDocumentProjectionCursor cursor, int depth,

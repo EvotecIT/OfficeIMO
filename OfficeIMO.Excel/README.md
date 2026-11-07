@@ -114,7 +114,12 @@ record Order(string Customer, string Region, decimal Total, double Margin);
 
 `AddTable` writes a native Excel table: a header row from the property names, typed cells and the theme's table style. It returns the `ExcelTable`, and `AddChart` returns the `ExcelChart`, for further changes. `ExcelChartOptions.Row` and `Column` anchor the chart; `Width` and `Height` take an `OfficeLength`.
 
+A cell value written into a table header also renames the schema column and updates structured references. Header names must be nonempty, unique literal text. Clearing values retains those labels; write formulas to data rows. Use `SetTableSchema` to rename several columns together. A header-only table has no data records; the first append starts immediately below its headers. Explicit blank data rows remain records.
+
 ## Cells, formulas and formatting
+
+`GetFormattedText()` applies the cell's stored number format; raw and typed reads keep the stored value. Formula calculations retain double precision in numeric caches and use fifteen significant digits when a function converts a number to text. Numeric overflow is cached as `#NUM!`. Calculated text containing XML control characters or isolated surrogate units remains deferred to the spreadsheet application.
+
 
 ```csharp
 using OfficeIMO;
@@ -258,6 +263,25 @@ using var book = ExcelDocument.Load("Orders.xlsx");
 OfficeConversionReport report = book.SaveAsPdf("Orders.pdf");
 Console.WriteLine($"{report.ItemsWritten} pages, loss: {report.HasLoss}");
 ```
+
+## Validate package signatures from a stream
+
+Pass the original XLSX/XLSM package stream and an explicit security provider.
+The managed provider is available in the optional `OfficeIMO.Security` package:
+
+```csharp
+using System.IO;
+using OfficeIMO.Excel;
+using OfficeIMO.Security;
+
+static OfficePackageSignatureValidationReport ValidateUpload(Stream upload) =>
+    ExcelDocument.ValidatePackageSignatures(upload, OfficeSecurityProvider.Default);
+```
+
+The stream stays open on success and failure. Seekable streams are read from the
+beginning and their original position is restored; non-seekable streams are read
+from the current position. The existing validation options control certificate
+policy and package limits, including the maximum bytes buffered from the stream.
 
 ## More
 

@@ -1,12 +1,14 @@
 using System;
 using System.Globalization;
+using System.Linq;
 
 namespace OfficeIMO.Spreadsheet {
     internal static partial class SpreadsheetNumberFormatDisplay {
         internal const char LiteralPunctuationMarker = '\u0001';
 
-        /// <summary>Formats invariant numeric cell text; null preserves the caller's raw fallback when the value or scaled result cannot be represented.</summary>
-        internal static string? FormatNumericValue(double value, string formatCode) {
+        /// <summary>Formats numeric cell text with optional culture; null preserves the caller's fallback when the value or scaled result cannot be represented.</summary>
+        internal static string? FormatNumericValue(double value, string formatCode, IFormatProvider? provider = null) {
+            provider ??= CultureInfo.InvariantCulture;
             if (double.IsNaN(value) || double.IsInfinity(value)) return null;
             int preferredSection = value < 0 ? 1 : value == 0 ? 2 : 0;
             string section = SelectNumberFormatSection(formatCode, preferredSection, value, out int selectedSection);
@@ -17,8 +19,8 @@ namespace OfficeIMO.Spreadsheet {
             string normalized = StripNumberFormatDecorations(section);
             string lower = normalized.ToLowerInvariant();
 
-            if (lower.Contains("@")) {
-                return value.ToString(CultureInfo.InvariantCulture);
+            if (SpreadsheetNumberFormatSyntax.Parse(section).Tokens.Any(token => token.Kind == SpreadsheetNumberFormatTokenKind.TextPlaceholder)) {
+                return value.ToString(provider);
             }
 
             if (!ContainsNumericPlaceholder(normalized)) {
@@ -34,7 +36,7 @@ namespace OfficeIMO.Spreadsheet {
                 return ApplyFractionAffixes(normalized, fractionText);
             }
 
-            if (TryFormatScientific(value, normalized, selectedSection, out string scientificText)) return scientificText;
+            if (TryFormatScientific(value, normalized, selectedSection, out string scientificText, provider)) return scientificText;
 
             int percentPlaceholders = CountPercentPlaceholders(section);
             bool thousands = lower.Contains("#,##") || lower.Contains(",##");
@@ -62,11 +64,12 @@ namespace OfficeIMO.Spreadsheet {
                 && !double.IsNaN(displayValue) && !double.IsInfinity(displayValue)
                 ? Math.Round(displayValue, decimalPlaces.Maximum, MidpointRounding.AwayFromZero)
                 : displayValue;
-            string text = roundedValue.ToString(numericFormat, CultureInfo.InvariantCulture);
+            var numberFormat = NumberFormatInfo.GetInstance(provider);
+            string text = roundedValue.ToString(numericFormat, numberFormat);
             if (decimalPlaces.Optional > 0) {
-                text = TrimOptionalDecimalPlaces(text, decimalPlaces.Required);
+                text = TrimOptionalDecimalPlaces(text, decimalPlaces.Required, numberFormat);
             }
-            text = PadRequiredIntegerDigits(text, GetRequiredIntegerDigits(normalized), thousands);
+            text = PadRequiredIntegerDigits(text, GetRequiredIntegerDigits(normalized), thousands, numberFormat);
 
             return ApplyNumericAffixes(normalized, text);
         }

@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Internal;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 
@@ -54,7 +55,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Finds literal text in the body, body tables, and the first section's headers and footers.
+        /// Finds literal text in the body, body tables, all section headers and footers, and ordinary footnotes and endnotes.
         /// </summary>
         /// <param name="text">Text to find.</param>
         /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
@@ -63,6 +64,7 @@ namespace OfficeIMO.Word {
         /// A match may span runs within a paragraph. Without <see cref="OfficeTextSearchOptions.WholeWords"/>, a match may
         /// also continue into the next paragraph of the same part; its result entry is the paragraph where it starts.
         /// With <see cref="OfficeTextSearchOptions.WholeWords"/>, each match lies within one paragraph.
+        /// A shared header or footer is searched once under its first referenced role.
         /// </remarks>
         public WordSearchResult Find(string text, OfficeTextSearchOptions? options = null) => FindInScope(text, options, null);
 
@@ -79,11 +81,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Finds text matching a regular expression in the body, body tables, and the first section's headers and footers.
+        /// Finds text matching a regular expression in the body, body tables, all section headers and footers, and ordinary footnotes and endnotes.
         /// </summary>
         /// <param name="pattern">Regular expression applied to each paragraph's text. Its own options control case and boundaries.</param>
         /// <returns>The paragraphs containing matches, grouped by document part, and the total match count.</returns>
-        /// <remarks>Each match lies within one paragraph.</remarks>
+        /// <remarks>
+        /// Each match lies within one paragraph and may span multiple runs.
+        /// A shared header or footer is searched once under its first referenced role.
+        /// </remarks>
         public WordSearchResult Find(Regex pattern) => FindInScope(pattern, null);
 
         internal WordSearchResult FindInScope(Regex pattern, WordSection? section) {
@@ -95,7 +100,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Replaces literal text in the body, body tables, and the first section's headers and footers.
+        /// Replaces literal text in the body, body tables, all section headers and footers, and ordinary footnotes and endnotes.
         /// </summary>
         /// <param name="text">Text to find.</param>
         /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
@@ -136,7 +141,9 @@ namespace OfficeIMO.Word {
 
             MainDocumentPart? mainPart = _wordprocessingDocument?.MainDocumentPart;
             Body? body = mainPart?.Document?.Body;
-            if (body == null || mainPart!.HeaderParts.Any() || mainPart.FooterParts.Any()) {
+            if (body == null || mainPart!.HeaderParts.Any() || mainPart.FooterParts.Any() ||
+                mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>().Any(WordNoteResolver.IsOrdinary) == true ||
+                mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>().Any(WordNoteResolver.IsOrdinary) == true) {
                 return false;
             }
 
@@ -249,55 +256,51 @@ namespace OfficeIMO.Word {
                 return foundParagraphs;
             }
 
-            var removeParas = new List<int>();
-            var foundList = SearchText(paragraphs, oldText, new WordPositionInParagraph() { Paragraph = 0 }, stringComparison);
+            var segments = SearchText(paragraphTexts, oldText, stringComparison);
+            segments.RemoveAll(segment => !IsSegmentValid(paragraphs, segment));
+            count += segments.Count;
+            if (segments.Count == 0) return foundParagraphs;
 
-            if (foundList?.Count > 0) {
-                count += foundList.Count;
-                foreach (var ts in foundList) {
-                    if (!IsSegmentValid(paragraphs, ts))
-                        continue;
-                    if (ts.BeginIndex == ts.EndIndex) {
-                        var p = paragraphs[ts.BeginIndex];
-                        if (p is not null) {
-                            if (replace) {
-                                int replaceCount = 0;
-                                p.Text = p.Text.FindAndReplace(oldText, newText, stringComparison, ref replaceCount);
-                            }
-                            if (!foundParagraphs.Any(fp => ReferenceEquals(fp._paragraph, p._paragraph))) {
-                                foundParagraphs.Add(p);
-                            }
-                        }
-                    } else {
-                        if (!replace && !foundParagraphs.Any(fp => ReferenceEquals(fp._paragraph, paragraphs[ts.BeginIndex]._paragraph))) {
-                            foundParagraphs.Add(paragraphs[ts.BeginIndex]);
-                        }
-                        if (replace) {
-                            var beginPara = paragraphs[ts.BeginIndex];
-                            var endPara = paragraphs[ts.EndIndex];
-                            if (beginPara is not null && endPara is not null) {
-                                beginPara.Text = beginPara.Text.Replace(beginPara.Text.Substring(ts.BeginChar), newText);
-                                endPara.Text = endPara.Text.Replace(endPara.Text.Substring(0, ts.EndChar + 1), "");
-                                if (!foundParagraphs.Any(fp => ReferenceEquals(fp._paragraph, beginPara._paragraph))) {
-                                    foundParagraphs.Add(beginPara);
-                                }
-                            }
-                            for (int i = ts.EndIndex - 1; i > ts.BeginIndex; i--) {
-                                removeParas.Add(i);
-                            }
-                        }
-
+            if (!replace) {
+                foreach (WordTextSegment segment in segments) {
+                    WordParagraph paragraph = paragraphs[segment.BeginIndex];
+                    if (!foundParagraphs.Any(found => ReferenceEquals(found._paragraph, paragraph._paragraph))) {
+                        foundParagraphs.Add(paragraph);
                     }
+                }
+                return foundParagraphs;
+            }
+
+            var updatedTexts = new string?[paragraphTexts.Length];
+            var removeParas = new List<int>();
+            // Later edits leave the original offsets of earlier matches intact.
+            for (int index = segments.Count - 1; index >= 0; index--) {
+                WordTextSegment segment = segments[index];
+                int begin = segment.BeginIndex;
+                int end = segment.EndIndex;
+                string beginText = updatedTexts[begin] ?? paragraphTexts[begin];
+
+                if (begin == end) {
+                    int matchLength = segment.EndChar - segment.BeginChar + 1;
+                    updatedTexts[begin] = beginText.Remove(segment.BeginChar, matchLength).Insert(segment.BeginChar, newText);
+                    continue;
+                }
+
+                string endText = updatedTexts[end] ?? paragraphTexts[end];
+                updatedTexts[begin] = beginText.Substring(0, segment.BeginChar) + newText;
+                updatedTexts[end] = endText.Substring(segment.EndChar + 1);
+                for (int interior = end - 1; interior > begin; interior--) {
+                    removeParas.Add(interior);
                 }
             }
 
-            if (replace) {
-                if (removeParas.Count > 0) {
-                    removeParas = removeParas.Distinct().OrderByDescending(i => i).ToList();// Need remove by descending
-                    foreach (var index in removeParas) {
-                        paragraphs[index].Remove();//Remove blank paragraph
-                    }
+            for (int index = 0; index < updatedTexts.Length; index++) {
+                if (updatedTexts[index] is { } updated) {
+                    paragraphs[index].Text = updated;
                 }
+            }
+            foreach (int index in removeParas) {
+                paragraphs[index].Remove();
             }
             return foundParagraphs;
         }
@@ -383,57 +386,55 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static List<WordTextSegment> SearchText(List<WordParagraph> paragraphs, String searched, WordPositionInParagraph startPos, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+        private static List<WordTextSegment> SearchText(string[] paragraphTexts, string searched, StringComparison stringComparison) {
+            var segments = new List<WordTextSegment>();
+            string text = string.Concat(paragraphTexts);
+            int lastStart = text.Length - searched.Length;
+            int paragraphIndex = 0;
+            int paragraphStart = 0;
+            bool ordinal = stringComparison is StringComparison.Ordinal or StringComparison.OrdinalIgnoreCase;
+            int searchFrom = 0;
+            while (searchFrom <= lastStart) {
+                int matchStart = ordinal
+                    ? text.IndexOf(searched, searchFrom, stringComparison)
+                    : FindFixedWidthMatch(searchFrom);
+                if (matchStart < 0) break;
 
-            var segList = new List<WordTextSegment>();
-            int startRun = startPos.Paragraph,
-            startText = startPos.Text,
-            startChar = startPos.Char;
-            int beginRunPos = 0, beginCharPos = 0, candCharPos = 0;
-            bool newList = false;
-            for (int runPos = startRun; runPos < paragraphs.Count; runPos++) {
-                int textPos = 0, charPos = 0;
-                var p = paragraphs[runPos];
-
-                if (!string.IsNullOrEmpty(p.Text)) {
-                    if (textPos >= startText) {
-                        string candidate = p.Text;
-                        if (runPos == startRun)
-                            charPos = startChar;
-                        else
-                            charPos = 0;
-                        for (; charPos < candidate.Length; charPos++) {
-                            if (string.Compare(candidate[charPos].ToString(), searched[0].ToString(), stringComparison) == 0 && (candCharPos == 0)) {
-                                beginCharPos = charPos;
-                                beginRunPos = runPos;
-                                newList = true;
-                            }
-                            if (string.Compare(candidate[charPos].ToString(), searched[candCharPos].ToString(), stringComparison) == 0) {
-                                if (candCharPos + 1 < searched.Length) {
-                                    candCharPos++;
-                                } else if (newList) {
-                                    WordTextSegment segement = new WordTextSegment();
-                                    segement.BeginIndex = (beginRunPos);
-                                    segement.BeginChar = (beginCharPos);
-                                    segement.EndIndex = (runPos);
-                                    segement.EndChar = (charPos);
-                                    segList.Add(segement);
-                                    //Reset
-                                    startChar = charPos;
-                                    startText = textPos;
-                                    startRun = runPos;
-                                    newList = false;
-                                    candCharPos = 0;
-                                }
-                            } else
-                                candCharPos = 0;
-                        }
-                    }
-                }
-
-
+                int matchEnd = matchStart + searched.Length - 1;
+                int beginChar = ResolveParagraphOffset(matchStart);
+                int beginIndex = paragraphIndex;
+                int endChar = ResolveParagraphOffset(matchEnd);
+                segments.Add(new WordTextSegment {
+                    BeginIndex = beginIndex,
+                    BeginChar = beginChar,
+                    EndIndex = paragraphIndex,
+                    EndChar = endChar
+                });
+                searchFrom = matchEnd + 1;
             }
-            return segList;
+            return segments;
+
+            int FindFixedWidthMatch(int start) {
+                // Culture-sensitive IndexOf can match a different number of UTF-16 code units.
+                // The existing HTML replacement contract compares one code unit at a time.
+                for (; start <= lastStart; start++) {
+                    int matched = 0;
+                    while (matched < searched.Length &&
+                        string.Compare(text, start + matched, searched, matched, 1, stringComparison) == 0) {
+                        matched++;
+                    }
+                    if (matched == searched.Length) return start;
+                }
+                return -1;
+            }
+
+            int ResolveParagraphOffset(int offset) {
+                while (offset - paragraphStart >= paragraphTexts[paragraphIndex].Length) {
+                    paragraphStart += paragraphTexts[paragraphIndex].Length;
+                    paragraphIndex++;
+                }
+                return offset - paragraphStart;
+            }
         }
 
         private delegate void SearchScopeVisitor(List<WordParagraph> paragraphs, List<WordParagraph>? destination);
@@ -444,20 +445,57 @@ namespace OfficeIMO.Word {
                 visit(table.Paragraphs, result?.MutableTableParagraphs);
             }
 
-            var headers = (section ?? this.Sections[0]).Headers;
-            var footers = (section ?? this.Sections[0]).Footers;
-            VisitHeaderFooter(section == null ? headers.Default : section.ResolveDefaultHeader(), result?.MutableDefaultHeaderParagraphs);
-            VisitHeaderFooter(section == null ? headers.Even : section.ResolveEvenHeader(), result?.MutableEvenPageHeaderParagraphs);
-            VisitHeaderFooter(section == null ? headers.First : section.ResolveFirstHeader(), result?.MutableFirstPageHeaderParagraphs);
-            VisitHeaderFooter(section == null ? footers.Default : section.ResolveDefaultFooter(), result?.MutableDefaultFooterParagraphs);
-            VisitHeaderFooter(section == null ? footers.Even : section.ResolveEvenFooter(), result?.MutableEvenPageFooterParagraphs);
-            VisitHeaderFooter(section == null ? footers.First : section.ResolveFirstFooter(), result?.MutableFirstPageFooterParagraphs);
+            // A document-level operation edits each authored running story once, even when several
+            // section references point to the same part. Section searches retain their resolved roles.
+            HashSet<OpenXmlElement>? visitedStories = section == null
+                ? new HashSet<OpenXmlElement>(OfficeReferenceEqualityComparer<OpenXmlElement>.Instance)
+                : null;
+            if (section != null) {
+                VisitSectionStories(section, resolveLinks: true);
+                return;
+            }
+
+            foreach (WordSection current in Sections) {
+                VisitSectionStories(current, resolveLinks: false);
+            }
+
+            MainDocumentPart? mainPart = _wordprocessingDocument?.MainDocumentPart;
+            VisitNotes(mainPart?.FootnotesPart?.Footnotes?.Elements<Footnote>(), result?.MutableFootnoteParagraphs);
+            VisitNotes(mainPart?.EndnotesPart?.Endnotes?.Elements<Endnote>(), result?.MutableEndnoteParagraphs);
+
+            void VisitSectionStories(WordSection current, bool resolveLinks) {
+                var headers = current.Headers;
+                var footers = current.Footers;
+                VisitHeaderFooter(resolveLinks ? current.ResolveDefaultHeader() : headers.Default, result?.MutableDefaultHeaderParagraphs);
+                VisitHeaderFooter(resolveLinks ? current.ResolveEvenHeader() : headers.Even, result?.MutableEvenPageHeaderParagraphs);
+                VisitHeaderFooter(resolveLinks ? current.ResolveFirstHeader() : headers.First, result?.MutableFirstPageHeaderParagraphs);
+                VisitHeaderFooter(resolveLinks ? current.ResolveDefaultFooter() : footers.Default, result?.MutableDefaultFooterParagraphs);
+                VisitHeaderFooter(resolveLinks ? current.ResolveEvenFooter() : footers.Even, result?.MutableEvenPageFooterParagraphs);
+                VisitHeaderFooter(resolveLinks ? current.ResolveFirstFooter() : footers.First, result?.MutableFirstPageFooterParagraphs);
+            }
 
             void VisitHeaderFooter(WordHeaderFooter? part, List<WordParagraph>? destination) {
                 if (part == null) return;
+                OpenXmlElement? root = (OpenXmlElement?)part._header ?? part._footer;
+                if (root == null || (visitedStories != null && !visitedStories.Add(root))) return;
+
                 visit(part.Paragraphs, destination);
-                foreach (var table in part.Tables) {
-                    visit(table.Paragraphs, destination);
+                VisitTables(root.Elements<Table>(), destination);
+            }
+
+            void VisitNotes(IEnumerable<FootnoteEndnoteType>? notes, List<WordParagraph>? destination) {
+                if (notes == null) return;
+                foreach (FootnoteEndnoteType note in notes.Where(WordNoteResolver.IsOrdinary)) {
+                    // Separate notes are separate stories, even when matching may span paragraphs.
+                    visit(WordSection.ConvertParagraphsToWordParagraphs(this, note.Elements<Paragraph>()), destination);
+                    VisitTables(note.Elements<Table>(), destination);
+                }
+            }
+
+            void VisitTables(IEnumerable<Table> tables, List<WordParagraph>? destination) {
+                foreach (Table table in tables) {
+                    var tableView = new WordTable(this, table, initializeChildren: false, readOnly: true);
+                    visit(tableView.Paragraphs, destination);
                 }
             }
         }

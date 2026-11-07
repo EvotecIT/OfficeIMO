@@ -40,7 +40,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
-            out string? warning) {
+            out string? warning,
+            LegacyDocFieldMetadataReader? fieldMetadata = null) {
             warning = null;
             if (fib.CcpFtn == 0) {
                 return Array.Empty<LegacyDocFootnote>();
@@ -77,7 +78,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     formattingRanges,
                     paragraphFormattingRanges,
                     bookmarkProjection,
-                    picturesByCharacterPosition);
+                    picturesByCharacterPosition, fieldMetadata);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -96,7 +97,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
-            out string? warning) {
+            out string? warning,
+            LegacyDocFieldMetadataReader? fieldMetadata = null) {
             warning = null;
             if (fib.CcpEdn == 0) {
                 return Array.Empty<LegacyDocEndnote>();
@@ -133,7 +135,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     formattingRanges,
                     paragraphFormattingRanges,
                     bookmarkProjection,
-                    picturesByCharacterPosition);
+                    picturesByCharacterPosition, fieldMetadata);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -253,13 +255,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
-            IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition) {
+            IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
+            LegacyDocFieldMetadataReader? fieldMetadata = null) {
             if (endCharacter <= startCharacter) {
                 return Array.Empty<LegacyDocNoteParagraph>();
             }
 
             var paragraphs = new List<LegacyDocNoteParagraph>();
             var currentRuns = new List<LegacyDocTextRun>();
+            LegacyDocFieldResultReader? fieldResultReader = null;
             var runText = new System.Text.StringBuilder(endCharacter - startCharacter);
             var runCharacterPositions = new List<int>();
             var pendingBookmarks = new List<LegacyDocBookmark>();
@@ -268,7 +272,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool hasCurrentRun = false;
             bool isFirstParagraph = true;
             bool atParagraphStart = true;
-            bool skipOptionalReferenceSpace = false;
             int currentParagraphStartCharacter = startCharacter;
             int pendingBookmarkStartCharacter = int.MaxValue;
             int pendingBookmarkEndCharacter = int.MinValue;
@@ -292,7 +295,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     hasCurrentRun = false;
                     currentHyperlinkTarget = default;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -363,33 +365,32 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                     index = fieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
                 if (LegacyDocField.TryReadPageNumber(
                     storyCharacters,
                     index,
+                    out string pageNumberInstruction,
                     out int pageNumberResultStartIndex,
                     out int pageNumberResultEndIndex,
                     out int pageNumberFieldEndIndex)) {
-                    AppendFieldResult(LegacyDocFieldKind.Page, fieldInstruction: null, pageNumberResultStartIndex, pageNumberResultEndIndex);
+                    AppendFieldResult(LegacyDocFieldKind.Page, pageNumberInstruction, pageNumberResultStartIndex, pageNumberResultEndIndex);
                     index = pageNumberFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
                 if (LegacyDocField.TryReadNumberOfPages(
                     storyCharacters,
                     index,
+                    out string numberOfPagesInstruction,
                     out int numberOfPagesResultStartIndex,
                     out int numberOfPagesResultEndIndex,
                     out int numberOfPagesFieldEndIndex)) {
-                    AppendFieldResult(LegacyDocFieldKind.NumPages, fieldInstruction: null, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
+                    AppendFieldResult(LegacyDocFieldKind.NumPages, numberOfPagesInstruction, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
                     index = numberOfPagesFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -399,7 +400,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldResult(LegacyDocFieldKind.SectionPages, sectionPagesInstruction, sectionPagesResultStartIndex, sectionPagesResultEndIndex);
                     index = sectionPagesFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -414,7 +414,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldResult(dateTimeFieldKind, dateInstruction, dateResultStartIndex, dateResultEndIndex);
                     index = dateFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -428,7 +427,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldResult(LegacyDocFieldKind.DocumentProperty, documentPropertyInstruction, documentPropertyResultStartIndex, documentPropertyResultEndIndex);
                     index = documentPropertyFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -442,7 +440,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldResult(LegacyDocFieldKind.Equation, equationInstruction, equationResultStartIndex, equationResultEndIndex);
                     index = equationFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
@@ -455,21 +452,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AppendFieldDisplayResult(fallbackFieldResultStartIndex, fallbackFieldResultEndIndex);
                     index = fallbackFieldEndIndex;
                     atParagraphStart = false;
-                    skipOptionalReferenceSpace = false;
                     continue;
                 }
 
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (isFirstParagraph && atParagraphStart && normalized == FootnoteReferenceCharacter) {
-                    skipOptionalReferenceSpace = true;
                     continue;
-                }
-
-                if (skipOptionalReferenceSpace) {
-                    skipOptionalReferenceSpace = false;
-                    if (normalized == ' ') {
-                        continue;
-                    }
                 }
 
                 atParagraphStart = false;
@@ -484,7 +472,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AddCurrentParagraph(paragraphFormat, character.CharacterPosition, isFinalParagraph: false);
                     isFirstParagraph = false;
                     atParagraphStart = true;
-                    skipOptionalReferenceSpace = false;
                     currentParagraphStartCharacter = character.CharacterPosition + 1;
                     preserveEmptyParagraph = false;
                     continue;
@@ -543,31 +530,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 int resultEndIndex,
                 LegacyDocHyperlinkTarget hyperlinkTarget = default) {
                 FlushRun();
-                LegacyDocCharacterFormat format = LegacyDocCharacterFormat.Default;
-                var positions = new List<int>();
-                var resultText = new System.Text.StringBuilder();
-                for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
-                    LegacyDocTextCharacter resultCharacter = storyCharacters[resultIndex];
-                    if (char.IsControl(resultCharacter.Character)
-                        && !LegacyDocSpecialCharacters.IsSupportedInlineControl(resultCharacter.Character)) {
-                        continue;
-                    }
-
-                    if (positions.Count == 0) {
-                        format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
-                    }
-
-                    resultText.Append(resultCharacter.Character);
-                    positions.Add(resultCharacter.CharacterPosition);
-                }
-
-                currentRuns.Add(LegacyDocTextRunFactory.CreateFieldRun(
-                    fieldKind == LegacyDocFieldKind.Page ? string.Empty : resultText.ToString(),
-                    fieldKind,
-                    fieldInstruction,
-                    format,
-                    positions,
-                    hyperlinkTarget));
+                fieldResultReader ??= new LegacyDocFieldResultReader(formattingRanges, fieldMetadata);
+                currentRuns.Add(fieldResultReader.Read(storyCharacters, resultStartIndex, resultEndIndex,
+                    fieldKind, fieldInstruction, LegacyDocFieldResultReader.NormalizeStoryCharacter, hyperlinkTarget));
                 hasCurrentRun = false;
                 currentHyperlinkTarget = default;
             }

@@ -37,6 +37,8 @@ namespace OfficeIMO.Word.Html {
                 AddDiagnostic(_options, "stylesheet-load-timed-out", "Stylesheet resource timed out or was canceled by the resource pipeline and was skipped.", url.Href, ex);
             } catch (OperationCanceledException) {
                 throw;
+            } catch (HtmlResourcePolicyException ex) {
+                AddDiagnostic(_options, "stylesheet-resource-rejected-by-policy", "Stylesheet resource was skipped because its redirect destination is not allowed by the current stylesheet policy.", url.Href, ex);
             } catch (HttpRequestException ex) {
                 AddDiagnostic(_options, "stylesheet-transport-failed", "Stylesheet resource could not be fetched and was skipped.", url.Href, ex);
             } catch (HtmlConversionLimitException) {
@@ -72,8 +74,8 @@ namespace OfficeIMO.Word.Html {
                 cts.CancelAfter(_resourceTimeout.Value);
             }
 
-            using var request = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, uri);
-            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+            using var response = await FetchRemoteResourceAsync(
+                uri, _options.AllowedStylesheetUriSchemes, _options.AllowedStylesheetHosts, token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode) {
                 AddDiagnostic(_options, "stylesheet-http-status-rejected", "Stylesheet resource returned a non-success status and was skipped.", source, new HttpRequestException($"{(int)response.StatusCode} {response.StatusCode}"));
                 return null;

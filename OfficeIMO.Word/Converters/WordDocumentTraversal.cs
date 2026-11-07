@@ -402,6 +402,7 @@ namespace OfficeIMO.Word {
                 levelText: effectiveLevel.LevelText?.Val?.Value,
                 leftIndentTwips: ParseOptionalInt32(indentation?.Left?.Value),
                 hangingIndentTwips: ParseOptionalInt32(indentation?.Hanging?.Value),
+                sourceIndentation: indentation,
                 markerFontFamily: ResolveListMarkerFontFamily(markerProperties),
                 markerBold: ReadListMarkerOnOff(markerProperties?.GetFirstChild<Bold>()),
                 markerItalic: ReadListMarkerOnOff(markerProperties?.GetFirstChild<Italic>()),
@@ -525,6 +526,7 @@ namespace OfficeIMO.Word {
                 string? levelText,
                 int? leftIndentTwips,
                 int? hangingIndentTwips,
+                Indentation? sourceIndentation,
                 string? markerFontFamily,
                 bool? markerBold,
                 bool? markerItalic,
@@ -544,6 +546,7 @@ namespace OfficeIMO.Word {
                 LevelText = levelText;
                 LeftIndentTwips = leftIndentTwips;
                 HangingIndentTwips = hangingIndentTwips;
+                SourceIndentation = sourceIndentation;
                 MarkerFontFamily = markerFontFamily;
                 MarkerBold = markerBold;
                 MarkerItalic = markerItalic;
@@ -565,6 +568,7 @@ namespace OfficeIMO.Word {
             internal string? LevelText { get; }
             internal int? LeftIndentTwips { get; }
             internal int? HangingIndentTwips { get; }
+            internal Indentation? SourceIndentation { get; }
             internal string? MarkerFontFamily { get; }
             internal bool? MarkerBold { get; }
             internal bool? MarkerItalic { get; }

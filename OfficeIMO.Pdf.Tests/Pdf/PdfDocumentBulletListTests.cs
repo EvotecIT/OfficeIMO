@@ -31,13 +31,12 @@ public class PdfDocumentBulletListTests {
     }
 
     [Fact]
-    public void Numbered_WithInvalidStartNumber_ThrowsArgumentOutOfRangeException() {
+    public void AddNumberedList_WithNegativeStart_ThrowsArgumentOutOfRangeException() {
         var doc = PdfDocument.Create();
 
-        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => doc.Numbered(new[] { "Invalid" }, startNumber: 0));
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => doc.AddNumberedList(new[] { "Invalid" }, startNumber: -1));
 
         Assert.Equal("startNumber", exception.ParamName);
-        Assert.Contains("Numbered lists must start at 1 or greater.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

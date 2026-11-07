@@ -307,6 +307,10 @@
       "family": "other"
     },
     {
+      "name": "Word XML",
+      "family": "other"
+    },
+    {
       "name": "XLAM",
       "family": "other"
     },
@@ -328,6 +332,10 @@
     },
     {
       "name": "XLTX",
+      "family": "other"
+    },
+    {
+      "name": "XML Spreadsheet 2003",
       "family": "other"
     }
   ],
@@ -2190,7 +2198,7 @@
       "package": "OfficeIMO.OpenDocument.Odp.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdpPresentation.Load(stream).SaveAsPdf(output, options)",
+      "api": "OdpPresentation.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2214,7 +2222,7 @@
       "package": "OfficeIMO.PowerPoint.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "OdpPresentation.Load(stream).SaveAsPowerPoint(output, options)",
+      "api": "OdpPresentation.Load(stream) or LoadFlatXml(stream).SaveAsPowerPoint(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2277,7 +2285,7 @@
       "package": "OfficeIMO.OpenDocument.Ods.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdsDocument.Load(stream).SaveAsPdf(output, options)",
+      "api": "OdsDocument.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2337,7 +2345,7 @@
       "package": "OfficeIMO.Excel.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "OdsDocument.Load(stream).SaveAsExcel(output, options)",
+      "api": "OdsDocument.Load(stream) or LoadFlatXml(stream).SaveAsExcel(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2352,7 +2360,7 @@
       "package": "OfficeIMO.Word.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "OdtDocument.Load(stream).SaveAsWord(output, options)",
+      "api": "OdtDocument.Load(stream) or LoadFlatXml(stream).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2379,7 +2387,7 @@
       "package": "OfficeIMO.OpenDocument.Odt.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdtDocument.Load(stream).SaveAsPdf(output, options)",
+      "api": "OdtDocument.Load(stream) or LoadFlatXml(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -3055,6 +3063,18 @@
       "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.pdf"
     },
     {
+      "id": "spreadsheet-xml-xlsx",
+      "source": "XML Spreadsheet 2003",
+      "target": "XLSX",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "txt-pdf",
       "source": "Plain text",
       "target": "PDF",
@@ -3216,6 +3236,18 @@
       ],
       "cmdlet": "Export-OfficeDocumentImage",
       "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Webp"
+    },
+    {
+      "id": "word-xml-docx",
+      "source": "Word XML",
+      "target": "DOCX",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
     },
     {
       "id": "xls-pdf",

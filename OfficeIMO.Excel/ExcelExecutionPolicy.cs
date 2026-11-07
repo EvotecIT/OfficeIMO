@@ -104,8 +104,8 @@ namespace OfficeIMO.Excel {
         internal bool AreDiagnosticsRequested
             => DiagnosticsRequested || OnInfo != null || OnTiming != null || OnDecision != null;
 
-        /// <summary>Keeps worksheet workers off single-threaded hosts and explicit serial policies.</summary>
-        internal bool AllowsBackgroundRead {
+        /// <summary>Keeps worksheet read and compression workers off single-threaded hosts and explicit serial policies.</summary>
+        internal bool AllowsBackgroundProcessing {
             get {
 #if NET8_0_OR_GREATER
                 return System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture

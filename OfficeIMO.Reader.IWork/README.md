@@ -27,7 +27,7 @@ foreach (ReaderTable table in document.Tables) {
 }
 ```
 
-For a stream, pass its source name: `reader.ReadDocument(stream, "report.numbers")`. The extension identifies the expected iWork kind. `OfficeIMO.Reader.All` also registers this handler. Content detection recognizes direct IWA indexes and inspects up to 16 MiB of a nested `Index.zip` to identify renamed packages. Both `Document.iwa` and `Index/Document.iwa` are recognized inside that archive. Keep a `.pages`, `.numbers`, or `.key` source name for larger nested indexes.
+For a stream, pass its source name: `reader.ReadDocument(stream, "report.numbers")`. Use the original extension for [iWork ’09 XML packages](../Docs/officeimo.iwork-support-matrix.md#iwork-09-xml). The extension identifies the expected iWork kind. `OfficeIMO.Reader.All` also registers this handler. Content detection recognizes direct IWA indexes and inspects up to 16 MiB of a nested `Index.zip` to identify renamed packages. Both `Document.iwa` and `Index/Document.iwa` are recognized inside that archive. Keep a `.pages`, `.numbers`, or `.key` source name for larger nested indexes.
 
 File and stream reads extract content from one bounded snapshot. When `ComputeHashes` is enabled, the result and its chunks use that snapshot's SHA-256 and byte length, including when a source file changes during ingestion. Seekable streams are read from the beginning and restored to their original position; caller-owned streams remain open. Directory bundles retain the separate package-content identity described below.
 

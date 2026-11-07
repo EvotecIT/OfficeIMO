@@ -80,7 +80,7 @@ internal static partial class PdfWriter {
             if (visible) {
                 page.Images.Add(pageImage);
                 onImageAdded?.Invoke(pageImage);
-                AddTableCellImageLinkAnnotation(page, image, imageStyle, pageImage, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height, clipFrame);
+                AddImageLinkAnnotation(page.Annotations, pageImage, image.LinkUri, image.LinkContents, clipFrame);
             }
             yCursor -= imageBox.Height;
             objectCount++;
@@ -147,8 +147,9 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AddTableCellImageLinkAnnotation(LayoutResult.Page page, PdfTableCellImage image, PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight, TableCellContentFrame? clipFrame = null) {
-        if (string.IsNullOrEmpty(image.LinkUri)) {
+    private static void AddImageLinkAnnotation(List<LinkAnnotation> annotations, PageImage pageImage, string? linkUri,
+        string? linkContents, TableCellContentFrame? clipFrame = null) {
+        if (string.IsNullOrEmpty(linkUri)) {
             return;
         }
 
@@ -161,7 +162,7 @@ internal static partial class PdfWriter {
         }
         if (x2 <= x1 || y2 <= y1) return;
 
-        page.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents, LinkedImage = pageImage });
+        annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = linkUri!, Contents = linkContents, LinkedImage = pageImage });
     }
 
     private static System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> SliceTableCellLines(TableCellTextLayout layout, int startLine, int lineCount) {

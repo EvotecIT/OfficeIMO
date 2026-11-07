@@ -271,6 +271,10 @@ namespace OfficeIMO.PowerPoint {
                 if (clone.DocumentType != resolvedDestinationType) {
                     clone.ChangeDocumentType(resolvedDestinationType);
                 }
+                // A clone can omit pending properties when the source had no core properties part.
+                if (clone.CoreFilePropertiesPart == null) {
+                    OfficeOpenXmlPackagePayload.CopyCoreProperties(_document, clone);
+                }
                 clone.Save();
                 // Dispose finalizes the cloned package before its bytes are committed.
             }

@@ -51,7 +51,8 @@ public partial class Excel {
     [InlineData("<si><r><t>first</t></r><rPh sb=\"0\" eb=\"1\"><t>phonetic</t></rPh><r><t>second</t></r></si>", "firstsecond")]
     [InlineData("<si><t>A\r\nB</t></si>", "A\nB")]
     [InlineData("<si><t> </t></si>", "")]
-    [InlineData("<si><t>_x0041_</t></si>", "_x0041_")]
+    [InlineData("<si><t>_x0041_</t></si>", "A")]
+    [InlineData("<si><t>_x005F_x0041_</t></si>", "_x0041_")]
     public void OpenDataReader_LargeSharedTableWithLateComplexTextKeepsCanonicalFallback(
         string lastItem, string expected) {
         string path = CreateIndexedSharedStringWorkbook(lastItem, includeLastRow: true);

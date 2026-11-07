@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -30,7 +31,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffRecord filePassRecord,
             string password,
             List<LegacyXlsImportDiagnostic> diagnostics,
-            out byte[] decryptedWorkbookStream) {
+            out byte[] decryptedWorkbookStream,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             decryptedWorkbookStream = workbookStream;
             if (!TryReadDescriptor(filePassRecord.Payload, out Rc4Descriptor? descriptor, out string? error)) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
@@ -54,7 +57,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            decryptedWorkbookStream = TransformWorkbookStream(workbookStream, descriptor!, password);
+            decryptedWorkbookStream = TransformWorkbookStream(workbookStream, descriptor!, password, cancellationToken);
             return true;
         }
 
@@ -116,10 +119,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return verifierHash.AsSpan(0, expectedHash.Length).SequenceEqual(expectedHash);
         }
 
-        private static byte[] TransformWorkbookStream(byte[] workbookStream, Rc4Descriptor descriptor, string password) {
+        private static byte[] TransformWorkbookStream(byte[] workbookStream, Rc4Descriptor descriptor, string password,
+            CancellationToken cancellationToken) {
             return BiffRc4RecordStreamCipher.Transform(
                 workbookStream,
-                block => DeriveKey(descriptor.Salt, password, block));
+                block => DeriveKey(descriptor.Salt, password, block), cancellationToken: cancellationToken);
         }
 
         private static byte[] DeriveKey(byte[] salt, string password, uint blockNumber) {

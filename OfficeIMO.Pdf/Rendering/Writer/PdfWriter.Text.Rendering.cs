@@ -32,6 +32,7 @@ internal static partial class PdfWriter {
         double baseline,
         PdfCreateOptions options,
         LayoutResult.Page? page,
+        List<LinkAnnotation> annotations,
         LayoutResult.Page? structurePage,
         int? parentElementIndex,
         bool suppressAccessibility) {
@@ -64,6 +65,7 @@ internal static partial class PdfWriter {
                 pageImage.StructElementIndex = FindStructElementIndex(taggingPage, pageImage.MarkedContentId, "Figure");
             }
 
+            AddImageLinkAnnotation(annotations, pageImage, block.LinkUri, block.LinkContents);
             sb.Append(pageImage.InlineDrawToken);
             return;
         }
@@ -449,6 +451,7 @@ internal static partial class PdfWriter {
                             ? lineY + s.LineAlignmentRise : lineY,
                         opts,
                         fontPage,
+                        annots,
                         structurePage,
                         textStructElementIndex,
                         suppressInlineAccessibility);

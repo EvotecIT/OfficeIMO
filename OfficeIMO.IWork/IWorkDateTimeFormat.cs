@@ -15,6 +15,8 @@ public sealed class IWorkDateTimeFormat {
     // These complete patterns have independent source/display evidence. Avoid
     // translating unknown fields, quoted text, calendars or suppression rules.
     internal static IWorkDateTimeFormat? CreateQualified(string pattern) => pattern switch {
+        "M/d/yy" => new(pattern, "m/d/yy"),
+        "M/d/yy h:mm a" => new(pattern, "m/d/yy h:mm am/pm"),
         "dd/MM/y" => new(pattern, "dd/mm/yyyy"),
         "dd/MM/y HH:mm" => new(pattern, "dd/mm/yyyy hh:mm"),
         "HH:mm:ss" => new(pattern, "hh:mm:ss"),

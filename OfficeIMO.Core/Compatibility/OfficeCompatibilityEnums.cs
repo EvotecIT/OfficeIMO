@@ -41,7 +41,9 @@ public enum OfficeFormatEncoding {
     /// <summary>Open Packaging Conventions package containing XML parts.</summary>
     OpenXml,
     /// <summary>Open Packaging Conventions package containing family-specific binary parts.</summary>
-    BinaryOpenXml
+    BinaryOpenXml,
+    /// <summary>One standalone XML document carrying a native Office dialect or a flattened package.</summary>
+    StandaloneXml
 }
 
 /// <summary>Controls how a conversion balances editability, appearance, and preservation.</summary>

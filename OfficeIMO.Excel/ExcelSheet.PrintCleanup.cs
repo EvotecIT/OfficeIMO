@@ -6,11 +6,17 @@ namespace OfficeIMO.Excel {
         private const uint MaxExcelRowIndex = 1_048_575U;
         private const uint MaxExcelColumnIndex = 16_383U;
 
-        internal void CleanupPrintArtifacts() {
+        /// <summary>Maintains print metadata, normalizing break entries only during an explicit workbook repair.</summary>
+        internal void CleanupPrintArtifacts(bool repairPageBreaks = false) {
             var worksheet = WorksheetRoot;
 
-            CleanupRowBreaks(worksheet.GetFirstChild<RowBreaks>());
-            CleanupColumnBreaks(worksheet.GetFirstChild<ColumnBreaks>());
+            if (repairPageBreaks) {
+                CleanupRowBreaks(worksheet.GetFirstChild<RowBreaks>());
+                CleanupColumnBreaks(worksheet.GetFirstChild<ColumnBreaks>());
+            } else {
+                PreserveBreakContainer(worksheet.GetFirstChild<RowBreaks>());
+                PreserveBreakContainer(worksheet.GetFirstChild<ColumnBreaks>());
+            }
 
             var printOptions = worksheet.GetFirstChild<PrintOptions>();
             if (printOptions != null && !printOptions.HasAttributes) {
@@ -33,6 +39,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Normal saves maintain counts without rewriting imported break identifiers, spans or manual flags.</summary>
+        private static void PreserveBreakContainer(OpenXmlCompositeElement? breaks) {
+            if (breaks == null) return;
+            if (!breaks.Elements<Break>().Any()) breaks.Remove();
+            else UpdatePageBreakCounts(breaks);
+        }
+
         private static void CleanupRowBreaks(RowBreaks? rowBreaks) {
             if (rowBreaks == null) {
                 return;
@@ -40,7 +53,7 @@ namespace OfficeIMO.Excel {
 
             NormalizeBreakContainer(
                 rowBreaks,
-                maxIdInclusive: MaxExcelRowIndex,
+                maxIdInclusive: (uint)ExcelA1.MaxRows,
                 defaultMax: MaxExcelColumnIndex,
                 setCounts: count => {
                     rowBreaks.Count = count;
@@ -55,7 +68,7 @@ namespace OfficeIMO.Excel {
 
             NormalizeBreakContainer(
                 columnBreaks,
-                maxIdInclusive: MaxExcelColumnIndex,
+                maxIdInclusive: (uint)ExcelA1.MaxColumns,
                 defaultMax: MaxExcelRowIndex,
                 setCounts: count => {
                     columnBreaks.Count = count;

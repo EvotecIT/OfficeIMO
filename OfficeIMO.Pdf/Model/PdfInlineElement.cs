@@ -82,6 +82,11 @@ public sealed class PdfInlineImage : PdfInlineElement {
     /// <summary>Creates an inline image with source crop, rotation, mirrors and alternate text from a reusable image style.</summary>
     /// <remarks>The style is copied. Width and height describe the authored inline frame; rotation does not enlarge the line box.</remarks>
     public PdfInlineImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfImageStyle style, global::OfficeIMO.OfficeLength baselineOffset)
+        : this(imageBytes, width, height, style, baselineOffset, linkUri: null) {
+    }
+
+    internal PdfInlineImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height,
+        PdfImageStyle style, global::OfficeIMO.OfficeLength baselineOffset, string? linkUri)
         : base(width, height, baselineOffset, style?.AltText) {
         Guard.NotNull(style, nameof(style));
         PdfImageStyle imageStyle = style!;
@@ -94,6 +99,8 @@ public sealed class PdfInlineImage : PdfInlineElement {
             height.ToPoints(),
             prepared.Info,
             imageStyle,
+            linkUri: linkUri,
+            linkContents: linkUri == null ? null : AltText,
             useDataSnapshot: true,
             preparedStream: prepared.PreparedStream);
         Fit = imageStyle.Fit;

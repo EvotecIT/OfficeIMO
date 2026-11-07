@@ -104,11 +104,39 @@ namespace OfficeIMO.Excel {
 
         internal string GetCellFormattedText(int row, int column, IFormatProvider? provider) {
             var value = GetCellValueSnapshot(row, column);
+            provider ??= CultureInfo.CurrentCulture;
+            Cell? cell = ProbeCell(row, column, out ExcelStoredRow? storedRow, out int storedIndex);
+            uint? explicitStyle = cell?.StyleIndex?.Value;
+            if (storedRow != null) {
+                var stored = storedRow.CellAt(storedIndex);
+                explicitStyle = stored.HasStyle ? stored.Style : (uint?)null;
+            }
+            uint styleIndex = ResolveDisplayStyleIndex(explicitStyle, storedRow ?? cell?.Parent as Row ?? TryGetRowElement(row, column), column);
+            var stylesheet = WorkbookPartRoot?.WorkbookStylesPart?.Stylesheet;
+            var format = styleIndex <= int.MaxValue ? stylesheet?.CellFormats?.Elements<CellFormat>().ElementAtOrDefault((int)styleIndex) : null;
+            uint numberFormatId = format?.NumberFormatId?.Value ?? 0U;
+            string? formatCode = stylesheet != null ? GetNumberFormatCode(stylesheet, numberFormatId) : null;
+            if (cell?.DataType?.Value == CellValues.Date
+                && !string.IsNullOrWhiteSpace(formatCode) && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)
+                && DateTime.TryParse(cell.CellValue?.Text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date)) {
+                double serial = ExcelDateSystemConverter.ToSerialForDisplay(date, _excelDocument.DateSystem);
+                return ExcelNumberFormatDisplay.FormatDateTimeText(date, numberFormatId, formatCode!, serial, provider)
+                    ?? cell.CellValue!.Text;
+            }
+            if (value.Value is double number) {
+                string fallback = SpreadsheetNumberFormatDisplay.FormatGeneralValue(number, provider);
+                return ExcelNumberFormatDisplay.FormatNumericText(number, numberFormatId,
+                    formatCode, fallback, _excelDocument.DateSystem, provider);
+            }
+            if (value.Value is string text && value.Kind != ExcelCellDataKind.Error
+                && cell?.DataType?.Value != CellValues.Error) {
+                return SpreadsheetNumberFormatDisplay.FormatTextValue(text, formatCode);
+            }
             if (value.Value is IFormattable formattable) {
-                return formattable.ToString(null, provider ?? CultureInfo.CurrentCulture) ?? string.Empty;
+                return formattable.ToString(null, provider) ?? string.Empty;
             }
 
-            return Convert.ToString(value.Value, provider as CultureInfo ?? CultureInfo.CurrentCulture) ?? value.CachedText ?? string.Empty;
+            return Convert.ToString(value.Value, provider) ?? value.CachedText ?? string.Empty;
         }
 
         internal void FormatRange(string a1Range, string numberFormat) {
@@ -201,6 +229,17 @@ namespace OfficeIMO.Excel {
             bool clearFormulas = options.HasFlag(ExcelClearOptions.Formulas);
             bool clearStyles = options.HasFlag(ExcelClearOptions.Styles);
             bool changed = false;
+            HashSet<int>? tableHeaderRows = null;
+            if (clearValues && HasTableDefinitions) {
+                foreach (var part in _worksheetPart.TableDefinitionParts) {
+                    Table? table = part.Table;
+                    if (table == null || (table.HeaderRowCount?.Value ?? 1U) == 0U
+                        || !ExcelA1.TryParseRange(table.Reference?.Value ?? string.Empty,
+                            out int top, out int left, out _, out int right)
+                        || top < bounds.r1 || top > bounds.r2 || left > bounds.c2 || right < bounds.c1) continue;
+                    (tableHeaderRows ??= new HashSet<int>()).Add(top);
+                }
+            }
 
             foreach ((Cell cell, int rowIndex, int columnIndex) in EnumerateCellsWithEffectiveCoordinates()) {
                 if (rowIndex < bounds.r1
@@ -210,7 +249,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (clearValues && (ExcelWorksheetScan.FindValue(cell) != null
+                // Table labels belong to the retained schema, even when the selected data is cleared.
+                bool keepTableLabel = tableHeaderRows?.Contains(rowIndex) == true
+                    && TryGetTableHeader(rowIndex, columnIndex, out _, out _);
+                if (clearValues && !keepTableLabel && (ExcelWorksheetScan.FindValue(cell) != null
                     || cell.DataType != null
                     || cell.InlineString != null
                     || HasCellValueMetadata(cell))) {

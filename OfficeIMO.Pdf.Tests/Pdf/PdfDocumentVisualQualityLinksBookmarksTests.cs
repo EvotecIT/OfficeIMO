@@ -426,6 +426,26 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void TableImageCellWithoutTextPreservesItsLink() {
+        const string uri = "https://example.test/linked-image";
+        var size = global::OfficeIMO.OfficeLength.Points(20);
+        var image = new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), size, size);
+        var cell = PdfTableCell.WithImages(string.Empty, new[] { image }, linkUri: uri);
+
+        byte[] bytes = PdfDocument.Create().Table(new[] { new[] { cell } }).ToBytes();
+
+        using var pdf = PdfPigDocument.Open(bytes);
+        var page = pdf.GetPage(1);
+        Assert.Single(page.GetImages());
+        Assert.Empty(page.Letters);
+
+        PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(bytes).LinkAnnotations);
+        Assert.Equal(uri, link.Uri);
+        Assert.Equal(1, link.PageNumber);
+        Assert.True(link.Width > 0 && link.Height > 0);
+    }
+
+    [Fact]
     public void Tables_DeclareRichCellRunFontsBeforeRendering() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,

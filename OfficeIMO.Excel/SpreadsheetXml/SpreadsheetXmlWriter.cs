@@ -109,7 +109,7 @@ internal static class SpreadsheetXmlWriter {
             writer.WriteStartElement("Row", Ss.NamespaceName); Attribute(writer, "Index", rowIndex.ToString(CultureInfo.InvariantCulture));
             InspectAttributes(row, context, "r", "ht", "customHeight", "hidden", "spans", "s", "customFormat");
             if (row.Hidden?.Value == true) Attribute(writer, "Hidden", "1");
-            if (row.Height != null) Attribute(writer, "Height", row.Height.Value.ToString("R", CultureInfo.InvariantCulture));
+            if (row.Height != null && (row.Height.Value != 0 || row.CustomHeight?.Value == true)) Attribute(writer, "Height", row.Height.Value.ToString("R", CultureInfo.InvariantCulture));
             if (row.StyleIndex != null) {
                 if (row.StyleIndex.Value >= styleCount) throw new InvalidDataException("Invalid row style.");
                 Attribute(writer, "StyleID", SpreadsheetXmlStyles.StyleId(row.StyleIndex.Value));
@@ -168,12 +168,15 @@ internal static class SpreadsheetXmlWriter {
             value = VisibleText(strings[index], context); rich = strings[index]; type = "String";
         } else if (cell.DataType?.Value == CellValues.InlineString) {
             value = cell.InlineString == null ? string.Empty : VisibleText(cell.InlineString, context); rich = cell.InlineString; type = "String";
-        } else if (cell.DataType?.Value == CellValues.String) type = "String";
-        else if (cell.DataType?.Value == CellValues.Boolean) type = "Boolean";
+        } else if (cell.DataType?.Value == CellValues.String) {
+            value = value == null ? null : Utilities.ExcelSanitizer.DecodeXString(value);
+            type = "String";
+        } else if (cell.DataType?.Value == CellValues.Boolean) type = "Boolean";
         else if (cell.DataType?.Value == CellValues.Error) type = "Error";
         else if (cell.DataType?.Value == CellValues.Date) type = "DateTime";
         if (value == null) return;
         if (value.Length > 32767) throw new InvalidDataException("Cell value exceeds Excel's text limit.");
+        if (type == "String") VerifyText(value);
         if (type == "Number" && (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                 || double.IsNaN(number) || double.IsInfinity(number))) throw new InvalidDataException("Invalid numeric cell value.");
         if (type == "Boolean" && value != "0" && value != "1") throw new InvalidDataException("Invalid Boolean cell value.");
@@ -186,7 +189,17 @@ internal static class SpreadsheetXmlWriter {
 
     private static string VisibleText(OpenXmlCompositeElement source, SpreadsheetXmlContext context) {
         if (source.Elements<PhoneticRun>().Any()) context.Omitted("phonetic guidance");
-        return string.Concat(source.ChildElements.Select(item => item is Text text ? text.Text : item is Run run ? string.Concat(run.Elements<Text>().Select(text => text.Text)) : string.Empty));
+        return string.Concat(source.ChildElements.Select(item => item is Text text
+            ? Utilities.ExcelSanitizer.DecodeXString(text.Text)
+            : item is Run run ? string.Concat(run.Elements<Text>().Select(text => Utilities.ExcelSanitizer.DecodeXString(text.Text))) : string.Empty));
+    }
+
+    /// <summary>XML Spreadsheet has no xstring escape mechanism for XML-illegal semantic text.</summary>
+    internal static void VerifyText(string value) {
+        try { XmlConvert.VerifyXmlChars(value); }
+        catch (XmlException exception) {
+            throw new InvalidDataException("XML Spreadsheet cannot represent cell text containing XML-illegal characters or isolated surrogate units.", exception);
+        }
     }
 
     private static void Attribute(XmlWriter writer, string name, string value) => writer.WriteAttributeString("ss", name, Ss.NamespaceName, value);

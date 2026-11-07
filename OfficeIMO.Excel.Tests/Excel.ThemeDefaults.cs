@@ -13,6 +13,33 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        [Fact]
+        public void NewWorkbookThemesPreserveDistinctFontsAndPalettesWithTheSameName() {
+            OfficeTheme first = OfficeTheme.Modern
+                .WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.ParseHex("123456")))
+                .WithFonts(OfficeTheme.Modern.Fonts.With(body: OfficeTheme.Modern.Fonts.Body.With(family: "Arial")));
+            OfficeTheme second = first
+                .WithPalette(first.Palette.With(accent1: OfficeColor.ParseHex("ABCDEF")))
+                .WithFonts(first.Fonts.With(body: first.Fonts.Body.With(family: "Georgia")));
+            Assert.Equal(first.Name, second.Name);
+            foreach (var item in new[] { (Theme: first, Font: "Arial", Accent: "123456"),
+                (Theme: second, Font: "Georgia", Accent: "ABCDEF"), (Theme: first, Font: "Arial", Accent: "123456") }) {
+                using ExcelDocument document = ExcelDocument.Create(new ExcelCreateOptions { Theme = item.Theme });
+                document.AddSheet("Data").WriteData(new[] { 1 }, ("Value", static value => value));
+                using var stream = new MemoryStream(document.ToBytes());
+                using SpreadsheetDocument package = SpreadsheetDocument.Open(stream, false);
+                using var themeStream = package.WorkbookPart!.ThemePart!.GetStream();
+                XElement theme = XDocument.Load(themeStream).Root!;
+                XNamespace drawing = theme.Name.Namespace;
+                XElement elements = theme.Element(drawing + "themeElements")!;
+                Assert.Equal(first.Name, (string?)theme.Attribute("name"));
+                Assert.Equal(item.Accent, (string?)elements.Element(drawing + "clrScheme")!
+                    .Element(drawing + "accent1")!.Element(drawing + "srgbClr")!.Attribute("val"));
+                Assert.Equal(item.Font, (string?)elements.Element(drawing + "fontScheme")!
+                    .Element(drawing + "minorFont")!.Element(drawing + "latin")!.Attribute("typeface"));
+            }
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]

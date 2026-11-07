@@ -2,6 +2,7 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls.Biff;
 using System.Text;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -79,6 +80,27 @@ public sealed class ExcelLegacyAuxiliaryEncryptionTests {
         byte[] encrypted = BiffRc4Encryption.EncryptWorkbookStream(BuildAuxiliaryStream(revision), "test-password", salt);
         using var hash = System.Security.Cryptography.SHA256.Create();
         Assert.Equal(expectedHash, BitConverter.ToString(hash.ComputeHash(encrypted)).Replace("-", string.Empty).ToLowerInvariant());
+    }
+
+    [Fact]
+    public void Biff_record_decryption_observes_cancellation_between_key_blocks() {
+        using var input = new MemoryStream();
+        WriteRecord(input, 0x00cd, new byte[3072]);
+        WriteRecord(input, 0x000a, Array.Empty<byte>());
+        // RFC 6229's fixed 128-bit ARC4 key keeps this check independent of password derivation.
+        byte[] blockKey = Enumerable.Range(1, 16).Select(value => (byte)value).ToArray();
+        var derivedBlocks = new List<uint>();
+        using var cancellation = new CancellationTokenSource();
+
+        OperationCanceledException error = Assert.Throws<OperationCanceledException>(() =>
+            BiffRc4RecordStreamCipher.Transform(input.ToArray(), block => {
+                derivedBlocks.Add(block);
+                cancellation.Cancel();
+                return blockKey;
+            }, requireCompleteRecords: true, cancellationToken: cancellation.Token));
+
+        Assert.Equal(cancellation.Token, error.CancellationToken);
+        Assert.Equal(new uint[] { 0 }, derivedBlocks);
     }
 
     private static byte[] AddAuxiliaryStreams(byte[] pivot, byte[] revision, bool bookAlias) {

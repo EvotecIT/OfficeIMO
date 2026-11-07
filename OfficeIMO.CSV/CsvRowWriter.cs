@@ -114,6 +114,10 @@ public sealed partial class CsvRowWriter : IDisposable
             throw new InvalidOperationException("Data rows cannot contain null entries.");
         }
 
+#if NET8_0_OR_GREATER
+        if (TryWriteProjectedObject(item)) return;
+#endif
+
         if (_columns != null &&
             _propertyTextProjector != null &&
             _propertyTextValues != null &&
@@ -136,6 +140,9 @@ public sealed partial class CsvRowWriter : IDisposable
         var dictionaryLike = ObjectDataHelpers.IsDictionaryLike(item);
         EnsureColumns(itemColumns, requireOrder: !dictionaryLike);
         var columns = _columns!;
+#if NET8_0_OR_GREATER
+        if (!dictionaryLike && TryCreateProjectedObjectWriter(item, columns)) return;
+#endif
 
         if (_useDefaultWritePath &&
             !dictionaryLike &&

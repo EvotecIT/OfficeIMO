@@ -1554,6 +1554,13 @@ namespace OfficeIMO.Word.Html {
                 if (elements == null) {
                     continue;
                 }
+                var projectedElements = WordDocumentTraversal.ExpandBlockContentControls(elements, cancellationToken);
+                if (!ReferenceEquals(projectedElements, elements)) {
+                    AddExportDiagnostic(options, "block-content-control-flattened",
+                        "Word block content controls were exported as static content. Their editing behavior is not represented in HTML.",
+                        OfficeConversionLossKind.Approximation);
+                    elements = projectedElements;
+                }
                 IElement? activeDefinitionList = null;
                 for (int idx = 0; idx < elements.Count; idx++) {
                         var element = elements[idx];

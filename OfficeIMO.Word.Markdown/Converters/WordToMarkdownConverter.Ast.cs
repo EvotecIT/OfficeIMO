@@ -343,7 +343,7 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private void AppendBlocksFromElements(
-            IReadOnlyList<WordElement> elements,
+            List<WordElement> elements,
             Action<IMarkdownBlock> addRootBlock,
             WordMarkdownExportOptions options,
             IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices,
@@ -351,12 +351,20 @@ namespace OfficeIMO.Word.Markdown {
             bool allowQuoteHeuristic,
             bool trimBoundaryWhitespace,
             IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker>? listMarkers = null) {
+            var projectedElements = WordDocumentTraversal.ExpandBlockContentControls(elements, cancellationToken);
+            if (!ReferenceEquals(projectedElements, elements)) {
+                const string message = "Word block content controls were exported as static content. Their editing behavior is not represented in Markdown.";
+                options.DiagnosticSink?.Invoke(new WordMarkdownConversionDiagnostic(OfficeDiagnosticCodes.WordToMarkdownWarning,
+                    message, OfficeConversionLossKind.Approximation, location: "BlockContentControl", format: "Word"));
+                options.OnWarning?.Invoke(message);
+            }
+
             var listStack = new List<PendingListFrame>();
             var markerlessAncestorLevels = new List<int>();
 
-            for (int i = 0; i < elements.Count; i++) {
+            for (int i = 0; i < projectedElements.Count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var element = elements[i];
+                var element = projectedElements[i];
 
                 if (element is WordParagraph paragraph) {
                     if (paragraph.IsTextBox && paragraph.TextBox != null) {
@@ -428,7 +436,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 if (element is WordTable table) {
-                    addRootBlock(BuildTableBlock(table, options));
+                    addRootBlock(BuildTableBlock(table, options, cancellationToken));
                     continue;
                 }
 
@@ -1666,7 +1674,7 @@ namespace OfficeIMO.Word.Markdown {
             return true;
         }
 
-        private TableBlock BuildTableBlock(WordTable table, WordMarkdownExportOptions options) {
+        private TableBlock BuildTableBlock(WordTable table, WordMarkdownExportOptions options, CancellationToken cancellationToken) {
             var markdownTable = new TableBlock();
             var structuredHeaders = new List<OmdTableCell>();
             var structuredRows = new List<IReadOnlyList<OmdTableCell>>();
@@ -1693,7 +1701,7 @@ namespace OfficeIMO.Word.Markdown {
 
                 for (int cellIndex = 0; cellIndex < row.Cells.Count; cellIndex++) {
                     var cell = row.Cells[cellIndex];
-                    var cellBlock = BuildTableCell(cell, options);
+                    var cellBlock = BuildTableCell(cell, options, cancellationToken);
                     structuredCells.Add(cellBlock);
                     markdownCells.Add(cellBlock.Markdown);
 
@@ -1760,10 +1768,10 @@ namespace OfficeIMO.Word.Markdown {
             return false;
         }
 
-        private OmdTableCell BuildTableCell(WordTableCell cell, WordMarkdownExportOptions options) {
+        private OmdTableCell BuildTableCell(WordTableCell cell, WordMarkdownExportOptions options, CancellationToken cancellationToken) {
             var blocks = new List<IMarkdownBlock>();
             var elements = cell.Elements;
-            AppendBlocksFromElements(elements, block => blocks.Add(block), options, null, CancellationToken.None, allowQuoteHeuristic: true, trimBoundaryWhitespace: false);
+            AppendBlocksFromElements(elements, block => blocks.Add(block), options, null, cancellationToken, allowQuoteHeuristic: true, trimBoundaryWhitespace: false);
 
             return new OmdTableCell(blocks);
         }

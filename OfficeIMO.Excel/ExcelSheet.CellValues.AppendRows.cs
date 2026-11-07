@@ -280,11 +280,11 @@ namespace OfficeIMO.Excel {
 
         private static CellValue CreatePlainAppendStringValue(string text) {
             CoerceValueHelper.ValidateSharedStringLength(text, nameof(text));
-            return new CellValue(Utilities.ExcelSanitizer.SanitizeString(text));
+            return new CellValue(Utilities.ExcelSanitizer.EncodeXString(Utilities.ExcelSanitizer.SanitizeString(text)));
         }
 
         private static CellValue CreatePrevalidatedPlainAppendStringValue(string text) {
-            return new CellValue(Utilities.ExcelSanitizer.SanitizeString(text));
+            return new CellValue(Utilities.ExcelSanitizer.EncodeXString(Utilities.ExcelSanitizer.SanitizeString(text)));
         }
 
         private CellValue CreatePlainAppendSharedStringValue(string text, ref Dictionary<string, int>? sharedStringIndexes) {

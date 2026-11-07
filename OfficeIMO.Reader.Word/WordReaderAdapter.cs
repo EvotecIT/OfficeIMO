@@ -104,7 +104,7 @@ internal static class WordReaderAdapter {
             layoutOptions.PageCount = null;
             pageSnapshots = document.CreateVisualSnapshots(layoutOptions, cancellationToken);
         }
-        IReadOnlyList<string>? legacyWarnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
+        IReadOnlyList<string>? legacyWarnings = Combine(sourceWarnings, BuildSourceWarnings(document));
         var chunks = new List<ReaderChunk>();
         IReadOnlyList<OfficeDocumentAsset> assets = lean ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectWord(
             document.OpenXmlDocument, sourceName, readerOptions, options.IncludeFootnotes, cancellationToken);
@@ -159,11 +159,11 @@ internal static class WordReaderAdapter {
                         Text = string.Join(Environment.NewLine, readerTable.Rows.Select(static row => string.Join("\t", row))),
                         Markdown = markdown,
                         Tables = new[] { readerTable },
-                        Warnings = Combine(
+                        Warnings = Combine(blockIndex == 0 ? legacyWarnings : null, Combine(
                             readerTable.Truncated ? new[] { "Word table rows were truncated due to MaxTableRows." } : null,
                             markdown?.Length > readerOptions.MaxChars
                                 ? new[] { "Word table exceeded MaxChars and was preserved as one complete chunk." }
-                                : null)
+                                : null))
                     });
                     blockIndex++;
                 }
@@ -425,12 +425,23 @@ internal static class WordReaderAdapter {
         return first.Concat(second).ToArray();
     }
 
-    private static IReadOnlyList<string>? BuildLegacyWarnings(WordDocument document) {
+    private static IReadOnlyList<string>? BuildSourceWarnings(WordDocument document) {
+        if (document.SourceFormat == WordFileFormat.WordMl2003) {
+            return BoundSourceWarnings(document.CreateLoadReport("Word 2003 XML", TimeSpan.Zero).Diagnostics
+                .Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
+        }
         if (document.SourceFormat != WordFileFormat.Doc) return null;
-        string[] warnings = document.LegacyDocImportDiagnostics.Select(static warning => "Legacy DOC import diagnostic: " + warning)
-            .Concat(document.LegacyDocUnsupportedFeatures.Select(static feature => $"Legacy DOC unsupported feature: {feature.Code} ({feature.Kind}) - {feature.Description}"))
-            .Take(16).ToArray();
+        string[] warnings = BoundSourceWarnings(document.LegacyDocImportDiagnostics.Select(static warning => "Legacy DOC import diagnostic: " + warning)
+            .Concat(document.LegacyDocUnsupportedFeatures.Select(static feature => $"Legacy DOC unsupported feature: {feature.Code} ({feature.Kind}) - {feature.Description}")));
         return warnings.Length == 0 ? null : warnings;
+    }
+
+    private static string[] BoundSourceWarnings(IEnumerable<string> source) {
+        string[] warnings = source.Take(17).ToArray();
+        if (warnings.Length <= 16) return warnings;
+        Array.Resize(ref warnings, 16);
+        warnings[15] = "WORD_SOURCE_WARNINGS_TRUNCATED: Additional source warnings were omitted; only the first 15 are shown.";
+        return warnings;
     }
 
     private sealed class ParagraphRepresentation {

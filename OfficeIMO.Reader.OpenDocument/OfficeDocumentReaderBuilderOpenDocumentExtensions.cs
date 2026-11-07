@@ -4,10 +4,10 @@ namespace OfficeIMO.Reader.OpenDocument;
 
 /// <summary>Adds native OpenDocument ingestion to <see cref="OfficeDocumentReaderBuilder"/>.</summary>
 public static class OfficeDocumentReaderBuilderOpenDocumentExtensions {
-    /// <summary>Stable handler identifier for the ODT, ODS, ODP, ODG, and FODG adapter.</summary>
+    /// <summary>Stable handler identifier for the packaged and flat OpenDocument adapter.</summary>
     public const string HandlerId = "officeimo.reader.opendocument";
 
-    /// <summary>Adds native OpenDocument ingestion for <c>.odt</c>, <c>.ods</c>, and <c>.odp</c>.</summary>
+    /// <summary>Adds native OpenDocument ingestion for packaged and flat text, spreadsheets, presentations, and graphics.</summary>
     public static OfficeDocumentReaderBuilder AddOpenDocumentHandler(
         this OfficeDocumentReaderBuilder builder,
         ReaderOpenDocumentOptions? options = null,
@@ -21,9 +21,9 @@ public static class OfficeDocumentReaderBuilderOpenDocumentExtensions {
             Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "OpenDocument Reader Adapter",
-            Description = "Native dependency-free ODT, ODS, ODP, ODG, and FODG extraction.",
+            Description = "Native extraction from packaged and flat OpenDocument files.",
             Kind = ReaderInputKind.OpenDocument,
-            Extensions = new[] { ".odt", ".ods", ".odp", ".odg", ".fodg" },
+            Extensions = new[] { ".odt", ".ods", ".odp", ".odg", ".fodt", ".fods", ".fodp", ".fodg" },
             ReadPath = (path, options, cancellationToken) =>
                 OpenDocumentReaderAdapter.Read(path, options, formatOptions, cancellationToken),
             ReadStream = (stream, sourceName, options, cancellationToken) =>

@@ -95,11 +95,16 @@ public sealed partial class StudioMobileWorkspaceTests {
 
                     window.RequestedThemeVariant = ThemeVariant.Dark;
                     Layout(window, width, height);
+                    window.MouseMove(new Point(-1, -1), RawInputModifiers.None);
                     Point hoverPoint = await StudioHeadlessInput.WaitForTargetAsync(window, opener,
                         () => Layout(window, width, height));
-                    window.MouseMove(hoverPoint, RawInputModifiers.None);
-                    Assert.True(opener.IsPointerOver);
-                    // Establish a real hover before checking that pointer exit closes its tooltip.
+                    // This scenario opens the tooltip explicitly after establishing hover.
+                    EventHandler<Avalonia.Interactivity.CancelRoutedEventArgs> prepareManualTooltip = (_, e) => e.Cancel = true;
+                    ToolTip.AddToolTipOpeningHandler(opener, prepareManualTooltip);
+                    try {
+                        window.MouseMove(hoverPoint, RawInputModifiers.None);
+                        Assert.True(opener.IsPointerOver);
+                    } finally { ToolTip.RemoveToolTipOpeningHandler(opener, prepareManualTooltip); }
                     ToolTip.SetIsOpen(opener, true);
                     Layout(window, width, height);
                     Assert.True(ToolTip.GetIsOpen(opener));

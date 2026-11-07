@@ -16,6 +16,7 @@ using PSWriteOffice.Services.Excel;
 namespace PSWriteOffice.Cmdlets.Excel;
 
 /// <summary>Clears values, formulas, styles and range metadata from a range, a header column or whole sheets.</summary>
+/// <remarks>Native table schemas and their header labels remain in place while the selected data and metadata categories are cleared.</remarks>
 /// <example>
 /// <summary>Clear the values of a range</summary>
 /// <code>Open-OfficeExcel -Path .\Templates\Weekly-Report.xlsx {
@@ -26,15 +27,14 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <para>Removes the values from A2:F200 and keeps formatting, validation and comments.</para>
 /// </example>
 /// <example>
-/// <summary>Reset a sheet before reloading it</summary>
+/// <summary>Clear worksheet data and rules</summary>
 /// <code>Open-OfficeExcel -Path .\Reports\Weekly-Ops.xlsx {
 ///     ExcelSheet 'Data' {
 ///         $cleared = Clear-OfficeExcelRange -PassThru
-///         Write-Verbose "Cleared $cleared cells"
-///         ExcelTable (Import-OfficeCsv -Path .\Data\Ops-Week43.csv) -Name OpsData
+///         Write-Verbose "Selected $cleared cells"
 ///     }
 /// }</code>
-/// <para>Clears everything from the Data sheet, writes the new extract and reports how many cells were cleared.</para>
+/// <para>Clears the supported data and rule categories on Data, retains table headers and reports the selected cell count.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Clear, "OfficeExcelRange", DefaultParameterSetName = "Range")]
 public sealed class ClearOfficeExcelRangeCommand : PSCmdlet {

@@ -19,6 +19,10 @@ namespace OfficeIMO.Excel {
                 // Add the day in serial space so DATE(1900,2,29) and DATE(1900,3,0)
                 // retain Excel's fictitious leap day, which DateTime cannot represent.
                 DateTime monthStart = new DateTime(year, 1, 1).AddMonths(month - 1);
+                if (monthStart.Year < 1900) {
+                    result = FormulaArgumentValue.Error("#NUM!");
+                    return true;
+                }
                 double serial = ToExcelDateSerial(monthStart) + day - 1d;
                 double maximum = ToExcelDateSerial(new DateTime(9999, 12, 31));
                 result = serial < 0d || serial > maximum

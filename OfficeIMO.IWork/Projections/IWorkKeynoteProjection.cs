@@ -89,7 +89,7 @@ public sealed class IWorkKeynoteSlide {
     public bool IsSkipped { get; }
 }
 
-/// <summary>Read-only Keynote structure recovered from a shared IWA object graph.</summary>
+/// <summary>Read-only Keynote structure recovered from a supported iWork source.</summary>
 public sealed partial class IWorkKeynoteProjection {
     private readonly IWorkSourceDocument _source;
     private readonly bool _supportsEditableReconstruction;
@@ -171,7 +171,9 @@ public sealed partial class IWorkSourceDocument {
     public IWorkKeynoteProjection ReadKeynote() {
         _cancellationToken.ThrowIfCancellationRequested();
         if (Kind != IWorkDocumentKind.Keynote) throw new InvalidOperationException($"The source is {Kind}, not Keynote.");
-        IWorkKeynoteProjection projection = IWorkKeynoteReader.Read(this);
+        IWorkKeynoteProjection projection = LegacyXml is { } legacy
+            ? IWorkLegacyXmlReader.ReadKeynote(this, legacy)
+            : IWorkKeynoteReader.Read(this);
         _cancellationToken.ThrowIfCancellationRequested();
         return projection;
     }

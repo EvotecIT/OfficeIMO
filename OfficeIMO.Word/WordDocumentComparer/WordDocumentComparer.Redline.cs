@@ -104,6 +104,7 @@ namespace OfficeIMO.Word {
             using (targetDocument._wordprocessingDocument.Clone(snapshot, true)) { }
             snapshot.Position = 0;
             using WordDocument document = WordDocument.Load(snapshot, new WordLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+            WordTable.CopyGridNormalizationState(targetDocument._wordprocessingDocument, document._wordprocessingDocument);
             HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(
                 sourceDocument._wordprocessingDocument,
                 document._wordprocessingDocument,
@@ -586,6 +587,7 @@ namespace OfficeIMO.Word {
 
         private static void InsertDeletedRow(Table targetTable, TableRow sourceRow, int rowIndex, WordComparisonRedlineOptions options) {
             var deletedRow = (TableRow)sourceRow.CloneNode(true);
+            WordTable.CopyGridNormalizationState(sourceRow, deletedRow);
             RewriteRowWithTrackedText(deletedRow, trackInserted: false, options);
 
             List<TableRow> targetRows = targetTable.Elements<TableRow>().ToList();

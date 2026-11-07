@@ -375,7 +375,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 runs.AddRange(FormattedRuns);
                 int footnoteStartCharacter = Text.Length;
                 foreach (LegacyDocWritableRun run in FootnoteFormattedRuns) {
-                    runs.Add(new LegacyDocWritableRun(footnoteStartCharacter + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
+                    runs.Add(new LegacyDocWritableRun(footnoteStartCharacter + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset, run.FieldLocked));
                 }
 
                 foreach (int markerPosition in FootnoteMarkerPositions) {
@@ -384,7 +384,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 int headerFooterStartCharacter = Text.Length + FootnoteText.Length;
                 foreach (LegacyDocWritableRun run in HeaderFooterFormattedRuns) {
-                    runs.Add(new LegacyDocWritableRun(headerFooterStartCharacter + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
+                    runs.Add(new LegacyDocWritableRun(headerFooterStartCharacter + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset, run.FieldLocked));
                 }
 
                 foreach (int markerPosition in HeaderFooterMarkerPositions) {
@@ -397,12 +397,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         commentStartCharacter + run.StartCharacter,
                         run.Length,
                         run.Formatting,
-                        run.PictureDataOffset));
+                        run.PictureDataOffset, run.FieldLocked));
                 }
 
                 int endnoteStartCharacter = commentStartCharacter + CommentText.Length;
                 foreach (LegacyDocWritableRun run in EndnoteFormattedRuns) {
-                    runs.Add(new LegacyDocWritableRun(endnoteStartCharacter + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
+                    runs.Add(new LegacyDocWritableRun(endnoteStartCharacter + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset, run.FieldLocked));
                 }
 
                 foreach (int markerPosition in EndnoteMarkerPositions) {

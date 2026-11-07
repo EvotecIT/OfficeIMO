@@ -16,6 +16,11 @@ internal sealed partial class AgentSourceRegistry {
     internal AgentSourceRegistration Register(
         string path,
         CancellationToken cancellationToken = default) {
+        if (!Directory.Exists(path) &&
+            string.Equals(Path.GetExtension(path), ".dbx", StringComparison.OrdinalIgnoreCase)) {
+            return RegisterEmailStore(path, OfficeImoAgentService.CreateEmailStoreOptions(), cancellationToken);
+        }
+
         AgentSourceRegistration registration = Create(path, cancellationToken);
         // A default-bounded request must not discard an earlier confirmed iWork
         // admission if its own read later fails. The caller still uses its default.

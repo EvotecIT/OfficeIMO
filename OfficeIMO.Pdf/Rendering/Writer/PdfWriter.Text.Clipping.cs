@@ -23,11 +23,13 @@ internal static partial class PdfWriter {
         if (clipToFrame) new ContentStreamBuilder(sb).RestoreState();
     }
 
-    private static void ClipLinkAnnotations(System.Collections.Generic.List<LinkAnnotation> annots, int annotationStart, double clipX, double clipY, double clipWidth, double clipHeight) {
+    private static void ClipLinkAnnotations(System.Collections.Generic.List<LinkAnnotation> annots, int annotationStart,
+        double clipX, double clipY, double clipWidth, double clipHeight, bool imagesOnly = false) {
         double clipRight = clipX + Math.Max(0D, clipWidth);
         double clipTop = clipY + Math.Max(0D, clipHeight);
         for (int index = annots.Count - 1; index >= annotationStart; index--) {
             LinkAnnotation annotation = annots[index];
+            if (imagesOnly && annotation.LinkedImage == null) continue;
             double x1 = Math.Max(annotation.X1, clipX);
             double y1 = Math.Max(annotation.Y1, clipY);
             double x2 = Math.Min(annotation.X2, clipRight);

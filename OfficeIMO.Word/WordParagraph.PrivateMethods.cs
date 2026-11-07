@@ -129,67 +129,27 @@ namespace OfficeIMO.Word {
         //        }
         //    }
         //}
-        private List<string> ConvertStringToList(string text) {
-            string[] splitStrings = { Environment.NewLine, "\r\n", "\n" };
-            string[] textSplit = text.Split(splitStrings, StringSplitOptions.RemoveEmptyEntries);
-            var list = new List<string>();
-            for (int i = 0; i < textSplit.Length; i++) {
-                // check if there's new line at the beginning of the text
-                // if there is add empty string to the list
-                if (i == 0 && text.StartsWith(Environment.NewLine, StringComparison.Ordinal)) {
-                    list.Add("");
-                } else if (i == 0 && text.StartsWith("\r\n", StringComparison.Ordinal)) {
-                    list.Add("");
-                } else if (i == 0 && text.StartsWith("\n", StringComparison.Ordinal)) {
-                    list.Add("");
-                }
-                // add splitted text to the list
-                list.Add(textSplit[i]);
-
-                if (i < textSplit.Length - 1) {
-                    // for every element in the list except the last element add empty string to the list
-                    list.Add("");
-                } else {
-                    // check if there's new line at the end of the text
-                    // if there is add an empty string to the list
-                    if (text.EndsWith(Environment.NewLine)) {
-                        list.Add("");
-                    } else if (text.EndsWith("\r\n")) {
-                        list.Add("");
-                    } else if (text.EndsWith("\n")) {
-                        list.Add("");
-                    }
-                }
-            }
-            return list;
-        }
-
         private WordParagraph ConvertToTextWithBreaks(string text) {
-            string[] splitStrings = { Environment.NewLine, "\r\n", "\n" };
-
-            WordParagraph? wordParagraph = null;
-
-            // check if there's a new line in the text
-            if (splitStrings.Any(text.Contains)) {
-                // if there is new line in the text, split the text and add a new paragraph for each line
-                // for any new line, add a break
-                var listOfText = ConvertStringToList(text);
-                foreach (string line in listOfText) {
-                    if (line == "") {
-                        wordParagraph = AddBreak();
-                    } else {
-                        wordParagraph = new WordParagraph(this._document, this._paragraph, new Run(), Parent);
-                        wordParagraph.Text = line;
-                        this._paragraph.Append(wordParagraph._run!);
-                    }
-                }
-            } else {
-                wordParagraph = new WordParagraph(this._document, this._paragraph, new Run(), Parent);
-                wordParagraph.Text = text;
-                this._paragraph.Append(wordParagraph._run!);
+            if (text.IndexOf('\n') < 0) {
+                var textParagraph = new WordParagraph(this._document, this._paragraph, new Run(), Parent);
+                textParagraph.Text = text;
+                this._paragraph.Append(textParagraph._run!);
+                return textParagraph;
             }
 
-            return wordParagraph!;
+            string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            WordParagraph wordParagraph = this;
+            for (int i = 0; i < lines.Length; i++) {
+                if (i > 0) {
+                    wordParagraph = AddBreak();
+                }
+                if (lines[i].Length > 0) {
+                    wordParagraph = new WordParagraph(this._document, this._paragraph, new Run(), Parent);
+                    wordParagraph.Text = lines[i];
+                    this._paragraph.Append(wordParagraph._run!);
+                }
+            }
+            return wordParagraph;
         }
     }
 }

@@ -349,6 +349,7 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 ExcelSheetReader sheet = reader.GetSheet(sheetName);
+                bool rightToLeft = sheet.ReadRightToLeft(options.CancellationToken);
                 bool boundedRead = IsBoundedWorksheetRead(options);
                 ExcelSheet? metadataSheet = boundedRead ? null : workbookSheet;
                 ExcelSheetPageSetup? pageSetup = options.UseWorksheetPageSetup ? metadataSheet?.PageSetup : null;
@@ -435,6 +436,7 @@ namespace OfficeIMO.Excel.Pdf {
                         CreateWorksheetGeometry(metadataSheet, normalizedExportRange, options),
                         hasPrintArea || options.MaxRowsPerSheet.HasValue) {
                             PrintOptions = options.UseWorksheetPageSetup ? metadataSheet?.ReadPrintOptions() : null,
+                            RightToLeft = rightToLeft,
                             DrawingObjects = drawings
                         });
                 }

@@ -13,6 +13,66 @@ using W15 = DocumentFormat.OpenXml.Office2013.Word;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Merge_LiveHeaderFooterTableEditsPreserveGeometryWithoutChangingSource(bool footer) {
+            using var sourceStream = new MemoryStream();
+            using WordDocument source = WordDocument.Create(sourceStream);
+            source.AddParagraph("SOURCE");
+            WordHeaderFooter story = footer ? source.PageSetup.Footer : source.PageSetup.Header;
+            WordTable removed = story.AddTable(1, 2);
+            removed.ColumnWidth = Widths(72, 144);
+            removed.Rows[0].Cells[0].Paragraphs[0].Text = "REMOVED";
+            WordTable authored = story.AddTable(1, 2);
+            authored.ColumnWidth = Widths(72, 144);
+            authored.GridColumnWidth = new List<global::OfficeIMO.OfficeLength> {
+                global::OfficeIMO.OfficeLength.Points(105), global::OfficeIMO.OfficeLength.Points(135)
+            };
+            authored.Rows[0].Cells[0].Paragraphs[0].Text = "AUTHORED";
+            source.Save();
+            removed.Remove();
+            WordTable added = story.AddTable(1, 2);
+            added.ColumnWidth = Widths(72, 144);
+            added.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(90));
+            added.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(150));
+            added.Rows[0].Cells[0].Paragraphs[0].Text = "ADDED";
+            MainDocumentPart sourceMain = source._wordprocessingDocument.MainDocumentPart!;
+            OpenXmlPart sourcePart = footer ? sourceMain.FooterParts.Single() : sourceMain.HeaderParts.Single();
+            HeaderPart unrelated = sourceMain.AddNewPart<HeaderPart>();
+            using (var content = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+                "<w:hdr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"/>"))) unrelated.FeedData(content);
+            string sourceDom = sourcePart.RootElement!.OuterXml;
+            byte[] sourcePayload = PartBytes(sourcePart);
+            byte[] originalStream = sourceStream.ToArray();
+            Assert.False(unrelated.IsRootElementLoaded);
+
+            using WordDocument destination = WordDocument.Create();
+            destination.AppendDocument(source);
+            using var bytes = new MemoryStream(destination.ToBytes());
+            using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+            OpenXmlPart outputPart = footer ? saved.MainDocumentPart!.FooterParts.Single() : saved.MainDocumentPart!.HeaderParts.Single();
+            Table[] tables = outputPart.RootElement!.Elements<Table>().ToArray();
+            Assert.Equal(new[] { "AUTHORED", "ADDED" }, tables.Select(table => table.InnerText));
+            Assert.Equal(new[] { "2100", "2700" }, tables[0].GetFirstChild<TableGrid>()!.Elements<GridColumn>().Select(column => column.Width!.Value));
+            Assert.Equal(new[] { "1800", "3000" }, tables[1].GetFirstChild<TableGrid>()!.Elements<GridColumn>().Select(column => column.Width!.Value));
+            Assert.Equal(sourceDom, sourcePart.RootElement!.OuterXml);
+            Assert.Equal(sourcePayload, PartBytes(sourcePart));
+            Assert.Equal(originalStream, sourceStream.ToArray());
+            Assert.False(unrelated.IsRootElementLoaded);
+
+            static List<WordTableWidth?> Widths(double first, double second) => new() {
+                WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(first)),
+                WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(second))
+            };
+            static byte[] PartBytes(OpenXmlPart part) {
+                using Stream payload = part.GetStream(FileMode.Open, FileAccess.Read);
+                using var buffer = new MemoryStream();
+                payload.CopyTo(buffer);
+                return buffer.ToArray();
+            }
+        }
+
         [Fact]
         public void Test_MergeRewritesOuterBookmarkOperandWithoutMovingNestedField() {
             using WordDocument destination = WordDocument.Create();

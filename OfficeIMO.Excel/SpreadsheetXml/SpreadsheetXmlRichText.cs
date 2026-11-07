@@ -56,11 +56,17 @@ internal static class SpreadsheetXmlRichText {
     internal static void Write(XmlWriter writer, OpenXmlCompositeElement source, WorkbookPart workbook, SpreadsheetXmlContext context) {
         foreach (OpenXmlElement item in source.ChildElements) {
             context.Options.CancellationToken.ThrowIfCancellationRequested();
-            if (item is Text text) { writer.WriteString(text.Text); continue; }
+            if (item is Text text) {
+                string semantic = Utilities.ExcelSanitizer.DecodeXString(text.Text);
+                SpreadsheetXmlWriter.VerifyText(semantic);
+                writer.WriteString(semantic);
+                continue;
+            }
             if (item is not Run run) { context.Omitted("phonetic or unsupported rich-text content"); continue; }
             var properties = run.RunProperties;
-            var value = ExcelRichTextRun.FromOpenXml(string.Concat(run.Elements<Text>().Select(text => text.Text)), properties,
+            var value = ExcelRichTextRun.FromOpenXml(string.Concat(run.Elements<Text>().Select(text => Utilities.ExcelSanitizer.DecodeXString(text.Text))), properties,
                 Utilities.ExcelThemeColorResolver.Resolve(properties?.GetFirstChild<Color>(), workbook));
+            SpreadsheetXmlWriter.VerifyText(value.Text);
             int wrappers = 0;
             if (value.FontFamily != null || value.FontSize.HasValue || value.Color.HasValue) {
                 writer.WriteStartElement("html", "Font", Html.NamespaceName); wrappers++;

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -11,6 +12,50 @@ namespace OfficeIMO.Tests
 {
     public partial class Excel
     {
+        [Fact]
+        public void Load_XlsbConfiguredCancellationPrecedesBufferingAndExplicitNoneUsesASnapshot()
+        {
+            string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents",
+                "XlsbCorpus", "excel-generated", "basic-values-formula.xlsb");
+            using var input = new CountLoadReadsMemoryStream(File.ReadAllBytes(path));
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            var options = new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly };
+            options.XlsbImportOptions.CancellationToken = cancellation.Token;
+
+            OperationCanceledException error = Assert.ThrowsAny<OperationCanceledException>(() => {
+                using ExcelDocument document = ExcelDocument.Load(input, options);
+            });
+            Assert.Equal(cancellation.Token, error.CancellationToken);
+            Assert.Equal(0, input.ReadCalls);
+
+            using (ExcelDocument document = ExcelDocument.Load(input, options, CancellationToken.None))
+            {
+                Assert.Equal(ExcelFileFormat.Xlsb, document.SourceFormat);
+                Assert.Equal("Alpha", document.Sheets[0].Cell(2, 1).GetValue<string>());
+                Assert.Equal(42d, document.Sheets[0].Cell(2, 2).GetValue<double>());
+            }
+            Assert.True(input.ReadCalls > 0);
+            int reads = input.ReadCalls;
+            OperationCanceledException original = Assert.ThrowsAny<OperationCanceledException>(() => {
+                using ExcelDocument document = ExcelDocument.Load(input, options);
+            });
+            Assert.Equal(cancellation.Token, original.CancellationToken);
+            Assert.Equal(reads, input.ReadCalls);
+            Assert.True(input.CanRead);
+        }
+
+        private sealed class CountLoadReadsMemoryStream : MemoryStream
+        {
+            internal CountLoadReadsMemoryStream(byte[] bytes) : base(bytes, writable: false) { }
+            internal int ReadCalls { get; private set; }
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                ReadCalls++;
+                return base.Read(buffer, offset, count);
+            }
+        }
+
         private sealed class ThrowOnPersistMemoryStream : MemoryStream
         {
             private bool _initialized;

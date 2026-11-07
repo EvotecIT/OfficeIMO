@@ -14,17 +14,27 @@ namespace OfficeIMO.Excel {
             private readonly string _text;
             private int _position;
             private int _depth;
+            private bool _lastOperationWasAddition;
+            private double _lastLeft;
+            private double _lastRight;
 
             internal ScalarFormulaParser(ExcelSheet sheet, string text) {
                 _sheet = sheet;
                 _text = text;
                 _position = 0;
                 _depth = 0;
+                _lastOperationWasAddition = false;
+                _lastLeft = _lastRight = 0;
             }
 
             internal bool TryParse(out FormulaArgumentValue value) {
                 if (!Parse(1, out value)) return false;
                 SkipWhiteSpace();
+                if (_position == _text.Length && _lastOperationWasAddition && value.Number.HasValue) {
+                    double result = value.Number.Value;
+                    double threshold = Math.Max(Math.Abs(_lastLeft), Math.Abs(_lastRight)) * (8d * 2.2204460492503131e-16);
+                    if (result != 0d && Math.Abs(result) < threshold) value = new FormulaArgumentValue(0d, "0");
+                }
                 return _position == _text.Length && !value.IsUnresolvedFormula;
             }
 
@@ -40,11 +50,13 @@ namespace OfficeIMO.Excel {
                         _position++;
                         if (!Parse(7, out value)) return false;
                         value = NumericUnary(value, first == '-' ? -1 : 1);
+                        _lastOperationWasAddition = false;
                     } else if (first == '(') {
                         _position++;
                         if (!Parse(1, out value)) return false;
                         SkipWhiteSpace();
                         if (_position == _text.Length || _text[_position++] != ')') return false;
+                        _lastOperationWasAddition = false;
                     } else if (!ReadAtom(out value)) {
                         return false;
                     }
@@ -58,6 +70,7 @@ namespace OfficeIMO.Excel {
                         _position += op.Length;
                         if (op == "%") {
                             value = NumericUnary(value, 0.01);
+                            _lastOperationWasAddition = false;
                             continue;
                         }
                         // Excel evaluates equal-precedence operators left to right, including ^.
@@ -173,9 +186,10 @@ namespace OfficeIMO.Excel {
                 return TryNumber(value, out double number) ? Numeric(number * factor) : FormulaArgumentValue.Error("#VALUE!");
             }
 
-            private static bool Apply(FormulaArgumentValue left, string op, FormulaArgumentValue right,
+            private bool Apply(FormulaArgumentValue left, string op, FormulaArgumentValue right,
                 out FormulaArgumentValue value) {
                 value = default;
+                _lastOperationWasAddition = false;
                 if (left.IsUnresolvedFormula || right.IsUnresolvedFormula) return false;
                 if (left.IsError || right.IsError) { value = left.IsError ? left : right; return true; }
                 if (op == "&") { value = new FormulaArgumentValue(null, ScalarText(left) + ScalarText(right)); return true; }
@@ -188,13 +202,15 @@ namespace OfficeIMO.Excel {
                     value = FormulaArgumentValue.Error("#VALUE!"); return true;
                 }
                 switch (op) {
-                    case "+": value = Numeric(a + b); break;
-                    case "-": value = Numeric(a - b); break;
+                    case "+": value = Numeric(a + b); _lastOperationWasAddition = true; break;
+                    case "-": value = Numeric(a - b); _lastOperationWasAddition = true; break;
                     case "*": value = Numeric(a * b); break;
                     case "/": value = b == 0 ? FormulaArgumentValue.Error("#DIV/0!") : Numeric(a / b); break;
                     case "^": value = Numeric(Math.Pow(a, b)); break;
                     default: return false;
                 }
+                _lastLeft = a;
+                _lastRight = b;
                 return true;
             }
 
@@ -202,9 +218,7 @@ namespace OfficeIMO.Excel {
                 while (_position < _text.Length && char.IsWhiteSpace(_text[_position])) _position++;
             }
 
-            private static string ScalarText(FormulaArgumentValue value) => value.IsBoolean
-                ? (value.Number == 0 ? "FALSE" : "TRUE")
-                : value.Number.HasValue ? InvariantNumberText.Get(value.Number.Value) : FormulaValueToText(value);
+            private static string ScalarText(FormulaArgumentValue value) => FormulaValueToText(value);
         }
     }
 }

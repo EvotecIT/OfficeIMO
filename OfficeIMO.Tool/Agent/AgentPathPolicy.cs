@@ -37,6 +37,11 @@ internal sealed class AgentPathPolicy {
             throw new FileNotFoundException("Input path '" + resolved + "' does not exist.", resolved);
         }
         EnsureAllowed(resolved);
+        // A local Outlook Express catalog names other files in its own directory.
+        if (!Directory.Exists(resolved) &&
+            string.Equals(Path.GetFileName(resolved), "Folders.dbx", StringComparison.OrdinalIgnoreCase)) {
+            EnsureAllowed(Path.GetDirectoryName(resolved)!);
+        }
         return resolved;
     }
 

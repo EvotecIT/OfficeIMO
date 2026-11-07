@@ -14,6 +14,8 @@ This matrix describes the current workbook contract. “Partial” means useful 
 
 The detailed legacy contracts are documented in [XLS/XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) and [Word/Excel interoperability](../Docs/officeimo.word-excel-interoperability.md).
 
+XML Spreadsheet column widths use point units. Automatic conversion uses whole-pixel default-font metrics at 96 DPI and reports an approximation, including when the font is installed. Native Excel can rasterize the Normal font at a different window DPI and display a different physical width. Point dimensions are quantized to the 96-DPI pixel grid before storage in XLSX character units. `DefaultFontMaximumDigitWidth` accepts an explicit measured advance for the receiving environment. Exact native physical-width qualification remains open in the [roadmap](../Docs/ROADMAP.md#document-format-depth).
+
 ## Workbook capabilities
 
 | Area | Status | Current contract and boundary |

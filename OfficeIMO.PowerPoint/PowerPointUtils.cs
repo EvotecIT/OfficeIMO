@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint {
             CreateViewPropertiesPart(presentationPart);
             CreateTableStylesPart(presentationPart);
             EnsureNotesMasterPart(presentationPart);
-            EnsureDocumentProperties(presentationPart);
+            InitializeDocumentProperties(presentationDocument);
             EnsureThumbnail(presentationDocument);
         }
 

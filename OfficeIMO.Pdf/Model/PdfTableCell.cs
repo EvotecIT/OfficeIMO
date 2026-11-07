@@ -14,7 +14,7 @@ public sealed partial class PdfTableCell {
         LinkUri = linkUri;
         LinkDestinationName = linkDestinationName;
         NamedDestinationName = namedDestinationName;
-        LinkContents = HasLinkTarget(linkUri, linkDestinationName) ? linkContents ?? Text : null;
+        LinkContents = ResolveLinkContents(linkContents);
         CheckBoxes = SnapshotCheckBoxes(checkBoxes, nameof(checkBoxes));
         FormFields = SnapshotFormFields(formFields, nameof(formFields));
         Images = SnapshotImages(images, nameof(images));
@@ -43,7 +43,7 @@ public sealed partial class PdfTableCell {
         LinkUri = linkUri;
         LinkDestinationName = linkDestinationName;
         NamedDestinationName = namedDestinationName;
-        LinkContents = HasLinkTarget(linkUri, linkDestinationName) ? linkContents ?? Text : null;
+        LinkContents = ResolveLinkContents(linkContents);
         CheckBoxes = SnapshotCheckBoxes(checkBoxes, nameof(checkBoxes));
         FormFields = SnapshotFormFields(formFields, nameof(formFields));
         Images = SnapshotImages(images, nameof(images));
@@ -71,7 +71,7 @@ public sealed partial class PdfTableCell {
         LinkUri = linkUri;
         LinkDestinationName = linkDestinationName;
         NamedDestinationName = namedDestinationName;
-        LinkContents = HasLinkTarget(linkUri, linkDestinationName) ? linkContents ?? Text : null;
+        LinkContents = ResolveLinkContents(linkContents);
         CheckBoxes = SnapshotCheckBoxes(checkBoxes, nameof(checkBoxes));
         FormFields = SnapshotFormFields(formFields, nameof(formFields));
         Images = SnapshotImages(images, nameof(images));
@@ -232,6 +232,9 @@ public sealed partial class PdfTableCell {
             Guard.NotNullOrWhiteSpace(linkContents, nameof(linkContents));
         }
     }
+
+    private string? ResolveLinkContents(string? linkContents) =>
+        linkContents ?? (HasLinkTarget(LinkUri, LinkDestinationName) && !string.IsNullOrWhiteSpace(Text) ? Text : null);
 
     private static bool HasLinkTarget(string? linkUri, string? linkDestinationName) => linkUri != null || linkDestinationName != null;
 

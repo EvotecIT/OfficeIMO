@@ -303,7 +303,8 @@ namespace OfficeIMO.Excel {
                         || cellKind == Utf8CellKind.InlineString
                         || cellKind == Utf8CellKind.Error)
                     && value.IndexOf((byte)'&') < 0
-                    && value.IndexOf((byte)'\r') < 0) {
+                    && value.IndexOf((byte)'\r') < 0
+                    && !Utilities.ExcelSanitizer.HasXStringEscape(value)) {
                     result = new ArraySegment<byte>(_buffer!, start, length);
                     return true;
                 }
@@ -416,6 +417,8 @@ namespace OfficeIMO.Excel {
                         return;
                     case Utf8CellKind.String:
                     case Utf8CellKind.InlineString:
+                        objectValue = Utilities.ExcelSanitizer.DecodeXString(DecodeString(start, length));
+                        return;
                     case Utf8CellKind.Error:
                         objectValue = DecodeString(start, length);
                         return;

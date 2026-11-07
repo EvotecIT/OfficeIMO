@@ -34,6 +34,8 @@ namespace OfficeIMO.Excel {
                 _excelDocument.MaterializeDeferredDataSetImport();
             }
 
+            list = PrepareTableHeaderValueWrites(list, ct);
+
             DirectCellValuesSaveCandidate? directSaveCandidate = null;
             if (TryCreateDirectCellValuesSaveCandidate(list, mode, out DirectCellValuesSaveCandidate? candidate)
                 && candidate != null
@@ -90,7 +92,8 @@ namespace OfficeIMO.Excel {
                             } else {
                                 CellValueCore(r, c, v);
                                 if (preserveMissingValues) {
-                                    ClearTabularReplacementValueMetadata(GetWritableValueCell(r, c));
+                                    // CellValueCore already admitted this value and synchronized any table header.
+                                    ClearTabularReplacementValueMetadata(GetCell(r, c));
                                 }
                             }
                         }

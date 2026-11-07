@@ -36,7 +36,7 @@ public partial class WordDocument {
     }
 
     internal OfficeConversionReport CreateLoadReport(string source, TimeSpan elapsed) {
-        var diagnostics = new List<OfficeDiagnostic>();
+        var diagnostics = new List<OfficeDiagnostic>(_xmlSourceDiagnostics);
         foreach (LegacyDocImportDiagnostic diagnostic in _legacyDocImportDiagnostics) {
             OfficeDiagnosticSeverity severity = diagnostic.Severity switch {
                 LegacyDocDiagnosticSeverity.Error => OfficeDiagnosticSeverity.Error,

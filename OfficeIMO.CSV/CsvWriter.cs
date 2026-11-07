@@ -793,7 +793,7 @@ internal static partial class CsvWriter
 #endif
     }
 
-    private static void WriteBufferedRecordLine(TextWriter writer, StringBuilder buffer, string newLine)
+    internal static void WriteBufferedRecordLine(TextWriter writer, StringBuilder buffer, string newLine)
     {
 #if NET6_0_OR_GREATER
         if (string.Equals(newLine, writer.NewLine, StringComparison.Ordinal))
