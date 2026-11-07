@@ -227,6 +227,8 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 
 The command uses the benchmark's own rendering and artifact checks, saves each input and PDF, and records any rejection in `html-payload-evidence.json`.
 
+For a longer warmup and calibration of the same nine cases, run `pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -RunMode full -Framework net10.0 -MeasurementProfile WarmedV1`. This opt-in profile uses a one-second pilot target, 64–128 warmup iterations and 30–60 measured iterations, retains outliers, and records its exact job arguments under a separate comparison identity. Inspect the chronological raw measurements for continuing drift before describing the results as stable warm throughput.
+
 ### HTML head-to-head corpus
 
 `html-head-to-head` compares OfficeIMO.Html, PeachPDF and PdfPecker with Chromium as the reference across a whole document corpus: an invoice, a five-page tour, a 30-page table report, sixteen focused feature pages, OfficeIMO qualification fixtures and, when a local clone is supplied, samples from the peer repositories. Authored pages live in `Corpus/HeadToHead`. Peer samples are read from the clone and are not committed. Results are grouped by provenance, so a fixture from one engine's own test suite cannot stand for the whole corpus.

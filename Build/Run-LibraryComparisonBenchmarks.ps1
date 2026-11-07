@@ -66,13 +66,20 @@ param(
     [switch] $AcceptNPOIOSMFLicense,
     [switch] $Publish,
     [switch] $PlanOnly,
-    [switch] $KeepBenchmarkFiles
+    [switch] $KeepBenchmarkFiles,
+    [ValidateSet('Default', 'WarmedV1')]
+    [string] $MeasurementProfile = 'Default'
 )
 
 $ErrorActionPreference = 'Stop'
 
 if ($Publish -and $RunMode -ne 'full') {
     throw 'Only a full BenchmarkDotNet run can be marked publishable.'
+}
+
+if ($MeasurementProfile -eq 'WarmedV1' -and
+    ($RunMode -ne 'full' -or $Workload -ne 'pdfhtmlpayload')) {
+    throw 'WarmedV1 requires -RunMode full -Workload pdfhtmlpayload.'
 }
 
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
@@ -763,6 +770,20 @@ $definitions = [ordered]@{
     }
 }
 
+if ($MeasurementProfile -eq 'WarmedV1') {
+    $definitions.pdfhtmlpayload.ComparisonId += '-warmed-v1'
+    $definitions.pdfhtmlpayload | Add-Member -NotePropertyName FullRunArguments -NotePropertyValue @(
+        '--strategy', 'Throughput',
+        '--launchCount', '1',
+        '--iterationTime', '1000',
+        '--minWarmupCount', '64',
+        '--maxWarmupCount', '128',
+        '--minIterationCount', '30',
+        '--maxIterationCount', '60',
+        '--outliers', 'DontRemove'
+    )
+}
+
 $selected = if ($Workload -eq 'all') {
     @(
         $definitions.GetEnumerator() |
@@ -838,7 +859,7 @@ $executionPlan = @(
             $name -notlike 'word*' -and
             ($null -eq $definition.PSObject.Properties['CatalogEligible'] -or [bool] $definition.CatalogEligible)
         $willCatalog = ($RunMode -eq 'quick' -or [bool] $Publish) -and $catalogEligibleByPolicy
-        [pscustomobject]@{
+        $planItem = [pscustomobject]@{
             Workload = $name
             Filter = $definition.Filter
             ComparisonId = $definition.ComparisonId
@@ -853,6 +874,11 @@ $executionPlan = @(
             QuestPdfPackageVersion = if ($name -in $questPdfWorkloads) { $effectiveQuestPdfVersion } else { $null }
             InternalOnly = [bool] $InternalQuestPdf
         }
+        if ($MeasurementProfile -eq 'WarmedV1') {
+            $planItem | Add-Member -NotePropertyName MeasurementProfile -NotePropertyValue 'WarmedV1'
+            $planItem | Add-Member -NotePropertyName BenchmarkJobArguments -NotePropertyValue $definition.FullRunArguments
+        }
+        $planItem
     }
 )
 $executionPlanByWorkload = @{}
@@ -957,6 +983,10 @@ foreach ($name in $selected) {
         'benchmark.workload.id' = $workloadPlan.ProvenanceWorkloadId
         'benchmark.workload.sourceCommit' = $gitSha
         'benchmark.workload.framework' = $Framework
+    }
+    if ($MeasurementProfile -eq 'WarmedV1') {
+        $provenanceMetadata['benchmark.workload.measurementProfile'] = 'WarmedV1'
+        $provenanceMetadata['benchmark.workload.jobArguments'] = ConvertTo-Json -InputObject $definition.FullRunArguments -Compress
     }
     if ($KeepBenchmarkFiles) {
         $provenanceMetadata['benchmark.workload.keepBenchmarkFiles'] = 'true'
