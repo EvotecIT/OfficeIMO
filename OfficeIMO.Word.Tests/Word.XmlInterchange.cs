@@ -1,3 +1,4 @@
+using System.Xml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -208,6 +209,62 @@ public sealed class WordXmlInterchangeTests {
             "relationship-uri" => "Word main",
             _ => "MaxDepth"
         }, error.Message);
+    }
+
+    [Theory]
+    [InlineData(WordFileFormat.WordMl2003, "truncated")]
+    [InlineData(WordFileFormat.WordMl2003, "second-root")]
+    [InlineData(WordFileFormat.FlatOpc, "truncated")]
+    [InlineData(WordFileFormat.FlatOpc, "second-root")]
+    public async Task RecognizedWordXmlSyntaxErrorsUseConsistentAdmissionErrors(WordFileFormat format, string syntax) {
+        string xml = format == WordFileFormat.FlatOpc ? FlatOpc() : """
+            <w:wordDocument xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml">
+              <w:body><w:p><w:r><w:t>Producer package</w:t></w:r></w:p></w:body>
+            </w:wordDocument>
+            """;
+        string closingTag = format == WordFileFormat.FlatOpc ? "</pkg:package>" : "</w:wordDocument>";
+        xml = syntax == "truncated" ? xml.Replace(closingTag, "") : xml + "<unexpected/>";
+        byte[] bytes = Encoding.UTF8.GetBytes(xml);
+
+        using var source = new MemoryStream(bytes);
+        InvalidDataException streamError = Assert.Throws<InvalidDataException>(() => WordDocument.Load(source));
+        Assert.IsType<XmlException>(streamError.InnerException);
+        Assert.True(source.CanRead);
+
+        using var asyncSource = new MemoryStream(bytes);
+        InvalidDataException asyncStreamError = await Assert.ThrowsAsync<InvalidDataException>(() => WordDocument.LoadAsync(asyncSource));
+        Assert.IsType<XmlException>(asyncStreamError.InnerException);
+        Assert.True(asyncSource.CanRead);
+
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-invalid-word-xml-" + Guid.NewGuid().ToString("N") + ".xml");
+        File.WriteAllBytes(path, bytes);
+        try {
+            InvalidDataException fileError = Assert.Throws<InvalidDataException>(() => WordDocument.Load(path));
+            Assert.IsType<XmlException>(fileError.InnerException);
+            InvalidDataException asyncFileError = await Assert.ThrowsAsync<InvalidDataException>(() => WordDocument.LoadAsync(path));
+            Assert.IsType<XmlException>(asyncFileError.InnerException);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("unknown-root")]
+    [InlineData("unknown-truncated")]
+    [InlineData("before-root")]
+    public async Task UnrecognizedXmlKeepsNormalPackageAdmissionErrors(string boundary) {
+        string xml = boundary switch {
+            "unknown-root" => "<unknown/>",
+            "unknown-truncated" => "<unknown>",
+            _ => "<?xml version=\"1.0\"?><"
+        };
+        byte[] bytes = Encoding.UTF8.GetBytes(xml);
+        using var source = new MemoryStream(bytes);
+        FileFormatException error = Assert.Throws<FileFormatException>(() => WordDocument.Load(source));
+        Assert.Null(error.InnerException);
+        using var asyncSource = new MemoryStream(bytes);
+        FileFormatException asyncError = await Assert.ThrowsAsync<FileFormatException>(() => WordDocument.LoadAsync(asyncSource));
+        Assert.Null(asyncError.InnerException);
     }
 
     [Theory]
