@@ -28,17 +28,31 @@ internal static partial class PdfWriter {
         for (int start = 0; start < lines.Count;) {
             int end = start;
             while (end + 1 < lines.Count && !lines[end].Any(segment => segment.EndsWithHardBreak)) end++;
-            int? level = ResolveRichParagraphBidiLevel(lines.GetRange(start, end - start + 1));
+            int? level = ResolveRichParagraphBidiLevel(lines, start, end - start + 1);
             for (int index = start; index <= end; index++) levels[index] = level;
             start = end + 1;
         }
         return levels;
     }
 
-    private static int? ResolveRichParagraphBidiLevel(List<List<RichSeg>> lines) {
+    private static int? ResolveRichParagraphBidiLevel(List<List<RichSeg>> lines) =>
+        ResolveRichParagraphBidiLevel(lines, 0, lines.Count);
+
+    private static int? ResolveRichParagraphBidiLevel(List<List<RichSeg>> lines, int start, int count) {
         bool rightToLeft = false;
+        int end = start + count;
+        for (int index = start; index < end; index++) {
+            foreach (RichSeg segment in lines[index]) {
+                if (segment.InlineElement != null) continue;
+                rightToLeft |= segment.TextDirection == OfficeTextDirection.RightToLeft || OfficeUnicodeBidi.ContainsRightToLeft(segment.Text);
+            }
+        }
+        if (!rightToLeft) return null;
+
+        // The common LTR path needs no concatenated text; Core still owns RTL paragraph resolution.
         var text = new StringBuilder();
-        foreach (List<RichSeg> line in lines) {
+        for (int index = start; index < end; index++) {
+            List<RichSeg> line = lines[index];
             foreach (RichSeg segment in line) {
                 if (segment.InlineElement != null) {
                     text.Append('￼');
@@ -46,10 +60,8 @@ internal static partial class PdfWriter {
                 }
                 if (segment.LeadingSpace) text.Append(' ');
                 text.Append(segment.Text);
-                rightToLeft |= segment.TextDirection == OfficeTextDirection.RightToLeft || OfficeUnicodeBidi.ContainsRightToLeft(segment.Text);
             }
         }
-        if (!rightToLeft) return null;
         int[] scalars = OfficeUnicodeBidi.ToScalars(text.ToString(), out _);
         return OfficeUnicodeBidi.Resolve(scalars, paragraphLevel: null).ParagraphLevel;
     }

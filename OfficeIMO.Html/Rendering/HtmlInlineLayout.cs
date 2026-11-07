@@ -28,8 +28,7 @@ internal sealed class HtmlInlineLayout {
         BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
         SafeBreakRanges = HtmlRenderBreakRange.Normalize(safeBreakRanges ?? Array.Empty<HtmlRenderBreakRange>(), PagedPaintExtent);
         LineBreakOffsets = new List<double>(lineBreakOffsets ?? BreakOffsets).AsReadOnly();
-        RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(
-            runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
+        RunningStringAssignments = SnapshotOptionalMetadata(runningStringAssignments);
         BreakProgress = new List<HtmlInlineBreakProgress>(breakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
         ForcedBreaks = forcedBreaks == null ? Array.Empty<HtmlRenderForcedBreak>() : new List<HtmlRenderForcedBreak>(forcedBreaks).AsReadOnly();
         LineBreakGroups = lineBreakGroups == null ? Array.Empty<HtmlRenderLineBreakGroup>() : new List<HtmlRenderLineBreakGroup>(lineBreakGroups).AsReadOnly();
@@ -38,7 +37,16 @@ internal sealed class HtmlInlineLayout {
         TrailingGroups = trailingGroups == null ? Array.Empty<HtmlRenderTrailingGroup>() : new List<HtmlRenderTrailingGroup>(trailingGroups).AsReadOnly();
         SupportsContinuationReflow = supportsContinuationReflow;
         InterruptedFlow = interruptedFlow;
-        FloatExclusions = new List<HtmlFloatExclusion>(floatExclusions ?? Array.Empty<HtmlFloatExclusion>()).AsReadOnly();
+        FloatExclusions = SnapshotOptionalMetadata(floatExclusions);
+    }
+
+    // Keep nonempty metadata detached; empty deferred sequences need no list or wrapper.
+    private static IReadOnlyList<T> SnapshotOptionalMetadata<T>(IEnumerable<T>? source) {
+        if (source == null || source is ICollection<T> { Count: 0 }) return Array.Empty<T>();
+        if (source is ICollection<T>) return new List<T>(source).AsReadOnly();
+        List<T>? snapshot = null;
+        foreach (T item in source) (snapshot ??= new List<T>()).Add(item);
+        return snapshot == null ? Array.Empty<T>() : snapshot.AsReadOnly();
     }
 
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
