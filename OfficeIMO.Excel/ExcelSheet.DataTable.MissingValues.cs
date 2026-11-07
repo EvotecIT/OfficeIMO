@@ -13,6 +13,9 @@ namespace OfficeIMO.Excel {
             cell.DataType = type;
         }
 
+        internal void SetImportedBlank(int row, int column) =>
+            WriteLockConditional(() => SetMissingTabularCellValue(GetWritableValueCell(row, column)));
+
         private void SetMissingTabularCellValue(Cell cell) {
             ClearTabularReplacementValueMetadata(cell);
             cell.CellValue = null;

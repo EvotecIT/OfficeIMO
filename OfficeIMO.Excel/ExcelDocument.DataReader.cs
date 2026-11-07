@@ -15,11 +15,13 @@ namespace OfficeIMO.Excel {
             if (effectiveOptions.Password is string password) return OpenEncryptedDataReader(path, password, effectiveOptions);
             return Path.GetExtension(path).ToLowerInvariant() switch {
                 ".xls" => ExcelWorkbookDataReader.OpenLegacy(path, effectiveOptions),
+                ".xlw" when Legacy.EarlyBiffWorkbook.IsSource(path, effectiveOptions.CancellationToken, requireBiff4Workbook: true) =>
+                    ExcelWorkbookDataReader.OpenLegacy(path, effectiveOptions),
                 ".xlsb" => ExcelWorkbookDataReader.OpenBinary(path, effectiveOptions),
                 ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlam" =>
                     ExcelWorkbookDataReader.OpenOpenXml(path, effectiveOptions),
                 _ => throw new NotSupportedException(
-                    "OpenReader supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xlsb, and .xls workbooks.")
+                    "OpenReader supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xlsb, .xls, and BIFF4 workbook .xlw sources.")
             };
         }
 
@@ -59,7 +61,9 @@ namespace OfficeIMO.Excel {
                 bytes = ExcelReadLimitFailure.ReadInput(() => OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(
                     stream,
                     effectiveOptions.CancellationToken,
-                    effectiveOptions.MaxInputBytes), effectiveOptions.MaxInputBytes);
+                    effectiveOptions.MaxInputBytes,
+                    Legacy.EarlyBiffWorkbook.ProbeLength,
+                    Legacy.EarlyBiffWorkbook.ProbeInputLimit), effectiveOptions.MaxInputBytes);
             } finally {
                 if (stream.CanSeek) {
                     stream.Position = originalPosition;

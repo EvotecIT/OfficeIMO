@@ -165,7 +165,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (PackageContainsMacroContent(sourcePath)) {
+            EnsureMacroCompatibleCopy(PackageContainsMacroContent(sourcePath), destinationPath);
+        }
+
+        private static void EnsureMacroCompatibleCopy(bool containsMacroContent, string destinationPath) {
+            if (containsMacroContent && ForcesMacroFreeWorkbookContent(destinationPath)) {
                 throw new InvalidOperationException("Macro-enabled workbook packages cannot be copied to a macro-free .xlsx or .xltx destination. Use .xlsm or .xltm to preserve macros.");
             }
         }

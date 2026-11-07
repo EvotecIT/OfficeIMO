@@ -1574,10 +1574,10 @@ namespace OfficeIMO.Tests {
             LegacyXlsColumnLayout defaultStyledColumn = Assert.Single(legacy.Worksheets[0].Columns, column => column.StartColumn == 11);
             Assert.Equal(11, defaultStyledColumn.StartColumn);
             Assert.Equal(11, defaultStyledColumn.EndColumn);
-            Assert.Equal(4, defaultStyledColumn.StyleIndex);
+            Assert.Equal((ushort?)4, defaultStyledColumn.StyleIndex);
             LegacyXlsColumnLayout fontStyledColumn = Assert.Single(legacy.Worksheets[0].Columns, column => column.StartColumn == 12);
             Assert.Equal(12, fontStyledColumn.EndColumn);
-            Assert.Equal(10, fontStyledColumn.StyleIndex);
+            Assert.Equal((ushort?)10, fontStyledColumn.StyleIndex);
             Assert.Equal(2, legacy.Worksheets[0].Rows.Count);
             LegacyXlsRowLayout defaultStyledRow = Assert.Single(legacy.Worksheets[0].Rows, row => row.Row == 3);
             Assert.Equal(3, defaultStyledRow.Row);

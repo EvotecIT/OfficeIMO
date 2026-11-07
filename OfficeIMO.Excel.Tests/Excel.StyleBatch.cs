@@ -72,6 +72,7 @@ namespace OfficeIMO.Tests {
                         for (int column = 1; column <= 2; column++) {
                             sheet.Cell(row, column).SetValue(row);
                             sheet.Cell(row, column).SetFillColor(OfficeColor.Parse(color));
+                            sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, OfficeColor.Parse(color));
                             sheet.Cell(row, column).SetFontFamily("Bounded Font");
                             sheet.Cell(row, column).SetNumberFormat(format);
                         }
@@ -86,6 +87,7 @@ namespace OfficeIMO.Tests {
             using (var package = SpreadsheetDocument.Open(path, false)) {
                 Stylesheet styles = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
                 Assert.Equal(259, styles.Fills!.ChildElements.Count);
+                Assert.Equal(257, styles.Borders!.ChildElements.Count);
                 Assert.Equal(257, styles.NumberingFormats!.ChildElements.Count);
                 Assert.True(styles.CellFormats!.ChildElements.Count < 1_300);
             }
@@ -94,6 +96,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Bounded Font", sheet.Cell(256, 2).GetStyle().FontName);
                 Assert.Equal("0.00\"256\"", sheet.Cell(256, 2).GetStyle().NumberFormatCode);
                 Assert.Equal("FF000100", sheet.Cell(256, 2).GetStyle().FillColorArgb);
+                Assert.Equal("thin", sheet.Cell(256, 2).GetStyle().Border!.Top!.Style);
+                Assert.Equal("FF000100", sheet.Cell(256, 2).GetStyle().Border!.Top!.ColorArgb);
                 Assert.Equal("0.00\"other\"", reopened.Sheets[1].Cell(1, 1).GetStyle().NumberFormatCode);
             }
         }

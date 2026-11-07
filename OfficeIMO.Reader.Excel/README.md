@@ -67,6 +67,8 @@ retried as password failures. These are package admission bounds, not a hard
 limit on process memory or every decoder's actual work.
 
 
+The standard Excel handler also reads raw BIFF2–4 XLS worksheets and BIFF4 XLW workbooks in the full projection. The result carries the early BIFF import profile and loss warnings. See the [Excel 2–4 worksheet guide](../Docs/officeimo.excel-guide.md#recover-excel-24-worksheets) for the supported values and workbook boundaries.
+
 Selected Lotus 1-2-3, Quattro Pro, Multiplan, Works, SYLK (`.slk`), and DIF (`.dif`) spreadsheet sources are included in `OfficeIMO.Excel` but remain opt-in at the Reader registration boundary:
 
 ```csharp

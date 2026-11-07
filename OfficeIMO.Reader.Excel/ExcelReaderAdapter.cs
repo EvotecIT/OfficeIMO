@@ -245,6 +245,12 @@ internal static partial class ExcelReaderAdapter {
     }
 
     internal static IReadOnlyList<string>? BuildLegacyWarnings(ExcelDocument document) {
+        if (document.EarlyBiffImportReport is OfficeLegacyImportReport early) {
+            var earlyWarnings = new List<string> { "Early BIFF import profile: " + early.SourceFormatId + "." };
+            AddBounded(earlyWarnings, early.Diagnostics.Select(static item => item.Code + " - " + item.Message),
+                8, "Additional early BIFF import diagnostics were omitted.");
+            return earlyWarnings;
+        }
         if (document.SourceFormat != ExcelFileFormat.Xls) return null;
 
         var warnings = new List<string>();

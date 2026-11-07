@@ -24,8 +24,9 @@ namespace OfficeIMO.Excel {
             if (options?.Password is string password) return await OpenEncryptedDataReaderAsync(path, password, options, cancellationToken).ConfigureAwait(false);
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-            ExcelFileFormat format = Path.GetExtension(path).ToLowerInvariant() switch {
-                ".xls" => ExcelFileFormat.Xls,
+            string extension = Path.GetExtension(path).ToLowerInvariant();
+            ExcelFileFormat format = extension switch {
+                ".xls" or ".xlw" => ExcelFileFormat.Xls,
                 ".xlsb" => ExcelFileFormat.Xlsb,
                 ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlam" => ExcelFileFormat.Xlsx,
                 _ => throw new NotSupportedException(
@@ -38,7 +39,7 @@ namespace OfficeIMO.Excel {
                 path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920,
                 FileOptions.Asynchronous | FileOptions.SequentialScan);
             return await OpenLocalDataReaderAsync(
-                source, options, cancellationToken, format).ConfigureAwait(false);
+                source, options, cancellationToken, format, requireBiff4Workbook: extension == ".xlw").ConfigureAwait(false);
         }
 
         /// <summary>
@@ -71,7 +72,7 @@ namespace OfficeIMO.Excel {
             Stream source,
             ExcelReaderOptions? options,
             CancellationToken cancellationToken,
-            ExcelFileFormat? format) {
+            ExcelFileFormat? format, bool requireBiff4Workbook = false) {
             ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken, effectiveOptions.CancellationToken);
@@ -79,8 +80,13 @@ namespace OfficeIMO.Excel {
                 long originalPosition = source.CanSeek ? source.Position : 0L;
                 byte[] bytes;
                 try {
+                    Func<byte[], int, long?> probe = requireBiff4Workbook
+                        ? Legacy.EarlyBiffWorkbook.ProbeBiff4WorkbookLimit
+                        : Legacy.EarlyBiffWorkbook.ProbeInputLimit;
                     bytes = await ExcelReadLimitFailure.ReadInputAsync(() => OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytesAsync(
-                        source, linkedCancellation.Token, effectiveOptions.MaxInputBytes), effectiveOptions.MaxInputBytes).ConfigureAwait(false);
+                        source, linkedCancellation.Token, effectiveOptions.MaxInputBytes,
+                        Legacy.EarlyBiffWorkbook.ProbeLength, probe),
+                        effectiveOptions.MaxInputBytes).ConfigureAwait(false);
                 } finally {
                     if (source.CanSeek) source.Position = originalPosition;
                 }

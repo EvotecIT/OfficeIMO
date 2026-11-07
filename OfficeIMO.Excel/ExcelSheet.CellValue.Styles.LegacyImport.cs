@@ -512,6 +512,17 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            ApplyLegacyFont(stylesheet, candidate, workbook, font);
+        }
+
+        private static void ApplyLegacyFont(Stylesheet stylesheet, CellFormat candidate, LegacyXlsWorkbook workbook, LegacyXlsFont font) {
+            StyleBatch writer = WriterFor(stylesheet);
+            uint baseFont = candidate.FontId?.Value ?? 0U;
+            if (writer.TryGetLegacyFont(workbook, font, baseFont, out uint importedFont)) {
+                candidate.FontId = importedFont;
+                candidate.ApplyFont = true;
+                return;
+            }
             workbook.TryResolveColor(font.ColorIndex, out string? fontColor);
             VerticalAlignmentRunValues? verticalTextAlignment = ToLegacyVerticalTextAlignment(font.Escapement);
             UnderlineValues? underlineStyle = ToLegacyUnderlineStyle(font.UnderlineStyle);
@@ -545,6 +556,7 @@ namespace OfficeIMO.Excel {
                 SetFontFamily(projectedFont, font.Family);
                 SetFontCharacterSet(projectedFont, font.CharacterSet);
             });
+            writer.RememberLegacyFont(workbook, font, baseFont, candidate.FontId!.Value);
             candidate.ApplyFont = true;
         }
 

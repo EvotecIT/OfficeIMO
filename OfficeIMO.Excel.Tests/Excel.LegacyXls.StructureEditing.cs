@@ -35,7 +35,7 @@ public sealed class ExcelLegacyStructureEditingTests {
         var layout = native.Worksheets.Single(sheet => sheet.Name == "Layout only");
         Assert.Empty(layout.Cells);
         if (explicitStyle) {
-            Assert.Equal("0.000", native.CellFormats[Assert.Single(layout.Columns).StyleIndex].NumberFormatCode);
+            Assert.Equal("0.000", native.CellFormats[Assert.Single(layout.Columns).StyleIndex!.Value].NumberFormatCode);
             Assert.Equal("0.000", native.CellFormats[Assert.Single(layout.Rows).StyleIndex!.Value].NumberFormatCode);
         }
     }
