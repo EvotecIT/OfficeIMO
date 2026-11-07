@@ -1097,7 +1097,7 @@ internal static partial class TextContentParser {
                     + (kerningAfterByte != null ? kerningAfterByte[idx + step - 1] : 0D)) * hScale;
                 if (ch != '\0') {
                     decodedGlyphCount++;
-                    eachDecodedGlyphIsOneTextElement &= OfficeTextElements.Split(t).Count == 1;
+                    eachDecodedGlyphIsOneTextElement &= t.Length == 1 || OfficeTextElements.Split(t).Count == 1;
                     sbOut.Append(t);
                     decodedGlyphCharacterLengths.Add(t.Length);
                     decodedGlyphBytes.Add(g);
