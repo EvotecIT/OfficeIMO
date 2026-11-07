@@ -204,6 +204,7 @@ namespace OfficeIMO.Excel {
                 using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read,
                     8192, FileOptions.Asynchronous | FileOptions.SequentialScan);
                 byte[] sourceBytes = await OfficeStreamReader.ReadAllBytesAsync(sourceStream, cancellationToken,
+                    maxBytes: null,
                     probeLength: Legacy.EarlyBiffWorkbook.ProbeLength,
                     probeLimit: Legacy.EarlyBiffWorkbook.ProbeInputLimitFor(options.LegacyXlsImportOptions.MaxInputBytes)).ConfigureAwait(false);
                 if (ExcelDocumentLoadRouting.IsLegacyXls(sourceBytes, sourcePath)) {

@@ -51,7 +51,7 @@ namespace OfficeIMO {
             OfficePackageSecurityOptions resolved = options ?? OfficePackageSecurityOptions.SecureDefaults;
             ArgumentNullException.ThrowIfNull(source);
             if (source.CanSeek) return InspectSeekableSource(source, resolved);
-            byte[] bytes = ReadSource(source, resolved);
+            byte[] bytes = ReadSource(source, resolved, CancellationToken.None, 0, null);
             return Inspect(bytes, resolved);
         }
 
@@ -72,14 +72,25 @@ namespace OfficeIMO {
         }
 
         internal static byte[] ReadAndValidate(Stream source, OfficePackageSecurityOptions options) {
-            byte[] bytes = ReadSource(source, options);
+            byte[] bytes = ReadSource(source, options, CancellationToken.None, 0, null);
             Validate(bytes, options);
             return bytes;
         }
 
+        internal static byte[] ReadBounded(Stream source, OfficePackageSecurityOptions options) =>
+            ReadSource(source, options, CancellationToken.None, 0, null);
+
         internal static byte[] ReadBounded(Stream source, OfficePackageSecurityOptions options,
-            int probeLength = 0, Func<byte[], int, long?>? probeLimit = null) =>
-            ReadSource(source, options, probeLength, probeLimit);
+            CancellationToken cancellationToken) =>
+            ReadSource(source, options, cancellationToken, 0, null);
+
+        internal static byte[] ReadBounded(Stream source, OfficePackageSecurityOptions options,
+            int probeLength, Func<byte[], int, long?>? probeLimit) =>
+            ReadSource(source, options, CancellationToken.None, probeLength, probeLimit);
+
+        internal static byte[] ReadBounded(Stream source, OfficePackageSecurityOptions options,
+            CancellationToken cancellationToken, int probeLength, Func<byte[], int, long?>? probeLimit) =>
+            ReadSource(source, options, cancellationToken, probeLength, probeLimit);
 
         internal static async Task<byte[]> ReadAndValidateAsync(Stream source,
             OfficePackageSecurityOptions options, CancellationToken cancellationToken) {
@@ -94,9 +105,13 @@ namespace OfficeIMO {
             }
         }
 
+        internal static Task<byte[]> ReadBoundedAsync(Stream source,
+            OfficePackageSecurityOptions options, CancellationToken cancellationToken) =>
+            ReadBoundedAsync(source, options, cancellationToken, 0, null);
+
         internal static async Task<byte[]> ReadBoundedAsync(Stream source,
-            OfficePackageSecurityOptions options, CancellationToken cancellationToken, int probeLength = 0,
-            Func<byte[], int, long?>? probeLimit = null) {
+            OfficePackageSecurityOptions options, CancellationToken cancellationToken, int probeLength,
+            Func<byte[], int, long?>? probeLimit) {
             ValidateOptions(options);
             try {
                 return await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken,
@@ -115,11 +130,11 @@ namespace OfficeIMO {
             }
         }
 
-        private static byte[] ReadSource(Stream source, OfficePackageSecurityOptions options, int probeLength = 0,
-            Func<byte[], int, long?>? probeLimit = null) {
+        private static byte[] ReadSource(Stream source, OfficePackageSecurityOptions options,
+            CancellationToken cancellationToken, int probeLength, Func<byte[], int, long?>? probeLimit) {
             ValidateOptions(options);
             try {
-                return OfficeStreamReader.ReadAllBytes(source, CancellationToken.None, options.MaxPackageBytes, probeLength, probeLimit);
+                return OfficeStreamReader.ReadAllBytes(source, cancellationToken, options.MaxPackageBytes, probeLength, probeLimit);
             } catch (InvalidDataException exception) {
                 throw CreateSourceSizeException(source, options, exception);
             }

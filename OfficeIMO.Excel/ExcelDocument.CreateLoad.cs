@@ -345,7 +345,8 @@ namespace OfficeIMO.Excel {
             var probeLimit = Legacy.EarlyBiffWorkbook.ProbeInputLimitFor(options.MaxLegacyInputBytes);
             return options.PackageSecurity != null
                 && inputLimit == options.PackageSecurity.MaxPackageBytes
-                ? OfficePackageSecurityInspector.ReadBounded(stream, options.PackageSecurity, Legacy.EarlyBiffWorkbook.ProbeLength, probeLimit)
+                ? OfficePackageSecurityInspector.ReadBounded(stream, options.PackageSecurity, options.XlsbImportOptions.CancellationToken,
+                    Legacy.EarlyBiffWorkbook.ProbeLength, probeLimit)
                 : OfficeStreamReader.ReadAllBytes(stream, options.XlsbImportOptions.CancellationToken, inputLimit, Legacy.EarlyBiffWorkbook.ProbeLength, probeLimit);
         }
 
