@@ -1,5 +1,6 @@
 #if NET8_0_OR_GREATER
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -57,6 +58,37 @@ internal static partial class CsvParser
             field.Start = start;
             field.Length = length;
             field.Materialized = null;
+        }
+
+        /// <summary>Publishes the fields in one scanned block after reserving their complete span.</summary>
+        internal void VisitDelimiterMask(
+            uint delimiterMask,
+            int chunkStart,
+            ref int fieldStart,
+            ref int fieldIndex)
+        {
+            if (delimiterMask == 0)
+            {
+                return;
+            }
+
+            int delimiterCount = BitOperations.PopCount(delimiterMask);
+            int completedFieldCount = fieldIndex + delimiterCount;
+            EnsureCapacity(completedFieldCount);
+            Span<Field> fields = _fields.AsSpan(fieldIndex, delimiterCount);
+            for (int index = 0; index < fields.Length; index++)
+            {
+                int delimiterIndex = chunkStart + BitOperations.TrailingZeroCount(delimiterMask);
+                ref Field field = ref fields[index];
+                field.Start = fieldStart;
+                field.Length = delimiterIndex - fieldStart;
+                field.Materialized = null;
+                fieldStart = delimiterIndex + 1;
+                delimiterMask &= delimiterMask - 1;
+            }
+
+            fieldIndex = completedFieldCount;
+            FieldCount = completedFieldCount;
         }
 
         internal void ShiftStarts(int offset)
