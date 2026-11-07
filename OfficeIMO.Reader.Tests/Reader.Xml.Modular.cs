@@ -34,36 +34,79 @@ public sealed class ReaderXmlModularTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void PreferContentRoutesNativeXmlSpreadsheetToTheExcelProjection(bool useStream) {
-        string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents",
+    [InlineData(false, ".xml")]
+    [InlineData(true, ".xml")]
+    [InlineData(false, ".txt")]
+    [InlineData(true, ".txt")]
+    [InlineData(false, ".xlsx")]
+    [InlineData(true, ".xlsx")]
+    [InlineData(false, ".xls")]
+    [InlineData(true, ".xls")]
+    [InlineData(false, ".xlsb")]
+    [InlineData(true, ".xlsb")]
+    public void PreferContentRoutesNativeXmlSpreadsheetToTheExcelProjection(bool useStream, string extension) {
+        string fixture = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents",
             "SpreadsheetXmlCorpus", "excel-geometry.xml");
-        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddExcelHandler().AddXmlHandler().Build();
-        var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent };
-        using var input = File.OpenRead(path);
-        OfficeDocumentReadResult result = useStream
-            ? reader.ReadDocument(input, "geometry.xml", options)
-            : reader.ReadDocument(path, options);
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-spreadsheetxml-" + Guid.NewGuid().ToString("N") + extension);
+        File.Copy(fixture, path);
+        try {
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddExcelHandler().AddXmlHandler().Build();
+            var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent };
+            using var input = File.OpenRead(path);
+            OfficeDocumentReadResult result = useStream
+                ? reader.ReadDocument(input, Path.GetFileName(path), options)
+                : reader.ReadDocument(path, options);
 
-        Assert.Contains(result.Chunks, chunk => chunk.Kind == ReaderInputKind.Excel &&
-            chunk.Location.Sheet == "Geometry" && chunk.Text?.Contains("Width 16", StringComparison.Ordinal) == true);
+            Assert.Contains(result.Chunks, chunk => chunk.Kind == ReaderInputKind.Excel &&
+                chunk.Location.Sheet == "Geometry" && chunk.Text?.Contains("Width 16", StringComparison.Ordinal) == true);
 
-        var ordinary = Encoding.UTF8.GetBytes("<Workbook xmlns=\"urn:example\"><item>ordinary XML</item></Workbook>");
-        OfficeDocumentReadResult generic = reader.ReadDocument(ordinary, "ordinary.xml", options);
-        Assert.Contains(generic.Chunks, chunk => chunk.Kind == ReaderInputKind.Xml &&
-            chunk.Text?.Contains("ordinary XML", StringComparison.Ordinal) == true);
+            var ordinary = Encoding.UTF8.GetBytes("<Workbook xmlns=\"urn:example\"><item>ordinary XML</item></Workbook>");
+            OfficeDocumentReadResult generic = reader.ReadDocument(ordinary, "ordinary.xml", options);
+            Assert.Contains(generic.Chunks, chunk => chunk.Kind == ReaderInputKind.Xml &&
+                chunk.Text?.Contains("ordinary XML", StringComparison.Ordinal) == true);
+        } finally { File.Delete(path); }
     }
 
-    [Fact]
-    public void PreferContentUsesTheSameSmallByteProbeForSpreadsheetXmlAdmission() {
+    [Theory]
+    [InlineData(false, ReaderDetectionMode.ExtensionOnly)]
+    [InlineData(true, ReaderDetectionMode.ExtensionOnly)]
+    [InlineData(false, ReaderDetectionMode.ContentWhenUnknown)]
+    [InlineData(true, ReaderDetectionMode.ContentWhenUnknown)]
+    [InlineData(false, ReaderDetectionMode.PreferContent)]
+    [InlineData(true, ReaderDetectionMode.PreferContent)]
+    public void NativeExcelProjectionPreservesEveryDetectionMode(bool useStream, ReaderDetectionMode mode) {
+        byte[] bytes;
+        using (var document = global::OfficeIMO.Excel.ExcelDocument.Create()) {
+            var sheet = document.AddSheet("Native");
+            sheet.Cell(1, 1).SetValue("Label");
+            sheet.Cell(2, 1).SetValue("native workbook marker");
+            bytes = document.ToBytes();
+        }
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-native-excel-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        File.WriteAllBytes(path, bytes);
+        try {
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddExcelHandler().AddXmlHandler().Build();
+            var options = new ReaderOptions { DetectionMode = mode };
+            using var input = File.OpenRead(path);
+            OfficeDocumentReadResult result = useStream
+                ? reader.ReadDocument(input, Path.GetFileName(path), options)
+                : reader.ReadDocument(path, options);
+            Assert.Contains(result.Chunks, chunk => chunk.Kind == ReaderInputKind.Excel &&
+                chunk.Location.Sheet == "Native" && chunk.Text?.Contains("native workbook marker", StringComparison.Ordinal) == true);
+        } finally { File.Delete(path); }
+    }
+
+    [Theory]
+    [InlineData("sheet.xml")]
+    [InlineData("sheet.xlsx")]
+    public void PreferContentUsesTheSameSmallByteProbeForSpreadsheetXmlAdmission(string sourceName) {
         string xml = "<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\">" +
             new string(' ', 8192) +
             "<Worksheet xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\" ss:Name=\"Sheet1\"><Table>" +
             "<Row><Cell><Data ss:Type=\"String\">bounded probe marker</Data></Cell></Row>" +
             "</Table></Worksheet></Workbook>";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddExcelHandler().AddXmlHandler().Build();
-        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(xml), "sheet.xml",
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(xml), sourceName,
             new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent, DetectionMaxProbeBytes = 128 });
         Assert.Contains(result.Chunks, chunk => chunk.Kind == ReaderInputKind.Excel &&
             chunk.Text?.Contains("bounded probe marker", StringComparison.Ordinal) == true);

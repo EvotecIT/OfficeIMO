@@ -153,7 +153,11 @@ internal static class WordXmlInterchange {
         if (bytes.LongLength > MaximumXmlBytes) {
             throw new InvalidDataException("Word XML exceeds the supported input size.");
         }
-        return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        try {
+            return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        } catch (XmlException error) {
+            throw new InvalidDataException("Word XML contains invalid XML.", error);
+        }
     }
 
     internal static void ValidateFlatOpc(XElement root, OfficePackageSecurityOptions policy, CancellationToken token) {

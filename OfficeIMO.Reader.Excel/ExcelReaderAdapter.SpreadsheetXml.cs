@@ -7,7 +7,8 @@ internal static partial class ExcelReaderAdapter {
     private static ExcelDocument LoadForProjection(string path, ReaderOptions options, CancellationToken token,
         out IReadOnlyList<string>? warnings) {
         warnings = null;
-        if (ExcelFormatCatalog.TryGetByExtension(path, out _)) return Load(path, options, token);
+        if (options.DetectionMode != ReaderDetectionMode.PreferContent &&
+            ExcelFormatCatalog.TryGetByExtension(path, out _)) return Load(path, options, token);
 
         using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         return HasSpreadsheetXmlRoot(input, options, token)
@@ -18,7 +19,8 @@ internal static partial class ExcelReaderAdapter {
     private static ExcelDocument LoadForProjection(Stream input, string? sourceName, ReaderOptions options,
         CancellationToken token, out IReadOnlyList<string>? warnings) {
         warnings = null;
-        if (ExcelFormatCatalog.TryGetByExtension(sourceName, out _) ||
+        if ((options.DetectionMode != ReaderDetectionMode.PreferContent &&
+             ExcelFormatCatalog.TryGetByExtension(sourceName, out _)) ||
             !HasSpreadsheetXmlRoot(input, options, token)) return Load(input, sourceName, options, token);
 
         return ImportSpreadsheetXml(input, options, token, out warnings);
