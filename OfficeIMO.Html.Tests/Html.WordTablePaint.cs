@@ -7,6 +7,80 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class WordHtmlTablePaintTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeHeaderSemanticsAndZeroSpacingDoNotDependOnDefaultCss(bool includeCss) {
+        using var document = WordDocument.Create();
+        var table = document.AddTable(2, 2, WordTableStyle.TableNormal);
+        table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Item";
+        table.Rows[0].Cells[1].Paragraphs[0].Text = "Count";
+        table.Rows[1].Cells[0].Paragraphs[0].Text = "Source";
+        table.Rows[1].Cells[1].Paragraphs[0].Text = "12";
+        string before = SourceXml(document);
+
+        var html = new HtmlParser().ParseDocument(document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = includeCss }));
+        Assert.Equal(new[] { "Item", "Count" }, html.QuerySelectorAll("thead th[scope=col]").Select(cell => cell.TextContent));
+        Assert.Empty(html.QuerySelectorAll("tbody td[scope]"));
+        string style = html.QuerySelector("table")!.GetAttribute("style")!;
+        Assert.Contains("border-collapse:collapse", style);
+        Assert.Contains("border-spacing:0", style);
+        Assert.Equal(before, SourceXml(document));
+
+        table._tableProperties!.TableCellSpacing = new TableCellSpacing { Type = TableWidthUnitValues.Dxa, Width = "100" };
+        before = SourceXml(document);
+        var spaced = new HtmlParser().ParseDocument(document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = includeCss }));
+        string spacedStyle = spaced.QuerySelector("table")!.GetAttribute("style")!;
+        Assert.Contains("border-collapse:separate", spacedStyle);
+        Assert.Contains("border-spacing:5pt", spacedStyle);
+        Assert.Equal(2, spaced.QuerySelectorAll("thead th[scope=col]").Length);
+        Assert.Equal(before, SourceXml(document));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InheritedTableBackdropStaysSeparateFromCellNoFill(bool includeCss) {
+        var theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.Parse("#123456")));
+        using var document = WordDocument.Create(new WordCreateOptions { Theme = theme });
+        var table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Backdrop";
+        table._tableProperties!.TableCellSpacing = new TableCellSpacing { Type = TableWidthUnitValues.Dxa, Width = "100" };
+        document.MainDocumentPartRoot.StyleDefinitionsPart!.Styles!.Append(
+            new Style(new StyleTableProperties(new Shading {
+                Val = ShadingPatternValues.Clear, Fill = "FF0000", ThemeFill = ThemeColorValues.Accent1
+            })) { Type = StyleValues.Table, StyleId = "BackdropBase" },
+            new Style(new BasedOn { Val = "BackdropBase" }, new StyleTableCellProperties(new Shading {
+                Val = ShadingPatternValues.Clear, Fill = "CC3300"
+            })) { Type = StyleValues.Table, StyleId = "BackdropChild" });
+        table.SetStyleId("BackdropChild");
+        table.Rows[0].Cells[0]._tableCell.TableCellProperties!.Shading = new Shading {
+            Val = ShadingPatternValues.Nil, Fill = "0000FF"
+        };
+        Assert.Empty(document.ValidateDocument());
+        string before = SourceXml(document);
+
+        var inherited = new HtmlParser().ParseDocument(document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = includeCss }));
+        Assert.Contains("background-color:#123456", inherited.QuerySelector("table")!.GetAttribute("style"));
+        Assert.Contains("background-color:transparent", inherited.QuerySelector("td")!.GetAttribute("style"));
+        Assert.Equal(before, SourceXml(document));
+
+        table._tableProperties.Shading = new Shading { Val = ShadingPatternValues.Clear, Fill = "445566" };
+        before = SourceXml(document);
+        var direct = new HtmlParser().ParseDocument(document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = includeCss }));
+        Assert.Contains("background-color:#445566", direct.QuerySelector("table")!.GetAttribute("style"));
+        Assert.Contains("background-color:transparent", direct.QuerySelector("td")!.GetAttribute("style"));
+        Assert.Equal(before, SourceXml(document));
+
+        table._tableProperties.Shading = new Shading { Val = ShadingPatternValues.Nil, Fill = "FF0000" };
+        before = SourceXml(document);
+        var cleared = new HtmlParser().ParseDocument(document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = includeCss }));
+        Assert.Contains("background-color:transparent", cleared.QuerySelector("table")!.GetAttribute("style"));
+        Assert.Contains("background-color:transparent", cleared.QuerySelector("td")!.GetAttribute("style"));
+        Assert.Equal(before, SourceXml(document));
+    }
+
     [Fact]
     public void UnsupportedSourceBorderPatternsAreReportedAndCanRejectLoss() {
         using var document = WordDocument.Create();
@@ -136,5 +210,11 @@ public class WordHtmlTablePaintTests {
         Assert.Contains("border-top:hidden", last);
         Assert.Contains("border-left:none", last);
         Assert.Contains("border-right:4pt solid #000000", last);
+    }
+
+    private static string SourceXml(WordDocument document) {
+        var main = document.MainDocumentPartRoot;
+        return main.Document.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml + main.ThemePart!.Theme.OuterXml +
+            main.DocumentSettingsPart!.Settings!.OuterXml;
     }
 }

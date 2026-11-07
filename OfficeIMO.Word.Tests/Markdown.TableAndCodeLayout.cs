@@ -36,12 +36,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void MarkdownWordLikeThemeRepeatsOnlyAuthoredTableHeadersAndKeepsSelectedEmphasis(bool emphasizeHeader) {
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public void MarkdownThemesRepeatOnlyAuthoredTableHeadersAndKeepSelectedEmphasis(bool fromOfficeTheme, bool emphasizeHeader) {
             var markdown = OfficeIMO.Markdown.MarkdownDocument.Parse("| Header | Count |\n| --- | --- |\n| A | 12 |\n");
             markdown.AddTable(table => table.Row("B", "34"));
-            var theme = OfficeIMO.Markdown.MarkdownVisualTheme.WordLike();
+            var theme = fromOfficeTheme
+                ? OfficeIMO.Markdown.MarkdownVisualTheme.FromOfficeTheme(OfficeTheme.Modern)
+                : OfficeIMO.Markdown.MarkdownVisualTheme.WordLike();
             theme.Table.EmphasizeHeader = emphasizeHeader;
             using var document = markdown.ToWord(new MarkdownWordExportOptions {
                 Theme = theme
@@ -49,14 +52,23 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, document.Tables.Count);
             Assert.True(document.Tables[0].Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.True(document.Tables[0].ConditionalFormattingFirstRow);
             Assert.False(document.Tables[0].Rows[1].RepeatHeaderRowAtTheTopOfEachPage);
-            Assert.Equal(emphasizeHeader, document.Tables[0].Rows[0].Cells[0].Paragraphs[0].GetRuns().Single(run => run.Text == "Header").Bold);
+            if (!fromOfficeTheme)
+                Assert.Equal(emphasizeHeader, document.Tables[0].Rows[0].Cells[0].Paragraphs[0].GetRuns().Single(run => run.Text == "Header").Bold);
             Assert.False(document.Tables[0].Rows[1].Cells[0].Paragraphs[0].GetRuns().Single(run => run.Text == "A").Bold);
             var headerlessRow = Assert.Single(document.Tables[1].Rows);
             Assert.False(headerlessRow.RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.False(document.Tables[1].ConditionalFormattingFirstRow);
             Assert.Equal("B", string.Concat(headerlessRow.Cells[0].Paragraphs[0].GetRuns().Select(run => run.Text)));
             Assert.All(document.Tables[1].Rows.SelectMany(row => row.Cells).SelectMany(cell => cell.Paragraphs).SelectMany(paragraph => paragraph.GetRuns()),
                 run => Assert.False(run.Bold));
+            string headerFill = theme.Palette.TableHeaderBackground.ToRgbHex();
+            string? ResolveCellFill(WordTableCell cell) => WordRunFormatting.ResolveShadingFillColorHex(
+                WordRunFormatting.ResolveTableCellShading(cell), document)?.ToUpperInvariant();
+            if (emphasizeHeader)
+                Assert.Equal(headerFill, ResolveCellFill(document.Tables[0].Rows[0].Cells[0]));
+            Assert.NotEqual(headerFill, ResolveCellFill(headerlessRow.Cells[0]));
         }
 
         [Fact]

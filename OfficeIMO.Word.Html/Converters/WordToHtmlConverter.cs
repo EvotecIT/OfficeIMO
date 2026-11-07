@@ -1135,7 +1135,7 @@ namespace OfficeIMO.Word.Html {
                 }
                 var tableStyles = new List<string>();
                 if (WordTableAlignmentResolver.IsRightToLeft(table._tableProperties)) tableStyles.Add("direction:rtl");
-                if (table._tableProperties?.GetFirstChild<Shading>() is { } tableShading) {
+                if (WordRunFormatting.ResolveTableShading(table) is { } tableShading) {
                     string? tableFill = WordRunFormatting.ResolveShadingFillColorHex(tableShading, table.Document);
                     tableStyles.Add("background-color:" + (tableFill != null ? "#" + tableFill : "transparent"));
                 }
@@ -1154,9 +1154,10 @@ namespace OfficeIMO.Word.Html {
                 var tableCellSpacing = GetTableCellSpacingCss(table);
                 if (!string.IsNullOrEmpty(tableCellSpacing)) {
                     tableStyles.Add($"border-spacing:{tableCellSpacing}");
-                }
-                if (!string.IsNullOrEmpty(tableCellSpacing) || TableHasBorder(table)) {
-                    tableStyles.Add(!string.IsNullOrEmpty(tableCellSpacing) ? "border-collapse:separate" : "border-collapse:collapse");
+                    tableStyles.Add("border-collapse:separate");
+                } else {
+                    tableStyles.Add("border-spacing:0");
+                    tableStyles.Add("border-collapse:collapse");
                 }
                 if (tableStyles.Count > 0) {
                     SetOutputAttribute(tableEl, "style", string.Join(";", tableStyles), "Table:style");
@@ -1194,7 +1195,7 @@ namespace OfficeIMO.Word.Html {
                             continue;
                         }
                         var cellElement = CreateOutputElement(htmlDoc, isHeaderRow ? "th" : "td");
-                        if (isHeaderRow && !options.IncludeDefaultCss) {
+                        if (isHeaderRow) {
                             SetOutputAttribute(cellElement, "scope", "col", "TableCell:scope");
                         }
                         int colSpan = cell.ColumnSpan;

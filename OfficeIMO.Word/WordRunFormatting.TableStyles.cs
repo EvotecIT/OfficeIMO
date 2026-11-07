@@ -7,6 +7,17 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word;
 
 internal static partial class WordRunFormatting {
+    /// <summary>Resolves direct and inherited table-level shading, retaining explicit no-fill and excluding cell-style shading.</summary>
+    internal static Shading? ResolveTableShading(WordTable table) {
+        TableProperties? properties = table._table.GetFirstChild<TableProperties>();
+        if (properties?.GetFirstChild<Shading>() is { } direct) return direct;
+        Styles? styles = table.Document.MainDocumentPartRoot.StyleDefinitionsPart?.Styles;
+        foreach (Style style in EnumerateStyleChain(styles, properties?.TableStyle?.Val?.Value, StyleValues.Table)) {
+            if (style.StyleTableProperties?.GetFirstChild<Shading>() is { } shading) return shading;
+        }
+        return null;
+    }
+
     /// <summary>Resolves cell shading in source override order, retaining explicit nil and clear declarations.</summary>
     internal static Shading? ResolveTableCellShading(WordTableCell cell) {
         if (cell._tableCell.TableCellProperties?.GetFirstChild<Shading>() is { } direct) return direct;

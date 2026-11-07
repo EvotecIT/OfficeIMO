@@ -320,18 +320,5 @@ namespace OfficeIMO.Word.Html {
                 return styles;
             }
 
-            bool CellHasBorder(WordTableCell cell) {
-                return IsVisibleBorder(WordRunFormatting.ResolveTableCellBorder(cell, WordTableBorderSide.Left)?.Val?.Value) ||
-                    IsVisibleBorder(WordRunFormatting.ResolveTableCellBorder(cell, WordTableBorderSide.Right)?.Val?.Value) ||
-                    IsVisibleBorder(WordRunFormatting.ResolveTableCellBorder(cell, WordTableBorderSide.Top)?.Val?.Value) ||
-                    IsVisibleBorder(WordRunFormatting.ResolveTableCellBorder(cell, WordTableBorderSide.Bottom)?.Val?.Value);
-            }
-
-            bool IsVisibleBorder(BorderValues? style) =>
-                style != null && style != BorderValues.Nil && style != BorderValues.None;
-
-            bool TableHasBorder(WordTable table) {
-                return table.Rows.Any(r => r.Cells.Any(CellHasBorder));
-            }
     }
 }

@@ -120,13 +120,13 @@ public partial class DrawingTests {
                 left: new OfficeBorderSide(OfficeColor.FromRgb(220, 38, 38), 1D, lineKind: OfficeBorderLineKind.Double, doubleLineSeparation: 8D),
                 top: new OfficeBorderSide(OfficeColor.FromRgb(37, 99, 235), 1D, lineKind: OfficeBorderLineKind.Double, doubleLineSeparation: 8D)));
 
-        List<OfficeDrawingShape> lines = drawing.Elements.OfType<OfficeDrawingShape>().ToList();
-
-        Assert.Equal(4, lines.Count);
-        Assert.All(lines, line => {
-            Assert.True(line.X >= 0D);
-            Assert.True(line.Y >= 0D);
-        });
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.White, image.GetPixel(0, 15));
+        Assert.Equal(OfficeColor.White, image.GetPixel(15, 0));
+        Assert.True(ContainsColorNear(image, OfficeColor.FromRgb(220, 38, 38), 4, 15, 128));
+        Assert.True(ContainsColorNear(image, OfficeColor.FromRgb(37, 99, 235), 15, 4, 128));
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("viewBox=\"0 0 40 30\"", svg, StringComparison.Ordinal);
     }
 
     [Fact]
