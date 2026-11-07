@@ -9,13 +9,14 @@ public static partial class ExcelHtmlConverterExtensions {
         StringBuilder body,
         ExcelCellStyleInfo style,
         bool includeDecorations,
-        string? boxCss = null) {
+        string? boxCss,
+        bool includeDefaultStyles) {
         var css = new StringBuilder();
         if (!string.IsNullOrEmpty(boxCss)) css.Append(boxCss);
         AppendCss(css, "font-weight", style.Bold ? "700" : "normal");
         AppendCss(css, "font-style", style.Italic ? "italic" : null);
-        AppendCss(css, "font-family", style.IsFontFamilyExplicit && !string.IsNullOrWhiteSpace(style.FontName)
-            ? CssFontFamily(style.FontName!) : null);
+        AppendCss(css, "font-family", (!includeDefaultStyles || style.IsFontFamilyExplicit) && !string.IsNullOrWhiteSpace(style.FontName)
+            ? OfficeHtmlText.CssFontFamily(style.FontName!) : null);
         AppendCss(css, "font-size", style.FontSize.HasValue
             ? style.FontSize.Value.ToPoints().ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         AppendCss(css, "color", !string.IsNullOrWhiteSpace(style.FontColorHex) ? "#" + style.FontColorHex : null);
@@ -51,7 +52,7 @@ public static partial class ExcelHtmlConverterExtensions {
         var css = new StringBuilder();
         AppendCss(css, "font-weight", run.BoldSpecified ? (run.Bold ? "700" : "normal") : null);
         AppendCss(css, "font-style", run.ItalicSpecified ? (run.Italic ? "italic" : "normal") : null);
-        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontFamily) ? CssFontFamily(run.FontFamily!) : null);
+        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontFamily) ? OfficeHtmlText.CssFontFamily(run.FontFamily!) : null);
         AppendCss(css, "font-size", run.FontSize.HasValue
             ? run.FontSize.Value.ToPoints().ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         AppendCss(css, "color", run.Color.HasValue ? ResolveRichTextColor(run.Color.Value, workbook).ToCssColor() : null);

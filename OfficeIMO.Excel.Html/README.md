@@ -29,7 +29,8 @@ Semantic tables show the worksheet as it reads in Excel: cell and table-style fi
 
 `HeaderMode` defaults to `None`, so ordinary worksheet rows remain data. Select
 `FirstRow` to emit a `thead` with column headers. Source cell borders and text
-formatting are serialized directly. The default document shell adds no theme
+formatting are serialized directly, including the workbook font with browser
+fallbacks for unavailable families. The default document shell adds no theme
 stylesheet; choose a named presentation profile or enable
 `DocumentOutput.IncludeDefaultStyles` explicitly to add one.
 

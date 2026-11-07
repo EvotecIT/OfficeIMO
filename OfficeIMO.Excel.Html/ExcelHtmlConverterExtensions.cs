@@ -241,7 +241,7 @@ public static partial class ExcelHtmlConverterExtensions {
                     body.Append(" scope=\"col\"");
                 }
 
-                bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0, boxCss);
+                bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0, boxCss, options.IncludeDefaultStyles);
 
                 if (hasSnapshot) {
                     ExcelNativeCellValueInfo cellSnapshot = snapshot!;
@@ -587,28 +587,10 @@ public static partial class ExcelHtmlConverterExtensions {
     /// family the browser falls back to a serif. Give single-family SVG text a sans-serif chain.
     /// </summary>
     private static string AddGenericFontFallbacks(string svg) =>
-        System.Text.RegularExpressions.Regex.Replace(svg, "font-family=(['\"])(?<family>[^'\",]+)\\1", match => {
-            string family = match.Groups["family"].Value.Trim();
-            string? chain = GetGenericFontFallback(family);
-            if (chain == null) return match.Value;
-            string quote = match.Groups[1].Value;
-            return "font-family=" + quote + family + ", " + chain + quote;
+        System.Text.RegularExpressions.Regex.Replace(svg, "font-family=(?:\"(?<family>[^\",]+)\"|'(?<family>[^',]+)')", match => {
+            string family = System.Net.WebUtility.HtmlDecode(match.Groups["family"].Value).Trim();
+            return "font-family=\"" + OfficeHtmlText.EscapeAttribute(OfficeHtmlText.CssFontFamily(family)) + "\"";
         });
-
-    /// <summary>The generic fallback chain to append after an Office font name, or null for a generic family.</summary>
-    private static string? GetGenericFontFallback(string family) {
-        string lower = family.Trim().Trim('\'', '"').ToLowerInvariant();
-        if (lower is "serif" or "sans-serif" or "monospace" or "cursive" or "fantasy" or "system-ui" || lower.StartsWith("var(", StringComparison.Ordinal)) return null;
-        if (lower.Contains("mono") || lower.Contains("courier") || lower.Contains("consolas")) return "monospace";
-        if (lower.Contains("times") || lower.Contains("georgia") || lower.Contains("cambria") || lower.Contains("garamond")) return "serif";
-        return lower.Contains("arial") ? "sans-serif" : "Arial, sans-serif";
-    }
-
-    private static string CssFontFamily(string family) {
-        string quoted = OfficeHtmlText.QuoteCssString(family);
-        string? fallback = GetGenericFontFallback(family);
-        return fallback == null ? quoted : quoted + "," + fallback;
-    }
 
     private static string StripXmlDeclaration(string svg) {
         string trimmed = svg.TrimStart();

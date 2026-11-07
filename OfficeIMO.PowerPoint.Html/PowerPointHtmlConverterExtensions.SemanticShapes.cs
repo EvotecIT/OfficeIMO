@@ -120,7 +120,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         AppendCss(css, "font-weight", effective.Bold == true ? "700" : null);
         AppendCss(css, "font-style", effective.Italic == true ? "italic" : null);
         AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(effective.FontName)
-            ? OfficeHtmlText.QuoteCssString(effective.FontName) : null);
+            ? OfficeHtmlText.CssFontFamily(effective.FontName!) : null);
         AppendCss(css, "font-size", effective.FontSizePoints.HasValue
             ? effective.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         AppendCss(css, "color", !string.IsNullOrWhiteSpace(effective.Color) ? "#" + effective.Color!.TrimStart('#') : null);

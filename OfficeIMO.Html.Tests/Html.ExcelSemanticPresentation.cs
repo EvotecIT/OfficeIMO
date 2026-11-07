@@ -57,7 +57,29 @@ public class HtmlExcelSemanticPresentation {
         Assert.Contains("background-color:#F8D7DA", html, StringComparison.Ordinal);
         Assert.Contains("background-color:#C9ECD3", html, StringComparison.Ordinal);
         // Office fonts fall back to a sans-serif face instead of the browser's serif.
-        Assert.DoesNotContain("font-family:&#39;Aptos&#39;\"", html, StringComparison.Ordinal);
+        string titleStyle = new HtmlParser().ParseDocument(html)
+            .QuerySelector("[data-officeimo-cell=A1]")!.GetAttribute("style")!;
+        Assert.Contains("font-family:'Aptos'", titleStyle, StringComparison.Ordinal);
+        Assert.Contains(",sans-serif", titleStyle, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExplicitFontsSurviveWhileSelectedThemesCanSupplyImplicitFonts(bool themed) {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddSheet("Fonts");
+        sheet.Cell(1, 1).SetValue("Workbook default");
+        sheet.Cell(2, 1).SetValue("Authored serif").SetFontFamily("Georgia");
+        var options = themed ? ExcelHtmlExportOptions.CreateSemanticTablesProfile() : new ExcelHtmlExportOptions();
+
+        var html = new HtmlParser().ParseDocument(workbook.ToHtml(options));
+        string defaultStyle = html.QuerySelector("[data-officeimo-cell=A1]")!.GetAttribute("style")!;
+        string explicitStyle = html.QuerySelector("[data-officeimo-cell=A2]")!.GetAttribute("style")!;
+        if (themed) Assert.DoesNotContain("font-family:", defaultStyle, StringComparison.Ordinal);
+        else Assert.Contains("font-family:'Aptos'", defaultStyle, StringComparison.Ordinal);
+        Assert.Contains("font-family:'Georgia'", explicitStyle, StringComparison.Ordinal);
+        Assert.Contains(",serif", explicitStyle, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -77,12 +99,16 @@ public class HtmlExcelSemanticPresentation {
         sheet.Cell(2, 1).SetValue("Q1"); sheet.Cell(2, 2).SetValue(42);
         sheet.Cell(3, 1).SetValue("Q2"); sheet.Cell(3, 2).SetValue(58);
         sheet.Cell(4, 2).SetFormula("SUM(B2:B3)");
-        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new ExcelChartOptions { Row = 6, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(200), Title = "Actual by quarter" });
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new ExcelChartOptions { Row = 6, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(200), Title = "Actual by quarter" })
+            .SetTitleTextStyle(fontFamily: "AT&T's Chart Sans");
 
         string html = workbook.ToHtml();
 
         Assert.Contains("<figure class=\"officeimo-chart\"", html, StringComparison.Ordinal);
         Assert.Contains("<svg", html, StringComparison.OrdinalIgnoreCase);
+        var title = Assert.Single(new HtmlParser().ParseDocument(html).QuerySelectorAll("svg text"), text => text.TextContent == "Actual by quarter");
+        Assert.StartsWith("'AT&T\\'s Chart Sans',", title.GetAttribute("font-family"), StringComparison.Ordinal);
+        Assert.EndsWith(",sans-serif", title.GetAttribute("font-family"), StringComparison.Ordinal);
         Assert.Contains("<details class=\"officeimo-chart-details\"><summary>Chart data</summary>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Type: ColumnClustered", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Series: 1; Categories: 2", html, StringComparison.Ordinal);

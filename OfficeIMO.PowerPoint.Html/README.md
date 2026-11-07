@@ -20,7 +20,9 @@ OfficeConversionReport report = source.SaveAsPowerPoint(output);
 Semantic output carries a versioned OfficeIMO envelope and keeps slide order and visibility, unified drawing order across text boxes, tables, pictures, charts, SmartArt, and media, shape geometry and transforms, presenter notes, table merge spans, embedded pictures, supported chart data, master/layout inventory, poster frames, and supported picture adjustments. SmartArt and advanced effects use static snapshots or diagnosed fallbacks; media is never executed. Generic HTML `rowspan` and `colspan` values become native PowerPoint table merges.
 
 Semantic tables retain supported source fills, borders, grid dimensions, cell
-padding and alignment. The default document shell adds no theme stylesheet;
+padding, alignment and resolved source fonts, with browser fallbacks for
+unavailable families. Master/layout inventory starts collapsed and can be
+expanded for inspection. The default document shell adds no theme stylesheet;
 choose a named presentation profile or enable `DocumentOutput.IncludeDefaultStyles`
 explicitly to add one. Unsupported CSS border patterns are reported as
 approximations.
