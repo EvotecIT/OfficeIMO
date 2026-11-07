@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
 
-Create, edit, read and save Word documents (`.docx`, and the supported subset of Word 97–2003 `.doc`) in .NET, without Microsoft Word or COM. New documents use the `Modern` theme for headings, body text, tables and charts.
+Create, edit, read and save Word documents (`.docx`, and the supported subset of Word 97–2003 `.doc`) in .NET, without Microsoft Word or COM. New documents use the `Modern` theme for headings, body text, tables and charts. Open supported [Word 6 and Word 95 files](../Docs/officeimo.word.legacy-doc-compatibility.md#import-word-6-and-word-95-documents) to migrate editable content to DOCX.
 
 ## Install
 

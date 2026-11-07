@@ -99,6 +99,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         DocumentProperty,
 
         /// <summary>A native list definition or instance cannot be faithfully projected.</summary>
-        Numbering
+        Numbering,
+
+        /// <summary>Native formatting properties exist outside the current import profile.</summary>
+        Formatting
     }
 }

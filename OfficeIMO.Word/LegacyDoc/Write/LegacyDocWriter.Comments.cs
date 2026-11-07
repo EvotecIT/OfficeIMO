@@ -335,7 +335,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             text.Length + run.StartCharacter,
                             run.Length,
                             run.Formatting,
-                            run.PictureDataOffset));
+                            run.PictureDataOffset, run.FieldLocked));
                     }
 
                     foreach (LegacyDocWritableParagraph paragraph in reference.Story.Content.FormattedParagraphs) {

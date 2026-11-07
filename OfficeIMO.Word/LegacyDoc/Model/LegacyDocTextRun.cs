@@ -33,7 +33,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None,
             int? characterScalePercentage = null,
             string? hyperlinkTooltip = null,
-            string? hyperlinkTargetFrame = null)
+            string? hyperlinkTargetFrame = null,
+            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null,
+            bool? fieldLocked = null)
             : this(
                 text,
                 bold,
@@ -69,7 +71,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 styleInverted: styleInverted,
                 characterScalePercentage: characterScalePercentage,
                 hyperlinkTooltip: hyperlinkTooltip,
-                hyperlinkTargetFrame: hyperlinkTargetFrame) {
+                hyperlinkTargetFrame: hyperlinkTargetFrame,
+                fieldResultRuns: fieldResultRuns,
+                fieldLocked: fieldLocked) {
         }
 
         internal LegacyDocTextRun(
@@ -107,7 +111,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None,
             int? characterScalePercentage = null,
             string? hyperlinkTooltip = null,
-            string? hyperlinkTargetFrame = null) {
+            string? hyperlinkTargetFrame = null,
+            IReadOnlyList<LegacyDocTextRun>? fieldResultRuns = null,
+            bool? fieldLocked = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -141,15 +147,22 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             HyperlinkAnchor = string.IsNullOrWhiteSpace(hyperlinkAnchor) ? null : hyperlinkAnchor;
             HyperlinkTooltip = hyperlinkTooltip;
             HyperlinkTargetFrame = hyperlinkTargetFrame;
+            FieldLocked = fieldLocked;
             FieldKind = fieldKind;
             FieldInstruction = string.IsNullOrWhiteSpace(fieldInstruction) ? null : fieldInstruction;
             Specified = specified;
             StyleRelative = styleRelative;
             StyleInverted = styleInverted;
             Revision = revision;
+            FieldResultRuns = fieldResultRuns == null || fieldResultRuns.Count == 0
+                ? Array.Empty<LegacyDocTextRun>() : fieldResultRuns.ToArray();
         }
 
         internal string Text { get; }
+
+        internal IReadOnlyList<LegacyDocTextRun> FieldResultRuns { get; }
+
+        internal bool? FieldLocked { get; }
 
         internal bool Bold { get; }
 
@@ -234,6 +247,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool IsStaticDisplayField =>
             IsStaticDateTimeField
             || FieldKind == LegacyDocFieldKind.DocumentProperty
+            || FieldKind == LegacyDocFieldKind.TextReference
             || FieldKind == LegacyDocFieldKind.Equation;
 
         internal bool IsSpecified(LegacyDocCharacterFormatProperties property) {
