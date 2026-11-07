@@ -424,12 +424,14 @@ public sealed partial class OfficeFontFaceCollection {
         string requestedFamilies = familyNames?.Trim() ?? string.Empty;
         if (_faces.Count == 0) return Array.AsReadOnly(new[] { new OfficeFontFallbackRun(text!, requestedFamilies) });
         FallbackSelection selection = GetFallbackSelection(requestedFamilies, descriptor);
-        IReadOnlyList<OfficeFontFace> candidates = selection.Candidates;
-        if (candidates.Count == 0) {
-            return Array.AsReadOnly(new[] { new OfficeFontFallbackRun(text!, requestedFamilies) });
-        }
         bool cacheable = text!.Length <= MaximumCachedPlanLength;
         if (cacheable && selection.Plans.TryGetValue(text, out IReadOnlyList<OfficeFontFallbackRun>? planned)) return planned;
+        IReadOnlyList<OfficeFontFace> candidates = selection.Candidates;
+        if (candidates.Count == 0) {
+            planned = Array.AsReadOnly(new[] { new OfficeFontFallbackRun(text, requestedFamilies) });
+            if (cacheable) selection.Plans.TryAdd(text, planned);
+            return planned;
+        }
 
         HashSet<string> explicitlySelectedFaces = selection.ExplicitlySelectedFaces;
         var runs = new List<OfficeFontFallbackRun>();

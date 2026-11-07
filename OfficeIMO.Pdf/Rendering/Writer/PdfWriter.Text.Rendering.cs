@@ -663,6 +663,16 @@ internal static partial class PdfWriter {
             return null;
         }
 
+        // Generated page MCIDs have one primary owner; fresh text and figures append it last.
+        int latestIndex = structurePage.StructElements.Count - 1;
+        if (latestIndex >= 0) {
+            PageStructElement latest = structurePage.StructElements[latestIndex];
+            if (latest.MarkedContentId == markedContentId &&
+                string.Equals(latest.StructureType, structureType, StringComparison.Ordinal)) {
+                return latestIndex;
+            }
+        }
+
         for (int i = 0; i < structurePage.StructElements.Count; i++) {
             PageStructElement element = structurePage.StructElements[i];
             if (element.MarkedContentId == markedContentId &&

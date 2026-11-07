@@ -8,6 +8,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         PdfReadDocument document,
         int[] pageNumbers,
         IReadOnlyList<PdfUnderstandingPageResult> pages,
+        PdfTextLayoutOptions layout,
         int maxElementsPerPage,
         long maxWorkUnits,
         CancellationToken cancellationToken) {
@@ -44,6 +45,7 @@ internal static partial class PdfDocumentSemanticEnricher {
             pages,
             tableCandidates,
             taggedGraph,
+            taggedRoles,
             maxElementsPerPage,
             workBudget);
         ApplyTaggedStructureEvidence(document, pageNumbers, pages, elements, taggedRoles, workBudget);
@@ -53,10 +55,23 @@ internal static partial class PdfDocumentSemanticEnricher {
         EnsureElementLimits(elements, maxElementsPerPage);
         ApplyHeadingFontTierEvidence(elements, workBudget);
 
+        Dictionary<int, Dictionary<int, int>?>? paragraphStories =
+            !layout.ForceSingleColumn && layout.ReadingDirection == PdfReadingDirection.Auto
+                ? IndexTaggedParagraphStories(document, taggedGraph, workBudget)
+                : null;
         var result = new PdfUnderstandingPageResult[pages.Count];
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             workBudget.Consume();
             PdfUnderstandingPageResult page = pages[pageIndex];
+            List<PdfUnderstandingSemanticElement>? taggedStory = !page.RestrictLogicalProjectionToReadingOrder &&
+                tableCandidates[pageIndex].Count == 0 &&
+                paragraphStories is not null && paragraphStories.TryGetValue(pageNumbers[pageIndex], out var paragraphOwners) &&
+                paragraphOwners is not null &&
+                elements[pageIndex].All(static element => element.Kind == PdfUnderstandingSemanticKind.Paragraph)
+                ? BuildTaggedParagraphStory(document.Pages[pageNumbers[pageIndex] - 1], page, paragraphOwners,
+                    maxElementsPerPage, workBudget)
+                : null;
+            if (taggedStory is not null) elements[pageIndex] = taggedStory;
             PdfUnderstandingRegion[] canonicalRegions = elements[pageIndex]
                 .Select(static element => element.Region)
                 .ToArray();
@@ -71,9 +86,12 @@ internal static partial class PdfDocumentSemanticEnricher {
             IReadOnlyList<PdfUnderstandingRegion> readingOrder = regionsChanged
                 ? regions
                 : page.ReadingOrder;
-            IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence = regionsChanged
-                ? BuildReadingOrderEvidence(page.ReadingOrderEvidence, canonicalRegions, workBudget)
-                : page.ReadingOrderEvidence;
+            IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence = taggedStory is not null
+                ? Array.AsReadOnly(canonicalRegions.Select(static (region, index) =>
+                    new PdfReadingOrderEvidence(index, region, region.Confidence, region.Evidence)).ToArray())
+                : regionsChanged
+                    ? BuildReadingOrderEvidence(page.ReadingOrderEvidence, canonicalRegions, workBudget)
+                    : page.ReadingOrderEvidence;
             result[pageIndex] = new PdfUnderstandingPageResult(
                 page.PageNumber,
                 page.DecodedRuns,
@@ -87,7 +105,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 page.ConsumeWork,
                 page.CancellationCheck,
                 page.CompleteOperation,
-                page.LogicalProjectionLines,
+                taggedStory is null ? page.LogicalProjectionLines : null,
                 page.RestrictLogicalProjectionToReadingOrder,
                 tableCandidates[pageIndex],
                 page.ImagePlacements,
@@ -188,7 +206,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                     ? PdfTextSimilarity.NormalizeSignaturePreservingDigits(region.Text)
                     : PdfTextSimilarity.NormalizeSignature(region.Text);
                 if (edge == PageEdge.None || signature.Length == 0) continue;
-                if (IsPageNumberText(region.Text)) {
+                if (PdfTextSimilarity.IsPageNumberText(region.Text)) {
                     // A page number at the page edge is running content even on a single page, and its digits
                     // change from page to page, so it never forms a repeated signature.
                     elements[pageIndex][elementIndex] = WithEvidence(
@@ -232,16 +250,6 @@ internal static partial class PdfDocumentSemanticEnricher {
                     "Normalized geometry and exact digit-insensitive text signatures repeat across document pages.",
                     0.95D));
         }
-    }
-
-    private static readonly System.Text.RegularExpressions.Regex PageNumberPattern = new System.Text.RegularExpressions.Regex(
-        @"^(?:[\(\[\-\u2013\u2014]?\s*\d{1,5}\s*(?:(?:/|\||\p{L}{1,4})\s*\d{1,5})?\s*[\)\]\-\u2013\u2014]?|\p{L}{1,8}\.?\s*\d{1,5}\s*(?:/|\||\p{L}{1,4})\s*\d{1,5})$",
-        System.Text.RegularExpressions.RegexOptions.CultureInvariant,
-        TimeSpan.FromSeconds(1));
-
-    internal static bool IsPageNumberText(string? text) {
-        string value = text?.Trim() ?? string.Empty;
-        return value.Length > 0 && value.Length <= 24 && PageNumberPattern.IsMatch(value);
     }
 
     private static bool[] FindRepeatedPageEdgeCandidates(
@@ -827,7 +835,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         int? pageObjectNumber = null;
         string? alternativeText = null;
         int? listOwner = null;
-        int listLevel = 0;
+        int listItemDepth = 0;
+        int listContainerDepth = 0;
         bool listLabel = false;
         while (current is not null && visited.Add(current.ObjectNumber)) {
             workBudget.Consume();
@@ -835,9 +844,11 @@ internal static partial class PdfDocumentSemanticEnricher {
             if (!string.IsNullOrWhiteSpace(current.StructureType)) {
                 string candidate = ResolveRole(tagged, current.StructureType!);
                 if (!listOwner.HasValue && string.Equals(candidate, "Lbl", StringComparison.OrdinalIgnoreCase)) listLabel = true;
+                // Some producers nest an L directly under another L, without an intervening LI.
+                if (string.Equals(candidate, "L", StringComparison.OrdinalIgnoreCase)) listContainerDepth++;
                 if (string.Equals(candidate, "LI", StringComparison.OrdinalIgnoreCase)) {
                     listOwner ??= current.ObjectNumber;
-                    listLevel++;
+                    listItemDepth++;
                 }
                 if (!roles.Contains(candidate, StringComparer.OrdinalIgnoreCase)) roles.Add(candidate);
                 if (alternativeText is null &&
@@ -854,7 +865,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         return roles.Count == 0
             ? null
             : new TaggedStructureBinding(roles.AsReadOnly(), pageObjectNumber, alternativeText,
-                listOwner.HasValue ? new TaggedListContent(listOwner.Value, listLevel, listLabel) : null);
+                listOwner.HasValue ? new TaggedListContent(listOwner.Value, Math.Max(listItemDepth, listContainerDepth), listLabel) : null);
     }
 
     private static TaggedRole? TryMapTaggedRole(string role) {

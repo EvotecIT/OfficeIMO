@@ -24,7 +24,7 @@ internal static partial class HtmlRenderSystemFontLoader {
         var attempted = new Dictionary<(string Family, OfficeFontFaceDescriptor Descriptor), bool>();
         var supplied = new HashSet<string>(fonts.Faces.Select(face => face.FamilyName), StringComparer.OrdinalIgnoreCase);
         supplied.UnionWith(configuredDefaults);
-        var defaultFamilies = new HashSet<string>(OfficeFontFamilyParser.Parse(options.DefaultFontFamily), StringComparer.OrdinalIgnoreCase);
+        var defaultFamilies = new HashSet<string>(fonts.GetParsedFamilyNames(options.DefaultFontFamily), StringComparer.OrdinalIgnoreCase);
         var visibility = new Dictionary<IElement, DefaultFontVisibility>();
         var visibleText = new HashSet<IElement>();
         var defaults = new List<(IElement Element, string Families, OfficeFontFaceDescriptor Descriptor, bool NeedsText, bool DirectText)>();
@@ -106,7 +106,7 @@ internal static partial class HtmlRenderSystemFontLoader {
 
         void LoadList(string familyNames, OfficeFontFaceDescriptor descriptor, bool rendererDefault = false,
             bool documentRequest = false, int suppliedCoverageBoundary = int.MaxValue) {
-            IReadOnlyList<string> families = OfficeFontFamilyParser.Parse(familyNames);
+            IReadOnlyList<string> families = fonts.GetParsedFamilyNames(familyNames);
             // Retain an allowed authored prefix before loading a later renderer default.
             // Otherwise scoped fallback fixes the run to that default before PDF font selection.
             // Other named stacks keep the PDF target's existing face and coverage resolver.

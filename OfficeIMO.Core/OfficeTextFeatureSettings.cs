@@ -77,6 +77,7 @@ public sealed class OfficeTextFeatureSettings : IEquatable<OfficeTextFeatureSett
 
     /// <inheritdoc />
     public override int GetHashCode() {
+        if (_features.Count == 0) return 17;
         unchecked {
             int hash = 17;
             var tags = new List<string>(_features.Keys);

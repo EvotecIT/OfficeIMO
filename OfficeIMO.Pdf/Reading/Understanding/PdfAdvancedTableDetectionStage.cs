@@ -29,32 +29,27 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             context.Height,
             context.ConsumeWork,
             context.ThrowIfCancellationRequested);
-        IReadOnlyList<PdfTableRuling> rulings = context.Page.GetTableRulings(context);
+        IReadOnlyList<PdfTableRuling> rulings;
+        bool canRefineExistingGeometry;
+        try {
+            rulings = context.Page.GetTableRulings(context, out canRefineExistingGeometry);
+        } catch (PdfUnsupportedTextMappingException) when (context.InspectionTextRecovery?.FirstMappingFailure is not null) {
+            // Text-derived candidates remain available when the optional paint pass cannot resolve widths.
+            context.ThrowIfCancellationRequested();
+            rulings = Array.Empty<PdfTableRuling>();
+            canRefineExistingGeometry = false;
+        }
         if (rulings.Count > 0) {
-            // A page can hold a text-aligned table and a separate ruled grid, so the grids are recovered on every
-            // ruled page. A closed grid also replaces a text table it covers when alignment stopped early (rows
-            // with an empty last cell end a text band), because the grid shows where the table really ends.
-            List<PdfStructuredTable> textTables = tables.ToList();
             foreach (PdfStructuredTable ruled in TableDetector.RecoverClosedRulingTables(nativeLines, rulings, context)) {
                 context.ConsumeWork();
-                List<PdfStructuredTable> covered = textTables.Where(existing => TablesOverlap(existing, ruled)).ToList();
-                if (covered.Count == 0) {
-                    tables.Add(ruled);
-                } else if (covered.All(existing => existing.Rows.Count < ruled.Rows.Count &&
-                                                   existing.Columns.Count <= ruled.Columns.Count)) {
-                    foreach (PdfStructuredTable existing in covered) {
-                        tables.Remove(existing);
-                        textTables.Remove(existing);
-                    }
-                    tables.Add(ruled);
-                }
+                ReconcileClosedGrid(tables, ruled, context);
             }
         }
         result.Capacity = tables.Count;
         foreach (PdfStructuredTable table in tables) {
             context.ConsumeWork();
             bool ruledGrid = table.Kind == "closed-ruling-cells" ||
-                rulings.Count > 0 && TableDetector.TryRefineClosedRulingGrid(table, rulings, context);
+                canRefineExistingGeometry && rulings.Count > 0 && TableDetector.TryRefineClosedRulingGrid(table, rulings, context);
             ContentStructureExtractor.NormalizeDetectedTable(table);
             if (table.Columns.Count < 2 || table.SourceRuns.Count == 0) continue;
 
@@ -133,14 +128,54 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
         }
     }
 
-    private static bool TablesOverlap(PdfStructuredTable first, PdfStructuredTable second) {
-        if (first.Columns.Count == 0 || second.Columns.Count == 0) return false;
-        double firstTop = Math.Max(first.YTop, first.YBottom), firstBottom = Math.Min(first.YTop, first.YBottom);
-        double secondTop = Math.Max(second.YTop, second.YBottom), secondBottom = Math.Min(second.YTop, second.YBottom);
-        bool vertical = firstBottom <= secondTop && secondBottom <= firstTop;
-        bool horizontal = first.Columns[0].From <= second.Columns[second.Columns.Count - 1].To &&
-            second.Columns[0].From <= first.Columns[first.Columns.Count - 1].To;
-        return vertical && horizontal;
+    private static void ReconcileClosedGrid(List<PdfStructuredTable> tables, PdfStructuredTable ruled, PdfUnderstandingPageContext context) {
+        var ruledRuns = new HashSet<PdfTextSpan>();
+        foreach (PdfTextSpan run in ruled.SourceRuns) {
+            context.ConsumeWork();
+            if (!run.IsArtifactContent && !string.IsNullOrWhiteSpace(run.Text)) ruledRuns.Add(run);
+        }
+        var covered = new List<PdfStructuredTable>();
+        foreach (PdfStructuredTable table in tables) {
+            context.ConsumeWork();
+            bool hasShared = false, hasUnowned = false;
+            foreach (PdfTextSpan run in table.SourceRuns) {
+                context.ConsumeWork();
+                if (run.IsArtifactContent || string.IsNullOrWhiteSpace(run.Text)) continue;
+                if (ruledRuns.Contains(run)) hasShared = true;
+                else hasUnowned = true;
+            }
+            if (!hasShared) continue;
+            // Partial ownership cannot prove that either candidate can be removed.
+            if (hasUnowned || table.Kind == "closed-ruling-cells") return;
+            covered.Add(table);
+        }
+        if (covered.Count == 1 && HasEquivalentGridProjection(covered[0], ruled, ruledRuns.Count, context)) {
+            // The existing table already reconstructs these cells. Only ordinary
+            // stroke evidence can refine its established column geometry.
+            return;
+        }
+        foreach (PdfStructuredTable table in covered) tables.Remove(table);
+        tables.Add(ruled);
+    }
+
+    private static bool HasEquivalentGridProjection(PdfStructuredTable table, PdfStructuredTable ruled, int ruledRunCount,
+        PdfUnderstandingPageContext context) {
+        if (table.Rows.Count != ruled.Rows.Count || table.Columns.Count != ruled.Columns.Count) return false;
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            string[] textCells = table.Rows[rowIndex];
+            string[] ruledCells = ruled.Rows[rowIndex];
+            context.ConsumeWork(1L + textCells.Length);
+            if (!textCells.SequenceEqual(ruledCells, StringComparer.Ordinal)) return false;
+        }
+
+        // The caller has already proven this is a subset. An equal unique run
+        // count therefore proves the two projections own the same visible text.
+        var textRuns = new HashSet<PdfTextSpan>();
+        foreach (PdfTextSpan run in table.SourceRuns) {
+            context.ConsumeWork();
+            if (!run.IsArtifactContent && !string.IsNullOrWhiteSpace(run.Text)) textRuns.Add(run);
+        }
+        return textRuns.Count == ruledRunCount;
     }
 
     private static void AddOcrCandidates(

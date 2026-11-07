@@ -199,7 +199,8 @@ internal sealed partial class HtmlRenderStyleResolver {
         string textTransform = ResolveTextTransform(element, computed, parent?.TextTransform ?? "none");
         bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
         OfficeTextFeatureSettings textFeatureSettings = ResolveTextFeatureSettings(computed);
-        _activeCharacterAdvance = GetDeclarationFacts(computed).HasCharacterUnits
+        DeclarationFacts declarationFacts = GetDeclarationFacts(computed);
+        _activeCharacterAdvance = declarationFacts.HasCharacterUnits
             ? _measureCharacterAdvance(new HtmlRenderBoxStyle {
                 Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
                 FontDescriptor = fontDescriptor,
@@ -331,7 +332,8 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
         ApplyDimensions(element, physicalComputed, containingWidth, fontSize, parent, style, !pseudoElement);
         ApplyReplacedElementValues(computed, fontSize, style);
-        ApplyPaint(element, computed, style, pseudoElement);
+        if (declarationFacts.HasPaintState || _options.MaxTextShadowLayers <= 0)
+            ApplyPaint(element, computed, style, pseudoElement);
         ApplyInheritedTextShadows(computed, style, parent);
         if (style.OutlineColorInvert) {
             OfficeColor backdrop = style.BackgroundColor ?? parent?.BackgroundColor ?? OfficeColor.White;
@@ -345,14 +347,16 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.Clip = style.Position is "absolute" or "fixed"
             ? NormalizeCssValue(computed.GetValue("clip"), "auto")
             : "auto";
-        ApplyFlex(computed, containingWidth, fontSize, style);
-        if (style.Display == "flex"
-            && string.Equals(computed.GetValue("display").Trim(), "-webkit-box", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(computed.GetValue("-webkit-box-orient").Trim(), "vertical", StringComparison.OrdinalIgnoreCase)) {
-            style.FlexDirection = "column";
+        if (declarationFacts.HasOptionalLayoutGroups) {
+            ApplyFlex(computed, containingWidth, fontSize, style);
+            if (style.Display == "flex"
+                && string.Equals(computed.GetValue("display").Trim(), "-webkit-box", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(computed.GetValue("-webkit-box-orient").Trim(), "vertical", StringComparison.OrdinalIgnoreCase)) {
+                style.FlexDirection = "column";
+            }
+            ApplyColumns(computed, containingWidth, fontSize, style);
+            ApplyGrid(computed, style);
         }
-        ApplyColumns(computed, containingWidth, fontSize, style);
-        ApplyGrid(computed, style);
         ApplyTable(computed, style);
         if (computed.IsInheritedValue("border-spacing") && parent != null) {
             style.BorderSpacingX = parent.BorderSpacingX;
@@ -977,7 +981,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.UnsupportedBoxShadow = boxShadow;
         } else {
             style.BoxShadowLayerCount = shadows.Count;
-            style.BoxShadows = shadows.Take(_options.MaxBoxShadowLayers).ToArray();
+            style.BoxShadows = shadows.Count == 0 ? Array.Empty<HtmlCssBoxShadow>()
+                : shadows.Take(_options.MaxBoxShadowLayers).ToArray();
         }
         string textShadow = NormalizeCssValue(computed.GetValue("text-shadow"), "none");
         if (!HtmlCssTextShadowParser.TryParse(textShadow, style.Font.Size, _rootFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, _options.MaxTextShadowLayers, out IReadOnlyList<HtmlCssTextShadow> textShadows, out int textShadowLayerCount, style.CharacterAdvance)) {
@@ -1078,7 +1083,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.HasDeclaredBackgroundImage = hasDeclaredBackgroundImage;
         style.UnsupportedBackgroundImageLayerCount = unsupportedLayerCount;
         style.GradientStopLimitExceededCount = gradientStopLimitExceededCount;
-        style.BackgroundImageLayers = layers.AsReadOnly();
+        style.BackgroundImageLayers = layers.Count == 0 ? Array.Empty<HtmlRenderBackgroundLayer>() : layers.AsReadOnly();
         ApplyBackgroundClipText(computed, style, textClipLayers);
     }
 

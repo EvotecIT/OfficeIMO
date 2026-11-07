@@ -345,6 +345,11 @@ public sealed partial class PdfDocument {
     }
 
     internal static DrawingBlock CreateDrawingBlock(OfficeDrawing drawing, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, bool allowClippedOverflow = false) {
+        return CreateDrawingBlock(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents, allowClippedOverflow, useDrawingSnapshot: false);
+    }
+
+    /// <summary>Validates a scene before retaining its private immutable snapshot or creating a detached copy.</summary>
+    internal static DrawingBlock CreateDrawingBlock(OfficeDrawing drawing, OfficeAlignment? align, double? spacingBefore, double? spacingAfter, PdfDrawingStyle? style, string? linkUri, string? linkContents, bool allowClippedOverflow, bool useDrawingSnapshot) {
         Guard.NotNull(drawing, nameof(drawing));
         Guard.Positive(drawing.Width, nameof(drawing.Width));
         Guard.Positive(drawing.Height, nameof(drawing.Height));
@@ -397,6 +402,6 @@ public sealed partial class PdfDocument {
             ValidateDrawingStyle(drawingStyle, "Drawing");
         }
 
-        return new DrawingBlock(drawing, drawingStyle, linkUri, linkContents);
+        return new DrawingBlock(drawing, drawingStyle, linkUri, linkContents, useDrawingSnapshot);
     }
 }

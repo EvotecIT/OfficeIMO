@@ -195,8 +195,9 @@ public sealed partial class PdfReadPage {
         return GetTextSpans(includeArtifactText, default);
     }
 
-    internal IReadOnlyList<PdfTextSpan> GetTextSpans(System.Threading.CancellationToken cancellationToken) {
-        return GetTextSpans(_includeArtifactText, cancellationToken);
+    internal IReadOnlyList<PdfTextSpan> GetTextSpans(System.Threading.CancellationToken cancellationToken,
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
+        return GetTextSpans(_includeArtifactText, cancellationToken, onUnmappableText: onUnmappableText);
     }
 
     // Encoded redaction ranges must retain repeated and edge whitespace in glyph arrays.
@@ -219,13 +220,18 @@ public sealed partial class PdfReadPage {
     /// Counts visible text spans that this read leaves out because they are marked as artifacts (running headers,
     /// footers and page numbers in tagged PDFs). Returns zero without reparsing when the content has no artifacts.
     /// </summary>
-    internal int CountOmittedArtifactTextSpans(System.Threading.CancellationToken cancellationToken) {
+    internal int CountOmittedArtifactTextSpans(System.Threading.CancellationToken cancellationToken,
+        bool recoverDecodableText = false) {
         if (_includeArtifactText) return 0;
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
         string content = GetContentStreamSequence(pageContentBudget).Content;
         if (content.IndexOf("/Artifact", StringComparison.Ordinal) < 0) return 0;
-        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken).Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
-        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken).Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
+        // These passes count spans only. Inspection already recorded failures on its logical pass.
+        Action<PdfUnsupportedTextMappingException, int?>? ignoreUnmappableText = recoverDecodableText ? static (_, _) => { } : null;
+        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken, onUnmappableText: ignoreUnmappableText)
+            .Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
+        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken, onUnmappableText: ignoreUnmappableText)
+            .Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
         return Math.Max(0, withArtifacts - withoutArtifacts);
     }
 
@@ -235,7 +241,8 @@ public sealed partial class PdfReadPage {
         bool includeHiddenOptionalContent = false,
         bool preserveGlyphText = false,
         bool requireMappedText = false,
-        bool ignoreActualText = false) {
+        bool ignoreActualText = false,
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -273,7 +280,8 @@ public sealed partial class PdfReadPage {
                 cancellationCheck: cancellationToken.CanBeCanceled
                     ? cancellationToken.ThrowIfCancellationRequested
                     : null,
-                invokedResourceNames: invokedResources);
+                invokedResourceNames: invokedResources,
+                onUnmappableText: onUnmappableText);
         }
 
         return spans;
@@ -546,7 +554,8 @@ public sealed partial class PdfReadPage {
             cancellationCheck: cancellationToken.ThrowIfCancellationRequested,
             cancellationToken: cancellationToken);
         VisitImagesForResources(ResolveDictionary(GetInheritedValue("Resources")), pageNumber, placements,
-            colorizeImageMasks: false, new PageContentBudget(this, cancellationToken), emit, cancellationToken);
+            colorizeImageMasks: false, new PageContentBudget(this, cancellationToken), emit,
+            indexedSoftMaskMemo: null, cancellationToken);
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements) {
@@ -554,10 +563,11 @@ public sealed partial class PdfReadPage {
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber,
-        IReadOnlyList<PdfImagePlacement>? imagePlacements, CancellationToken cancellationToken) {
+        IReadOnlyList<PdfImagePlacement>? imagePlacements, PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo,
+        CancellationToken cancellationToken) {
         PrepareOutputIntentRendering(cancellationToken);
         return GetImages(pageNumber, imagePlacements, colorizeImageMasks: false,
-            new PageContentBudget(this, cancellationToken), cancellationToken);
+            new PageContentBudget(this, cancellationToken), indexedSoftMaskMemo, cancellationToken);
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks) {
@@ -568,13 +578,15 @@ public sealed partial class PdfReadPage {
         int pageNumber,
         IReadOnlyList<PdfImagePlacement>? imagePlacements,
         bool colorizeImageMasks,
-        PageContentBudget pageContentBudget, CancellationToken cancellationToken = default) {
+        PageContentBudget pageContentBudget,
+        PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo = null,
+        CancellationToken cancellationToken = default) {
         return GetImagesForResources(
             ResolveDictionary(GetInheritedValue("Resources")),
             pageNumber,
             imagePlacements,
             colorizeImageMasks,
-            pageContentBudget, cancellationToken);
+            pageContentBudget, indexedSoftMaskMemo, cancellationToken);
     }
 
     private IReadOnlyList<PdfExtractedImage> GetImagesForResources(
@@ -582,10 +594,12 @@ public sealed partial class PdfReadPage {
         int pageNumber,
         IReadOnlyList<PdfImagePlacement>? imagePlacements,
         bool colorizeImageMasks = false,
-        PageContentBudget? pageContentBudget = null, CancellationToken cancellationToken = default) {
+        PageContentBudget? pageContentBudget = null,
+        PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo = null,
+        CancellationToken cancellationToken = default) {
         var images = new List<PdfExtractedImage>();
         VisitImagesForResources(resources, pageNumber, imagePlacements, colorizeImageMasks,
-            pageContentBudget, images.Add, cancellationToken);
+            pageContentBudget, images.Add, indexedSoftMaskMemo, cancellationToken);
         return images.Count == 0 ? Array.Empty<PdfExtractedImage>() : images.AsReadOnly();
     }
 
@@ -596,6 +610,7 @@ public sealed partial class PdfReadPage {
         bool colorizeImageMasks,
         PageContentBudget? pageContentBudget,
         Action<PdfExtractedImage> emit,
+        PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo,
         CancellationToken cancellationToken) {
         if (!cancellationToken.CanBeCanceled) cancellationToken = pageContentBudget?.CancellationToken ?? default;
         cancellationToken.ThrowIfCancellationRequested();
@@ -610,7 +625,7 @@ public sealed partial class PdfReadPage {
                 _limits,
                 EffectiveOutputIntentColorTransform,
                 pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
-                pageContentBudget?.ColorFunctionResolutionContext, cancellationToken);
+                pageContentBudget?.ColorFunctionResolutionContext, indexedSoftMaskMemo, cancellationToken);
         }
         if (imagePlacements is not null) {
             for (int i = 0; i < imagePlacements.Count; i++) {
@@ -636,7 +651,7 @@ public sealed partial class PdfReadPage {
                     pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
                     pageContentBudget?.ColorFunctionResolutionContext,
                     inheritedHasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent,
-                    cancellationToken: cancellationToken, maxImageReferenceSteps: _limits.MaxImageReferenceSteps));
+                    maxImageReferenceSteps: _limits.MaxImageReferenceSteps, cancellationToken: cancellationToken));
             }
         }
     }
@@ -788,39 +803,6 @@ public sealed partial class PdfReadPage {
         return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();
     }
 
-    internal List<string> GetUnsupportedContentStreamFilters(System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        var unsupported = new List<string>();
-        var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        var activeForms = new HashSet<PdfStream>();
-        var pageContentBudget = new PageContentBudget(this, cancellationToken);
-        bool mayContainForms = MayContainFormXObjects(pageResources);
-        System.Text.StringBuilder? content = mayContainForms ? new System.Text.StringBuilder() : null;
-        bool canInspectFormInvocations = mayContainForms;
-        foreach (PageContentStreamEntry entry in GetContentStreamObjects()) {
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfStream stream = entry.Stream;
-            if (AddUnsupportedFilters(stream, unsupported)) {
-                canInspectFormInvocations = false;
-                continue;
-            }
-
-            if (content is null) {
-                pageContentBudget.Validate(stream);
-            } else {
-                byte[] decoded = pageContentBudget.Decode(stream);
-                if (content.Length > 0) content.Append(PdfContentStreamSequenceDecoder.Separator);
-                content.Append(PdfEncoding.Latin1GetString(decoded));
-            }
-        }
-
-        if (canInspectFormInvocations && content is { Length: > 0 }) {
-            CollectUnsupportedFormFilters(content.ToString(), pageResources, unsupported, activeForms, pageContentBudget);
-        }
-
-        return unsupported;
-    }
-
     private bool MayContainFormXObjects(PdfDictionary? resources) {
         if (resources is null || !resources.Items.TryGetValue("XObject", out var xObjectValue)) {
             return false;
@@ -961,7 +943,8 @@ public sealed partial class PdfReadPage {
         bool ignoreActualText = false,
         bool requireMappedText = false,
         Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null,
-        int initialStrokeLineCap = 0) {
+        int initialStrokeLineCap = 0,
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1004,10 +987,10 @@ public sealed partial class PdfReadPage {
         bool IsType3FontResource(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) &&
             string.Equals(font.FontSubtype, "Type3", StringComparison.Ordinal);
-        bool UsesTwoByteGlyphCodes(string fontRes) =>
+        PdfFontResource? ResolveTwoByteFont(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) &&
             string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal) &&
-            (font.Encoding is "Identity-H" or "Identity-V" || font.PredefinedCMap != null);
+            (font.Encoding is "Identity-H" or "Identity-V" || font.PredefinedCMap != null) ? font : null;
         string? ResolveDrawingFontFamily(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
         Dictionary<string, Func<byte, string>>? substitutedGlyphDecoders = null;
@@ -1087,6 +1070,7 @@ public sealed partial class PdfReadPage {
             preserveGlyphText: preserveGlyphText,
                 ignoreActualText: ignoreActualText,
             requireMappedText: requireMappedText,
+            onUnmappableText: onUnmappableText,
             includeArtifactText: includeArtifactText,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
@@ -1120,7 +1104,7 @@ public sealed partial class PdfReadPage {
             inheritedActualTextState: inheritedActualTextState,
             onActualTextForm: (offset, state) => actualTextForms[offset] = state,
             onCompletedDrawingActualText: onCompletedDrawingActualText,
-            usesTwoByteGlyphCodesForResource: UsesTwoByteGlyphCodes));
+            twoByteFontForResource: ResolveTwoByteFont));
 
         // Text interpretation has already validated the stream and its limits.
         // A missing Do token rules out forms; strings containing Do simply keep
@@ -1247,6 +1231,7 @@ public sealed partial class PdfReadPage {
                     preserveGlyphText: preserveGlyphText,
                 ignoreActualText: ignoreActualText,
                     requireMappedText: requireMappedText,
+                    onUnmappableText: onUnmappableText,
                     onCompletedDrawingActualText: onCompletedDrawingActualText);
             } finally {
                 activeForms.Remove(formStream);
@@ -2340,9 +2325,16 @@ public sealed partial class PdfReadPage {
 
     private PageContentStreamSequence GetContentStreamSequence(PageContentBudget? pageContentBudget = null) {
         pageContentBudget ??= new PageContentBudget(this);
+        List<PageContentStreamEntry> streams = GetContentStreamObjects();
+        if (streams.Count == 1) {
+            PageContentStreamEntry entry = streams[0];
+            string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(entry.Stream));
+            return new PageContentStreamSequence(content, new[] { new PageContentStreamOffset(0, entry.ObjectNumber) });
+        }
+
         var builder = new System.Text.StringBuilder();
         var entries = new List<PageContentStreamOffset>();
-        foreach (PageContentStreamEntry entry in GetContentStreamObjects()) {
+        foreach (PageContentStreamEntry entry in streams) {
             // ISO 32000-2 Table 31 separates content-array streams with whitespace. Keep
             // operator identities in the same logical sequence used by content mutation.
             if (entries.Count > 0) builder.Append(PdfContentStreamSequenceDecoder.Separator);
@@ -2356,13 +2348,8 @@ public sealed partial class PdfReadPage {
     private List<PageContentStreamEntry> GetContentStreamObjects() {
         var result = new List<PageContentStreamEntry>();
         var contents = _pageDict.Items.TryGetValue("Contents", out var obj) ? obj : null;
-        if (contents is PdfReference r) {
-            if (PdfObjectLookup.TryGet(_objects, r, out var ind) && ind.Value is PdfStream s) {
-                result.Add(new PageContentStreamEntry(s, r.ObjectNumber));
-                return result;
-            }
-        } else if (contents is PdfStream directStream) {
-            result.Add(new PageContentStreamEntry(directStream, null));
+        if (TryResolvePageContentStream(contents, out PageContentStreamEntry stream)) {
+            result.Add(stream);
             return result;
         }
 
@@ -2372,16 +2359,27 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (var item in contentArray.Items) {
-            if (item is PdfReference rr &&
-                PdfObjectLookup.TryGet(_objects, rr, out var ind2) &&
-                ind2.Value is PdfStream s2) {
-                result.Add(new PageContentStreamEntry(s2, rr.ObjectNumber));
-            } else if (item is PdfStream directStream) {
-                result.Add(new PageContentStreamEntry(directStream, null));
+            if (TryResolvePageContentStream(item, out stream)) {
+                result.Add(stream);
             }
         }
 
         return result;
+    }
+
+    private bool TryResolvePageContentStream(PdfObject? item, out PageContentStreamEntry entry) {
+        if (item is PdfReference reference &&
+            PdfObjectLookup.TryGet(_objects, reference, out var indirect) &&
+            indirect.Value is PdfStream referencedStream) {
+            entry = new PageContentStreamEntry(referencedStream, reference.ObjectNumber);
+            return true;
+        }
+        if (item is PdfStream stream) {
+            entry = new PageContentStreamEntry(stream, null);
+            return true;
+        }
+        entry = default;
+        return false;
     }
 
     internal bool IsPageContentStreamObjectNumber(int? objectNumber) {

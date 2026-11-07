@@ -10,6 +10,62 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfLogicalTaggedTableBodyProjectionTests {
+    [Fact]
+    public void NativeTaggedTablesPreserveRowsWithPaintedEmptyCells() {
+        string fixture = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents",
+            "IWorkCorpus", "native-exports", "numbers-created-v14.5.pdf");
+        using PdfDocument document = PdfDocument.Load(fixture);
+        PdfDocumentReadResult read = document.Read();
+
+        Assert.Collection(read.Pages[0].Tables,
+            items => {
+                Assert.Collection(items.Rows,
+                    row => Assert.Equal(new[] { "Item", "Value", "Flag", "Notes" }, row),
+                    row => Assert.Equal(new[] { "Apples", "20,75", "PRAWDA", "Zażółć 😀" }, row),
+                    row => Assert.Equal(new[] { "Negative", "-0,125", "FAŁSZ", "=literal" }, row),
+                    row => Assert.Equal(new[] { "Line1 Line2", "12345,6789", "PRAWDA", "" }, row));
+            },
+            totals => Assert.Collection(totals.Rows,
+                row => Assert.Equal(new[] { "Totals", "99" }, row),
+                row => Assert.Equal(new[] { "FAŁSZ", "" }, row)));
+        Assert.Contains("Negative\t-0,125\tFAŁSZ\t=literal", read.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Pusta komórka", read.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NativeTaggedTableSupersedesGeometryThatAbsorbsItsCaption() {
+        string fixture = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents",
+            "IWorkCorpus", "native-exports", "numbers-formulas-v14.5.pdf");
+        using PdfDocument document = PdfDocument.Load(fixture);
+        PdfDocumentReadResult read = document.Read();
+
+        var table = Assert.Single(read.Pages[0].Tables);
+        Assert.Equal(new[] { "3", "2", "30.09.2026 12:42" }, table.Rows[2]);
+        Assert.Contains("Table 1" + Environment.NewLine + "1\t1\tPRAWDA", read.Text, StringComparison.Ordinal);
+        Assert.Single(Regex.Matches(read.Text, Regex.Escape("30.09.2026 12:42")).Cast<Match>());
+    }
+
+    [Fact]
+    public void NativeTaggedTablesPreserveClearedPublisherCells() {
+        string fixture = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Publisher.Tests", "Fixtures",
+            "NativeComparison", "TableCellTypingEarlyRange", "native-tablecelltyping.pdf");
+        using PdfDocument document = PdfDocument.Load(fixture);
+        PdfDocumentReadResult read = document.Read();
+
+        Assert.Collection(read.Pages[0].Tables,
+            baseline => Assert.Equal(new[] { "Item", "Count" }, baseline.Rows[0]),
+            clearFirst => {
+                Assert.Equal(new[] { "", "Count" }, clearFirst.Rows[0]);
+                Assert.Equal(new[] { "Alpha", "2" }, clearFirst.Rows[1]);
+            },
+            clearFinal => {
+                Assert.Equal(new[] { "Item", "Count" }, clearFinal.Rows[0]);
+                Assert.Equal(new[] { "Alpha", "" }, clearFinal.Rows[1]);
+            },
+            styledFirst => Assert.Equal(new[] { "", "Count" }, styledFirst.Rows[0]));
+        Assert.Contains("ClearFirst" + Environment.NewLine + "\tCount", read.Text, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(20D, false)]
     [InlineData(20D, true)]

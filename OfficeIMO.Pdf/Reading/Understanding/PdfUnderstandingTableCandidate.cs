@@ -86,7 +86,8 @@ public sealed class PdfUnderstandingTableCandidate {
         IEnumerable<PdfInferenceEvidence>? evidence,
         Action<long>? consumeWork,
         Action? cancellationCheck,
-        IReadOnlyList<PdfTextSpan>? nativeSourceRuns) {
+        IReadOnlyList<PdfTextSpan>? nativeSourceRuns,
+        string? leadingCaption = null) {
         cancellationCheck?.Invoke();
         Guard.NotNull(detectionKind, nameof(detectionKind));
         Guard.NotNull(columns, nameof(columns));
@@ -109,6 +110,7 @@ public sealed class PdfUnderstandingTableCandidate {
         Rows = SnapshotRows(rows, consumeWork, cancellationCheck);
         SourceLines = SnapshotSourceLines(sourceLines, consumeWork, cancellationCheck);
         SourceKind = sourceKind;
+        LeadingCaption = leadingCaption;
         NativeSourceRuns = SnapshotNativeSourceRuns(
             sourceKind,
             nativeSourceRuns,
@@ -153,13 +155,14 @@ public sealed class PdfUnderstandingTableCandidate {
 
     internal PdfLogicalVisualBounds? VisualBounds => _visualBounds;
     internal IReadOnlyList<PdfTextSpan> NativeSourceRuns { get; }
+    internal string? LeadingCaption { get; }
 
     internal PdfUnderstandingTableCandidate WithSourceGeometry(PdfLogicalVisualBounds visualBounds,
         IReadOnlyList<PdfUnderstandingTableColumn> columns, IReadOnlyList<PdfUnderstandingLine> sourceLines,
         IReadOnlyList<PdfTextSpan> nativeRuns, Action<long> consumeWork, Action cancellationCheck) =>
         new PdfUnderstandingTableCandidate(DetectionKind, visualBounds.Top, visualBounds.Bottom,
             columns, Rows, sourceLines, SourceKind, PdfTableCoordinateSpace.VisualTopLeft, visualBounds,
-            Confidence, Evidence, consumeWork, cancellationCheck, nativeRuns);
+            Confidence, Evidence, consumeWork, cancellationCheck, nativeRuns, LeadingCaption);
 
     internal static PdfUnderstandingTableCandidate FromStructured(
         PdfStructuredTable table,
@@ -195,7 +198,8 @@ public sealed class PdfUnderstandingTableCandidate {
             evidence,
             consumeWork,
             cancellationCheck,
-            table.SourceRuns);
+            table.SourceRuns,
+            table.LeadingCaption);
     }
 
     internal static PdfUnderstandingTableCandidate FromTagged(
@@ -266,6 +270,7 @@ public sealed class PdfUnderstandingTableCandidate {
             YTop = YTop,
             YBottom = YBottom,
             HasRuledBounds = Evidence.Any(static item => item.Code == "table-closed-ruling-grid"),
+            LeadingCaption = LeadingCaption,
             VisualBounds = _visualBounds
         };
         if (_visualBounds is not null) {

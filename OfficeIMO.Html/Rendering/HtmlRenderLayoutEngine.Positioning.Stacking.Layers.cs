@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private static IEnumerable<HtmlRenderVisual> EnumerateRootStackingLayers(HtmlRenderVisual visual) {
         // A context is atomic: its descendants never compete with root siblings.
-        if (visual.StackingContext != null) {
+        if (visual.StackingContext != null || !HasNestedStackingContext(visual)) {
             yield return visual;
             yield break;
         }
@@ -15,7 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderLogicalTextGroup text => text.Visuals,
             _ => null
         };
-        if (children == null || !children.Any(HasNestedStackingContext)) {
+        if (children == null) {
             yield return visual;
             yield break;
         }

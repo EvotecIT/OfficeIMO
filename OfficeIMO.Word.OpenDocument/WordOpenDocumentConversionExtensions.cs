@@ -543,7 +543,13 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static void ApplyWordRunFormatting(WordRunInfo source, OdtSpan target) {
+    private static void ApplyWordRunFormatting(WordRunInfo source, OdtSpan target) =>
+        ApplyWordRunFormatting(source, target.EnsureStyle());
+
+    private static void ApplyWordRunFormatting(WordRunInfo source, OdtHyperlink target) =>
+        ApplyWordRunFormatting(source, target.EnsureStyle());
+
+    private static void ApplyWordRunFormatting(WordRunInfo source, OdfStyle target) {
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
         target.Underline = source.Underline ? true : (bool?)null;
@@ -552,47 +558,23 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
         if (OdfColor.TryParse(source.Color?.ToRgbHex(), out OdfColor color)) target.Color = color;
-        if (OdfColor.TryParse(source.BackgroundColor?.ToRgbHex(), out OdfColor shading)) target.BackgroundColor = shading;
-        else if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
+        if (OdfColor.TryParse(source.BackgroundColor?.ToRgbHex(), out OdfColor shading)) target.TextBackgroundColor = shading;
+        else if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.TextBackgroundColor = highlight;
     }
 
-    private static void ApplyWordRunFormatting(WordRunInfo source, OdtHyperlink target) {
-        target.Bold = source.Bold ? true : (bool?)null;
-        target.Italic = source.Italic ? true : (bool?)null;
-        target.Underline = source.Underline ? true : (bool?)null;
-        target.Strikethrough = source.Strikethrough ? true : (bool?)null;
-        ApplyWordDecoration(source, target);
-        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
-        if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
-        if (OdfColor.TryParse(source.Color?.ToRgbHex(), out OdfColor color)) target.Color = color;
-        if (OdfColor.TryParse(source.BackgroundColor?.ToRgbHex(), out OdfColor shading)) target.BackgroundColor = shading;
-        else if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
-    }
-
-    private static bool TryMapWordAlignment(string value, out OdtParagraphAlignment alignment) {
+    private static bool TryMapWordAlignment(string value, out string alignment) {
         switch (value.ToLowerInvariant()) {
-            case "left": alignment = OdtParagraphAlignment.Left; return true;
-            case "start": alignment = OdtParagraphAlignment.Start; return true;
-            case "center": alignment = OdtParagraphAlignment.Center; return true;
-            case "right": alignment = OdtParagraphAlignment.Right; return true;
-            case "end": alignment = OdtParagraphAlignment.End; return true;
-            case "both": alignment = OdtParagraphAlignment.Justify; return true;
-            default: alignment = default; return false;
+            case "left": alignment = "left"; return true;
+            case "start": alignment = "start"; return true;
+            case "center": alignment = "center"; return true;
+            case "right": alignment = "right"; return true;
+            case "end": alignment = "end"; return true;
+            case "both": alignment = "justify"; return true;
+            default: alignment = string.Empty; return false;
         }
     }
 
-    private static void ApplyWordDecoration(WordRunInfo source, OdtSpan target) {
-        (target.UnderlineStyle, target.UnderlineType) = MapWordUnderline(source.UnderlineStyle);
-        target.LineThroughStyle = source.Strikethrough || source.DoubleStrikethrough ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
-        target.LineThroughType = source.DoubleStrikethrough ? OdfTextDecorationType.Double : source.Strikethrough ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
-        target.TextPosition = MapWordTextPosition(source.VerticalTextAlignment);
-        target.TextTransform = string.Equals(source.CapsStyle, nameof(WordCapsStyle.Caps), StringComparison.OrdinalIgnoreCase)
-            ? OdfTextTransform.Uppercase
-            : OdfTextTransform.None;
-        target.SmallCaps = string.Equals(source.CapsStyle, nameof(WordCapsStyle.SmallCaps), StringComparison.OrdinalIgnoreCase) ? true : (bool?)null;
-    }
-
-    private static void ApplyWordDecoration(WordRunInfo source, OdtHyperlink target) {
+    private static void ApplyWordDecoration(WordRunInfo source, OdfStyle target) {
         (target.UnderlineStyle, target.UnderlineType) = MapWordUnderline(source.UnderlineStyle);
         target.LineThroughStyle = source.Strikethrough || source.DoubleStrikethrough ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
         target.LineThroughType = source.DoubleStrikethrough ? OdfTextDecorationType.Double : source.Strikethrough ? OdfTextDecorationType.Single : OdfTextDecorationType.None;

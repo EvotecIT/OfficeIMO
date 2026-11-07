@@ -8,7 +8,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfImageExtractorTests {
+public partial class PdfImageExtractorTests {
     [Fact]
     public void ExtractImages_ReturnsPngFilesByPageFromGeneratedPdf() {
         byte[] source = PdfDocument.Create()

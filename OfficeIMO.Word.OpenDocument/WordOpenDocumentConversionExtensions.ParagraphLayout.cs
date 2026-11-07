@@ -5,18 +5,18 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Word.OpenDocument;
 
 public static partial class WordOpenDocumentConversionExtensions {
-    private static void ApplyWordParagraphFormatting(WordParagraphInfo source, OdtParagraph target) {
-        if (source.Alignment != null && TryMapWordAlignment(source.Alignment, out OdtParagraphAlignment alignment)) {
-            target.Alignment = alignment;
+    private static void ApplyWordParagraphFormatting(WordParagraphInfo source, OdfStyle style) {
+        if (source.Alignment != null && TryMapWordAlignment(source.Alignment, out string alignment)) {
+            style.TextAlign = alignment;
         }
-        if (source.IndentStart.HasValue) target.IndentStart = OdfLength.Points(source.IndentStart.Value.ToPoints());
-        if (source.IndentEnd.HasValue) target.IndentEnd = OdfLength.Points(source.IndentEnd.Value.ToPoints());
-        if (source.IndentFirstLine.HasValue) target.FirstLineIndent = OdfLength.Points(source.IndentFirstLine.Value.ToPoints());
-        if (source.SpaceAbove.HasValue) target.SpaceAbove = OdfLength.Points(source.SpaceAbove.Value.ToPoints());
-        if (source.SpaceBelow.HasValue) target.SpaceBelow = OdfLength.Points(source.SpaceBelow.Value.ToPoints());
-        if (source.IsRightToLeft) target.WritingMode = "rl-tb";
-        if (TryMapWordLineHeight(source, out OdfLength lineHeight)) target.LineHeight = lineHeight;
-        if (OdfColor.TryParse(source.ShadingFillColor?.ToRgbHex(), out OdfColor background)) target.BackgroundColor = background;
+        if (source.IndentStart.HasValue) style.MarginLeft = OdfLength.Points(source.IndentStart.Value.ToPoints());
+        if (source.IndentEnd.HasValue) style.MarginRight = OdfLength.Points(source.IndentEnd.Value.ToPoints());
+        if (source.IndentFirstLine.HasValue) style.TextIndent = OdfLength.Points(source.IndentFirstLine.Value.ToPoints());
+        if (source.SpaceAbove.HasValue) style.MarginTop = OdfLength.Points(source.SpaceAbove.Value.ToPoints());
+        if (source.SpaceBelow.HasValue) style.MarginBottom = OdfLength.Points(source.SpaceBelow.Value.ToPoints());
+        if (source.IsRightToLeft) style.WritingMode = "rl-tb";
+        if (TryMapWordLineHeight(source, out OdfLength lineHeight)) style.LineHeight = lineHeight;
+        if (OdfColor.TryParse(source.ShadingFillColor?.ToRgbHex(), out OdfColor background)) style.BackgroundColor = background;
     }
 
     private static int ApplyOdtParagraphFormatting(OdtParagraph source, WordParagraph target) {

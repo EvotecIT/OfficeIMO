@@ -90,6 +90,7 @@ public sealed class PdfUnderstandingPageContext {
     }
     internal IReadOnlyList<PdfTextSpan> DecodedRuns { get; set; } = Array.Empty<PdfTextSpan>();
     internal IReadOnlyList<PdfFontInspectionDiagnostic> TextDecodingDiagnostics { get; set; } = Array.Empty<PdfFontInspectionDiagnostic>();
+    internal PdfTextDecodingDiagnosticsBuilder? InspectionTextRecovery { get; set; }
     /// <summary>Table candidates available to page segmentation and later stages.</summary>
     public IReadOnlyList<PdfUnderstandingTableCandidate> TableCandidates { get; internal set; } = Array.Empty<PdfUnderstandingTableCandidate>();
     /// <summary>Image placement invocations available to semantic stages in stable paint order.</summary>

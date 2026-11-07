@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
             int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
             int imageStart = currentPage.Images.Count;
             int formFieldStart = currentPage.FormFields.Count;
-            new ContentStreamBuilder(sb).SaveState();
+            ContentStreamBuilder.AppendGraphicsSave(sb);
             AppendClipPath(sb, item.ClipPath, item.X, bottomY, item.Height);
 
             int diagnosticClipCount = _diagnosticCanvasClips.Count;
@@ -48,8 +48,7 @@ internal static partial class PdfWriter {
             ClipCanvasHighlightAnnotations(currentPage.HighlightAnnotations, highlightAnnotationStart, item.X, bottomY, item.Width, item.Height, item.ClipPath);
             ClipCanvasPageImages(currentPage.Images, imageStart, item.X, bottomY, item.Width, item.Height);
             ClipCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height, item.ClipPath.Kind);
-            new ContentStreamBuilder(sb)
-                .RestoreState();
+            ContentStreamBuilder.AppendGraphicsRestore(sb);
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }

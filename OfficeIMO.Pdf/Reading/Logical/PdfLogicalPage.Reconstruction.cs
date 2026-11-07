@@ -13,6 +13,8 @@ public sealed partial class PdfLogicalPage {
         PdfUnderstandingPageResult? analysis = null,
         bool includeImages = true,
         bool includeFormWidgets = true,
+        bool recoverDecodableText = false,
+        PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var size = page.GetPageSize();
@@ -112,7 +114,9 @@ public sealed partial class PdfLogicalPage {
         IReadOnlyList<PdfImagePlacement> imagePlacements = !includeImages ? Array.Empty<PdfImagePlacement>() : analysis is not null
             ? pageAnalysis.ImagePlacements
             : page.GetImagePlacements(pageNumber, cancellationToken);
-        foreach (var image in includeImages ? page.GetImages(pageNumber, imagePlacements, cancellationToken) : Array.Empty<PdfExtractedImage>()) {
+        foreach (var image in includeImages
+            ? page.GetImages(pageNumber, imagePlacements, indexedSoftMaskMemo, cancellationToken)
+            : Array.Empty<PdfExtractedImage>()) {
             IReadOnlyList<PdfImagePlacement> matchingPlacements = MatchImagePlacements(image, imagePlacements);
             var logicalImage = new PdfLogicalImage(
                 image,
@@ -152,8 +156,19 @@ public sealed partial class PdfLogicalPage {
             pageActions.Add(readPageActions[i].WithPageNumber(pageNumber));
         }
 
-        (int vectorPrimitiveCount, int unrepresentedVectorPrimitiveCount) =
-            includeImages ? page.GetVisibleVisualPrimitiveCounts(structured.TablesDetailed) : (0, 0);
+        bool hasVisualPrimitiveCounts = includeImages;
+        int vectorPrimitiveCount = 0;
+        int unrepresentedVectorPrimitiveCount = 0;
+        if (includeImages) {
+            try {
+                (vectorPrimitiveCount, unrepresentedVectorPrimitiveCount) = page.GetVisibleVisualPrimitiveCounts(structured.TablesDetailed);
+            } catch (PdfUnsupportedTextMappingException) when (recoverDecodableText &&
+                pageAnalysis.TextDecodingDiagnostics.Any(static diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.UnmappableText)) {
+                // Keep the recovered text and image assets without certifying visual counts from a failed paint pass.
+                cancellationToken.ThrowIfCancellationRequested();
+                hasVisualPrimitiveCounts = false;
+            }
+        }
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup =
             CreateLogicalTextBlockLookup(textBlocks);
         LogicalTextBlockSourceIndex textBlockSourceIndex = LogicalTextBlockSourceIndex.Create(textBlocks);
@@ -180,9 +195,9 @@ public sealed partial class PdfLogicalPage {
             formWidgets.AsReadOnly(),
             pageActions.AsReadOnly(),
             page.HasOptionalContentUsage(cancellationToken),
-            pageAnalysis, hasVisualPrimitiveCounts: includeImages,
+            pageAnalysis, hasVisualPrimitiveCounts: hasVisualPrimitiveCounts,
             includesImages: includeImages, includesFormWidgets: includeFormWidgets);
-        logicalPage.OmittedArtifactTextSpanCount = page.CountOmittedArtifactTextSpans(cancellationToken);
+        logicalPage.OmittedArtifactTextSpanCount = page.CountOmittedArtifactTextSpans(cancellationToken, recoverDecodableText);
         if (includeImages && unrepresentedVectorPrimitiveCount >= 6) {
             logicalPage.VectorFigures = PdfLogicalVectorFigureAnalysis.Detect(page, textBlocks, tables, imagePlacements, cancellationToken);
         }

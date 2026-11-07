@@ -331,12 +331,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void ExpandLeaderSegments(IEnumerable<InlineLine> lines, double width) {
         foreach (InlineLine line in lines) {
-            List<int> leaders = line.Segments
-                .Select((segment, index) => new { segment, index })
-                .Where(item => item.segment.Run.LeaderPattern != null)
-                .Select(item => item.index)
-                .ToList();
-            if (leaders.Count == 0) continue;
+            List<int>? leaders = null;
+            for (int index = 0; index < line.Segments.Count; index++) {
+                if (line.Segments[index].Run.LeaderPattern == null) continue;
+                leaders ??= new List<int>();
+                leaders.Add(index);
+            }
+            if (leaders == null) continue;
             double availableWidth = line.ResolveAvailableWidth(width);
             double share = Math.Max(0D, availableWidth - line.Width) / leaders.Count;
             foreach (int index in leaders) line.SetSegmentWidth(index, share);

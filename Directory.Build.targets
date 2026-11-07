@@ -20,14 +20,16 @@
     <EnableAotAnalyzer>true</EnableAotAnalyzer>
   </PropertyGroup>
 
-  <!-- Keep shipped release binaries reproducible without embedding a maintainer's
-       checkout path in portable PDB documents or CodeView content IDs. Limit the
-       source mapping to packable production projects: non-packable test projects
-       retain physical CallerFilePath values for Verify snapshots, and Debug builds
-       retain local paths for source breakpoints. -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Release' And '$(IsPackable)' != 'false' And '$(IsTestProject)' != 'true'">
+  <!-- Keep release libraries and the PDF comparison graph reproducible across
+       checkout and external intermediate paths. Tests retain physical
+       CallerFilePath values for Verify snapshots; Debug builds retain local
+       paths for source breakpoints. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' And '$(IsTestProject)' != 'true' And ('$(IsPackable)' != 'false' Or '$(MSBuildProjectName)' == 'OfficeIMO.Pdf.Benchmarks.Comparisons')">
     <DeterministicSourcePaths>true</DeterministicSourcePaths>
-    <PathMap>$(MSBuildThisFileDirectory)=/_/</PathMap>
+    <PathMap>$([MSBuild]::ValueOrDefault('$(MSBuildThisFileDirectory)', '').Replace(',', ',,').Replace('=', '=='))=/_/</PathMap>
+    <!-- One shared prefix keeps publisher command lines bounded across the project graph. -->
+    <_OfficeIMOCompilerArtifactsPath Condition="'$(UseArtifactsOutput)' == 'true' And '$(UseArtifactsIntermediateOutput)' == 'true' And '$(ArtifactsPath)' != ''">$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(ArtifactsPath)', 'obj'))</_OfficeIMOCompilerArtifactsPath>
+    <PathMap Condition="'$(_OfficeIMOCompilerArtifactsPath)' != ''">$([MSBuild]::ValueOrDefault('$(_OfficeIMOCompilerArtifactsPath)', '').Replace(',', ',,').Replace('=', '=='))=/_/obj/,$(PathMap)</PathMap>
   </PropertyGroup>
 
   <!-- Production projects inherit TreatWarningsAsErrors=true from Directory.Build.props.

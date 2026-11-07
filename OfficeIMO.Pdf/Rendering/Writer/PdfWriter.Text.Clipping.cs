@@ -5,7 +5,8 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfCreateOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<OfficeAlignment?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, bool clipToFrame = true, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, LayoutResult.Page? fontPage = null, TableCellContentFrame? barClipFrame = null, Action<Action>? foregroundGroup = null, bool suppressInlineAccessibility = false) {
         // Prevent link coalescing from extending a newly clipped annotation into a prior text frame.
-        annots.Add(new LinkAnnotation());
+        bool hasPriorAnnotations = annots.Count > 0;
+        if (hasPriorAnnotations) annots.Add(new LinkAnnotation());
         int annotationStart = annots.Count;
         if (clipToFrame) {
             new ContentStreamBuilder(sb)
@@ -18,7 +19,7 @@ internal static partial class PdfWriter {
         WriteRichParagraph(sb, block, lines, lineHeights, opts, startY, fontSize, defaultLeading, annots, xOverride, widthOverride, firstLineXOverride, firstLineWidthOverride, structureType, markedContentId, structurePage, lineAlignments, lineXOffsets, lineWidths, suppressActualText, lineTopGaps, baselineFont,
             foregroundGraphicsState: foregroundGraphicsState, decorationGraphicsState: decorationGraphicsState, fontPage: fontPage, barClipFrame: barClipFrame, foregroundGroup: foregroundGroup, suppressInlineAccessibility: suppressInlineAccessibility);
         if (clipToFrame) ClipLinkAnnotations(annots, annotationStart, clipX, clipY, clipWidth, clipHeight);
-        annots.RemoveAt(annotationStart - 1);
+        if (hasPriorAnnotations) annots.RemoveAt(annotationStart - 1);
 
         if (clipToFrame) new ContentStreamBuilder(sb).RestoreState();
     }

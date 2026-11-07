@@ -437,6 +437,8 @@ internal static partial class PdfSyntax {
         }
 
         bool applied = false;
+        if (activeEntries.Count == 0) return false;
+        var headerMemo = new ObjectStreamHeaderMemo();
         foreach (XrefStreamEntry entry in activeEntries.Values) {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.Field1 < 0 ||
@@ -449,7 +451,7 @@ internal static partial class PdfSyntax {
 
             int objectStreamNumber = (int)entry.Field1;
             int objectStreamIndex = (int)entry.Field2;
-            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset, cancellationToken)) {
+            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset, headerMemo, cancellationToken)) {
                 if (parsed.Value.HasIncompleteSyntax) reportUnreadable(entry.ObjectNumber);
                 map[entry.ObjectNumber] = parsed;
                 parsedOffsets[entry.ObjectNumber] = objectStreamOffset;
@@ -778,7 +780,8 @@ internal static partial class PdfSyntax {
         PdfDecodedStreamBudget decodedStreamBudget,
         out PdfIndirectObject parsed,
         out int objectStreamOffset,
-        System.Threading.CancellationToken cancellationToken) {
+        ObjectStreamHeaderMemo? headerMemo = null,
+        System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         parsed = null!;
         objectStreamOffset = int.MaxValue;
@@ -794,11 +797,26 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        byte[] headerBytes = CopyBytes(data, 0, first, cancellationToken);
-        string header = PdfEncoding.Latin1GetStringCancellable(headerBytes, cancellationToken);
-        var pairs = ParsePairs(header, n, out bool completeHeader, cancellationToken);
-        if (!completeHeader ||
-            pairs[objectStreamIndex].Obj != expectedObjectNumber) {
+        List<(int Obj, int Off)> pairs;
+        if (headerMemo?.Pairs is { } cachedPairs &&
+            ReferenceEquals(headerMemo.Stream, objectStream) &&
+            ReferenceEquals(headerMemo.Data, data) &&
+            headerMemo.ObjectCount == n && headerMemo.FirstObjectOffset == first) {
+            pairs = cachedPairs;
+        } else {
+            byte[] headerBytes = CopyBytes(data, 0, first, cancellationToken);
+            string header = PdfEncoding.Latin1GetStringCancellable(headerBytes, cancellationToken);
+            pairs = ParsePairs(header, n, out bool completeHeader, cancellationToken);
+            if (!completeHeader) return false;
+            if (headerMemo is not null) {
+                headerMemo.Stream = objectStream;
+                headerMemo.Data = data;
+                headerMemo.ObjectCount = n;
+                headerMemo.FirstObjectOffset = first;
+                headerMemo.Pairs = pairs;
+            }
+        }
+        if (pairs[objectStreamIndex].Obj != expectedObjectNumber) {
             return false;
         }
 
@@ -823,6 +841,15 @@ internal static partial class PdfSyntax {
         parsed = new PdfIndirectObject(expectedObjectNumber, 0, parsedObject);
         objectStreamOffset = parsedOffsets.TryGetValue(objectStreamNumber, out int offset) ? offset : int.MaxValue;
         return true;
+    }
+
+    // One complete header is retained only while this load applies compressed xref entries.
+    private sealed class ObjectStreamHeaderMemo {
+        internal PdfStream? Stream { get; set; }
+        internal byte[]? Data { get; set; }
+        internal int ObjectCount { get; set; }
+        internal int FirstObjectOffset { get; set; }
+        internal List<(int Obj, int Off)>? Pairs { get; set; }
     }
 
     private readonly struct XrefStreamEntry {

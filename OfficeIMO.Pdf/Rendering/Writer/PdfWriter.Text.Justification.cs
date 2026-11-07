@@ -31,6 +31,8 @@ internal static partial class PdfWriter {
             TryApplyWordCompressionPlan(segments, availableWidth, out RichLineJustification compression))
             return compression;
         double naturalWidth = MeasureRichLineWidth(segments);
+        if (alignment != OfficeAlignment.Justify)
+            return new RichLineJustification(segments, 0D, naturalWidth);
         bool hardBreak = segments.Any(segment => segment.EndsWithHardBreak);
         RichLineJustificationPolicy policy = segments.Select(segment => segment.JustificationPolicy).FirstOrDefault(item => item.HasValue)
             ?? new RichLineJustificationPolicy(style, isFinalParagraphLine, hardBreak);

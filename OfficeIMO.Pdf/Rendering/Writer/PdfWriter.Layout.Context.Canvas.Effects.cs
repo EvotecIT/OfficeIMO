@@ -88,9 +88,9 @@ internal static partial class PdfWriter {
             int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
             int imageStart = currentPage.Images.Count;
             int formFieldStart = currentPage.FormFields.Count;
-            var content = new ContentStreamBuilder(sb).SaveState();
+            ContentStreamBuilder.AppendGraphicsSave(sb);
             if (!transform.Equals(OfficeTransform.Identity)) {
-                content.TransformMatrix(transform);
+                ContentStreamBuilder.AppendGraphicsTransform(sb, transform);
             }
             OfficeTransform previousEffectToPage = _canvasEffectToPage;
             _canvasEffectToPage = transform.Then(previousEffectToPage);
@@ -100,7 +100,7 @@ internal static partial class PdfWriter {
             } finally {
                 _canvasClipDepth--;
                 _canvasEffectToPage = previousEffectToPage;
-                new ContentStreamBuilder(sb).RestoreState();
+                ContentStreamBuilder.AppendGraphicsRestore(sb);
             }
 
             TransformCanvasRectangles(currentPage.Annotations, annotationStart, transform);

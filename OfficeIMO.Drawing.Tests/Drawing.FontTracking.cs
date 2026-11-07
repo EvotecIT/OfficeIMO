@@ -35,6 +35,22 @@ public sealed class DrawingFontTrackingTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void MeasurementsRemainIndependentOfOutputScaleMeasurementOrder(bool scaledFirst) {
+        OfficeTrueTypeFont nominal = Assert.IsType<OfficeTrueTypeFont>(Font());
+        OfficeTrueTypeFont scaled = nominal.ForOutputScale(2D);
+
+        if (scaledFirst) {
+            Assert.Equal(16D, scaled.Measure("AB", 20D), 9);
+            Assert.Equal(20D, nominal.Measure("AB", 20D), 9);
+        } else {
+            Assert.Equal(20D, nominal.Measure("AB", 20D), 9);
+            Assert.Equal(16D, scaled.Measure("AB", 20D), 9);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void ShapedTrackingUsesGlyphCountAndSignedDirection(bool negative) {
         IOfficeFontProgram font = Font();
         int advance = negative ? -500 : 500;

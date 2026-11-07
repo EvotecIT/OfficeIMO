@@ -380,7 +380,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     /// <inheritdoc />
     public double Measure(string text, double fontSize) {
         if (_variations != null || text.Length > MaximumMeasuredTextLength) return MeasureText(text, fontSize);
-        var key = (text, fontSize);
+        var key = (text, fontSize, _trackingEvaluationScale);
         if (_measuredWidths.TryGetValue(key, out double measured)) return measured;
         measured = MeasureText(text, fontSize);
         _measuredWidths.TryAdd(key, measured);
@@ -390,8 +390,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     // Layout measures the same words repeatedly, for intrinsic sizes and again for line breaking.
     private const int MaximumMeasuredTextLength = 128;
     private const int MaximumMeasuredTexts = 8192;
-    private readonly OfficeBoundedCache<(string, double), double> _measuredWidths =
-        new OfficeBoundedCache<(string, double), double>(MaximumMeasuredTexts);
+    private readonly OfficeBoundedCache<(string, double, double), double> _measuredWidths =
+        new OfficeBoundedCache<(string, double, double), double>(MaximumMeasuredTexts);
 
     private double MeasureText(string text, double fontSize) {
         var scale = ScaleFor(fontSize);

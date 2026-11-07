@@ -103,10 +103,12 @@ public static partial class HtmlComputedStyleEngine {
         string shorthandValue = value;
         if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
+            var currentProperties = properties;
+            var inheritedProperties = parentProperties;
             HtmlCssCustomPropertyResolver.TryResolve(
                 value,
-                customName => TryGetCascadedValue(properties, customName)
-                    ?? (parentProperties != null && parentProperties.TryGetValue(customName, out string? inherited) ? inherited : null),
+                customName => TryGetCascadedValue(currentProperties, customName)
+                    ?? (inheritedProperties != null && inheritedProperties.TryGetValue(customName, out string? inherited) ? inherited : null),
                 out shorthandValue, enforceResolutionLimits);
         }
         if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)

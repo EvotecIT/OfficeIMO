@@ -3,10 +3,24 @@ using OfficeIMO.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
+    /// <summary>Keeps the page-clip callback's captures on the page-clipped visual path.</summary>
+    private static void AddPageClippedVisual(
+        PdfCore.PdfPageCanvas canvas, HtmlRenderVisual visual,
+        RegisteredWebFonts webFonts, PdfImageResourceCache imageResources,
+        PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight,
+        bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan,
+        bool logicalTextOwned, HtmlPdfPagePaintContext? pagePaint) {
+        var pageClip = new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight);
+        canvas.SourceClip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, clipped =>
+            AddVisual(clipped, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
+                interactiveFormControls, cancellationToken, textAsSpan, pageClip, logicalTextOwned, pagePaint));
+    }
+
     private readonly struct ClipBounds {
         internal ClipBounds(double left, double top, double right, double bottom, bool allowsInteractiveWidgets = true, bool constrainToSurface = true)
             : this(left, top, right, bottom, allowsInteractiveWidgets, constrainToSurface, null) { }

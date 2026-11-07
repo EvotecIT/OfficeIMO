@@ -47,7 +47,10 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
     internal static string WithStructureMetadata(string dictionary, int? namespaceId = null, string? language = null, string? elementId = null) {
         if (!namespaceId.HasValue && string.IsNullOrWhiteSpace(language) && elementId == null) return dictionary;
         var sb = new StringBuilder(dictionary.Substring(0, dictionary.Length - 3));
-        if (namespaceId.HasValue) sb.Append(" /NS ").Append(PdfSyntaxEscaper.IndirectReference(namespaceId.Value));
+        if (namespaceId.HasValue) {
+            sb.Append(" /NS ");
+            PdfSyntaxEscaper.AppendIndirectReference(sb, namespaceId.Value);
+        }
         if (!string.IsNullOrWhiteSpace(language)) sb.Append(" /Lang ").Append(PdfSyntaxEscaper.TextString(language!));
         if (elementId != null) sb.Append(" /ID ").Append(PdfSyntaxEscaper.TextString(elementId));
         return sb.Append(" >>\n").ToString();

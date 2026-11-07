@@ -15,7 +15,9 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfConversionReport conversionReport,
         CancellationToken cancellationToken,
         bool suppressLink) {
-        IReadOnlyList<OfficeGradientStop>? stops = visual.Shape.FillRadialGradient?.Stops ?? visual.Shape.FillGradient?.Stops;
+        // Inspect the detached descriptor already retained by this drawing.
+        OfficeShape shape = drawing.Shapes[0].Shape;
+        IReadOnlyList<OfficeGradientStop>? stops = shape.FillRadialGradient?.Stops ?? shape.FillGradient?.Stops;
         if (stops == null || stops.All(stop => stop.Color.A == byte.MaxValue)) return false;
 
         cancellationToken.ThrowIfCancellationRequested();

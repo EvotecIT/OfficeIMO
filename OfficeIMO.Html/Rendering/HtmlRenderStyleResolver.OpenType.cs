@@ -7,18 +7,31 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderStyleResolver {
     private static OfficeTextFeatureSettings ResolveTextFeatureSettings(HtmlComputedStyle computed) {
-        var features = new Dictionary<string, int>(StringComparer.Ordinal);
-
         string shorthand = computed.GetValue("font-variant");
+        string kerning = computed.GetValue("font-kerning");
+        string ligatures = computed.GetValue("font-variant-ligatures");
+        string numeric = computed.GetValue("font-variant-numeric");
+        string eastAsian = computed.GetValue("font-variant-east-asian");
+        string explicitFeatures = computed.GetValue("font-feature-settings");
+        if (IsEmptyOrKeyword(shorthand, "normal") && IsEmptyOrKeyword(kerning, "auto")
+            && IsEmptyOrKeyword(ligatures, "normal") && IsEmptyOrKeyword(numeric, "normal")
+            && IsEmptyOrKeyword(eastAsian, "normal") && IsEmptyOrKeyword(explicitFeatures, "normal")) {
+            return OfficeTextFeatureSettings.Default;
+        }
+
+        var features = new Dictionary<string, int>(StringComparer.Ordinal);
         ApplyLigatures(shorthand, features);
         ApplyNumeric(shorthand, features);
         ApplyEastAsian(shorthand, features);
-        ApplyKerning(computed.GetValue("font-kerning"), features);
-        ApplyLigatures(computed.GetValue("font-variant-ligatures"), features);
-        ApplyNumeric(computed.GetValue("font-variant-numeric"), features);
-        ApplyEastAsian(computed.GetValue("font-variant-east-asian"), features);
-        ApplyFeatureSettings(computed.GetValue("font-feature-settings"), features);
+        ApplyKerning(kerning, features);
+        ApplyLigatures(ligatures, features);
+        ApplyNumeric(numeric, features);
+        ApplyEastAsian(eastAsian, features);
+        ApplyFeatureSettings(explicitFeatures, features);
         return features.Count == 0 ? OfficeTextFeatureSettings.Default : new OfficeTextFeatureSettings(features);
+
+        static bool IsEmptyOrKeyword(string value, string keyword) =>
+            value.Length == 0 || string.Equals(value, keyword, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ResolveInheritedKeyword(string value, string? inherited, string fallback) {

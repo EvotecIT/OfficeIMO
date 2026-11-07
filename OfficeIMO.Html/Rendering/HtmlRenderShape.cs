@@ -19,6 +19,36 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
         CanExtendFragmentColumnRule = canExtendFragmentColumnRule;
     }
 
+    /// <summary>Creates and retains a private line for one resolved collapsed-border stroke.</summary>
+    internal static HtmlRenderShape CreateCollapsedBorderStroke(
+        bool horizontal, double x, double y, double length, OfficeColor color, double width,
+        OfficeStrokeDashStyle dashStyle, OfficeStrokeLineCap lineCap, int paintOrder,
+        string source, double? horizontalBoundaryY = null) {
+        OfficeShape shape = horizontal
+            ? OfficeShape.Line(0D, 0D, length, 0.0001D)
+            : OfficeShape.Line(0D, 0D, 0.0001D, length);
+        shape.StrokeColor = color;
+        shape.StrokeWidth = width;
+        shape.StrokeDashStyle = dashStyle;
+        shape.StrokeLineCap = lineCap;
+        shape.FillColor = null;
+        // Retain the horizontal stroke's extent when pagination slices between rows.
+        double layoutHeight = horizontal ? Math.Max(0.01D, width) : shape.Height;
+        double layoutY = horizontal ? y - layoutHeight / 2D : y;
+        return new HtmlRenderShape(shape, x, y, paintOrder, source, layoutY, layoutHeight,
+            horizontal ? horizontalBoundaryY ?? y : null);
+    }
+
+    // Only the collapsed-border factory supplies this private, unaliased line.
+    private HtmlRenderShape(OfficeShape collapsedBorder, double x, double y, int paintOrder,
+        string source, double layoutY, double layoutHeight, double? collapsedBorderBoundaryY)
+        : base(HtmlRenderVisualKind.Shape, x, y, collapsedBorder.Width, collapsedBorder.Height,
+            paintOrder, null, source, layoutY, layoutHeight) {
+        _shape = collapsedBorder;
+        IsCollapsedTableBorder = true;
+        CollapsedBorderBoundaryY = collapsedBorderBoundaryY;
+    }
+
     // A visual's private geometry is immutable: public Shape reads return detached
     // copies, and internal readers clone before editing. Position-only projections
     // can therefore share this snapshot without another shape/effect graph copy.

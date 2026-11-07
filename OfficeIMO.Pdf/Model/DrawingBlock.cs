@@ -13,7 +13,8 @@ internal sealed class DrawingBlock : IPdfBlock {
     public string? AlternativeText => Style?.AlternativeText;
     public bool Decorative => Style?.Decorative == true;
 
-    public DrawingBlock(OfficeDrawing drawing, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    /// <summary>Retains the factory's private validated style. Shared scene snapshots must remain immutable and unavailable to caller edits.</summary>
+    internal DrawingBlock(OfficeDrawing drawing, PdfDrawingStyle? preparedStyle, string? linkUri, string? linkContents, bool useDrawingSnapshot) {
         Guard.NotNull(drawing, nameof(drawing));
         Guard.OptionalUriAction(linkUri, nameof(linkUri));
         if (linkContents != null && linkUri == null) {
@@ -24,17 +25,9 @@ internal sealed class DrawingBlock : IPdfBlock {
             Guard.NotNullOrWhiteSpace(linkContents, nameof(linkContents));
         }
 
-        Drawing = drawing.Clone();
-        Style = style?.Clone();
+        Drawing = useDrawingSnapshot ? drawing : drawing.Clone();
+        Style = preparedStyle;
         LinkUri = linkUri;
         LinkContents = linkUri == null ? null : linkContents ?? "Drawing";
-    }
-
-    public DrawingBlock(OfficeDrawing drawing, OfficeAlignment align, double spacingBefore, double spacingAfter, string? linkUri = null, string? linkContents = null)
-        : this(drawing, new PdfDrawingStyle {
-            Align = align,
-            SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore),
-            SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter)
-        }, linkUri, linkContents) {
     }
 }

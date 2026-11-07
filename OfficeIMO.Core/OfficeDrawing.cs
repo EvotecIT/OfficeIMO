@@ -52,14 +52,20 @@ public sealed partial class OfficeDrawing {
     }
 
     /// <summary>Adds a shape at a local top-left coordinate and returns this drawing.</summary>
-    public OfficeDrawing AddShape(OfficeShape shape, double x, double y) {
-        var item = new OfficeDrawingShape(shape, x, y);
-        if (item.X < 0D || item.Y < 0D || item.X + item.Shape.Width > Width || item.Y + item.Shape.Height > Height) {
+    public OfficeDrawing AddShape(OfficeShape shape, double x, double y) =>
+        AppendShape(new OfficeDrawingShape(shape, x, y));
+
+    /// <summary>Retains a private immutable shape snapshot; the adapter must never expose or edit the descriptor or its retained scene.</summary>
+    internal OfficeDrawing AddShapeSnapshot(OfficeShape shape, double x, double y) =>
+        AppendShape(new OfficeDrawingShape(shape, x, y, useShapeSnapshot: true));
+
+    private OfficeDrawing AppendShape(OfficeDrawingShape shape) {
+        if (shape.X < 0D || shape.Y < 0D || shape.X + shape.Shape.Width > Width || shape.Y + shape.Shape.Height > Height) {
             throw new ArgumentOutOfRangeException(nameof(shape), "Drawing shapes must fit inside the drawing bounds.");
         }
 
-        _shapes.Add(item);
-        _elements.Add(item);
+        _shapes.Add(shape);
+        _elements.Add(shape);
         return this;
     }
 

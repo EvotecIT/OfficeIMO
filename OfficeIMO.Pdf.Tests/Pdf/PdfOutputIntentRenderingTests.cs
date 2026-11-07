@@ -274,18 +274,25 @@ public partial class PdfOutputIntentRenderingTests {
             profileBytes,
             OfficeColor.FromRgb(51, 102, 204),
             OfficeIccRenderingIntent.Perceptual);
+        OfficeColor other = ExpectedOutputConversion(
+            profileBytes,
+            OfficeColor.FromRgb(204, 51, 102),
+            OfficeIccRenderingIntent.Perceptual);
         byte[] directPdf = BuildImagePdf(
             profileBytes,
             "/DeviceRGB",
-            new byte[] { 51, 102, 204 },
-            "/Intent /Perceptual");
+            new byte[] { 51, 102, 204, 51, 102, 204, 204, 51, 102, 51, 102, 204 },
+            "/Intent /Perceptual", width: 4);
         byte[] indexedPdf = BuildImagePdf(
             profileBytes,
             "[/Indexed /DeviceRGB 1 <0000003366CC>]",
             new byte[] { 1 },
             "/Intent /Perceptual");
 
-        Assert.Equal(expected, ReadSingleExtractedPixel(directPdf));
+        PdfExtractedImage directImage = Assert.Single(PdfImageExtractor.ExtractImages(directPdf));
+        Assert.True(OfficePngReader.TryDecode(directImage.Bytes, out OfficeRasterImage? raster));
+        Assert.Equal(new[] { expected, expected, other, expected },
+            Enumerable.Range(0, 4).Select(x => raster!.GetPixel(x, 0)));
         Assert.Equal(expected, ReadSingleExtractedPixel(indexedPdf));
     }
 
@@ -989,7 +996,8 @@ public partial class PdfOutputIntentRenderingTests {
         byte[] profileBytes,
         string imageColorSpace,
         byte[] imageSamples,
-        string imageEntries) {
+        string imageEntries,
+        int width = 1) {
         byte[] contentBytes = Encoding.ASCII.GetBytes("q 20 0 0 20 10 10 cm /Im Do Q");
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
@@ -1001,7 +1009,8 @@ public partial class PdfOutputIntentRenderingTests {
         WriteAscii(output, "\nendstream\nendobj\n");
         WriteAscii(
             output,
-            "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace " +
+            "5 0 obj\n<< /Type /XObject /Subtype /Image /Width " + width.ToString(CultureInfo.InvariantCulture) +
+            " /Height 1 /BitsPerComponent 8 /ColorSpace " +
             imageColorSpace + " " + imageEntries + " /Length " +
             imageSamples.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(imageSamples, 0, imageSamples.Length);

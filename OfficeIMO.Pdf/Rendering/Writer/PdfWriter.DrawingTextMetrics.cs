@@ -3,6 +3,20 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    /// <summary>Retains one drawing's font-measurement state only after its first text measurement.</summary>
+    private sealed class DrawingTextMetricsState {
+        private readonly PdfCreateOptions options;
+        private readonly System.Threading.CancellationToken cancellationToken;
+        private OfficeDrawingTextMetrics? value;
+
+        internal DrawingTextMetricsState(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken) {
+            this.options = options;
+            this.cancellationToken = cancellationToken;
+        }
+
+        internal OfficeDrawingTextMetrics Value => value ??= CreateDrawingTextMetrics(options, cancellationToken);
+    }
+
     // Font selection stays in PDF options; native geometry is measured by the shared font engine.
     internal static Func<string?, double, string?, OfficeFontStyle, double> CreateDrawingTextMeasure(PdfCreateOptions options) {
         return CreateDrawingTextMetrics(options).MeasureText;

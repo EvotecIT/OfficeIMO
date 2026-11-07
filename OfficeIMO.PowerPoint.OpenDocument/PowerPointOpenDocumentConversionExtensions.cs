@@ -685,25 +685,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static void ApplyPowerPointRun(PowerPointTextRun source, OdpRun target,
         PowerPointOpenDocumentConversionOptions options) {
         if (!options.IncludeBasicFormatting) return;
-        target.Bold = source.Bold ? true : (bool?)null;
-        target.Italic = source.Italic ? true : (bool?)null;
-        ApplyPowerPointTextSemantics(source, target);
-        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
-        target.FontFamily = source.FontFamily;
-        if (source.Color is { IsThemeRole: false } color) target.Color = ParseColor(color.ToRgbHex());
-        if (source.BackgroundColor is { IsThemeRole: false } background) target.BackgroundColor = ParseColor(background.ToRgbHex());
+        ApplyPowerPointRun(source, target.EnsureStyle());
     }
 
     private static void ApplyPowerPointRun(PowerPointTextRun source, OdpHyperlink target,
         PowerPointOpenDocumentConversionOptions options) {
         if (!options.IncludeBasicFormatting) return;
+        ApplyPowerPointRun(source, target.EnsureStyle());
+    }
+
+    private static void ApplyPowerPointRun(PowerPointTextRun source, OdfStyle target) {
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
         ApplyPowerPointTextSemantics(source, target);
         if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         target.FontFamily = source.FontFamily;
         if (source.Color is { IsThemeRole: false } color) target.Color = ParseColor(color.ToRgbHex());
-        if (source.BackgroundColor is { IsThemeRole: false } background) target.BackgroundColor = ParseColor(background.ToRgbHex());
+        if (source.BackgroundColor is { IsThemeRole: false } background) target.TextBackgroundColor = ParseColor(background.ToRgbHex());
     }
 
     private static bool HasBasicFormatting(PowerPointTextRun run) =>
@@ -730,20 +728,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         run.LineThroughType.HasValue || run.TextPosition.HasValue || run.TextTransform.HasValue || run.SmallCaps.HasValue ||
         run.FontSize.HasValue || !string.IsNullOrWhiteSpace(run.FontFamily) || run.Color.HasValue || run.BackgroundColor.HasValue;
 
-    private static void ApplyPowerPointTextSemantics(PowerPointTextRun source, OdpRun target) {
-        (target.UnderlineStyle, target.UnderlineType) = MapPowerPointUnderline(source.UnderlineStyle);
-        target.LineThroughStyle = source.Strikethrough ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
-        target.LineThroughType = source.StrikeStyle == PowerPointStrikeStyle.Double
-            ? OdfTextDecorationType.Double
-            : source.Strikethrough ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
-        target.TextPosition = MapPowerPointTextPosition(source.BaselinePercent);
-        target.TextTransform = source.Capitalization == PowerPointCapitalization.AllCaps
-            ? OdfTextTransform.Uppercase
-            : OdfTextTransform.None;
-        target.SmallCaps = source.Capitalization == PowerPointCapitalization.SmallCaps ? true : (bool?)null;
-    }
-
-    private static void ApplyPowerPointTextSemantics(PowerPointTextRun source, OdpHyperlink target) {
+    private static void ApplyPowerPointTextSemantics(PowerPointTextRun source, OdfStyle target) {
         (target.UnderlineStyle, target.UnderlineType) = MapPowerPointUnderline(source.UnderlineStyle);
         target.LineThroughStyle = source.Strikethrough ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
         target.LineThroughType = source.StrikeStyle == PowerPointStrikeStyle.Double

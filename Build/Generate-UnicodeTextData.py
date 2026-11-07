@@ -3,7 +3,8 @@
 The tables back the managed Unicode Bidirectional Algorithm (UAX #9) and line breaking (UAX #14):
 Bidi_Class, Bidi_Paired_Bracket(_Type), Line_Break, East_Asian_Width (F/W/H only) and
 Extended_Pictographic. Values are stored as sorted range starts with one value per range, so a
-lookup is a binary search and unlisted code points take the documented @missing defaults.
+lookup uses generated ASCII values below 128, then binary search; unlisted code points take
+the documented @missing defaults.
 Canonical_Combining_Class and Modifier_Combining_Mark support font-aware normalization and AMTRA.
 
 Usage (Python 3, no third-party packages):
@@ -196,6 +197,12 @@ def main():
         "    internal const string UnicodeVersion = \"16.0.0\";",
         "",
     ]
+    out += array("AsciiBidiClassValues", "byte", [str(BIDI_CLASSES.index(value)) for value in bidi[:128]], 24)
+    out += [""]
+    out += array("AsciiLineBreakValues", "byte", [str(LINE_BREAK_CLASSES.index(value)) for value in line_break[:128]], 24)
+    out += [""]
+    out += array("AsciiEastAsianWideValues", "byte", wide[:128], 24)
+    out += [""]
     out += array("BidiClassStarts", "int", [f"0x{value:X}" for value in bidi_starts], 10)
     out += array("BidiClassValues", "byte", [str(BIDI_CLASSES.index(value)) for value in bidi_values], 24)
     out += [""]
@@ -214,14 +221,20 @@ def main():
     out += [
         "",
         "    internal static OfficeBidiClass GetBidiClass(int scalar) =>",
-        "        (OfficeBidiClass)BidiClassValues[FindRange(BidiClassStarts, scalar)];",
+        "        (uint)scalar < 128",
+        "            ? (OfficeBidiClass)AsciiBidiClassValues[scalar]",
+        "            : (OfficeBidiClass)BidiClassValues[FindRange(BidiClassStarts, scalar)];",
         "",
         "    internal static OfficeLineBreakClass GetLineBreakClass(int scalar) =>",
-        "        (OfficeLineBreakClass)LineBreakValues[FindRange(LineBreakStarts, scalar)];",
+        "        (uint)scalar < 128",
+        "            ? (OfficeLineBreakClass)AsciiLineBreakValues[scalar]",
+        "            : (OfficeLineBreakClass)LineBreakValues[FindRange(LineBreakStarts, scalar)];",
         "",
         "    /// <summary>East_Asian_Width is Fullwidth, Wide or Halfwidth.</summary>",
         "    internal static bool IsEastAsianWide(int scalar) =>",
-        "        EastAsianWideValues[FindRange(EastAsianWideStarts, scalar)] != 0;",
+        "        ((uint)scalar < 128",
+        "            ? AsciiEastAsianWideValues[scalar]",
+        "            : EastAsianWideValues[FindRange(EastAsianWideStarts, scalar)]) != 0;",
         "",
         "    internal static bool IsExtendedPictographic(int scalar) =>",
         "        ExtendedPictographicValues[FindRange(ExtendedPictographicStarts, scalar)] != 0;",

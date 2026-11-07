@@ -111,8 +111,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     "Selected font retention exceeds the operation's font-resource budget.");
                 return false;
             }
-            if (!staged.TryAddBounded(family, data, OfficeFontFaceDescriptor.FromStyle(style),
-                    OfficeFontUnicodeRangeSet.All, (int)Math.Min(remaining, int.MaxValue),
+            if (!staged.TryAddImmutableSnapshotBounded(family, data, OfficeFontFaceDescriptor.FromStyle(style),
+                    (int)Math.Min(remaining, int.MaxValue),
                     out int decodedBytes, out string? error)) {
                 Report(error?.IndexOf("limit", StringComparison.OrdinalIgnoreCase) >= 0
                     ? HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded

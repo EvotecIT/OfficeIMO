@@ -15,19 +15,40 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private InlineWordMap BuildInlineWordFitting(IReadOnlyList<HtmlInlineRun> runs,
         HtmlRenderBoxStyle paragraphStyle, Func<HtmlInlineRun, HtmlRenderBoxStyle>? styleSelector = null) {
-        var source = new StringBuilder();
-        var mapped = new List<InlineWordSourceRun>();
-        var explicitBoundaries = new List<int> { 0 };
-        var wordBreakElements = new HashSet<object>();
+        bool singleRun = runs.Count == 1;
+        StringBuilder? source = singleRun ? null : new StringBuilder();
+        List<InlineWordSourceRun>? mapped = singleRun ? null : new List<InlineWordSourceRun>();
+        List<int>? explicitBoundaries = singleRun ? null : new List<int> { 0 };
+        HashSet<object>? wordBreakElements = singleRun ? null : new HashSet<object>();
+        string? text = null;
+        InlineWordSourceRun[]? singleSource = null;
+        bool[]? breaks = null;
         foreach (HtmlInlineRun run in runs) {
             CheckCancellation();
             ChargeLayoutOperations(1L + (run.Text.Length + 31L) / 32L, "inline word source mapping");
             bool wordBreak = run.OwnerElement?.LocalName == "wbr"
                 && !paragraphStyle.PreventTextWrapping && !run.Style.PreventTextWrapping
-                && wordBreakElements.Add(run.OwnerElement);
+                && (wordBreakElements ??= new HashSet<object>()).Add(run.OwnerElement);
             bool suppressedBreak = run.IsSuppressedWhitespaceBreak
                 && !paragraphStyle.PreventTextWrapping && !run.Style.PreventTextWrapping;
-            if (wordBreak || suppressedBreak || run.AtomicBlock != null && !run.IsFlowMarker || run.IsBlockInterruption) {
+            bool insertsBoundary = wordBreak || suppressedBreak || run.AtomicBlock != null && !run.IsFlowMarker || run.IsBlockInterruption;
+            if (singleRun && run.Text.Length > 0 && !insertsBoundary && !run.EndsFirstLine) {
+                text = run.Text;
+                singleSource = new[] { new InlineWordSourceRun(run, 0) };
+                breaks = new bool[text.Length + 1];
+                breaks[0] = true;
+                for (int offset = 0; offset < text.Length; offset++) {
+                    if ((offset & 1023) == 0) CheckCancellation();
+                    char value = text[offset];
+                    if (IsCollapsibleCssWhitespace(value) || value == '\u2028')
+                        breaks[offset] = breaks[offset + 1] = true;
+                }
+                continue;
+            }
+            source ??= new StringBuilder();
+            mapped ??= new List<InlineWordSourceRun>();
+            explicitBoundaries ??= new List<int> { 0 };
+            if (insertsBoundary) {
                 explicitBoundaries.Add(source.Length);
                 source.Append('\u2028');
                 explicitBoundaries.Add(source.Length);
@@ -53,12 +74,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
-        string text = source.ToString();
-        var breaks = new bool[text.Length + 1];
-        foreach (int point in explicitBoundaries) breaks[point] = true;
+        text ??= source!.ToString();
+        breaks ??= new bool[text.Length + 1];
+        if (explicitBoundaries != null) foreach (int point in explicitBoundaries) breaks[point] = true;
         breaks[text.Length] = true;
         IReadOnlyList<int> preferred = GetHtmlPreferredBreakPositions(text, allowCjkBreaks: true);
-        InlineWordSourceRun[] textRuns = mapped.Where(item => item.Run.Text.Length > 0).ToArray();
+        InlineWordSourceRun[] textRuns = singleSource ?? mapped!.Where(item => item.Run.Text.Length > 0).ToArray();
         HashSet<int>? nonCjk = textRuns.Any(item => item.Run.Style.WordBreak == "keep-all")
             ? new HashSet<int>(GetHtmlPreferredBreakPositions(text, allowCjkBreaks: false)) : null;
         int owner = 0;
@@ -68,7 +89,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || nonCjk!.Contains(point)) breaks[point] = true;
         }
         CheckCancellation();
-        return new InlineWordMap(this, text, mapped.ToArray(), breaks, paragraphStyle.PreventTextWrapping, styleSelector);
+        return new InlineWordMap(this, text, singleSource ?? mapped!.ToArray(), breaks, paragraphStyle.PreventTextWrapping, styleSelector);
     }
 
     private sealed class InlineWordFitting {
@@ -92,7 +113,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private readonly HtmlRenderLayoutEngine _owner;
         private readonly string _source;
         private readonly InlineWordSourceRun[] _runs;
-        private readonly Dictionary<HtmlInlineRun, int> _indices = new();
+        private readonly Dictionary<HtmlInlineRun, int>? _indices;
         private readonly int[] _previousBreak;
         private readonly int[] _nextBreak;
         private readonly Func<HtmlInlineRun, HtmlRenderBoxStyle>? _styleSelector;
@@ -107,7 +128,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _runs = runs;
             _styleSelector = styleSelector;
             _preventWrapping = preventWrapping;
-            for (int index = 0; index < runs.Length; index++) _indices.Add(runs[index].Run, index);
+            if (runs.Length != 1) {
+                _indices = new Dictionary<HtmlInlineRun, int>();
+                for (int index = 0; index < runs.Length; index++) _indices.Add(runs[index].Run, index);
+            }
             _previousBreak = new int[breaks.Length];
             _nextBreak = new int[breaks.Length];
             int previous = 0, next = breaks.Length - 1;
@@ -121,15 +145,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
+        // Only a sole mapped source omits the dictionary; zero and multiple sources retain it.
+        private bool TryGetSourceRunIndex(HtmlInlineRun run, out int index) {
+            if (_indices != null) return _indices.TryGetValue(run, out index);
+            index = 0;
+            return ReferenceEquals(run, _runs[0].Run);
+        }
+
         internal UnicodeCategory? GetPrecedingCategory(HtmlInlineRun run, int sourceOffset) =>
-            _indices.TryGetValue(run, out int index) ? GetPrecedingTextCategory(_source, _runs[index].Start + sourceOffset) : null;
+            TryGetSourceRunIndex(run, out int index) ? GetPrecedingTextCategory(_source, _runs[index].Start + sourceOffset) : null;
 
         internal bool CanBreakBefore(HtmlInlineRun run, int sourceOffset) =>
-            !_indices.TryGetValue(run, out int index)
+            !TryGetSourceRunIndex(run, out int index)
             || _previousBreak[_runs[index].Start + sourceOffset] == _runs[index].Start + sourceOffset;
 
         internal bool HasBreakInside(HtmlInlineRun run, int sourceStart, int sourceEnd) =>
-            sourceEnd > sourceStart && _indices.TryGetValue(run, out int index)
+            sourceEnd > sourceStart && TryGetSourceRunIndex(run, out int index)
             && _previousBreak[_runs[index].Start + sourceEnd - 1] > _runs[index].Start + sourceStart;
 
         // Shaping uses the same authored boundaries and Unicode opportunities as
@@ -160,7 +191,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         /// <summary>Previews a source-mapped tail without consuming scopes or altering future runs.</summary>
         internal double PreviewWithContinuation(InlineLine line, HtmlInlineRun run, int sourceEnd,
             double contentWidth, bool completesToken, Func<int>? consecutiveHyphenatedLines) {
-            if (!_indices.TryGetValue(run, out int runIndex)) return line.PreviewAdvance(run, contentWidth, completesToken);
+            if (!TryGetSourceRunIndex(run, out int runIndex)) return line.PreviewAdvance(run, contentWidth, completesToken);
             int offset = _runs[runIndex].Start + sourceEnd;
             int end = _nextBreak[offset];
             var key = (runIndex, offset);

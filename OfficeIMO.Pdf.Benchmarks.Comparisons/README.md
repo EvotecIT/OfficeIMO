@@ -34,7 +34,7 @@ The benchmark families intentionally answer different questions:
 - `PdfMergeBenchmarks`: all three engines merge the same ordered source set, reopen the serialized output with the producing engine inside the timed operation, and preserve the exact page-marker sequence.
 - `PdfPageSelectionBenchmarks`: all three engines extract the same reversed, non-contiguous page selection, reopen the serialized output with the producing engine inside the timed operation, and preserve that order.
 
-- `PdfReverseConversionBenchmarks`: five isolated PDF producers feed the same DOCX, HTML, XLSX-table, editable-PPTX, ODT, ODS, editable-ODP, and PNG reconstruction routes. Global setup validates the complete generated source, reopens every target artifact, checks page scope and editable structures, and requires deterministic narrative or table-row retention before timings are accepted; timed methods include PDF parsing, projection, and target serialization. Run this lane through `Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfreverse`.
+- `PdfReverseConversionBenchmarks`: five isolated PDF producers feed the same DOCX, HTML, XLSX-table, editable-PPTX, ODT, ODS, editable-ODP, and PNG reconstruction routes. Each case validates the complete generated source and checks its target before timing. Target checks cover page scope, editable structures, narrative or table-row retention, and raster output as applicable. The timed methods include PDF parsing, projection, and target serialization. Run this lane through `Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfreverse`.
 - `PdfCorpusReadBenchmarks`: OfficeIMO, PdfPig, and iText extract four prepared large documents: a 500-page OfficeIMO PDF, the 492-page NIST SP 800-53 Rev. 5, an 85-page Type3-font fixture, and a 258-page 12.9 MB PDF/A fixture.
 
 The split, merge, and page-selection suites use 5-, 20-, 100-, and 500-page source scales. Each scale runs both a standard page (one narrative paragraph and four table rows) and a dense page (three paragraphs and twelve rows). At 500 pages, selection extracts 125 pages in reverse order, merge combines 50 ten-page documents, and split emits either 500 single-page files or 25-page bundles. Every scale and density keeps the same source and output validation for each engine.
@@ -50,11 +50,12 @@ Every timed producer/read combination must first pass page-count and complete de
 - a 500-page OfficeIMO.Pdf document;
 - NIST SP 800-53 Rev. 5 and IRS Form W-9;
 - a W3C standards document;
-- CC0 veraPDF Type0/ToUnicode, Type3-font, and large PDF/A fixtures.
+- CC0 veraPDF Type0/ToUnicode, Type3-font, and large PDF/A fixtures;
+- a two-column ACL paper with Chinese examples, a tagged PDF Association invoice, and CC0 filled-form and image-only scan fixtures.
 
 The read oracle is PdfPig, with iText fallback when PdfPig cannot read a file. OfficeIMO's canonical structured read is compared by duplicate-aware, per-page token recall. Labelled `expectedText` values independently gate OfficeIMO text instead of inheriting an oracle defect. A `pageExpectations` entry can require exact table, image, image-region, and figure counts plus a minimum vector-primitive count. Each declared table has its own exact row and column shape and exact required cells, so text from unrelated tables cannot satisfy the contract and extra false-positive tables fail validation. Feature labels remain reporting dimensions rather than implicit correctness claims. Corpus reading opts into `PdfLoadOptions.IncludeArtifactText` so headers, footers, and chart decorations are included in the same visual-text contract as the comparison readers. The schema-3 corpus report records the observed semantic counts and also aggregates read failures, elapsed time, and managed allocations by tier and feature. These single-pass corpus observations diagnose document classes; BenchmarkDotNet remains the statistical performance source.
 
-The OfficeIMO.Word source deliberately contains SmartArt. OfficeIMO.Word.Pdf currently reports `NativeBodySmartArtUnsupported`, so the generated OfficeIMO PDF is not labeled as containing SmartArt; its conversion JSON preserves that product gap. The Windows Office COM lane opens the same DOCX, adds a genuine Word-native SmartArt object through `Shapes.AddSmartArt`, and exports it through Microsoft Word. It also creates an Excel workbook with a table, chart, tightly positioned identifiers, and multilingual cells, plus a PowerPoint deck with a table, multilingual text, and a process diagram. Word, Excel, and PowerPoint export their own PDFs; OfficeIMO is only the parser under test. Validation checks producer-specific page counts, independently labelled multilingual text, and producer-specific semantic structures before comparing duplicate-aware token recall with the independent oracle. New, unrecognized Word conversion-loss diagnostics fail corpus preparation.
+The OfficeIMO.Word source contains a SmartArt process diagram. The OfficeIMO PDF must retain all three node labels on page two. Its conversion report records the approximate geometry as `native-smart-art-layout-approximated`. The Windows Office COM lane opens the same DOCX, adds a Word-native SmartArt object through `Shapes.AddSmartArt`, and exports it through Microsoft Word. It also creates an Excel workbook with a table, chart, tightly positioned identifiers, and multilingual cells, plus a PowerPoint deck with a table, multilingual text, and a process diagram. Word, Excel, and PowerPoint export their own PDFs. Validation checks producer-specific page counts, independently labelled multilingual text, and semantic structures before comparing duplicate-aware token recall with the independent oracle. New, unrecognized Word conversion-loss diagnostics fail corpus preparation.
 
 After a read pass, the corpus selects the last, middle, and first pages, splits that result into single-page documents, merges them again, and independently verifies order and token retention. OfficeIMO intentionally blocks unsafe full rewrites of documents whose forms, signatures, tagged content, active content, outlines, xref streams, or object streams cannot yet be preserved. The JSON report records these as `Blocked` with machine-readable mutation blocker codes, separately from failed output validation. Those blockers identify manipulation work to implement; the runner does not bypass them.
 
@@ -82,7 +83,7 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 
 The comparison dependencies remain local benchmark tools. Review their current license terms before publishing the PDFs, previews, source adaptations, or benchmark claims outside this repository.
 
-Generate a reviewable HTML-to-PDF evidence bundle before interpreting benchmark timings. This command requests two or more renders of the same deterministic HTML from OfficeIMO, PeachPDF, PdfPecker, iText pdfHTML, and Chromium through HtmlTinkerX. It writes the source HTML, produced PDFs, first-page PNG previews, and schema-4 `html-pdf-evidence.json`. The report records artifact admission, cancellation, timing and memory comparability, and exact-byte, semantic and visual repeatability separately. PdfPecker is pinned to 1.16.0. Its report entry records the restored package version, source commit, package SHA-512, and SHA-256 hashes of its own license and bundled-component notices. A rejected engine remains visible with its PDF and failure details; it cannot enter a published speed comparison. No workload changes its input to work around a particular engine.
+Generate a reviewable HTML-to-PDF evidence bundle before interpreting benchmark timings. This command requests two or more renders of the same deterministic HTML from OfficeIMO, PeachPDF, PdfPecker, iText pdfHTML, and Chromium through HtmlTinkerX. It writes the source HTML, produced PDFs, first-page PNG previews, and schema-4 `html-pdf-evidence.json`. The report records artifact admission, cancellation, timing and memory comparability, and exact-byte, semantic and visual repeatability separately. The PdfPecker entry records the restored package version, source commit, package SHA-512, and SHA-256 hashes of its own license and bundled-component notices. A rejected engine remains visible with its PDF and failure details; it cannot enter a published speed comparison. No workload changes its input to work around a particular engine.
 
 For this horizontal, single-column report, admission follows mixed content/child `/K` order and binds page-scoped marked content to the authored heading, paragraph and table-cell owners. Non-whitespace text, case, punctuation, occurrence counts and page ownership must match. A separate spatial check verifies visible source order. Unique page-bound table or row marked-content references may contain decorative paint only; decoded non-whitespace text there is rejected. Form XObject and explicit `/Stm` marked-content scopes are outside this fixture gate.
 
@@ -141,6 +142,47 @@ pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfmerge -RunMode quick
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfselect -RunMode quick -Framework net10.0
 ```
 
+For a reader run whose generated PDFs must have the same byte hashes in every
+worker, prepare the fifteen producer/scale inputs once, then admit the manifest
+explicitly. Preparation uses the existing generators and validates every input;
+each benchmark worker checks the selected bytes and prints their SHA-256 before
+timing. The three readers share those bytes. This optional input mode leaves
+normal generation in `GlobalSetup` available when the variables are unset.
+
+```powershell
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- prepare-read-inputs --output Ignore/Benchmarks/PdfComparisons/read-inputs
+$env:OFFICEIMO_PDF_READ_INPUT_ROOT = (Resolve-Path Ignore/Benchmarks/PdfComparisons/read-inputs).Path
+$env:OFFICEIMO_PDF_READ_INPUT_MANIFEST_SHA256 = (Get-FileHash "$env:OFFICEIMO_PDF_READ_INPUT_ROOT/pdf-read-inputs.json" -Algorithm SHA256).Hash
+try {
+    pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode full -Framework net10.0
+} finally {
+    Remove-Item Env:OFFICEIMO_PDF_READ_INPUT_ROOT
+    Remove-Item Env:OFFICEIMO_PDF_READ_INPUT_MANIFEST_SHA256
+}
+```
+
+The manifest lists every producer and scale exactly once. A missing manifest,
+changed manifest or PDF hash, invalid input identity, or failed content validation
+rejects the run. Preserve the manifest and the worker markers with its raw
+BenchmarkDotNet output. Compare this explicit prepared-input cohort separately
+from historical runs that generated PDFs independently in each worker and did
+not retain their byte hashes.
+
+Pass `-KeepBenchmarkFiles` when worker binaries and child build binlogs are
+needed for identity verification and diagnostics. It forwards BenchmarkDotNet's
+`--keepFiles` and `--generateBinLog` options and records both in provenance.
+For example, keep build and result files in owned paths:
+
+```powershell
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode full -Framework net10.0 -BuildArtifactsPath Ignore/Benchmarks/PdfComparisons/retained-build -OutputRoot Ignore/Benchmarks/PdfComparisons/retained-run -KeepBenchmarkFiles
+```
+
+Capture the generated worker, dependency/runtime configuration, product binaries,
+copied fixtures and build binlogs immediately after each lane, before another run
+can reuse the worker directory. Retention is off by default. Remove the retained files from
+your task-owned build/output paths after verification; this option does not
+change timed methods, warmups or iteration policy.
+
 To validate a specific HtmlTinkerX source checkout, pass either its repository root or project path. The runner records the exact clean HtmlTinkerX commit and carries the project reference into BenchmarkDotNet child builds. Without this option, the benchmark uses the pinned package version:
 
 ```powershell
@@ -184,6 +226,8 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 ```
 
 The command uses the benchmark's own rendering and artifact checks, saves each input and PDF, and records any rejection in `html-payload-evidence.json`.
+
+For a longer warmup and calibration of the same nine cases, run `pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -RunMode full -Framework net10.0 -MeasurementProfile WarmedV1`. This opt-in profile uses a one-second pilot target, 64–128 warmup iterations and 30–60 measured iterations, retains outliers, and records its exact job arguments under a separate comparison identity. Inspect the chronological raw measurements for continuing drift before describing the results as stable warm throughput.
 
 ### HTML head-to-head corpus
 

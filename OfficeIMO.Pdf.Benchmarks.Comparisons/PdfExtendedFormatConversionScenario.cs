@@ -61,7 +61,7 @@ internal sealed record PdfExtendedFormatConversionScenario(
             PdfExtendedFormatConversionKind.Latex =>
                 Serialize(LatexDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdf()),
             PdfExtendedFormatConversionKind.Mhtml => Serialize(MhtmlDocument.Load(stream).ToPdf()),
-            PdfExtendedFormatConversionKind.OneNote => Serialize(OneNoteSectionReader.Read(stream).ToPdf()),
+            PdfExtendedFormatConversionKind.OneNote => Serialize(OneNoteSection.Load(stream).ToPdf()),
             PdfExtendedFormatConversionKind.Odt => Serialize(OdtDocument.Load(stream).ToPdf()),
             PdfExtendedFormatConversionKind.Ods => Serialize(OdsDocument.Load(stream).ToPdf()),
             PdfExtendedFormatConversionKind.Odp => Serialize(OdpPresentation.Load(stream).ToPdf()),
@@ -118,7 +118,9 @@ internal sealed record PdfExtendedFormatConversionScenario(
             }
             section.Pages.Add(page);
         }
-        return section.ToByteArray();
+        using var stream = new MemoryStream();
+        section.Save(stream);
+        return stream.ToArray();
     }
 
     private static byte[] CreateOdt() {

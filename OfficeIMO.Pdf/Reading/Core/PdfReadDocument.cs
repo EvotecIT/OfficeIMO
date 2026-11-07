@@ -124,7 +124,14 @@ internal sealed partial class PdfReadDocument {
     }
 
     /// <summary>All page objects discovered in document order.</summary>
-    public IReadOnlyList<PdfReadPage> Pages { get; }
+    public IReadOnlyList<PdfReadPage> Pages { get; private set; }
+
+    internal PdfReadDocument WithInspectionPages(PdfReadPage[] pages) {
+        // The inspection owns its page array. Parsed objects and source inventory remain shared.
+        var inspection = (PdfReadDocument)MemberwiseClone();
+        inspection.Pages = Array.AsReadOnly(pages);
+        return inspection;
+    }
 
     /// <summary>Document metadata (when present).</summary>
     public PdfDocumentProperties Metadata => ReadLogicalContent(_metadata);

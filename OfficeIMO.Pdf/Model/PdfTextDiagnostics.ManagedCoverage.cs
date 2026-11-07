@@ -32,9 +32,7 @@ internal static partial class PdfTextDiagnostics {
         bool generatedLayout = false) {
         diagnostics = null!;
         if (generatedLayout && HasManagedLayoutSeparator(text)
-            && TryAnalyzeManagedLayoutSegments(text, options,
-                segment => AnalyzeEmbeddedFontText(segment, font, options.Source, location, runIndex,
-                    options.ShapingMode, options), out diagnostics)) return true;
+            && TryAnalyzeManagedLayoutSegments(text, font, options, location, runIndex, out diagnostics)) return true;
         if (!CanAnalyzeCompleteManagedRun(text, options)
             || !PdfExternalTextShaper.TryShapeText(text, font, options, out PdfGlyphRun run)
             || run.SourceShapingResult == null && run.Diagnostics.Count == 0) return false;
@@ -53,9 +51,7 @@ internal static partial class PdfTextDiagnostics {
         bool generatedLayout = false) {
         diagnostics = null!;
         if (generatedLayout && HasManagedLayoutSeparator(text)
-            && TryAnalyzeManagedLayoutSegments(text, options,
-                segment => AnalyzeEmbeddedFontText(segment, font, options.Source, location, runIndex,
-                    options.ShapingMode, options), out diagnostics)) return true;
+            && TryAnalyzeManagedLayoutSegments(text, font, options, location, runIndex, out diagnostics)) return true;
         if (!CanAnalyzeCompleteManagedRun(text, options)
             || !PdfExternalTextShaper.TryShapeText(text, font, options, out PdfGlyphRun run)
             || run.SourceShapingResult == null && run.Diagnostics.Count == 0) return false;
@@ -68,6 +64,20 @@ internal static partial class PdfTextDiagnostics {
         diagnostics = CollectManagedCoverageDiagnostics(run, raw, location, runIndex);
         return true;
     }
+
+    /// <summary>Allocates the TrueType segment callback only after generated text reaches the separator branch.</summary>
+    private static bool TryAnalyzeManagedLayoutSegments(string text, PdfTrueTypeFontProgram font,
+        PdfTextShapingOptions options, string location, int? runIndex, out List<PdfTextEncodingDiagnostic> diagnostics) =>
+        TryAnalyzeManagedLayoutSegments(text, options,
+            segment => AnalyzeEmbeddedFontText(segment, font, options.Source, location, runIndex,
+                options.ShapingMode, options), out diagnostics);
+
+    /// <summary>Allocates the CFF segment callback only after generated text reaches the separator branch.</summary>
+    private static bool TryAnalyzeManagedLayoutSegments(string text, PdfOpenTypeCffFontProgram font,
+        PdfTextShapingOptions options, string location, int? runIndex, out List<PdfTextEncodingDiagnostic> diagnostics) =>
+        TryAnalyzeManagedLayoutSegments(text, options,
+            segment => AnalyzeEmbeddedFontText(segment, font, options.Source, location, runIndex,
+                options.ShapingMode, options), out diagnostics);
 
     // These layout separators are consumed before the writer paints a run.
     // Keep their original UTF-16 offsets while reusing the generated diagnostic

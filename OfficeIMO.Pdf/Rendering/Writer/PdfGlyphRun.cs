@@ -367,6 +367,34 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             isScalarBidi: reordered);
     }
 
+    /// <summary>Collects raw scalar coverage diagnostics without constructing unused glyphs or visual-order state.</summary>
+    /// <remarks>The caller supplies a fresh diagnostic descriptor in UnicodeScalar or LatinLigatures mode, after the complete-managed proof has declined.</remarks>
+    internal static List<PdfTextEncodingDiagnostic> AnalyzeRawDiagnostics(string text, PdfTrueTypeFontProgram font,
+        PdfTextShapingOptions options) {
+        Guard.NotNull(text, nameof(text));
+        Guard.NotNull(font, nameof(font));
+        var diagnostics = new List<PdfTextEncodingDiagnostic>();
+        for (int index = 0; index < text.Length;) {
+            int scalarStart = index;
+            if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
+                OfficeTextLigatures.TryGetLatinPresentationForm(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                font.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) && ligatureGlyphId > 0) {
+                index += ligatureLength;
+                continue;
+            }
+            // Share the shaper's strict surrogate validation and exact failure indexes.
+            int scalar = ReadScalar(text, ref index);
+            if (options.SkipLayoutControls && (scalar == '\n' || scalar == '\r' || scalar == '\t')) continue;
+            if (options.ReportControlCharacters && (scalar < ' ' || scalar == '\u007F')) {
+                diagnostics.Add(PdfTextDiagnostics.CreateControlCharacterDiagnostic(scalarStart, scalar, options.Source));
+                continue;
+            }
+            if (!font.TryGetGlyphId(scalar, out int glyphId) || glyphId <= 0)
+                diagnostics.Add(PdfTextDiagnostics.CreateEmbeddedFontDiagnostic(scalarStart, scalar, options.Source, ResolveFontName(font, options)));
+        }
+        return diagnostics;
+    }
+
     internal static List<PdfGlyphInfo> ToVisualOrder(string text, List<PdfGlyphInfo> glyphs) {
         int[] glyphLevels = ResolveGlyphLevels(text, glyphs);
         int[] order = OfficeUnicodeBidi.ReorderItems(glyphLevels);

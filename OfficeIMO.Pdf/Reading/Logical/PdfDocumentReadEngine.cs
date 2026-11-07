@@ -60,6 +60,7 @@ internal static partial class PdfDocumentReadEngine {
                 document,
                 pageNumbers,
                 analyses,
+                options.LayoutOptions,
                 pipelineOptions.MaxRegionsPerPage,
                 pipelineOptions.MaxDocumentWorkUnits,
                 cancellationToken);

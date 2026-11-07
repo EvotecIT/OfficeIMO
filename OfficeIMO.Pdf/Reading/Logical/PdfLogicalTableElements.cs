@@ -41,7 +41,8 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         PdfLogicalVisualBounds? visualBounds = null,
         double? confidence = null,
         IReadOnlyList<PdfInferenceEvidence>? evidence = null,
-        IReadOnlyList<PdfUnderstandingLine>? sourceLines = null) {
+        IReadOnlyList<PdfUnderstandingLine>? sourceLines = null,
+        string? leadingCaption = null) {
         PageNumber = pageNumber;
         DetectionKind = kind;
         YTop = yTop;
@@ -53,6 +54,7 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         CoordinateSpace = coordinateSpace;
         VisualBounds = visualBounds;
         SourceLines = sourceLines ?? Array.Empty<PdfUnderstandingLine>();
+        LeadingCaption = leadingCaption;
         int expectedCells = rows.Count * columns.Count;
         int filledCells = rows.Sum(static row => row.Count(static cell => !string.IsNullOrWhiteSpace(cell)));
         double completeness = expectedCells == 0 ? 0D : (double)filledCells / expectedCells;
@@ -98,6 +100,7 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
     /// <summary>Evidence supporting the table detection.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
     internal IReadOnlyList<PdfUnderstandingLine> SourceLines { get; }
+    internal string? LeadingCaption { get; }
 
     /// <summary>Per-row, per-column visible cell styling read from the source page, when it was analyzed.</summary>
     internal IReadOnlyList<IReadOnlyList<PdfLogicalTableCellStyle?>>? CellStyles { get; set; }
@@ -126,7 +129,7 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
             table.YBottom,
             columns.AsReadOnly(),
             rows.AsReadOnly(),
-            cells.AsReadOnly(), visualBounds: table.VisualBounds);
+            cells.AsReadOnly(), visualBounds: table.VisualBounds, leadingCaption: table.LeadingCaption);
     }
 
     internal static PdfLogicalTable From(int pageNumber, PdfUnderstandingTableCandidate table) {
@@ -160,7 +163,8 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
             table.VisualBounds,
             table.Confidence,
             table.Evidence,
-            table.SourceLines);
+            table.SourceLines,
+            table.LeadingCaption);
     }
 
 }

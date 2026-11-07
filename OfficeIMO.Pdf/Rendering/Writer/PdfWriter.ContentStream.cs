@@ -14,7 +14,7 @@ internal sealed partial class ContentStreamBuilder {
     public ContentStreamBuilder SaveState() {
         _textStates.Push((_textScale, _textLeading, _textWordSpacing, _textCharacterSpacing, _syntheticOblique, _syntheticBold, _paintFillColor));
         InvalidateTextStateCache();
-        _sb.Append("q\n");
+        AppendGraphicsSave(_sb);
         return this;
     }
 
@@ -28,9 +28,15 @@ internal sealed partial class ContentStreamBuilder {
             _paintFillColor = state.PaintFillColor;
         }
         InvalidateTextStateCache();
-        _sb.Append("Q\n");
+        AppendGraphicsRestore(_sb);
         return this;
     }
+
+    /// <summary>Writes a graphics-only scope without creating an independent text-state cache.</summary>
+    internal static void AppendGraphicsSave(StringBuilder output) => output.Append("q\n");
+
+    /// <summary>Closes a graphics-only scope; a retained text builder must use <see cref="RestoreState"/>.</summary>
+    internal static void AppendGraphicsRestore(StringBuilder output) => output.Append("Q\n");
 
     public ContentStreamBuilder GraphicsState(string resourceName) {
         Guard.NotNullOrWhiteSpace(resourceName, nameof(resourceName));
@@ -191,19 +197,27 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder TransformMatrix(double a, double b, double c, double d, double e, double f, bool preciseCoordinates = false) {
+        AppendTransformMatrix(_sb, a, b, c, d, e, f, preciseCoordinates);
+        return this;
+    }
+
+    /// <summary>Writes the existing transform syntax for a graphics-only scope.</summary>
+    internal static void AppendGraphicsTransform(StringBuilder output, OfficeTransform transform) =>
+        AppendTransformMatrix(output, transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX, transform.OffsetY, preciseCoordinates: false);
+
+    private static void AppendTransformMatrix(StringBuilder output, double a, double b, double c, double d, double e, double f, bool preciseCoordinates) {
         if (preciseCoordinates) {
-            _sb.Append(PdfNumberFormatter.Precise(a)).Append(' ').Append(PdfNumberFormatter.Precise(b)).Append(' ')
+            output.Append(PdfNumberFormatter.Precise(a)).Append(' ').Append(PdfNumberFormatter.Precise(b)).Append(' ')
                 .Append(PdfNumberFormatter.Precise(c)).Append(' ').Append(PdfNumberFormatter.Precise(d)).Append(' ')
                 .Append(PdfNumberFormatter.Precise(e)).Append(' ').Append(PdfNumberFormatter.Precise(f)).Append(" cm\n");
-            return this;
+            return;
         }
-        _sb.Append(MatrixNumber(a)).Append(' ')
+        output.Append(MatrixNumber(a)).Append(' ')
             .Append(MatrixNumber(b)).Append(' ')
             .Append(MatrixNumber(c)).Append(' ')
             .Append(MatrixNumber(d)).Append(' ')
             .Append(MatrixNumber(e)).Append(' ')
             .Append(MatrixNumber(f)).Append(" cm\n");
-        return this;
     }
 
     public ContentStreamBuilder TransformMatrix(OfficeTransform transform) =>

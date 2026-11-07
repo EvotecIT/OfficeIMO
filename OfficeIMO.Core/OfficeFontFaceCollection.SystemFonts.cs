@@ -54,9 +54,9 @@ public sealed partial class OfficeFontFaceCollection {
             return false;
         }
         var templateKey = new InstalledFaceKey(font.Fingerprint, requested.Weight, requested.Slant, shareData);
-        if (nativeSelection && InstalledFaceTemplates.TryGetValue(templateKey, out InstalledFaceTemplate? template)
+        if (nativeSelection && InstalledFaceTemplates.TryGetValue(templateKey, out FaceTemplate? template)
             && template.DecodedBytes <= maximumDecodedBytes) {
-            OfficeFontFace shared = RegisterInstalledTemplate(familyName, template);
+            OfficeFontFace shared = RegisterTemplate(familyName, template, template.Face.Descriptor);
             shared.InstalledSubstituteFamily = isGenericAlias || font.MatchesFamilyName(familyName)
                 ? null : font.DisplayName ?? "installed substitute";
             decodedBytes = template.DecodedBytes;
@@ -96,11 +96,15 @@ public sealed partial class OfficeFontFaceCollection {
         return true;
     }
 
-    private OfficeFontFace RegisterInstalledTemplate(string familyName, InstalledFaceTemplate template) {
+    private OfficeFontFace RegisterTemplate(string familyName, FaceTemplate template, OfficeFontFaceDescriptor descriptor) {
         OfficeFontFace source = template.Face;
-        string resourceFamily = source.Descriptor == OfficeFontFaceDescriptor.Regular
-            ? familyName : CreateResourceFamilyName(familyName, source.Descriptor, OfficeFontUnicodeRangeSet.All);
-        OfficeFontFace face = source.CreateAlias(familyName, resourceFamily);
+        string resourceFamily = descriptor == OfficeFontFaceDescriptor.Regular
+            ? familyName : CreateResourceFamilyName(familyName, descriptor, OfficeFontUnicodeRangeSet.All);
+        OfficeFontFace face = descriptor == source.Descriptor
+            ? source.CreateAlias(familyName, resourceFamily)
+            : new OfficeFontFace(familyName, resourceFamily, source.DataSnapshot, descriptor.ToStyle(),
+                descriptor, OfficeFontUnicodeRangeSet.All, source.ParsedFont, source.ContainerFormat,
+                source.CanEmbedAsStaticPdfFont, useDataSnapshot: true);
         int index = _faces.FindLastIndex(existing => existing.Style == face.Style
             && string.Equals(existing.FamilyName, familyName, StringComparison.OrdinalIgnoreCase)
             && string.Equals(existing.ResourceFamilyName, resourceFamily, StringComparison.OrdinalIgnoreCase));
@@ -112,7 +116,7 @@ public sealed partial class OfficeFontFaceCollection {
     private static void RememberInstalledTemplate(InstalledFaceKey key, OfficeFontFace face, int decodedBytes) {
         long retained = face.DataSnapshot.Length;
         if (Interlocked.Add(ref _installedTemplateBytes, retained) > MaximumInstalledTemplateBytes
-            || !InstalledFaceTemplates.TryAdd(key, new InstalledFaceTemplate(face, decodedBytes))) {
+            || !InstalledFaceTemplates.TryAdd(key, new FaceTemplate(face, decodedBytes))) {
             Interlocked.Add(ref _installedTemplateBytes, -retained);
         }
     }
@@ -122,8 +126,8 @@ public sealed partial class OfficeFontFaceCollection {
     // programs are excluded because they fill a per-program cache while measuring.
     private const long MaximumInstalledTemplateBytes = 128L * 1024 * 1024;
     private static long _installedTemplateBytes;
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<InstalledFaceKey, InstalledFaceTemplate> InstalledFaceTemplates =
-        new System.Collections.Concurrent.ConcurrentDictionary<InstalledFaceKey, InstalledFaceTemplate>();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<InstalledFaceKey, FaceTemplate> InstalledFaceTemplates =
+        new System.Collections.Concurrent.ConcurrentDictionary<InstalledFaceKey, FaceTemplate>();
 
     private readonly struct InstalledFaceKey : IEquatable<InstalledFaceKey> {
         private readonly string _fingerprint;
@@ -142,15 +146,5 @@ public sealed partial class OfficeFontFaceCollection {
             && _sharedData == other._sharedData && string.Equals(_fingerprint, other._fingerprint, StringComparison.Ordinal);
         public override bool Equals(object? obj) => obj is InstalledFaceKey other && Equals(other);
         public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(_fingerprint) ^ (_weight * 397) ^ ((int)_slant << 20);
-    }
-
-    private sealed class InstalledFaceTemplate {
-        internal InstalledFaceTemplate(OfficeFontFace face, int decodedBytes) {
-            Face = face;
-            DecodedBytes = decodedBytes;
-        }
-
-        internal OfficeFontFace Face { get; }
-        internal int DecodedBytes { get; }
     }
 }

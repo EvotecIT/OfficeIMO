@@ -104,4 +104,35 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         Assert.DoesNotContain(report.Warnings, warning => warning.Code.Contains("Paint", StringComparison.Ordinal));
         Assert.False(report.HasLoss);
     }
+
+    [Fact]
+    public void TranslatedSyntheticBoldTextSavesStrictlyWithoutPaintLoss() {
+        byte[] regular = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "Carlito-Regular.ttf"));
+        var family = new PdfEmbeddedFontFamily("Synthetic diagnostic control", regular);
+        var report = new PdfConversionReport();
+        var options = new PdfCreateOptions {
+            EmbedDefaultFonts = false,
+            DefaultTextColor = OfficeColor.Black,
+            CompressEmbeddedFonts = false,
+            CompressContentStreams = false,
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Top = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+            }
+        }.RegisterNamedFontFamily(family).ReportDiagnosticsTo(report, "TranslatedSyntheticBoldText");
+        using PdfDocument document = PdfDocument.Create(options).Compose(builder => builder.Content(content => content.Canvas(canvas => canvas.Effect(
+            OfficeTransform.Translate(120D, 0D), 1D,
+            effect => effect.Text(new[] { PdfTextRun.Bolded("H", fontSize: global::OfficeIMO.OfficeLength.Points(18), fontFamily: family.FamilyName) },
+                global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(28), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(28))))));
+
+        byte[] bytes = document.ToBytes();
+        Assert.False(report.HasLoss);
+        using var input = new MemoryStream(bytes, writable: false);
+        using PdfDocument saved = PdfDocument.Load(input);
+        PdfDocumentReadResult read = saved.Read();
+        Assert.Equal("H", read.Text.Trim());
+        var span = Assert.Single(read.Pages[0].TextBlocks.SelectMany(block => block.Runs)
+            .Select(run => run.SourceSpan), span => span?.Text == "H");
+        Assert.Equal(2, span!.TextRenderingMode);
+    }
 }

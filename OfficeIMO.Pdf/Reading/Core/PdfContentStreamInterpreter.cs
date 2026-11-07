@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 
 namespace OfficeIMO.Pdf;
 
@@ -266,34 +265,26 @@ internal static class PdfContentStreamInterpreter {
         }
 
         private byte[] ReadLiteralStringBytes() {
-            _index++;
+            int start = ++_index;
             int depth = 1;
             bool escaped = false;
-            var value = new StringBuilder();
             while (_index < _content.Length && depth > 0) {
                 char current = _content[_index++];
                 if (escaped) {
-                    value.Append('\\');
-                    value.Append(current);
                     escaped = false;
                 } else if (current == '\\') {
                     escaped = true;
                 } else if (current == '(') {
                     depth++;
-                    value.Append(current);
                 } else if (current == ')') {
                     depth--;
-                    if (depth > 0) {
-                        value.Append(current);
-                    }
-                } else {
-                    value.Append(current);
                 }
             }
 
             if (depth != 0 || escaped) _hasInvalidOperand = true;
 
-            return PdfStringParser.ParseLiteralToBytes(value.ToString());
+            int end = _index - (depth == 0 || escaped ? 1 : 0);
+            return PdfStringParser.ParseLiteralToBytes(_content, start, end - start);
         }
 
         private byte[] ReadHexStringBytes() {

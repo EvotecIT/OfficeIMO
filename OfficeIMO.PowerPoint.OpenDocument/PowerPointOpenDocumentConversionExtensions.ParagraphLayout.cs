@@ -69,32 +69,43 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static bool ApplyPowerPointParagraphLayout(PowerPointParagraph source, OdpParagraph target) {
         bool approximatedAlignment = false;
-        if (source.RightToLeft == true) target.WritingMode = "rl-tb";
+        OdfStyle? style = null;
+        if (source.RightToLeft == true) {
+            style = target.EnsureStyle();
+            style.WritingMode = "rl-tb";
+        }
+        string? alignment = null;
         switch (source.Alignment) {
             case PowerPointTextAlignment.Left:
-                target.Alignment = OdpParagraphAlignment.Left;
+                alignment = "left";
                 break;
             case PowerPointTextAlignment.Center:
-                target.Alignment = OdpParagraphAlignment.Center;
+                alignment = "center";
                 break;
             case PowerPointTextAlignment.Right:
-                target.Alignment = OdpParagraphAlignment.Right;
+                alignment = "right";
                 break;
             case PowerPointTextAlignment.Justified:
-                target.Alignment = OdpParagraphAlignment.Justify;
+                alignment = "justify";
                 break;
             case PowerPointTextAlignment.JustifiedLow:
             case PowerPointTextAlignment.Distributed:
             case PowerPointTextAlignment.ThaiDistributed:
-                target.Alignment = OdpParagraphAlignment.Justify;
+                alignment = "justify";
                 approximatedAlignment = true;
                 break;
         }
+        if (alignment != null) {
+            style ??= target.EnsureStyle();
+            style.TextAlign = alignment;
+        }
         if (source.LineSpacingMultiplier.HasValue) {
-            target.LineHeight = OdfLength.Parse(
+            style ??= target.EnsureStyle();
+            style.LineHeight = OdfLength.Parse(
                 (source.LineSpacingMultiplier.Value * 100D).ToString("0.###", CultureInfo.InvariantCulture) + "%");
         } else if (source.LineSpacing.HasValue) {
-            target.LineHeight = OdfLength.Points(source.LineSpacing.Value.ToPoints());
+            style ??= target.EnsureStyle();
+            style.LineHeight = OdfLength.Points(source.LineSpacing.Value.ToPoints());
         }
         return approximatedAlignment;
     }

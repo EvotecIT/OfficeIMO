@@ -162,12 +162,17 @@ internal static partial class TableDetector {
                 cancellationCheck?.Invoke();
                 runs.Add(run);
             }
+            bool hasVisibleText = false;
             foreach (PdfTextSpan run in candidate.SourceRuns) {
                 consumeWork?.Invoke(1);
                 cancellationCheck?.Invoke();
+                // Positioned cells omit standalone spaces. Those spans cannot
+                // give a fragment ownership of text the complete table already has.
+                if (string.IsNullOrWhiteSpace(run.Text)) continue;
+                hasVisibleText = true;
                 if (!runs.Contains(run)) return false;
             }
-            return true;
+            return hasVisibleText;
         }
         if (positioned.Rows.Count <= candidate.Rows.Count) return false;
         var positionedCells = new HashSet<string>(

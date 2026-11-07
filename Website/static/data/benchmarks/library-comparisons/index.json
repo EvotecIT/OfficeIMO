@@ -784,6 +784,55 @@
       ]
     },
     {
+      "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
+      "platform": "windows",
+      "runMode": "full",
+      "generatedUtc": "2026-11-06T14:02:03.8342219+00:00",
+      "publish": true,
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
+      "resultSha256": "7d9273f919bc2bef7401fa28f564cf1846419cbea2cb8219dc86e7cdb80af691",
+      "artifactDestinationSha256": "ae0d00b36a570480f6b76de5fdee527237d6622f3d970689513460c6e24bbc89",
+      "artifactFileName": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
+      "artifactRelativePath": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
+      "suite": "OfficeIMO.Pdf.CorpusTextExtraction",
+      "environment": {
+        "osFamily": "Windows",
+        "osDescription": "Windows 11 (10.0.26300.9711)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+        "dotNetSdkVersion": "10.0.403",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Pdf.CorpusTextExtraction",
+        "environment.runtimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+        "environment.dotNetSdkVersion": "10.0.403",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "X64",
+        "environment.processArchitecture": "X64",
+        "environment.processorName": "AMD Ryzen 9 9950X3D2",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "16",
+        "environment.logicalCoreCount": "32",
+        "benchmark.workload.shape.sha256": "bd2a37f78756eded6244d6e5d9907e1fa2ecc50862bd4bb5c2b3f05f2618198f",
+        "benchmark.workload.affinityApplication": "inherited-parent-process",
+        "benchmark.workload.affinityMask": "0xFFFF0000",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
+        "benchmark.workload.sourceCommit": "2e4643668aa2334742e01579c2a47e6ff1175346",
+        "gitSha": "2e4643668aa2334742e01579c2a47e6ff1175346",
+        "runMode": "full"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "pdf-html-21k-payload-net10.0",
       "platform": "macos",
       "runMode": "full",
@@ -883,6 +932,60 @@
         "benchmark.workload.sourceCommit": "e73fe92971ce63790b10f8f285fcd8e11e17dcb9",
         "gitSha": "e73fe92971ce63790b10f8f285fcd8e11e17dcb9",
         "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
+      "platform": "windows",
+      "runMode": "full",
+      "generatedUtc": "2026-11-06T13:33:45.2574653+00:00",
+      "publish": true,
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.json",
+      "resultSha256": "1f993fb55f2d14552d967098fcf492e78e975d1767bc8f3899636cc39ebb8d9b",
+      "artifactDestinationSha256": "534401705baa792733d5313b932e52da52c8d0f49053039e02312151591c824d",
+      "artifactFileName": "pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.json",
+      "artifactRelativePath": "pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.json",
+      "suite": "OfficeIMO.Pdf.Html21KiBPayload",
+      "environment": {
+        "osFamily": "Windows",
+        "osDescription": "Windows 11 (10.0.26300.9711)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+        "dotNetSdkVersion": "10.0.403",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Pdf.Html21KiBPayload",
+        "environment.runtimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+        "environment.dotNetSdkVersion": "10.0.403",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "X64",
+        "environment.processArchitecture": "X64",
+        "environment.processorName": "AMD Ryzen 9 9950X3D2",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "16",
+        "environment.logicalCoreCount": "32",
+        "benchmark.workload.shape.sha256": "2b68bb3ca765120382575ea6bbe9d2cd74b255e02c70b6bc7a5c9d10d71909a2",
+        "benchmark.fixture.html.font.bold.sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db",
+        "benchmark.fixture.html.font.profile": "SharedCarlitoRegularBold",
+        "benchmark.fixture.html.font.regular.sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595",
+        "benchmark.package.pdfpecker.version": "1.22.0",
+        "benchmark.package.peachpdf.version": "0.9.25",
+        "benchmark.workload.affinityApplication": "inherited-parent-process",
+        "benchmark.workload.affinityMask": "0xFFFF0000",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
+        "benchmark.workload.sourceCommit": "2e4643668aa2334742e01579c2a47e6ff1175346",
+        "gitSha": "2e4643668aa2334742e01579c2a47e6ff1175346",
+        "runMode": "full"
       },
       "comparable": true,
       "compatibilityIssues": []
@@ -1315,6 +1418,55 @@
         "benchmark.workload.id": "pdf-structured-generation-net10.0-affinity-0xffff0000",
         "benchmark.workload.sourceCommit": "fddf8f63ce7d04097e04fb17d92a00a5eaa69639",
         "gitSha": "fddf8f63ce7d04097e04fb17d92a00a5eaa69639",
+        "runMode": "full"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
+      "platform": "windows",
+      "runMode": "full",
+      "generatedUtc": "2026-11-06T14:42:24.8002256+00:00",
+      "publish": true,
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
+      "resultSha256": "426842aa0b55111958f99b99a8eeafaef1e345bc8b8013cfc48a457ae07cbbeb",
+      "artifactDestinationSha256": "624d8373f1ab6fde7924948d367858e76e7e67c36da739e983db297ad75aa9f7",
+      "artifactFileName": "pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
+      "artifactRelativePath": "pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
+      "suite": "OfficeIMO.Pdf.TextExtraction",
+      "environment": {
+        "osFamily": "Windows",
+        "osDescription": "Windows 11 (10.0.26300.9711)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+        "dotNetSdkVersion": "10.0.403",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Pdf.TextExtraction",
+        "environment.runtimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+        "environment.dotNetSdkVersion": "10.0.403",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "X64",
+        "environment.processArchitecture": "X64",
+        "environment.processorName": "AMD Ryzen 9 9950X3D2",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "16",
+        "environment.logicalCoreCount": "32",
+        "benchmark.workload.shape.sha256": "629dd49941afc4c65d6529bf094a2683cdb5ba19017d507b05368688df860fc7",
+        "benchmark.workload.affinityApplication": "inherited-parent-process",
+        "benchmark.workload.affinityMask": "0xFFFF0000",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "pdf-text-extraction-net10.0-affinity-0xffff0000",
+        "benchmark.workload.sourceCommit": "2e4643668aa2334742e01579c2a47e6ff1175346",
+        "gitSha": "2e4643668aa2334742e01579c2a47e6ff1175346",
         "runMode": "full"
       },
       "comparable": true,
@@ -1776,6 +1928,32 @@
       "latestUtc": "2026-07-31T12:49:02.003238+02:00"
     },
     {
+      "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-11-06T14:02:03.8342219+00:00"
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
       "comparisonId": "pdf-html-21k-payload-net10.0",
       "runMode": "full",
       "platform": "windows",
@@ -1826,6 +2004,32 @@
         "quick"
       ],
       "latestUtc": "2026-10-20T20:33:57.704998+00:00"
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-11-06T13:33:45.2574653+00:00"
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -2007,6 +2211,32 @@
     },
     {
       "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-11-06T14:42:24.8002256+00:00"
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
       "runMode": "full",
       "platform": "macos",
       "available": false,

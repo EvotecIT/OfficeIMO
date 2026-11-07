@@ -9,7 +9,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
+        private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY, DrawingTextMetricsState textMetrics) {
             if (string.IsNullOrEmpty(text.Text)) return;
             if (text.GlyphTransform.HasValue) throw new NotSupportedException(
                 "PDF drawing export does not support affine positioned glyphs; render the drawing to an image or SVG instead.");
@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
             }
             if (!text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasPadding
                 && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
-                DrawDrawingPositionedText(text, originX, originTopY, textMetrics.MeasurePositionedText);
+                DrawDrawingPositionedText(text, originX, originTopY, textMetrics);
                 return;
             }
 
@@ -88,7 +88,7 @@ internal static partial class PdfWriter {
         }
 
         private void DrawDrawingPositionedText(OfficeDrawingText text, double originX, double originTopY,
-            Func<string?, double, string?, OfficeFontStyle, OfficeTextDirection, double> measure) {
+            DrawingTextMetricsState textMetrics) {
             double size = text.Font.Size * text.BaselineScale;
             double frameX = originX + text.X;
             double frameTopY = originTopY - text.Y;
@@ -101,7 +101,7 @@ internal static partial class PdfWriter {
                 foreach (string value in lines) {
                     double advance = lines.Length == 1 && text.TextAdvanceWidth.HasValue
                         ? text.TextAdvanceWidth.Value
-                        : measure(value, size, text.Font.FamilyName, text.Font.Style, positionedDirection);
+                        : textMetrics.Value.MeasurePositionedText(value, size, text.Font.FamilyName, text.Font.Style, positionedDirection);
                     double x = OfficeTextPlacement.ResolveLineLeft(frameX, text.Width, advance, text.Alignment);
                     var run = new PdfTextRun(value, text.Font.IsBold, text.Font.IsUnderline,
                         ToPdfColor(text.Color ?? OfficeColor.Black), text.Font.IsItalic, text.Font.IsStrikethrough,
@@ -124,7 +124,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics, OfficeColor? decorationColor = null) {
+        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, DrawingTextMetricsState textMetrics, OfficeColor? decorationColor = null) {
             if (text.Runs.Count == 0 || string.IsNullOrEmpty(text.PlainText)) return;
 
             void DrawContent() => DrawDrawingRichTextCore(text, originX + text.X, originTopY - text.Y, textMetrics, decorationColor);
@@ -140,13 +140,14 @@ internal static partial class PdfWriter {
         }
 
         private void DrawDrawingRichTextCore(OfficeDrawingRichText text, double frameX, double frameTopY,
-            OfficeDrawingTextMetrics textMetrics, OfficeColor? decorationColor) {
+            DrawingTextMetricsState metrics, OfficeColor? decorationColor) {
             double contentX = frameX + text.Padding.Left;
             double contentTopY = frameTopY - text.Padding.Top;
             double width = text.Width - text.Padding.Horizontal;
             double height = text.Height - text.Padding.Vertical;
             if (width <= 0D || height <= 0D) return;
 
+            OfficeDrawingTextMetrics textMetrics = metrics.Value;
             OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateWithMetrics(text, width, height, textMetrics);
             double clipX = contentX, clipWidth = width;
             if ((!text.WrapText || text.NativePublisherFrame) && text.Paragraphs.Count > 0) {

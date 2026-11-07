@@ -208,10 +208,21 @@ public sealed partial class PdfCreateOptions {
         return coveredLength;
     }
 
-    private static int CountRequiredFallbackTextLength(string text) =>
-        OfficeIMO.Drawing.OfficeTextElements.Enumerate(text)
-            .Where(element => element.Any(ch => ch >= ' ' && ch != '\u007F' && !char.IsWhiteSpace(ch)))
-            .Sum(element => element.Count(ch => ch >= ' ' && ch != '\u007F'));
+    private static int CountRequiredFallbackTextLength(string text) {
+        int length = 0;
+        foreach (string element in OfficeIMO.Drawing.OfficeTextElements.Enumerate(text)) {
+            int elementLength = 0;
+            bool requiresFallback = false;
+            for (int index = 0; index < element.Length; index++) {
+                char character = element[index];
+                if (character < ' ' || character == '\u007F') continue;
+                elementLength++;
+                if (!char.IsWhiteSpace(character)) requiresFallback = true;
+            }
+            if (requiresFallback) length = checked(length + elementLength);
+        }
+        return length;
+    }
 
     /// <summary>
     /// Registers generated-text fallback fonts by resolving an Office-style comma/semicolon-separated system font family list.

@@ -401,7 +401,7 @@ internal static partial class PdfWriter {
             ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas text");
             double size = item.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = item.LineHeight ?? size * 1.2D;
-            var block = new RichParagraphBlock(item.Runs, item.Align, item.DefaultColor);
+            var block = new RichParagraphBlock(item);
             var wrap = item.PreservePositionedText
                 ? CreatePositionedTextLine(item.Runs, size, leading, currentOpts, item.PositionedFontMetricScale)
                 : WrapRichRunsCore(item.Runs, item.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, cancellationToken: cancellationToken);

@@ -61,6 +61,81 @@ public sealed class PdfManagedInspectionEvidenceTests {
         Assert.Equal(2, inspection.Document.Pages.Count);
     }
 
+    [Fact]
+    public void InspectionRecoversOnlyTheLeadingContentBeforeADamagedStream() {
+        byte[] bytes = BuildPdf(new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 3 /Kids [3 0 R 4 0 R 5 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 6 0 R >> >> /Contents [7 0 R 8 0 R 9 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 6 0 R >> >> /Contents [8 0 R 9 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 6 0 R >> >> /Contents 10 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            Stream("BT /F1 12 Tf 20 100 Td (Verified leading text) Tj ET"),
+            Stream("not a zlib stream", "/Filter /FlateDecode"),
+            Stream("BT /F1 12 Tf 20 80 Td (Unverified suffix) Tj ET"),
+            Stream("BT /F1 12 Tf 20 100 Td (Independent healthy page) Tj ET")
+        });
+        PdfDocument pdf = PdfDocument.Load(bytes, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict });
+        var recovery = new PdfLoadOptions {
+            RecoverDecodableTextForInspection = true,
+            PageSelection = PdfPageSelection.Parse("1,3,1,2")
+        };
+
+        Assert.Throws<InvalidDataException>(() => pdf.ReadForInspection());
+        PdfInspectionReadResult result = pdf.ReadForInspection(recovery);
+
+        Assert.False(result.CompletedAllSelectedPages);
+        Assert.Equal(3, result.SourceInfo.PageCount);
+        Assert.False(result.RepairReport.HasRepairs);
+        Assert.Equal(new[] { 1, 3, 1, 2 }, result.PageOutcomes.Select(outcome => outcome.PageNumber));
+        Assert.Equal(new[] { 0, 1, 2, 3 }, result.PageOutcomes.Select(outcome => outcome.SelectionIndex));
+        Assert.Equal(new[] {
+            PdfPageReadStatus.DamagedContentStream, PdfPageReadStatus.Read,
+            PdfPageReadStatus.DamagedContentStream, PdfPageReadStatus.DamagedContentStream
+        }, result.PageOutcomes.Select(outcome => outcome.Status));
+        Assert.Equal(new[] { 1, 3, 1 }, result.Document.Pages.Select(page => page.PageNumber));
+        Assert.Equal(string.Join(Environment.NewLine + Environment.NewLine,
+            "Verified leading text", "Independent healthy page", "Verified leading text"), result.Document.Text);
+        Assert.Same(result.Document.Pages[0], result.PageOutcomes[0].Page);
+        Assert.Same(result.Document.Pages[2], result.PageOutcomes[2].Page);
+        Assert.Null(result.PageOutcomes[3].Page);
+        Assert.Throws<InvalidDataException>(() => pdf.Read(recovery));
+        Assert.Throws<InvalidDataException>(() => pdf.ReadForInspection());
+
+        PdfDocument limited = PdfDocument.Load(bytes, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPageContentBytes = 16 }
+        });
+        Assert.Equal(PdfReadLimitKind.PageContentBytes,
+            Assert.Throws<PdfReadLimitException>(() => limited.ReadForInspection(recovery)).Kind);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => pdf.ReadForInspection(recovery, cancellation.Token));
+    }
+
+    [Theory]
+    [InlineData(8000, 1, "/JBIG2Decode")]
+    [InlineData(128, 2, "[/ASCIIHexDecode /JBIG2Decode]")]
+    public void InspectionRecoveryKeepsJbig2AdmissionFailuresTerminal(int width, int height, string filters) {
+        byte[] bytes = BuildPdf(new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents [5 0 R 6 0 R] >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            Stream("BT /F1 12 Tf 20 100 Td (Verified leading text) Tj ET"),
+            Stream("", FormattableString.Invariant($"/Filter {filters} /Width {width} /Height {height}"))
+        });
+        PdfDocument pdf = PdfDocument.Load(bytes, new PdfLoadOptions {
+            ParsingMode = PdfParsingMode.Strict,
+            Limits = new PdfReadLimits { MaxDecodedStreamBytes = 128 }
+        });
+
+        Assert.Throws<InvalidDataException>(() => pdf.Read());
+        Assert.Throws<InvalidDataException>(() => pdf.ReadForInspection());
+        Assert.Throws<InvalidDataException>(() => pdf.ReadForInspection(new PdfLoadOptions {
+            RecoverDecodableTextForInspection = true
+        }));
+    }
+
     [Theory]
     [InlineData("Type1", "WinAnsiEncoding")]
     [InlineData("Type0", "Identity-H")]

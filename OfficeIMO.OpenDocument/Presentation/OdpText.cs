@@ -118,7 +118,8 @@ public sealed class OdpParagraph {
             new XAttribute(OdfNamespaces.XLink + "href", href));
         OdfTextCodec.Append(element, text); EnsureMaterialized().Add(element); Dirty(); return new OdpHyperlink(_presentation, element);
     }
-    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofPr", _presentation.GetPartPath(_element));
+    /// <summary>Materializes this paragraph and resolves its copy-on-write style for one formatting batch.</summary>
+    internal OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofPr", _presentation.GetPartPath(_element));
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
         OdfStyle? style = StyleName == null ? null : _presentation.Styles.FindInPart(OdfStyleFamily.Paragraph, StyleName, _presentation.GetPartPath(_element));
         foreach (OdfStyle candidate in _presentation.Styles.ResolveWithDefault(style, OdfStyleFamily.Paragraph)) { T? value = selector(candidate); if (value.HasValue) return value; } return null;
@@ -240,7 +241,8 @@ public sealed class OdpRun {
         Dirty();
         return this;
     }
-    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun", _presentation.GetPartPath(_element));
+    /// <summary>Materializes this run and resolves its copy-on-write style for one formatting batch.</summary>
+    internal OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun", _presentation.GetPartPath(_element));
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>
         OdfInlineStyleResolver.Resolve(_presentation.Styles, _element, _presentation.GetPartPath(_element), selector);
     private string? ResolveReference(Func<OdfStyle, string?> selector) =>

@@ -207,7 +207,8 @@ public sealed class OdpHyperlink {
     public bool HasTextBackgroundOverride => OdfInlineStyleResolver.TryResolveTextBackgroundColor(
         _presentation.Styles, _element, _presentation.GetPartPath(_element), out _);
 
-    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(
+    /// <summary>Materializes this hyperlink and resolves its copy-on-write style for one formatting batch.</summary>
+    internal OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(
         EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofLink", _presentation.GetPartPath(_element));
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>
         OdfInlineStyleResolver.Resolve(_presentation.Styles, _element, _presentation.GetPartPath(_element), selector);

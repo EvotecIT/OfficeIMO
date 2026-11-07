@@ -296,14 +296,14 @@ internal sealed class HtmlRenderBoxStyle {
     internal string ObjectFit { get => _effects.ObjectFit; set { if (!(string.Equals(_effects.ObjectFit, value, StringComparison.Ordinal))) MutableEffects().ObjectFit = value; } }
     internal string ObjectPosition { get => _effects.ObjectPosition; set { if (!(string.Equals(_effects.ObjectPosition, value, StringComparison.Ordinal))) MutableEffects().ObjectPosition = value; } }
     internal bool ApplyEmbeddedImageOrientation { get => _effects.ApplyEmbeddedImageOrientation; set { if (!(_effects.ApplyEmbeddedImageOrientation == value)) MutableEffects().ApplyEmbeddedImageOrientation = value; } }
-    internal double? ImageResolutionDpi { get => _effects.ImageResolutionDpi; set { if (!(SameValue(_effects.ImageResolutionDpi, value))) MutableEffects().ImageResolutionDpi = value; } }
+    internal double? ImageResolutionDpi { get; set; }
     internal double? AspectRatio { get => _effects.AspectRatio; set { if (!(SameValue(_effects.AspectRatio, value))) MutableEffects().AspectRatio = value; } }
     internal bool AspectRatioPrefersIntrinsic { get => _effects.AspectRatioPrefersIntrinsic; set { if (!(_effects.AspectRatioPrefersIntrinsic == value)) MutableEffects().AspectRatioPrefersIntrinsic = value; } }
     internal string OverflowClipMarginBox { get => _effects.OverflowClipMarginBox; set { if (!(string.Equals(_effects.OverflowClipMarginBox, value, StringComparison.Ordinal))) MutableEffects().OverflowClipMarginBox = value; } }
     internal double OverflowClipMargin { get => _effects.OverflowClipMargin; set { if (!(SameValue(_effects.OverflowClipMargin, value))) MutableEffects().OverflowClipMargin = value; } }
     internal string Transform { get => _effects.Transform; set { if (!(string.Equals(_effects.Transform, value, StringComparison.Ordinal))) MutableEffects().Transform = value; } }
     internal string IndividualScale { get => _effects.IndividualScale; set { if (!(string.Equals(_effects.IndividualScale, value, StringComparison.Ordinal))) MutableEffects().IndividualScale = value; } }
-    internal bool TransformAppliesToBox { get => _effects.TransformAppliesToBox; set { if (!(_effects.TransformAppliesToBox == value)) MutableEffects().TransformAppliesToBox = value; } }
+    internal bool TransformAppliesToBox { get; set; }
     internal string TransformOrigin { get => _effects.TransformOrigin; set { if (!(string.Equals(_effects.TransformOrigin, value, StringComparison.Ordinal))) MutableEffects().TransformOrigin = value; } }
     internal string ClipPath { get => _effects.ClipPath; set { if (!(string.Equals(_effects.ClipPath, value, StringComparison.Ordinal))) MutableEffects().ClipPath = value; } }
     internal string Clip { get => _effects.Clip; set { if (!(string.Equals(_effects.Clip, value, StringComparison.Ordinal))) MutableEffects().Clip = value; } }
@@ -479,14 +479,12 @@ internal sealed class HtmlRenderBoxStyle {
         internal string ObjectFit = "fill";
         internal string ObjectPosition = "50% 50%";
         internal bool ApplyEmbeddedImageOrientation = true;
-        internal double? ImageResolutionDpi;
         internal double? AspectRatio;
         internal bool AspectRatioPrefersIntrinsic = true;
         internal string OverflowClipMarginBox = "padding-box";
         internal double OverflowClipMargin;
         internal string Transform = "none";
         internal string IndividualScale = "none";
-        internal bool TransformAppliesToBox;
         internal string TransformOrigin = "50% 50%";
         internal string ClipPath = "none";
         internal string Clip = "auto";

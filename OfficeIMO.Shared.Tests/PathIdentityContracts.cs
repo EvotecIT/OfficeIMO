@@ -5,12 +5,12 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public class PathIdentityContracts {
+#if NET8_0_OR_GREATER
     [Fact]
     public void LongWindowsPathsRetainPhysicalIdentityAndRegularFileAccess() {
-#if NET8_0_OR_GREATER
         if (!OperatingSystem.IsWindows()) return;
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-long-identity-" + Guid.NewGuid().ToString("N"));
-        string root = Path.Combine(directory, new string('a', 160));
+        string root = Path.Combine(directory, new string('a', 240));
         Directory.CreateDirectory(root);
         try {
             string path = Path.Combine(root, "document.txt");
@@ -25,8 +25,8 @@ public class PathIdentityContracts {
                 OfficePathIdentity.GetMetadata(path, stream.SafeFileHandle).Identity);
             Assert.True(OfficePathIdentity.AreEquivalent(path, @"\\?\" + path));
         } finally { Directory.Delete(directory, recursive: true); }
-#endif
     }
+#endif
 
     [Fact]
     public void Open_handle_identity_fallback_enforces_the_physical_root_without_procfs() {

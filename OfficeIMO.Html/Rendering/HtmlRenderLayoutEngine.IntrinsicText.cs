@@ -18,18 +18,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool hasContent = false;
         bool pendingAtomicBreak = false;
         UnicodeCategory? precedingCategory = null;
-        var cloned = new List<(HtmlRenderBoxStyle Style, double Start, double End)>();
-        var ends = new Dictionary<HtmlRenderBoxStyle, double>();
+        List<(HtmlRenderBoxStyle Style, double Start, double End)>? cloned = null;
+        Dictionary<HtmlRenderBoxStyle, double>? ends = null;
         foreach (IntrinsicTextRun edge in runs.Where(run => run.IsInlineInset && run.IsInlineInsetEnd)) {
-            ends[edge.Style] = edge.ReplacedWidth;
+            (ends ??= new())[edge.Style] = edge.ReplacedWidth;
         }
         void AddAdvance(double advance) {
             current += advance;
             hasContent = true;
         }
         void FinishSegment() {
-            if (hasContent) maximum = Math.Max(maximum, firstLineIndent + current + cloned.Sum(edge => edge.End));
-            current = cloned.Sum(edge => edge.Start);
+            if (hasContent) maximum = Math.Max(maximum, firstLineIndent + current + (cloned?.Sum(edge => edge.End) ?? 0D));
+            current = cloned?.Sum(edge => edge.Start) ?? 0D;
             firstLineIndent = 0D;
             hasContent = false;
             pendingAtomicBreak = false;
@@ -46,10 +46,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 AddAdvance(run.ReplacedMinWidth);
                 if (run.Style.BoxDecorationBreak == "clone") {
                     if (run.IsInlineInsetEnd) {
-                        cloned.RemoveAll(edge => ReferenceEquals(edge.Style, run.Style));
+                        cloned?.RemoveAll(edge => ReferenceEquals(edge.Style, run.Style));
                     } else {
-                        ends.TryGetValue(run.Style, out double trailing);
-                        cloned.Add((run.Style, run.ReplacedWidth, trailing));
+                        double trailing = 0D;
+                        ends?.TryGetValue(run.Style, out trailing);
+                        (cloned ??= new()).Add((run.Style, run.ReplacedWidth, trailing));
                     }
                 }
                 continue;
@@ -90,19 +91,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     } else {
                         HyphenationToken hyphenation = PrepareHyphenationToken(token, token, run.Style);
                         string paintToken = hyphenation.PaintText;
-                        var hyphenationBreaks = new HashSet<int>(hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks));
                         IReadOnlyList<int> preferredBreaks = GetHtmlPreferredBreakPositions(paintToken,
                             run.Style.WordBreak != "keep-all", start == 0 ? runPrecedingCategory : GetPrecedingTextCategory(run.Text, start));
-                        int segmentStart = 0;
-                        foreach (int end in preferredBreaks.Concat(hyphenationBreaks).Distinct().OrderBy(point => point)) {
-                            if (end <= segmentStart || end > paintToken.Length) continue;
-                            string segment = paintToken.Substring(segmentStart, end - segmentStart);
-                            if (hyphenationBreaks.Contains(end)) segment += run.Style.HyphenateCharacter;
-                            AddAdvance(Measure(segment, run));
-                            FinishSegment();
-                            segmentStart = end;
+                        if (preferredBreaks.Count == 0 && hyphenation.PrimaryBreaks.Count == 0 && hyphenation.SecondaryBreaks.Count == 0) {
+                            if (paintToken.Length > 0) AddAdvance(Measure(paintToken, run));
+                        } else {
+                            var hyphenationBreaks = new HashSet<int>(hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks));
+                            int segmentStart = 0;
+                            foreach (int end in preferredBreaks.Concat(hyphenationBreaks).Distinct().OrderBy(point => point)) {
+                                if (end <= segmentStart || end > paintToken.Length) continue;
+                                string segment = paintToken.Substring(segmentStart, end - segmentStart);
+                                if (hyphenationBreaks.Contains(end)) segment += run.Style.HyphenateCharacter;
+                                AddAdvance(Measure(segment, run));
+                                FinishSegment();
+                                segmentStart = end;
+                            }
+                            if (segmentStart < paintToken.Length) AddAdvance(Measure(paintToken.Substring(segmentStart), run));
                         }
-                        if (segmentStart < paintToken.Length) AddAdvance(Measure(paintToken.Substring(segmentStart), run));
                     }
                 }
                 if (!atEnd) {

@@ -132,7 +132,10 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfCreateOptions measurementOptions = options.PdfOptions.Clone();
         measurementOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
-        if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
+        if (options.FontFamily is { } fontFamily) {
+            measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, fontFamily);
+            RegisterExplicitCssFontFamily(measurementOptions, fontFamily);
+        }
         if (renderOptions.LibrarySelectedDefaultFontFamily != null) {
             measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica,
                 renderOptions.LibrarySelectedDefaultFontFamily);
@@ -341,8 +344,9 @@ internal static partial class HtmlPdfRenderedConverter {
                 if (rendered.Metadata.Direction == HtmlRenderTextDirection.RightToLeft) preferences.Direction = PdfCore.PdfViewerDirection.RightToLeft;
             });
         }
-        if (options.FontFamily != null) {
-            pdf.UseFontFamily(options.FontFamily);
+        if (options.FontFamily is { } fontFamily) {
+            pdf.UseFontFamily(fontFamily);
+            RegisterExplicitCssFontFamily(pdf.Options, fontFamily);
         }
 
         var imageResources = new PdfImageResourceCache(options, conversionReport, cancellationToken);
@@ -513,10 +517,8 @@ internal static partial class HtmlPdfRenderedConverter {
             double right = visual.X + visual.Width;
             double bottom = visual.Y + visual.Height;
             if (right <= 0D || bottom <= 0D || visual.X >= surfaceWidth || visual.Y >= surfaceHeight) return;
-            var pageClip = new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight);
-            canvas.SourceClip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, clipped =>
-                AddVisual(clipped, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
-                    interactiveFormControls, cancellationToken, textAsSpan, pageClip, logicalTextOwned, pagePaint));
+            AddPageClippedVisual(canvas, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
+                interactiveFormControls, cancellationToken, textAsSpan, logicalTextOwned, pagePaint);
             return;
         }
         if (!textAsSpan && !logicalTextOwned && visual.SemanticSourceOrder.HasValue
@@ -851,8 +853,9 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken,
         bool suppressLink) {
         var drawing = new OfficeDrawing(visual.Width, visual.Height);
-        // AddShape snapshots the immutable private descriptor through OfficeDrawingShape.
-        drawing.AddShape(visual.InnerShape, 0D, 0D);
+        // InnerShape is a private immutable snapshot; public Shape reads clone it.
+        // This scene stays private and neither the adapter nor writer edits the descriptor.
+        drawing.AddShapeSnapshot(visual.InnerShape, 0D, 0D);
         if (TryAddTranslucentGradient(canvas, visual, drawing, imageResources, conversionReport, cancellationToken, suppressLink)) return;
         double x = visual.X * PointsPerCssPixel;
         double y = visual.Y * PointsPerCssPixel;
@@ -860,7 +863,7 @@ internal static partial class HtmlPdfRenderedConverter {
         double drawingY = Math.Max(0D, y);
         OfficeTransform transform = OfficeTransform.Translate(Math.Min(0D, x), Math.Min(0D, y));
         bool fragmentLink = !suppressLink && IsFragmentLink(visual.LinkUri);
-        Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
+        Action<PdfCore.PdfPageCanvas> addDrawing = target => target.DrawingSnapshot(
             drawing,
             global::OfficeIMO.OfficeLength.Points(drawingX),
             global::OfficeIMO.OfficeLength.Points(drawingY),

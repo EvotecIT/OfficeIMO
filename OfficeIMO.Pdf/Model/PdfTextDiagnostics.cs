@@ -837,11 +837,19 @@ internal static partial class PdfTextDiagnostics {
         // and must not execute an arbitrary provider or apply its features.
         bool scalarCoverage = shapingMode == PdfTextShapingMode.UnicodeScalar;
         if (scalarCoverage && font.HasVerifiedScalarCoverage(text)) return new List<PdfTextEncodingDiagnostic>();
-        PdfGlyphRun glyphRun = font.ShapeText(text, PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode));
-        if (scalarCoverage && glyphRun.Diagnostics.Count == 0) font.RememberVerifiedScalarCoverage(text);
-        return glyphRun.Diagnostics.Count == 0
-            ? new List<PdfTextEncodingDiagnostic>()
-            : glyphRun.Diagnostics.ToList();
+        PdfTextShapingOptions raw = PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode);
+        List<PdfTextEncodingDiagnostic> diagnostics;
+        if (shapingMode is PdfTextShapingMode.UnicodeScalar or PdfTextShapingMode.LatinLigatures) {
+            // These raw modes cannot select a provider; coverage needs no glyph run.
+            diagnostics = PdfUnicodeScalarTextShaper.AnalyzeRawDiagnostics(text, font, raw);
+        } else {
+            // OpenType/default-managed paths retain their shaping and coverage decisions.
+            PdfGlyphRun glyphRun = font.ShapeText(text, raw);
+            diagnostics = glyphRun.Diagnostics.Count == 0
+                ? new List<PdfTextEncodingDiagnostic>() : glyphRun.Diagnostics.ToList();
+        }
+        if (scalarCoverage && diagnostics.Count == 0) font.RememberVerifiedScalarCoverage(text);
+        return diagnostics;
     }
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextCore(string text, PdfOpenTypeCffFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, PdfTextShapingOptions? shapingOptions = null) {
@@ -1177,14 +1185,18 @@ internal static partial class PdfTextDiagnostics {
         // Preflight the same selected language-system lookups used by the shared shaper.
         // A rejected required feature or custom ligature need not contain ff/fi/fl, but it
         // only simplifies this run when it could start on one of the run's glyphs.
-        int latinInputIndex = OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
         OfficeTextFeatureSettings effectiveSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
-        if (latinInputIndex >= 0 && info.LatinSubstitution != null &&
-            !info.LatinSubstitution.ApplyLatinDefaults(new List<OfficeOpenTypeSubstitution.GlyphToken>(), effectiveSettings, default) &&
-            info.LatinSubstitution.DeclinedLatinDefaultLookupMayApply(MapRunGlyphs(text, info), effectiveSettings, default)) {
-            AddDiagnostic(diagnostics, reportedCodes, source, indexOffset + latinInputIndex, char.ConvertToUtf32(text, latinInputIndex),
-                "OpenType GSUB", "unsupported-font-ligature-substitution",
-                "Embedded font '" + info.FontName + "' selects an OpenType GSUB feature outside the managed shaping subset. Generated output may be visually simplified.");
+        bool usesCachedDefaultLookups = effectiveSettings.IsDefault;
+        int latinInputIndex = usesCachedDefaultLookups ? -1 : OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
+        if (info.LatinSubstitution != null && (usesCachedDefaultLookups || latinInputIndex >= 0) &&
+            !info.LatinSubstitution.CanApplyLatinDefaults(effectiveSettings, default)) {
+            if (usesCachedDefaultLookups) latinInputIndex = OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
+            if (latinInputIndex >= 0 && info.LatinSubstitution.DeclinedLatinDefaultLookupMayApply(
+                    MapRunGlyphs(text, info), effectiveSettings, default)) {
+                AddDiagnostic(diagnostics, reportedCodes, source, indexOffset + latinInputIndex, char.ConvertToUtf32(text, latinInputIndex),
+                    "OpenType GSUB", "unsupported-font-ligature-substitution",
+                    "Embedded font '" + info.FontName + "' selects an OpenType GSUB feature outside the managed shaping subset. Generated output may be visually simplified.");
+            }
         }
         if (HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, "liga", "clig", "rlig") ||
             HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, "dlig") && featureSettings != null &&

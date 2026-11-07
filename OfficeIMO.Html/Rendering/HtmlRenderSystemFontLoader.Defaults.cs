@@ -57,7 +57,7 @@ internal static partial class HtmlRenderSystemFontLoader {
         OfficeFontFaceDescriptor descriptor, OfficeFontFaceCollection fonts, ISet<string> suppliedFamilies,
         HtmlDisclosureState disclosures, HtmlComputedStyle computed, Lazy<HtmlCounterStyleRegistry> counterStyles,
         CancellationToken cancellationToken) {
-        IReadOnlyList<string> parsed = OfficeFontFamilyParser.Parse(families);
+        IReadOnlyList<string> parsed = fonts.GetParsedFamilyNames(families);
         for (int index = 0; index < parsed.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!suppliedFamilies.Contains(parsed[index])) continue;
@@ -73,7 +73,7 @@ internal static partial class HtmlRenderSystemFontLoader {
         OfficeFontFaceDescriptor descriptor, OfficeFontFaceCollection fonts, ISet<string> suppliedFamilies,
         HtmlDisclosureState disclosures, HtmlComputedStyle computed, Lazy<HtmlCounterStyleRegistry> counterStyles,
         CancellationToken cancellationToken) {
-        IReadOnlyList<string> requestedFamilies = OfficeFontFamilyParser.Parse(families);
+        IReadOnlyList<string> requestedFamilies = fonts.GetParsedFamilyNames(families);
         bool found = false;
         foreach (IText text in element.ChildNodes.OfType<IText>()) {
             cancellationToken.ThrowIfCancellationRequested();

@@ -170,9 +170,11 @@ internal sealed record PdfFormatConversionScenario(
             sheet.Cell(row, 4).SetValue(PdfFormatConversionRecordManifest.StatusMarker(index));
         }
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
-        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(42));
-        sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(14));
-        sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(54));
+        sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
+        sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(23));
+        sheet.PageSetup.FitToWidth = 1;
+        sheet.PageSetup.FitToHeight = 0;
         if (profile == PdfFormatConversionProfile.Structured) {
             ExcelSheet details = document.AddSheet("Structured");
             details.Cell(1, 1).SetValue(StructureMarker);

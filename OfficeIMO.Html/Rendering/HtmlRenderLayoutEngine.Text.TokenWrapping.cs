@@ -366,6 +366,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         || style.WordBreak == "break-word";
 
     private IReadOnlyList<InlineSegment> MergeAdjacentInlineSegments(IReadOnlyList<InlineSegment> segments) {
+        if (segments.Count < 2) return segments;
+        if (TryCoalesceSimpleInlineLine(segments) is InlineSegment simple) return new[] { simple };
         var merged = new List<InlineSegment>(segments.Count);
         foreach (InlineSegment segment in segments) {
             if (segment.Run.AtomicBlock == null
@@ -394,6 +396,50 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return merged;
+    }
+
+    private InlineSegment? TryCoalesceSimpleInlineLine(IReadOnlyList<InlineSegment> segments) {
+        if (segments.Count < 5 || _options.TextShapingProvider != null) return null;
+        InlineSegment first = segments[0];
+        HtmlInlineRun run = first.Run;
+        if (run.AtomicBlock != null || run.PreparedShaping != null || !run.Style.TextFeatureSettings.IsDefault) return null;
+        bool extendedBmp = false;
+        foreach (InlineSegment segment in segments) {
+            if (!ReferenceEquals(segment.Run, run) || segment.PreparedShaping != null || segment.Text.Length == 0) return null;
+            // Keep surrogate boundaries on the existing prefix-sensitive path.
+            foreach (char value in segment.Text) {
+                if (value > '\u00FF') {
+                    if (char.IsSurrogate(value)) return null;
+                    extendedBmp = true;
+                }
+            }
+            foreach (char value in segment.LogicalText) {
+                if (value > '\u00FF') {
+                    if (char.IsSurrogate(value)) return null;
+                    extendedBmp = true;
+                }
+            }
+        }
+        var text = new StringBuilder(first.Text);
+        var logical = new StringBuilder(first.LogicalText);
+        double width = first.Width;
+        double leading = first.LeadingAdvance;
+        double trailing = first.TrailingAdvance;
+        for (int index = 1; index < segments.Count; index++) {
+            InlineSegment segment = segments[index];
+            text.Append(segment.Text);
+            logical.Append(segment.LogicalText);
+            width += segment.Width;
+            leading += segment.LeadingAdvance;
+            trailing += segment.TrailingAdvance;
+        }
+        string logicalText = logical.ToString();
+        if (extendedBmp && OfficeManagedTextShaper.RequiresComplexLayout(logicalText)) return null;
+        return new InlineSegment(text.ToString(), width, run, logicalText,
+            logicalEndProgress: segments[segments.Count - 1].LogicalEndProgress) {
+            LeadingAdvance = leading,
+            TrailingAdvance = trailing
+        };
     }
 
     private bool HasProviderMeasurementContext(InlineSegment segment) => segment.PreparedShaping != null

@@ -10,8 +10,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         ref int bookmarks, NoteMappingStats notes) {
         bool wrote = false;
         OdtParagraph first = target;
-        target.PageBreakBefore = source.PageBreakBefore;
-        ApplyWordParagraphFormatting(source, target);
+        OdfStyle paragraphStyle = target.EnsureStyle();
+        paragraphStyle.BreakBefore = source.PageBreakBefore ? "page" : null;
+        ApplyWordParagraphFormatting(source, paragraphStyle);
         WordInlineFieldInfo[] fields = source.InlineFields.OrderBy(field => field.RunIndex).ToArray();
         int fieldIndex = 0;
         for (int runIndex = 0; runIndex <= source.Runs.Count; runIndex++) {
@@ -40,9 +41,12 @@ public static partial class WordOpenDocumentConversionExtensions {
                     if (boundary.Value == WordBreakType.Page) {
                         if (target.InlineNodes.Count > 0 || target.PageBreakBefore) {
                             target = target.InsertParagraphAfter();
-                            ApplyWordParagraphFormatting(source, target);
+                            OdfStyle continuedStyle = target.EnsureStyle();
+                            ApplyWordParagraphFormatting(source, continuedStyle);
+                            continuedStyle.BreakBefore = "page";
+                        } else {
+                            target.PageBreakBefore = true;
                         }
-                        target.PageBreakBefore = true;
                     } else AppendText(run, "\n", target, ref hyperlinks, ref wrote);
                     start = boundary.Key + 1;
                 }

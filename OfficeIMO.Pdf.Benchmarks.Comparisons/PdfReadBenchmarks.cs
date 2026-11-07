@@ -26,7 +26,7 @@ public class PdfReadBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _scenario = PdfBenchmarkScenario.Get(Scale);
-        _pdf = PdfDocumentGenerators.Generate(Producer, _scenario);
+        _pdf = PdfPreparedReadInputs.Resolve(Producer, _scenario);
         PdfBenchmarkValidation.ValidateGenerated(_pdf, _scenario, Producer.ToString());
         Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(PdfPig), PdfPig());

@@ -82,23 +82,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     groupChildren = semantic.Visuals;
                 }
             }
-            var filtered = new List<HtmlRenderVisual>(groupChildren.Count);
+            List<HtmlRenderVisual>? filtered = null;
             for (int index = 0; index < groupChildren.Count; index++) {
                 HtmlRenderVisual? child = FilterFlowPaint(groupChildren[index], phase, projectionIdentities);
                 if (child == null) continue;
+                filtered ??= new List<HtmlRenderVisual>(groupChildren.Count);
                 // Number children as the caller's renumbering copy would, so the fragment needs none.
                 // Pending children are numbered by position when the fragment is read.
                 filtered.Add(pendingOffsets != null ? child
                     : child.WithPaintOrder(filtered.Count, owned: !ReferenceEquals(child, groupChildren[index])));
             }
-            if (filtered.Count == 0) return null;
-            // Group constructors copy their children, so the working list can be passed directly.
+            if (filtered == null) return null;
+            IReadOnlyList<HtmlRenderVisual> fragmentChildren = filtered;
+            if (pendingGroup == null && visual is HtmlRenderSemanticGroup
+                && filtered.Count == groupChildren.Count) {
+                bool unchanged = true;
+                for (int index = 0; index < filtered.Count; index++) {
+                    if (ReferenceEquals(filtered[index], groupChildren[index])) continue;
+                    unchanged = false;
+                    break;
+                }
+                if (unchanged) fragmentChildren = groupChildren;
+            }
+            // Changed children remain private working lists; unchanged semantic children retain their snapshot.
             HtmlRenderVisual fragment = pendingGroup != null
                 ? visual.CopyStackingContextTo(pendingGroup.WithPendingChildren(filtered, pendingOffsets!))
                 : visual is HtmlRenderLogicalTextGroup text
                 ? visual.CopyStackingContextTo(text.ProjectPaint(filtered, 0D, 0D, visual.PaintOrder,
                     ownsLogicalText: phase == HtmlRenderPaintPhase.Content))
-                : CloneGroupWithChildren(visual, filtered);
+                : CloneGroupWithChildren(visual, fragmentChildren);
             if (!projectionIdentities.TryGetValue(visual, out object? identity)) {
                 identity = visual.PaintProjectionIdentity ?? new object();
                 projectionIdentities.Add(visual, identity);

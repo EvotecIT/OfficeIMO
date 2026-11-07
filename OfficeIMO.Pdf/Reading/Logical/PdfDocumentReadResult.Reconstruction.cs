@@ -10,7 +10,8 @@ public sealed partial class PdfDocumentReadResult {
         IReadOnlyList<PdfUnderstandingPageResult> analyses,
         PdfReadProfile profile,
         CancellationToken cancellationToken,
-        bool preserveDocumentWideObjects = false, bool includeImages = true, bool includeFormWidgets = true) {
+        bool preserveDocumentWideObjects = false, bool includeImages = true, bool includeFormWidgets = true,
+        bool recoverDecodableText = false) {
         document.DemandContentExtraction("logical object");
         if (analyses.Count != pageNumbers.Length) {
             throw new ArgumentException("Semantic analysis count must match the selected page count.", nameof(analyses));
@@ -53,6 +54,7 @@ public sealed partial class PdfDocumentReadResult {
             includeFormWidgets ? IndexFormWidgetsByPageNumber(formFields) : new Dictionary<int, IReadOnlyList<PdfLogicalFormWidget>>();
 
         var pages = new List<PdfLogicalPage>(pageNumbers.Length);
+        var indexedSoftMaskMemo = includeImages && pageNumbers.Length > 1 ? new PdfIndexedSoftMaskPngMemo() : null;
         for (int i = 0; i < pageNumbers.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
@@ -67,7 +69,7 @@ public sealed partial class PdfDocumentReadResult {
                 options,
                 pageFormWidgets,
                 analyses[i],
-                includeImages, includeFormWidgets, cancellationToken));
+                includeImages, includeFormWidgets, recoverDecodableText, indexedSoftMaskMemo, cancellationToken));
         }
         if (profile == PdfReadProfile.Structured) {
             ApplyDocumentHeadingFontTiers(

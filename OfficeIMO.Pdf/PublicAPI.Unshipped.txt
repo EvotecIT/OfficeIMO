@@ -891,3 +891,6 @@ OfficeIMO.Pdf.PdfRewritePreservationOptions.Clone() -> OfficeIMO.Pdf.PdfRewriteP
 OfficeIMO.Pdf.PdfDocumentReadResult.TextDecodingDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfFontInspectionDiagnostic!>!
 OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode.MissingFontResource = 13 -> OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode
 OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode.UnmappableText = 14 -> OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode
+OfficeIMO.Pdf.PdfLoadOptions.RecoverDecodableTextForInspection.get -> bool
+OfficeIMO.Pdf.PdfLoadOptions.RecoverDecodableTextForInspection.init -> void
+OfficeIMO.Pdf.PdfPageReadStatus.DamagedContentStream = 3 -> OfficeIMO.Pdf.PdfPageReadStatus

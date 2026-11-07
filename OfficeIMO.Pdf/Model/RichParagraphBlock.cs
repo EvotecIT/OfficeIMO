@@ -16,6 +16,15 @@ internal sealed class RichParagraphBlock : IPdfBlock {
         Align = align; DefaultColor = defaultColor; Style = style?.Clone(); Runs = snapshot.AsReadOnly();
     }
 
+    // Canvas items already own a captured run list; reuse it while painting prepared lines.
+    internal RichParagraphBlock(PdfCanvasTextItem item) {
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = item.Runs;
+        Guard.NotNull(runs, nameof(runs));
+        OfficeAlignment align = item.Align;
+        Align = Guard.ParagraphAlign(align, nameof(align), "Paragraph");
+        DefaultColor = item.DefaultColor; Runs = runs;
+    }
+
     // Shares the paragraph's run list so later AddText/Set* calls on the returned paragraph are rendered.
     internal RichParagraphBlock(PdfParagraph paragraph, PdfParagraphStyle? style) {
         Source = paragraph;

@@ -477,7 +477,7 @@ public sealed partial class PdfReadPage {
 
         IReadOnlyList<PdfImagePlacement> placements = GetVisualImagePlacements(pageHeight, pageTransform, pageContentBudget);
         if (placements.Count > 0) {
-            IReadOnlyList<PdfExtractedImage> images = GetImages(0, placements, colorizeImageMasks: true, pageContentBudget, cancellationToken);
+            IReadOnlyList<PdfExtractedImage> images = GetImages(0, placements, colorizeImageMasks: true, pageContentBudget, cancellationToken: cancellationToken);
             for (int i = 0; i < placements.Count; i++) {
                 PdfImagePlacement placement = placements[i];
                 PdfExtractedImage? image = FindImage(images, placement);
@@ -2921,7 +2921,7 @@ public sealed partial class PdfReadPage {
                     0,
                     imagePlacements,
                     colorizeImageMasks: true,
-                    pageContentBudget, cancellationToken);
+                    pageContentBudget, cancellationToken: cancellationToken);
                 for (int imageIndex = 0; imageIndex < imagePlacements.Count; imageIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     PdfImagePlacement placement = imagePlacements[imageIndex];
@@ -3592,7 +3592,7 @@ public sealed partial class PdfReadPage {
         PageContentBudget? pageContentBudget = null, CancellationToken cancellationToken = default) {
         PdfDictionary? resourceContext = placement.EffectiveResources ?? placement.InlineImageResources ?? fallbackResources;
         return FindImage(
-            GetImagesForResources(resourceContext, 0, new[] { placement }, colorizeImageMasks, pageContentBudget, cancellationToken),
+            GetImagesForResources(resourceContext, 0, new[] { placement }, colorizeImageMasks, pageContentBudget, cancellationToken: cancellationToken),
             placement);
     }
 

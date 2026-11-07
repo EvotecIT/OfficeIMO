@@ -24,7 +24,7 @@ internal static partial class PdfSyntax {
             } else if (entry.Type == 2) {
                 if (entry.Field1 > int.MaxValue || entry.Field1 < 1 || entry.Field2 > int.MaxValue || entry.Field2 < 0) return false;
                 if (!TryParseObjectFromObjectStream(objects, offsets, (int)entry.Field1, (int)entry.Field2,
-                    item.ObjectNumber, document.ReadOptions.Limits, budget, out _, out int selectedOffset, cancellationToken) ||
+                    item.ObjectNumber, document.ReadOptions.Limits, budget, out _, out int selectedOffset, cancellationToken: cancellationToken) ||
                     selectedOffset != item.SourceOffset || item.Generation != 0) return false;
             } else return false;
         }

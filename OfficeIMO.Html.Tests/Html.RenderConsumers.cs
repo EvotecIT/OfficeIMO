@@ -190,6 +190,8 @@ public sealed class HtmlRenderConsumerTests {
     public void RetainedShapeSnapshotsCannotMutateLaterConsumers() {
         OfficeShape shape = OfficeShape.Rectangle(60D, 30D);
         shape.FillColor = OfficeColor.FromRgb(0x33, 0x66, 0x99);
+        shape.StrokeColor = OfficeColor.Black;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
         var visual = new HtmlRenderShape(shape, 10D, 10D, 0);
         var page = new HtmlRenderPage(1, 100D, 60D, new[] { visual });
         var document = new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, new HtmlDiagnosticReport());
@@ -199,6 +201,12 @@ public sealed class HtmlRenderConsumerTests {
             document,
             new[] { new HtmlRenderSurfaceResult(0, 1, 100D, 60D, 0D, 0D, false) });
         byte[] before = result.ExportArchive().Bytes;
+
+        using (var pdf = HtmlPdfRenderedConverter.CreatePdf(document, new HtmlPdfExportOptions(), default).Document) {
+            using var parsed = UglyToad.PdfPig.PdfDocument.Open(pdf.ToBytes());
+            Assert.Equal(1, parsed.NumberOfPages);
+        }
+        Assert.Null(visual.Shape.Transform);
 
         OfficeShape detached = visual.Shape;
         detached.Width = 1D;

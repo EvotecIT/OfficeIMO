@@ -217,7 +217,9 @@ internal static partial class PdfAdvancedUnderstandingStages {
     private sealed class AdvancedGlyphDecodingStage : IPdfGlyphDecodingStage {
         public IReadOnlyList<PdfTextSpan> Decode(PdfUnderstandingPageContext context) {
             context.ThrowIfCancellationRequested();
-            IReadOnlyList<PdfTextSpan> source = context.Page.GetTextSpans(context.CancellationToken);
+            Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText =
+                context.InspectionTextRecovery is { } recovery ? recovery.RecordUnmappableText : null;
+            IReadOnlyList<PdfTextSpan> source = context.Page.GetTextSpans(context.CancellationToken, onUnmappableText);
             var runs = new PdfTextSpan[source.Count];
             for (int index = 0; index < runs.Length; index++) {
                 context.ConsumeWork();

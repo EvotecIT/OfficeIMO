@@ -7,7 +7,9 @@ public enum PdfPageReadStatus {
     /// <summary>Shown composite text had no usable Unicode mapping.</summary>
     UnmappableText,
     /// <summary>A page or invoked Form XObject declared an unsupported content-stream filter.</summary>
-    UnsupportedContentStreamFilter
+    UnsupportedContentStreamFilter,
+    /// <summary>A supported page content filter could not decode a stream in the page's content array. The page may contain readable text from earlier streams.</summary>
+    DamagedContentStream = 3
 }
 
 /// <summary>One selected page occurrence. A failed page is never represented as successful empty text.</summary>
@@ -28,9 +30,9 @@ public sealed class PdfPageReadOutcome {
     public int SelectionIndex { get; }
     /// <summary>Typed completion or failure status.</summary>
     public PdfPageReadStatus Status { get; }
-    /// <summary>Canonical logical page, available only after a successful read.</summary>
+    /// <summary>Canonical logical page when read successfully or when partial text was explicitly requested and recovered.</summary>
     public PdfLogicalPage? Page { get; }
-    /// <summary>Typed unmappable-font context, when that prevented page extraction.</summary>
+    /// <summary>Typed context for the first unmappable text encountered on this page.</summary>
     public PdfUnsupportedTextMappingException? MappingFailure { get; }
     /// <summary>Unsupported declared filters for a skipped page.</summary>
     public IReadOnlyList<string> UnsupportedFilters { get; }
@@ -51,7 +53,7 @@ public sealed class PdfInspectionReadResult {
     public PdfDocumentInfo SourceInfo { get; }
     /// <summary>Structural recoveries and detected-only issues from the canonical parser.</summary>
     public PdfRepairReport RepairReport { get; }
-    /// <summary>Canonical logical document containing only successful selected page occurrences.</summary>
+    /// <summary>Canonical logical document containing successful pages and any explicitly requested, partially recovered pages.</summary>
     public PdfDocumentReadResult Document { get; }
     /// <summary>Every selected occurrence in caller order.</summary>
     public IReadOnlyList<PdfPageReadOutcome> PageOutcomes { get; }
