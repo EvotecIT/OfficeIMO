@@ -13,6 +13,36 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData("derived", false)]
+    [InlineData("authored", false)]
+    [InlineData("authored", true)]
+    [InlineData("source", false)]
+    [InlineData("source", true)]
+    public void PreferredWidths_SparseGridPreservesIndependentGeometryAndRefreshesDerivedWidths(string origin, bool clearWidth) {
+        using WordDocument source = WordDocument.Create();
+        WordTable sourceTable = source.AddTable(1, 2);
+        sourceTable.ColumnWidth = new List<WordTableWidth?> {
+            WordTableWidth.Length(OfficeLength.Points(72)), WordTableWidth.Length(OfficeLength.Points(144))
+        };
+        if (origin != "derived") sourceTable.GridColumnWidth = new List<OfficeLength> { OfficeLength.Points(100), OfficeLength.Points(200) };
+        using WordDocument? loaded = origin == "source" ? WordDocument.Load(new MemoryStream(source.ToBytes())) : null;
+        WordDocument document = loaded ?? source;
+        WordTable table = Assert.Single(document.Tables);
+        table.Rows[0].Cells[1].Remove();
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(OfficeLength.Points(90));
+        if (clearWidth) table.Width = null;
+
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        W.Table output = Assert.Single(saved.MainDocumentPart!.Document.Body!.Elements<W.Table>());
+        Assert.Equal(origin == "derived" ? new[] { "1800", "2880" } : new[] { "2000", "4000" },
+            output.GetFirstChild<W.TableGrid>()!.Elements<W.GridColumn>().Select(column => column.Width!.Value));
+        Assert.Equal("1800", Assert.Single(Assert.Single(output.Elements<W.TableRow>()).Elements<W.TableCell>())
+            .TableCellProperties!.TableCellWidth!.Width!.Value);
+        if (clearWidth) Assert.Null(output.TableProperties!.TableWidth);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void PreferredWidths_PackageStateTransferHandlesSharedPartsWithoutLoadingUnrelatedRoots(bool authored) {

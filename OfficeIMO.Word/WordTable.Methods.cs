@@ -181,7 +181,6 @@ namespace OfficeIMO.Word {
                 columns++;
             }
             if (columns == 0) return false;
-            int maximum = 0;
             foreach (TableRow row in WordTableContent.Rows(_table)) {
                 int occupied = 0;
                 foreach (OpenXmlElement offset in row.TableRowProperties?.Elements() ?? Enumerable.Empty<OpenXmlElement>()) {
@@ -199,9 +198,8 @@ namespace OfficeIMO.Word {
                     occupied += span;
                     if (occupied > columns) return false;
                 }
-                maximum = Math.Max(maximum, occupied);
             }
-            return maximum == columns;
+            return true;
         }
 
         /// <summary>

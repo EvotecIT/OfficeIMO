@@ -16,6 +16,7 @@ internal sealed partial class WordMl2003Projection {
     private readonly HashSet<OpenXmlPartContainer> _relationshipOwners = new();
     private bool _corePropertiesReserved;
     private static readonly HashSet<string> VmlElements = Names("shape shapetype imagedata stroke formulas f path fill");
+    private const int MaximumVmlFormulasPerGroup = 128;
     private static readonly Dictionary<string, string> VmlAttributes = new(StringComparer.Ordinal) {
         ["shape"] = "id type style alt title coordsize coordorigin wrapcoords filled fillcolor stroked strokecolor strokeweight insetpen spid spt preferrelative allowincell allowoverlap",
         ["shapetype"] = "id coordsize coordorigin path filled stroked spt preferrelative",
@@ -77,6 +78,7 @@ internal sealed partial class WordMl2003Projection {
             if (mapped != null) picture.Add(mapped);
         }
         if (!picture.Elements(Vml + "shape").Any()) return null;
+        CheckVmlIdentifiers(picture);
         return new Picture(picture.ToString(SaveOptions.DisableFormatting));
     }
 
@@ -94,6 +96,8 @@ internal sealed partial class WordMl2003Projection {
             Omit(source, "VML picture structure");
             return null;
         }
+        if (source.Name == Vml + "formulas" && source.Elements(Vml + "f").Skip(MaximumVmlFormulasPerGroup).Any())
+            throw new InvalidDataException($"WordML 2003 permits at most {MaximumVmlFormulasPerGroup} VML formulas in one group.");
         var result = new XElement(source.Name);
         AppendVmlAttributes(source, result);
         if (source.Name == Vml + "imagedata") {

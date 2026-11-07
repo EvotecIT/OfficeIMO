@@ -154,7 +154,8 @@ internal static partial class ExcelReaderAdapter {
         try {
             return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(path, loadOptions, cancellationToken));
         } catch (Exception exception) when (OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.LoadEncrypted(path, options.OpenPassword!, loadOptions));
+            loadOptions.Password = options.OpenPassword;
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(path, loadOptions, cancellationToken));
         }
     }
 
@@ -173,7 +174,8 @@ internal static partial class ExcelReaderAdapter {
             return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions, cancellationToken));
         } catch (Exception exception) when (stream.CanSeek && OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
             stream.Position = 0;
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.LoadEncrypted(stream, options.OpenPassword!, loadOptions));
+            loadOptions.Password = options.OpenPassword;
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions, cancellationToken));
         }
     }
 

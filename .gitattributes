@@ -198,6 +198,9 @@ OfficeIMO.Studio/Licenses/ThirdParty/* -text -whitespace
 # Spreadsheet XML producer evidence retains native line endings and byte hashes.
 OfficeIMO.TestAssets/Documents/SpreadsheetXmlCorpus/*.xml -text -whitespace
 
+# Native Word XML producer hashes identify exact bytes on every checkout platform.
+OfficeIMO.TestAssets/Documents/WordXmlMigration/*.xml -text -whitespace
+
 # Legacy Visio producer inputs are hash-bound evidence, including line endings.
 OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vdx -text -diff
 OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vsx -text -diff

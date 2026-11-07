@@ -342,8 +342,8 @@ namespace OfficeIMO.Excel {
             long? inputLimit = ResolveInputLimit(options);
             return options.PackageSecurity != null
                 && inputLimit == options.PackageSecurity.MaxPackageBytes
-                ? OfficePackageSecurityInspector.ReadBounded(stream, options.PackageSecurity)
-                : OfficeStreamReader.ReadAllBytes(stream, inputLimit);
+                ? OfficePackageSecurityInspector.ReadBounded(stream, options.PackageSecurity, options.LoadCancellationToken)
+                : OfficeStreamReader.ReadAllBytes(stream, options.LoadCancellationToken, inputLimit);
         }
 
         private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken,
@@ -459,7 +459,7 @@ namespace OfficeIMO.Excel {
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Load(string filePath, ExcelLoadOptions? options = null) {
             if (options?.Password is string password) return AssociateEncryptedWorkbook(LoadEncrypted(filePath, password, options), filePath, password, options: options);
-            if (options?.FileBacked == true) return OpenFileBacked(filePath, options);
+            if (options?.FileBacked == true) return OpenFileBacked(filePath, options, options.LoadCancellationToken);
             ArgumentNullException.ThrowIfNull(filePath);
 
             if (!File.Exists(filePath)) {
@@ -505,7 +505,7 @@ namespace OfficeIMO.Excel {
                 return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved), encryptedBytes, resolved, "encrypted-source-container");
             }
 
-            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password, resolved.LoadCancellationToken);
             return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
@@ -557,7 +557,7 @@ namespace OfficeIMO.Excel {
                 return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved), encryptedBytes, resolved, "encrypted-source-container");
             }
 
-            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password, resolved.LoadCancellationToken);
             return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
@@ -591,10 +591,10 @@ namespace OfficeIMO.Excel {
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<ExcelDocument> LoadAsync(string filePath, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
             options = (options ?? new ExcelLoadOptions()).Snapshot();
-            options.XlsbImportOptions.CancellationToken = cancellationToken;
+            options.LoadCancellationToken = cancellationToken;
             cancellationToken.ThrowIfCancellationRequested();
-            if (options?.Password is string password) return AssociateEncryptedWorkbook(await LoadEncryptedAsync(filePath, password, options, cancellationToken).ConfigureAwait(false), filePath, password, options: options);
-            if (options?.FileBacked == true) return await Task.Run(() => OpenFileBacked(filePath, options, cancellationToken), cancellationToken).ConfigureAwait(false);
+            if (options?.Password is string password) return CompleteCancellableLoad(AssociateEncryptedWorkbook(await LoadEncryptedAsync(filePath, password, options, cancellationToken).ConfigureAwait(false), filePath, password, options: options), cancellationToken);
+            if (options?.FileBacked == true) return CompleteCancellableLoad(await Task.Run(() => OpenFileBacked(filePath, options, cancellationToken), cancellationToken).ConfigureAwait(false), cancellationToken);
             ArgumentNullException.ThrowIfNull(filePath);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
@@ -603,7 +603,7 @@ namespace OfficeIMO.Excel {
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             var bytes = await ReadAllBytesCompatAsync(filePath, cancellationToken, resolved)
                 .ConfigureAwait(false);
-            return LoadFromByteArray(bytes, resolved, filePath);
+            return CompleteCancellableLoad(LoadFromByteArray(bytes, resolved, filePath), cancellationToken);
         }
 
         /// <summary>
@@ -621,6 +621,7 @@ namespace OfficeIMO.Excel {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
             resolved = resolved.Snapshot();
             resolved.PersistenceMode = DocumentPersistenceMode.Explicit;
+            resolved.LoadCancellationToken = cancellationToken;
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -634,7 +635,7 @@ namespace OfficeIMO.Excel {
                 return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved), encryptedBytes, resolved, "encrypted-source-container");
             }
 
-            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password, cancellationToken);
             return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
@@ -647,9 +648,9 @@ namespace OfficeIMO.Excel {
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static async Task<ExcelDocument> LoadAsync(Stream stream, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
             options = (options ?? new ExcelLoadOptions()).Snapshot();
-            options.XlsbImportOptions.CancellationToken = cancellationToken;
+            options.LoadCancellationToken = cancellationToken;
             cancellationToken.ThrowIfCancellationRequested();
-            if (options?.Password is string password) return AssociateEncryptedWorkbook(await LoadEncryptedAsync(stream, password, options, cancellationToken).ConfigureAwait(false), null, password, options.AccessMode == DocumentAccessMode.ReadOnly ? null : stream, options);
+            if (options?.Password is string password) return CompleteCancellableLoad(AssociateEncryptedWorkbook(await LoadEncryptedAsync(stream, password, options, cancellationToken).ConfigureAwait(false), null, password, options.AccessMode == DocumentAccessMode.ReadOnly ? null : stream, options), cancellationToken);
             ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
@@ -659,12 +660,12 @@ namespace OfficeIMO.Excel {
 
             var bytes = await ReadAllBytesAsync(stream, cancellationToken, resolved)
                 .ConfigureAwait(false);
-            return LoadFromByteArray(
+            return CompleteCancellableLoad(LoadFromByteArray(
                 bytes,
                 resolved,
                 filePath: null,
                 originalStream: stream,
-                leaveOriginalStreamOpen: true);
+                leaveOriginalStreamOpen: true), cancellationToken);
         }
 
         /// <summary>
@@ -683,6 +684,7 @@ namespace OfficeIMO.Excel {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
             resolved = resolved.Snapshot();
             resolved.PersistenceMode = DocumentPersistenceMode.Explicit;
+            resolved.LoadCancellationToken = cancellationToken;
 
             var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken, resolved)
                 .ConfigureAwait(false);
@@ -693,20 +695,20 @@ namespace OfficeIMO.Excel {
                 return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly, resolved), encryptedBytes, resolved, "encrypted-source-container");
             }
 
-            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password, cancellationToken);
             return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password, bool readOnly, ExcelLoadOptions options) {
             if (!options.AllowBinaryProjection) throw new NotSupportedException("This load profile accepts XML workbook packages only; encrypted XLS projection is disabled.");
-            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, new LegacyXlsImportOptions {
-                Password = password,
-                ReportUnsupportedContent = true
-            });
+            LegacyXlsImportOptions importOptions = CreateLegacyImportOptions(options);
+            importOptions.Password = password;
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, importOptions);
+            options.LoadCancellationToken.ThrowIfCancellationRequested();
             if (!workbook.WasEncryptedSource) {
                 throw new InvalidDataException("LoadEncrypted requires a password-encrypted legacy XLS workbook.");
             }
-            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null, readOnly);
+            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null, readOnly, options.LoadCancellationToken);
         }
 
     }
