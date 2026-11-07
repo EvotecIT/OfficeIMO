@@ -62,7 +62,7 @@ public sealed class ExcelWorkbookWriter : IDisposable {
         try {
             EnsureNoActiveTable();
             ArgumentNullException.ThrowIfNull(rows);
-            return _workbook.WriteTable(name, new SynchronousRows<T>(rows), headers, writeRow, cancellationToken).GetAwaiter().GetResult();
+            return _workbook.WriteTable(name, new ExcelDocument.SynchronousRows<T>(rows), headers, writeRow, cancellationToken).GetAwaiter().GetResult();
         } catch { _workbook.Abort(); throw; }
     }
 
@@ -121,19 +121,5 @@ public sealed class ExcelWorkbookWriter : IDisposable {
         _activeTable?.Dispose();
         _activeTable = null;
         _workbook.Dispose();
-    }
-
-    private sealed class SynchronousRows<T>(IEnumerable<T> source) : IAsyncEnumerable<T> {
-        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) =>
-            new Enumerator(source.GetEnumerator(), cancellationToken);
-
-        private sealed class Enumerator(IEnumerator<T> source, CancellationToken cancellationToken) : IAsyncEnumerator<T> {
-            public T Current => source.Current;
-            public ValueTask<bool> MoveNextAsync() {
-                cancellationToken.ThrowIfCancellationRequested();
-                return new ValueTask<bool>(source.MoveNext());
-            }
-            public ValueTask DisposeAsync() { source.Dispose(); return default; }
-        }
     }
 }
