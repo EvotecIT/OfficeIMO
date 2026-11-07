@@ -5,6 +5,7 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+    /// <summary>Checks saved shared strings across sequential, overlapping and aborted writer lifetimes.</summary>
     [Fact]
     public void WorkbookWriter_XlsKeepsSharedStringsIsolatedAcrossWorkbookLifetimes() {
         string[] warm = { "warm one", "warm two", "warm three", "warm four" };

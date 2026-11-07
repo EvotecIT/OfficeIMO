@@ -29,6 +29,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             private readonly int _entryCount;
             private readonly Dictionary<string, uint>? _directIndexesByValue;
 
+            /// <summary>Describes the active entry prefix independently of retained workspace capacity.</summary>
             internal LegacyXlsSharedStringTable(
                 IReadOnlyList<LegacyXlsSharedStringEntry> entries,
                 uint totalCount,
@@ -98,6 +99,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
+            /// <summary>Writes the active shared strings and their extension indexes within the output limit.</summary>
             internal void WriteRecords(Stream stream, CancellationToken cancellationToken = default, long maximumBytes = int.MaxValue) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (_entryCount == 0) {
@@ -195,6 +197,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return index;
             }
 
+            /// <summary>Builds an insertion-indexed table, optionally borrowing this exclusive workspace's entry buffer.</summary>
             internal LegacyXlsSharedStringTable Build(bool reuseEntries = false) {
                 int count = _indexesByValue.Count;
                 LegacyXlsSharedStringEntry[] entries;

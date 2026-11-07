@@ -16,6 +16,7 @@ internal static partial class LegacyXlsWriter {
         private readonly List<StreamingSheet> _sheets = new();
         private readonly List<ExcelSheet> _metadata = new();
 
+        /// <summary>Creates the workbook metadata and exclusively leases a cleared shared-string workspace.</summary>
         internal StreamingWorkbook(ExcelDateSystem dateSystem, Stylesheet styles, OfficeTheme theme) {
             _document = ExcelDocument.Create(new ExcelCreateOptions { Theme = theme });
             try {
@@ -64,6 +65,7 @@ internal static partial class LegacyXlsWriter {
             WriteDirectCompoundFile(_document, workbook, destination);
         }
 
+        /// <summary>Disposes workbook resources and releases the shared-string lease once.</summary>
         public void Dispose() {
             try {
                 foreach (var sheet in _sheets) sheet.Dispose();
