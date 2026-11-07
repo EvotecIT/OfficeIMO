@@ -67,14 +67,19 @@ internal static class OfficeManagedTextShaper {
         return new OfficeManagedTextFallback(text, used: false, incomplete: true);
     }
 
-    internal static bool RequiresComplexLayout(string? text) =>
-        OfficeTextElements.ContainsCombiningMark(text) ||
-        OfficeTextElements.ContainsRightToLeft(text) ||
-        OfficeTextElements.ContainsJoiningScript(text) ||
-        OfficeTextElements.ContainsShapingRequiredScript(text) ||
-        OfficeTextElements.ContainsBidiControl(text) ||
-        OfficeTextElements.ContainsVariationSelector(text) ||
-        OfficeTextElements.ContainsZeroWidthJoinerSequence(text);
+    internal static bool RequiresComplexLayout(string? text) {
+        if (text == null) return false;
+        int index = 0;
+        while (index < text.Length && text[index] <= '\u007F') index++;
+        if (index == text.Length) return false;
+        return OfficeTextElements.ContainsCombiningMark(text) ||
+            OfficeTextElements.ContainsRightToLeft(text) ||
+            OfficeTextElements.ContainsJoiningScript(text) ||
+            OfficeTextElements.ContainsShapingRequiredScript(text) ||
+            OfficeTextElements.ContainsBidiControl(text) ||
+            OfficeTextElements.ContainsVariationSelector(text) ||
+            OfficeTextElements.ContainsZeroWidthJoinerSequence(text);
+    }
 
     internal static string ToVisualOrder(
         string? value,
