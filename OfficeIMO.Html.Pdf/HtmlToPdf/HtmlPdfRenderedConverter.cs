@@ -517,10 +517,8 @@ internal static partial class HtmlPdfRenderedConverter {
             double right = visual.X + visual.Width;
             double bottom = visual.Y + visual.Height;
             if (right <= 0D || bottom <= 0D || visual.X >= surfaceWidth || visual.Y >= surfaceHeight) return;
-            var pageClip = new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight);
-            canvas.SourceClip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, clipped =>
-                AddVisual(clipped, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
-                    interactiveFormControls, cancellationToken, textAsSpan, pageClip, logicalTextOwned, pagePaint));
+            AddPageClippedVisual(canvas, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
+                interactiveFormControls, cancellationToken, textAsSpan, logicalTextOwned, pagePaint);
             return;
         }
         if (!textAsSpan && !logicalTextOwned && visual.SemanticSourceOrder.HasValue

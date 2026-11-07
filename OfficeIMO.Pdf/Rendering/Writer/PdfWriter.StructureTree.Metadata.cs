@@ -39,7 +39,7 @@ internal static partial class PdfWriter {
         IEnumerable<PageStructElement> OrderedChildren(PageStructElement parent) {
             if (!children.TryGetValue(parent, out var list)) return Enumerable.Empty<PageStructElement>();
             var ordered = new List<PageStructElement>(list);
-            OrderStructureChildren(ordered);
+            SortStructureChildren(ordered);
             return ordered;
         }
         IEnumerable<PageStructElement> Rows(PageStructElement parent) {

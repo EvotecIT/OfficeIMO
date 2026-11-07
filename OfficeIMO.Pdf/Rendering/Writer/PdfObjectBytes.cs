@@ -6,7 +6,19 @@ namespace OfficeIMO.Pdf;
 internal static class PdfObjectBytes {
     internal static byte[] WrapIndirectObject(int objectNumber, string body) {
         Guard.NotNull(body, nameof(body));
-        return WrapIndirectObject(objectNumber, PdfEncoding.Latin1GetBytes(body));
+        if (objectNumber < 1) {
+            return WrapIndirectObject(objectNumber, PdfEncoding.Latin1GetBytes(body));
+        }
+
+        string header = objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n";
+        // The suffix follows encoded bytes: high code units may also have a CR/LF low byte.
+        int lastByte = body.Length == 0 ? -1 : body[body.Length - 1] & 0xFF;
+        string suffix = lastByte == '\n' || lastByte == '\r' ? "endobj\n" : "\nendobj\n";
+        var result = new byte[header.Length + body.Length + suffix.Length];
+        PdfEncoding.Latin1GetBytes(header, result, 0);
+        PdfEncoding.Latin1GetBytes(body, result, header.Length);
+        PdfEncoding.Latin1GetBytes(suffix, result, header.Length + body.Length);
+        return result;
     }
 
     internal static byte[] WrapIndirectObject(int objectNumber, byte[] body) {

@@ -82,8 +82,13 @@ internal static class PdfEncoding {
 
     public static byte[] Latin1GetBytes(string s) {
         var bytes = new byte[s.Length];
-        for (int i = 0; i < s.Length; i++) bytes[i] = (byte)(s[i] & 0xFF);
+        Latin1GetBytes(s, bytes, 0);
         return bytes;
+    }
+
+    // Internal callers supply an owned destination with room for every source code unit.
+    internal static void Latin1GetBytes(string s, byte[] destination, int offset) {
+        for (int i = 0; i < s.Length; i++) destination[offset + i] = (byte)(s[i] & 0xFF);
     }
 
     internal static byte[] Latin1GetBytesCancellable(string value, CancellationToken cancellationToken) {

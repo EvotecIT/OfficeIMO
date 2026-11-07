@@ -334,21 +334,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string style,
         string source,
         double? horizontalBoundaryY = null) {
-        OfficeShape shape = horizontal
-            ? OfficeShape.Line(0D, 0D, length, 0.0001D)
-            : OfficeShape.Line(0D, 0D, 0.0001D, length);
-        shape.StrokeColor = color;
-        shape.StrokeWidth = width;
-        shape.StrokeDashStyle = MapStrokeDashStyle(style);
-        shape.StrokeLineCap = style == "dotted" ? OfficeStrokeLineCap.Round : OfficeStrokeLineCap.Butt;
-        shape.FillColor = null;
-        // The painted horizontal line is almost flat, but pagination must retain
-        // its stroke extent when a table is sliced between rows.
-        double layoutHeight = horizontal ? Math.Max(0.01D, width) : shape.Height;
-        double layoutY = horizontal ? y - layoutHeight / 2D : y;
-        visuals.Add(new HtmlRenderShape(shape, x, y, visuals.Count, source: source,
-            layoutY: layoutY, layoutHeight: layoutHeight, isCollapsedTableBorder: true,
-            collapsedBorderBoundaryY: horizontal ? horizontalBoundaryY ?? y : null));
+        visuals.Add(HtmlRenderShape.CreateCollapsedBorderStroke(horizontal, x, y, length, color, width,
+            MapStrokeDashStyle(style), style == "dotted" ? OfficeStrokeLineCap.Round : OfficeStrokeLineCap.Butt,
+            visuals.Count, source, horizontalBoundaryY));
     }
 
     private enum CollapsedBorderOrigin {
