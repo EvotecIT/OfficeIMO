@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.SharedSource.IO;
 
 namespace OfficeIMO.CSV;
 
@@ -17,9 +18,12 @@ public sealed partial class CsvRowWriter
     [RequiresUnreferencedCode("This compatibility method discovers properties from runtime objects. For NativeAOT, use WriteDataReader or write explicit CSV rows.")]
     private bool TryCreateProjectedObjectWriter(object item, IReadOnlyList<string> columns)
     {
-        if (!_useDefaultWritePath || _delimiter != ',' || _stringWriterBuffer != null ||
-            !ObjectDataHelpers.TryCreatePropertyWriter<CsvRowWriter>(item, columns,
-                CreatePropertyWriteExpression, out var projector)) return false;
+        if (!_useDefaultWritePath || _delimiter != ',' || _stringWriterBuffer != null) return false;
+        bool useSpanBuffer = _writer.GetType() == typeof(StreamWriter) || _writer is PooledUtf8TextWriter;
+        ObjectDataHelpers.PropertyWriteExpressionFactory factory = useSpanBuffer
+            ? CreatePropertySpanWriteExpression : CreatePropertyWriteExpression;
+        if (!ObjectDataHelpers.TryCreatePropertyWriter<CsvRowWriter>(item, columns, factory, out var projector)) return false;
+        if (useSpanBuffer) _propertyCharacters ??= new char[1024];
         _bufferedPropertyProjector = projector;
         _propertyTextValues = new string?[columns.Count];
         _propertyFormattedRanges = new (int Start, int Length)[columns.Count];
@@ -31,12 +35,19 @@ public sealed partial class CsvRowWriter
     {
         if (_bufferedPropertyProjector == null) return false;
         _rowBuffer.Clear();
+        _propertyCharacterCount = 0;
         _propertyTextValues.AsSpan().Clear();
         _propertyFallbackColumn = -1;
         if (!_bufferedPropertyProjector(item, this, _options.Culture)) return false;
         if (_propertyFallbackColumn >= 0)
         {
             WriteProjectedFallback();
+        }
+        else if (_propertyCharacters != null)
+        {
+            string newLine = _options.NewLine;
+            _writer.Write(_propertyCharacters.AsSpan(0, _propertyCharacterCount));
+            _writer.Write(newLine);
         }
         else
         {
@@ -56,7 +67,12 @@ public sealed partial class CsvRowWriter
         }
         string newLine = _options.NewLine;
         if (_propertyFallbackPrefixLength > 0)
-            _writer.Write(_rowBuffer.ToString(0, _propertyFallbackPrefixLength));
+        {
+            if (_propertyCharacters != null)
+                _writer.Write(_propertyCharacters.AsSpan(0, _propertyFallbackPrefixLength));
+            else
+                _writer.Write(_rowBuffer.ToString(0, _propertyFallbackPrefixLength));
+        }
         if (_propertyFallbackColumn > 0) _writer.Write(_delimiter);
         var remaining = new ArraySegment<string?>(_propertyTextValues, _propertyFallbackColumn,
             _propertyTextValues.Length - _propertyFallbackColumn);
@@ -102,21 +118,36 @@ public sealed partial class CsvRowWriter
         writer._propertyFormattedRanges![ordinal] = (start, writer._rowBuffer.Length - start);
     }
 
-    internal static MethodInfo GetPropertyScalarStageMethod<T>() where T : ISpanFormattable
+    /// <summary>Roots the concrete scalar staging method for the selected row representation.</summary>
+    internal static MethodInfo GetPropertyScalarStageMethod<T>(bool useSpanBuffer = false) where T : ISpanFormattable
     {
-        Action<CsvRowWriter, int, T> action = StageProjectedScalar<T>;
+        Action<CsvRowWriter, int, T> action = useSpanBuffer ? StageProjectedScalarSpan<T> : StageProjectedScalar<T>;
         return action.Method;
     }
 
+    /// <summary>Builds the existing staged property writes for a supplied text writer.</summary>
     [RequiresUnreferencedCode("Builds property expressions from runtime schema metadata, including nullable property accessors.")]
     private static Expression CreatePropertyWriteExpression(ParameterExpression value,
-        Expression formattedText, ParameterExpression writer, ParameterExpression culture, int ordinal, out bool usesTypedValue)
+        Expression formattedText, ParameterExpression writer, ParameterExpression culture, int ordinal, out bool usesTypedValue) =>
+        CreatePropertyWriteExpressionCore(value, formattedText, writer, culture, ordinal, false, out usesTypedValue);
+
+    /// <summary>Builds property writes into the bounded character row buffer.</summary>
+    [RequiresUnreferencedCode("Builds typed property expressions from runtime schema metadata.")]
+    private static Expression CreatePropertySpanWriteExpression(ParameterExpression value,
+        Expression formattedText, ParameterExpression writer, ParameterExpression culture, int ordinal, out bool usesTypedValue) =>
+        CreatePropertyWriteExpressionCore(value, formattedText, writer, culture, ordinal, true, out usesTypedValue);
+
+    /// <summary>Reuses the scalar classification and captured-culture rules for both staged representations.</summary>
+    [RequiresUnreferencedCode("Builds property expressions from runtime schema metadata, including nullable property accessors.")]
+    private static Expression CreatePropertyWriteExpressionCore(ParameterExpression value,
+        Expression formattedText, ParameterExpression writer, ParameterExpression culture, int ordinal,
+        bool useSpanBuffer, out bool usesTypedValue)
     {
-        MethodInfo textMethod = typeof(CsvRowWriter).GetMethod(nameof(StageProjectedText),
+        MethodInfo textMethod = typeof(CsvRowWriter).GetMethod(useSpanBuffer ? nameof(StageProjectedSpanText) : nameof(StageProjectedText),
             BindingFlags.NonPublic | BindingFlags.Instance)!;
         Expression text = Expression.Call(writer, textMethod, Expression.Constant(ordinal), formattedText);
         Type scalarType = Nullable.GetUnderlyingType(value.Type) ?? value.Type;
-        MethodInfo? scalarMethod = CsvWriter.GetPropertyScalarStageMethod(scalarType);
+        MethodInfo? scalarMethod = CsvWriter.GetPropertyScalarStageMethod(scalarType, useSpanBuffer);
         usesTypedValue = scalarMethod != null;
         if (scalarMethod == null) return text;
         Expression scalarValue = value;

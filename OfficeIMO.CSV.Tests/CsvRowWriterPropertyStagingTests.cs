@@ -84,6 +84,35 @@ public class CsvRowWriterPropertyStagingTests
         Assert.Equal(expectedEvents, events);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WriteObject_PreservesLongTextPrefixAndScalarTailAcrossRows(bool useStreamFactory)
+    {
+        using var output = new MemoryStream();
+        using var text = new StreamWriter(output, new UTF8Encoding(false), 1024, leaveOpen: true);
+        var options = new CsvSaveOptions { NewLine = "\n", Culture = CultureInfo.InvariantCulture };
+        var wide = new
+        {
+            A = new string('a', 500), B = new string('b', 250), C = new string('c', 125),
+            D = new string('d', 62), E = new string('e', 30), F = new string('f', 14),
+            G = new string('g', 6), H = new string('h', 2), Amount = decimal.MaxValue
+        };
+        var next = new { A = "next", B = "b", C = "c", D = "d", E = "e", F = "f", G = "g", H = "h", Amount = 1m };
+        using (var writer = useStreamFactory
+            ? CsvRowWriter.CreateStream(output, options, leaveOpen: true)
+            : new CsvRowWriter(text, options, leaveOpen: true))
+        {
+            writer.WriteObject(wide);
+            writer.WriteObject(next);
+        }
+        text.Flush();
+        string expected = "A,B,C,D,E,F,G,H,Amount\n"
+            + string.Join(",", new[] { wide.A, wide.B, wide.C, wide.D, wide.E, wide.F, wide.G, wide.H })
+            + ",79228162514264337593543950335\nnext,b,c,d,e,f,g,h,1\n";
+        Assert.Equal(expected, Encoding.UTF8.GetString(output.ToArray()));
+    }
+
     private sealed class RowContext(CsvSaveOptions options)
     {
         internal CsvSaveOptions Options { get; } = options;

@@ -115,7 +115,7 @@ public sealed partial class CsvRowWriter : IDisposable
         }
 
 #if NET8_0_OR_GREATER
-        if (TryWriteProjectedObject(item)) return;
+        if (_bufferedPropertyProjector != null && TryWriteProjectedObject(item)) return;
 #endif
 
         if (_columns != null &&
