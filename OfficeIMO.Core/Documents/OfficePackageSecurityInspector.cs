@@ -116,7 +116,9 @@ namespace OfficeIMO {
             try {
                 return await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken,
                     options.MaxPackageBytes, probeLength, probeLimit).ConfigureAwait(false);
-            } catch (InvalidDataException exception) {
+            } catch (InvalidDataException exception) when (probeLength == 0 || probeLimit == null
+                || OfficeStreamReader.GetExceededSizeLimit(exception) is not long exceededLimit
+                || exceededLimit >= options.MaxPackageBytes) {
                 throw CreateSourceSizeException(source, options, exception);
             }
         }
@@ -135,7 +137,9 @@ namespace OfficeIMO {
             ValidateOptions(options);
             try {
                 return OfficeStreamReader.ReadAllBytes(source, cancellationToken, options.MaxPackageBytes, probeLength, probeLimit);
-            } catch (InvalidDataException exception) {
+            } catch (InvalidDataException exception) when (probeLength == 0 || probeLimit == null
+                || OfficeStreamReader.GetExceededSizeLimit(exception) is not long exceededLimit
+                || exceededLimit >= options.MaxPackageBytes) {
                 throw CreateSourceSizeException(source, options, exception);
             }
         }
