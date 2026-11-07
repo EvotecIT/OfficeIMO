@@ -1629,3 +1629,19 @@ cultures, broader numeric formats, exponents and precision-sensitive values
 retain the existing parser. The reader-boundary regression compares complete
 decimal bits, including midpoint rounding and signed-zero scale. The matched
 benchmarks validate every value and complete output before timing.
+
+### Typed CSV row staging
+
+I retain normal typed rows in the existing row buffer and collect fallback
+metadata after a large field exceeds that buffer. The escaped prefix and the
+remaining fields are delivered after every getter and formatter completes.
+The existing writer theory covers large first, middle and last fields, nullable
+values and recovery after a late getter throws, on both output transports.
+
+The reversed matched 50,000-row comparison records complete writes of
+6.1209 ms to 5.8977 ms and stream writes of 5.9818 ms to 5.8236 ms, reductions of
+3.65% and 2.65%, with both pairs improving. Quoted-field gains repeat in both
+orders. The wider text, large-quoted and French shapes are mixed, and the first
+mixed-row cohort includes compiler activity and peer slowdowns. Native caller
+CPU checks of the French case improve by 2.60% and 1.65%. Those diagnostic CPU
+measurements remain separate from the matched wall-time comparisons.

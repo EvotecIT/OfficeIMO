@@ -10,7 +10,8 @@ public sealed partial class CsvRowWriter
 {
     private Func<object, CsvRowWriter, CultureInfo, bool>? _bufferedPropertyProjector;
     private (int Start, int Length)[]? _propertyFormattedRanges;
-    private bool _propertyBufferFallback;
+    private int _propertyFallbackColumn = -1;
+    private int _propertyFallbackPrefixLength;
 
     /// <summary>Creates a typed row projector after the output schema is established.</summary>
     [RequiresUnreferencedCode("This compatibility method discovers properties from runtime objects. For NativeAOT, use WriteDataReader or write explicit CSV rows.")]
@@ -30,17 +31,12 @@ public sealed partial class CsvRowWriter
     {
         if (_bufferedPropertyProjector == null) return false;
         _rowBuffer.Clear();
-        _propertyBufferFallback = false;
+        _propertyTextValues.AsSpan().Clear();
+        _propertyFallbackColumn = -1;
         if (!_bufferedPropertyProjector(item, this, _options.Culture)) return false;
-        if (_propertyBufferFallback)
+        if (_propertyFallbackColumn >= 0)
         {
-            for (int index = 0; index < _propertyTextValues!.Length; index++)
-            {
-                var range = _propertyFormattedRanges![index];
-                if (range.Length > 0)
-                    _propertyTextValues[index] = _rowBuffer.ToString(range.Start, range.Length);
-            }
-            WriteTextBuffered(_propertyTextValues);
+            WriteProjectedFallback();
         }
         else
         {
@@ -49,16 +45,41 @@ public sealed partial class CsvRowWriter
         return true;
     }
 
-    /// <summary>Retains owned text and bounds its speculative row-buffer copy.</summary>
+    /// <summary>Delivers the staged prefix and remaining owned values after all getters complete.</summary>
+    private void WriteProjectedFallback()
+    {
+        for (int index = _propertyFallbackColumn; index < _propertyTextValues!.Length; index++)
+        {
+            var range = _propertyFormattedRanges![index];
+            if (range.Length > 0)
+                _propertyTextValues[index] = _rowBuffer.ToString(range.Start, range.Length);
+        }
+        string newLine = _options.NewLine;
+        if (_propertyFallbackPrefixLength > 0)
+            _writer.Write(_rowBuffer.ToString(0, _propertyFallbackPrefixLength));
+        if (_propertyFallbackColumn > 0) _writer.Write(_delimiter);
+        var remaining = new ArraySegment<string?>(_propertyTextValues, _propertyFallbackColumn,
+            _propertyTextValues.Length - _propertyFallbackColumn);
+        CsvWriter.WriteRecord(_writer, remaining, _delimiter, newLine, CultureInfo.InvariantCulture,
+            CsvFormulaInjectionPolicy.Preserve, CsvQuoteMode.AsNeeded, null, null);
+    }
+
+    /// <summary>Bounds the staged prefix and retains owned text after overflow.</summary>
     private void StageProjectedText(int ordinal, string? text)
     {
-        _propertyTextValues![ordinal] = text;
-        _propertyFormattedRanges![ordinal] = default;
-        if (_propertyBufferFallback) return;
+        if (_propertyFallbackColumn >= 0)
+        {
+            _propertyTextValues![ordinal] = text;
+            _propertyFormattedRanges![ordinal] = default;
+            return;
+        }
         long worstCaseLength = (long)_rowBuffer.Length + (text?.Length ?? 0) * 2L + 3;
         if (worstCaseLength > _rowBuffer.Capacity)
         {
-            _propertyBufferFallback = true;
+            _propertyFallbackColumn = ordinal;
+            _propertyFallbackPrefixLength = _rowBuffer.Length;
+            _propertyTextValues![ordinal] = text;
+            _propertyFormattedRanges![ordinal] = default;
             return;
         }
         if (ordinal > 0) _rowBuffer.Append(_delimiter);
@@ -69,8 +90,13 @@ public sealed partial class CsvRowWriter
     private static void StageProjectedScalar<T>(CsvRowWriter writer, int ordinal, T value)
         where T : ISpanFormattable
     {
+        if (writer._propertyFallbackColumn < 0)
+        {
+            if (ordinal > 0) writer._rowBuffer.Append(writer._delimiter);
+            CsvWriter.AppendKnownValueDefault(writer._rowBuffer, value, writer._delimiter, CultureInfo.InvariantCulture);
+            return;
+        }
         writer._propertyTextValues![ordinal] = null;
-        if (!writer._propertyBufferFallback && ordinal > 0) writer._rowBuffer.Append(writer._delimiter);
         int start = writer._rowBuffer.Length;
         CsvWriter.AppendKnownValueDefault(writer._rowBuffer, value, writer._delimiter, CultureInfo.InvariantCulture);
         writer._propertyFormattedRanges![ordinal] = (start, writer._rowBuffer.Length - start);
