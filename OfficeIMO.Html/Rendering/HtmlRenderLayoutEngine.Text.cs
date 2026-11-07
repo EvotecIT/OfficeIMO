@@ -420,11 +420,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return scopedWidth;
         }
 
-        OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
         if (_options.FallbackTextMeasurement != null) {
             double? measured = _options.FallbackTextMeasurement(value, font, descriptor);
             if (measured.HasValue) return measured.Value;
         }
+        OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
         OfficeTextMeasurementStyle style = measurer.CreateStyle(font, 72D);
         double estimatedWidth = measurer.MeasureWidth(value, style);
         RecordEstimatedTextMetrics(value, font, descriptor);

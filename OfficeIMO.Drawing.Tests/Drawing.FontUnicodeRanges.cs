@@ -39,10 +39,12 @@ public sealed class DrawingFontUnicodeRangeTests {
         var fonts = new OfficeFontFaceCollection();
         Assert.True(fonts.TryAdd("First", ManagedTextShapingTestAssets.CreateFont('A')));
         Assert.Equal("First", Assert.Single(fonts.PlanFallbackRuns("A", "Later, First")).FamilyName);
+        Assert.Equal("Later, Missing", Assert.Single(fonts.PlanFallbackRuns("A", "Later, Missing")).FamilyName);
 
         Assert.True(fonts.TryAdd("Later", ManagedTextShapingTestAssets.CreateFont('A')));
 
         Assert.Equal("Later", Assert.Single(fonts.PlanFallbackRuns("A", "Later, First")).FamilyName);
+        Assert.Equal("Later", Assert.Single(fonts.PlanFallbackRuns("A", "Later, Missing")).FamilyName);
     }
 
     [Fact]
