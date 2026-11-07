@@ -614,8 +614,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static int ReadRowSpan(string? value, IReadOnlyList<TableFormattingRow> rows, int rowIndex) {
+        if (!HtmlIntegerSemantics.TryParseNonNegativeInteger(value, out int requested) || requested == 1) return 1;
         int maximum = CountRowsRemainingInGroup(rows, rowIndex);
-        if (!HtmlIntegerSemantics.TryParseNonNegativeInteger(value, out int requested)) return 1;
         if (requested == 0) return maximum;
         return Math.Max(1, Math.Min(requested, maximum));
     }
