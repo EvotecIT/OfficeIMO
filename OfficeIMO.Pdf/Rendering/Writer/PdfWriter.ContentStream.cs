@@ -12,14 +12,14 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder SaveState() {
-        _textStates.Push((_textScale, _textLeading, _textWordSpacing, _textCharacterSpacing, _syntheticOblique, _syntheticBold, _paintFillColor));
+        (_textStates ??= new(2)).Push((_textScale, _textLeading, _textWordSpacing, _textCharacterSpacing, _syntheticOblique, _syntheticBold, _paintFillColor));
         InvalidateTextStateCache();
         AppendGraphicsSave(_sb);
         return this;
     }
 
     public ContentStreamBuilder RestoreState() {
-        if (_textStates.Count != 0) {
+        if (_textStates is { Count: > 0 }) {
             var state = _textStates.Pop();
             _textScale = state.Scale; _textLeading = state.Leading; _textWordSpacing = state.WordSpacing;
             _textCharacterSpacing = state.CharacterSpacing;

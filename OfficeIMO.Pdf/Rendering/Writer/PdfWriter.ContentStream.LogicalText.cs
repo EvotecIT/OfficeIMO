@@ -9,7 +9,8 @@ internal sealed partial class ContentStreamBuilder {
     // The PDF line matrix no longer equals the tracked line origin: a repositioning was
     // folded into a TJ adjustment, so later relative moves must restate the text matrix.
     private bool _isolatedText;
-    private readonly Stack<(double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique, bool SyntheticBold, OfficeColor PaintFillColor)> _textStates = new();
+    // Most builders wrap a stream for an operator or two and never save state, so the stack is made on first use.
+    private Stack<(double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique, bool SyntheticBold, OfficeColor PaintFillColor)>? _textStates;
 
     // Text-state cache, valid only inside the current text object while every byte appended
     // since the builder's last write is marked-content syntax.
@@ -100,7 +101,7 @@ internal sealed partial class ContentStreamBuilder {
                 _sb.Length -= 5; // "] TJ\n"
             } else {
                 _sb.Length -= 4; // " Tj\n"
-                _sb.Insert(_showStart, '[');
+                RewriteShowStart("[", 0);
                 _showArray = true;
                 _showElements = 1;
                 _showEndsWithNumber = false;
@@ -167,7 +168,7 @@ internal sealed partial class ContentStreamBuilder {
             return;
         }
         if (_showElements == 1 && !_showEndsWithNumber && _sb[_showStart] == '[') {
-            _sb.Remove(_showStart, 1);
+            RewriteShowStart(string.Empty, 1);
             _sb.Append(" Tj\n");
             _showArray = false;
         } else {
@@ -175,6 +176,20 @@ internal sealed partial class ContentStreamBuilder {
         }
         _showEnd = _sb.Length;
         OwnWrite();
+    }
+
+    private char[] _showTail = Array.Empty<char>();
+
+    // Replaces the open show's first skip characters with prefix. The show is the stream tail, so it is
+    // copied out and re-appended: StringBuilder.Insert/Remove would move the rest of the (up to 8,000
+    // character) last chunk of the page stream on every show.
+    private void RewriteShowStart(string prefix, int skip) {
+        int start = _showStart + skip;
+        int count = _sb.Length - start;
+        if (_showTail.Length < count) _showTail = new char[Math.Max(count, _showTail.Length * 2)];
+        _sb.CopyTo(start, _showTail, 0, count);
+        _sb.Length = _showStart;
+        _sb.Append(prefix).Append(_showTail, 0, count);
     }
 
     private const double MaximumFoldedMove1000 = 1000D;
