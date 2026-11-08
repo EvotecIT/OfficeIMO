@@ -787,10 +787,10 @@
       "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-11-06T14:02:03.8342219+00:00",
+      "generatedUtc": "2026-11-08T02:56:32.9383573+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
-      "resultSha256": "7d9273f919bc2bef7401fa28f564cf1846419cbea2cb8219dc86e7cdb80af691",
+      "resultSha256": "d36fc7181b3ffe0b753c145e9fb48cca346a2745aeefb8e4f1f211d1c5ab0867",
       "artifactDestinationSha256": "ae0d00b36a570480f6b76de5fdee527237d6622f3d970689513460c6e24bbc89",
       "artifactFileName": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
       "artifactRelativePath": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
@@ -824,9 +824,11 @@
         "benchmark.workload.affinityApplication": "inherited-parent-process",
         "benchmark.workload.affinityMask": "0xFFFF0000",
         "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.generateBinLog": "true",
         "benchmark.workload.id": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
-        "benchmark.workload.sourceCommit": "2e4643668aa2334742e01579c2a47e6ff1175346",
-        "gitSha": "2e4643668aa2334742e01579c2a47e6ff1175346",
+        "benchmark.workload.keepBenchmarkFiles": "true",
+        "benchmark.workload.sourceCommit": "e835d2970cbe1526f4e3543fbca51d9e4911355c",
+        "gitSha": "e835d2970cbe1526f4e3543fbca51d9e4911355c",
         "runMode": "full"
       },
       "comparable": true,
@@ -940,10 +942,10 @@
       "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-11-06T13:33:45.2574653+00:00",
+      "generatedUtc": "2026-11-08T06:34:57.7201979+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.json",
-      "resultSha256": "1f993fb55f2d14552d967098fcf492e78e975d1767bc8f3899636cc39ebb8d9b",
+      "resultSha256": "e184156a9c31cd03e03bc243c584d887a53ef54d81c832abe5f6b744b3dc21f4",
       "artifactDestinationSha256": "534401705baa792733d5313b932e52da52c8d0f49053039e02312151591c824d",
       "artifactFileName": "pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.json",
       "artifactRelativePath": "pdf-html-21k-payload-net10.0-affinity-0xffff0000-windows-full.json",
@@ -982,9 +984,11 @@
         "benchmark.workload.affinityApplication": "inherited-parent-process",
         "benchmark.workload.affinityMask": "0xFFFF0000",
         "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.generateBinLog": "true",
         "benchmark.workload.id": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
-        "benchmark.workload.sourceCommit": "2e4643668aa2334742e01579c2a47e6ff1175346",
-        "gitSha": "2e4643668aa2334742e01579c2a47e6ff1175346",
+        "benchmark.workload.keepBenchmarkFiles": "true",
+        "benchmark.workload.sourceCommit": "6b761e9bb974f230bd34493bf9cef8f707da5583",
+        "gitSha": "6b761e9bb974f230bd34493bf9cef8f707da5583",
         "runMode": "full"
       },
       "comparable": true,
@@ -1427,10 +1431,10 @@
       "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-11-06T14:42:24.8002256+00:00",
+      "generatedUtc": "2026-11-08T03:24:33.3281573+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
-      "resultSha256": "426842aa0b55111958f99b99a8eeafaef1e345bc8b8013cfc48a457ae07cbbeb",
+      "resultSha256": "ed8b7617ca3f7f77d2b774a0a33de398665805ac76078f70dce40cb024e05455",
       "artifactDestinationSha256": "624d8373f1ab6fde7924948d367858e76e7e67c36da739e983db297ad75aa9f7",
       "artifactFileName": "pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
       "artifactRelativePath": "pdf-text-extraction-net10.0-affinity-0xffff0000-windows-full.json",
@@ -1464,9 +1468,11 @@
         "benchmark.workload.affinityApplication": "inherited-parent-process",
         "benchmark.workload.affinityMask": "0xFFFF0000",
         "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.generateBinLog": "true",
         "benchmark.workload.id": "pdf-text-extraction-net10.0-affinity-0xffff0000",
-        "benchmark.workload.sourceCommit": "2e4643668aa2334742e01579c2a47e6ff1175346",
-        "gitSha": "2e4643668aa2334742e01579c2a47e6ff1175346",
+        "benchmark.workload.keepBenchmarkFiles": "true",
+        "benchmark.workload.sourceCommit": "e835d2970cbe1526f4e3543fbca51d9e4911355c",
+        "gitSha": "e835d2970cbe1526f4e3543fbca51d9e4911355c",
         "runMode": "full"
       },
       "comparable": true,
@@ -1935,7 +1941,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-11-06T14:02:03.8342219+00:00"
+      "latestUtc": "2026-11-08T02:56:32.9383573+00:00"
     },
     {
       "comparisonId": "pdf-corpus-text-extraction-net10.0-affinity-0xffff0000",
@@ -2013,7 +2019,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-11-06T13:33:45.2574653+00:00"
+      "latestUtc": "2026-11-08T06:34:57.7201979+00:00"
     },
     {
       "comparisonId": "pdf-html-21k-payload-net10.0-affinity-0xffff0000",
@@ -2225,7 +2231,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-11-06T14:42:24.8002256+00:00"
+      "latestUtc": "2026-11-08T03:24:33.3281573+00:00"
     },
     {
       "comparisonId": "pdf-text-extraction-net10.0-affinity-0xffff0000",
