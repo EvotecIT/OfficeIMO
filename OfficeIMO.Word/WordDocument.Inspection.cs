@@ -396,7 +396,7 @@ namespace OfficeIMO.Word {
         };
 
         private IReadOnlyDictionary<string, string?> BuildParagraphStyleNameLookup() {
-            var lookup = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            var lookup = new Dictionary<string, string?>(StringComparer.Ordinal);
             var styles = _wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
             if (styles == null) return lookup;
 

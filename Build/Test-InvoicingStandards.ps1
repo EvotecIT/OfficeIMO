@@ -19,15 +19,18 @@ function Get-Constant([string] $Source, [string] $Name) {
 function Get-PinnedArtifact([string] $Url, [string] $Hash, [string] $Name) {
     $target = Join-Path $OutputPath $Name
     if (!(Test-Path -LiteralPath $target)) {
-        $download = @{ Uri = $Url; OutFile = $target; TimeoutSec = 120 }
+        $download = @{ Uri = $Url; OutFile = $target; TimeoutSec = 120; MaximumRetryCount = 3; RetryIntervalSec = 2 }
         if ($Url -match '^https://github\.com/([^/]+/[^/]+)/releases/download/([^/]+)/[^/]+$') {
             # Keep the validator's canonical URL and select those same pinned bytes through the asset API.
             $releaseUrl = "https://api.github.com/repos/$($Matches[1])/releases/tags/$($Matches[2])"
-            $release = Invoke-RestMethod -Uri $releaseUrl -TimeoutSec 120
+            $headers = @{ Accept = 'application/vnd.github+json' }
+            if ($env:GITHUB_TOKEN) { $headers.Authorization = "Bearer $env:GITHUB_TOKEN" }
+            $release = Invoke-RestMethod -Uri $releaseUrl -Headers $headers -TimeoutSec 120 -MaximumRetryCount 3 -RetryIntervalSec 2
             $assets = @($release.assets | Where-Object { $_.browser_download_url -ceq $Url })
             if ($assets.Count -ne 1) { throw "Pinned release asset not found: $Url" }
             $download.Uri = $assets[0].url
-            $download.Headers = @{ Accept = 'application/octet-stream' }
+            $headers.Accept = 'application/octet-stream'
+            $download.Headers = $headers
         }
         Invoke-WebRequest @download
     }

@@ -319,7 +319,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool ShouldApplyNativeListParagraphStyleIndent(WordParagraph paragraph) =>
             !string.IsNullOrWhiteSpace(paragraph.StyleId) &&
-            !string.Equals(paragraph.StyleId, "ListParagraph", StringComparison.OrdinalIgnoreCase);
+            !string.Equals(paragraph.StyleId, "ListParagraph", StringComparison.Ordinal);
 
         private static void ApplyNativeMarkerlessListIndent(WordParagraph paragraph, PdfCore.PdfParagraphStyle style) {
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);

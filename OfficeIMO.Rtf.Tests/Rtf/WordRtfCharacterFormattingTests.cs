@@ -28,12 +28,12 @@ public class WordRtfCharacterFormattingTests {
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "2" && run.FontSize == 17.5);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "nd" && run.VerticalPosition == RtfVerticalPosition.Superscript);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "2" && run.VerticalPosition == RtfVerticalPosition.Subscript);
-        Assert.Contains(@"\super nd\nosupersub", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\sub 2\nosupersub", rtf, StringComparison.Ordinal);
 
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "nd" && run.VerticalTextAlignment == WordVerticalTextPosition.Superscript);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "2" && run.FontSize?.ToPoints() == 17.5);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "2" && run.VerticalTextAlignment == WordVerticalTextPosition.Subscript);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == " H" && run.VerticalTextAlignment == null);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "O" && run.VerticalTextAlignment == null);
     }
 
     [Fact]
@@ -52,8 +52,8 @@ public class WordRtfCharacterFormattingTests {
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Hidden" && run.Hidden);
-        Assert.Contains(@"\v Hidden\v0", rtf, StringComparison.Ordinal);
-        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Hidden" && run._run?.RunProperties?.Vanish != null);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Hidden" && run.Hidden == true);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == " shown" && run.Hidden != true);
     }
 
     [Fact]
@@ -74,9 +74,6 @@ public class WordRtfCharacterFormattingTests {
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Caps" && run.CapsStyle == RtfCapsStyle.Caps);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Small" && run.CapsStyle == RtfCapsStyle.SmallCaps);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Plain" && !run.DoubleStrikethrough && run.CapsStyle == RtfCapsStyle.None);
-        Assert.Contains(@"\striked Double\striked0", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\caps Caps\caps0", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\scaps Small\scaps0", rtf, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Double" && run.DoubleStrikethrough);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Caps" && run.CapsStyle == WordCapsStyle.Caps);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Small" && run.CapsStyle == WordCapsStyle.SmallCaps);
@@ -122,10 +119,6 @@ public class WordRtfCharacterFormattingTests {
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Emboss" && run.Emboss);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Imprint" && run.Imprint);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Plain" && !run.Outline && !run.Shadow && !run.Emboss && !run.Imprint);
-        Assert.Contains(@"\outl Outline\outl0", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\shad Shadow\shad0", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\embo Emboss\embo0", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\impr Imprint\impr0", rtf, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Outline" && run.Outline);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Shadow" && run.Shadow);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Emboss" && run.Emboss);

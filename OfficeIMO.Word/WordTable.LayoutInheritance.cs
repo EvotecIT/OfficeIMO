@@ -22,8 +22,8 @@ namespace OfficeIMO.Word {
             while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
                 if (visited.Count > MaxTableLayoutStyleDepth) throw new InvalidDataException("The Word table style inheritance chain exceeds the supported depth.");
                 // Word ignores child properties on the built-in Normal Table style.
-                if (string.Equals(styleId, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(styleId, "NormalTable", StringComparison.OrdinalIgnoreCase)) return null;
+                if (string.Equals(styleId, "TableNormal", StringComparison.Ordinal) ||
+                    string.Equals(styleId, "NormalTable", StringComparison.Ordinal)) return null;
                 if (!definitions.TryGetValue(styleId!, out Style? style)) return null;
                 TableLayoutValues? layout = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableLayout>()?.Type?.Value;
                 if (layout.HasValue) return layout;

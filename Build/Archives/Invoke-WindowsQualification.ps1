@@ -21,7 +21,11 @@ $null = New-Item -ItemType Directory -Path $env:TEMP
 $project = Join-Path $PSScriptRoot 'PackageConsumer/PackageConsumer.csproj'
 $corpus = Join-Path $repo 'OfficeIMO.Archives.Tests/Fixtures/IndependentZip'
 $msi = Join-Path $OutputPath '7z2604-x64.msi'
-Invoke-WebRequest -Uri 'https://api.github.com/repos/ip7z/7zip/releases/assets/614879158' -Headers @{ Accept = 'application/octet-stream' } -OutFile $msi
+# Pinned 7-Zip 26.04 release asset; the API avoids the release-page download gateway.
+$downloadHeaders = @{ Accept = 'application/octet-stream' }
+if ($env:GITHUB_TOKEN) { $downloadHeaders.Authorization = "Bearer $env:GITHUB_TOKEN" }
+Invoke-WebRequest -Uri 'https://api.github.com/repos/ip7z/7zip/releases/assets/614879158' `
+    -Headers $downloadHeaders -OutFile $msi -MaximumRetryCount 3 -RetryIntervalSec 2
 if ((Get-FileHash $msi -Algorithm SHA256).Hash -ne '0b01334a418654293513449f61d6bfc99e5196ca371e3c3dc961eda57cd535c6') { throw 'Pinned MSI hash mismatch.' }
 $cache = Join-Path $OutputPath 'private-package-cache'
 $artifacts = Join-Path $OutputPath 'consumer-artifacts'

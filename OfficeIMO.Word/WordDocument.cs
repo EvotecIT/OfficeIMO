@@ -36,9 +36,7 @@ namespace OfficeIMO.Word {
         private bool _tableOfContentUpdateQueued;
         private bool _tableOfContentEnabledUpdateFieldsOnOpen;
         private bool _tableNormalizationRequired = true;
-        private bool _styleDefinitionsInitialized;
         private bool _normalizeOpenOfficeRelationshipsOnSave = true;
-        private WordStyleCatalogFingerprint? _styleCatalogFingerprint;
         private bool _disposed;
         internal bool _openXmlDocumentAccessed;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;

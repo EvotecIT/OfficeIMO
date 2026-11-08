@@ -10156,9 +10156,7 @@ namespace OfficeIMO.Tests {
             try {
                 using WordDocument document = WordDocument.Create();
                 WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-                table._tableProperties!.TableStyle = new TableStyle {
-                    Val = "GridTable1Light"
-                };
+                table.Style = WordTableStyle.GridTable1Light;
                 table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
 
                 OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));

@@ -489,6 +489,7 @@ namespace OfficeIMO.Word {
         /// <param name="verticalOffset">Optional signed vertical offset.</param>
         /// <param name="scale">Scale factor for width and height.</param>
         public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath, global::OfficeIMO.OfficeLength? horizontalOffset = null, global::OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1.0) {
+            wordDocument.EnsureStyleDefinition("Header");
             this._document = wordDocument;
             this._section = wordSection ?? throw new ArgumentNullException(nameof(wordSection));
 
@@ -553,6 +554,7 @@ namespace OfficeIMO.Word {
         /// <param name="verticalOffset">Optional signed vertical offset.</param>
         /// <param name="scale">Scale factor for width and height.</param>
         public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string textOrFilePath, global::OfficeIMO.OfficeLength? horizontalOffset = null, global::OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1.0) {
+            wordDocument.EnsureStyleDefinition("Header");
             this._document = wordDocument;
             this._section = wordSection ?? throw new ArgumentNullException(nameof(wordSection));
 

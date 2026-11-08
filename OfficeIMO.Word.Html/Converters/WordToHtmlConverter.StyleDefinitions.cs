@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Html {
         private WordDocument? _styleDecorationDocument;
         private IReadOnlyDictionary<string, Style>? _styleDecorationDefinitions;
         private readonly Dictionary<string, WordStyleTextDecorations> _styleDecorationCache =
-            new(StringComparer.OrdinalIgnoreCase);
+            new(StringComparer.Ordinal);
 
         private static void AppendStyleDefinitions(
             WordDocument document,
@@ -25,11 +25,11 @@ namespace OfficeIMO.Word.Html {
             var stylePart = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart;
             var styleMap = (stylePart?.Styles?.OfType<Style>() ?? Enumerable.Empty<Style>())
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+                .GroupBy(style => style.StyleId!.Value!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
             string BuildCss(string styleId, bool includeInlineVerticalAlignment) {
-                var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var visited = new HashSet<string>(StringComparer.Ordinal);
                 var props = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
                 void Merge(string id) {
@@ -198,14 +198,14 @@ namespace OfficeIMO.Word.Html {
                 _styleDecorationDefinitions = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles?
                     .OfType<Style>()
                     .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                    .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+                    .GroupBy(style => style.StyleId!.Value!, StringComparer.Ordinal)
+                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
             }
             if (_styleDecorationCache.TryGetValue(styleId!, out WordStyleTextDecorations? cached)) return cached;
             IReadOnlyDictionary<string, Style>? styleMap = _styleDecorationDefinitions;
             if (styleMap == null) return new WordStyleTextDecorations();
             var chain = new Stack<Style>();
-            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
             string? current = styleId;
             while (!string.IsNullOrWhiteSpace(current) && visited.Add(current!) && styleMap.TryGetValue(current!, out Style? style)) {
                 chain.Push(style);

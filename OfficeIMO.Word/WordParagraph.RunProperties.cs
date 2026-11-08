@@ -637,7 +637,9 @@ namespace OfficeIMO.Word {
                     if (runProperties.RunStyle != null) runProperties.RunStyle.Remove();
                 } else {
                     if (runProperties.RunStyle == null) runProperties.RunStyle = new RunStyle();
-                    runProperties.RunStyle.Val = WordCharacterStyle.ToStringStyle(value.Value);
+                    string styleId = WordCharacterStyle.ToStringStyle(value.Value);
+                    _document?.EnsureStyleDefinition(styleId);
+                    runProperties.RunStyle.Val = styleId;
                 }
             }
         }
@@ -663,6 +665,7 @@ namespace OfficeIMO.Word {
                     if (runProperties.RunStyle != null) runProperties.RunStyle.Remove();
                 } else {
                     if (runProperties.RunStyle == null) runProperties.RunStyle = new RunStyle();
+                    _document?.EnsureStyleDefinition(value!);
                     runProperties.RunStyle.Val = value;
                 }
             }

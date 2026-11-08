@@ -307,8 +307,8 @@ namespace OfficeIMO.Word {
         /// <param name="styleId">Identifier of the table style to apply.</param>
         /// <returns>The current <see cref="WordTable"/> instance.</returns>
         public WordTable SetStyleId(string styleId) {
-            // Todo: Verify that the style exists in the document.
             if (!string.IsNullOrEmpty(styleId)) {
+                _document.EnsureStyleDefinition(styleId);
                 CheckTableProperties();
                 if (_tableProperties!.TableStyle == null) {
                     _tableProperties.TableStyle = new TableStyle() { Val = styleId };

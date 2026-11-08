@@ -57,22 +57,24 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Gets or sets the built-in table style applied to this table.
-        /// Returns <c>null</c> when no style is assigned.
+        /// Returns <c>null</c> when no built-in style is assigned. Set <c>null</c> to remove the style reference.
         /// </summary>
         public WordTableStyle? Style {
             get {
                 if (_tableProperties != null && _tableProperties.TableStyle != null) {
                     var styleValue = _tableProperties.TableStyle.Val?.Value;
                     if (styleValue is { Length: > 0 } s) {
-                        return WordTableStyles.GetStyle(s);
+                        return WordTableStyles.TryGetStyle(s, out var style) ? style : null;
                     }
                 }
                 return null;
             }
             set {
-                if (_tableProperties?.TableStyle != null && value != null) {
-                    _tableProperties.TableStyle = WordTableStyles.GetStyle(value.Value);
+                if (value == null) {
+                    _tableProperties?.TableStyle?.Remove();
+                    return;
                 }
+                SetStyleId(WordTableStyles.GetStyle(value.Value).Val!.Value!);
             }
         }
 
@@ -323,7 +325,7 @@ namespace OfficeIMO.Word {
         private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle, int textWidthTwips) {
             string columnWidth = GetDefaultColumnWidthTwips(textWidthTwips, columns).ToString(System.Globalization.CultureInfo.InvariantCulture);
             document.MarkTableNormalizationRequired();
-            document.EnsureStyleDefinitionsInitialized();
+            document.EnsureStyleDefinition(WordTableStyles.GetStyle(tableStyle).Val!.Value!);
             Table table = new Table();
             table.AddAnnotation(new DerivedGrid());
 

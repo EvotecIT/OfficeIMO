@@ -26,15 +26,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static IEnumerable<Style> EnumerateCellParagraphStyleChain(Paragraph paragraph, MainDocumentPart mainPart) {
             string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
             // Unstyled cells retain table defaults ahead of the document's Normal defaults.
-            if (string.IsNullOrWhiteSpace(styleId) || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+            if (string.IsNullOrWhiteSpace(styleId) || string.Equals(styleId, "Normal", StringComparison.Ordinal)) {
                 yield break;
             }
 
-            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
             IEnumerable<Style> styles = mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>();
             while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
                 Style? style = styles.FirstOrDefault(candidate => candidate.Type?.Value == StyleValues.Paragraph &&
-                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.Ordinal));
                 if (style == null) break;
                 yield return style;
                 styleId = style.BasedOn?.Val?.Value;

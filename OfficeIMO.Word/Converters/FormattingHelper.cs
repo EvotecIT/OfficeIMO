@@ -4,7 +4,7 @@ namespace OfficeIMO.Word {
     /// <summary>Internal formatting projection shared by the public paragraph API and first-party adapters.</summary>
     internal static class FormattingHelper {
         // Character styles Word, Pandoc and the Markdown converters use for inline code.
-        private static readonly HashSet<string> CodeCharacterStyles = new(StringComparer.OrdinalIgnoreCase) {
+        private static readonly HashSet<string> CodeCharacterStyles = new(StringComparer.Ordinal) {
             "Code", "CodeChar", "InlineCode", "HTMLCode", "HtmlCode", "SourceCode", "VerbatimChar", "HTMLTypewriter"
         };
 

@@ -443,7 +443,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId, IReadOnlyDictionary<string, ushort> styleIndexes) {
             string? styleId = paragraphStyleId.Val?.Value;
             if (string.IsNullOrWhiteSpace(styleId)
-                || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+                || string.Equals(styleId, "Normal", StringComparison.Ordinal)) {
                 return null;
             }
 
@@ -459,32 +459,32 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static bool TryMapBuiltInParagraphStyleIndex(string styleId, out ushort styleIndex) {
-            switch (styleId.Trim().ToUpperInvariant()) {
-                case "HEADING1":
+            switch (styleId) {
+                case "Heading1":
                     styleIndex = 1;
                     return true;
-                case "HEADING2":
+                case "Heading2":
                     styleIndex = 2;
                     return true;
-                case "HEADING3":
+                case "Heading3":
                     styleIndex = 3;
                     return true;
-                case "HEADING4":
+                case "Heading4":
                     styleIndex = 4;
                     return true;
-                case "HEADING5":
+                case "Heading5":
                     styleIndex = 5;
                     return true;
-                case "HEADING6":
+                case "Heading6":
                     styleIndex = 6;
                     return true;
-                case "HEADING7":
+                case "Heading7":
                     styleIndex = 7;
                     return true;
-                case "HEADING8":
+                case "Heading8":
                     styleIndex = 8;
                     return true;
-                case "HEADING9":
+                case "Heading9":
                     styleIndex = 9;
                     return true;
                 default:

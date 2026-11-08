@@ -263,9 +263,8 @@ namespace OfficeIMO.Word {
         /// ]]></code>
         /// </example>
         public WordParagraph SetStyleId(string styleId) {
-            //Todo Check the styleId exist
             if (!string.IsNullOrEmpty(styleId)) {
-                _document?.EnsureStyleDefinitionsInitialized();
+                _document?.EnsureStyleDefinition(styleId);
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 if (props.ParagraphStyleId == null) {
                     props.ParagraphStyleId = new ParagraphStyleId();

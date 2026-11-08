@@ -1,37 +1,11 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Xml;
-using System.Xml.Linq;
 using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
     // Generates the style definitions part.
     public partial class WordDocument {
         private static readonly Lazy<Styles> BuiltInStyleDefinitions = new(CreateBuiltInStyleDefinitions);
-        private static readonly Lazy<Styles> RequiredLoadedStyleDefinitions = new(CreateRequiredLoadedStyleDefinitions);
-        private static readonly Lazy<XElement> RequiredLoadedStyleDefinitionsXml = new(
-            () => XElement.Parse(RequiredLoadedStyleDefinitions.Value.OuterXml, LoadOptions.PreserveWhitespace));
-        // Serialized required styles; each fragment declares its own namespaces so it can be spliced into any catalog.
-        private static readonly Lazy<KeyValuePair<string, byte[]>[]> RequiredLoadedStyleFragments = new(
-            () => RequiredLoadedStyleDefinitionsXml.Value.Elements()
-                .Where(element => element.Name.LocalName == "style")
-                .Select(element => new KeyValuePair<string, string?>(GetStyleId(element) ?? string.Empty, element.ToString(SaveOptions.DisableFormatting)))
-                .Where(pair => pair.Key.Length > 0)
-                .Select(pair => new KeyValuePair<string, byte[]>(pair.Key, System.Text.Encoding.UTF8.GetBytes(pair.Value!)))
-                .ToArray());
-        private static readonly byte[] XmlDeclarationUtf8 = System.Text.Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-        private static readonly Lazy<HashSet<string>> RequiredLoadedStyleDefinitionIds = new(
-            () => new HashSet<string>(
-                RequiredLoadedStyleDefinitions.Value.Elements<Style>()
-                    .Select(style => style.StyleId?.Value)
-                    .Where(styleId => styleId != null)!
-                    .Cast<string>(),
-                StringComparer.OrdinalIgnoreCase));
-        private const int CompleteStyleCatalogDigestCapacity = 64;
-        private static readonly object CompleteStyleCatalogDigestLock = new();
-        private static readonly HashSet<WordStyleCatalogFingerprint> CompleteStyleCatalogDigests = new();
-        private static readonly Queue<WordStyleCatalogFingerprint> CompleteStyleCatalogDigestOrder = new();
-
         private static void AddTableStyles(Styles styles, bool overrideExisting) {
             var listOfTableStyles = global::OfficeIMO.Internal.EnumCompat.GetValues<WordTableStyle>();
             foreach (var style in listOfTableStyles) {
@@ -47,24 +21,21 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// This method is supposed to bring missing elements such as table styles to loaded document
+        /// Applies explicitly requested library style overrides to a loaded document.
         /// </summary>
         /// <param name="styleDefinitionsPart">The style definitions part to update.</param>
         /// <param name="overrideExisting">When <c>true</c>, existing styles are replaced with the library versions.</param>
         private static void AddStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart, bool overrideExisting) {
             var styles = styleDefinitionsPart.Styles ??= new Styles();
-            if (!overrideExisting) {
-                CompleteStyleCatalog(styleDefinitionsPart, styles);
-                return;
-            } else {
+            if (overrideExisting) {
                 AddTableStyles(styles, overrideExisting: true);
                 var customList = WordParagraphStyle.CustomStyles
                     .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
                     .ToList();
                 // Replace custom styles only when explicitly requested
                 var byId = customList
-                    .GroupBy(s => s.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+                    .GroupBy(s => s.StyleId!.Value!, StringComparer.Ordinal)
+                    .ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
 
                 Styles newStyles = new Styles();
                 foreach (var child in styles.ChildElements) {
@@ -90,149 +61,6 @@ namespace OfficeIMO.Word {
             styleDefinitionsPart.Styles?.Save();
         }
 
-        private static void CompleteStyleCatalog(StyleDefinitionsPart styleDefinitionsPart, Styles styles) {
-            if (HasCompleteStyleCatalog(styles)) return;
-            if (TrySpliceStyleCatalog(styleDefinitionsPart, styles)) return;
-
-            XElement merged = XElement.Parse(styles.OuterXml, LoadOptions.PreserveWhitespace);
-            var existingIds = new HashSet<string>(
-                merged.Elements()
-                    .Where(element => element.Name.LocalName == "style")
-                    .Select(GetStyleId)
-                    .Where(styleId => styleId != null)!
-                    .Cast<string>(),
-                StringComparer.OrdinalIgnoreCase);
-            foreach (XElement builtIn in RequiredLoadedStyleDefinitionsXml.Value.Elements()
-                         .Where(element => element.Name.LocalName == "style")) {
-                string? styleId = GetStyleId(builtIn);
-                if (styleId != null && existingIds.Add(styleId)) merged.Add(new XElement(builtIn));
-            }
-            foreach (Style custom in WordParagraphStyle.CustomStyles) {
-                string? styleId = custom.StyleId?.Value;
-                if (styleId != null && existingIds.Add(styleId)) {
-                    merged.Add(XElement.Parse(custom.OuterXml, LoadOptions.PreserveWhitespace));
-                }
-            }
-
-            using var stream = new MemoryStream();
-            merged.Save(stream, SaveOptions.DisableFormatting);
-            stream.Position = 0;
-            styleDefinitionsPart.FeedData(stream);
-        }
-
-        /// <summary>
-        /// Appends the missing required styles as pre-serialized fragments instead of rebuilding the whole catalog
-        /// through XLinq. The existing catalog text is preserved and the result matches the XLinq merge semantically.
-        /// </summary>
-        private static bool TrySpliceStyleCatalog(StyleDefinitionsPart styleDefinitionsPart, Styles styles) {
-            string existingXml = styles.OuterXml;
-            int closing = existingXml.LastIndexOf("</", StringComparison.Ordinal);
-            if (closing <= 0 || existingXml.Length == 0 || existingXml[existingXml.Length - 1] != '>') return false;
-
-            var existingIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (Style style in styles.Elements<Style>()) {
-                string? styleId = style.StyleId?.Value;
-                if (styleId != null) existingIds.Add(styleId);
-            }
-
-            var fragments = new List<byte[]>();
-            int fragmentBytes = 0;
-            foreach (KeyValuePair<string, byte[]> fragment in RequiredLoadedStyleFragments.Value) {
-                if (!existingIds.Add(fragment.Key)) continue;
-                fragments.Add(fragment.Value);
-                fragmentBytes += fragment.Value.Length;
-            }
-            foreach (Style custom in WordParagraphStyle.CustomStyles) {
-                string? styleId = custom.StyleId?.Value;
-                if (styleId == null || !existingIds.Add(styleId)) continue;
-                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(custom.OuterXml);
-                fragments.Add(bytes);
-                fragmentBytes += bytes.Length;
-            }
-
-            var encoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-            byte[] head = encoding.GetBytes(existingXml.Substring(0, closing));
-            byte[] tail = encoding.GetBytes(existingXml.Substring(closing));
-            using var stream = new MemoryStream(XmlDeclarationUtf8.Length + head.Length + fragmentBytes + tail.Length);
-            stream.Write(XmlDeclarationUtf8, 0, XmlDeclarationUtf8.Length);
-            stream.Write(head, 0, head.Length);
-            foreach (byte[] fragment in fragments) stream.Write(fragment, 0, fragment.Length);
-            stream.Write(tail, 0, tail.Length);
-            stream.Position = 0;
-            styleDefinitionsPart.FeedData(stream);
-            return true;
-        }
-
-        private static bool HasCompleteStyleCatalog(Styles styles) {
-            var existingIds = new HashSet<string>(
-                styles.Elements<Style>()
-                    .Select(style => style.StyleId?.Value)
-                    .Where(styleId => styleId != null)!
-                    .Cast<string>(),
-                StringComparer.OrdinalIgnoreCase);
-            if (!RequiredLoadedStyleDefinitionIds.Value.IsSubsetOf(existingIds)) return false;
-
-            foreach (Style custom in WordParagraphStyle.CustomStyles) {
-                string? styleId = custom.StyleId?.Value;
-                if (styleId != null && !existingIds.Contains(styleId)) return false;
-            }
-            return true;
-        }
-
-        private static bool HasCompleteStyleCatalog(
-            StyleDefinitionsPart styleDefinitionsPart,
-            WordStyleCatalogFingerprint? fingerprint) {
-            if (fingerprint.HasValue) {
-                lock (CompleteStyleCatalogDigestLock) {
-                    if (CompleteStyleCatalogDigests.Contains(fingerprint.Value)) return true;
-                }
-            }
-
-            var missingIds = new HashSet<string>(RequiredLoadedStyleDefinitionIds.Value, StringComparer.OrdinalIgnoreCase);
-            foreach (Style custom in WordParagraphStyle.CustomStyles) {
-                string? styleId = custom.StyleId?.Value;
-                if (styleId != null) missingIds.Add(styleId);
-            }
-            if (missingIds.Count == 0) return true;
-
-            using Stream stream = styleDefinitionsPart.GetStream(FileMode.Open, FileAccess.Read);
-            using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                IgnoreComments = true,
-                IgnoreWhitespace = true
-            });
-            while (reader.Read()) {
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "style") continue;
-                string? styleId = reader.GetAttribute("styleId", "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
-                    ?? reader.GetAttribute("styleId");
-                if (styleId != null && missingIds.Remove(styleId) && missingIds.Count == 0) {
-                    if (fingerprint.HasValue) RememberCompleteStyleCatalogDigest(fingerprint.Value);
-                    return true;
-                }
-            }
-            return missingIds.Count == 0;
-        }
-
-        private static void RememberCompleteStyleCatalogDigest(WordStyleCatalogFingerprint digest) {
-            lock (CompleteStyleCatalogDigestLock) {
-                if (!CompleteStyleCatalogDigests.Add(digest)) return;
-                CompleteStyleCatalogDigestOrder.Enqueue(digest);
-                while (CompleteStyleCatalogDigestOrder.Count > CompleteStyleCatalogDigestCapacity) {
-                    CompleteStyleCatalogDigests.Remove(CompleteStyleCatalogDigestOrder.Dequeue());
-                }
-            }
-        }
-
-        internal static void InvalidateCompleteStyleCatalogCache() {
-            lock (CompleteStyleCatalogDigestLock) {
-                CompleteStyleCatalogDigests.Clear();
-                CompleteStyleCatalogDigestOrder.Clear();
-            }
-        }
-
-        private static string? GetStyleId(XElement style) =>
-            style.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName == "styleId")?.Value;
-
         internal static void FindMissingStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart, bool overrideExisting) {
             var footNoteText = false;
             var noList = false;
@@ -247,7 +75,7 @@ namespace OfficeIMO.Word {
             var header = false;
 
             if (styleDefinitionsPart.Styles != null) {
-                var styles = styleDefinitionsPart.Styles.OfType<Style>();
+                var styles = styleDefinitionsPart.Styles.OfType<Style>().ToArray();
                 foreach (var styleDefinition in styles) {
                     if (styleDefinition.StyleId == "FootnoteText") {
                         footNoteText = true;
@@ -322,8 +150,10 @@ namespace OfficeIMO.Word {
 
         /// <summary>Replaces only the creation-owned table style in a document-specific catalog clone.</summary>
         private static void ReplaceCreationTableStyle(Styles styles, OfficeTheme theme) {
+            if (!styles.Elements<Style>().Any(style =>
+                string.Equals(style.StyleId?.Value, WordThemeDefaults.TableStyleId, StringComparison.Ordinal))) return;
             foreach (Style existing in styles.Elements<Style>().Where(style =>
-                string.Equals(style.StyleId?.Value, WordThemeDefaults.TableStyleId, StringComparison.OrdinalIgnoreCase)).ToList()) {
+                string.Equals(style.StyleId?.Value, WordThemeDefaults.TableStyleId, StringComparison.Ordinal)).ToList()) {
                 existing.Remove();
             }
             styles.Append(WordThemeDefaults.CreateTableStyle(theme));
@@ -356,8 +186,8 @@ namespace OfficeIMO.Word {
 
             styles1.Append(docDefaults1);
             styles1.Append(latentStyles1);
-
-            AddTableStyles(styles1, false);
+            // Word's native baseline has one default table style; decorative presets remain lazy.
+            styles1.Append(WordTableStyles.GetStyleDefinition(WordTableStyle.TableNormal));
 
             // TODO: load all styles to document, probably we should load those in use
             var listOfStyles = global::OfficeIMO.Internal.EnumCompat.GetValues<WordParagraphStyles>();
@@ -392,23 +222,6 @@ namespace OfficeIMO.Word {
             return styles1;
         }
 
-        private static Styles CreateRequiredLoadedStyleDefinitions() {
-            var styles = new Styles();
-            AddTableStyles(styles, overrideExisting: false);
-            styles.Append(GenerateStyleNoList());
-            styles.Append(GenerateStyleHeader());
-            styles.Append(GenerateStyleHeaderChar());
-            styles.Append(GenerateStyleFooter());
-            styles.Append(GenerateStyleFooterChar());
-            styles.Append(GenerateStyleFootnoteText());
-            styles.Append(GenerateStyleFootNoteTextChar());
-            styles.Append(GenerateStyleFootNoteReference());
-            styles.Append(GenerateStyleEndNoteText());
-            styles.Append(GenerateStyleEndNoteTextChar());
-            styles.Append(GenerateStyleEndNoteReference());
-            return styles;
-        }
-
         private static void ApplyCurrentStyleRegistrations(StyleDefinitionsPart? styleDefinitionsPart) {
             if (!WordParagraphStyle.HasRuntimeStyleRegistrations) return;
             Styles? styles = styleDefinitionsPart?.Styles;
@@ -418,7 +231,7 @@ namespace OfficeIMO.Word {
                 if (paragraphStyle == WordParagraphStyles.Custom) continue;
                 string expectedId = paragraphStyle.ToStringStyle();
                 styles.Elements<Style>()
-                    .FirstOrDefault(style => string.Equals(style.StyleId?.Value, expectedId, StringComparison.OrdinalIgnoreCase))
+                    .FirstOrDefault(style => string.Equals(style.StyleId?.Value, expectedId, StringComparison.Ordinal))
                     ?.Remove();
                 Style? current = WordParagraphStyle.GetOpenXmlStyleDefinition(paragraphStyle);
                 if (current != null) styles.Append(current);
@@ -428,7 +241,7 @@ namespace OfficeIMO.Word {
                 string? styleId = custom.StyleId?.Value;
                 if (styleId == null) continue;
                 foreach (Style existing in styles.Elements<Style>()
-                    .Where(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase))
+                    .Where(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal))
                     .ToArray()) {
                     existing.Remove();
                 }

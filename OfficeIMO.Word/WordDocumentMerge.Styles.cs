@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -17,14 +18,14 @@ namespace OfficeIMO.Word {
             "pStyle", "rStyle", "tblStyle", "styleLink", "numStyleLink"
         };
 
-        private readonly Dictionary<string, string> _styleMap = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _styleMap = new(StringComparer.Ordinal);
         private readonly List<(Style Source, string Id, string? Name)> _styleCopies = new();
         private Styles? _sourceStyles;
         private Styles? _destinationStyles;
         private bool _foldSourceDefaults;
 
         /// <summary>
-        /// Decides, for every source style, whether it maps onto a destination style or is copied (possibly renamed).
+        /// Maps source styles used by the appended content and their dependencies, copying or renaming where needed.
         /// </summary>
         private void PlanStyles() {
             _sourceStyles = _sourceMain.StyleDefinitionsPart?.Styles;
@@ -43,7 +44,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            var usedIds = new HashSet<string>(destinationById.Keys, StringComparer.OrdinalIgnoreCase);
+            var usedIds = new HashSet<string>(destinationById.Keys, StringComparer.Ordinal);
             var usedNames = new HashSet<string>(
                 _destinationStyles.Elements<Style>().Select(_ => _.StyleName?.Val?.Value).OfType<string>(),
                 StringComparer.OrdinalIgnoreCase);
@@ -51,9 +52,7 @@ namespace OfficeIMO.Word {
             bool keepDifferent = _options.StyleMode == WordMergeStyleMode.KeepDifferentStyles;
             _foldSourceDefaults = keepDifferent &&
                 !string.Equals(Canonicalize(_sourceStyles.DocDefaults), Canonicalize(_destinationStyles.DocDefaults), StringComparison.Ordinal);
-            HashSet<string> usedSourceStyles = keepDifferent
-                ? CollectUsedSourceStyles(sourceById)
-                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> usedSourceStyles = CollectUsedSourceStyles(sourceById);
 
             Style? FindMatch(Style style) {
                 string? key = GetStyleNameKey(style);
@@ -69,8 +68,8 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            var equivalence = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-            var comparing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var equivalence = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var comparing = new HashSet<string>(StringComparer.Ordinal);
 
             bool AreEquivalent(Style source, Style destination) {
                 string sourceId = source.StyleId!.Value!;
@@ -116,7 +115,7 @@ namespace OfficeIMO.Word {
 
                 if (!sourceById.TryGetValue(sourceBase, out Style? sourceParent) ||
                     !destinationById.TryGetValue(destinationBase, out Style? destinationParent)) {
-                    return string.Equals(sourceBase, destinationBase, StringComparison.OrdinalIgnoreCase);
+                    return string.Equals(sourceBase, destinationBase, StringComparison.Ordinal);
                 }
 
                 return ReferenceEquals(FindMatch(sourceParent), destinationParent) && AreEquivalent(sourceParent, destinationParent);
@@ -124,14 +123,14 @@ namespace OfficeIMO.Word {
 
             foreach (Style style in _sourceStyles.Elements<Style>()) {
                 string? id = style.StyleId?.Value;
-                if (string.IsNullOrEmpty(id) || _styleMap.ContainsKey(id!)) {
+                if (string.IsNullOrEmpty(id) || !usedSourceStyles.Contains(id!) || _styleMap.ContainsKey(id!)) {
                     continue;
                 }
 
                 string sourceId = id!;
                 Style? match = FindMatch(style);
                 if (match != null) {
-                    if (!keepDifferent || !usedSourceStyles.Contains(sourceId) || AreEquivalent(style, match)) {
+                    if (!keepDifferent || AreEquivalent(style, match)) {
                         _styleMap[sourceId] = match.StyleId!.Value!;
                         continue;
                     }
@@ -271,7 +270,7 @@ namespace OfficeIMO.Word {
             }
 
             string? destinationDefault = GetDefaultStyleId(_destinationStyles!, type);
-            if (string.Equals(mapped, destinationDefault, StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(mapped, destinationDefault, StringComparison.Ordinal)) {
                 return null;
             }
 
@@ -315,7 +314,7 @@ namespace OfficeIMO.Word {
         }
 
         private HashSet<string> CollectUsedSourceStyles(Dictionary<string, Style> sourceById) {
-            var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var used = new HashSet<string>(StringComparer.Ordinal);
 
             void AddReferences(OpenXmlElement? root) {
                 if (root == null) {
@@ -332,12 +331,33 @@ namespace OfficeIMO.Word {
             }
 
             AddReferences(_sourceMain.Document);
-            foreach (HeaderPart part in _sourceMain.HeaderParts) AddReferences(part.Header);
-            foreach (FooterPart part in _sourceMain.FooterParts) AddReferences(part.Footer);
-            AddReferences(_sourceMain.FootnotesPart?.Footnotes);
-            AddReferences(_sourceMain.EndnotesPart?.Endnotes);
-            AddReferences(_sourceMain.WordprocessingCommentsPart?.Comments);
-            AddReferences(_sourceMain.NumberingDefinitionsPart?.Numbering);
+            void AddPartReferences(OpenXmlPart? part) {
+                if (part == null) return;
+                if (part.IsRootElementLoaded) {
+                    AddReferences(part.RootElement);
+                    return;
+                }
+
+                // Keep unsaved live edits above, but do not materialize unrelated cold source DOMs.
+                using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+                using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Prohibit
+                });
+                while (reader.Read()) {
+                    if (reader.NodeType == XmlNodeType.Element && reader.NamespaceURI == WordNamespace &&
+                        StyleReferenceElements.Contains(reader.LocalName) &&
+                        reader.GetAttribute("val", WordNamespace) is { Length: > 0 } value) {
+                        used.Add(value);
+                    }
+                }
+            }
+
+            foreach (HeaderPart part in _sourceMain.HeaderParts) AddPartReferences(part);
+            foreach (FooterPart part in _sourceMain.FooterParts) AddPartReferences(part);
+            AddPartReferences(_sourceMain.FootnotesPart);
+            AddPartReferences(_sourceMain.EndnotesPart);
+            AddPartReferences(_sourceMain.WordprocessingCommentsPart);
+            AddPartReferences(_sourceMain.NumberingDefinitionsPart);
 
             foreach (Style style in sourceById.Values) {
                 if (style.Default?.Value == true && style.StyleId?.Value is string id) {
@@ -382,7 +402,7 @@ namespace OfficeIMO.Word {
         }
 
         private static Dictionary<string, Style> IndexStylesById(Styles styles) {
-            var index = new Dictionary<string, Style>(StringComparer.OrdinalIgnoreCase);
+            var index = new Dictionary<string, Style>(StringComparer.Ordinal);
             foreach (Style style in styles.Elements<Style>()) {
                 string? id = style.StyleId?.Value;
                 if (!string.IsNullOrEmpty(id) && !index.ContainsKey(id!)) {
