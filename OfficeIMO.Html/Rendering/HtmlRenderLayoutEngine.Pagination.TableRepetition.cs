@@ -75,20 +75,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // Detached repeats do not share their source table's isolated effect buffer.
     // Keep the original occurrence rather than leaking opaque or unclipped copies.
     private void CollectEffectTableOwners(IEnumerable<HtmlRenderVisual> visuals, bool insideEffect,
-        List<HtmlRenderClipGroup> clips, ISet<string> owners, HtmlRenderOffset[]? pending = null) {
-        int index = 0;
-        foreach (HtmlRenderVisual source in visuals) {
+        List<HtmlRenderClipGroup> clips, ISet<string> owners) {
+        foreach (HtmlRenderVisual visual in visuals) {
             ChargeLayoutOperation("table repetition effect ownership");
-            HtmlRenderVisual visual = source;
-            HtmlRenderOffset[]? childPending = pending;
-            if (pending != null && (visual is HtmlRenderSemanticGroup boundedTable
-                    && clips.Count > 0 && boundedTable.StructureElementKey != null && IsTableFormattingGroup(boundedTable)
-                || visual is not HtmlRenderSemanticGroup && visual.PaintChildren != null)) {
-                // Keep the existing translated geometry when a clip comparison or another container needs it.
-                visual = visual.TranslateThrough(pending, index);
-                childPending = null;
-            }
-            index++;
             bool hasEffect = insideEffect || visual is HtmlRenderEffectGroup or HtmlRenderPathClipGroup
                 or HtmlRenderClipGroup { LegacyClipOwnerNodeId: not null };
             bool pushedClip = visual is HtmlRenderClipGroup { IsViewportOverflow: false, IsFlowFragment: false };
@@ -105,13 +94,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 if (tableHasEffect) owners.Add(owner);
             }
-            IReadOnlyList<HtmlRenderVisual>? children;
-            if (visual is HtmlRenderSemanticGroup semantic
-                && semantic.TryGetPendingTranslation(out IReadOnlyList<HtmlRenderVisual> untranslated, out HtmlRenderOffset[] offsets)) {
-                children = untranslated;
-                childPending = childPending == null ? offsets : HtmlRenderOffset.Append(offsets, childPending);
-            } else children = GetGroupChildren(visual);
-            if (children != null) CollectEffectTableOwners(children, hasEffect, clips, owners, childPending);
+            if (GetGroupChildren(visual) is { } children) CollectEffectTableOwners(children, hasEffect, clips, owners);
             if (pushedClip) clips.RemoveAt(clips.Count - 1);
         }
     }
