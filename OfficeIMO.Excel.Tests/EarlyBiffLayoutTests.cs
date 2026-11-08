@@ -12,6 +12,37 @@ namespace OfficeIMO.Tests;
 public sealed class EarlyBiffLayoutTests {
     private static readonly XNamespace Ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
+    [Fact]
+    public void NativeConversionRetainsEachUnsupportedArrayCellLocation() {
+        string source = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents",
+            "LegacyXlsCorpus", "apache-openoffice-testdocs", "formula_import_biff4.xlw");
+        string destination = Path.Combine(Path.GetTempPath(), "officeimo-biff-findings-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        byte[] original = File.ReadAllBytes(source);
+        string[] expectedLocations = {
+            "'Array'!B13", "'Array'!C13", "'Array'!B14", "'Array'!C14",
+            "'Array'!B22", "'Array'!C22", "'Array'!B23", "'Array'!C23",
+            "'Array'!B27", "'Array'!C27", "'Array'!B28", "'Array'!C28"
+        };
+        var allowed = ExcelDocument.AnalyzeConversion(source, destination,
+            new ExcelDocumentConversionOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        Assert.Equal(expectedLocations, allowed.NativeDiagnostics
+            .Where(finding => finding.Code == "early-biff-formula-unsupported"
+                && finding.SourceLocation?.StartsWith("'Array'!", StringComparison.Ordinal) == true)
+            .Select(finding => finding.SourceLocation));
+        Assert.Equal(expectedLocations, allowed.Diagnostics
+            .Where(finding => finding.Code == "early-biff-formula-unsupported"
+                && finding.Location?.StartsWith("'Array'!", StringComparison.Ordinal) == true)
+            .Select(finding => finding.Location));
+        var blocked = Assert.Throws<ExcelDocumentConversionException>(() => ExcelDocument.Convert(source, destination));
+        Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
+        Assert.Equal(expectedLocations, blocked.Result.Report.NativeDiagnostics
+            .Where(finding => finding.Code == "early-biff-formula-unsupported"
+                && finding.SourceLocation?.StartsWith("'Array'!", StringComparison.Ordinal) == true)
+            .Select(finding => finding.SourceLocation));
+        Assert.False(File.Exists(destination));
+        Assert.Equal(original, File.ReadAllBytes(source));
+    }
+
     [Theory]
     [InlineData(2, true)]
     [InlineData(3, true)]

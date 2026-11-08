@@ -111,6 +111,10 @@ public static class LegacySpreadsheetImporter {
                         if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) currentSheet.Cell(cell.Row, cell.Column).SetNumberFormat(cell.NumberFormat!);
                         if (!string.IsNullOrWhiteSpace(cell.Comment)) comments.Add((cell.Row, cell.Column, cell.Comment!));
                     }
+                    foreach (var array in sourceSheet.ArrayFormulas) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        currentSheet.SetLegacyArrayFormula(array.Record.Range, array.Formula, cancellationToken);
+                    }
                     if (sourceSheet.BaseColumnWidth.HasValue) currentSheet.SetImportedBaseColumnWidth(sourceSheet.BaseColumnWidth.Value);
                     if (sourceSheet.DefaultColumnWidth.HasValue && sourceSheet.DefaultColumnWidth.Value > 0) currentSheet.SetDefaultColumnWidthExact(sourceSheet.DefaultColumnWidth.Value, save: false);
                     currentSheet.SetImportedColumnLayouts(sourceSheet.Columns, ResolveStyle);

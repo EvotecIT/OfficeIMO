@@ -3,6 +3,10 @@
 This folder is for small, reviewable `.doc` fixtures that protect legacy binary
 Word import behavior.
 
+The corpus includes Microsoft Word COM fixtures and an unchanged OpenOffice
+Word 6 fixture distributed by Apache POI. Its pinned source, license and profile
+are recorded in [Bug60936.provenance.md](apache-poi-word69/Bug60936.provenance.md).
+
 For each `sample.doc`, keep an approved `sample.import-report.md` generated from
 `LegacyDocImportReport.ToMarkdown()`. The corpus test compares the current import
 report against the approved baseline so parser, projection, diagnostics, and

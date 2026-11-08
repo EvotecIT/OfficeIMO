@@ -8,7 +8,7 @@ internal sealed partial class WordMl2003Projection {
     private static readonly XNamespace Office = "urn:schemas-microsoft-com:office:office";
 
     private void ValidateDocumentSingletons(XElement root) {
-        foreach (XName name in new[] { Word + "styles", Word + "fonts", Word + "docPr", Office + "DocumentProperties" }) {
+        foreach (XName name in new[] { Word + "styles", Word + "fonts", Word + "lists", Word + "docPr", Office + "DocumentProperties" }) {
             if (root.Elements(name).Skip(1).Any())
                 throw new InvalidDataException("WordML 2003 contains a duplicate " + name.LocalName + " declaration.");
         }
@@ -19,9 +19,10 @@ internal sealed partial class WordMl2003Projection {
     private void ReadDocumentParts(XElement root) {
         CheckAttributes(root, "macrosPresent embeddedObjPresent ocxPresent");
         IndexImages(root);
+        if (root.Element(Word + "lists") is { } lists) ReadLists(lists);
         foreach (XElement child in root.Elements()) {
             _token.ThrowIfCancellationRequested();
-            if (child.Name == Word + "body") continue;
+            if (child.Name == Word + "body" || child.Name == Word + "lists") continue;
             if (child.Name == Word + "styles") ReadStyles(child, root.Element(Word + "fonts")?.Element(Word + "defaultFonts"));
             else if (child.Name == Word + "fonts") ReadFonts(child);
             else if (child.Name == Word + "docPr") ReadSettings(child);

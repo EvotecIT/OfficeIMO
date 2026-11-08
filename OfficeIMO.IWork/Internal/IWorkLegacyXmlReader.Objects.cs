@@ -30,12 +30,21 @@ internal static partial class IWorkLegacyXmlReader {
         if (entry == null) return MissingImage();
         string mediaType = IWorkDrawingReader.MediaType(entry.Path, entry.Bytes);
         if (!IWorkDrawingReader.IsEditableOwnerImageMediaType(mediaType)) return MissingImage();
-        (int? width, int? height) = IWorkImageInfo.Read(entry.Bytes, mediaType,
-            budget.RemainingDecodedImageBytes, out long decodedBytes, source.CancellationToken);
+        int? width, height;
+        long decodedBytes;
+        bool reused = catalog.TryGetValidatedImage(entry, out var metadata);
+        if (reused) {
+            (width, height) = (metadata.Width, metadata.Height);
+            decodedBytes = metadata.DecodedBytes;
+        } else {
+            (width, height) = IWorkImageInfo.Read(entry.Bytes, mediaType,
+                budget.RemainingDecodedImageBytes, out decodedBytes, source.CancellationToken);
+        }
         budget.AddDecodedImageBytes(decodedBytes);
         if (!width.HasValue || !height.HasValue) return MissingImage();
         budget.AddProjectedImageBytes(entry.Bytes.LongLength);
         budget.AddTextCharacters(entry.Path.Length);
+        if (!reused) catalog.RememberValidatedImage(entry, width.Value, height.Value, decodedBytes);
         bool hasMask = drawable.Element(Sf + "crop-geometry") != null
             || drawable.Element(Sf + "masking-shape-path-source") != null
             || media?.Element(Sf + "alpha-mask-path") != null;

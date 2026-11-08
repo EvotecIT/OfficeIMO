@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -145,8 +146,10 @@ public sealed class WordXmlInterchangeTests {
             <?xml version="1.0"?>
             <?mso-application progid="Word.Document"?>
             <w:wordDocument xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml"
-              xmlns:wx="http://schemas.microsoft.com/office/word/2003/auxHint" xml:space="preserve">
+              xmlns:wx="http://schemas.microsoft.com/office/word/2003/auxHint"
+              xmlns:first="urn:word-source:first" xmlns:second="urn:word-source:second" xml:space="preserve">
               <w:body>
+                <first:extra/><second:extra/><first:extra/>
                 <wx:sect>
                   <wx:sub-section>
                     <w:p><w:pPr><w:framePr w:w="2000"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>  Report </w:t></w:r><w:hlink w:dest="https://example.invalid/"><w:r><w:t>visible link</w:t></w:r></w:hlink></w:p>
@@ -178,6 +181,43 @@ public sealed class WordXmlInterchangeTests {
         using var strictSource = new MemoryStream(input);
         Assert.Throws<OfficeConversionException>(() => WordDocument.Load(strictSource,
             new WordLoadOptions { FailOnLoss = true, ReportUnsupportedContent = false }));
+
+        string inputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+        string outputPath = Path.ChangeExtension(inputPath, ".doc");
+        try {
+            File.WriteAllBytes(inputPath, input);
+            var expectedLocations = new[] { "{urn:word-source:first}extra", "{urn:word-source:second}extra" };
+            const string omissionMessage = "WordML 2003 block content was omitted (extra).";
+            WordDocumentConversionReport analysis = WordDocument.AnalyzeConversion(inputPath, outputPath);
+            OfficeConversionDiagnostic[] omissions = analysis.NativeDiagnostics
+                .Where(finding => finding.Code == "WORDML2003_OMITTED" && finding.Message == omissionMessage).ToArray();
+            Assert.Equal(expectedLocations, omissions.Select(finding => finding.SourceLocation));
+            Assert.All(omissions, finding => {
+                Assert.True(finding.RepresentsDataLoss);
+                Assert.Equal(OfficeCompatibilityState.Blocked, finding.CompatibilityState);
+            });
+            Assert.Equal(expectedLocations, analysis.Diagnostics.Where(finding => finding.Message == omissionMessage)
+                .Select(finding => finding.Location));
+            Assert.False(File.Exists(outputPath));
+
+            WordDocumentConversionException blocked = Assert.Throws<WordDocumentConversionException>(() =>
+                WordDocument.Convert(inputPath, outputPath));
+            Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
+            Assert.Equal(expectedLocations, blocked.Result.Report.NativeDiagnostics
+                .Where(finding => finding.Message == omissionMessage).Select(finding => finding.SourceLocation));
+            Assert.False(File.Exists(outputPath));
+
+            WordDocumentConversionReport allowed = WordDocument.AnalyzeConversion(inputPath, outputPath,
+                new WordDocumentConversionOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            Assert.Equal(expectedLocations, allowed.NativeDiagnostics
+                .Where(finding => finding.Message == omissionMessage).Select(finding => finding.SourceLocation));
+            Assert.All(allowed.NativeDiagnostics.Where(finding => finding.Message == omissionMessage),
+                finding => Assert.Equal(OfficeCompatibilityState.Dropped, finding.CompatibilityState));
+            Assert.False(File.Exists(outputPath));
+        } finally {
+            File.Delete(inputPath);
+            File.Delete(outputPath);
+        }
     }
 
     [Theory]

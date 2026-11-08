@@ -1097,7 +1097,7 @@ Opens an EPUB publication, optionally saving an editing block atomically.
 Opens a workbook for explicit editing, or atomically saves a completed content block.
 
 ### [Open-OfficeIWork](Open-OfficeIWork.md)
-Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.
+Reads a supported Apple Pages, Numbers, or Keynote package without launching iWork.
 
 ### [Open-OfficeLatex](Open-OfficeLatex.md)
 Parses a LaTeX file or source string into OfficeIMO's native document model.

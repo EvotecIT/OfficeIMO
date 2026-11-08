@@ -1,0 +1,2 @@
+# Preserve original sample bytes and their recorded SHA-256 hashes.
+*.csv -text whitespace=trailing-space,space-before-tab,cr-at-eol

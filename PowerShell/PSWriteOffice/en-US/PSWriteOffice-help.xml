@@ -151106,11 +151106,11 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
       <command:verb>Open</command:verb>
       <command:noun>OfficeIWork</command:noun>
       <maml:description>
-        <maml:para>Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.</maml:para>
+        <maml:para>Reads a supported Apple Pages, Numbers, or Keynote package without launching iWork.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.</maml:para>
+      <maml:para>Reads supported iWork packages, including the qualified iWork '09 XML profile, into OfficeIMO's bounded source model.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Path">
@@ -151147,7 +151147,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Path to a modern Pages, Numbers, or Keynote package or directory bundle.</maml:para>
+            <maml:para>Path to a supported Pages, Numbers, or Keynote package or directory bundle, including the qualified iWork '09 XML profile.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -151247,7 +151247,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Path to a modern Pages, Numbers, or Keynote package or directory bundle.</maml:para>
+          <maml:para>Path to a supported Pages, Numbers, or Keynote package or directory bundle, including the qualified iWork '09 XML profile.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -151282,8 +151282,8 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$source = Open-OfficeIWork -Path .\Quarterly.numbers
-            $source | Select-Object Kind, ContainerKind, BuildVersions
+        <dev:code>$source = Open-OfficeIWork -Path .\Quarterly.numbers&#xD;
+            $source | Select-Object Kind, ContainerKind, BuildVersions&#xD;
             $source.ReadNumbers().Sheets | Select-Object Name</dev:code>
         <dev:remarks>
           <maml:para>Returns OfficeIMO's bounded, loss-aware source model.</maml:para>

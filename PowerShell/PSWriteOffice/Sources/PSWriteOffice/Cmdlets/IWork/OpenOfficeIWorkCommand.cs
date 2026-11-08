@@ -5,7 +5,8 @@ using OfficeIMO.IWork;
 
 namespace PSWriteOffice.Cmdlets.IWork;
 
-/// <summary>Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.</summary>
+/// <summary>Reads a supported Apple Pages, Numbers, or Keynote package without launching iWork.</summary>
+/// <para>Reads supported iWork packages, including the qualified iWork '09 XML profile, into OfficeIMO's bounded source model.</para>
 /// <example>
 ///   <summary>Inspect an iWork source before deciding how to convert it.</summary>
 ///   <prefix>PS&gt; </prefix>
@@ -18,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.IWork;
 [OutputType(typeof(IWorkSourceDocument))]
 public sealed class OpenOfficeIWorkCommand : PSCmdlet
 {
-    /// <summary>Path to a modern Pages, Numbers, or Keynote package or directory bundle.</summary>
+    /// <summary>Path to a supported Pages, Numbers, or Keynote package or directory bundle, including the qualified iWork '09 XML profile.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
     public string Path { get; set; } = string.Empty;
 
