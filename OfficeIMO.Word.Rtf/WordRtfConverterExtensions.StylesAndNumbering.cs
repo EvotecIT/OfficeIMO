@@ -16,7 +16,7 @@ public static partial class WordRtfConverterExtensions {
             Style[] definitions = styles.Elements<Style>().Where(style => style.StyleId?.Value != null).ToArray();
             string? defaultParagraphId = definitions.LastOrDefault(style =>
                 (style.Type?.Value ?? StyleValues.Paragraph) == StyleValues.Paragraph && style.Default?.Value == true)?.StyleId?.Value;
-            var ids = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var ids = new Dictionary<string, int>(StringComparer.Ordinal);
             // RTF style zero is the implicit paragraph default, regardless of the Word catalogue's order.
             if (defaultParagraphId != null) ids[defaultParagraphId] = 0;
             int nextId = 1;
@@ -325,7 +325,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static int? FindRtfStyleId(RtfDocument document, string name, RtfStyleKind kind) =>
-        document.Styles.FirstOrDefault(style => style.Kind == kind && string.Equals(style.Name, name, StringComparison.OrdinalIgnoreCase))?.Id;
+        document.Styles.FirstOrDefault(style => style.Kind == kind && string.Equals(style.Name, name, StringComparison.Ordinal))?.Id;
 
     private static bool HasRtfStyle(RtfDocument document, int id, RtfStyleKind kind) =>
         document.Styles.Any(style => style.Id == id && style.Kind == kind);

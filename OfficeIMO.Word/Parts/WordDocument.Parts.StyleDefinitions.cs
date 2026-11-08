@@ -75,7 +75,7 @@ namespace OfficeIMO.Word {
             var header = false;
 
             if (styleDefinitionsPart.Styles != null) {
-                var styles = styleDefinitionsPart.Styles.OfType<Style>();
+                var styles = styleDefinitionsPart.Styles.OfType<Style>().ToArray();
                 foreach (var styleDefinition in styles) {
                     if (styleDefinition.StyleId == "FootnoteText") {
                         footNoteText = true;

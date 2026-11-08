@@ -84,4 +84,65 @@ public partial class WordRtfConverterTests {
         Assert.Equal("#D42137", parsed.GetColor(Assert.IsType<int>(explicitRun.ForegroundColorIndex))!.ToString());
         Assert.True(explicitRun.Italic);
     }
+
+    [Fact]
+    public void Word_Rtf_Bridge_Keeps_Case_Distinct_Style_Ids_And_References() {
+        using var input = new MemoryStream();
+        using (WordprocessingDocument package = WordprocessingDocument.Create(input, WordprocessingDocumentType.Document, true)) {
+            MainDocumentPart main = package.AddMainDocumentPart();
+            main.Document = new Document(new Body(
+                new Paragraph(new ParagraphProperties(new ParagraphStyleId { Val = "CaseBody" }),
+                    new Run(new RunProperties(new RunStyle { Val = "CaseCharacter" }), new Text("Upper"))),
+                new Paragraph(new ParagraphProperties(new ParagraphStyleId { Val = "casebody" }),
+                    new Run(new RunProperties(new RunStyle { Val = "casecharacter" }), new Text("Lower")))));
+            main.AddNewPart<StyleDefinitionsPart>().Styles = new Styles(
+                new Style(new StyleName { Val = "Red body" },
+                    new StyleRunProperties(new Color { Val = "D42137" }, new FontSize { Val = "36" })) {
+                    StyleId = "CaseBody", Type = StyleValues.Paragraph, Default = true
+                },
+                new Style(new StyleName { Val = "Blue body" },
+                    new BasedOn { Val = "CaseBody" },
+                    new StyleRunProperties(new Color { Val = "1269A3" }, new FontSize { Val = "48" })) {
+                    StyleId = "casebody", Type = StyleValues.Paragraph
+                },
+                new Style(new StyleName { Val = "Bold character" }, new StyleRunProperties(new Bold())) {
+                    StyleId = "CaseCharacter", Type = StyleValues.Character
+                },
+                new Style(new StyleName { Val = "Italic character" }, new StyleRunProperties(new Italic())) {
+                    StyleId = "casecharacter", Type = StyleValues.Character
+                });
+            Assert.Empty(new OpenXmlValidator().Validate(package));
+        }
+        input.Position = 0;
+        using WordDocument source = WordDocument.Load(input);
+        string sourceStyles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OuterXml;
+
+        string encoded = source.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument parsed = RtfDocument.ParseResult(encoded).Document;
+
+        Assert.Equal(sourceStyles, source._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart!.Styles!.OuterXml);
+        Assert.Equal(new[] { "Upper", "Lower" }, parsed.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
+        RtfStyle upperBody = Assert.Single(parsed.Styles, style => style.Name == "CaseBody");
+        RtfStyle lowerBody = Assert.Single(parsed.Styles, style => style.Name == "casebody");
+        RtfStyle upperCharacter = Assert.Single(parsed.Styles, style => style.Name == "CaseCharacter");
+        RtfStyle lowerCharacter = Assert.Single(parsed.Styles, style => style.Name == "casecharacter");
+        Assert.NotEqual(upperBody.Id, lowerBody.Id);
+        Assert.NotEqual(upperCharacter.Id, lowerCharacter.Id);
+        Assert.Equal(upperBody.Id, parsed.Paragraphs[0].StyleId);
+        Assert.Equal(lowerBody.Id, parsed.Paragraphs[1].StyleId);
+        Assert.Equal(upperBody.Id, lowerBody.BasedOnStyleId);
+        RtfRun upper = parsed.ResolveRunFormatting(parsed.Paragraphs[0], Assert.Single(parsed.Paragraphs[0].Runs));
+        RtfRun lower = parsed.ResolveRunFormatting(parsed.Paragraphs[1], Assert.Single(parsed.Paragraphs[1].Runs));
+        Assert.Equal(upperCharacter.Id, upper.StyleId);
+        Assert.Equal(lowerCharacter.Id, lower.StyleId);
+        Assert.Equal(18D, upper.FontSize);
+        Assert.Equal(24D, lower.FontSize);
+        Assert.Equal("#D42137", parsed.GetColor(Assert.IsType<int>(upper.ForegroundColorIndex))!.ToString());
+        Assert.Equal("#1269A3", parsed.GetColor(Assert.IsType<int>(lower.ForegroundColorIndex))!.ToString());
+        Assert.True(upper.Bold);
+        Assert.False(upper.Italic);
+        Assert.False(lower.Bold);
+        Assert.True(lower.Italic);
+    }
+
 }

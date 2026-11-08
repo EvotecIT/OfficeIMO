@@ -8,6 +8,50 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class WordLoadDeferredInitializationTests {
     [Fact]
+    public void LoadingWithStyleOverridesReplacesBuiltInDefinitionsWithoutDuplicateIds() {
+        (string Id, StyleValues Type)[] replaced = {
+            ("FootnoteText", StyleValues.Paragraph),
+            ("FootnoteTextChar", StyleValues.Character),
+            ("FootnoteReference", StyleValues.Character),
+            ("EndnoteText", StyleValues.Paragraph),
+            ("EndnoteTextChar", StyleValues.Character),
+            ("EndnoteReference", StyleValues.Character),
+            ("NoList", StyleValues.Numbering),
+            ("FooterChar", StyleValues.Character),
+            ("Footer", StyleValues.Paragraph),
+            ("HeaderChar", StyleValues.Character),
+            ("Header", StyleValues.Paragraph)
+        };
+        Style authoredHeading = new(
+            new StyleName { Val = "Authored heading" },
+            new StyleRunProperties(new Color { Val = "315F23" })) {
+            Type = StyleValues.Paragraph,
+            StyleId = "Heading1"
+        };
+        string authoredHeadingXml = authoredHeading.OuterXml;
+        Style[] authored = replaced.Select(item => new Style(new StyleName { Val = "Authored " + item.Id }) {
+            Type = item.Type,
+            StyleId = item.Id
+        }).Concat(new[] { authoredHeading }).ToArray();
+        using var input = CreateMinimalDocument(additionalStyles: authored);
+
+        using WordDocument document = WordDocument.Load(input, new WordLoadOptions { OverrideStyles = true });
+
+        using var savedStream = new MemoryStream(document.ToBytes(), writable: false);
+        using WordprocessingDocument saved = WordprocessingDocument.Open(savedStream, false);
+        MainDocumentPart mainPart = saved.MainDocumentPart!;
+        Style[] styles = mainPart.StyleDefinitionsPart!.Styles!.Elements<Style>().ToArray();
+        Assert.All(styles.GroupBy(style => style.StyleId!.Value, StringComparer.Ordinal), group => Assert.Single(group));
+        foreach (var item in replaced) {
+            Style replacement = Assert.Single(styles, style => style.StyleId == item.Id);
+            Assert.NotEqual("Authored " + item.Id, replacement.StyleName!.Val!.Value);
+        }
+        Assert.Equal(authoredHeadingXml, Assert.Single(styles, style => style.StyleId == "Heading1").OuterXml);
+        Assert.Equal("Minimal document", mainPart.Document.Body!.InnerText);
+        Assert.Empty(new OpenXmlValidator().Validate(saved));
+    }
+
+    [Fact]
     public void CreatingTablesAddsOnlyTheirStyleAndItsDependencies() {
         using WordDocument document = WordDocument.Create();
         MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
