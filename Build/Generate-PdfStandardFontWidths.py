@@ -174,6 +174,8 @@ def paint_bounds_source(faces, characters, order, notices, horizontal=False):
         "        // WinAnsiEncoding paints the space and hyphen glyphs for these characters.",
         f"        if (value == '{BACKSLASH}u00A0') value = ' ';",
         f"        else if (value == '{BACKSLASH}u00AD') value = '-';",
+        "        // The AFMs give the Euro no ink box; it is a figure-width currency sign, so it takes the digit zero's box.",
+        f"        else if (value == '{BACKSLASH}u20AC') value = '0';",
         "        int index = GetStandardCharacterIndex(value);",
         "        if (index < 0) return false;",
         f"        {low} = bounds[index * 2];",

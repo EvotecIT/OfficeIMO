@@ -71,6 +71,16 @@ public class PdfDefaultFontEmbeddingTests {
     }
 
     [Fact]
+    public void StandardFontEuroSignSavesWithoutLoss() {
+        using PdfDocument document = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = false });
+        document.AddParagraph("Total €12");
+        document.AddTable(new[] { new[] { "Cost" }, new[] { "€12" } });
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, Regex.Matches(pdf.GetPage(1).Text, "€12").Count);
+    }
+
+    [Fact]
     public void SectionsShareOneEmbeddedSubsetPerFace() {
         if (!HasInstalledDefaultSansFont()) return;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = true });

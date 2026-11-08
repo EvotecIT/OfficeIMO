@@ -554,6 +554,8 @@ internal static partial class PdfStandardFontWidths {
         // WinAnsiEncoding paints the space and hyphen glyphs for these characters.
         if (value == '\u00A0') value = ' ';
         else if (value == '\u00AD') value = '-';
+        // The AFMs give the Euro no ink box; it is a figure-width currency sign, so it takes the digit zero's box.
+        else if (value == '\u20AC') value = '0';
         int index = GetStandardCharacterIndex(value);
         if (index < 0) return false;
         left = bounds[index * 2];
