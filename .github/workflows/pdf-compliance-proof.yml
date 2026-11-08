@@ -130,7 +130,7 @@ env:
   VERAPDF_INSTALLER_URL: https://software.verapdf.org/releases/1.30/verapdf-greenfield-1.30.2-installer.zip
   VERAPDF_INSTALLER_SHA256: 6cc6341cb1af644044054b81f00a6590a7918abb18f762243de115258bcad838
   MUSTANG_VERSION: 2.26.0
-  MUSTANG_CLI_URL: https://github.com/ZUGFeRD/mustangproject/releases/download/core-2.26.0/Mustang-CLI-2.26.0.jar
+  MUSTANG_CLI_URL: https://api.github.com/repos/ZUGFeRD/mustangproject/releases/assets/529126253
   MUSTANG_CLI_SHA256: 42d7868cb68264874a7b8cab4c3587b03b23ccc7cd72373da917f66758bb9736
 
 concurrency:
@@ -223,7 +223,7 @@ jobs:
         run: |
           set -euo pipefail
           jar="$RUNNER_TEMP/Mustang-CLI-${MUSTANG_VERSION}.jar"
-          curl --fail --location --silent --show-error "$MUSTANG_CLI_URL" --output "$jar"
+          curl --fail --location --silent --show-error --header 'Accept: application/octet-stream' "$MUSTANG_CLI_URL" --output "$jar"
           echo "${MUSTANG_CLI_SHA256}  ${jar}" | sha256sum --check
           echo "OFFICEIMO_MUSTANG_JAR=$jar" >> "$GITHUB_ENV"
           echo "OFFICEIMO_MUSTANG_VERSION=$MUSTANG_VERSION" >> "$GITHUB_ENV"

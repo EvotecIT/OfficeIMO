@@ -140,6 +140,7 @@ jobs:
         shell: pwsh
         env:
           OFFICEIMO_QUALIFICATION_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           $root = Join-Path $env:RUNNER_TEMP 'officeimo-archives'
           $feed = Join-Path $root 'feed'
@@ -473,6 +474,8 @@ jobs:
           java-version: '21'
       - name: Validate generated and independent invoices
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: ./Build/Test-InvoicingStandards.ps1
 
   build-matrix:

@@ -7,7 +7,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public sealed class WordLoadDeferredInitializationTests {
+public sealed partial class WordLoadDeferredInitializationTests {
     [Fact]
     public void ReadingDocumentDoesNotAddUnrelatedPackageParts() {
         using var stream = CreateMinimalDocument();
@@ -225,53 +225,37 @@ public sealed class WordLoadDeferredInitializationTests {
         Assert.Empty(new OpenXmlValidator().Validate(document._wordprocessingDocument));
     }
 
-    [Fact]
-    public void SavingLoadedDocumentAddsRequiredStyleCatalog() {
-        using var stream = CreateMinimalDocument();
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public void SavingLoadedDocumentPreservesItsStyleCatalog(bool includeStyles, bool nativeInput) {
+        using var stream = nativeInput
+            ? new MemoryStream(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Documents", "EmptyDocument.docx")))
+            : CreateMinimalDocument(includeStyles);
         using WordDocument document = WordDocument.Load(stream);
+        string? originalStyles = document._wordprocessingDocument.MainDocumentPart!
+            .StyleDefinitionsPart?.Styles?.OuterXml;
+        string originalText = document._wordprocessingDocument.MainDocumentPart.Document.Body!.InnerText;
 
+        bool hadSettings = document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart != null;
         byte[] saved = document.ToBytes();
 
         using var savedStream = new MemoryStream(saved, writable: false);
         using WordprocessingDocument package = WordprocessingDocument.Open(savedStream, false);
         MainDocumentPart mainPart = package.MainDocumentPart!;
-        string[] styleIds = GetStyleIds(mainPart);
-        Assert.Contains("Normal", styleIds);
-        Assert.Contains("TableGrid", styleIds);
-        Assert.Contains("Header", styleIds);
-        Assert.Null(mainPart.DocumentSettingsPart);
-        Assert.Equal("Minimal document", mainPart.Document.Body!.InnerText);
+        Assert.Equal(originalStyles, mainPart.StyleDefinitionsPart?.Styles?.OuterXml);
+        if (!includeStyles) Assert.Null(mainPart.StyleDefinitionsPart);
+        Assert.Equal(hadSettings, mainPart.DocumentSettingsPart != null);
+        Assert.Equal(originalText, mainPart.Document.Body!.InnerText);
         Assert.Empty(new OpenXmlValidator().Validate(package));
     }
 
     [Fact]
-    public void CompleteCatalogCacheDoesNotMaskASeparateIncompleteCatalog() {
-        byte[] complete;
-        using (WordDocument created = WordDocument.Create()) {
-            created.AddParagraph("Complete catalog");
-            complete = created.ToBytes();
-        }
-
-        for (int iteration = 0; iteration < 2; iteration++) {
-            using var completeStream = new MemoryStream(complete, writable: false);
-            using WordDocument completeDocument = WordDocument.Load(completeStream);
-            complete = completeDocument.ToBytes();
-        }
-
-        using var minimalStream = CreateMinimalDocument();
-        using WordDocument minimalDocument = WordDocument.Load(minimalStream);
-        byte[] savedMinimal = minimalDocument.ToBytes();
-        using var savedStream = new MemoryStream(savedMinimal, writable: false);
-        using WordprocessingDocument savedPackage = WordprocessingDocument.Open(savedStream, false);
-
-        Assert.Contains("TableGrid", GetStyleIds(savedPackage.MainDocumentPart!));
-        Assert.Contains("Header", GetStyleIds(savedPackage.MainDocumentPart!));
-    }
-
-    [Fact]
-    public void SavingStylelessDocumentUsesAvailableRelationshipId() {
+    public void AddingTableToStylelessDocumentUsesAvailableRelationshipId() {
         using var stream = CreateMinimalDocument(includeStyles: false, settingsUsesFirstRelationshipId: true);
         using WordDocument document = WordDocument.Load(stream);
+        document.AddTable(1, 1);
 
         byte[] saved = document.ToBytes();
 
@@ -279,7 +263,7 @@ public sealed class WordLoadDeferredInitializationTests {
         using WordprocessingDocument package = WordprocessingDocument.Open(savedStream, false);
         MainDocumentPart mainPart = package.MainDocumentPart!;
         Assert.NotNull(mainPart.DocumentSettingsPart);
-        Assert.Contains("TableGrid", GetStyleIds(mainPart));
+        Assert.Equal(new[] { "TableGrid", "TableNormal" }, GetTableStyleIds(mainPart));
         Assert.Empty(new OpenXmlValidator().Validate(package));
     }
 
@@ -310,7 +294,9 @@ public sealed class WordLoadDeferredInitializationTests {
 
     private static MemoryStream CreateMinimalDocument(
         bool includeStyles = true,
-        bool settingsUsesFirstRelationshipId = false) {
+        bool settingsUsesFirstRelationshipId = false,
+        Table? table = null,
+        params Style[] additionalStyles) {
         var stream = new MemoryStream();
         using (WordprocessingDocument package = WordprocessingDocument.Create(
                    stream,
@@ -319,6 +305,7 @@ public sealed class WordLoadDeferredInitializationTests {
             MainDocumentPart mainPart = package.AddMainDocumentPart();
             mainPart.Document = new Document(new Body(
                 new Paragraph(new Run(new Text("Minimal document")))));
+            if (table != null) mainPart.Document.Body!.Append(table);
 
             if (settingsUsesFirstRelationshipId) {
                 DocumentSettingsPart settingsPart = mainPart.AddNewPart<DocumentSettingsPart>("rId1");
@@ -334,6 +321,7 @@ public sealed class WordLoadDeferredInitializationTests {
                         StyleId = "Normal",
                         Default = true
                     });
+                stylesPart.Styles.Append(additionalStyles);
             }
         }
 
@@ -349,4 +337,12 @@ public sealed class WordLoadDeferredInitializationTests {
             .Cast<string>()
             .ToArray();
     }
+
+    private static string[] GetTableStyleIds(MainDocumentPart mainPart) =>
+        mainPart.StyleDefinitionsPart!.Styles!
+            .Elements<Style>()
+            .Where(style => style.Type?.Value == StyleValues.Table)
+            .Select(style => style.StyleId!.Value!)
+            .OrderBy(styleId => styleId, StringComparer.Ordinal)
+            .ToArray();
 }

@@ -14,23 +14,7 @@ namespace OfficeIMO.Tests {
         public void Test_LoadingWordDocumentCreatedByOffice() {
             string filePath = Path.Combine(_directoryDocuments, "DocumentWithTables.docx");
             using (WordDocument document = WordDocument.Load(filePath)) {
-                // We check for style definition part.
-                StyleDefinitionsPart? styleDefinitionsPart = document._document?.MainDocumentPart?.GetPartsOfType<StyleDefinitionsPart>().FirstOrDefault();
-                // It should exists
-                Assert.True(styleDefinitionsPart != null);
-
-                // we now check if all table styles are available for use
-                List<Style> listTableStyles = new List<Style>();
-                var styles = styleDefinitionsPart!.Styles?.OfType<Style>()?.ToList() ?? new List<Style>();
-                foreach (var style in styles) {
-                    if (style.Type != null && style.Type == StyleValues.Table) {
-                        listTableStyles.Add(style);
-                    }
-                }
-                // Style counts may vary between Office versions and template changes.
-                // Ensure we have a healthy set of table styles and overall styles.
-                Assert.True(listTableStyles.Count >= 80);
-                Assert.True(styles.Count >= 100);
+                Assert.NotNull(document._document?.MainDocumentPart?.StyleDefinitionsPart);
 
                 // OfficeIMO settings
                 Assert.True(document.Tables.Count == 2);

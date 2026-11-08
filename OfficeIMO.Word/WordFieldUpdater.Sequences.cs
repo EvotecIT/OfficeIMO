@@ -195,18 +195,14 @@ namespace OfficeIMO.Word {
         private static bool TryGetHeadingLevel(Paragraph paragraph, out int level) {
             level = 0;
             string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            if (string.IsNullOrWhiteSpace(styleId)) {
+            if (styleId is not { Length: 8 } ||
+                !styleId.StartsWith("Heading", StringComparison.Ordinal) ||
+                styleId[7] < '1' || styleId[7] > '9') {
                 return false;
             }
 
-            string normalized = styleId!.Replace(" ", string.Empty);
-            if (!normalized.StartsWith("Heading", StringComparison.OrdinalIgnoreCase)) {
-                return false;
-            }
-
-            return int.TryParse(normalized.Substring("Heading".Length), NumberStyles.Integer, CultureInfo.InvariantCulture, out level) &&
-                level >= 1 &&
-                level <= 9;
+            level = styleId[7] - '0';
+            return true;
         }
 
         private static string FormatSequenceValue(int value, IReadOnlyList<WordFieldFormat> formatSwitches) {

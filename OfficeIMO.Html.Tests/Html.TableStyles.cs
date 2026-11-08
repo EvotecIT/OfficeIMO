@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -24,6 +25,11 @@ namespace OfficeIMO.Tests {
                 Assert.Null(cell.ShadingFillColor);
                 Assert.Null(cell.Paragraphs[0].ParagraphAlignment);
             });
+            using var stream = new System.IO.MemoryStream(document.ToBytes());
+            using var package = WordprocessingDocument.Open(stream, false);
+            Assert.Equal(new[] { "TableNormal" }, package.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .Elements<Style>().Where(style => style.Type?.Value == StyleValues.Table)
+                .Select(style => style.StyleId!.Value));
         }
 
         [Fact]

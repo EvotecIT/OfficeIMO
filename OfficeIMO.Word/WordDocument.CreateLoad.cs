@@ -204,7 +204,6 @@ namespace OfficeIMO.Word {
                     ?? throw new InvalidOperationException("Default Word package is missing its main document."),
                 _normalizeOpenOfficeRelationshipsOnSave = false,
                 _persistenceMode = persistenceMode,
-                _styleDefinitionsInitialized = true,
                 _tableNormalizationRequired = false
             };
             word.InitializeSdtIdState();
@@ -323,7 +322,6 @@ namespace OfficeIMO.Word {
 
             StyleDefinitionsPart styleDefinitionsPart1 = mainPart.AddNewPart<StyleDefinitionsPart>("rId1");
             GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
-            word._styleDefinitionsInitialized = true;
 
             WebSettingsPart webSettingsPart1 = mainPart.AddNewPart<WebSettingsPart>("rId3");
             GenerateWebSettingsPart1Content(webSettingsPart1);
@@ -509,12 +507,10 @@ namespace OfficeIMO.Word {
                 bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
                 if (applyOverrideStyles) {
                     InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
-                    word._styleDefinitionsInitialized = true;
                 }
 
                 word.FilePath = filePath;
                 word._ownedPackageStream = memoryStream;
-                word._styleCatalogFingerprint = WordStyleCatalogFingerprint.TryCreate(sourceBytes);
                 word._legacyValidationEncodedPackageBytes = CaptureLegacyValidationEncodedPackage(
                     sourceBytes,
                     readOnly);
@@ -643,7 +639,6 @@ namespace OfficeIMO.Word {
             var word = new WordDocument {
                 FilePath = filePath,
                 _ownedPackageStream = memoryStream,
-                _styleCatalogFingerprint = WordStyleCatalogFingerprint.TryCreate(sourceBytes),
                 _legacyValidationEncodedPackageBytes = CaptureLegacyValidationEncodedPackage(
                     sourceBytes,
                     readOnly),
@@ -658,7 +653,6 @@ namespace OfficeIMO.Word {
             bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
             if (applyOverrideStyles) {
                 InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
-                word._styleDefinitionsInitialized = true;
             }
             word.LoadDocument();
             if (applyOverrideStyles) {
@@ -757,7 +751,6 @@ namespace OfficeIMO.Word {
                 var document = new WordDocument() {
                     OriginalStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)!,
                     _ownedPackageStream = packageStream,
-                    _styleCatalogFingerprint = WordStyleCatalogFingerprint.TryCreate(sourceBytes),
                     _legacyValidationEncodedPackageBytes = CaptureLegacyValidationEncodedPackage(
                         sourceBytes,
                         readOnly),
@@ -774,7 +767,6 @@ namespace OfficeIMO.Word {
                 document._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
                 if (applyOverrideStyles) {
                     InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
-                    document._styleDefinitionsInitialized = true;
                 }
                 document.LoadDocument();
                 if (applyOverrideStyles) {

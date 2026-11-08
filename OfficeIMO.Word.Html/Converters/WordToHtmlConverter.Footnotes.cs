@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsBlockquoteCiteReference(string? characterStyleId) {
-            return string.Equals(characterStyleId, HtmlSemanticStyleIds.BlockquoteCite, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(characterStyleId, HtmlSemanticStyleIds.BlockquoteCite, StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -93,8 +93,8 @@ namespace OfficeIMO.Word.Html {
         private static bool IsBlockQuoteParagraph(WordParagraph paragraph, int headingLevel) {
             string? styleId = paragraph.StyleId;
             if (!string.IsNullOrEmpty(styleId) &&
-                (string.Equals(styleId, "Quote", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(styleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase))) {
+                (string.Equals(styleId, "Quote", StringComparison.Ordinal) ||
+                 string.Equals(styleId, "IntenseQuote", StringComparison.Ordinal))) {
                 return true;
             }
 
@@ -181,7 +181,7 @@ namespace OfficeIMO.Word.Html {
                     .Distinct(ParagraphElementComparer.Instance)) {
                     foreach (WordParagraph run in paragraph.GetRuns()) {
                         if (IsBlockquoteCiteReference(run.CharacterStyleId) ||
-                            string.Equals(run.CharacterStyleId, "HtmlAbbr", StringComparison.OrdinalIgnoreCase))
+                            string.Equals(run.CharacterStyleId, "HtmlAbbr", StringComparison.Ordinal))
                             continue;
                         IEnumerable<OpenXmlElement> children = run._visibleRunSourceChildren ??
                             (IEnumerable<OpenXmlElement>?)run._run?.ChildElements ?? Array.Empty<OpenXmlElement>();
@@ -215,7 +215,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool TryReplaceLastNodeWithAbbreviation(string? characterStyleId, IDocument htmlDoc, List<INode> nodes, IEnumerable<string?>? noteParagraphs) {
-            if (!string.Equals(characterStyleId, "HtmlAbbr", StringComparison.OrdinalIgnoreCase) || nodes.Count == 0) {
+            if (!string.Equals(characterStyleId, "HtmlAbbr", StringComparison.Ordinal) || nodes.Count == 0) {
                 return false;
             }
 

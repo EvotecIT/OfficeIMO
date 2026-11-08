@@ -96,6 +96,8 @@ public partial class Excel {
         File.WriteAllText(path, "original");
         using var cancellation = new CancellationTokenSource();
         bool disposed = false;
+        int rowCount = format == ExcelFileFormat.Xlsb ? 16_384 : 1;
+        string text = new string('X', 128);
         try {
             using (var writer = ExcelDocument.CreateWriter(format, path)) {
                 if (cancel) await Assert.ThrowsAnyAsync<OperationCanceledException>(() => writer.WriteTable("Events", Rows(), cancellation.Token));
@@ -108,7 +110,8 @@ public partial class Excel {
 
         async IAsyncEnumerable<WriterEvent> Rows([EnumeratorCancellation] CancellationToken token = default) {
             try {
-                yield return new WriterEvent { Id = 1 };
+                for (int index = 0; index < rowCount; index++)
+                    yield return new WriterEvent { Id = index + 1, Name = text };
                 await Task.Yield();
                 if (cancel) { cancellation.Cancel(); token.ThrowIfCancellationRequested(); }
                 throw new InvalidDataException("Source failed.");

@@ -13,13 +13,19 @@ public static partial class WordRtfConverterExtensions {
     private static void CopyWordStylesAndNumbering(WordDocument source, RtfDocument destination) {
         Styles? styles = source._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
         if (styles != null) {
-            var ids = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            int nextId = 0;
-            foreach (Style style in styles.Elements<Style>().Where(style => style.StyleId?.Value != null)) {
-                ids[style.StyleId!.Value!] = nextId++;
+            Style[] definitions = styles.Elements<Style>().Where(style => style.StyleId?.Value != null).ToArray();
+            string? defaultParagraphId = definitions.LastOrDefault(style =>
+                (style.Type?.Value ?? StyleValues.Paragraph) == StyleValues.Paragraph && style.Default?.Value == true)?.StyleId?.Value;
+            var ids = new Dictionary<string, int>(StringComparer.Ordinal);
+            // RTF style zero is the implicit paragraph default, regardless of the Word catalogue's order.
+            if (defaultParagraphId != null) ids[defaultParagraphId] = 0;
+            int nextId = 1;
+            foreach (Style style in definitions) {
+                string id = style.StyleId!.Value!;
+                if (!ids.ContainsKey(id)) ids[id] = nextId++;
             }
 
-            foreach (Style style in styles.Elements<Style>().Where(style => style.StyleId?.Value != null)) {
+            foreach (Style style in definitions) {
                 string styleId = style.StyleId!.Value!;
                 RtfStyleKind kind = ToRtfStyleKind(style.Type?.Value);
                 RtfStyle target = destination.AddStyle(ids[styleId], styleId, kind);
@@ -319,7 +325,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static int? FindRtfStyleId(RtfDocument document, string name, RtfStyleKind kind) =>
-        document.Styles.FirstOrDefault(style => style.Kind == kind && string.Equals(style.Name, name, StringComparison.OrdinalIgnoreCase))?.Id;
+        document.Styles.FirstOrDefault(style => style.Kind == kind && string.Equals(style.Name, name, StringComparison.Ordinal))?.Id;
 
     private static bool HasRtfStyle(RtfDocument document, int id, RtfStyleKind kind) =>
         document.Styles.Any(style => style.Id == id && style.Kind == kind);

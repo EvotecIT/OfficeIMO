@@ -34,6 +34,15 @@ Only Modern tables infer theme-based alignment for plain numeric values;
 explicit alignment and rich text retain their formatting. Loaded tables and
 PDF/image conversions retain the source style.
 
+Loading and saving a document preserves its style catalogue. Creating or
+restyling content adds the selected built-in style and its required base or
+linked styles, without replacing authored definitions. Merging copies the
+styles used by the imported content and their dependencies. Unused table
+presets are not added to the document's style gallery. `WordLoadOptions.OverrideStyles`
+opts into the full table catalogue and replaces matching table, note, header/footer,
+`NoList` and registered custom definitions. Other authored styles, such as `Heading1`,
+remain unchanged.
+
 Native DOC output uses a 16-colour palette for borders and fills. Saving an RGB
 colour that needs approximation throws `OfficeConversionException` with a
 `word-doc-color-approximated` report. Accept it with `WordSaveOptions.AllowLoss`;

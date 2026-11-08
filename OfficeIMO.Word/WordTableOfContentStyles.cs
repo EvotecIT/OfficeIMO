@@ -39,7 +39,7 @@ namespace OfficeIMO.Word {
             if (styles == null) return;
             var existing = new HashSet<string>(
                 styles.Elements<Style>().Select(style => style.StyleId?.Value).Where(id => id != null).Cast<string>(),
-                StringComparer.OrdinalIgnoreCase);
+                StringComparer.Ordinal);
             bool changed = false;
             foreach (Style style in Create(ResolveRightTabTwips(part))) {
                 if (existing.Add(style.StyleId!.Value!)) {

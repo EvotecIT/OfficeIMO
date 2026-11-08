@@ -26,6 +26,7 @@ public partial class WordPageNumber {
         this._document = wordDocument;
         this._wordHeader = wordHeader;
         this._sdtBlock = GetStyle(wordPageNumberStyle);
+        _document.EnsureContentStyleDefinitions(_sdtBlock);
         _document.AssignNewSdtIds(_sdtBlock);
         WordDrawingIdAllocator.Reassign(_document, _sdtBlock);
 
@@ -53,6 +54,7 @@ public partial class WordPageNumber {
         this._document = wordDocument;
         this._wordFooter = wordFooter;
         this._sdtBlock = GetStyle(wordPageNumberStyle);
+        _document.EnsureContentStyleDefinitions(_sdtBlock);
         _document.AssignNewSdtIds(_sdtBlock);
         WordDrawingIdAllocator.Reassign(_document, _sdtBlock);
 

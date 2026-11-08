@@ -104,20 +104,23 @@ namespace OfficeIMO.Excel {
         internal bool AreDiagnosticsRequested
             => DiagnosticsRequested || OnInfo != null || OnTiming != null || OnDecision != null;
 
-        /// <summary>Keeps worksheet read and compression workers off single-threaded hosts and explicit serial policies.</summary>
-        internal bool AllowsBackgroundProcessing {
+        /// <summary>Whether this target and runtime support the private blocking worker handoff.</summary>
+        internal static bool SupportsBackgroundProcessing {
             get {
 #if NET8_0_OR_GREATER
                 return System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture
-                        != System.Runtime.InteropServices.Architecture.Wasm
-                    && Mode != ExcelExecutionMode.Sequential
-                    && (MaxDegreeOfParallelism ?? 2) > 1
-                    && !AreDiagnosticsRequested;
+                    != System.Runtime.InteropServices.Architecture.Wasm;
 #else
                 return false;
 #endif
             }
         }
+
+        /// <summary>Keeps worksheet read and compression workers off single-threaded hosts and explicit serial policies.</summary>
+        internal bool AllowsBackgroundProcessing => SupportsBackgroundProcessing
+            && Mode != ExcelExecutionMode.Sequential
+            && (MaxDegreeOfParallelism ?? 2) > 1
+            && !AreDiagnosticsRequested;
 
         /// <summary>
         /// Decide execution mode for a given operation and workload size.

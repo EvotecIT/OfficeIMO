@@ -27,15 +27,22 @@ public partial class ExcelDocument {
         internal async Task<int> WriteTable<T>(string name, string[] headers, IAsyncEnumerable<T> rows,
             Action<ExcelTabularRowWriter, T> writeRow, CancellationToken ct) {
             Stream? output = null;
-            ExcelTabularRowSink sink;
-            if (_legacy != null) sink = _legacy.AddSheet(name, headers.Length);
-            else {
-                var entry = _archive!.CreateEntry("xl/worksheets/sheet" + (++_sheetCount).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin", CompressionLevel.Fastest);
-                entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
-                output = entry.Open();
-                sink = new XlsbWorksheetPartWriter.StreamingRowSink(output, headers.Length);
-            }
+            XlsbStreamingCompression? compression = null;
+            ExcelTabularRowSink? sink = null;
+            bool completed = false;
             try {
+                if (_legacy != null) sink = _legacy.AddSheet(name, headers.Length);
+                else {
+                    var entry = _archive!.CreateEntry("xl/worksheets/sheet" + (++_sheetCount).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin", CompressionLevel.Fastest);
+                    entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
+                    output = entry.Open();
+                    Stream records = output;
+                    if (ExcelExecutionPolicy.SupportsBackgroundProcessing) {
+                        compression = new XlsbStreamingCompression(output);
+                        records = compression;
+                    }
+                    sink = new XlsbWorksheetPartWriter.StreamingRowSink(records, headers.Length);
+                }
                 if (_options.IncludeHeaders) {
                     sink.BeginRow(1);
                     for (int column = 0; column < headers.Length; column++) {
@@ -49,10 +56,21 @@ public partial class ExcelDocument {
                 int maximumRows = (_format == ExcelFileFormat.Xls ? 65_536 : ExcelA1.MaxRows) - (_options.IncludeHeaders ? 1 : 0);
                 int count = await WriteStreamingRowCallbacks(rows, writer, writeRow, maximumRows, ct).ConfigureAwait(false);
                 sink.Complete();
+                compression?.Complete();
+                completed = true;
                 return count;
             } finally {
-                if (_legacy == null) sink.Dispose();
-                output?.Dispose();
+                try {
+                    if (_legacy == null) sink?.Dispose();
+                } catch when (!completed) {
+                    // A failed row remains the primary error if flushing its unfinished bytes also fails.
+                } finally {
+                    try { compression?.Dispose(); }
+                    finally {
+                        try { output?.Dispose(); }
+                        catch when (!completed) { }
+                    }
+                }
             }
         }
 

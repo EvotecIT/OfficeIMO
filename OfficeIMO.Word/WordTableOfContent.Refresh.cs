@@ -486,8 +486,8 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            return Regex.IsMatch(styleId!, "^(TOC|Index)[1-9]$", RegexOptions.IgnoreCase) ||
-                   string.Equals(styleId, "TableofFigures", StringComparison.OrdinalIgnoreCase);
+            return Regex.IsMatch(styleId!, "^(TOC|Index)[1-9]$") ||
+                   string.Equals(styleId, "TableofFigures", StringComparison.Ordinal);
         }
 
         // Set when this instance wrote heading entries during a save, so later saves keep them current.
@@ -512,7 +512,7 @@ namespace OfficeIMO.Word {
                 instructions.Any(text => !text.StartsWith("TOC", StringComparison.OrdinalIgnoreCase) ||
                     Regex.IsMatch(text, @"\\[cfl]\b", RegexOptions.IgnoreCase))) return;
             bool hasEntries = _sdtBlock.SdtContentBlock.Descendants<ParagraphStyleId>()
-                .Any(style => style.Val?.Value is string id && id.StartsWith("TOC", StringComparison.OrdinalIgnoreCase) &&
+                .Any(style => style.Val?.Value is string id && id.StartsWith("TOC", StringComparison.Ordinal) &&
                               id.Length > 3 && char.IsDigit(id[3]));
             if (hasEntries && !_entriesWrittenOnSave) return;
             RefreshEntries();
@@ -588,24 +588,25 @@ namespace OfficeIMO.Word {
         private IReadOnlyDictionary<string, int> GetTocCustomStyleLevels(string instruction) {
             WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(instruction);
             if (parsed.FieldType != WordFieldType.TOC || parsed.Diagnostics.Count > 0) {
-                return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                return new Dictionary<string, int>(StringComparer.Ordinal);
             }
 
-            var levels = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var levels = new Dictionary<string, int>(StringComparer.Ordinal);
+            var requestedNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             foreach (string fieldSwitch in parsed.Switches.Where(item => item.Trim().StartsWith("\\t", StringComparison.OrdinalIgnoreCase))) {
                 string value = TrimFieldArgument(fieldSwitch.Trim().Substring(2).Trim());
-                AddCustomStyleLevelPairs(value, levels);
+                AddCustomStyleLevelPairs(value, levels, requestedNames);
             }
 
             if (levels.Count == 0) {
                 return levels;
             }
 
-            AddCustomStyleAliases(levels);
+            AddCustomStyleAliases(levels, requestedNames);
             return levels;
         }
 
-        private static void AddCustomStyleLevelPairs(string value, Dictionary<string, int> levels) {
+        private static void AddCustomStyleLevelPairs(string value, Dictionary<string, int> levels, Dictionary<string, int> requestedNames) {
             if (string.IsNullOrWhiteSpace(value)) {
                 return;
             }
@@ -619,11 +620,14 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                levels[styleName] = ClampLevel(parsedLevel);
+                int level = ClampLevel(parsedLevel);
+                // Keep explicit sources available as exact IDs, including IDs not defined in this document.
+                levels[styleName] = level;
+                requestedNames[styleName] = level;
             }
         }
 
-        private void AddCustomStyleAliases(Dictionary<string, int> levels) {
+        private void AddCustomStyleAliases(Dictionary<string, int> levels, IReadOnlyDictionary<string, int> requestedNames) {
             Styles? styles = _document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
             if (styles == null) {
                 return;
@@ -636,12 +640,8 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (levels.TryGetValue(styleName!, out int levelFromName) && !levels.ContainsKey(styleId!)) {
+                if (requestedNames.TryGetValue(styleName!, out int levelFromName) && !levels.ContainsKey(styleId!)) {
                     levels[styleId!] = levelFromName;
-                }
-
-                if (levels.TryGetValue(styleId!, out int levelFromId) && !levels.ContainsKey(styleName!)) {
-                    levels[styleName!] = levelFromId;
                 }
             }
         }
@@ -714,7 +714,7 @@ namespace OfficeIMO.Word {
             }
 
             if (sourceOptions.IncludeHeadingStyles) {
-                Match match = Regex.Match(styleId, "^Heading(?<level>[1-9])$", RegexOptions.IgnoreCase);
+                Match match = Regex.Match(styleId, "^Heading(?<level>[1-9])$");
                 if (match.Success && int.TryParse(match.Groups["level"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int level)) {
                     return (level, true);
                 }
@@ -734,7 +734,7 @@ namespace OfficeIMO.Word {
             }
 
             Style? FindStyle(string id) => styles.Elements<Style>()
-                .FirstOrDefault(_ => string.Equals(_.StyleId?.Value, id, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(_ => string.Equals(_.StyleId?.Value, id, StringComparison.Ordinal));
 
             Style? current = FindStyle(styleId);
             if (current == null) {
@@ -752,7 +752,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
             while (current != null && current.StyleId?.Value is string currentId && visited.Add(currentId)) {
                 int? outlineLevel = current.StyleParagraphProperties?.OutlineLevel?.Val?.Value;
                 if (outlineLevel != null) {

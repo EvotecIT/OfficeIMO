@@ -192,7 +192,9 @@ public static partial class ParallelRowMappingExtensions {
             requireAllColumnsMapped);
         int genericBatchSize = options.GetBatchSize(128);
 
-        if (reader is IDataReaderParallelBatchSource { CanReadParallelBatches: true } batchSource) {
+        if (reader is IDataReaderParallelBatchSource batchSource &&
+            (batchSource.CanReadParallelBatches ||
+             batchSource is IDataReaderTypedParallelBatchSource { CanReadTypedParallelBatches: true })) {
             foreach (T row in EnumerateReaderBatches(
                          reader,
                          batchSource,
@@ -258,13 +260,16 @@ public static partial class ParallelRowMappingExtensions {
             out DataMappingErrorValuePolicy errorValuePolicy);
         int genericBatchSize = options.GetBatchSize(128);
 
-        if (reader is IDataReaderParallelBatchSource { CanReadParallelBatches: true } batchSource) {
+        if (reader is IDataReaderParallelBatchSource batchSource &&
+            (batchSource.CanReadParallelBatches ||
+             batchSource is IDataReaderTypedParallelBatchSource { CanReadTypedParallelBatches: true })) {
             foreach (T row in EnumerateReaderBatches(
                          reader,
                          batchSource,
                          options.GetBatchSize(batchSource.PreferredParallelBatchSize),
                          degreeOfParallelism,
-                         batchReader => batchReader.RowsAs(configure),
+                         batchReader => EnumerateExplicitBatch(batchReader, plan, culture, dateTimeFormats,
+                             typeConverter, errorValuePolicy),
                          () => EnumerateBatches(
                              reader,
                              genericBatchSize,
@@ -405,74 +410,6 @@ public static partial class ParallelRowMappingExtensions {
         }
     }
 
-    private static IEnumerable<T> EnumerateReaderBatches<T>(
-        DbDataReader sourceReader,
-        IDataReaderParallelBatchSource batchSource,
-        int preferredBatchSize,
-        int degreeOfParallelism,
-        Func<DbDataReader, IEnumerable<T>> mapReader,
-        Func<IEnumerable<T>> mapGenericRemainder,
-        CancellationToken cancellationToken) {
-        using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var pending = new Queue<Task<T[]>>(degreeOfParallelism);
-        bool useGenericRemainder = false;
-        ExceptionDispatchInfo? sourceError = null;
-        try {
-            while (true) {
-                cancellationToken.ThrowIfCancellationRequested();
-                DbDataReader? batchReader;
-                try {
-                    if (!batchSource.TryReadParallelBatch(
-                            preferredBatchSize,
-                            cancellationToken,
-                            out batchReader)) {
-                        useGenericRemainder = true;
-                        break;
-                    }
-                } catch (Exception exception) when (!cancellationToken.IsCancellationRequested) {
-                    sourceError = ExceptionDispatchInfo.Capture(exception);
-                    break;
-                }
-                if (batchReader is null) break;
-
-                pending.Enqueue(Task.Factory.StartNew(
-                    () => {
-                        using (batchReader) {
-                            stop.Token.ThrowIfCancellationRequested();
-                            return MaterializeRows(mapReader(batchReader), stop.Token);
-                        }
-                    },
-                    CancellationToken.None,
-                    TaskCreationOptions.DenyChildAttach,
-                    TaskScheduler.Default));
-
-                if (pending.Count < degreeOfParallelism) continue;
-                foreach (T row in AwaitNext(pending, stop, cancellationToken)) yield return row;
-            }
-
-            while (pending.Count > 0) {
-                foreach (T row in AwaitNext(pending, stop, cancellationToken)) yield return row;
-            }
-
-            if (useGenericRemainder) {
-                foreach (T row in mapGenericRemainder()) {
-                    yield return row;
-                }
-            }
-            sourceError?.Throw();
-        } finally {
-            stop.Cancel();
-            while (pending.Count > 0) {
-                Task<T[]> task = pending.Dequeue();
-                try {
-                    task.GetAwaiter().GetResult();
-                } catch {
-                    // Observe remaining canceled/faulted work after the ordered exception is propagated.
-                }
-            }
-        }
-    }
-
     private static IEnumerable<T> AwaitNext<T>(
         Queue<Task<T[]>> pending,
         CancellationTokenSource stop,
@@ -493,15 +430,17 @@ public static partial class ParallelRowMappingExtensions {
         }
     }
 
-    private static T[] MaterializeRows<T>(
-        IEnumerable<T> rows,
-        CancellationToken cancellationToken) {
-        var materialized = new List<T>();
-        foreach (T row in rows) {
-            cancellationToken.ThrowIfCancellationRequested();
-            materialized.Add(row);
+    /// <summary>Uses the caller's prepared mapping without running its configuration on workers.</summary>
+    private static IEnumerable<T> EnumerateExplicitBatch<T>(
+        DbDataReader reader,
+        ExplicitRowMappingPlan<T> plan,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        DataMappingErrorValuePolicy errorValuePolicy) where T : new() {
+        while (reader.Read()) {
+            yield return plan.MapReaderRow(reader, culture, dateTimeFormats, typeConverter, errorValuePolicy);
         }
-        return materialized.ToArray();
     }
 
     private static IEnumerable<T> EnumerateFactoryReaderBatches<T>(

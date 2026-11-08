@@ -102,7 +102,7 @@ namespace OfficeIMO.Word.Markdown {
 
                 var properties = paragraph.ParagraphProperties;
                 string? styleId = properties?.ParagraphStyleId?.Val?.Value;
-                if (styleId != null && styleId.StartsWith("Heading", StringComparison.OrdinalIgnoreCase)) {
+                if (styleId != null && styleId.StartsWith("Heading", StringComparison.Ordinal)) {
                     continue;
                 }
                 if (properties?.SpacingBetweenLines?.BeforeLines != null ||

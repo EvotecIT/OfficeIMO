@@ -25,15 +25,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static IReadOnlyDictionary<string, Style> ReadTableStyleDefinitions(MainDocumentPart mainPart) {
             Styles? styles = mainPart.StyleDefinitionsPart?.Styles;
             if (styles == null) {
-                return new Dictionary<string, Style>(StringComparer.OrdinalIgnoreCase);
+                return new Dictionary<string, Style>(StringComparer.Ordinal);
             }
 
             return styles
                 .Elements<Style>()
                 .Where(style => style.Type?.Value == StyleValues.Table)
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+                .GroupBy(style => style.StyleId!.Value!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         }
 
         private static LegacyDocTableBorders ReadSupportedTableStyleBorders(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
@@ -186,12 +186,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             // Word ignores TableNormal child properties, including when it is a style base.
-            return string.Equals(styleId, "TableNormal", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(styleId, "NormalTable", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(styleId, "TableNormal", StringComparison.Ordinal)
+                || string.Equals(styleId, "NormalTable", StringComparison.Ordinal);
         }
 
         private static bool IsTableGridStyle(string? styleId) =>
-            string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase);
+            string.Equals(styleId, "TableGrid", StringComparison.Ordinal);
 
         private static void ThrowIfUnsupportedTableStyle(string styleId, Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
             if (style.Type?.Value != StyleValues.Table) {
@@ -210,7 +210,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case StylePaneFormatFilter:
                         break;
                     case BasedOn basedOn:
-                        ThrowIfUnsupportedTableStyleBase(styleId, basedOn, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { styleId });
+                        ThrowIfUnsupportedTableStyleBase(styleId, basedOn, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal) { styleId });
                         break;
                     case StyleTableProperties styleTableProperties:
                         ThrowIfUnsupportedStyleTableProperties(styleId, styleTableProperties);
@@ -267,51 +267,51 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseBorders(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseBorders(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static LegacyDocTableCellShading ReadSupportedTableStyleBaseShading(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseShading(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseShading(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static LegacyDocTableCellMargins? ReadSupportedTableStyleBaseDefaultCellMargins(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseDefaultCellMargins(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseDefaultCellMargins(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static int? ReadSupportedTableStyleBaseDefaultCellSpacing(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseDefaultCellSpacing(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseDefaultCellSpacing(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static LegacyDocTableAlignment? ReadSupportedTableStyleBaseAlignment(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseAlignment(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseAlignment(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static int? ReadSupportedTableStyleBaseIndentation(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseIndentation(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseIndentation(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static LegacyDocTablePreferredWidth? ReadSupportedTableStyleBasePreferredWidth(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBasePreferredWidth(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBasePreferredWidth(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static bool? ReadSupportedTableStyleBaseAutofit(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseAutofit(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseAutofit(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static int? ReadSupportedTableStyleBaseRowBandSize(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseRowBandSize(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseRowBandSize(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static int? ReadSupportedTableStyleBaseColumnBandSize(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseColumnBandSize(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseColumnBandSize(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleBaseParagraphFormatting(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseParagraphFormatting(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseParagraphFormatting(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static LegacyDocWritableFormatting ReadSupportedTableStyleBaseRunFormatting(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            return ReadSupportedTableStyleBaseRunFormatting(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return ReadSupportedTableStyleBaseRunFormatting(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {

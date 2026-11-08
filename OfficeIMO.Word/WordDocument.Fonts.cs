@@ -41,10 +41,7 @@ namespace OfficeIMO.Word {
             EmbedFont(fontPath);
             var fontName = Path.GetFileNameWithoutExtension(fontPath);
             WordParagraphStyle.RegisterFontStyle(styleId, fontName, styleName);
-            var stylePart = _wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart;
-            if (stylePart != null) {
-                AddStyleDefinitions(stylePart, overrideExisting: false);
-            }
+            EnsureStyleDefinition(styleId);
         }
     }
 }

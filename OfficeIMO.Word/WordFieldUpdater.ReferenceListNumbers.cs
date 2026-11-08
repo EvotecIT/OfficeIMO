@@ -202,18 +202,18 @@ namespace OfficeIMO.Word {
         }
 
         private static IReadOnlyDictionary<string, ReferenceParagraphNumbering> BuildReferenceParagraphStyleNumbering(WordDocument document, Numbering numbering) {
-            var resolved = new Dictionary<string, ReferenceParagraphNumbering>(StringComparer.OrdinalIgnoreCase);
+            var resolved = new Dictionary<string, ReferenceParagraphNumbering>(StringComparer.Ordinal);
             Styles? styles = document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
 
             if (styles != null) {
                 Dictionary<string, Style> paragraphStyles = styles.Elements<Style>()
                     .Where(style => style.Type?.Value == StyleValues.Paragraph && !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                    .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+                    .GroupBy(style => style.StyleId!.Value!, StringComparer.Ordinal)
+                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
-                var cache = new Dictionary<string, ReferenceParagraphNumbering?>(StringComparer.OrdinalIgnoreCase);
+                var cache = new Dictionary<string, ReferenceParagraphNumbering?>(StringComparer.Ordinal);
                 foreach (string styleId in paragraphStyles.Keys) {
-                    if (TryResolveReferenceStyleNumbering(styleId, paragraphStyles, cache, new HashSet<string>(StringComparer.OrdinalIgnoreCase), out ReferenceParagraphNumbering styleNumbering)) {
+                    if (TryResolveReferenceStyleNumbering(styleId, paragraphStyles, cache, new HashSet<string>(StringComparer.Ordinal), out ReferenceParagraphNumbering styleNumbering)) {
                         resolved[styleId] = styleNumbering;
                     }
                 }
