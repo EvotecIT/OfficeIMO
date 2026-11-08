@@ -38,8 +38,11 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         OneNoteWriteModelValidator.ValidateSection(section, _maxPageRelationshipDepth, _maxContentDepth);
         OneNoteSectionPreservationState? preservation = _preserveUnknownData ? section.PreservationState : null;
         OneNoteMaterializedObjectSpace? sourceSectionSpace = preservation?.SectionSpace;
+        IEnumerable<Guid>? retainedIds = _identitySeed.HasValue ? OneNoteWriteIdentityInventory.ForSection(section) : null;
+        _ids.Reserve(retainedIds);
         Guid fileId = GuidOrNew(fileIdOverride ?? (section.Id == Guid.Empty ? null : section.Id));
         _ids = new OneNoteWriteIdFactory(_identitySeed, "section:" + fileId.ToString("N"));
+        _ids.Reserve(retainedIds);
         section.Id = fileId;
         OneNoteExtendedGuid sectionSpaceId = IdOrNew(sourceSectionSpace?.Revision.ObjectSpaceId);
         var graph = new OneNoteWriteGraph(fileId, OneNoteFileKind.Section, sectionSpaceId, ancestorId ?? Guid.Empty, OneNoteCrc32.ComputeFileName(fileName)) { IdentitySeed = _identitySeed };
@@ -153,6 +156,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         OneNoteOpaqueObject[] preserved = _preserveUnknownData
             ? preservedObjects?.OrderBy(item => item.Ordinal).ToArray() ?? Array.Empty<OneNoteOpaqueObject>()
             : Array.Empty<OneNoteOpaqueObject>();
+        if (_identitySeed.HasValue) _ids.Reserve(OneNoteWriteIdentityInventory.ForToc(preserved, preservedRootId));
         OneNoteExtendedGuid spaceId = _ids.New();
         var graph = new OneNoteWriteGraph(fileId, OneNoteFileKind.TableOfContents, spaceId, ancestorId, OneNoteCrc32.ComputeFileName(fileName)) { IdentitySeed = _identitySeed };
         var space = new OneNoteWriteObjectSpace(spaceId, _ids.New());

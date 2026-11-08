@@ -20,6 +20,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
         OneNoteWriterValidation.ValidateNotebookOptions(options);
         OneNoteWriteModelValidator.ValidateNotebook(notebook, options, validateSectionContent: true);
         var plan = new OneNoteNotebookSerializationPlan(options);
+        if (options.IdentitySeed.HasValue) plan._ids.Reserve(OneNoteWriteIdentityInventory.ForNotebook(notebook));
         Guid rootId = plan.EnsureIdentity(notebook.Id);
         notebook.Id = rootId;
         notebook.TableOfContentsRootObjectId = plan.BuildScope(
@@ -41,6 +42,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
         OneNoteWriterValidation.ValidateNotebookOptions(options);
         OneNoteWriteModelValidator.ValidateNotebook(notebook, options, validateSectionContent: false);
         var plan = new OneNoteNotebookSerializationPlan(options);
+        if (options.IdentitySeed.HasValue) plan._ids.Reserve(OneNoteWriteIdentityInventory.ForNotebook(notebook));
         Guid rootId = plan.EnsureIdentity(notebook.Id);
         notebook.Id = rootId;
         IReadOnlyList<OneNoteTocWriteEntry> entries = plan.CreateTocEntries(notebook.Sections, notebook.SectionGroups);

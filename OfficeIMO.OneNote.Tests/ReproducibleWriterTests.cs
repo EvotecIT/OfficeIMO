@@ -66,6 +66,46 @@ public sealed class ReproducibleWriterTests {
         Assert.Equal("Cell", Assert.Single(Assert.Single(Assert.Single(outline.Children.OfType<OneNoteTable>()).Rows).Cells).Content.OfType<OneNoteParagraph>().Single().Runs.Single().Text);
     }
 
+    [Theory]
+    [InlineData(OneNoteStorageFormat.RevisionStore)]
+    [InlineData(OneNoteStorageFormat.FileSynchronizationPackage)]
+    public void SeededSectionsRetainDistinctIdentitiesAfterInsertingContent(OneNoteStorageFormat storageFormat) {
+        using var section = SectionWriterTests.CreateRichSection();
+        var options = Options(storageFormat);
+        section.ToBytes(options);
+        var original = Assert.IsType<OneNoteParagraph>(section.Pages[0].Outlines[0].Children[0]);
+        var originalId = original.ContentObjectId;
+        var inserted = new OneNoteParagraph(); inserted.Runs.Add(new OneNoteTextRun { Text = "Inserted" });
+        section.Pages[0].Outlines[0].Children.Insert(0, inserted);
+        byte[] changed = section.ToBytes(options);
+        Assert.Equal(originalId, original.ContentObjectId);
+        Assert.NotEqual(original.ContentObjectId, inserted.ContentObjectId);
+        Assert.Equal(changed, section.ToBytes(options));
+        using var reopened = OneNoteSection.Load(new MemoryStream(changed));
+        var paragraphs = reopened.Pages[0].Outlines[0].Children.OfType<OneNoteParagraph>().SelectMany(paragraph => paragraph.Runs).Select(run => run.Text).ToArray();
+        Assert.Contains("Inserted", paragraphs); Assert.Contains("List item", paragraphs);
+    }
+
+    [Theory]
+    [InlineData(OneNoteStorageFormat.RevisionStore)]
+    [InlineData(OneNoteStorageFormat.FileSynchronizationPackage)]
+    public void SeededNotebookEditsKeepRetainedAndNewFileIdentitiesDistinct(OneNoteStorageFormat storageFormat) {
+        var notebook = new OneNoteNotebook { Name = "Notebook" };
+        notebook.Sections.Add(new OneNoteSection { Name = "A" });
+        var retained = new OneNoteSection { Name = "B" }; notebook.Sections.Add(retained);
+        var options = Options(storageFormat);
+        OneNoteTableOfContentsWriter.Write(notebook, options);
+        var retainedId = retained.Id;
+        notebook.Sections.RemoveAt(0);
+        var added = new OneNoteSection { Name = "C" }; notebook.Sections.Add(added);
+        byte[] changed = OneNoteTableOfContentsWriter.Write(notebook, options);
+        Assert.Equal(retainedId, retained.Id); Assert.NotEqual(retained.Id, added.Id);
+        Assert.Equal(changed, OneNoteTableOfContentsWriter.Write(notebook, options));
+        var reopened = OneNoteNotebookReader.Read(new MemoryStream(changed));
+        Assert.Equal(new[] { "B", "C" }, reopened.Sections.Select(section => section.Name));
+        Assert.Equal(2, reopened.Sections.Select(section => section.Id).Distinct().Count());
+    }
+
     [Fact]
     public void ReproducibleWritingRetainsCallerAssignedIdentitiesAndTimes() {
         using OneNoteSection section = CreateSection();
