@@ -186,7 +186,8 @@ namespace OfficeIMO.Word {
 
             styles1.Append(docDefaults1);
             styles1.Append(latentStyles1);
-
+            // Word's native baseline has one default table style; decorative presets remain lazy.
+            styles1.Append(WordTableStyles.GetStyleDefinition(WordTableStyle.TableNormal));
 
             // TODO: load all styles to document, probably we should load those in use
             var listOfStyles = global::OfficeIMO.Internal.EnumCompat.GetValues<WordParagraphStyles>();

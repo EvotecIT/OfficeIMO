@@ -11,7 +11,9 @@ public sealed partial class WordLoadDeferredInitializationTests {
     public void CreatingTablesAddsOnlyTheirStyleAndItsDependencies() {
         using WordDocument document = WordDocument.Create();
         MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
-        Assert.Empty(GetTableStyleIds(mainPart));
+        Assert.Equal(new[] { "TableNormal" }, GetTableStyleIds(mainPart));
+        Assert.True(mainPart.StyleDefinitionsPart!.Styles!.Elements<Style>()
+            .Single(style => style.StyleId == "TableNormal").Default!.Value);
 
         document.AddTable(1, 1, WordTableStyle.TableGrid);
         document.AddTable(1, 1, WordTableStyle.TableGrid);
@@ -159,10 +161,13 @@ public sealed partial class WordLoadDeferredInitializationTests {
     }
 
     [Theory]
-    [InlineData("paragraph")]
-    [InlineData("character")]
-    [InlineData("table")]
-    public void AddingBuiltInStylePreservesTheAuthoredDefaultForItsType(string kind) {
+    [InlineData("paragraph", true)]
+    [InlineData("character", true)]
+    [InlineData("table", true)]
+    [InlineData("paragraph", false)]
+    [InlineData("character", false)]
+    [InlineData("table", false)]
+    public void AddingBuiltInStylePreservesTheSourceDefaultForItsType(string kind, bool sourceHasDefault) {
         StyleValues type = kind switch {
             "paragraph" => StyleValues.Paragraph,
             "character" => StyleValues.Character,
@@ -172,11 +177,11 @@ public sealed partial class WordLoadDeferredInitializationTests {
         using (WordprocessingDocument package = WordprocessingDocument.Open(input, true)) {
             StyleDefinitionsPart stylePart = package.MainDocumentPart!.AddNewPart<StyleDefinitionsPart>();
             stylePart.Styles = new Styles(new Style(
-                new StyleName { Val = "Authored default" },
+                new StyleName { Val = "Authored source style" },
                 new StyleRunProperties(new Color { Val = "315F23" })) {
                 Type = type,
                 StyleId = "ProjectDefault",
-                Default = true
+                Default = sourceHasDefault
             });
         }
         input.Position = 0;
@@ -203,10 +208,10 @@ public sealed partial class WordLoadDeferredInitializationTests {
         using WordprocessingDocument saved = WordprocessingDocument.Open(savedStream, false);
         MainDocumentPart mainPart = saved.MainDocumentPart!;
         Style[] styles = mainPart.StyleDefinitionsPart!.Styles!.Elements<Style>().ToArray();
-        Style defaultStyle = Assert.Single(styles, style =>
-            style.Type?.Value == type && style.Default?.Value == true);
-        Assert.Equal("ProjectDefault", defaultStyle.StyleId!.Value);
-        Assert.Equal(authoredXml, defaultStyle.OuterXml);
+        Style[] defaults = styles.Where(style => style.Type?.Value == type && style.Default?.Value == true).ToArray();
+        if (sourceHasDefault) Assert.Equal("ProjectDefault", Assert.Single(defaults).StyleId!.Value);
+        else Assert.Empty(defaults);
+        Assert.Equal(authoredXml, Assert.Single(styles, style => style.StyleId == "ProjectDefault").OuterXml);
         Assert.Contains(styles, style => style.StyleId?.Value == selectedId);
         Assert.Contains(styles, style => style.StyleId?.Value == baseId);
         Assert.Equal("Minimal document", mainPart.Document.Body!.InnerText);

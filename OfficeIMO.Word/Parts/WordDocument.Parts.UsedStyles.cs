@@ -21,11 +21,8 @@ public partial class WordDocument {
             EnsureStyleDefinitionsInitialized();
             styles = _wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
             if (styles == null) return;
-            // A new dependency must not change the implicit formatting of existing content.
-            if (definition.Default?.Value == true && styles.Elements<Style>().Any(style =>
-                style.Default?.Value == true && style.Type?.Value == definition.Type?.Value)) {
-                definition.Default = null;
-            }
+            // Selecting a style for content must preserve both existing defaults and their absence.
+            definition.Default = null;
             styles.Append(definition);
         }
 

@@ -13,13 +13,19 @@ public static partial class WordRtfConverterExtensions {
     private static void CopyWordStylesAndNumbering(WordDocument source, RtfDocument destination) {
         Styles? styles = source._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
         if (styles != null) {
+            Style[] definitions = styles.Elements<Style>().Where(style => style.StyleId?.Value != null).ToArray();
+            string? defaultParagraphId = definitions.LastOrDefault(style =>
+                (style.Type?.Value ?? StyleValues.Paragraph) == StyleValues.Paragraph && style.Default?.Value == true)?.StyleId?.Value;
             var ids = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            int nextId = 0;
-            foreach (Style style in styles.Elements<Style>().Where(style => style.StyleId?.Value != null)) {
-                ids[style.StyleId!.Value!] = nextId++;
+            // RTF style zero is the implicit paragraph default, regardless of the Word catalogue's order.
+            if (defaultParagraphId != null) ids[defaultParagraphId] = 0;
+            int nextId = 1;
+            foreach (Style style in definitions) {
+                string id = style.StyleId!.Value!;
+                if (!ids.ContainsKey(id)) ids[id] = nextId++;
             }
 
-            foreach (Style style in styles.Elements<Style>().Where(style => style.StyleId?.Value != null)) {
+            foreach (Style style in definitions) {
                 string styleId = style.StyleId!.Value!;
                 RtfStyleKind kind = ToRtfStyleKind(style.Type?.Value);
                 RtfStyle target = destination.AddStyle(ids[styleId], styleId, kind);
