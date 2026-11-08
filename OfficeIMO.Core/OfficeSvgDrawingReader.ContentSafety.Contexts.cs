@@ -277,7 +277,7 @@ public static partial class OfficeSvgDrawingReader {
             XAttribute? fontSize = current.Attribute("font-size");
             if (fontSize != null && !IsSvgCssWideKeyword(fontSize.Value) &&
                 fontSize.Value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) < 0 &&
-                (!TrySvgLength(fontSize.Value, out double resolvedFontSize) || resolvedFontSize <= 0D)) {
+                !TrySvgFontSize(fontSize.Value, out _)) {
                 evidence = "SVG text uses font-size syntax outside the bounded native layout subset and is therefore report-only.";
                 return true;
             }

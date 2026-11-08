@@ -23,6 +23,18 @@ header before timing; each scan still verifies the complete row count and checks
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelReaderGeneratedZipPrefetchBenchmarks*" --inProcess --warmupCount 12 --iterationCount 12 --iterationTime 250 --unrollFactor 1 --outliers DontRemove
 ```
 
+I use `ExcelOrderedParallelComparisonBenchmarks` for complete, ordered typed
+reads of the same 50,000-row XLSX and XLSB inputs, including escaped names.
+OfficeIMO enables schema inference so column types permit parallel mapping.
+Each library receives a requested degree of one or four through its public API;
+these settings have different producer and worker counts. Setup checks every
+field and source order, and each measured read checks the complete row count
+and checksum. ZIP checksum validation keeps its default setting.
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelOrderedParallelComparisonBenchmarks*" --inProcess --warmupCount 12 --iterationCount 12 --iterationTime 250 --unrollFactor 1 --outliers DontRemove
+```
+
 `ExcelReaderGeneratedXlsxWriteBenchmarks` compares complete in-memory XLSX
 packages from OfficeIMO, ExcelReader.NET and SpreadCheetah.
 `ExcelReaderGeneratedWriteBenchmarks` covers XLSB and XLS. I retain both the typed
@@ -85,6 +97,11 @@ each library, including the XLibur 0.800.0 loaded-workbook lane. Separate method
 measure loaded OfficeIMO documents, memory inputs, prefetch and string interning;
 their names identify the options used. Every method validates the row count and
 the checksum over all typed values.
+
+`OfficeIMO` and `OfficeIMO_Prefetch` request `NumericAsDecimal = true`.
+`OfficeIMO_DefaultNumbers` and `OfficeIMO_DefaultNumbers_Prefetch` retain the
+default double-valued cells. Both numeric modes use `GetDecimal` for the five
+monetary columns and contribute the same complete typed observation.
 
 The XLSX and XLSB comparisons also include Excel-PRIME 5.2610.18 (MIT). Its
 default managed forward reader and `ExcelCellStyle` conversion option are

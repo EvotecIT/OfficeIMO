@@ -245,10 +245,12 @@ namespace OfficeIMO.Word.Html {
 
         private static RunProperties CreateRubyRunProperties(TextFormatting formatting, HtmlWordExportOptions options) {
             var properties = new RunProperties();
-            if (formatting.Bold) properties.AppendChild(new Bold());
-            if (formatting.Italic) properties.AppendChild(new Italic());
-            if (formatting.Underline) properties.AppendChild(new Underline { Val = GetUnderlineValue(formatting) ?? UnderlineValues.Single });
-            if (formatting.Strike) properties.AppendChild(new Strike());
+            if (formatting.Bold.HasValue) properties.Bold = new Bold { Val = formatting.Bold.Value };
+            if (formatting.Italic.HasValue) properties.Italic = new Italic { Val = formatting.Italic.Value };
+            if (formatting.Underline.HasValue) properties.Underline = new Underline { Val = formatting.Underline.Value
+                ? GetUnderlineValue(formatting) ?? UnderlineValues.Single : UnderlineValues.None };
+            if (formatting.Strike.HasValue) properties.Strike = new Strike { Val = formatting.Strike.Value };
+            if (formatting.DoubleStrike.HasValue) properties.DoubleStrike = new DoubleStrike { Val = formatting.DoubleStrike.Value };
             if (formatting.Superscript) properties.AppendChild(new VerticalTextAlignment { Val = VerticalPositionValues.Superscript });
             if (formatting.Subscript) properties.AppendChild(new VerticalTextAlignment { Val = VerticalPositionValues.Subscript });
             if (!string.IsNullOrEmpty(formatting.ColorHex)) properties.AppendChild(new Color { Val = formatting.ColorHex!.TrimStart('#') });

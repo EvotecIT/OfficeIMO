@@ -4,6 +4,21 @@ using OfficeIMO.Benchmarks;
 namespace OfficeIMO.Excel.Benchmarks;
 
 public partial class MarkPflug65KXlsxBenchmarks {
+    /// <summary>Reads the same decimal observations while retaining default double-valued cells.</summary>
+    [Benchmark]
+    public ExcelReadObservation OfficeIMO_DefaultNumbers() {
+        using var reader = ExcelDocument.OpenReader(MarkPflug65KFixture.XlsxPath);
+        return Validate(nameof(OfficeIMO_DefaultNumbers), Observe(reader));
+    }
+
+    /// <summary>Combines default double-valued cells with worksheet prefetch.</summary>
+    [Benchmark]
+    public ExcelReadObservation OfficeIMO_DefaultNumbers_Prefetch() {
+        using var reader = ExcelDocument.OpenReader(MarkPflug65KFixture.XlsxPath,
+            new ExcelReaderOptions { EnableWorksheetPrefetch = true });
+        return Validate(nameof(OfficeIMO_DefaultNumbers_Prefetch), Observe(reader));
+    }
+
     /// <summary>Reads the same values through a loaded document's snapshot route.</summary>
     [Benchmark]
     public ExcelReadObservation OfficeIMO_Loaded() {

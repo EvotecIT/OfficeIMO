@@ -14,9 +14,15 @@ namespace OfficeIMO.Word.Html {
             + "nav.toc ul{list-style:none;padding-left:0;margin:0}nav.toc ul ul{padding-left:var(--office-list-indent)}nav.toc li{margin:2pt 0}nav.toc a{color:inherit;text-decoration:none}";
 
         // Rules carry literal values so HTML to Word, which does not evaluate custom properties, reads them back;
-        // the tokens stay declared on :root for pages that restyle the output.
+        // referenced tokens and the accent palette stay available for pages that restyle the output.
+        private static readonly HashSet<string> DefaultTokenNames = new(
+            global::OfficeIMO.Internal.OfficeThemeCssTokens.GetTokens(OfficeTheme.Default)
+                .Where(token => DefaultRules.IndexOf("var(" + token.Key + ")", StringComparison.Ordinal) >= 0 ||
+                    token.Key.StartsWith("--office-accent-", StringComparison.Ordinal))
+                .Select(token => token.Key), StringComparer.Ordinal);
+
         private static readonly string DefaultCss =
-            global::OfficeIMO.Internal.OfficeThemeCssTokens.Build(OfficeTheme.Default, ":root").Trim()
+            global::OfficeIMO.Internal.OfficeThemeCssTokens.Build(OfficeTheme.Default, ":root", DefaultTokenNames).Trim()
             + global::OfficeIMO.Internal.OfficeThemeCssTokens.ResolveReferences(DefaultRules, OfficeTheme.Default);
 
         internal static string GetDefaultCss(OfficeIMO.Drawing.OfficeVisualThemeKind theme, bool useSharedDocumentShell) =>

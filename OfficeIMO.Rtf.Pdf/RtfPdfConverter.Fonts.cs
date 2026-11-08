@@ -298,7 +298,16 @@ internal static partial class RtfPdfConverter {
                         referencedNotes, appendStrut: false, parentRuns: runs, context: context);
                     break;
                 case RtfGeneratedText generated:
-                    AddPlain(generated.ToPlainText());
+                    string generatedText = generated.ToPlainText();
+                    if (generatedText.Length > 0) {
+                        RtfRun generatedRun = GetParagraphCharacterDefaults(document, paragraph, generatedText);
+                        if (!generatedRun.Hidden || options.IncludeHiddenText) {
+                            if (generatedRun.FontId.HasValue) fontIds.Add(generatedRun.FontId.Value);
+                            text.Add(generatedText);
+                            runs.Add(new PdfCore.PdfTextRun(generatedText, fontSize: generatedRun.FontSize.HasValue
+                                ? OfficeIMO.OfficeLength.Points(generatedRun.FontSize.Value) : null));
+                        }
+                    }
                     if (generated.Note != null) referencedNotes?.Add(generated.Note);
                     break;
                 case RtfObject rtfObject:
@@ -336,9 +345,7 @@ internal static partial class RtfPdfConverter {
         void AdmitInheritedStrut() {
             if (!TryGetParagraphLineBoxControlStyle(runs, 0, out PdfCore.PdfTextRun? controlStyle) ||
                 controlStyle != null) return;
-            int? paragraphFontId = document.GetRunFormatting(paragraph, new RtfRun(string.Empty) {
-                UseDefaultCharacterFormatting = paragraph.UseParsedParagraphDefaults
-            }).FontId;
+            int? paragraphFontId = GetParagraphCharacterDefaults(document, paragraph, string.Empty).FontId;
             if (paragraphFontId.HasValue) fontIds.Add(paragraphFontId.Value);
         }
     }

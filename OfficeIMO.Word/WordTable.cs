@@ -127,42 +127,42 @@ namespace OfficeIMO.Word {
         /// Specifies that the first row conditional formatting shall be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingFirstRow {
-            get => GetTableLookFlag(TableLookFirstRow, tableLook => tableLook.FirstRow);
+            get => GetTableLookFlag(TableLookFirstRow);
             set => SetTableLookFlag(TableLookFirstRow, value);
         }
         /// <summary>
         /// Specifies that the last row conditional formatting shall be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingLastRow {
-            get => GetTableLookFlag(TableLookLastRow, tableLook => tableLook.LastRow);
+            get => GetTableLookFlag(TableLookLastRow);
             set => SetTableLookFlag(TableLookLastRow, value);
         }
         /// <summary>
         /// Specifies that the first column conditional formatting shall be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingFirstColumn {
-            get => GetTableLookFlag(TableLookFirstColumn, tableLook => tableLook.FirstColumn);
+            get => GetTableLookFlag(TableLookFirstColumn);
             set => SetTableLookFlag(TableLookFirstColumn, value);
         }
         /// <summary>
         /// Specifies that the last column conditional formatting shall be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingLastColumn {
-            get => GetTableLookFlag(TableLookLastColumn, tableLook => tableLook.LastColumn);
+            get => GetTableLookFlag(TableLookLastColumn);
             set => SetTableLookFlag(TableLookLastColumn, value);
         }
         /// <summary>
         /// Specifies that the horizontal banding conditional formatting shall not be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingNoHorizontalBand {
-            get => GetTableLookFlag(TableLookNoHorizontalBand, tableLook => tableLook.NoHorizontalBand);
+            get => GetTableLookFlag(TableLookNoHorizontalBand);
             set => SetTableLookFlag(TableLookNoHorizontalBand, value);
         }
         /// <summary>
         /// Specifies that the vertical banding conditional formatting shall not be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingNoVerticalBand {
-            get => GetTableLookFlag(TableLookNoVerticalBand, tableLook => tableLook.NoVerticalBand);
+            get => GetTableLookFlag(TableLookNoVerticalBand);
             set => SetTableLookFlag(TableLookNoVerticalBand, value);
         }
 

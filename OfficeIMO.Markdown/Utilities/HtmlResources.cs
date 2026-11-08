@@ -4,6 +4,15 @@ namespace OfficeIMO.Markdown;
 /// Built-in CSS and tiny scripts for HTML rendering.
 /// </summary>
     internal static class HtmlResources {
+        private static readonly Lazy<string> OfficeThemeCss = new(() => {
+            using var stream = typeof(HtmlResources).Assembly.GetManifestResourceStream("OfficeIMO.Markdown.Assets.OfficeTheme.css")
+                ?? throw new InvalidOperationException("The Markdown OfficeTheme stylesheet is missing.");
+            using var reader = new System.IO.StreamReader(stream);
+            return reader.ReadToEnd();
+        });
+
+        internal static string GetOfficeThemeCss(string scope) => OfficeThemeCss.Value.Replace("$scope", ":where(" + scope + ")");
+
         internal static string GetStyleCss(MarkdownHtmlStyle style) => style switch {
             MarkdownHtmlStyle.Plain => string.Empty,
             MarkdownHtmlStyle.Clean => CleanThemeCss,

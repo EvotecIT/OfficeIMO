@@ -60,6 +60,16 @@ foreach (OfficeDiagnostic diagnostic in report.Diagnostics) {
 
 By default an existing output is not replaced; `FileConflictPolicy` changes that. `FailOnLoss = true` stops a conversion before it writes anything the target cannot carry. `OfficeConversionOptions.WordSave`, `ExcelSave` and `PowerPointSave` set native save options, such as passwords, on the output.
 
+Conversion preserves the source appearance by default. To give a plain document a selected appearance, pass an explicit theme:
+
+```csharp
+OfficeConverter.Convert("Notes.md", "Notes.pdf", new OfficeConversionOptions {
+    Theme = OfficeTheme.Boardroom
+});
+```
+
+The common `Theme` option supports Word to PDF, HTML and native Word formats; Word 2003 XML and Flat OPC XML to Word; Markdown to Word, PDF and HTML; HTML to Word and PDF; and the registered Word/RTF, RTF/Word, RTF/PDF and RTF/HTML routes. Explicit adapter themes and authored HTML CSS take precedence. A route that cannot carry the theme rejects the request before writing output. In-memory folder batches accept themes; saved batch settings and resumable checkpoints reject them because their portable format does not store a theme.
+
 ## Convert a folder
 
 ```csharp

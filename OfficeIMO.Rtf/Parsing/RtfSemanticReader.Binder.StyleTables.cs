@@ -29,7 +29,8 @@ internal static partial class RtfSemanticReader {
                     return ApplyStyleTableBorderStyle(tableRowFormat, pendingTableCell, currentTableRowBorderSide, RtfTableCellBorderStyle.Dashed);
                 case "brdrnil":
                 case "brdrnone":
-                    return ApplyStyleTableBorderStyle(tableRowFormat, pendingTableCell, currentTableRowBorderSide, RtfTableCellBorderStyle.None);
+                    return ApplyStyleTableBorderStyle(tableRowFormat, pendingTableCell, currentTableRowBorderSide,
+                        RtfTableCellBorderStyle.None, explicitReset: control.Name == "brdrnone");
                 case "brdrw":
                     return ApplyStyleTableBorderWidth(tableRowFormat, pendingTableCell, currentTableRowBorderSide, control.Parameter);
                 case "brdrcf":
@@ -501,16 +502,20 @@ internal static partial class RtfSemanticReader {
             RtfTableRow row,
             PendingTableCellProperties cell,
             RtfTableRowBorderSide? rowSide,
-            RtfTableCellBorderStyle style) {
+            RtfTableCellBorderStyle style,
+            bool explicitReset = false) {
             RtfTableCellBorder? cellBorder = cell.GetCurrentBorder();
             if (cellBorder != null) {
                 cellBorder.Style = style;
+                if (explicitReset) cellBorder.Width ??= 0;
                 return true;
             }
 
             if (!rowSide.HasValue) return false;
 
-            row.GetBorder(rowSide.Value).Style = style;
+            RtfTableRowBorder rowBorder = row.GetBorder(rowSide.Value);
+            rowBorder.Style = style;
+            if (explicitReset) rowBorder.Width ??= 0;
             return true;
         }
 

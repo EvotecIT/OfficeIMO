@@ -1,0 +1,68 @@
+__SCOPE__, __SCOPE__ body {
+    color: var(--office-text);
+    background-color: var(--office-bg);
+    font-family: var(--office-font-body);
+    font-size: var(--office-size-body);
+    line-height: var(--office-line-spacing);
+}
+
+__SCOPE__ h1, __SCOPE__ h2, __SCOPE__ h3,
+__SCOPE__ h4, __SCOPE__ h5, __SCOPE__ h6 {
+    color: var(--office-heading-color);
+    font-family: var(--office-font-heading);
+    font-weight: var(--office-heading-bold);
+    line-height: 1.15;
+    break-after: avoid;
+}
+
+__SCOPE__ h1 { font-size: var(--office-size-h1); margin: var(--office-h1-before) 0 var(--office-h1-after); }
+__SCOPE__ h2 { font-size: var(--office-size-h2); margin: var(--office-h2-before) 0 var(--office-h2-after); }
+__SCOPE__ h3 { font-size: var(--office-size-h3); margin: var(--office-h3-before) 0 var(--office-h3-after); }
+__SCOPE__ h4 { font-size: var(--office-size-h4); margin: var(--office-h4-before) 0 var(--office-h4-after); }
+__SCOPE__ h5 { font-size: var(--office-size-h5); margin: var(--office-h5-before) 0 var(--office-h5-after); }
+__SCOPE__ h6 { font-size: var(--office-size-h6); margin: var(--office-h6-before) 0 var(--office-h6-after); }
+
+__SCOPE__ p { margin: var(--office-paragraph-before) 0 var(--office-paragraph-after); }
+__SCOPE__ a { color: var(--office-link); }
+__SCOPE__ ul, __SCOPE__ ol {
+    margin: var(--office-paragraph-before) 0 var(--office-paragraph-after);
+    padding-left: var(--office-list-indent);
+}
+
+__SCOPE__ code, __SCOPE__ pre, __SCOPE__ kbd, __SCOPE__ samp { font-family: var(--office-font-mono); }
+__SCOPE__ pre {
+    padding: var(--office-table-cell-padding-y) var(--office-table-cell-padding-x);
+    background: var(--office-surface);
+    border: var(--office-table-border-width) solid var(--office-rule);
+    white-space: pre-wrap;
+}
+__SCOPE__ blockquote {
+    margin: var(--office-paragraph-before) 0 var(--office-paragraph-after);
+    padding-left: var(--office-table-cell-padding-x);
+    border-left: var(--office-table-border-width) solid var(--office-accent-1);
+    color: var(--office-muted);
+}
+
+__SCOPE__ table {
+    border-collapse: collapse;
+    margin: var(--office-paragraph-before) 0 var(--office-paragraph-after);
+}
+__SCOPE__ td, __SCOPE__ th {
+    padding: var(--office-table-cell-padding-y) var(--office-table-cell-padding-x);
+    border: var(--office-table-border-width) var(--office-table-grid-style) var(--office-table-border);
+    border-bottom: var(--office-table-border-width) var(--office-table-border-style) var(--office-table-border);
+}
+__SCOPE__ th, __SCOPE__ thead > tr > td {
+    background: var(--office-table-header-fill);
+    color: var(--office-table-header-text);
+    font-weight: var(--office-table-header-bold);
+    border-bottom: var(--office-table-header-rule-width) solid var(--office-table-header-rule-color);
+}
+__SCOPE__ tbody > tr:nth-child(even) > td { background: var(--office-table-band-fill); }
+
+@page {
+    margin-top: var(--office-page-top);
+    margin-right: var(--office-page-right);
+    margin-bottom: var(--office-page-bottom);
+    margin-left: var(--office-page-left);
+}

@@ -10,7 +10,54 @@ public sealed partial class MarkdownPdfStyle {
         MarkdownPdfStyle pdfTheme = Create(theme.Kind);
         pdfTheme.Name = theme.Name;
         ApplySharedPalette(pdfTheme, theme.PaletteSnapshot, theme.TableSnapshot);
+        if (theme.EffectiveSourceTheme is { } source) {
+            ApplyOfficeTheme(pdfTheme, source);
+            PdfCore.PdfTableStyle table = pdfTheme.TableStyleSnapshot;
+            table.CellPaddingX = theme.TableSnapshot.CellPaddingX;
+            pdfTheme.TableStyle = table;
+        }
         return pdfTheme;
+    }
+
+    private static void ApplyOfficeTheme(MarkdownPdfStyle style, OfficeTheme source) {
+        PdfCore.PdfTheme native = PdfCore.PdfTheme.FromOfficeTheme(source);
+        style.SourceTheme = source;
+        style.DocumentTheme = native;
+        style.TableStyle = native.TableStyle;
+        style.FrontMatterTableStyle = native.TableStyle;
+        style.DocumentHeaderTitleFontSize = source.TypeScale.Title;
+        style.DocumentHeaderSubtitleFontSize = source.TypeScale.Heading3;
+        style.DocumentHeaderMetadataFontSize = source.TypeScale.Caption;
+        style.DocumentHeaderTitleColor = source.TextStyle.TitleColor.Resolve(source);
+        style.DocumentHeaderSubtitleColor = source.TextStyle.SubtitleColor.Resolve(source);
+        style.DocumentHeaderMetadataColor = source.Palette.TextMuted.Resolve(source);
+        style.DocumentHeaderRuleColor = source.TextStyle.TitleRule.Color.Resolve(source);
+        style.LinkColor = source.TextStyle.LinkColor.Resolve(source);
+        style.TocLinkColor = source.TextStyle.LinkColor.Resolve(source);
+        style.TocTitleColor = source.TextStyle.HeadingColor.Resolve(source);
+        style.CodeBlockFontSize = source.TypeScale.Body;
+        style.CodeBlockLabelFontSize = source.TypeScale.Caption;
+        style.SemanticBlockFontSize = source.TypeScale.Body;
+        style.SemanticBlockLabelFontSize = source.TypeScale.Caption;
+        style.CodeBlockPanelStyle = ApplyOfficePanelSpacing(style.CodeBlockPanelStyleSnapshot, source);
+        style.SemanticBlockPanelStyle = ApplyOfficePanelSpacing(style.SemanticBlockPanelStyleSnapshot, source);
+        style.QuotePanelStyle = ApplyOfficePanelSpacing(style.QuotePanelStyleSnapshot, source);
+        style.CalloutPanelStyle = ApplyOfficePanelSpacing(style.CalloutPanelStyle!, source);
+        style.DetailsPanelStyle = ApplyOfficePanelSpacing(style.DetailsPanelStyleSnapshot, source);
+        style.TocPanelStyle = ApplyOfficePanelSpacing(style.TocPanelStyleSnapshot, source);
+        PdfCore.PdfTableStyle checklist = style.ChecklistTableStyleSnapshot;
+        checklist.FontSize = source.TypeScale.Body;
+        checklist.LineHeight = source.TextStyle.LineSpacing;
+        checklist.SpacingBefore = source.Spacing.ParagraphBefore;
+        checklist.SpacingAfter = source.Spacing.ParagraphAfter;
+        style.ChecklistTableStyle = checklist;
+        style.DefinitionListTableStyle = native.TableStyle;
+    }
+
+    private static PdfCore.PdfPanelStyle ApplyOfficePanelSpacing(PdfCore.PdfPanelStyle panel, OfficeTheme source) {
+        panel.SpacingBefore = source.Spacing.ParagraphBefore;
+        panel.SpacingAfter = source.Spacing.ParagraphAfter;
+        return panel;
     }
 
     private static void ApplySharedPalette(MarkdownPdfStyle pdfTheme, MarkdownVisualPalette palette, MarkdownTableVisualStyle table) {

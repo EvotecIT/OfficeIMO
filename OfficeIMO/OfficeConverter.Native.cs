@@ -17,6 +17,8 @@ public static partial class OfficeConverter {
 
     private static async Task<OfficeConversionReport> ConvertNativeAsync(Stream source, Stream output,
         OfficeConversionOptions options, CancellationToken token, bool analyzeOnly = false) {
+        if (options.Theme != null && FormatForExtension(Path.GetExtension(options.SourceName)) != OfficeDocumentFormat.Word)
+            throw new NotSupportedException("A common Theme is supported by native Word conversions. Native Excel and PowerPoint conversions preserve their source styling.");
         var timer = Stopwatch.StartNew();
         string directory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-native-conversion-");
         try {
@@ -73,6 +75,7 @@ public static partial class OfficeConverter {
             }, d.Message, d.SourceLocation, FormatForExtension(Path.GetExtension(options.SourceName)).ToString(), d.LossKind)));
 
     private static WordDocumentConversionOptions WordNativeOptions(OfficeConversionOptions settings) => new() {
+        Theme = settings.Theme,
         LoadOptions = WordInputOptions(settings), SaveOptions = settings.WordSave,
         CompatibilityMode = settings.CompatibilityMode, EmbedSourceWhenLossy = settings.EmbedSourceWhenLossy,
         LossPolicy = settings.FailOnLoss ? OfficeConversionLossPolicy.Block : OfficeConversionLossPolicy.Allow,

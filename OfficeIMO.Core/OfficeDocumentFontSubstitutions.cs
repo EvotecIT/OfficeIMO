@@ -57,6 +57,12 @@ internal static class OfficeDocumentFontSubstitutions {
         return "sans-serif";
     }
 
+    /// <summary>Identifies authored code and symbol faces that a visual theme must retain.</summary>
+    internal static bool PreservesSemanticFont(string family) {
+        string key = Normalize(family);
+        return IsMonospace(key) || IsSymbolFamily(key);
+    }
+
     /// <summary>
     /// Pairs selected with compatibility intent. This policy does not qualify the installed font
     /// versions, vertical metrics, wrapping, or pagination; other pairs remain layout-sensitive.

@@ -412,16 +412,27 @@ public sealed class SvgContentSafetyTests {
         Assert.DoesNotContain(report.Findings, item => item.TextPreview == "initial opacity visible");
     }
 
-    [Fact]
-    public void TransformsContributeToTheEffectiveTinyTextThreshold() {
-        byte[] svg = Svg("""
-            <text transform="scale(0.05)" font-size="16" x="10" y="35">transformed tiny payload</text>
+    [Theory]
+    [InlineData("16")]
+    [InlineData("12pt")]
+    public void TransformsContributeToTheEffectiveTinyTextThreshold(string fontSize) {
+        byte[] svg = Svg($"""
+            <text transform="scale(0.05)" font-size="{fontSize}" x="10" y="35">transformed tiny payload</text>
+            <text x="10" y="70">ordinary visible control</text>
             """);
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
 
-        Assert.Contains(report.Findings, item =>
+        OfficeContentSafetyFinding tiny = Assert.Single(report.Findings, item =>
             item.Kind == OfficeContentConcealmentKind.TinyText && item.TextPreview == "transformed tiny payload");
+        Assert.Equal(OfficeContentCleanupCapability.RemoveText, tiny.CleanupCapability);
+        OfficeContentCleanupResult cleaned = OfficeSvgDrawingReader.RemoveSelectedContent(
+            svg, new OfficeContentCleanupSelection(new[] { tiny.Id }));
+        Assert.True(cleaned.Changed);
+        string output = Encoding.UTF8.GetString(cleaned.Output);
+        Assert.DoesNotContain("transformed tiny payload", output, StringComparison.Ordinal);
+        Assert.Contains("ordinary visible control", output, StringComparison.Ordinal);
+        Assert.True(OfficeSvgDrawingReader.TryRead(cleaned.Output, out _));
     }
 
     [Fact]

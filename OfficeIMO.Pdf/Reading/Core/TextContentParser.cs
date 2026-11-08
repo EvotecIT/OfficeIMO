@@ -1177,10 +1177,10 @@ internal static partial class TextContentParser {
                 outputIntentColorTransform == null &&
                 !forceCannotRestamp;
             double restampFontSize = size * unitYLength;
-            IReadOnlyList<double>? transformedCharacterAdvances = !hasUndecodableGlyph && decodedAdvances.Count == textOut.Length
+            IReadOnlyList<double>? transformedCharacterAdvances = retainGlyphAndPaintEvidence && !hasUndecodableGlyph && decodedAdvances.Count == textOut.Length
                 ? decodedAdvances.Select(advance => advance * unitXLength).ToArray()
                 : null;
-            double[]? transformedGlyphPaintedAdvances = decodedGlyphPaintedAdvances.Count == decodedGlyphCharacterLengths.Count
+            double[]? transformedGlyphPaintedAdvances = retainGlyphAndPaintEvidence && decodedGlyphPaintedAdvances.Count == decodedGlyphCharacterLengths.Count
                 ? decodedGlyphPaintedAdvances.Select(advance => advance * unitXLength).ToArray()
                 : null;
             bool useStrokePaint = !usesVisibleFill && usesVisibleStroke;
@@ -1340,7 +1340,7 @@ internal static partial class TextContentParser {
                         UsesStrokeTextPaint(textRenderingMode) ? miterLimit.ToString("R", CultureInfo.InvariantCulture) : "none",
                         UsesStrokeTextPaint(textRenderingMode) ? strokeDashIdentity : "none"
                     }) : null,
-                    !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
+                    retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
                         ? spanGlyphCharacterLengths
                         : null,
                     retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length &&

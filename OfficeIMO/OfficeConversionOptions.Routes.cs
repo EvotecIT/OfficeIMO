@@ -7,6 +7,7 @@ public sealed partial class OfficeConversionOptions {
     internal OfficeConversionOptions ForRoute(OfficeConversionExecutionRoute route) {
         OfficeConversionOptions copy = Snapshot();
         string id = route.Id;
+        OfficeConverter.ValidateThemeRoute(copy, id);
         copy.RouteId = id;
         copy.CsvSave = null;
         if (id is not ("doc-pdf" or "docx-pdf")) copy.Word = null;

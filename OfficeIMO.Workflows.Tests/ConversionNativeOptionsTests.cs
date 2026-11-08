@@ -3,11 +3,31 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Rtf;
+using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Word.Html;
 
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class ConversionNativeOptionsTests {
+    [Fact]
+    public async Task RegisteredRtfPdfUsesAnExplicitTheme() {
+        OfficeTheme theme = OfficeTheme.Modern.WithTypeScale(OfficeTheme.Modern.TypeScale.With(body: OfficeLength.Points(21)));
+        using var input = new MemoryStream(Encoding.ASCII.GetBytes(@"{\rtf1\ansi\fs18 Registered marker}"));
+        using var output = new MemoryStream();
+        await OfficeConverter.ConvertAsync(input, OfficeDocumentFormat.Rtf, output, OfficeDocumentFormat.Pdf,
+            new OfficeConversionOptions {
+                Theme = theme,
+                RegisteredSettings = new OfficeWorkflowRouteSettings {
+                    Rtf = new RtfPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), TextFallbacks = PdfTextFallbackFeatures.None }
+                }
+            });
+        using var pdf = PdfDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(21D, Assert.Single(pdf.Read().TextBlocks,
+            block => block.Text.Contains("Registered marker", StringComparison.Ordinal)).FontSize, 2);
+        Assert.True(input.CanRead);
+        Assert.True(output.CanWrite);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

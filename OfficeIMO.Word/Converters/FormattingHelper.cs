@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
         /// document's own body font.
         /// </summary>
         internal static bool IsCodeRun(WordParagraph run, string? documentFont) {
-            if (run.CharacterStyleId is string styleId && CodeCharacterStyles.Contains(styleId)) {
+            if (IsCodeCharacterStyle(run.CharacterStyleId)) {
                 return true;
             }
 
@@ -38,6 +38,8 @@ namespace OfficeIMO.Word {
             return !string.IsNullOrEmpty(resolvedMonospace) &&
                    string.Equals(family, resolvedMonospace, StringComparison.OrdinalIgnoreCase);
         }
+
+        internal static bool IsCodeCharacterStyle(string? styleId) => styleId != null && CodeCharacterStyles.Contains(styleId);
 
         /// <summary>
         /// Enumerates runs within the paragraph and returns their text and formatting flags.

@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         internal bool HasAppliedExternalStylesheet { get; private set; }
 
-        private async Task LoadAndParseCssAsync(Url url, CancellationToken cancellationToken) {
+        private async Task LoadAndParseCssAsync(Url url, CancellationToken cancellationToken, string? media = null) {
             if (!Uri.TryCreate(url.Href, UriKind.Absolute, out var uri)) {
                 return;
             }
@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Html {
             try {
                 DecodedStylesheet? stylesheet = await FetchCssStringAsync(uri, url.Href, cancellationToken).ConfigureAwait(false);
                 if (stylesheet.HasValue) {
-                    ParseCss(stylesheet.Value, url.Href);
+                    ParseCss(stylesheet.Value, url.Href, media);
                 }
             } catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
                 AddDiagnostic(_options, "stylesheet-load-timed-out", "Stylesheet resource timed out or was canceled by the resource pipeline and was skipped.", url.Href, ex);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void TryLoadCssFromFileUrl(Url url) {
+        private void TryLoadCssFromFileUrl(Url url, string? media = null) {
             if (!Uri.TryCreate(url.Href, UriKind.Absolute, out var fileUri) || !fileUri.IsFile) {
                 return;
             }
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            ParseCss(ReadCssFileWithLimit(localPath), localPath);
+            ParseCss(ReadCssFileWithLimit(localPath), localPath, media);
         }
 
         private async Task<DecodedStylesheet?> FetchCssStringAsync(Uri uri, string source, CancellationToken cancellationToken) {
@@ -227,22 +227,24 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ParseCss(string css, string? key = null) =>
-            ParseCss(css, Encoding.UTF8.GetByteCount(css), key);
+        private void ParseCss(string css, string? key = null, string? media = null) =>
+            ParseCss(css, Encoding.UTF8.GetByteCount(css), key, media);
 
-        private void ParseCss(DecodedStylesheet stylesheet, string? key = null) =>
-            ParseCss(stylesheet.Text, stylesheet.EncodedByteCount, key);
+        private void ParseCss(DecodedStylesheet stylesheet, string? key = null, string? media = null) =>
+            ParseCss(stylesheet.Text, stylesheet.EncodedByteCount, key, media);
 
-        private void ParseCss(string css, long encodedByteCount, string? key) {
+        private void ParseCss(string css, long encodedByteCount, string? key, string? media) {
             ValidateCssLimit(encodedByteCount, key);
             if (string.IsNullOrWhiteSpace(css)) {
                 return;
             }
 
+            _pageStylesheets.Add((css, media));
             var cacheKey = ComputeHash(css);
             if (!_stylesheetCache.TryGetValue(cacheKey, out var rules)) {
                 try {
                     var sheet = _cssParser.ParseStyleSheet(css);
+                    _useCanonicalLayerCascade |= ContainsLayerRule(sheet.Rules);
                     rules = sheet.Rules.OfType<ICssStyleRule>().ToArray();
                     _stylesheetCache[cacheKey] = rules;
                 } catch (Exception) {
@@ -251,7 +253,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(key) && rules.Length > 0) {
+            if (!string.IsNullOrWhiteSpace(key) && (rules.Length > 0 || _useCanonicalLayerCascade)) {
                 HasAppliedExternalStylesheet = true;
             }
 
@@ -271,6 +273,18 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
             }
+        }
+
+        private static bool ContainsLayerRule(IEnumerable<ICssRule> rules) {
+            var pending = new Stack<ICssRule>(rules);
+            while (pending.Count > 0) {
+                ICssRule rule = pending.Pop();
+                if (rule is ICssLayerRule) return true;
+                if (rule is ICssGroupingRule group) {
+                    foreach (ICssRule child in group.Rules) pending.Push(child);
+                }
+            }
+            return false;
         }
 
         private readonly struct DecodedStylesheet {
@@ -354,8 +368,6 @@ namespace OfficeIMO.Word.Html {
 
             if (accumulated.Count > 0) {
                 IReadOnlyDictionary<string, string> diagnosticDeclarations = own
-                    .Where(pair => !_injectedInheritedCssProperties.TryGetValue(element, out HashSet<string>? injected) ||
-                                   !injected.Contains(pair.Key))
                     .ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase);
                 ReportUnsupportedCssDiagnostics(
                     element,

@@ -59,7 +59,7 @@ namespace OfficeIMO.Word.Html {
                 bookmarkAdded = true;
             }
 
-            var fmt = new TextFormatting(false, false, false, null, mono);
+            var fmt = new TextFormatting(fontFamily: mono);
             AddTextRun(paragraph, line, fmt, options);
         }
 

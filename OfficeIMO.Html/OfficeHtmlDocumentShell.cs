@@ -51,7 +51,9 @@ public static class OfficeHtmlDocumentShell {
     /// <summary>Gets shared shell CSS from a document theme's colors and font choices.</summary>
     public static string GetThemeCss(OfficeTheme theme, string newLine = "\n") {
         ArgumentNullException.ThrowIfNull(theme);
-        return GetThemeCss(OfficeHtmlThemePalette.Create(theme), newLine);
+        string nl = string.IsNullOrEmpty(newLine) ? "\n" : newLine;
+        return GetThemeCss(OfficeHtmlThemePalette.Create(theme), nl) + nl +
+            NormalizeNewLines(OfficeHtmlThemeDefaults.Build(theme, "body.officeimo-html"), nl);
     }
 
     private static string GetThemeCss(OfficeHtmlThemePalette palette, string newLine) {

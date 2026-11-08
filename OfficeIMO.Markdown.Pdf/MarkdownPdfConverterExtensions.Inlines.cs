@@ -321,7 +321,8 @@ public static partial class MarkdownPdfConverterExtensions {
             linkContents: contents,
             baseline: style.Baseline,
             linkDestinationName: bookmark,
-            backgroundColor: style.Background);
+            backgroundColor: style.Background,
+            fontFamily: style.FontFamily);
 
     private static PdfTextRun CreateRun(string text, InlineStyle style) {
         return new PdfTextRun(
@@ -334,7 +335,8 @@ public static partial class MarkdownPdfConverterExtensions {
             fontSize: ((double?)(style.FontSize) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
             standardFont: style.Font,
             baseline: style.Baseline,
-            backgroundColor: style.Background);
+            backgroundColor: style.Background,
+            fontFamily: style.FontFamily);
     }
 
     private static PdfCore.PdfParagraph ApplyStyle(PdfCore.PdfParagraph builder, InlineStyle style) {
@@ -355,6 +357,8 @@ public static partial class MarkdownPdfConverterExtensions {
         } else {
             builder.RunDefaults.StandardFont = null; builder.RunDefaults.FontFamily = null;
         }
+
+        if (style.FontFamily != null) builder.RunDefaults.FontFamily = style.FontFamily;
 
         if (style.Color.HasValue) {
             builder.RunDefaults.Color = style.Color.Value;
@@ -410,7 +414,7 @@ public static partial class MarkdownPdfConverterExtensions {
             double? fontSize,
             PdfCore.PdfStandardFont? font,
             global::OfficeIMO.OfficeColor? linkColor,
-            bool? underlineLinks, AnchorContext? anchors = null) {
+            bool? underlineLinks, AnchorContext? anchors = null, string? fontFamily = null) {
             Bold = bold;
             Italic = italic;
             Underline = underline;
@@ -420,6 +424,7 @@ public static partial class MarkdownPdfConverterExtensions {
             Background = background;
             FontSize = fontSize;
             Font = font;
+            FontFamily = fontFamily;
             LinkColor = linkColor;
             UnderlineLinks = underlineLinks;
             Anchors = anchors;
@@ -445,6 +450,8 @@ public static partial class MarkdownPdfConverterExtensions {
 
         public PdfCore.PdfStandardFont? Font { get; }
 
+        public string? FontFamily { get; }
+
         public global::OfficeIMO.OfficeColor? LinkColor { get; }
 
         public bool? UnderlineLinks { get; }
@@ -462,7 +469,7 @@ public static partial class MarkdownPdfConverterExtensions {
             double? fontSize = null,
             PdfCore.PdfStandardFont? font = null,
             global::OfficeIMO.OfficeColor? linkColor = null,
-            bool? underlineLinks = null, AnchorContext? anchors = null) =>
+            bool? underlineLinks = null, AnchorContext? anchors = null, string? fontFamily = null) =>
             new InlineStyle(
                 bold ?? Bold,
                 italic ?? Italic,
@@ -474,6 +481,6 @@ public static partial class MarkdownPdfConverterExtensions {
                 fontSize ?? FontSize,
                 font ?? Font,
                 linkColor ?? LinkColor,
-                underlineLinks ?? UnderlineLinks, anchors ?? Anchors);
+                underlineLinks ?? UnderlineLinks, anchors ?? Anchors, font.HasValue ? fontFamily : fontFamily ?? FontFamily);
     }
 }

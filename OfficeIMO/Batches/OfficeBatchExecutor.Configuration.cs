@@ -37,6 +37,8 @@ internal static partial class OfficeBatchExecutor {
 
     private static string CaptureRenderingConfiguration(OfficeBatchOptions settings, string routeId) {
         OfficeConversionOptions options = settings.ConversionOptions.ForRoute(routeId);
+        if (options.Theme != null)
+            throw new NotSupportedException("A common Theme is execution-only and requires an ordinary batch without checkpoints.");
         if (options.Html?.ResourceResolver != null || options.Html?.TextShapingProvider != null || options.Markdown?.RemoteImageResolver != null ||
             options.MarkdownWord?.RemoteImageResolver != null || options.MarkdownWord?.OnWarning != null ||
             options.MarkdownWord?.Template != null || options.HtmlWord?.StyleMissingHandler != null ||

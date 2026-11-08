@@ -284,6 +284,11 @@ public class WordCreationThemeTables {
                     .First(style => style.StyleId?.Value == "Heading1");
                 heading.StyleRunProperties ??= new W.StyleRunProperties();
                 heading.StyleRunProperties.Color = new W.Color { Val = "AB1278" };
+                template.Background.Color = OfficeColor.ParseHex("101820");
+                var canvas = template.MainDocumentPartRoot.Document.DocumentBackground!;
+                canvas.ThemeColor = W.ThemeColorValues.Dark1;
+                canvas.ThemeTint = "20";
+                canvas.ThemeShade = "80";
                 template.Save(path);
             }
             byte[] authored = File.ReadAllBytes(path);
@@ -300,6 +305,8 @@ public class WordCreationThemeTables {
                 var native = ReadNative(copy.ToBytes());
                 Assert.Equal(before.Styles.ToString(), native.Styles.ToString());
                 Assert.Equal(before.Theme.ToString(), native.Theme.ToString());
+                Assert.Equal("101820", copy.Background.Color!.Value.ToRgbHex());
+                Assert.Equal(W.ThemeColorValues.Dark1, copy.MainDocumentPartRoot.Document.DocumentBackground!.ThemeColor!.Value);
             }
             using (var copy = Create(selected)) {
                 byte[] bytes = copy.ToBytes();
@@ -307,7 +314,13 @@ public class WordCreationThemeTables {
                 var after = ReadNative(bytes);
                 XElement Heading(XDocument styles) => styles.Root!.Elements(WordNs + "style")
                     .Single(style => (string?)style.Attribute(WordNs + "styleId") == "Heading1");
-                Assert.Equal(Heading(before.Styles).ToString(), Heading(after.Styles).ToString());
+                Assert.Equal(selected.TextStyle.HeadingColor.Resolve(selected).ToRgbHex(),
+                    (string?)Heading(after.Styles).Element(WordNs + "rPr")!.Element(WordNs + "color")!.Attribute(WordNs + "val"));
+                Assert.Equal("FFFFFF", copy.Background.Color!.Value.ToRgbHex());
+                var canvas = copy.MainDocumentPartRoot.Document.DocumentBackground!;
+                Assert.Null(canvas.ThemeColor);
+                Assert.Null(canvas.ThemeTint);
+                Assert.Null(canvas.ThemeShade);
             }
             using (var loaded = WordDocument.Load(new MemoryStream(authored))) {
                 var native = ReadNative(loaded.ToBytes());
@@ -390,16 +403,28 @@ public class WordCreationThemeTables {
     }
 
     [Fact]
-    public void ChoosingAThemePreservesExistingHeadingCatalogAndParagraphSpacing() {
+    public void ChoosingAThemeProjectsHeadingAndDefaultSpacingWhileKeepingParagraphOverrides() {
         using var baseline = WordDocument.Create();
-        using var custom = WordDocument.Create(new WordCreateOptions { Theme = CustomTheme("157A67", "Arial") });
+        OfficeTheme theme = CustomTheme("157A67", "Arial")
+            .WithTypeScale(OfficeTheme.Modern.TypeScale.With(heading1: OfficeLength.Points(29)))
+            .WithSpacing(OfficeTheme.Modern.Spacing.With(paragraphBefore: OfficeLength.Points(2), paragraphAfter: OfficeLength.Points(9)))
+            .WithTextStyle(OfficeTheme.Modern.TextStyle.With(lineSpacing: 1.25, headingColor: OfficeColor.ParseHex("2468AC"), headingBold: false));
+        using var custom = WordDocument.Create(new WordCreateOptions { Theme = theme });
         var before = ReadNative(baseline.ToBytes());
         var after = ReadNative(custom.ToBytes());
-        XElement Heading(XDocument styles) => styles.Root!.Elements(WordNs + "style")
+        XElement heading = after.Styles.Root!.Elements(WordNs + "style")
             .Single(style => (string?)style.Attribute(WordNs + "styleId") == "Heading1");
-        Assert.Equal(Heading(before.Styles).ToString(), Heading(after.Styles).ToString());
-        Assert.Equal(before.Styles.Descendants(WordNs + "pPrDefault").Single().ToString(),
-            after.Styles.Descendants(WordNs + "pPrDefault").Single().ToString());
+        XElement run = heading.Element(WordNs + "rPr")!;
+        Assert.Equal("58", (string?)run.Element(WordNs + "sz")!.Attribute(WordNs + "val"));
+        Assert.Equal("2468AC", (string?)run.Element(WordNs + "color")!.Attribute(WordNs + "val"));
+        Assert.Equal("false", (string?)run.Element(WordNs + "b")!.Attribute(WordNs + "val"));
+        Assert.Equal("0", (string?)heading.Element(WordNs + "pPr")!.Element(WordNs + "outlineLvl")!.Attribute(WordNs + "val"));
+        XElement defaultSpacing = after.Styles.Descendants(WordNs + "pPrDefault").Single().Element(WordNs + "pPr")!.Element(WordNs + "spacing")!;
+        Assert.Equal(("40", "180", "300", "auto"),
+            ((string?)defaultSpacing.Attribute(WordNs + "before"), (string?)defaultSpacing.Attribute(WordNs + "after"),
+                (string?)defaultSpacing.Attribute(WordNs + "line"), (string?)defaultSpacing.Attribute(WordNs + "lineRule")));
+        Assert.Equal("259", (string?)before.Styles.Descendants(WordNs + "pPrDefault").Single().Element(WordNs + "pPr")!
+            .Element(WordNs + "spacing")!.Attribute(WordNs + "line"));
         WordParagraph paragraph = custom.AddParagraph("Precise spacing");
         paragraph.LineSpacing = WordLineSpacing.Exact(OfficeLength.Points(13.5));
         using var reopened = WordDocument.Load(new MemoryStream(custom.ToBytes()));

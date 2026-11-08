@@ -1,4 +1,6 @@
 #nullable enable
+OfficeIMO.OfficeConversionOptions.Theme.get -> OfficeIMO.OfficeTheme?
+OfficeIMO.OfficeConversionOptions.Theme.set -> void
 OfficeIMO.OfficeConversionOptions.CsvSave.get -> OfficeIMO.CSV.CsvSaveOptions?
 OfficeIMO.OfficeConversionOptions.CsvSave.set -> void
 OfficeIMO.OfficeConversionOptions.PowerPointHtml.get -> OfficeIMO.PowerPoint.Html.PowerPointHtmlExportOptions?

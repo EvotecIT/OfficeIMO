@@ -115,6 +115,21 @@ document.Save("Status-updated.docx");
 
 `Save()` writes to the path the document was created or loaded with; `Save(path)` writes a copy and keeps working on it. For files from outside your organization, load with `WordLoadOptions.UntrustedDefaults`, which rejects macros, embedded objects, ActiveX and external relationships before parsing.
 
+Loading and conversion keep the source appearance. To restyle a document deliberately, apply a shared theme before saving or exporting:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
+using var document = WordDocument.Load("Notes.docx");
+document.ApplyTheme(OfficeTheme.Boardroom);
+document.Save("Notes-styled.docx");
+document.SaveAsPdf("Notes-styled.pdf");
+```
+
+`ApplyTheme` changes typography, paragraph rhythm and table decoration on the loaded model. It preserves content, semantic emphasis, code and symbol fonts, section geometry, table widths and merged cells. Table headers follow declared header rows. Word uses light-page theme defaults, including for `Dark`: an existing solid page background becomes white, while background images remain attached. Changed fonts, sizes and padding can change wrapping and pagination. The same themed model can use the existing PDF, HTML and image exporters.
+
 ## Convert
 
 Conversions are called on the document and return an `OfficeConversionReport` that lists anything the target could not carry:

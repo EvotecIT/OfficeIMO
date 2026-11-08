@@ -1,18 +1,39 @@
+using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Html;
 using OfficeIMO.Word.Html;
 using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Xml.Linq;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
         public void HtmlToWord_InlineSvg_RoundTrip() {
-            string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect width='10' height='10' fill='blue'/></svg>";
-            string html = $"<p>{svg}</p>";
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
+            const string screenCss = ".shape{fill:blue}p{color:red}";
+            const string printCss = ".shape{fill:green}";
+            string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                "<style media='screen'>" + screenCss + "</style><g><style media='print'>" + printCss +
+                "</style><rect class='shape' width='10' height='10'/></g></svg>";
+            string html = $"<style>@layer report{{p{{color:#123456}}}}</style><p>Outside SVG</p><p>{svg}</p>";
+            using var doc = HtmlConversionDocument.Parse(html).WithTheme(OfficeTheme.Default).ToWord(new HtmlWordExportOptions());
             Assert.Single(doc.Images);
+            using var bytes = new MemoryStream(doc.ToBytes(), false);
+            using var package = WordprocessingDocument.Open(bytes, false);
+            var main = package.MainDocumentPart!;
+            using var image = Assert.Single(main.ImageParts, part => part.ContentType == "image/svg+xml").GetStream();
+            XDocument savedSvg = XDocument.Load(image);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement[] styles = savedSvg.Descendants(ns + "style").ToArray();
+            Assert.Equal(new[] { screenCss, printCss }, styles.Select(style => style.Value));
+            Assert.Equal(new[] { "screen", "print" }, styles.Select(style => (string?)style.Attribute("media")));
+            Assert.Equal("svg", styles[0].Parent!.Name.LocalName);
+            Assert.Equal(new[] { "style", "rect" }, styles[1].Parent!.Elements().Select(element => element.Name.LocalName));
+            W.Run outside = Assert.Single(main.Document.Body!.Descendants<W.Run>(), run => run.InnerText == "Outside SVG");
+            Assert.Equal("123456", outside.RunProperties!.Color!.Val!.Value);
             string back = doc.ToHtml();
             Assert.Contains("<svg", back, StringComparison.OrdinalIgnoreCase);
         }
