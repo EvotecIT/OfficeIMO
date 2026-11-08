@@ -273,7 +273,8 @@ internal static partial class PdfWriter {
             admittedLineWidths.Add(CurrentMaxWidth());
             heights.Add(sameRow ? 0D : currentLineHeight);
             if (!sameRow) completedHeight += currentLineHeight;
-            lines.Add(new RichLine());
+            // Lines of one paragraph carry similar segment counts; sizing from the last skips regrowing each line.
+            lines.Add(new RichLine(lines[lines.Count - 1].Count));
             lineWidth = 0;
             if (!sameRow) {
                 currentLineTextAscent = 0;
