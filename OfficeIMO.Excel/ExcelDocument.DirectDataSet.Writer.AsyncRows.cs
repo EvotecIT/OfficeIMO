@@ -27,22 +27,36 @@ namespace OfficeIMO.Excel {
                 var entry = archive.CreateEntry(
                     "xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml",
                     CompressionLevel.Fastest);
-                using var stream = entry.Open();
-                using var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
+                Stream? stream = null;
+                PooledUtf8TextWriter? writer = null;
+                bool completed = false;
+                try {
+                    stream = entry.Open();
+                    writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
 
-                writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
-                if (sheet.StreamingLayout != null) writer.Write(sheet.StreamingLayout.ViewsXml);
-                WriteDeclaredColumns(writer, sheet.ColumnWidths, declaredStyles, sheet.StreamingLayout?.FirstColumn ?? 1);
-                writer.Write("<sheetData>");
+                    writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+                    writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
+                    if (sheet.StreamingLayout != null) writer.Write(sheet.StreamingLayout.ViewsXml);
+                    WriteDeclaredColumns(writer, sheet.ColumnWidths, declaredStyles, sheet.StreamingLayout?.FirstColumn ?? 1);
+                    writer.Write("<sheetData>");
 
-                int count = await WriteAsyncSheetData(writer, sheet, dateTimeOffsetWriteStrategy, dateSystem,
-                    columnWritePlan, rows, writeRow, maximumRows, sharedStrings, declaredStyles, ct).ConfigureAwait(false);
-                writer.Write("</sheetData>");
-                WriteAsyncWorksheetEnd(writer, sheet);
-                await writer.FlushAsync().ConfigureAwait(false);
-                ct.ThrowIfCancellationRequested();
-                return count;
+                    int count = await WriteAsyncSheetData(writer, sheet, dateTimeOffsetWriteStrategy, dateSystem,
+                        columnWritePlan, rows, writeRow, maximumRows, sharedStrings, declaredStyles, ct).ConfigureAwait(false);
+                    writer.Write("</sheetData>");
+                    WriteAsyncWorksheetEnd(writer, sheet);
+                    await writer.FlushAsync().ConfigureAwait(false);
+                    ct.ThrowIfCancellationRequested();
+                    completed = true;
+                    return count;
+                } finally {
+                    try { writer?.Dispose(); }
+                    catch when (!completed) {
+                        // Keep the row or validation error when disposal also fails.
+                    } finally {
+                        try { stream?.Dispose(); }
+                        catch when (!completed) { }
+                    }
+                }
             }
 
             private static async Task<int> WriteAsyncSheetData<T>(TextWriter writer, DirectDataSetSheetModel sheet,
