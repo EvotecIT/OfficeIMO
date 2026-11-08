@@ -25,7 +25,6 @@ public partial class ExcelSheet {
     /// <summary>Renders the worksheet with cancellation and returns the encoded image and its diagnostics.</summary>
     public async Task<OfficeImageExportResult> ToImageAsync(ExcelImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        var timer = Stopwatch.StartNew();
         ExcelImageExportOptions resolved = NormalizeWorksheetOptions(options);
         OfficeImageExportResult result = await CreateImageExportOperation(resolved, resolved.Format)
             .ExportAsync(cancellationToken).ConfigureAwait(false);

@@ -25,7 +25,6 @@ public partial class PowerPointSlide {
     /// <summary>Renders the slide with cancellation and returns the encoded image and its diagnostics.</summary>
     public async Task<OfficeImageExportResult> ToImageAsync(PowerPointImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        var timer = Stopwatch.StartNew();
         PowerPointImageExportOptions resolved = NormalizeImageExportOptions(options);
         OfficeImageExportResult result = await CreateImageExportOperation(resolved, resolved.Format)
             .ExportAsync(cancellationToken).ConfigureAwait(false);

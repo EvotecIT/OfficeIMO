@@ -179,6 +179,8 @@ public static partial class EpubImageExportExtensions {
         IReadOnlyDictionary<string, EpubResource> resourcesByPath,
         CancellationToken cancellationToken) {
         EpubImageExportOptions effective = options.CloneEpub();
+        // The shared selector was consumed as chapter selection, before per-chapter pagination.
+        effective.PageSelector = null;
         effective.Policy = new OfficeImageExportPolicy();
         Uri baseUri = CreateChapterUri(chapter);
         effective.BaseUri = baseUri;

@@ -9,6 +9,20 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Email;
 
 public static partial class EmailImageExportExtensions {
+    /// <summary>Renders a batch using the encoding and selection in the options.</summary>
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(this EmailDocument document, EmailImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        EmailImageExportOptions resolved = options?.CloneEmail() ?? new EmailImageExportOptions();
+        return CreateEmailDocumentImageBatchOperation(document, resolved).Export(cancellationToken);
+    }
+
+    /// <summary>Renders a batch asynchronously using the same options and evidence contract.</summary>
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this EmailDocument document, EmailImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        EmailImageExportOptions resolved = options?.CloneEmail() ?? new EmailImageExportOptions();
+        return CreateEmailDocumentImageBatchOperation(document, resolved).ExportAsync(cancellationToken);
+    }
+
     /// <summary>Saves selected images without retaining payloads and returns aggregate conversion evidence.</summary>
     public static OfficeConversionReport SaveAsImages(this EmailDocument document, string folderPath,
         EmailImageExportOptions? options = null, CancellationToken cancellationToken = default) {

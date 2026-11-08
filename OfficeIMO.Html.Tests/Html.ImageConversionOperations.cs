@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Html.Pdf;
 using System;
 using System.IO;
@@ -39,6 +40,26 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(stream.CanWrite);
         Assert.Null(saved.OutputPath);
         Assert.Equal(1D, options.Scale);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SharedImageSelectorPreservesPageOrderRepetitionsAndSavedCount(bool asynchronous) {
+        var document = HtmlConversionDocument.Parse("<style>@page{size:100px 80px;margin:0}</style>"
+            + "<div style='height:20px;background:red'>First</div>"
+            + "<div style='break-before:page;height:20px;background:blue'>Second</div>");
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, Format = OfficeImageExportFormat.Svg,
+            PageSelector = OfficePageSelector.Parse("2,1,2") };
+        var images = asynchronous ? await document.ToImagesAsync(options) : document.ToImages(options);
+        Assert.Equal(new[] { "Page 2", "Page 1", "Page 2" }, images.Select(image => image.Name));
+        Assert.Contains("#0000ff", System.Text.Encoding.UTF8.GetString(images[0].Bytes), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#ff0000", System.Text.Encoding.UTF8.GetString(images[1].Bytes), StringComparison.OrdinalIgnoreCase);
+        string folder = Path.Combine(Path.GetTempPath(), "officeimo-html-selector-" + Guid.NewGuid().ToString("N"));
+        try {
+            OfficeConversionReport report = asynchronous ? await document.SaveAsImagesAsync(folder, options) : document.SaveAsImages(folder, options);
+            Assert.Equal(3, report.ItemsWritten); Assert.Equal(3, Directory.GetFiles(folder, "*.svg").Length);
+        } finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }
 
     [Fact]

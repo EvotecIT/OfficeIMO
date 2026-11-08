@@ -13,9 +13,9 @@ public class OfficeImageExportOptions {
     /// <summary>Image encoding used by options-based exports.</summary>
     public OfficeImageExportFormat Format { get; set; } = OfficeImageExportFormat.Png;
 
-    /// <summary>One-based source surfaces in caller order, including repeated surfaces. Null uses the format-specific selection.
+    /// <summary>One-based batch source surfaces in caller order, including repeated surfaces. Null uses the format-specific selection.
     /// For documents these are pages, for presentations slides, for workbooks worksheets, and for EPUB publications chapters.
-    /// A supplied selector overrides format-specific index, range and name filters; layout and hidden-content policies still apply.</summary>
+    /// For batches, a supplied selector overrides format-specific index, range and name filters; layout and hidden-content policies still apply.</summary>
     public OfficePageSelector? PageSelector { get; set; }
 
     /// <summary>Controls an existing file at the requested output path.</summary>

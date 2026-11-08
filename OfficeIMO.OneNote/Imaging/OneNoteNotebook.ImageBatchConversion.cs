@@ -9,6 +9,20 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.OneNote;
 
 public static partial class OneNoteImageExportExtensions {
+    /// <summary>Renders a batch using the encoding and selection in the options.</summary>
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(this OneNoteNotebook document, OneNotePageBatchRenderingOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
+        return CreateOneNoteNotebookImageBatchOperation(document, resolved).Export(cancellationToken);
+    }
+
+    /// <summary>Renders a batch asynchronously using the same options and evidence contract.</summary>
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this OneNoteNotebook document, OneNotePageBatchRenderingOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
+        return CreateOneNoteNotebookImageBatchOperation(document, resolved).ExportAsync(cancellationToken);
+    }
+
     /// <summary>Saves selected images without retaining payloads and returns aggregate conversion evidence.</summary>
     public static OfficeConversionReport SaveAsImages(this OneNoteNotebook document, string folderPath,
         OneNotePageBatchRenderingOptions? options = null, CancellationToken cancellationToken = default) {

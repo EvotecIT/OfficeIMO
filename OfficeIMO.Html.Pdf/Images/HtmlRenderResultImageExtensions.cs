@@ -31,6 +31,7 @@ public static class HtmlRenderResultImageExtensions {
         }
         HtmlRenderOptions options = result.ResolvedOptions.Clone();
         options.PageSelection = null;
+        options.PageSelector = null;
         return HtmlRenderEngine.ExecuteWithDeadline(options, cancellationToken, token => {
             OfficeImageExportResult? image = null;
             ExportImagesCore(result, ResolveFormat(result.Request.Encoder), options, value => image = value, token);
@@ -50,7 +51,7 @@ public static class HtmlRenderResultImageExtensions {
         IReadOnlyList<int> selection = ResolveSelection(result, options);
         int index = 0;
         global::OfficeIMO.Pdf.PdfImageExportEngine.ExportEach(pages, format, options.ToPdfImageOptions(),
-            selection: options.ToPdfPageSelection(), image => consumer(WithHtmlSource(image, result.Document.Pages[selection[index++] - 1].PageNumber)),
+            selection: global::OfficeIMO.Pdf.PdfPageSelection.From(selection.ToArray()), image => consumer(WithHtmlSource(image, result.Document.Pages[selection[index++] - 1].PageNumber)),
             global::OfficeIMO.Pdf.PdfImageExportEngine.MapConversionDiagnostics(conversion), cancellationToken);
     }
 
@@ -62,12 +63,13 @@ public static class HtmlRenderResultImageExtensions {
         IReadOnlyList<int> selection = ResolveSelection(result, options);
         int index = 0;
         await global::OfficeIMO.Pdf.PdfImageExportEngine.ExportEachAsync(pages, format, options.ToPdfImageOptions(),
-            selection: options.ToPdfPageSelection(), (image, token) => consumer(WithHtmlSource(image, result.Document.Pages[selection[index++] - 1].PageNumber), token),
+            selection: global::OfficeIMO.Pdf.PdfPageSelection.From(selection.ToArray()), (image, token) => consumer(WithHtmlSource(image, result.Document.Pages[selection[index++] - 1].PageNumber), token),
             global::OfficeIMO.Pdf.PdfImageExportEngine.MapConversionDiagnostics(conversion), cancellationToken).ConfigureAwait(false);
     }
 
     internal static IReadOnlyList<int> ResolveSelection(HtmlRenderResult result, HtmlRenderOptions options) =>
-        options.ToPdfPageSelection()?.Resolve(result.Document.Pages.Count)
+        options.PageSelector?.Resolve(result.Document.Pages.Count, options.MaximumOutputCount)
+        ?? options.ToPdfPageSelection()?.Resolve(result.Document.Pages.Count)
         ?? Enumerable.Range(1, result.Document.Pages.Count).ToArray();
 
     private static global::OfficeIMO.Pdf.PdfDocumentConversionResult CreatePdf(HtmlRenderResult result,

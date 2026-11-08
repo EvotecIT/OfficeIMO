@@ -25,7 +25,6 @@ public sealed partial class ExcelRange {
     /// <summary>Renders the range with cancellation and returns the encoded image and its diagnostics.</summary>
     public async Task<OfficeImageExportResult> ToImageAsync(ExcelImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        var timer = Stopwatch.StartNew();
         ExcelImageExportOptions resolved = NormalizeOptions(options);
         OfficeImageExportResult result = await CreateImageExportOperation(resolved, resolved.Format)
             .ExportAsync(cancellationToken).ConfigureAwait(false);

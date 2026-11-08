@@ -15,6 +15,18 @@ public sealed class HtmlEpubImageExportTests {
     private static readonly byte[] PixelPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==");
 
+    [Fact]
+    public void SharedSelectorChoosesAChapterWithoutFilteringItsRenderedPagesAgain() {
+        using var package = new MemoryStream(CreateEpub(includeSecondChapter: true));
+        var book = EpubDocument.Load(package, new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true });
+        var options = new EpubImageExportOptions { Mode = HtmlRenderMode.Paged, Format = OfficeImageExportFormat.Svg,
+            PageSelector = OfficePageSelector.Parse("2") };
+        var image = Assert.Single(book.ToImages(options));
+        Assert.Contains("chapter2.xhtml", image.Source, StringComparison.Ordinal);
+        Assert.Contains("Chapter Two", Encoding.UTF8.GetString(image.Bytes), StringComparison.Ordinal);
+        Assert.Equal("2", options.PageSelector.Expression);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

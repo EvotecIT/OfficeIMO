@@ -12,6 +12,7 @@ public static partial class HtmlImageExportExtensions {
             HtmlPdfExportOptions.ForImageExport(options), MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         resolved.PageSelection = null;
+        resolved.PageSelector = null;
         return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
             HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(document, request, resolved, operationCancellationToken);
             OfficeImageExportResult? image = null;
@@ -54,6 +55,7 @@ public static partial class HtmlImageExportExtensions {
             HtmlPdfExportOptions.ForImageExport(options), MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         resolved.PageSelection = null;
+        resolved.PageSelector = null;
         return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
             HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteCoreAsync(
                 document, request, resolved, operationCancellationToken).ConfigureAwait(false);

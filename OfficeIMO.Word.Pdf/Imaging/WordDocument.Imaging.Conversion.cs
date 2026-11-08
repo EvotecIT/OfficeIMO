@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -7,6 +8,20 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Word;
 
 public static partial class WordImageExportExtensions {
+    /// <summary>Renders a batch using the encoding and selection in the options.</summary>
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(this WordDocument document, WordImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        WordImageExportOptions resolved = NormalizeImageExportOptions(options);
+        return CreateImageExportBatchOperation(document, resolved, resolved.Format).Export(cancellationToken);
+    }
+
+    /// <summary>Renders a batch asynchronously using the same options and evidence contract.</summary>
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this WordDocument document, WordImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        WordImageExportOptions resolved = NormalizeImageExportOptions(options);
+        return CreateImageExportBatchOperation(document, resolved, resolved.Format).ExportAsync(cancellationToken);
+    }
+
     /// <summary>Renders the selected page using the encoding in <see cref="OfficeImageExportOptions.Format"/>.</summary>
     public static OfficeImageExportResult ToImage(this WordDocument document, WordImageExportOptions? options = null,
         CancellationToken cancellationToken = default) => document.ToImage(options, out _, cancellationToken);
@@ -26,7 +41,6 @@ public static partial class WordImageExportExtensions {
     public static async Task<OfficeImageExportResult> ToImageAsync(this WordDocument document,
         WordImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        var timer = Stopwatch.StartNew();
         WordImageExportOptions resolved = NormalizeImageExportOptions(options);
         OfficeImageExportResult result = await CreateImageExportOperation(document, resolved, resolved.Format)
             .ExportAsync(cancellationToken).ConfigureAwait(false);

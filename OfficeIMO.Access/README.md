@@ -161,7 +161,7 @@ Detached module identities survive intervening applications of other detached pr
 
 ## Reproducible native creation
 
-Set `AccessCreateOptions.CreatedAt` explicitly when independently created databases with the same model must have repeatable bytes. Null captures the current local time once when the model is created. The timestamp controls native creation metadata; subsequent schema and row edits still determine file content.
+Set `AccessCreateOptions.CreatedAt` explicitly when independently created databases with the same model must have repeatable bytes. Null captures the current local time once when the model is created. The timestamp controls native creation metadata; subsequent schema and row edits still determine file content. This applies to unencrypted native creation; encryption retains its security-specific random material.
 
 ```csharp
 using AccessDocument database = AccessDocument.Create(new AccessCreateOptions {
