@@ -98,6 +98,11 @@ measure loaded OfficeIMO documents, memory inputs, prefetch and string interning
 their names identify the options used. Every method validates the row count and
 the checksum over all typed values.
 
+`OfficeIMO` and `OfficeIMO_Prefetch` request `NumericAsDecimal = true`.
+`OfficeIMO_DefaultNumbers` and `OfficeIMO_DefaultNumbers_Prefetch` retain the
+default double-valued cells. Both numeric modes use `GetDecimal` for the five
+monetary columns and contribute the same complete typed observation.
+
 The XLSX and XLSB comparisons also include Excel-PRIME 5.2610.18 (MIT). Its
 default managed forward reader and `ExcelCellStyle` conversion option are
 separate lanes. Both read all fourteen columns and normalize numeric cells
