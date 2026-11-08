@@ -22,7 +22,7 @@ public sealed class OfficeImageExportReport : OfficeConversionReport {
     }
 
     private OfficeImageExportReport(OfficeImageExportResult[] results) : this(
-        results.SelectMany(result => result.Diagnostics).ToArray(), results.Length,
+        results.SelectMany(result => result.Diagnostics.Select(diagnostic => OfficeImageExportEvidence.CaptureOrigin(diagnostic, result.Source))).ToArray(), results.Length,
         results.Select(result => result.Source ?? "Image").Distinct().Count() == 1 ? results[0].Source ?? "Image" : "Image",
         results.Select(result => result.Format).Distinct().Count() == 1 ? results[0].Format.ToString() : "Images",
         results.Length == 1 ? results[0].SavedPath : null) { }

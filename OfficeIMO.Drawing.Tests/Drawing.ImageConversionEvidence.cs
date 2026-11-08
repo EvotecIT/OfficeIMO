@@ -38,10 +38,13 @@ public partial class DrawingTests {
     [Fact]
     public void ImageAggregateReport_ExposesSourceEncodingAndCountThroughCommonContract() {
         var image = CreateImageConversionEvidence(OfficeImageExportDiagnosticSeverity.Info, OfficeConversionLossKind.None);
-        OfficeConversionReport report = new OfficeImageExportReport(new[] { image, image });
+        OfficeConversionReport report = new OfficeImageExportReport(new[] {
+            image.WithIdentity("first", "First source"), image.WithIdentity("second", "Second source")
+        });
         Assert.Equal(2, report.ItemsWritten);
         Assert.Equal("Png", report.Target);
         Assert.Equal("Image", report.Source);
+        Assert.Equal(new[] { "First source", "Second source" }, report.Diagnostics.Select(diagnostic => diagnostic.Format));
     }
 
     [Fact]
