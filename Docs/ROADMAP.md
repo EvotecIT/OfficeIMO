@@ -588,7 +588,7 @@ TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split arc
 
 ### Legacy Word note qualification
 
-- [ ] Qualify Word 95 (`nFib=104`) endnotes with an independently produced original containing an endnote story. Record provenance and rights, complete anchors and paragraph content, supported formatting and note settings, editable DOCX save/reopen and native Word readback. Retain the [qualified Word 6 and Word 95 note controls](officeimo.word.legacy-doc-compatibility.md#import-word-6-and-word-95-documents) and matched note-scaling measurements.
+- [ ] Qualify Word 95 (`nFib=104`) endnotes with an independently produced original containing an endnote story, beyond the [current qualified note profile](officeimo.word.legacy-doc-compatibility.md#import-word-6-and-word-95-documents). Record provenance and rights, complete anchors and paragraph content, supported formatting and note settings, editable DOCX save/reopen and native Word readback.
 
 ### OpenDocument qualification and depth
 

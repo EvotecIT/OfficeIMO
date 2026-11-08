@@ -8,24 +8,32 @@ Native DOC uses the legacy behavior for a manual page break at the end of a para
 
 ## Import Word 6 and Word 95 documents
 
-Load an unencrypted, non-fast-saved Word 6 or Word 95 document with `WordDocument.Load`. The supported File Information Block versions are 101 and 104. Windows-1252 text and text whose active font selects Windows-1250 through `EASTEUROPE_CHARSET` (238) or Windows-1257 through `BALTIC_CHARSET` (186) are decoded through the same source model, including inherited fonts and running stories. Czech language identifier `0x0405` also selects Windows-1250 when the active font leaves its charset unresolved (0 or 1). The unchanged OpenOffice-produced `Bug60936.doc` fixture qualifies this Central European text recovery; its unrelated unsupported formatting and bookmarks still require an explicit loss policy. Baltic decoding uses the Microsoft Windows-1257 byte table, including its defined round-trip values for otherwise undefined bytes. Other font code pages and non-Western language fallbacks remain outside this profile. Import projects body paragraphs, paragraph styles and their inheritance, character formatting, simple tables, tracked text revisions, and the default tab stop into editable Word content. Edit-protected files are rejected.
+Load an unencrypted, non-fast-saved Word 6 or Word 95 document with `WordDocument.Load`. The supported File Information Block versions are 101 and 104. Edit-protected files are rejected.
+
+Text recovery supports Windows-1252 and active fonts that select Windows-1250 through `EASTEUROPE_CHARSET` (238) or Windows-1257 through `BALTIC_CHARSET` (186), including inherited fonts and running stories. Czech language identifier `0x0405` also selects Windows-1250 when the active font leaves its charset unresolved (0 or 1). Symbol fonts, other font code pages and unqualified language fallbacks remain outside this profile. The unchanged OpenOffice-produced `Bug60936.doc` fixture qualifies the Central European text recovery; its unrelated unsupported formatting and bookmarks still require an explicit loss policy.
+
+Import projects body paragraphs, paragraph styles and their inheritance, character formatting, simple tables, tracked text revisions, and the default tab stop into editable Word content.
 
 Section layout retains supported section starts, paper dimensions, orientation, margins, gutter, header/footer distances, columns, vertical alignment and page-number settings. Default, first-page and even-page headers and footers retain supported paragraphs, tables and fields. Running stories use the source document's formatting and font-code-page checks. Explicit paragraph tabs, spacing, and supported single, double, dotted and dashed paragraph/table borders remain editable. Paragraph border clears, border shadows, thick borders and range-based tab changes are reported as unsupported formatting.
 
 Automatic footnotes and endnotes retain their body references, multiple paragraphs, literal spaces and tabs, and supported paragraph and run formatting through the existing `FootNotes`, `EndNotes` and `Inspect()` APIs. Common document note settings retain supported numbering formats, starting values, restart rules and placement. Cached note fields use the same supported instruction and lock grammar as other stories. Custom note marks, additional note-reference markers, note tables and unprojected separator stories retain explicit loss diagnostics; unsupported numbering or placement reports `doc-word69-note-settings`.
 
+Use a note's `TextParagraphs` for visible text grouped by top-level paragraph, including blank paragraphs, tabs and cached field results. Its `Paragraphs` collection exposes live run handles for editing, so several entries can belong to the same paragraph. Both properties return `null` when the referenced ordinary note body cannot be resolved.
+
 Legacy nonbreaking (`0x1E`) and discretionary (`0x1F`) hyphens retain U+2011 and
 U+00AD in body and note text, including their original source positions.
+Automatic hyphenation and line layout have separate contracts.
 
-The Core byte decoder retains every Windows-1257 decoding-table value. The Word
-visible-text profile reports high-byte controls or replacement characters after
-resolving the active code page as `doc-word69-text-codepage-unsupported`; strict
-saving blocks their loss. This includes undefined slots in Windows-1250/1252/1257
-and the Western fallback when font metadata is absent. Import does not assign a
-guessed visible glyph to those slots. Font charset 0 or 1 with an unqualified
-language fallback retains its existing loss report.
+The Core decoder retains every Windows-1257 table value, including the private-use
+round-trip values U+F8FC/U+F8FD for bytes `0xA1`/`0xA5`. After resolving the active
+code page, the Word visible-text profile reports decoded C1 controls
+(U+0080–U+009F) or U+FFFD as `doc-word69-text-codepage-unsupported`; strict saving
+blocks the reported loss. This covers undefined Windows-1250/1252/1257 slots
+that decode to those values, including the Western fallback when font metadata
+is absent. Font charset 0 or 1 with an unqualified language fallback retains its
+loss report. Decoded code points alone do not qualify their font appearance.
 
-The [independent Word 6 note fixture](../OfficeIMO.TestAssets/Documents/LegacyDocCorpus/word69-notes/apache-openoffice-4.1.17-notes.oracle.json) qualifies both note kinds, anchors, multiple paragraphs, tabs and selected formatting. Independent Word 95 qualification covers automatic footnotes. The Word 95 endnote profile has binary-grammar regression coverage and remains unqualified against an independently produced original.
+The [independent Word 6 note fixture](../OfficeIMO.TestAssets/Documents/LegacyDocCorpus/word69-notes/apache-openoffice-4.1.17-notes.oracle.json) qualifies both note kinds, anchors, multiple paragraphs, literal tabs and selected formatting in the actual binary input. Independent Word 95 qualification covers automatic footnotes. Word 95 endnotes have binary-grammar regression coverage; qualification against an independently produced original remains [open](ROADMAP.md#legacy-word-note-qualification).
 
 Supported page-count, date/time, document-property, `FILENAME` and `STYLEREF` fields retain their editable representation. Filename and style references retain the source instruction, switches and cached text. Cached result runs retain their formatting and revision marks in DOCX. A style reference without a matching projected source style is reported explicitly. Unsupported or localized field instructions retain cached text under an explicit loss policy. Import does not evaluate fields.
 

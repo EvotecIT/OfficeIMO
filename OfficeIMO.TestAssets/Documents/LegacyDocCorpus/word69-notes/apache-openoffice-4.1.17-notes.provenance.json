@@ -5,7 +5,7 @@
   "bytes": 7168,
   "gitBlob": "4db72d15ee2288b7398059e9bb0cefdf6afa511e",
   "authorship": "Original neutral ASCII note control authored through official third-party Writer APIs, using the same semantics independently authored and read-only verified in Microsoft Word. No OfficeIMO producer or raw legacy writer generated these bytes.",
-  "rights": "Original fixture text is provided for the OfficeIMO test corpus under the repository license; no TAPSP copyrighted text or third-party tool binaries are included.",
+  "rights": "Original fixture text is provided for the OfficeIMO test corpus under the repository license.",
   "producer": {
     "name": "Apache OpenOffice Writer",
     "version": "4.1.17",
