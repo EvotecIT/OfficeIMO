@@ -1,0 +1,38 @@
+/* The selected OfficeTheme supplies defaults; authored CSS and inline formatting retain priority. */
+@layer officeimo-theme {
+$scope { max-width: 860px; margin: 2rem auto; padding: 0 1rem; font-family: var(--office-font-body); font-size: var(--office-size-body); line-height: var(--office-line-spacing); color: var(--office-text); background: var(--office-bg); overflow-wrap: break-word; }
+$scope h1, $scope h2, $scope h3, $scope h4, $scope h5, $scope h6 { font-family: var(--office-font-heading); color: var(--office-heading-color); font-weight: var(--office-heading-bold); line-height: 1.15; break-after: avoid; }
+$scope h1 { font-size: var(--office-size-h1); margin: var(--office-h1-before) 0 var(--office-h1-after); }
+$scope h2 { font-size: var(--office-size-h2); margin: var(--office-h2-before) 0 var(--office-h2-after); }
+$scope h3 { font-size: var(--office-size-h3); margin: var(--office-h3-before) 0 var(--office-h3-after); }
+$scope h4 { font-size: var(--office-size-h4); margin: var(--office-h4-before) 0 var(--office-h4-after); }
+$scope h5 { font-size: var(--office-size-h5); margin: var(--office-h5-before) 0 var(--office-h5-after); }
+$scope h6 { font-size: var(--office-size-h6); margin: var(--office-h6-before) 0 var(--office-h6-after); }
+$scope p { margin: var(--office-paragraph-before) 0 var(--office-paragraph-after); }
+$scope a { color: var(--office-link); text-decoration: underline; }
+$scope ul, $scope ol { margin: var(--office-paragraph-before) 0 var(--office-paragraph-after); padding-left: var(--office-list-indent); }
+$scope li::marker { color: var(--office-accent-1); }
+$scope table { border-collapse: collapse; width: 100%; margin: var(--office-paragraph-before) 0 var(--office-paragraph-after); font-variant-numeric: tabular-nums; }
+$scope th, $scope td { padding: var(--office-table-cell-padding-y) var(--office-table-cell-padding-x); border: var(--office-table-border-width) var(--office-table-grid-style) var(--office-table-border); border-bottom: var(--office-table-border-width) var(--office-table-border-style) var(--office-table-border); vertical-align: top; text-align: left; }
+$scope th { background: var(--office-table-header-fill); color: var(--office-table-header-text); font-weight: var(--office-table-header-bold); border-bottom: var(--office-table-header-rule-width) solid var(--office-table-header-rule-color); }
+$scope tbody tr:nth-child(2n) { background: var(--office-table-band-fill); }
+$scope code, $scope pre { font-family: var(--office-font-mono); font-size: .9em; background: var(--md-code-background, var(--office-surface)); border: 1px solid var(--office-rule); border-radius: 3px; }
+$scope code { padding: .05em .3em; }
+$scope pre { padding: 10px 12px; overflow: auto; }
+$scope pre code { font-size: inherit; background: none; border: 0; padding: 0; }
+$scope blockquote { color: var(--office-muted); border-left: 3px solid var(--office-rule); padding-left: 1em; margin: var(--office-paragraph-before) 0 var(--office-paragraph-after); }
+$scope blockquote.callout { color: inherit; border-left-color: var(--office-accent-1); background: var(--office-accent-1-tint); padding: .5em 1em; }
+$scope blockquote.warning { border-left-color: var(--office-warning); background: var(--office-warning-fill); }
+$scope blockquote.danger { border-left-color: var(--office-danger); background: var(--office-danger-fill); }
+$scope hr { border: 0; border-top: var(--office-table-border-width) solid var(--office-rule); margin: var(--office-paragraph-after) 0; }
+$scope img { max-width: 100%; height: auto; }
+$scope figcaption { color: var(--office-muted); font-size: var(--office-size-caption); }
+$scope nav.md-toc { padding: .75em 1em; background: var(--office-surface); border: 1px solid var(--office-rule); }
+$scope .heading-anchor { margin-left: .4em; opacity: .6; text-decoration: none; }
+$scope .task-list-item { list-style: none; }
+$scope .task-list-item-checkbox { margin-right: .4em; }
+@media print {
+  $scope { max-width: none; margin: 0; padding: 0; }
+  $scope thead { display: table-header-group; }
+}
+}

@@ -161,6 +161,7 @@ public sealed partial class OfficeWorkflowRunner {
                     "import", new Dictionary<string, string> { ["source"] = "RTF", ["position"] = finding.Position.ToString(System.Globalization.CultureInfo.InvariantCulture) }));
                 if (imported.Diagnostics.Any(finding => finding.Severity == OfficeIMO.Rtf.Diagnostics.RtfDiagnosticSeverity.Error))
                     throw new InvalidDataException("RTF import reported invalid or unsupported content that prevents conversion.");
+                if (request.UnifiedConversionOptions?.Theme is { } theme) imported.Document.ApplyTheme(theme);
                 PdfDocumentConversionResult conversion = imported.Document.ConvertToPdfWithEvidence(settings.Rtf, cancellationToken);
                 (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss || imported.Diagnostics.Any(finding => finding.Severity != OfficeIMO.Rtf.Diagnostics.RtfDiagnosticSeverity.Info);

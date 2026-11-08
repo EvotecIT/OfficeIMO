@@ -2,9 +2,7 @@ using System.Text;
 using OfficeIMO.Pdf;
 using OfficeIMO.Rtf.Pdf;
 
-using OfficeIMO.Workflows;
-
-namespace OfficeIMO.Tests;
+namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficeConverterRegistrationTests {
     [Theory]

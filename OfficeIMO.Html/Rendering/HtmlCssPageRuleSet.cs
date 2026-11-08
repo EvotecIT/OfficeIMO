@@ -25,6 +25,8 @@ internal sealed partial class HtmlCssPageRuleSet {
 
     internal int RuleCount => _rules.Count;
 
+    internal bool HasMarginBoxRules => _rules.Any(rule => rule.MarginBoxes.Count > 0);
+
     // Page-context viewport fallback uses the caller's print paper, before @page overrides.
     internal double? InitialPageWidth => _baseWidth;
     internal double? InitialPageHeight => _baseHeight;
@@ -33,10 +35,12 @@ internal sealed partial class HtmlCssPageRuleSet {
         return ResolveGeometry(MatchingRules(pageNumber, pageName), options);
     }
 
+    /// <summary>Resolves the shared unnamed page without applying first, left, right or named-page rules.</summary>
+    internal HtmlCssPageGeometry ResolveGenericGeometry(HtmlRenderOptions options) => ResolveGeometry(
+        _rules.Where(rule => rule.PageName == null && rule.Selector == HtmlCssPageSelector.Generic), options);
+
     internal void ApplyGenericGeometry(HtmlRenderOptions options) {
-        HtmlCssPageGeometry geometry = ResolveGeometry(
-            _rules.Where(rule => rule.PageName == null && rule.Selector == HtmlCssPageSelector.Generic),
-            options);
+        HtmlCssPageGeometry geometry = ResolveGenericGeometry(options);
         if (options.PrintFitContentWidth is double layoutWidth) {
             options.CssMediaHeightOverride ??= geometry.Height;
             double physicalContentWidth = geometry.ContentWidth;

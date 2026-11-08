@@ -34,6 +34,9 @@ public partial class RtfDocumentRichFeatureTests {
         int shadeColor = document.AddColor(0xEE, 0xF6, 0xFF);
         int borderColor = document.AddColor(0x44, 0x72, 0xC4);
         int patternColor = document.AddColor(0x00, 0xAA, 0x55);
+        RtfStyle resetStyle = document.AddStyle(9, "Border reset", RtfStyleKind.Table);
+        resetStyle.TableRowFormat.VerticalBorder.Width = 0;
+        resetStyle.TableRowFormat.AddCell().TopLeftToBottomRightBorder.Width = 0;
         RtfTable table = document.AddTable(1, 3);
         table.Rows[0].RepeatHeader = true;
         table.Rows[0].KeepTogether = true;
@@ -61,7 +64,8 @@ public partial class RtfDocumentRichFeatureTests {
         table.Rows[0].BottomBorder.Style = RtfTableCellBorderStyle.Dotted;
         table.Rows[0].RightBorder.Style = RtfTableCellBorderStyle.Dashed;
         table.Rows[0].HorizontalBorder.Style = RtfTableCellBorderStyle.Single;
-        table.Rows[0].VerticalBorder.Style = RtfTableCellBorderStyle.Double;
+        table.Rows[0].VerticalBorder.Width = 0;
+        table.Rows[0].VerticalBorder.ColorIndex = borderColor;
         table.Rows[0].Cells[0].HorizontalMerge = RtfTableCellMerge.First;
         table.Rows[0].Cells[0].VerticalMerge = RtfTableCellMerge.First;
         table.Rows[0].Cells[0].SetShading(shadeColor, foregroundColorIndex: patternColor, patternPercent: 3750, pattern: RtfShadingPattern.DarkForwardDiagonal);
@@ -88,6 +92,12 @@ public partial class RtfDocumentRichFeatureTests {
         table.Rows[0].Cells[1].HorizontalMerge = RtfTableCellMerge.Continue;
         table.Rows[0].Cells[1].AddParagraph("Continue");
         table.Rows[0].Cells[2].VerticalAlignment = RtfTableCellVerticalAlignment.Bottom;
+        RtfTableCell resetCell = table.Rows[0].Cells[2];
+        foreach (RtfTableCellBorder border in new[] { resetCell.TopBorder, resetCell.LeftBorder, resetCell.BottomBorder,
+            resetCell.RightBorder, resetCell.TopLeftToBottomRightBorder, resetCell.TopRightToBottomLeftBorder }) {
+            border.Width = 0;
+            border.ColorIndex = borderColor;
+        }
         table.Rows[0].Cells[2].AddParagraph("Bottom");
 
         string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
@@ -138,7 +148,9 @@ public partial class RtfDocumentRichFeatureTests {
         Assert.Equal(RtfTableCellBorderStyle.Dotted, readRow.BottomBorder.Style);
         Assert.Equal(RtfTableCellBorderStyle.Dashed, readRow.RightBorder.Style);
         Assert.Equal(RtfTableCellBorderStyle.Single, readRow.HorizontalBorder.Style);
-        Assert.Equal(RtfTableCellBorderStyle.Double, readRow.VerticalBorder.Style);
+        Assert.Equal(RtfTableCellBorderStyle.None, readRow.VerticalBorder.Style);
+        Assert.Equal(0, readRow.VerticalBorder.Width);
+        Assert.Null(readRow.VerticalBorder.ColorIndex);
         Assert.Equal(RtfTableCellMerge.First, readRow.Cells[0].HorizontalMerge);
         Assert.Equal(RtfTableCellMerge.Continue, readRow.Cells[1].HorizontalMerge);
         Assert.Equal(RtfTableCellMerge.First, readRow.Cells[0].VerticalMerge);
@@ -170,6 +182,16 @@ public partial class RtfDocumentRichFeatureTests {
         Assert.Equal(borderColor, readRow.Cells[0].TopLeftToBottomRightBorder.ColorIndex);
         Assert.Equal(RtfTableCellBorderStyle.Dashed, readRow.Cells[0].TopRightToBottomLeftBorder.Style);
         Assert.Equal(10, readRow.Cells[0].TopRightToBottomLeftBorder.Width);
+        RtfTableCell readResetCell = readRow.Cells[2];
+        Assert.All(new[] { readResetCell.TopBorder, readResetCell.LeftBorder, readResetCell.BottomBorder,
+            readResetCell.RightBorder, readResetCell.TopLeftToBottomRightBorder, readResetCell.TopRightToBottomLeftBorder }, border => {
+                Assert.Equal(RtfTableCellBorderStyle.None, border.Style);
+                Assert.Equal(0, border.Width);
+                Assert.Null(border.ColorIndex);
+            });
+        RtfTableRow resetStyleRow = read.Document.Styles.Single(style => style.Id == 9).TableRowFormat;
+        Assert.Equal(0, resetStyleRow.VerticalBorder.Width);
+        Assert.Equal(0, Assert.Single(resetStyleRow.Cells).TopLeftToBottomRightBorder.Width);
         Assert.Contains(@"\trhdr", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trkeep", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trkeepfollow", rtf, StringComparison.Ordinal);
@@ -188,9 +210,10 @@ public partial class RtfDocumentRichFeatureTests {
         Assert.Contains(@"\trbrdrb\brdrdot", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trbrdrr\brdrdash", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trbrdrh\brdrs", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\trbrdrv\brdrdb", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\trbrdrv\brdrnone\cldglu\brdrnone\cellx2400", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\trbrdrv\brdrnone\clmgf", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clmgf", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\clmrg", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clmrg\cellx4800\clvertalb", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clvmgf", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clcbpat1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clcfpat3\clshdng3750\clbgdkfdiag", rtf, StringComparison.Ordinal);
@@ -208,6 +231,18 @@ public partial class RtfDocumentRichFeatureTests {
         Assert.Contains(@"\clbrdrr\brdrdash", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\cldglu\brdrdot\brdrw6\brdrcf2", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\cldgll\brdrdash\brdrw10", rtf, StringComparison.Ordinal);
+        const string resetBorders = @"\clbrdrt\brdrnone\clbrdrl\brdrnone\clbrdrb\brdrnone\clbrdrr\brdrnone\cldglu\brdrnone\cldgll\brdrnone\cellx7200";
+        Assert.Contains(resetBorders, rtf, StringComparison.Ordinal);
+        Assert.Contains(resetBorders, read.Document.ToRtf(new RtfSaveOptions { IncludeGenerator = false }), StringComparison.Ordinal);
+
+        using RtfDocument unspecified = RtfDocument.ParseResult(rtf.Replace(@"\brdrnone", @"\brdrnil")).Document;
+        RtfTableRow unspecifiedRow = Assert.Single(unspecified.Blocks.OfType<RtfTable>()).Rows[0];
+        Assert.False(unspecifiedRow.VerticalBorder.HasAnyValue);
+        Assert.False(unspecifiedRow.Cells[2].TopLeftToBottomRightBorder.HasAnyValue);
+        RtfTableRow unspecifiedStyleRow = unspecified.Styles.Single(style => style.Id == 9).TableRowFormat;
+        Assert.False(unspecifiedStyleRow.VerticalBorder.HasAnyValue);
+        Assert.False(Assert.Single(unspecifiedStyleRow.Cells).TopLeftToBottomRightBorder.HasAnyValue);
+        Assert.DoesNotContain(@"\brdrnone", unspecified.ToRtf(new RtfSaveOptions { IncludeGenerator = false }), StringComparison.Ordinal);
     }
 
     [Fact]

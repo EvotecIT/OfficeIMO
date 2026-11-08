@@ -46,11 +46,13 @@ namespace OfficeIMO.Word.Markdown {
             double pageContentWidthPixels,
             int listLevel,
             int quoteDepth,
-            string contextPrefix) {
+            string contextPrefix,
+            InlineFormatState? inlineFormat = null) {
+            InlineFormatState format = ResolveNativeTextContext(paragraph, options, inlineFormat);
             var imageSource = pathOrUrl ?? string.Empty;
             var contextWidthLimit = ResolveContextWidthLimitPixels(options.ImageLayout, pageContentWidthPixels, listLevel, quoteDepth);
 
-            if (TryRenderDataUriImage(paragraph, imageSource, alt, requestedWidth, requestedHeight, options, pageContentWidthPixels, contextWidthLimit, contextPrefix)) {
+            if (TryRenderDataUriImage(paragraph, imageSource, alt, requestedWidth, requestedHeight, options, pageContentWidthPixels, contextWidthLimit, contextPrefix, format)) {
                 return;
             }
 
@@ -58,7 +60,7 @@ namespace OfficeIMO.Word.Markdown {
             if (localImagePath != null && !System.IO.File.Exists(localImagePath)) {
                 ReportImageLoss(options, OfficeDiagnosticCodes.ImageLoadFailed,
                     $"Image '{imageSource}' was not found at '{localImagePath}'; its alternative text was written instead.", imageSource);
-                AddImageFallbackText(paragraph, alt, System.IO.Path.GetFileName(imageSource), options);
+                AddImageFallbackText(paragraph, alt, System.IO.Path.GetFileName(imageSource), options, format);
                 return;
             }
 
@@ -93,7 +95,7 @@ namespace OfficeIMO.Word.Markdown {
                             ? $"Local image '{pathOrUrl}' is outside AllowedImageDirectories; its alternative text was written instead."
                             : $"Local image '{pathOrUrl}' was not embedded because AllowLocalImages is disabled; its alternative text was written instead.",
                         pathOrUrl);
-                    AddImageFallbackText(paragraph, alt, System.IO.Path.GetFileName(imageSource), options);
+                    AddImageFallbackText(paragraph, alt, System.IO.Path.GetFileName(imageSource), options, format);
                 }
 
                 return;
@@ -151,19 +153,19 @@ namespace OfficeIMO.Word.Markdown {
                         } catch (Exception ex) {
                             options.OnWarning?.Invoke($"Remote image '{uri}' could not be downloaded. {ex.Message}");
                             if (options.FallbackRemoteImagesToHyperlinks) {
-                                paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
+                                AddImageFallbackLink(paragraph, alt ?? uri.ToString(), uri, options, format);
                             }
                         }
                     } else {
                         options.OnWarning?.Invoke($"Remote image '{uri}' was not resolved because MarkdownWordExportOptions.RemoteImageResolver is not configured.");
                         if (options.FallbackRemoteImagesToHyperlinks) {
-                            paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
+                            AddImageFallbackLink(paragraph, alt ?? uri.ToString(), uri, options, format);
                         }
                     }
                 } else {
                     options.OnWarning?.Invoke($"Remote image '{uri}' was rejected by the configured URL policy.");
                     if (options.FallbackRemoteImagesToHyperlinks) {
-                        paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
+                        AddImageFallbackLink(paragraph, alt ?? uri.ToString(), uri, options, format);
                     }
                 }
 
@@ -172,7 +174,7 @@ namespace OfficeIMO.Word.Markdown {
 
             ReportImageLoss(options, OfficeDiagnosticCodes.ImageLoadFailed,
                 $"Image source '{imageSource}' could not be resolved; its alternative text was written instead.", imageSource);
-            AddImageFallbackText(paragraph, alt, imageSource, options);
+            AddImageFallbackText(paragraph, alt, imageSource, options, format);
         }
 
         private static void ReportImageLoss(MarkdownWordExportOptions options, string code, string message, string? location) {
@@ -264,14 +266,15 @@ namespace OfficeIMO.Word.Markdown {
             MarkdownWordExportOptions options,
             double pageContentWidthPixels,
             double? contextWidthLimit,
-            string contextPrefix) {
+            string contextPrefix,
+            InlineFormatState format) {
             if (!source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
                 return false;
             }
 
             if (!options.AllowDataUriImages) {
                 options.OnWarning?.Invoke("Data URI image was skipped because AllowDataUriImages is disabled.");
-                AddImageFallbackText(paragraph, alt, string.Empty, options);
+                AddImageFallbackText(paragraph, alt, string.Empty, options, format);
                 return true;
             }
 
@@ -280,7 +283,7 @@ namespace OfficeIMO.Word.Markdown {
                     options.OnWarning?.Invoke(warning!);
                 }
 
-                AddImageFallbackText(paragraph, alt, string.Empty, options);
+                AddImageFallbackText(paragraph, alt, string.Empty, options, format);
                 return true;
             }
 
@@ -310,7 +313,7 @@ namespace OfficeIMO.Word.Markdown {
                 paragraph.AddImage(stream, fileName, finalW, finalH, options: new OfficeIMO.Word.WordImageOptions { AltText = alt ?? string.Empty });
             } catch (Exception ex) when (IsRecoverableDataUriImageInsertionException(ex)) {
                 options.OnWarning?.Invoke($"Data URI image could not be inserted as a supported Word image. {ex.Message}");
-                AddImageFallbackText(paragraph, alt, string.Empty, options);
+                AddImageFallbackText(paragraph, alt, string.Empty, options, format);
             }
 
             return true;
@@ -432,13 +435,18 @@ namespace OfficeIMO.Word.Markdown {
             };
         }
 
-        private static void AddImageFallbackText(WordParagraph paragraph, string? alt, string fallback, MarkdownWordExportOptions options) {
+        private static void AddImageFallbackText(WordParagraph paragraph, string? alt, string fallback, MarkdownWordExportOptions options, InlineFormatState format) {
             var fallbackText = !string.IsNullOrEmpty(alt) ? alt! : fallback ?? string.Empty;
-            var text = paragraph.AddText(fallbackText);
+            var text = AddContextText(paragraph, fallbackText, options, format);
             var defaultFont = ResolveDefaultFontFamily(options);
-            if (!string.IsNullOrEmpty(defaultFont)) {
+            if (format.NativeDefaults == null && !string.IsNullOrEmpty(defaultFont)) {
                 text.SetFontFamily(defaultFont!);
             }
+        }
+
+        private static void AddImageFallbackLink(WordParagraph paragraph, string text, Uri uri, MarkdownWordExportOptions options, InlineFormatState format) {
+            WordParagraph link = paragraph.AddHyperLink(text, uri).Paragraph;
+            if (format.NativeDefaults != null) ApplyHyperlinkFormattingOmd(link, format, ResolveDefaultFontFamily(options), options);
         }
 
         private static double? ResolveContextWidthLimitPixels(

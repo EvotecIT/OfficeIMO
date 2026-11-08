@@ -124,11 +124,11 @@ namespace OfficeIMO.Word.Markdown {
 
             var paragraph = host.CreateParagraph();
             ApplyBlockParagraphFormatting(paragraph, quoteDepth, alignment, options);
-            paragraph.AddBreak(WordBreakType.Page);
+            ApplyNativeContextRunFormatting(paragraph.AddBreak(WordBreakType.Page), paragraph, options);
             if (!string.IsNullOrWhiteSpace(block.Caption)) {
                 var captionParagraph = host.CreateParagraph();
                 ApplyBlockParagraphFormatting(captionParagraph, quoteDepth, alignment, options);
-                captionParagraph.AddText(block.Caption!);
+                AddContextText(captionParagraph, block.Caption!, options);
             }
 
             return true;
@@ -266,7 +266,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 if (hasTerm) {
-                    var separator = leadParagraph.AddText(": ");
+                    var separator = AddContextText(leadParagraph, ": ", options);
                     var defaultFont = ResolveDefaultFontFamily(options);
                     if (!string.IsNullOrEmpty(defaultFont)) {
                         separator.SetFontFamily(defaultFont!);
@@ -311,6 +311,8 @@ namespace OfficeIMO.Word.Markdown {
                 : (rowCells.Count > 0 ? rowCells[0].Count : 1);
             var rows = rowCells.Count + (headerCells.Count > 0 ? 1 : 0);
             var wordTable = host.CreateTable(rows, cols);
+            wordTable.RepeatHeaderRowAtTheTopOfEachPage = hasHeaderRow;
+            wordTable.ConditionalFormattingFirstRow = hasHeaderRow;
             int rowIndex = 0;
             bool[] numericColumns = ResolveNumericColumns(table, cols);
             bool applyPresentationAlignment = ResolveTheme(options) != null;
@@ -354,8 +356,6 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             ApplyTableTheme(wordTable, options, hasHeaderRow);
-            wordTable.RepeatHeaderRowAtTheTopOfEachPage = hasHeaderRow;
-            wordTable.ConditionalFormattingFirstRow = hasHeaderRow;
             ApplyContentProportionalColumnWidths(wordTable, pageContentWidthPixels);
         }
 
@@ -506,7 +506,7 @@ namespace OfficeIMO.Word.Markdown {
                     run.SetBold();
                 }
             } else {
-                titleParagraph.AddFormattedText(callout.Title, bold: true);
+                AddContextText(titleParagraph, callout.Title, options).SetBold();
             }
 
             ApplyCalloutTitleTheme(titleParagraph, options);
@@ -516,7 +516,7 @@ namespace OfficeIMO.Word.Markdown {
             } else if (!string.IsNullOrWhiteSpace(callout.Body)) {
                 var bodyParagraph = host.CreateParagraph();
                 ApplyBlockParagraphFormatting(bodyParagraph, quoteDepth, alignment, options);
-                bodyParagraph.AddText(callout.Body);
+                AddContextText(bodyParagraph, callout.Body, options);
                 ApplyBodyTextTheme(bodyParagraph, options);
             }
         }

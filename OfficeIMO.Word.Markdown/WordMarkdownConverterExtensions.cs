@@ -167,7 +167,7 @@ namespace OfficeIMO.Word.Markdown {
             }
             WordDocument value;
             if (effectiveOptions.TemplatePath != null) {
-                value = WordDocument.Create(new WordCreateOptions { Template = effectiveOptions.TemplatePath, Theme = effectiveOptions.ThemeSnapshot?.SourceTheme });
+                value = WordDocument.Create(new WordCreateOptions { Template = effectiveOptions.TemplatePath });
                 try {
                     new MarkdownToWordConverter().ConvertIntoTemplate(markdown, value, effectiveOptions, cancellationToken);
                 } catch {

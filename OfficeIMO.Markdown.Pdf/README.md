@@ -132,7 +132,7 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word.Markdown;
 
-MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+MarkdownVisualTheme theme = MarkdownVisualTheme.FromOfficeTheme(OfficeTheme.Boardroom)
     .WithColorScheme(MarkdownColorSchemeKind.Emerald)
     .WithColors(accent: "SeaGreen", heading: "#064e3b")
     .WithTable(table => {
@@ -141,7 +141,7 @@ MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
         table.UseRowStripes = true;
     });
 
-MarkdownDocument document = MarkdownDocument.Parse(markdown);
+using MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
 document.SaveAsHtml("report.html", new MarkdownHtmlExportOptions { Theme = theme });
 document.SaveAsPdf("report.pdf", new MarkdownPdfExportOptions { Theme = theme });
@@ -149,6 +149,8 @@ document.SaveAsPdf("report.pdf", new MarkdownPdfExportOptions { Theme = theme })
 using var word = document.ToWord(new MarkdownWordExportOptions { Theme = theme });
 word.Save("report.docx");
 ```
+
+`FromOfficeTheme` carries the shared fonts, type scale, colors, spacing, page margins and table defaults into each adapter. Format-specific options and authored emphasis, code and links retain their supported meaning. Plain conversion keeps its existing defaults until a theme is selected. Arbitrary inline CSS in Markdown is handled by the HTML engine rather than the direct Word and PDF adapters.
 
 ### Write to bytes or streams
 

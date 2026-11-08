@@ -27,7 +27,7 @@ internal static partial class WordRunFormatting {
         if (table.GetFirstChild<TableProperties>()?.GetFirstChild<Shading>() is { } tableShading) return tableShading;
         Styles? styles = cell.Document.MainDocumentPartRoot.StyleDefinitionsPart?.Styles;
         TableRunPaintState state = GetTableRunPaintState(table, styles);
-        if (state.HasConditionalPaint) {
+        if (state.HasConditionalFormatting) {
             foreach (TableStyleOverrideValues condition in EnumerateTableRunConditions(state, cell._tableCell)) {
                 foreach (Style style in state.Chain) {
                     foreach (TableStyleProperties conditional in style.Elements<TableStyleProperties>()
@@ -53,35 +53,69 @@ internal static partial class WordRunFormatting {
     /// Reads the nearest table's XML without constructing normalization-capable table wrappers.
     /// </summary>
     internal static IEnumerable<OpenXmlCompositeElement> EnumerateTableRunPropertySources(WordParagraph paragraph) {
-        TableCell? cell = paragraph._paragraph.Ancestors<TableCell>().FirstOrDefault();
-        TableRow? row = cell?.Ancestors<TableRow>().FirstOrDefault();
-        Table? table = row?.Ancestors<Table>().FirstOrDefault();
-        if (cell == null || row == null || table == null) yield break;
-
         Styles? styles = paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-        TableRunPaintState state = GetTableRunPaintState(table, styles);
-        Style[] chain = state.Chain;
-        if (chain.Length == 0) yield break;
+        var context = GetTableRunPropertyContext(paragraph._paragraph, styles);
+        if (context == null) return Enumerable.Empty<OpenXmlCompositeElement>();
+        return EnumerateTableRunPropertySources(context.Value.State.Chain, EnumerateTableRunConditions(context.Value.State, context.Value.Cell))
+            .Where(properties => properties.GetFirstChild<Shading>() != null || ReadRunHighlight(properties).HasValue);
+    }
 
-        if (state.HasConditionalPaint) {
-            foreach (TableStyleOverrideValues condition in EnumerateTableRunConditions(state, cell)) {
-                foreach (Style style in chain) {
-                    foreach (TableStyleProperties conditional in style.Elements<TableStyleProperties>()
-                                 .Where(properties => properties.Type?.Value == condition).Reverse()) {
-                        RunPropertiesBaseStyle? properties = conditional.GetFirstChild<RunPropertiesBaseStyle>();
-                        if (HasRunBackground(properties)) yield return properties!;
-                    }
+    /// <summary>Reads the complete semantic run cascade, including authored normal-table styles, without constructing wrappers.</summary>
+    internal static IEnumerable<OpenXmlCompositeElement> EnumerateTableRunPropertySources(Paragraph paragraph, Styles? styles) {
+        var context = GetTableRunPropertyContext(paragraph, styles);
+        return context == null ? Enumerable.Empty<OpenXmlCompositeElement>() :
+            EnumerateTableSemanticRunPropertySources(context.Value.State, context.Value.Cell);
+    }
+
+    private static (TableCell Cell, TableRunPaintState State)? GetTableRunPropertyContext(Paragraph paragraph, Styles? styles) {
+        TableCell? cell = paragraph.Ancestors<TableCell>().FirstOrDefault();
+        Table? table = cell?.Ancestors<Table>().FirstOrDefault();
+        return cell == null || table == null ? null : (cell, GetTableRunPaintState(table, styles));
+    }
+
+    private static IEnumerable<OpenXmlCompositeElement> EnumerateTableRunPropertySources(Style[] chain, IEnumerable<TableStyleOverrideValues> conditions) {
+        foreach (TableStyleOverrideValues condition in conditions) {
+            foreach (Style style in chain) {
+                foreach (TableStyleProperties conditional in style.Elements<TableStyleProperties>()
+                             .Where(properties => properties.Type?.Value == condition).Reverse()) {
+                    if (conditional.GetFirstChild<RunPropertiesBaseStyle>() is { } properties) yield return properties;
                 }
             }
         }
-
         foreach (Style style in chain) {
-            if (HasRunBackground(style.StyleRunProperties)) yield return style.StyleRunProperties!;
+            if (style.StyleRunProperties != null) yield return style.StyleRunProperties;
         }
     }
 
-    private static bool HasRunBackground(OpenXmlCompositeElement? properties) =>
-        properties?.GetFirstChild<Shading>() != null || ReadRunHighlight(properties).HasValue;
+    private static IEnumerable<OpenXmlCompositeElement> EnumerateTableSemanticRunPropertySources(TableRunPaintState state, TableCell cell) {
+        foreach (TableStyleOverrideValues condition in EnumerateTableSemanticRunConditions(state, cell)) {
+            // Word replaces a conditional run-property block as a unit. A derived region
+            // containing only bold must not acquire a symbol face from the base region.
+            RunPropertiesBaseStyle? properties = state.RunChain.SelectMany(style => style.Elements<TableStyleProperties>()
+                    .Where(conditional => conditional.Type?.Value == condition).Reverse())
+                .Select(conditional => conditional.GetFirstChild<RunPropertiesBaseStyle>()).FirstOrDefault(value => value != null);
+            if (properties != null) yield return properties;
+        }
+        foreach (Style style in state.RunChain) {
+            if (style.StyleRunProperties != null) yield return style.StyleRunProperties;
+        }
+    }
+
+    /// <summary>Includes native corner regions only when both of their row/column edges are enabled.</summary>
+    private static IEnumerable<TableStyleOverrideValues> EnumerateTableSemanticRunConditions(TableRunPaintState state, TableCell cell) {
+        if (state.Cells.TryGetValue(cell, out var position)) {
+            bool top = (state.Mask & 0x0020) != 0 && position.Row == 0;
+            bool bottom = (state.Mask & 0x0040) != 0 && position.Row + 1 == state.RowCount;
+            bool left = (state.Mask & 0x0080) != 0 && position.Column == 0;
+            bool right = (state.Mask & 0x0100) != 0 && state.ColumnCount > 0 && (long)position.Column + position.Span >= state.ColumnCount;
+            // Reverse native precedence so corners precede row/column edges and bands.
+            if (bottom && right) yield return TableStyleOverrideValues.SouthEastCell;
+            if (bottom && left) yield return TableStyleOverrideValues.SouthWestCell;
+            if (top && right) yield return TableStyleOverrideValues.NorthEastCell;
+            if (top && left) yield return TableStyleOverrideValues.NorthWestCell;
+        }
+        foreach (TableStyleOverrideValues condition in EnumerateTableRunConditions(state, cell)) yield return condition;
+    }
 
     private static bool IsBuiltInNormalTableStyle(string? styleId) =>
         string.Equals(styleId, "TableNormal", StringComparison.Ordinal) ||

@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
             var runs = doc.Paragraphs[0].GetRuns().ToArray();
 
             Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Double, runs[0].Underline);
-            Assert.Null(runs[1].Underline);
+            Assert.True(runs[1].Underline is null or OfficeIMO.Word.WordUnderlineStyle.None);
         }
     }
 }

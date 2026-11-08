@@ -4,7 +4,6 @@ using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
-        private const int TableLookFirstRowMask = 0x0020;
 
         /// <summary>
         /// Header-row appearance taken from the table style's <c>firstRow</c> conditional formatting.
@@ -58,16 +57,7 @@ namespace OfficeIMO.Word.Html {
             return appearance;
         }
 
-        private static bool IsTableFirstRowLookEnabled(Table table) {
-            TableLook? look = table.GetFirstChild<TableProperties>()?.TableLook;
-            if (look == null) {
-                return false;
-            }
-            if (look.FirstRow != null) {
-                return look.FirstRow.Value;
-            }
-            return (WordTable.GetTableLookMask(look) & TableLookFirstRowMask) != 0;
-        }
+        private static bool IsTableFirstRowLookEnabled(Table table) => WordTable.HasFirstRowFormatting(table);
 
         private static string? NormalizeStyleColor(string? value) {
             if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) {

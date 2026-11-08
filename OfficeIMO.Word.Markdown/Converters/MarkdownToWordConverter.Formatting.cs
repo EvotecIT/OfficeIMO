@@ -22,21 +22,21 @@ namespace OfficeIMO.Word.Markdown {
         /// including blank and indented ones, keeps the same font and size. The paragraph uses a real
         /// <c>CodeLang_*</c> paragraph style that records the fence language for Word to Markdown export.
         /// </summary>
-        private static void AddCodeText(WordParagraph paragraph, string? content, string? language) {
+        private static void AddCodeText(WordParagraph paragraph, string? content, string? language, MarkdownWordExportOptions options) {
             string code = (content ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
             if (code.EndsWith("\n", StringComparison.Ordinal)) {
                 code = code.Substring(0, code.Length - 1);
             }
 
             string monoFont = WordFontResolver.Resolve("monospace") ?? "Consolas";
-            WordParagraph run = paragraph.AddText(string.Empty);
+            string styleId = CodeStylePrefix + SanitizeCodeLanguage(language);
+            EnsureCodeParagraphStyle(paragraph._document, styleId, language, monoFont);
+            paragraph.SetStyleId(styleId);
+            WordParagraph run = AddContextText(paragraph, string.Empty, options);
             run.Text = code;
             foreach (WordParagraph codeRun in paragraph.GetRuns()) {
                 codeRun.SetFontFamily(monoFont);
             }
-            string styleId = CodeStylePrefix + SanitizeCodeLanguage(language);
-            EnsureCodeParagraphStyle(paragraph._document, styleId, language, monoFont);
-            paragraph.SetStyleId(styleId);
         }
 
         private static string SanitizeCodeLanguage(string? language) {
@@ -96,8 +96,11 @@ namespace OfficeIMO.Word.Markdown {
             ApplyAlignment(alignment, paragraph);
         }
 
-        private static Omd.MarkdownVisualTheme? ResolveTheme(MarkdownWordExportOptions options) =>
-            Omd.MarkdownVisualTheme.ResolveOrDefault(options.ThemeSnapshot, options.ApplyDefaultTheme);
+        private static Omd.MarkdownVisualTheme? ResolveTheme(MarkdownWordExportOptions options) {
+            Omd.MarkdownVisualTheme? theme = Omd.MarkdownVisualTheme.ResolveOrDefault(options.ThemeSnapshot, options.ApplyDefaultTheme);
+            // A template owns its native styles and page settings; the common theme is a composition fallback.
+            return theme?.SourceTheme != null && (options.Template != null || options.TemplatePath != null) ? null : theme;
+        }
 
         private static void ApplyHeadingTheme(WordParagraph paragraph, MarkdownWordExportOptions options) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
@@ -167,7 +170,7 @@ namespace OfficeIMO.Word.Markdown {
             paragraph.Borders.LeftColorValue = palette.Accent.ToRgbHex();
             paragraph.Borders.LeftSize = OfficeLength.Points(1);
             foreach (var run in paragraph.GetRuns()) {
-                run.SetColor(palette.Accent);
+                if (theme.SourceTheme == null || !run.IsHyperLink) run.SetColor(palette.Accent);
                 run.SetBold();
             }
         }
@@ -178,9 +181,16 @@ namespace OfficeIMO.Word.Markdown {
                 return;
             }
 
-            if (theme.SourceTheme != null) {
+            if (theme.EffectiveSourceTheme is { } source) {
                 // Native creation owns the complete table style, including border mode, header rule and number alignment.
                 table.SetStyleId(WordThemeDefaults.TableStyleId);
+                // Markdown's independent horizontal padding is more specific than the native edge-padding token.
+                if (theme.TableSnapshot.CellPaddingX != OfficeLength.Points(source.TableStyle.CellPadding.ToPoints() * 1.4D)) {
+                    foreach (var cell in table.Rows.SelectMany(row => row.Cells)) {
+                        cell.MarginLeft = theme.TableSnapshot.CellPaddingX;
+                        cell.MarginRight = theme.TableSnapshot.CellPaddingX;
+                    }
+                }
                 return;
             }
 

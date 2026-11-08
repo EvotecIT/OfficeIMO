@@ -45,7 +45,7 @@ public static partial class WordHtmlConverterExtensions {
         WordSection target = ResolveHtmlStorySection(header, section);
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
-        var converter = new HtmlToWordConverter();
+        var converter = new HtmlToWordConverter(GetWordMediaContext(htmlDocument));
         IReadOnlyList<WordElement> elements = await converter.AddHtmlToHeaderAsync(
             header.Document, target, header, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport),
             resolved, cancellationToken).ConfigureAwait(false);
@@ -92,7 +92,7 @@ public static partial class WordHtmlConverterExtensions {
         WordSection target = ResolveHtmlStorySection(footer, section);
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
-        var converter = new HtmlToWordConverter();
+        var converter = new HtmlToWordConverter(GetWordMediaContext(htmlDocument));
         IReadOnlyList<WordElement> elements = await converter.AddHtmlToFooterAsync(
             footer.Document, target, footer, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport),
             resolved, cancellationToken).ConfigureAwait(false);

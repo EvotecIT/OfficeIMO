@@ -24,7 +24,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return;
         }
 
-        bool preserveDocumentFontSlots = hasCallerPdfOptions || hasExplicitFontFamily;
+        bool preserveDocumentFontSlots = hasCallerPdfOptions || hasExplicitFontFamily || options.ThemeSnapshot?.SourceTheme != null;
         bool usesCodeFont = MarkdownDocumentUsesCodeFont(document);
         if (!usesCodeFont) {
             fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.MonospaceFont;

@@ -106,6 +106,8 @@ internal static partial class OfficeBatchExecutor {
             TargetExtension = NormalizeExtension(request.TargetExtension),
             ConversionOptions = (request.ConversionOptions ?? throw new ArgumentException("Conversion settings are required.")).Snapshot()
         };
+        if (copy.CheckpointDirectory != null && copy.ConversionOptions.Theme != null)
+            throw new NotSupportedException("A common Theme is execution-only and requires an ordinary batch without checkpoints.");
         if (copy.InputDirectory == null && copy.InputPaths is not { Length: > 0 })
             throw new ArgumentException("Select an input directory or explicit input files.", nameof(request));
         if (copy.InputPaths?.Length > copy.MaximumFiles) throw new ArgumentException("Explicit selection exceeds its file limit.", nameof(request));

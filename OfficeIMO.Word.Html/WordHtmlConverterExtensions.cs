@@ -83,7 +83,7 @@ namespace OfficeIMO.Word.Html {
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
 
             var section = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the body.");
-            var converter = new HtmlToWordConverter();
+            var converter = new HtmlToWordConverter(GetWordMediaContext(htmlDocument));
             IReadOnlyList<WordElement> elements = await converter.AddHtmlToBodyAsync(doc, section, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport), resolved, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             return elements;

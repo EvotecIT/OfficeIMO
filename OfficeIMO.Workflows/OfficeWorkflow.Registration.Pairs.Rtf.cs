@@ -17,6 +17,7 @@ public static partial class OfficeWorkflow {
             if (Id.StartsWith("rtf-", StringComparison.Ordinal)) {
                 RtfReadResult read = await RtfDocument.LoadResultAsync(input, settings.RtfLoad, cancellationToken: token).ConfigureAwait(false);
                 using RtfDocument document = read.Document;
+                if (options.Theme != null && Id != "rtf-markdown") document.ApplyTheme(options.Theme);
                 var source = new RtfConversionReport();
                 source.AddReadDiagnostics(read.Diagnostics, options.SourceName);
                 if (Id == "rtf-html") {
@@ -37,6 +38,7 @@ public static partial class OfficeWorkflow {
             if (Id == "docx-rtf") {
                 WordLoadOptions load = OfficeConverter.WordInputOptions(options);
                 using WordDocument document = await WordDocument.LoadAsync(input, load, token).ConfigureAwait(false);
+                if (options.Theme != null) document.ApplyTheme(options.Theme);
                 WordRtfExportOptions conversion = settings.WordRtf ?? new();
                 conversion.FailOnLoss |= options.FailOnLoss;
                 conversion.SaveOptions = settings.RtfSave ?? conversion.SaveOptions;

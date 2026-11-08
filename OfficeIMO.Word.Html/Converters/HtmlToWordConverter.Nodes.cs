@@ -468,6 +468,7 @@ namespace OfficeIMO.Word.Html {
                     case "b": {
                             var fmt = formatting;
                             fmt.Bold = true;
+                            ApplySpanStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
@@ -477,6 +478,7 @@ namespace OfficeIMO.Word.Html {
                     case "i": {
                             var fmt = formatting;
                             fmt.Italic = true;
+                            ApplySpanStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
@@ -486,6 +488,7 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             fmt.Underline = true;
                             fmt.UnderlineStyle ??= UnderlineValues.Single;
+                            ApplySpanStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
@@ -496,6 +499,7 @@ namespace OfficeIMO.Word.Html {
                             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             fmt.Strike = true;
+                            ApplySpanStyles(element, ref fmt);
                             var runStart = CaptureTextRunStart(currentParagraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -513,6 +517,7 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             fmt.Underline = true;
                             fmt.UnderlineStyle ??= UnderlineValues.Single;
+                            ApplySpanStyles(element, ref fmt);
                             var runStart = CaptureTextRunStart(currentParagraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -543,13 +548,13 @@ namespace OfficeIMO.Word.Html {
                             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
-                            var open = currentParagraph.AddFormattedText(options.QuotePrefix, fmt.Bold, fmt.Italic, GetUnderlineValue(fmt)?.ToOfficeEnum());
+                            var open = currentParagraph.AddFormattedText(options.QuotePrefix, fmt.Bold ?? false, fmt.Italic ?? false, GetUnderlineValue(fmt)?.ToOfficeEnum());
                             ApplyFormatting(open, fmt, options);
                             open.SetCharacterStyleId("HtmlQuote");
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
-                            var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold, fmt.Italic, GetUnderlineValue(fmt)?.ToOfficeEnum());
+                            var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold ?? false, fmt.Italic ?? false, GetUnderlineValue(fmt)?.ToOfficeEnum());
                             ApplyFormatting(close, fmt, options);
                             close.SetCharacterStyleId("HtmlQuote");
                             break;
@@ -603,6 +608,7 @@ namespace OfficeIMO.Word.Html {
                     case "sup": {
                             var fmt = formatting;
                             fmt.Superscript = true;
+                            ApplySpanStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
@@ -611,6 +617,7 @@ namespace OfficeIMO.Word.Html {
                     case "sub": {
                             var fmt = formatting;
                             fmt.Subscript = true;
+                            ApplySpanStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
@@ -662,8 +669,8 @@ namespace OfficeIMO.Word.Html {
                         }
                     case "var": {
                             var fmt = formatting;
-                            ApplySpanStyles(element, ref fmt);
                             fmt.Italic = true;
+                            ApplySpanStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
@@ -987,7 +994,10 @@ namespace OfficeIMO.Word.Html {
                         }
                     }
                 }
-                currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
+                if (currentParagraph == null) {
+                    currentParagraph = AddParagraphInScope(section, cell, headerFooter);
+                    ApplyLayeredParagraphDefaults(currentParagraph, textNode.ParentElement);
+                }
                 if (textNode.ParentElement != null) {
                     ApplyBidiIfPresent(textNode.ParentElement, currentParagraph);
                     var language = GetElementLanguage(textNode.ParentElement);

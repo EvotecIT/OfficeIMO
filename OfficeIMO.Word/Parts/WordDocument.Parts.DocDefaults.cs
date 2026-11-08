@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
             ParagraphPropertiesDefault paragraphPropertiesDefault1 = new ParagraphPropertiesDefault();
 
             ParagraphPropertiesBaseStyle paragraphPropertiesBaseStyle1 = new ParagraphPropertiesBaseStyle();
-            SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { After = "160", Line = "259", LineRule = LineSpacingRuleValues.Auto };
+            SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { After = "160", Line = Math.Round(WordThemeDefaults.NativeBodyLineSpacing * 240D).ToString(System.Globalization.CultureInfo.InvariantCulture), LineRule = LineSpacingRuleValues.Auto };
 
             paragraphPropertiesBaseStyle1.Append(spacingBetweenLines1);
 

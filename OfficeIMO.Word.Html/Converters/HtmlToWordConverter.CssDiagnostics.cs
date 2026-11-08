@@ -73,7 +73,7 @@ namespace OfficeIMO.Word.Html {
             "padding-top",
         };
 
-        private void ReportUnsupportedInlineCssDiagnostics(IElement element) {
+        private void ReportUnsupportedInlineCssDiagnostics(IElement element, ISet<string>? admittedCustomProperties = null) {
             var style = element.GetAttribute("style");
             if (string.IsNullOrWhiteSpace(style)) {
                 return;
@@ -82,8 +82,11 @@ namespace OfficeIMO.Word.Html {
             var declarations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var rawPropertyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var pair in ParseCssDeclarationPairs(style!)) {
-                declarations[pair.Key] = pair.Value;
                 rawPropertyNames.Add(pair.Key);
+                // The canonical cascade consumes admitted variable definitions; their
+                // resolved uses still pass through the normal declaration diagnostics.
+                if (pair.Key.StartsWith("--", StringComparison.Ordinal) && admittedCustomProperties?.Contains(pair.Key) == true) continue;
+                declarations[pair.Key] = pair.Value;
             }
 
             var hasRawFontShorthand = rawPropertyNames.Contains("font");
@@ -95,6 +98,11 @@ namespace OfficeIMO.Word.Html {
                     continue;
                 }
                 if (hasRawFontShorthand && property.Name.StartsWith("font-", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                if (property.Name.StartsWith("border-", StringComparison.OrdinalIgnoreCase) &&
+                    (rawPropertyNames.Contains("border") || rawPropertyNames.Any(name => IsSupportedBorderSideShorthand(name) &&
+                        property.Name.StartsWith(name + "-", StringComparison.OrdinalIgnoreCase)))) {
                     continue;
                 }
                 if (hasRawTableMarginShorthand && property.Name.StartsWith("margin-", StringComparison.OrdinalIgnoreCase)) {
@@ -125,6 +133,9 @@ namespace OfficeIMO.Word.Html {
             foreach (var pair in declarations) {
                 var propertyName = pair.Key;
                 if (string.IsNullOrWhiteSpace(propertyName)) {
+                    continue;
+                }
+                if (_injectedInheritedCssProperties.TryGetValue(element, out HashSet<string>? injected) && injected.Contains(propertyName)) {
                     continue;
                 }
 
@@ -186,7 +197,7 @@ namespace OfficeIMO.Word.Html {
                 case "text-indent":
                     return IsBlockSpacingElement(elementName);
                 case "line-height":
-                    return elementName == "body" || IsBlockSpacingElement(elementName);
+                    return elementName is "html" or "body" || IsBlockSpacingElement(elementName);
                 case "text-align":
                     return elementName == "body" || IsBlockSpacingElement(elementName) || IsTableCellElement(elementName);
             }

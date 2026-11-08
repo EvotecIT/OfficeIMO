@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Assets\OfficeHtmlDocumentShell.css" LogicalName="OfficeIMO.Html.Assets.OfficeHtmlDocumentShell.css" />
+    <EmbeddedResource Include="Assets\OfficeThemeDefaults.css" LogicalName="OfficeIMO.Html.Assets.OfficeThemeDefaults.css" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

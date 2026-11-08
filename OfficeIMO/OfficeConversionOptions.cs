@@ -36,6 +36,9 @@ public sealed partial class OfficeConversionOptions {
     public OfficePublicationPolicy FileConflictPolicy { get; set; } = OfficePublicationPolicy.Fail;
     /// <summary>Cross-format output intent; explicit adapter settings take precedence.</summary>
     public OfficeConversionProfile OutputProfile { get; set; } = OfficeConversionProfile.Faithful;
+    /// <summary>Optional common appearance for supported Word, Markdown and HTML routes. Null preserves the source-driven defaults; explicit adapter styling takes precedence.</summary>
+    /// <remarks>Unsupported routes reject the theme. Themes are execution-only in saved and checkpointed batches.</remarks>
+    public OfficeTheme? Theme { get; set; }
     /// <summary>Maximum complete input size, in bytes.</summary>
     public long MaximumInputBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum serialized output size, in bytes.</summary>

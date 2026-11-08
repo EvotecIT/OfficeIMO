@@ -49,29 +49,32 @@ internal static partial class WordRunFormatting {
 
     private sealed class TableRunPaintState {
         internal readonly Style[] Chain;
+        internal readonly Style[] RunChain;
         internal readonly Dictionary<TableCell, (int Row, int Column, int Span)> Cells = new();
         internal readonly int Mask, HeaderRows, FooterStart, ColumnCount, RowCount;
         internal readonly int RowBandSize, ColumnBandSize;
-        internal readonly bool HasConditionalPaint;
+        internal readonly bool HasConditionalFormatting;
 
         internal TableRunPaintState(Table table, Styles? styles, CancellationToken token) {
             string? styleId = table.GetFirstChild<TableProperties>()?.TableStyle?.Val?.Value;
-            Chain = EnumerateStyleChain(styles, styleId, StyleValues.Table)
-                .TakeWhile(style => !IsBuiltInNormalTableStyle(style.StyleId?.Value)).ToArray();
+            RunChain = EnumerateStyleChain(styles, styleId, StyleValues.Table).ToArray();
+            // Paint retains its established built-in normal-table fallback boundary. Semantic
+            // run formatting also honors explicitly authored properties in those definitions.
+            Chain = RunChain.TakeWhile(style => !IsBuiltInNormalTableStyle(style.StyleId?.Value)).ToArray();
             RowBandSize = Chain.Select(style => style.StyleTableProperties?.GetFirstChild<TableStyleRowBandSize>()?.Val?.Value)
                 .FirstOrDefault(size => size.HasValue) ?? 1;
             ColumnBandSize = Chain.Select(style => style.StyleTableProperties?.GetFirstChild<TableStyleColumnBandSize>()?.Val?.Value)
                 .FirstOrDefault(size => size.HasValue) ?? 1;
-            HasConditionalPaint = Chain.Any(style => style.Elements<TableStyleProperties>()
-                .Any(conditional => HasRunBackground(conditional.GetFirstChild<RunPropertiesBaseStyle>()) ||
+            HasConditionalFormatting = RunChain.Any(style => style.Elements<TableStyleProperties>()
+                .Any(conditional => conditional.GetFirstChild<RunPropertiesBaseStyle>()?.HasChildren == true ||
                     conditional.GetFirstChild<TableStyleConditionalFormattingTableCellProperties>() is { } cellProperties &&
                     (cellProperties.GetFirstChild<Shading>() != null || cellProperties.GetFirstChild<TableCellBorders>() != null)));
             bool hasTableBorders = table.GetFirstChild<TableProperties>()?.TableBorders != null ||
                 Chain.Any(style => style.StyleTableProperties?.TableBorders != null);
-            if (!HasConditionalPaint && !hasTableBorders) return;
+            if (!HasConditionalFormatting && !hasTableBorders) return;
 
             TableLook? look = table.GetFirstChild<TableProperties>()?.TableLook;
-            Mask = look == null ? 0 : WordTable.GetTableLookMask(look);
+            Mask = WordTable.GetTableLookMask(look);
             TableRow[] rows = WordTableContent.Rows(table).ToArray();
             RowCount = rows.Length;
             bool inHeader = true;

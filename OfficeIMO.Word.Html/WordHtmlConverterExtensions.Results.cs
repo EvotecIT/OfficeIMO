@@ -25,11 +25,10 @@ public static partial class WordHtmlConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
         resolved.ConversionReport.AddRange(document.Diagnostics);
+        document = ApplyThemeDefaultsForWord(document, resolved);
         HtmlToWordConverter.ValidateDocumentLimits(
             document.CreateSourceDocumentForConversion(), resolved);
-        HtmlCssMediaContext mediaContext = document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
-            ? HtmlCssMediaContext.Print
-            : HtmlCssMediaContext.Screen;
+        HtmlCssMediaContext mediaContext = GetWordMediaContext(document);
         HtmlEditableLayoutRegionKinds regionKinds =
             HtmlEditableLayoutRegionKinds.Positioned | HtmlEditableLayoutRegionKinds.Floating;
         var projectionOptions = new HtmlRenderOptions();
@@ -70,7 +69,7 @@ public static partial class WordHtmlConverterExtensions {
             }
         }
         if (editableLayout != null) resolved.ConversionReport.AddRange(editableLayout.Diagnostics);
-        var converter = new HtmlToWordConverter();
+        var converter = new HtmlToWordConverter(mediaContext);
         WordDocument wordDocument = await converter.ConvertAsync(
             editableLayout == null
                 ? CreateWordSourceDocument(document, resolved.ConversionReport)
@@ -153,10 +152,11 @@ public static partial class WordHtmlConverterExtensions {
             // AngleSharp's document/element BaseUrl values drive every stylesheet and image path alike.
             baseElement.SetAttribute("href", document.BaseUri.AbsoluteUri);
         }
-        HtmlCssMediaContext mediaContext = document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
-            ? HtmlCssMediaContext.Print
-            : HtmlCssMediaContext.Screen;
+        HtmlCssMediaContext mediaContext = GetWordMediaContext(document);
         HtmlActiveMediaFilter.Filter(source, mediaContext, diagnostics);
         return source;
     }
+
+    private static HtmlCssMediaContext GetWordMediaContext(HtmlConversionDocument document) =>
+        document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen;
 }
