@@ -46,8 +46,16 @@ public sealed partial class CsvRowWriter
         else if (_propertyCharacters != null)
         {
             string newLine = _options.NewLine;
-            _writer.Write(_propertyCharacters.AsSpan(0, _propertyCharacterCount));
-            _writer.Write(newLine);
+            ReadOnlySpan<char> terminator = newLine.AsSpan();
+            if (terminator.TryCopyTo(_propertyCharacters.AsSpan(_propertyCharacterCount)))
+            {
+                _writer.Write(_propertyCharacters.AsSpan(0, _propertyCharacterCount + terminator.Length));
+            }
+            else
+            {
+                _writer.Write(_propertyCharacters.AsSpan(0, _propertyCharacterCount));
+                _writer.Write(newLine);
+            }
         }
         else
         {

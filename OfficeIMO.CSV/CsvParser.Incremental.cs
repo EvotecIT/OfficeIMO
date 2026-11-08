@@ -15,7 +15,7 @@ internal static partial class CsvParser
         private readonly CsvParsingSettings _options;
         private readonly char[] _buffer;
         private readonly Queue<CsvLine> _pending = new();
-        private readonly Dictionary<string, string>? _cache;
+        private readonly CsvStringCache? _cache;
         private readonly string _delimiter;
         private readonly List<string> _fields = new();
         private StringBuilder? _logicalRecordBuffer;

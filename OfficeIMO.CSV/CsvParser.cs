@@ -1017,7 +1017,7 @@ internal static partial class CsvParser
         throw exception;
     }
 
-    private static void PrepareParsedRecord(string[] fields, CsvParsingSettings options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
+    private static void PrepareParsedRecord(string[] fields, CsvParsingSettings options, int lineNumber, bool quotedRecord, CsvStringCache? stringCache)
     {
         for (var i = 0; i < fields.Length; i++)
         {
@@ -1025,7 +1025,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static void PrepareParsedRecord(List<string> fields, CsvParsingSettings options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
+    private static void PrepareParsedRecord(List<string> fields, CsvParsingSettings options, int lineNumber, bool quotedRecord, CsvStringCache? stringCache)
     {
         for (var i = 0; i < fields.Count; i++)
         {
@@ -1033,7 +1033,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static bool TryPrepareParsedRecord(string[] fields, CsvParsingSettings options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
+    private static bool TryPrepareParsedRecord(string[] fields, CsvParsingSettings options, int lineNumber, bool quotedRecord, CsvStringCache? stringCache)
     {
         try
         {
@@ -1046,7 +1046,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static bool TryPrepareParsedRecord(List<string> fields, CsvParsingSettings options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
+    private static bool TryPrepareParsedRecord(List<string> fields, CsvParsingSettings options, int lineNumber, bool quotedRecord, CsvStringCache? stringCache)
     {
         try
         {
@@ -1059,7 +1059,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static string PrepareParsedField(string value, CsvParsingSettings options, int lineNumber, bool quotedField, Dictionary<string, string>? stringCache)
+    private static string PrepareParsedField(string value, CsvParsingSettings options, int lineNumber, bool quotedField, CsvStringCache? stringCache)
     {
         if (options.MaxFieldLength is { } maxFieldLength && value.Length > maxFieldLength)
         {
