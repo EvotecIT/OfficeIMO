@@ -113,7 +113,7 @@ public sealed class VisioRichTextRenderingTests {
         byte[] before = document.ToLegacyXmlResult().Value;
         foreach (VisioPage page in document.Pages) {
             page.ToSvg();
-            page.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes;
+            page.ToImage(new VisioImageExportOptions { Supersampling = 1 });
             page.ToImage(OfficeImageExportFormat.Svg);
         }
         Assert.Equal(before, document.ToLegacyXmlResult().Value);

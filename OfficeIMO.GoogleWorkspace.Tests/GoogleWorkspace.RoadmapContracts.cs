@@ -684,23 +684,28 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task FinalResponseIsDisposedWhenElapsedBudgetExpiresBeforeReturn() {
+            // Leave room for request setup so the budget expires after the handler receives it.
+            TimeSpan elapsedBudget = TimeSpan.FromSeconds(1);
+            bool responseWasReturned = false;
             var response = new TrackingResponseMessage(HttpStatusCode.OK) {
                 Content = new StringContent("{}", Encoding.UTF8, "application/json")
             };
             using var http = new HttpClient(new Handler(async _ => {
-                await Task.Delay(TimeSpan.FromMilliseconds(30)).ConfigureAwait(false);
+                await Task.Delay(elapsedBudget + TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
+                responseWasReturned = true;
                 return response;
             }));
             var retryOptions = new GoogleWorkspaceRetryOptions(0, TimeSpan.FromMilliseconds(1),
                 TimeSpan.FromMilliseconds(1), new GoogleWorkspaceSessionOptions {
                     MaxRetryCount = 0,
-                    MaxRetryElapsedTime = TimeSpan.FromMilliseconds(5),
+                    MaxRetryElapsedTime = elapsedBudget,
                 });
 
             await Assert.ThrowsAsync<TimeoutException>(() => GoogleWorkspaceRetryPolicy.SendAsync(
                 http, () => new HttpRequestMessage(HttpMethod.Get, "https://www.googleapis.com/drive/v3/files/file-1"),
                 retryOptions, GoogleWorkspaceRequestSafety.Safe, CancellationToken.None));
 
+            Assert.True(responseWasReturned);
             Assert.True(response.WasDisposed);
         }
 
