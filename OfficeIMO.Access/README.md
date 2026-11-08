@@ -159,6 +159,17 @@ Close readers before applying a project. Update scopes roll back staged VBA, inv
 
 Detached module identities survive intervening applications of other detached projects. Applying a module whose native identity was deleted fails before mutation, even if a new module now uses its old name; reload the current project before continuing that edit.
 
+## Reproducible native creation
+
+Set `AccessCreateOptions.CreatedAt` explicitly when independently created databases with the same model must have repeatable bytes. Null captures the current local time once when the model is created. The timestamp controls native creation metadata; subsequent schema and row edits still determine file content.
+
+```csharp
+using AccessDocument database = AccessDocument.Create(new AccessCreateOptions {
+    Format = AccessFileFormat.Accdb,
+    CreatedAt = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)
+});
+```
+
 ## Create a native database
 
 ```csharp

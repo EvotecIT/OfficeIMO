@@ -19,7 +19,7 @@ public sealed class XpsRadialExteriorSpreadTests {
     [InlineData(XpsFormat.OpenXps, "Reflect", "-1,0.3,0.4,1,150,-20", false, false)]
     public void NativeExteriorSpreadUsesFirstEllipseAndCorrectOutsideColor(XpsFormat format, string spread, string matrix, bool alpha, bool stroke) {
         var doc = Create(format, spread, matrix, alpha, stroke); var page = XpsDocument.Load(doc.ToBytes()).Pages[0];
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var image));
         var values = matrix.Split(',').Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray();
         var inverse = new OfficeTransform(values[0], values[1], values[2], values[3], values[4], values[5]).Invert();
         var points = stroke ? new[] { (60, 61), (100, 75), (140, 89) } : new[] { (10, 10), (30, 45), (100, 80), (120, 80), (170, 120) };
@@ -69,7 +69,7 @@ public sealed class XpsRadialExteriorSpreadTests {
         var brush = Create(format, spread, "1,0,0,1,0,0", false, false).Pages[0].GetMarkup()
             .Descendants().Single(element => element.Name.LocalName == "RadialGradientBrush");
         path.Add(new System.Xml.Linq.XElement(ns + "Path.Stroke", brush)); page.ReplaceMarkup(xml);
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var image));
         AssertDirectSvgMatches(page, image!, new[] { (20, 40), (80, 50), (110, 50), (170, 50) });
     }
 

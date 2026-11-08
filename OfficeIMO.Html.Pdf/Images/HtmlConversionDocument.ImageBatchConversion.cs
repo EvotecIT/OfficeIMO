@@ -38,8 +38,8 @@ public static partial class HtmlImageExportExtensions {
         HtmlConversionDocument document, HtmlRenderOptions options) {
         ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportBatchOperation<HtmlRenderOptions>(options, options.Format, options.FileConflictPolicy,
-            (encoding, effective) => document.ExportImages(encoding, effective),
-            exportEach: (encoding, effective, consumer, token) => document.ExportImages(encoding, consumer, effective, token),
-            exportEachAsync: (encoding, effective, consumer, token) => document.ExportImagesAsync(encoding, consumer, effective, token));
+            (encoding, effective) => document.ToImages(encoding, effective),
+            exportEach: (encoding, effective, consumer, token) => document.ToImages(encoding, consumer, effective, token),
+            exportEachAsync: (encoding, effective, consumer, token) => document.ToImagesAsync(encoding, consumer, effective, token));
     }
 }

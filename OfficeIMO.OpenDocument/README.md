@@ -1061,6 +1061,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 4 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 3 | 0 | 0 | 0 | 0 | 1 |
 | Remove | 3 | 0 | 0 | 0 | 0 | 0 |
+| Export | 0 | 5 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.OpenDocument` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

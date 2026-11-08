@@ -157,8 +157,8 @@ public sealed class PdfLogicalParagraphContinuationTests {
             "another segment begins here",
             secondPageX: 40));
 
-        IReadOnlyList<PdfLogicalParagraphContinuationGroup> groups = source.Reader.ParagraphContinuations(PdfPageSelector.Parse("1..last"));
-        PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> attempt = source.Reader.ParagraphContinuationsResult(PdfPageSelector.Parse("all"));
+        IReadOnlyList<PdfLogicalParagraphContinuationGroup> groups = source.Reader.ParagraphContinuations(OfficePageSelector.Parse("1..last"));
+        PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> attempt = source.Reader.ParagraphContinuationsResult(OfficePageSelector.Parse("all"));
 
         Assert.True(Assert.Single(groups).SpansPages);
         Assert.True(attempt.Succeeded);

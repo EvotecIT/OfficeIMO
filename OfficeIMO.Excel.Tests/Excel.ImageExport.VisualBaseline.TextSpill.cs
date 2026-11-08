@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             ExcelRange range = fixture.Sheet.Range("A1:E5");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
@@ -39,8 +39,8 @@ namespace OfficeIMO.Tests {
                 using ExcelBaselineFixture fixture = CreateTextSpillBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:E5");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(TextSpillBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(TextSpillBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(TextSpillBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(TextSpillBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved text-spill PNG baseline: " + pngPath);

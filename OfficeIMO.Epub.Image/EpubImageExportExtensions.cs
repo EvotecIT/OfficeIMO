@@ -35,13 +35,13 @@ public static partial class EpubImageExportExtensions {
         };
 
     /// <summary>Exports selected EPUB chapters through the shared image result contract.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(
         this EpubDocument source,
         OfficeImageExportFormat format,
         EpubImageExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         var results = new List<OfficeImageExportResult>();
-        source.ExportImages(
+        source.ToImages(
             format,
             results.Add,
             options,
@@ -50,7 +50,7 @@ public static partial class EpubImageExportExtensions {
     }
 
     /// <summary>Streams selected EPUB chapter images without retaining earlier payloads.</summary>
-    public static void ExportImages(
+    public static void ToImages(
         this EpubDocument source,
         OfficeImageExportFormat format,
         OfficeImageExportConsumer consumer,
@@ -70,7 +70,7 @@ public static partial class EpubImageExportExtensions {
                     EpubChapter chapter = chapters[index];
                     EpubChapterRenderPreparation preparation =
                         PrepareChapter(chapter, effective, resourcesByPath, operationCancellationToken);
-                    preparation.Document.ExportImages(
+                    preparation.Document.ToImages(
                         format,
                         result => accept(CompleteResult(
                             result,
@@ -88,13 +88,13 @@ public static partial class EpubImageExportExtensions {
     }
 
     /// <summary>Asynchronously exports selected EPUB chapters and resolves retained package resources.</summary>
-    public static async Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(
+    public static async Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(
         this EpubDocument source,
         OfficeImageExportFormat format,
         EpubImageExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         var results = new List<OfficeImageExportResult>();
-        await source.ExportImagesAsync(
+        await source.ToImagesAsync(
             format,
             (result, token) => {
                 results.Add(result);
@@ -106,7 +106,7 @@ public static partial class EpubImageExportExtensions {
     }
 
     /// <summary>Asynchronously streams selected EPUB chapter images.</summary>
-    public static async Task ExportImagesAsync(
+    public static async Task ToImagesAsync(
         this EpubDocument source,
         OfficeImageExportFormat format,
         OfficeImageExportAsyncConsumer consumer,
@@ -125,7 +125,7 @@ public static partial class EpubImageExportExtensions {
                     operationCancellationToken.ThrowIfCancellationRequested();
                     EpubChapterRenderPreparation preparation =
                         PrepareChapter(chapter, effective, resourcesByPath, operationCancellationToken);
-                    await preparation.Document.ExportImagesAsync(
+                    await preparation.Document.ToImagesAsync(
                         format,
                         async (result, token) => await accept(
                             CompleteResult(
@@ -147,6 +147,8 @@ public static partial class EpubImageExportExtensions {
     private static IReadOnlyList<EpubChapter> SelectChapters(
         EpubDocument source,
         EpubImageExportOptions options) {
+        if (options.PageSelector != null)
+            return options.PageSelector.Resolve(source.Chapters.Count, options.MaximumOutputCount).Select(number => source.Chapters[number - 1]).ToArray();
         ArgumentOutOfRangeException.ThrowIfNegative(options.ChapterIndex, nameof(options.ChapterIndex));
         if (options.ChapterCount.HasValue &&
             options.ChapterCount.Value < 1) {

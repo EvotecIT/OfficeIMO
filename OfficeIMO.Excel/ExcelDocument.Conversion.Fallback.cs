@@ -68,7 +68,7 @@ public partial class ExcelDocument {
             try {
                 var rendered = new List<ExcelVisualFallbackSheet>();
                 foreach (ExcelSheet sheet in document.Sheets) {
-                    OfficeImageExportResult image = sheet.ExportImage(
+                    OfficeImageExportResult image = sheet.ToImage(
                         OfficeImageExportFormat.Png,
                         new ExcelImageExportOptions {
                             BackgroundColor = OfficeColor.White,

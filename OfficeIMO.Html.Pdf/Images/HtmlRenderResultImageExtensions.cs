@@ -6,7 +6,7 @@ namespace OfficeIMO.Html.Pdf;
 /// <summary>Encodes retained HTML surfaces through their canonical PDF page scenes.</summary>
 public static class HtmlRenderResultImageExtensions {
     /// <summary>Encodes every retained surface using the request's explicit image encoder.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(
         this HtmlRenderResult result,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(result);
@@ -22,7 +22,7 @@ public static class HtmlRenderResultImageExtensions {
     }
 
     /// <summary>Encodes the only retained surface using the request's explicit image encoder.</summary>
-    public static OfficeImageExportResult ExportImage(
+    public static OfficeImageExportResult ToImage(
         this HtmlRenderResult result,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(result);

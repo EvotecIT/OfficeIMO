@@ -103,7 +103,7 @@ public sealed class HtmlSiteBundleTests {
         HtmlRenderResult rendered = asynchronous
             ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, bundle.CreateRenderRequest(original))
             : HtmlRenderEngine.Execute(bundle.HtmlDocument, bundle.CreateRenderRequest(original));
-        string svg = Encoding.UTF8.GetString(rendered.ExportImage().Bytes);
+        string svg = Encoding.UTF8.GetString(rendered.ToImage().Bytes);
         var svgDrawing = HtmlSvgPaintAssertions.Read(Encoding.UTF8.GetBytes(svg));
         var imageVisual = Assert.Single(rendered.Document.Pages[0].Visuals.OfType<HtmlRenderImage>());
         var raster = OfficeIMO.Drawing.OfficeDrawingRasterRenderer.Render(svgDrawing);
@@ -226,7 +226,7 @@ public sealed class HtmlSiteBundleTests {
         foreach (HtmlSiteBundle bundle in new[] { synchronous, asynchronous }) {
             HtmlRenderResult rendered = HtmlRenderEngine.Execute(bundle.HtmlDocument, bundle.CreateRenderRequest(
                 HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlPdfExportOptions.ForImageExport(null))));
-            Assert.Contains("#123456", Encoding.UTF8.GetString(rendered.ExportImage().Bytes), StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#123456", Encoding.UTF8.GetString(rendered.ToImage().Bytes), StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -305,7 +305,7 @@ public sealed class HtmlSiteBundleTests {
         HtmlRenderResult result = asynchronous
             ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request)
             : HtmlRenderEngine.Execute(bundle.HtmlDocument, request);
-        Assert.True(OfficeIMO.Drawing.OfficePngReader.TryDecode(result.ExportImage().Bytes, out var image));
+        Assert.True(OfficeIMO.Drawing.OfficePngReader.TryDecode(result.ToImage().Bytes, out var image));
         Assert.Equal(OfficeIMO.OfficeColor.FromRgb(255, 0, 0), image!.GetPixel(4, 4));
     }
 

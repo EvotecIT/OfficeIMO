@@ -424,7 +424,7 @@ is unsupported; ordinary models continue to use `RowsAs<T>` and `RowMapper<T>`.
 
 `OfficeImageExportOptions.UseQuality(...)` selects shared density presets: `Preview` is 96 DPI, `Screen` is 192 DPI, and `Print` is 300 DPI. The presets retain the selected fonts, layout, format, and safety limits. Clear `TargetDpi` when setting `Scale` directly. Each document adapter defines its logical units per inch.
 
-`OfficeDrawing.ExportImage(format, options)` exports a detached drawing through the same raster limits, density metadata, codecs, deadline, and diagnostic policy. Raster output is rendered at the requested density. SVG retains vector geometry and text; it cannot add detail to embedded raster images. Register regular and bold font faces for consistent measurement and output across machines.
+`OfficeDrawing.ToImage(format, options)` exports a detached drawing through the same raster limits, density metadata, codecs, deadline, and diagnostic policy. Raster output is rendered at the requested density. SVG retains vector geometry and text; it cannot add detail to embedded raster images. Register regular and bold font faces for consistent measurement and output across machines.
 
 Interactive `OfficeDrawing` links accept HTTP(S), mail, telephone, and local relative or fragment targets. SVG import keeps the painted content but omits links with executable, data, file, or other unsupported schemes; direct `AddLink` calls reject those targets. SVG export retains accepted links as interactive anchors.
 
@@ -937,7 +937,7 @@ var drawing = new OfficeDrawing(400, 100);
 drawing.Fonts.Add("Body", File.ReadAllBytes("Body.ttf"));
 drawing.AddText("Portable SVG", 8, 8, 384, 80,
     new OfficeFontInfo("Body", 24), wrapText: false);
-var svg = drawing.ExportImage(OfficeImageExportFormat.Svg,
+var svg = drawing.ToImage(OfficeImageExportFormat.Svg,
     new OfficeImageExportOptions { SvgTextAsPaths = true });
 File.WriteAllBytes("preview.svg", svg.Bytes);
 ```

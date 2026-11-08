@@ -33,7 +33,7 @@ public static partial class OneNoteImageExportExtensions {
     }
 
     /// <summary>Asynchronously exports selected images through the shared bounded streaming bridge.</summary>
-    public static Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(this OneNoteSection document,
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this OneNoteSection document,
         OfficeImageExportFormat format, OneNotePageBatchRenderingOptions? options = null, CancellationToken cancellationToken = default) {
         OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
         resolved.Format = format;
@@ -41,7 +41,7 @@ public static partial class OneNoteImageExportExtensions {
     }
 
     /// <summary>Asynchronously delivers selected images with backpressure and cooperative cancellation.</summary>
-    public static Task ExportImagesAsync(this OneNoteSection document, OfficeImageExportFormat format,
+    public static Task ToImagesAsync(this OneNoteSection document, OfficeImageExportFormat format,
         OfficeImageExportAsyncConsumer consumer, OneNotePageBatchRenderingOptions? options = null, CancellationToken cancellationToken = default) {
         OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
         resolved.Format = format;
@@ -49,7 +49,7 @@ public static partial class OneNoteImageExportExtensions {
     }
 
     /// <summary>Streams selected images under the shared deadline, admission and aggregate resource limits.</summary>
-    public static void ExportImages(this OneNoteSection document, OfficeImageExportFormat format,
+    public static void ToImages(this OneNoteSection document, OfficeImageExportFormat format,
         OfficeImageExportConsumer consumer, OneNotePageBatchRenderingOptions? options = null, CancellationToken cancellationToken = default) {
         OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
         resolved.Format = format;

@@ -219,7 +219,7 @@ namespace OfficeIMO.Verification.PowerPoint {
                     && !smartArt.TryGetOfficeDiagramSnapshot(out _))) {
                 return true;
             }
-            OfficeImageExportResult rendered = slide.ExportImage(
+            OfficeImageExportResult rendered = slide.ToImage(
                 OfficeImageExportFormat.Png,
                 options);
             if (HasVisibleOmittedContent(presentation, slide, rendered.Diagnostics)) {

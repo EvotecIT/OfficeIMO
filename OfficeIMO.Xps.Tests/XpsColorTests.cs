@@ -111,7 +111,7 @@ public sealed class XpsColorTests {
     }
 
     private static OfficeRasterImage Raster(XpsPage page) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         return raster!;
     }
     private static string Relationships(byte[] package) {

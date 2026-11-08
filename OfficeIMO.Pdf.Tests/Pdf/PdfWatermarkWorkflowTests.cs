@@ -376,7 +376,7 @@ public sealed class PdfWatermarkWorkflowTests {
         var other = Options(false);
         other.Text = "RETAINED";
         first = first.Stamp.Watermark(other);
-        settings.TargetPages = PdfPageSelector.Parse("1");
+        settings.TargetPages = OfficePageSelector.Parse("1");
         var revised = first.Stamp.Watermark(settings).Read();
         Assert.Contains("MOVING", Text(revised.Pages[0]));
         Assert.DoesNotContain("MOVING", Text(revised.Pages[1]));
@@ -451,7 +451,7 @@ public sealed class PdfWatermarkWorkflowTests {
     private static PdfWatermarkOptions Options(bool image) => new() {
         Text = "REVIEW", ImageBytes = image ? PdfPngTestImages.CreateRgbPng(240, 20, 20) : null,
         X = global::OfficeIMO.OfficeLength.Points(100), Y = global::OfficeIMO.OfficeLength.Points(160), Width = global::OfficeIMO.OfficeLength.Points(160), Height = global::OfficeIMO.OfficeLength.Points(60), FontSize = global::OfficeIMO.OfficeLength.Points(24), RotationDegrees = 35,
-        Color = global::OfficeIMO.OfficeColor.FromRgb(240, 20, 20), Opacity = 0.5, TargetPages = PdfPageSelector.Parse("2")
+        Color = global::OfficeIMO.OfficeColor.FromRgb(240, 20, 20), Opacity = 0.5, TargetPages = OfficePageSelector.Parse("2")
     };
 
     private static byte[] Source(PdfCreateOptions? options = null) => PdfDocument.Create(document => {

@@ -28,7 +28,7 @@ public sealed class PdfDocumentImageEditor {
         _document.Reader.Images(pageRanges, readOptions);
 
     /// <summary>Extracts embedded images referenced by a document-relative page selector.</summary>
-    public IReadOnlyList<PdfExtractedImage> Extract(PdfPageSelector selector, PdfLoadOptions? readOptions = null) =>
+    public IReadOnlyList<PdfExtractedImage> Extract(OfficePageSelector selector, PdfLoadOptions? readOptions = null) =>
         _document.Reader.Images(selector, readOptions);
 
     /// <summary>Attempts to extract images, returning preflight diagnostics when blocked or failed.</summary>
@@ -48,7 +48,7 @@ public sealed class PdfDocumentImageEditor {
         SelectPlacements(PdfPageSelection.Parse(pageRanges), readOptions);
 
     /// <summary>Returns image placements referenced by a document-relative page selector.</summary>
-    public IReadOnlyList<PdfImagePlacement> Placements(PdfPageSelector selector, PdfLoadOptions? readOptions = null) {
+    public IReadOnlyList<PdfImagePlacement> Placements(OfficePageSelector selector, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(selector, nameof(selector));
         PdfLoadOptions effective = readOptions ?? _document.ReadOptions;
         int pageCount = _document.GetReadDocument(effective).Pages.Count;

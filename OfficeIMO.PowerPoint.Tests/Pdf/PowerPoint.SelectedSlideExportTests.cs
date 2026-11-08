@@ -20,7 +20,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         else background.BackgroundColor = OfficeColor.Parse("123456");
         deck.AddSlide().SetBackgroundImage(new MemoryStream(picture), OfficeImageFormat.Png);
 
-        var images = deck.ExportImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
+        var images = deck.ToImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
             MaximumTotalEmbeddedImageBytes = picture.Length
         });
 
@@ -37,7 +37,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         var slide = deck.AddSlide();
         byte[] bytes = slide.ToImage(new PowerPointImageExportOptions {
             IncludeSlideBackground = false, IncludeSlideContent = false, BackgroundColor = OfficeColor.AliceBlue
-        });
+        }).Bytes;
         Assert.True(OfficePngReader.TryDecode(bytes, out OfficeRasterImage? image));
         Assert.Equal(OfficeColor.AliceBlue, image!.GetPixel(5, 5));
     }
@@ -53,7 +53,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         box.TextAutoFit = PowerPointTextAutoFit.None;
         box.TextMarginLeft = global::OfficeIMO.OfficeLength.Points(15);
         box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
-        Assert.True(OfficePngReader.TryDecode(slide.ToImage(), out OfficeRasterImage? image));
+        Assert.True(OfficePngReader.TryDecode(slide.ToImage().Bytes, out OfficeRasterImage? image));
         int paintedBelowFrame = 0;
         for (int y = 45; y < 80; y++)
             for (int x = 0; x < 100; x++) {
@@ -72,7 +72,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         var first = omitted.AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
         var second = omitted.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
         omitted.GroupShapes(new PowerPointShape[] { first, second }, "Not selected");
-        var result = good.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
+        var result = good.ToImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
             MaxGroupShapeDepth = 0, Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
         });
         Assert.NotEmpty(result.Bytes);

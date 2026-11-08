@@ -25,7 +25,7 @@ internal static partial class NativeAdapters {
                 };
                 using (PdfDocument pdf = document.ToVisualPdf(pdfOptions, out OfficeConversionReport pdfReport, token))
                     return Capture(pdf, pdfReport,
-                        format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-raster" };
+                        format => document.ToImages(format, imageOptions), token) with { PdfRoute = "native-raster" };
             }
             case "vsdx": {
                 var document = VisioDocument.Load(source);
@@ -35,7 +35,7 @@ internal static partial class NativeAdapters {
                 };
                 using (PdfDocument pdf = document.ToPdf(pdfOptions, out OfficeConversionReport pdfReport, token))
                     return Capture(pdf, pdfReport,
-                        format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-semantic-projection" };
+                        format => document.ToImages(format, imageOptions), token) with { PdfRoute = "native-semantic-projection" };
             }
             case "eml": {
                 byte[] reference = ReferencePdf(contract, source);
@@ -43,7 +43,7 @@ internal static partial class NativeAdapters {
                 var options = Images<EmailImageExportOptions>(suite, profile);
                 ConfigureHtml(options, contract, suite);
                 options.IncludeMessageHeaders = false;
-                return Capture(reference, format => document.ExportImages(format, options), new(), token)
+                return Capture(reference, format => document.ToImages(format, options), new(), token)
                     with { PdfRoute = "external-reference" };
             }
             case "epub": {
@@ -52,7 +52,7 @@ internal static partial class NativeAdapters {
                 var options = Images<EpubImageExportOptions>(suite, profile);
                 ConfigureHtml(options, contract, suite);
                 options.IncludeChapterTitle = false;
-                return Capture(reference, format => document.ExportImages(format, options), new(), token)
+                return Capture(reference, format => document.ToImages(format, options), new(), token)
                     with { PdfRoute = "external-reference" };
             }
             default: throw new NotSupportedException("No native adapter registered for " + contract.Format);

@@ -47,18 +47,18 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         Assert.Equal(2, flowDiameters.Length);
         Assert.InRange(flowDiameters[0] / flowDiameters[1], ratio - 0.002D, ratio + 0.002D);
 
-        var png = chart.ExportImage(OfficeImageExportFormat.Png);
+        var png = chart.ToImage(OfficeImageExportFormat.Png);
         Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartKindApproximated);
         AssertRasterBubbleRatio(png.Bytes, color, ratio);
         // Exercise the worksheet PNG path as well as standalone chart export.
-        AssertRasterBubbleRatio(document.Sheets[0].Range("A1:M28").ToImage(), color, ratio);
+        AssertRasterBubbleRatio(document.Sheets[0].Range("A1:M28").ToImage().Bytes, color, ratio);
 
         // Compare scale to the same input at 100%, independently in PDF and raster output.
         if (scale == 200) {
             native.GetFirstChild<C.BubbleScale>()!.Val = 100U;
             double[] normal = PdfBubbleDiameters(document.ToPdf(WideBubblePage()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), color);
             Assert.InRange(diameters[1] / normal[1], 1.999D, 2.001D);
-            double[] normalRaster = RasterBubbleDiameters(chart.ExportImage(OfficeImageExportFormat.Png).Bytes, color);
+            double[] normalRaster = RasterBubbleDiameters(chart.ToImage(OfficeImageExportFormat.Png).Bytes, color);
             double[] enlargedRaster = RasterBubbleDiameters(png.Bytes, color);
             Assert.InRange(enlargedRaster[1] / normalRaster[1], 1.85D, 2.15D);
         }
@@ -84,7 +84,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         Assert.Equal(show, pdf.Warnings.Any(warning => warning.Code == ExcelImageExportDiagnosticCodes.ChartBubbleNegativeSizesUnsupported));
         Assert.All(pdf.Warnings.Where(warning => warning.Code == ExcelImageExportDiagnosticCodes.ChartBubbleNegativeSizesUnsupported),
             warning => Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind));
-        var png = chart.ExportImage(OfficeImageExportFormat.Png);
+        var png = chart.ToImage(OfficeImageExportFormat.Png);
         Assert.Single(RasterBubbleDiameters(png.Bytes, color));
         Assert.Equal(show, png.Diagnostics.Any(diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleNegativeSizesUnsupported && diagnostic.LossKind == OfficeConversionLossKind.Omission));
     }
@@ -103,7 +103,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         var colors = snapshot.Data.Series.Select(series => OfficeColor.Parse(series.SeriesColorArgb!)).ToArray();
         Assert.NotEqual(colors[0], colors[1]);
         byte[] pdf = document.ToPdf(WideBubblePage()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
-        byte[] png = chart.ExportImage(OfficeImageExportFormat.Png).Bytes;
+        byte[] png = chart.ToImage(OfficeImageExportFormat.Png).Bytes;
         foreach (OfficeColor color in colors) {
             Assert.Equal(2, PdfBubbleDiameters(pdf, color).Length);
             Assert.Equal(2, RasterBubbleDiameters(png, color).Length);
@@ -165,7 +165,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         Assert.True(chart.TryGetSnapshot(out var snapshot));
         Assert.Equal(100D, snapshot.BubbleScalePercent);
         Assert.Equal(OfficeChartBubbleSizeMode.Area, snapshot.BubbleSizeMode);
-        Assert.Equal(2, chart.ExportImage(OfficeImageExportFormat.Png).Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated));
+        Assert.Equal(2, chart.ToImage(OfficeImageExportFormat.Png).Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated));
         Assert.Equal(2, document.ConvertToPdfWithEvidence().Warnings.Count(item => item.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated));
     }
 

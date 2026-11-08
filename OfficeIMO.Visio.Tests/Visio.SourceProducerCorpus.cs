@@ -123,7 +123,7 @@ public sealed class VisioSourceProducerCorpusTests {
                 VerticalMargin = 0.3
             });
 
-            OfficeImageExportResult png = page.ExportImage(
+            OfficeImageExportResult png = page.ToImage(
                 OfficeImageExportFormat.Png);
             Assert.DoesNotContain(png.Diagnostics, diagnostic =>
                 diagnostic.Severity ==

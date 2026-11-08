@@ -203,7 +203,7 @@ public sealed partial class HtmlRenderingTests {
             });
         string svg = document.ToSvg(options);
         OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
-        byte[] pngBytes = document.ToImage(options);
+        byte[] pngBytes = document.ToImage(options).Bytes;
         Assert.True(OfficePngReader.TryDecode(pngBytes, out OfficeRasterImage? pngRaster));
         foreach (HtmlRenderText run in textRuns) {
             Assert.True(FontFallbackRunHasInk(svgRaster, run), run.Font.FamilyName);
@@ -212,7 +212,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = (document.ToPdf(options)).ToBytes();
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         Assert.Contains(emoji + "\u05D0" + emoji, read.ExtractText(), StringComparison.Ordinal);
-        Assert.Equal(pngBytes, Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(read, OfficeImageExportFormat.Png,
+        Assert.Equal(pngBytes, Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(read, OfficeImageExportFormat.Png,
             new PdfCore.PdfImageExportOptions { Scale = 96D / 72D })).Bytes);
         // Covered bidi paint may use contours instead of PDF text-font resources.
         // The route/ink checks above protect the selected paint; retain its exact

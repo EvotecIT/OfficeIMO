@@ -24,6 +24,25 @@ Raster picture crops use the embedded pixel dimensions and horizontal and vertic
 
 Negative crop offsets, collapsed source regions, malformed crop values, cropped vector images, and unavailable intrinsic dimensions remain explicit conversion losses. For image formats supported by the PowerPoint image model, these crops are omitted while the image bytes and frame bounds are retained. Crops that collapse after rounding to either format's stored precision are also omitted.
 
+## Page images
+
+The adapter renders ODP through its existing visual owner, retaining source conversion diagnostics. `ToImages`/`ToImagesAsync` return rich encoded results; `SaveAsImages`/`SaveAsImagesAsync` save them with shared limits, cancellation and file-conflict policy.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.OpenDocument;
+using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.OpenDocument;
+
+using var source = OdpPresentation.Load("input.odp");
+var options = new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Png, TargetDpi = 144 };
+IReadOnlyList<OfficeImageExportResult> images = source.ToImages(options);
+OfficeConversionReport saved = await source.SaveAsImagesAsync("pages", options);
+```
+
+See the [shared image options, selection and diagnostics](../Docs/officeimo.image-export.md).
+
 ## Dependency footprint
 
 - **External:** None.

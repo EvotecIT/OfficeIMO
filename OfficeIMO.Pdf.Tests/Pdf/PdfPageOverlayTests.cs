@@ -12,7 +12,7 @@ public class PdfPageOverlayTests {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Overlay once")).ToBytes();
 
         byte[] result = PdfStamper.StampPage(target, source, new PdfPageOverlayOptions {
-            TargetPages = PdfPageSelector.Parse("1,1")
+            TargetPages = OfficePageSelector.Parse("1,1")
         });
 
         string text = PdfReadDocument.Open(result).Pages[0].ExtractText();
@@ -37,7 +37,7 @@ public class PdfPageOverlayTests {
 
         byte[] result = PdfStamper.OverlayPage(target, source, new PdfPageOverlayOptions {
             SourcePageNumber = 2,
-            TargetPages = PdfPageSelector.Parse("2"),
+            TargetPages = OfficePageSelector.Parse("2"),
             Width = 240,
             Height = 120,
             Opacity = 0.5

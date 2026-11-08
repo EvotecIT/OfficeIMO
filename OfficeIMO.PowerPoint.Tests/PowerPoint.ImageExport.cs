@@ -20,14 +20,14 @@ namespace OfficeIMO.Tests {
             var baselineOptions = new PowerPointImageExportOptions {
                 MaximumDegreeOfParallelism = 1
             };
-            IReadOnlyList<OfficeImageExportResult> baseline = presentation.ExportImages(
+            IReadOnlyList<OfficeImageExportResult> baseline = presentation.ToImages(
                 OfficeImageExportFormat.Png,
                 baselineOptions);
             long completeBatchBytes = baseline.Sum(image => image.Bytes.LongLength);
             long maximumBytes = baseline[0].Bytes.LongLength + 1L;
 
             OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-                presentation.ExportImages(
+                presentation.ToImages(
                     OfficeImageExportFormat.Png,
                     new PowerPointImageExportOptions {
                         MaximumDegreeOfParallelism = 1,
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
             var options = new PowerPointImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
 
             Assert.Throws<OfficeImageExportTimeoutException>(() =>
-                slide.ExportImage(OfficeImageExportFormat.Svg, options));
+                slide.ToImage(OfficeImageExportFormat.Svg, options));
         }
 
         [Fact]
@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = OfficeColor.Parse("112233");
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 2D, IncludeSlideContent = false });
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false, Scale = 2D });
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 2D, IncludeSlideContent = false });
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false, Scale = 2D });
 
             Assert.Equal(OfficeImageExportFormat.Png, png.Format);
             Assert.Equal(480, png.Width);
@@ -109,10 +109,10 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = OfficeColor.Parse("112233");
 
-            byte[] png = slide.ToImage(new PowerPointImageExportOptions { IncludeSlideContent = false });
+            byte[] png = slide.ToImage(new PowerPointImageExportOptions { IncludeSlideContent = false }).Bytes;
             string svg = Encoding.UTF8.GetString(slide.ToImage(new PowerPointImageExportOptions {
                     Format = OfficeImageExportFormat.Svg, IncludeSlideContent = false
-                }));
+                }).Bytes);
 
             Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
             Assert.Contains("<svg", svg, StringComparison.Ordinal);
@@ -130,11 +130,11 @@ namespace OfficeIMO.Tests {
             byte[] png = slide.ToImage(new PowerPointImageExportOptions {
                 Scale = 4D, MaximumOutputWidth = 300, MaximumOutputHeight = 300,
                 IncludePictures = false, IncludeCharts = false
-            });
+            }).Bytes;
             byte[] svg = slide.ToImage(new PowerPointImageExportOptions {
                 Format = OfficeImageExportFormat.Svg, Scale = 4D,
                 MaximumOutputWidth = 300, MaximumOutputHeight = 300, IncludeHiddenShapes = false
-            });
+            }).Bytes;
 
             Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? raster));
             Assert.Equal((300, 200), (raster!.Width, raster.Height));
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
 
             byte[] result = slide.ToImage(new PowerPointImageExportOptions {
                 Format = OfficeImageExportFormat.Svg, MaxGroupShapeDepth = maximumDepth
-            });
+            }).Bytes;
 
             Assert.Contains("<svg", Encoding.UTF8.GetString(result), StringComparison.Ordinal);
         }
@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient(OfficeColor.Parse("112233"), OfficeColor.Parse("445566"), 45D);
 
-            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false });
+            OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false });
             string svgText = Encoding.UTF8.GetString(result.Bytes);
 
             Assert.Contains("<linearGradient", svgText, StringComparison.Ordinal);
@@ -292,7 +292,7 @@ namespace OfficeIMO.Tests {
             textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             textBox.Color = OfficeColor.Parse("111111");
 
-            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             AssertNoUnexpectedDiagnostics(result.Diagnostics);
@@ -311,8 +311,8 @@ namespace OfficeIMO.Tests {
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
             slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20));
 
-            OfficeImageExportResult pngResult = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svgResult = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult pngResult = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svgResult = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(pngResult.Diagnostics);
             AssertNoUnexpectedDiagnostics(svgResult.Diagnostics);
@@ -333,7 +333,7 @@ namespace OfficeIMO.Tests {
                 global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20),
                 global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20));
 
-            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
+            OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
                 MaximumEmbeddedImageBytes = png.Length - 1,
                 MaximumTotalEmbeddedImageBytes = png.Length * 2L
             });
@@ -357,7 +357,7 @@ namespace OfficeIMO.Tests {
                 global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(20),
                 global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20));
 
-            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
+            OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
                 MaximumEmbeddedImageBytes = png.Length,
                 MaximumTotalEmbeddedImageBytes = png.Length
             });
@@ -380,7 +380,7 @@ namespace OfficeIMO.Tests {
             PowerPointAutoShape anchor = slide.AddRectangle(OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(12), OfficeIMO.OfficeLength.Points(12));
             slide.GroupShapes(new PowerPointShape[] { picture, anchor }, "Bounded picture group");
 
-            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
+            OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
                 MaximumEmbeddedImageBytes = png.Length,
                 MaximumTotalEmbeddedImageBytes = png.Length
             });
@@ -398,7 +398,7 @@ namespace OfficeIMO.Tests {
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
             slide.SetBackgroundImage(new MemoryStream(png), OfficeImageFormat.Png);
 
-            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
+            OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
                 MaximumEmbeddedImageBytes = png.Length - 1,
                 MaximumTotalEmbeddedImageBytes = png.Length * 2L
             });
@@ -426,7 +426,7 @@ namespace OfficeIMO.Tests {
                 global::OfficeIMO.OfficeLength.Points(40),
                 global::OfficeIMO.OfficeLength.Points(30));
 
-            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png);
 
             Assert.DoesNotContain(
                 result.Diagnostics,
@@ -449,7 +449,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.SetBackgroundImage(imagePath);
 
-                OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { IncludeSlideContent = false });
+                OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { IncludeSlideContent = false });
 
                 AssertNoUnexpectedDiagnostics(result.Diagnostics);
                 Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
@@ -490,8 +490,8 @@ namespace OfficeIMO.Tests {
             merged.Merge = (1, 2);
             table.GetCell(1, 1).Text = string.Empty;
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             AssertNoUnexpectedDiagnostics(png.Diagnostics, "table-cell-text-fit-approximation");
@@ -521,8 +521,8 @@ namespace OfficeIMO.Tests {
             bullets.AddNumberedList(new[] { "First number", "Second number" }, startAt: 3);
             bullets.AddBullets(new[] { "Nested bullet" }, level: 1);
 
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
@@ -559,8 +559,8 @@ namespace OfficeIMO.Tests {
                 PowerPointNumberingScheme.RomanUpperCharacterParenR,
                 startAt: 4);
 
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
@@ -595,7 +595,7 @@ namespace OfficeIMO.Tests {
 
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
 
-            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             Assert.Empty(slide.Shapes);
@@ -628,8 +628,8 @@ namespace OfficeIMO.Tests {
             slideTitle.FontSize = global::OfficeIMO.OfficeLength.Points(14);
             slideTitle.Color = OfficeColor.Parse("1F4E79");
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             Assert.Single(slide.Shapes);
@@ -674,11 +674,11 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                presentation.AddSlide().ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 0D }));
+                presentation.AddSlide().ToImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 0D }));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { SlideNumbers = new[] { 0 } }));
+                presentation.ToImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { SlideNumbers = new[] { 0 } }));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { SlideNumbers = new[] { 2 } }));
+                presentation.ToImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { SlideNumbers = new[] { 2 } }));
         }
 
         [Fact]
@@ -697,7 +697,7 @@ namespace OfficeIMO.Tests {
                     new OfficeSeries("FILTERED CHART", new[] { 42D })
                 }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(150), Top = global::OfficeIMO.OfficeLength.Points(44), Width = global::OfficeIMO.OfficeLength.Points(120), Height = global::OfficeIMO.OfficeLength.Points(80) });
 
-            OfficeImageExportResult result = Assert.Single(presentation.ExportImages(
+            OfficeImageExportResult result = Assert.Single(presentation.ToImages(
                 OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
                     IncludeSlideBackground = false,
                     IncludePictures = false,
@@ -711,7 +711,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("<image", svg, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("ABCDEF", svg, StringComparison.OrdinalIgnoreCase);
             // A blank render proves filtering even when SVG contains glyph outlines rather than text.
-            OfficeImageExportResult png = Assert.Single(presentation.ExportImages(
+            OfficeImageExportResult png = Assert.Single(presentation.ToImages(
                 OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
                     IncludeSlideBackground = false, IncludePictures = false, IncludeAutoShapes = false,
                     IncludeTextBoxes = false, IncludeTables = false, IncludeCharts = false,

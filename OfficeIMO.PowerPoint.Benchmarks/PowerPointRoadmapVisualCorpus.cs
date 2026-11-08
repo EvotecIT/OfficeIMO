@@ -94,9 +94,9 @@ internal static class PowerPointRoadmapVisualCorpus {
         }
         ValidateScenarioSemantics(reopened);
 
-        IReadOnlyList<OfficeImageExportResult> images = reopened.ExportImages(
+        IReadOnlyList<OfficeImageExportResult> images = reopened.ToImages(
             OfficeImageExportFormat.Png);
-        IReadOnlyList<OfficeImageExportResult> vectors = reopened.ExportImages(
+        IReadOnlyList<OfficeImageExportResult> vectors = reopened.ToImages(
             OfficeImageExportFormat.Svg);
         if (images.Count != reopened.Slides.Count
             || vectors.Count != reopened.Slides.Count) {
@@ -113,12 +113,12 @@ internal static class PowerPointRoadmapVisualCorpus {
                         && diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted))
                 .ToArray();
             if (failures.Length > 0) {
-                int withoutCharts = reopened.Slides[index].ExportImage(
+                int withoutCharts = reopened.Slides[index].ToImage(
                     OfficeImageExportFormat.Png,
                     new PowerPointImageExportOptions { IncludeCharts = false })
                     .Diagnostics.Count(diagnostic =>
                         diagnostic.Severity != OfficeImageExportDiagnosticSeverity.Info);
-                int withoutTables = reopened.Slides[index].ExportImage(
+                int withoutTables = reopened.Slides[index].ToImage(
                     OfficeImageExportFormat.Png,
                     new PowerPointImageExportOptions { IncludeTables = false })
                     .Diagnostics.Count(diagnostic =>

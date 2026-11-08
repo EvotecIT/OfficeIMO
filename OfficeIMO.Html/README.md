@@ -54,7 +54,7 @@ HtmlRenderRequest request = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
 HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request);
 rendered.ThrowIfLoss();
 int pageNumber = 1;
-foreach (var page in rendered.ExportImages()) {
+foreach (var page in rendered.ToImages()) {
     page.CreateReport().ThrowIfLoss();
     File.WriteAllBytes($"report-{pageNumber++:D3}.svg", page.Bytes);
 }
@@ -377,7 +377,7 @@ var request = HtmlRenderRequest.Create(
     .WithPageSet(HtmlRenderPageSet.Pages(firstPageIndex: 0, pageCount: 2));
 
 HtmlRenderResult retained = HtmlRenderEngine.Execute(source, request);
-IReadOnlyList<OfficeImageExportResult> pages = retained.ExportImages();
+IReadOnlyList<OfficeImageExportResult> pages = retained.ToImages();
 
 HtmlRenderSurface firstSurface = retained.GetSurface(0);
 OfficeDrawing preview = firstSurface.CreateDrawing();
@@ -443,7 +443,7 @@ var strict = new HtmlRenderOptions {
     FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
 };
 
-OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, strict);
+OfficeImageExportResult image = source.ToImage(OfficeImageExportFormat.Png, strict);
 ```
 
 The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, positioned `clip` rectangles, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All`, `HtmlRenderProfileContracts.All`, or the generated support matrix for the exact declared subset.
@@ -781,7 +781,7 @@ metadata survives page fragmentation without repeating its text label. A float c
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
-`ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. `ToImage(options)` returns encoded bytes; its `out report` overload and `ToImageAsync(options)` also return fidelity evidence. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`. Options select the format, zero-based page, layout, resource policy and output limits; caller-owned streams remain open.
+`ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ToImage()` and `ToImages()` return encoded output plus dimensions and diagnostics. `ToImage(options)` returns encoded bytes; its `out report` overload and `ToImageAsync(options)` also return fidelity evidence. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`. Options select the format, zero-based page, layout, resource policy and output limits; caller-owned streams remain open.
 
 HTML-to-PDF generation is in `OfficeIMO.Html.Pdf`. `HtmlPdfExportOptions` derives from `HtmlRenderOptions`, so the same configured instance drives PDF and all five image formats. See [HTML to PDF and paged images](../OfficeIMO.Html.Pdf/PDF.md) for resource policies, fonts, paged-media semantics and complete examples.
 
@@ -1076,7 +1076,6 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 2 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 1 | 0 | 0 | 0 | 0 | 0 |
 | Remove | 1 | 0 | 0 | 0 | 0 | 0 |
-| Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Html` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

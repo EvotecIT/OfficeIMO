@@ -249,43 +249,7 @@ public sealed class SectionWriterTests {
 
     [Fact]
     public void RoundTripsTablesListsParagraphStylesAssetsAndMath() {
-        var section = new OneNoteSection { Name = "Content" };
-        var page = new OneNotePage { Title = "Kinds", MostRecentAuthor = "Recent author" };
-        var outline = new OneNoteOutline();
-
-        var listed = new OneNoteParagraph { List = new OneNoteListInfo { Ordered = true, Format = 3, Level = 2, Restart = true, DisplayIndex = 4, FontFamily = "Aptos" } };
-        listed.Style.Alignment = OneNoteParagraphAlignment.Center;
-        listed.Style.SpaceAfter = 6;
-        listed.Author = new OneNoteAuthor { Name = "Paragraph author" };
-        listed.Runs.Add(new OneNoteTextRun { Text = "List item" });
-        outline.Children.Add(listed);
-
-        var table = new OneNoteTable { BordersVisible = true };
-        table.ColumnWidths.Add(3);
-        var row = new OneNoteTableRow();
-        var cell = new OneNoteTableCell { ShadingColorArgb = 0xFF112233 };
-        var cellText = new OneNoteParagraph();
-        cellText.Runs.Add(new OneNoteTextRun { Text = "Cell" });
-        cell.Content.Add(cellText);
-        row.Cells.Add(cell);
-        table.Rows.Add(row);
-        outline.Children.Add(table);
-
-        outline.Children.Add(new OneNoteImage {
-            FileName = "pixel.png",
-            AltText = "pixel",
-            WidthHalfInches = 2.5,
-            HeightHalfInches = 1.25,
-            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3, 4 })
-        });
-        outline.Children.Add(new OneNoteEmbeddedFile {
-            FileName = "notes.txt",
-            SourcePath = "C:\\source\\notes.txt",
-            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 5, 6, 7 })
-        });
-        outline.Children.Add(new OneNoteMath { Text = "x+y" });
-        page.Outlines.Add(outline);
-        section.Pages.Add(page);
+        OneNoteSection section = CreateRichSection();
 
         OneNoteWriteObjectSpace pageSpace = new OneNoteWriteGraphBuilder().BuildSection(section).ObjectSpaces[1];
         var timeBearingTypes = new HashSet<uint> {
@@ -634,6 +598,48 @@ public sealed class SectionWriterTests {
         OneNoteRevisionStoreObject header = Assert.Single(store.Objects, item => item.Id.Identifier == new Guid("B4760B1A-FBDF-4AE3-9D08-53219D8A8D21"));
         Assert.Equal(OneNoteSchema.JcidPropertyContainer, header.Jcid.Value);
         Assert.Equal(0xCEBE8422U, header.PropertySet!.Find(OneNoteSchema.FileNameCrc)!.ScalarValue);
+    }
+
+    internal static OneNoteSection CreateRichSection() {
+        var section = new OneNoteSection { Name = "Content" };
+        var page = new OneNotePage { Title = "Kinds", MostRecentAuthor = "Recent author" };
+        var outline = new OneNoteOutline();
+
+        var listed = new OneNoteParagraph { List = new OneNoteListInfo { Ordered = true, Format = 3, Level = 2, Restart = true, DisplayIndex = 4, FontFamily = "Aptos" } };
+        listed.Style.Alignment = OneNoteParagraphAlignment.Center;
+        listed.Style.SpaceAfter = 6;
+        listed.Author = new OneNoteAuthor { Name = "Paragraph author" };
+        listed.Runs.Add(new OneNoteTextRun { Text = "List item" });
+        outline.Children.Add(listed);
+
+        var table = new OneNoteTable { BordersVisible = true };
+        table.ColumnWidths.Add(3);
+        var row = new OneNoteTableRow();
+        var cell = new OneNoteTableCell { ShadingColorArgb = 0xFF112233 };
+        var cellText = new OneNoteParagraph();
+        cellText.Runs.Add(new OneNoteTextRun { Text = "Cell" });
+        cell.Content.Add(cellText);
+        row.Cells.Add(cell);
+        table.Rows.Add(row);
+        outline.Children.Add(table);
+
+        outline.Children.Add(new OneNoteImage {
+            FileName = "pixel.png",
+            AltText = "pixel",
+            WidthHalfInches = 2.5,
+            HeightHalfInches = 1.25,
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3, 4 })
+        });
+        outline.Children.Add(new OneNoteEmbeddedFile {
+            FileName = "notes.txt",
+            SourcePath = "C:\\source\\notes.txt",
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 5, 6, 7 })
+        });
+        outline.Children.Add(new OneNoteMath { Text = "x+y" });
+        page.Outlines.Add(outline);
+        section.Pages.Add(page);
+
+        return section;
     }
 
     private static OneNoteSection CreateSection() {

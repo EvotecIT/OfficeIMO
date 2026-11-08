@@ -14,7 +14,7 @@ public static partial class HtmlImageExportExtensions {
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Format = OfficeImageExportFormat.Svg;
-        return Encoding.UTF8.GetString(document.ToImage(resolved, out report, cancellationToken));
+        return Encoding.UTF8.GetString(document.ToImage(resolved, out report, cancellationToken).Bytes);
     }
 
     /// <summary>Asynchronously renders SVG text with resource resolution and its completed report.</summary>
@@ -22,7 +22,7 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Format = OfficeImageExportFormat.Svg;
-        OfficeConversionResult<byte[]> result = await document.ToImageAsync(resolved, cancellationToken).ConfigureAwait(false);
-        return new OfficeConversionResult<string>(Encoding.UTF8.GetString(result.Value), result.Report);
+        OfficeImageExportResult result = await document.ToImageAsync(resolved, cancellationToken).ConfigureAwait(false);
+        return new OfficeConversionResult<string>(Encoding.UTF8.GetString(result.Bytes), result.CreateReport());
     }
 }

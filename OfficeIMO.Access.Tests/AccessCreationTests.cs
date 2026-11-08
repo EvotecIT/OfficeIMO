@@ -5,6 +5,31 @@ namespace OfficeIMO.Access.Tests {
         private static byte[] Save(AccessDocument document, AccessSaveOptions? options = null) { using MemoryStream output = new MemoryStream(); document.Save(output, options); Assert.True(output.CanWrite); return output.ToArray(); }
 
         [Theory]
+        [InlineData(AccessFileFormat.Mdb)]
+        [InlineData(AccessFileFormat.Accdb)]
+        public void ExplicitCreationTimeProducesReproducibleIndependentDatabases(AccessFileFormat format) {
+            DateTime createdAt = new DateTime(2000, 1, 1, 12, 30, 0, DateTimeKind.Unspecified);
+            byte[] Create(DateTime timestamp) {
+                using AccessDocument database = AccessDocument.Create(new AccessCreateOptions { Format = format, CreatedAt = timestamp });
+                AccessTable table = database.Tables.Add("Items");
+                table.Columns.Add("Id", AccessDataType.Int32);
+                table.Columns.Add("Name", AccessDataType.ShortText, 50);
+                table.AppendRow(new AccessRowValues { ["Id"] = 7, ["Name"] = "Reproducible" });
+                return Save(database);
+            }
+
+            byte[] first = Create(createdAt);
+            Assert.Equal(first, Create(createdAt));
+            Assert.NotEqual(first, Create(createdAt.AddDays(1)));
+            using AccessDocument reopened = AccessDocument.Load(new MemoryStream(first));
+            using AccessDataReader rows = reopened.Tables["Items"].OpenDataReader();
+            Assert.True(rows.Read());
+            Assert.Equal(7, rows["Id"]);
+            Assert.Equal("Reproducible", rows["Name"]);
+            Assert.False(rows.Read());
+        }
+
+        [Theory]
         [InlineData(AccessFileFormat.Mdb, false)]
         [InlineData(AccessFileFormat.Accdb, false)]
         [InlineData(AccessFileFormat.Mdb, true)]

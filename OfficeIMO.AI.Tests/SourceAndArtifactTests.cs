@@ -116,7 +116,7 @@ public sealed class SourceAndArtifactTests {
     public async Task DetectedPdfRetainsNativeTextAndRendersPagesUnderAnyLogicalName(string name, bool images) {
         byte[] page = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph("SCANNED"))).ToBytes();
         using var pageDocument = PdfDocument.Load(new MemoryStream(page));
-        byte[] scan = pageDocument.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }).Single().Bytes;
+        byte[] scan = pageDocument.ToImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }).Single().Bytes;
         byte[] source = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph("NATIVE")
             .PageBreak().AddImage(scan, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(566)))).ToBytes();
         var document = await DocumentInputs.ReadAsync(source, name, images, Array.Empty<int>(), new(), CancellationToken.None);
@@ -125,7 +125,7 @@ public sealed class SourceAndArtifactTests {
         if (images) {
             Assert.Equal(new[] { 1, 2 }, document.Images.Select(image => image.Page));
             using var expectedDocument = PdfDocument.Load(new MemoryStream(source));
-            var expected = expectedDocument.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png, TargetDpi = 120 });
+            var expected = expectedDocument.ToImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png, TargetDpi = 120 });
             Assert.Equal(expected[1].Bytes, document.Images[1].CopyBytes());
         } else Assert.Empty(document.Images);
     }
@@ -151,7 +151,7 @@ public sealed class SourceAndArtifactTests {
         var options = new PdfLoadOptions { Password = "open", PermissionPolicy = PdfPermissionPolicy.Enforce };
         Assert.Throws<PdfPermissionDeniedException>(() => {
             using var restricted = PdfDocument.Load(new MemoryStream(bytes), options);
-            if (images) restricted.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png });
+            if (images) restricted.ToImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png });
             else restricted.ExtractText();
         });
     }
@@ -167,7 +167,7 @@ public sealed class SourceAndArtifactTests {
         byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph("FIRST").PageBreak().AddParagraph("SECOND"))).ToBytes();
         var document = await DocumentInputs.ReadAsync(bytes, "pages.pdf", true, new[] { 2, 1 }, new OfficeAiLimits(), CancellationToken.None);
         using var sourceDocument = PdfDocument.Load(new MemoryStream(bytes));
-        var direct = sourceDocument.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png, TargetDpi = 120 });
+        var direct = sourceDocument.ToImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png, TargetDpi = 120 });
         Assert.Equal(new[] { 2, 1 }, document.Images.Select(image => image.Page));
         Assert.Equal(direct[1].Bytes, document.Images[0].CopyBytes());
         Assert.Equal(direct[0].Bytes, document.Images[1].CopyBytes());

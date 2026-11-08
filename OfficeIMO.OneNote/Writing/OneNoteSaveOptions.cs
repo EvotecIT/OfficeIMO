@@ -2,6 +2,18 @@ namespace OfficeIMO.OneNote;
 
 /// <summary>Controls native offline OneNote serialization.</summary>
 public sealed class OneNoteSaveOptions {
+    /// <summary>
+    /// Optional namespace for reproducible generated identifiers. Use the same seed for the same logical artifact;
+    /// caller-supplied and preserved identities remain unchanged. Null keeps normal random identity generation.
+    /// </summary>
+    public Guid? IdentitySeed { get; set; }
+
+    /// <summary>
+    /// Explicit UTC timestamp used when newly authored pages have no creation time. Required with
+    /// <see cref="IdentitySeed"/> so generated metadata does not depend on the clock. Existing page times are retained.
+    /// </summary>
+    public DateTime? GeneratedTimestampUtc { get; set; }
+
     /// <summary>Hard maximum accepted for recursive writer traversal limits.</summary>
     public const int MaximumTraversalDepth = 256;
 

@@ -313,7 +313,7 @@
     }
   ],
   "additions": [
-    "ExcelSheet.Document : ExcelDocument \u2014 exposes the owning workbook so native worksheets returned by file operations can be saved and disposed explicitly",
+    "ExcelSheet.Document : ExcelDocument — exposes the owning workbook so native worksheets returned by file operations can be saved and disposed explicitly",
     "ExcelSheet.Report(ExcelReportOptions options = null) : ExcelReportBuilder",
     "ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable and AddTable(DataTable table, ...) : ExcelTable",
     "ExcelSheet.AddChart<T>(OfficeChartType type, IEnumerable<T> data, Func<T, object> category, params OfficeSeries[] series) : ExcelChart and the nameof() overload",
@@ -10711,7 +10711,7 @@
       "note": "Adds the previously unmapped return-contract change; statement callers retain their behavior."
     },
     {
-      "old": "OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(string tocSheetName = \"TOC\", int row = 2, int col = 1, string text = \"\u2190 TOC\") : void",
+      "old": "OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(string tocSheetName = \"TOC\", int row = 2, int col = 1, string text = \"← TOC\") : void",
       "new": "OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(...) : IReadOnlyDictionary<ExcelSheet, ExcelHyperlinkInfo>",
       "kind": "method",
       "action": "change",
@@ -13462,6 +13462,14 @@
       "category": "authoring",
       "reason": "Selective removal retains remaining structure/window/revision restrictions and password hashes; default call still removes all workbook protection metadata.",
       "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.ExportImage(...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.ToImage(...) : OfficeImageExportResult",
+      "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
+      "category": "conversion"
     }
   ],
   "packageMoves": [
@@ -13633,7 +13641,7 @@
       "subject": "Local worksheet addresses",
       "status": "applied",
       "phase": "B",
-      "note": "CellAt(string) and native ExcelRange preserve the removed builders\u2019 rejection of worksheet-qualified addresses. Cross-sheet addresses remain explicit in operations that support them."
+      "note": "CellAt(string) and native ExcelRange preserve the removed builders’ rejection of worksheet-qualified addresses. Cross-sheet addresses remain explicit in operations that support them."
     },
     {
       "subject": "Excel report AddTable(DataTable) target correction",
@@ -14434,7 +14442,7 @@
         "OfficeIMO.OpenDocument.Converters.Tests/SpreadsheetConditionalFormattingLossTests.cs",
         "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.PageSetupPrintAreaTests.cs"
       ],
-      "note": "Nullable inheritance, 1\u2013409-point differential-format guards and numeric provider/native wire values are preserved. The five authoring APIs and four font models now use one physical length contract. Compiler consumer closure preserves nullable expected rich-run sizes and sums typed PDF minimum row heights after the existing nonnull assertion, retaining all saved-value expectations.",
+      "note": "Nullable inheritance, 1–409-point differential-format guards and numeric provider/native wire values are preserved. The five authoring APIs and four font models now use one physical length contract. Compiler consumer closure preserves nullable expected rich-run sizes and sums typed PDF minimum row heights after the existing nonnull assertion, retaining all saved-value expectations.",
       "phase": "B",
       "action": "change",
       "old": "ExcelCellStyleInfo.FontSize, ExcelVisualTextRun.FontSize, ExcelVisualDrawingObject.TextFontSize, ExcelConditionalFormattingInfo.DifferentialFontSize",
