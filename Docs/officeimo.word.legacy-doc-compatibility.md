@@ -14,11 +14,16 @@ Section layout retains supported section starts, paper dimensions, orientation, 
 
 Automatic footnotes and endnotes retain their body references, multiple paragraphs, literal spaces and tabs, and supported paragraph and run formatting through the existing `FootNotes`, `EndNotes` and `Inspect()` APIs. Common document note settings retain supported numbering formats, starting values, restart rules and placement. Cached note fields use the same supported instruction and lock grammar as other stories. Custom note marks, additional note-reference markers, note tables and unprojected separator stories retain explicit loss diagnostics; unsupported numbering or placement reports `doc-word69-note-settings`.
 
+Legacy nonbreaking (`0x1E`) and discretionary (`0x1F`) hyphens retain U+2011 and
+U+00AD in body and note text, including their original source positions.
+
 The Core byte decoder retains every Windows-1257 decoding-table value. The Word
-visible-text profile reports undefined Baltic slots that decode to C1 controls
-as `doc-word69-text-codepage-unsupported`; strict saving blocks their loss.
-Import does not assign a guessed visible glyph to those slots. Font charset 0
-or 1 with an unqualified language fallback retains its existing loss report.
+visible-text profile reports high-byte controls or replacement characters after
+resolving the active code page as `doc-word69-text-codepage-unsupported`; strict
+saving blocks their loss. This includes undefined slots in Windows-1250/1252/1257
+and the Western fallback when font metadata is absent. Import does not assign a
+guessed visible glyph to those slots. Font charset 0 or 1 with an unqualified
+language fallback retains its existing loss report.
 
 The [independent Word 6 note fixture](../OfficeIMO.TestAssets/Documents/LegacyDocCorpus/word69-notes/apache-openoffice-4.1.17-notes.oracle.json) qualifies both note kinds, anchors, multiple paragraphs, tabs and selected formatting. Independent Word 95 qualification covers automatic footnotes. The Word 95 endnote profile has binary-grammar regression coverage and remains unqualified against an independently produced original.
 

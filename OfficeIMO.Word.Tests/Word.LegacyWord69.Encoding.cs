@@ -31,13 +31,19 @@ public partial class Word {
         Assert.Equal(new[] { "Left", "âight" }, row.Cells.Select(cell => Assert.Single(cell.Paragraphs).Text));
     }
 
-    [Fact]
-    public void LegacyWord69_Windows1257ControlSlotsRequireExplicitLossBeforeDocxSave() {
-        byte[] original = CreateWord69Fixture(104, cyrillicFont: 1);
+    [Theory]
+    [InlineData(186, 0x8A, false, "eading")]
+    [InlineData(238, 0x81, false, "eading")]
+    [InlineData(0, 0x81, false, "\uFFFDeading")]
+    [InlineData(255, 0x81, true, "\uFFFDeading")]
+    public void LegacyWord69_UndefinedByteSlotsRequireExplicitLossBeforeDocxSave(int charset, int value, bool noContext, string expectedText) {
+        byte[] original = CreateWord69Fixture(104,
+            cyrillicFont: charset is 186 or 238 ? 1 : 0,
+            defaultCharset: noContext ? byte.MaxValue : (byte)0);
         Assert.True(OfficeCompoundFileReader.TryRead(original, out OfficeCompoundFile? compound, out _));
         byte[] main = compound!.Streams["WordDocument"].ToArray();
-        main[0x270 + 2 + 8 + 4] = 186;
-        main[0x300] = 0x8A;
+        if (!noContext) main[0x270 + 2 + 8 + 4] = (byte)charset;
+        main[0x300] = (byte)value;
         byte[] input = OfficeCompoundFileWriter.Write(new[] { new OfficeCompoundStream("WordDocument", main) });
         using WordDocument document = WordDocument.Load(new MemoryStream(input));
         Assert.Equal("doc-word69-text-codepage-unsupported", Assert.Single(document.LegacyDocUnsupportedFeatures).Code);
@@ -51,7 +57,7 @@ public partial class Word {
         document.Save(allowed, new WordSaveOptions { AllowLoss = true });
         allowed.Position = 0;
         using WordDocument reopened = WordDocument.Load(allowed);
-        Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "eading");
+        Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == expectedText);
         Assert.Empty(reopened.ValidateDocument());
     }
 
@@ -114,6 +120,7 @@ public partial class Word {
         byte[] main = compound!.Streams["WordDocument"].ToArray();
         main[0x270 + 2 + 8 + 4] = 238;
         main[0x300] = 0xF8;
+        main[0x301] = 0x8D;
         main[0x300 + 13] = 0xF8;
         byte[] input = OfficeCompoundFileWriter.Write(new[] { new OfficeCompoundStream("WordDocument", main) });
 
@@ -122,7 +129,7 @@ public partial class Word {
         document.Save(output);
         output.Position = 0;
         using WordDocument reopened = WordDocument.Load(output);
-        Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "řeading");
+        Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "řŤading");
         WordTableRow row = Assert.Single(Assert.Single(reopened.Tables).Rows);
         Assert.Equal(new[] { "Left", "øight" },
             row.Cells.Select(cell => Assert.Single(cell.Paragraphs).Text));

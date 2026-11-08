@@ -12,6 +12,39 @@ public partial class Word {
     [Theory]
     [InlineData(101)]
     [InlineData(104)]
+    public void LegacyWord69_HyphenControlsRetainBodyAndNoteTextAnchorsAndEditableDocx(int version) {
+        byte[] input = CreateWord69NotesFixture((ushort)version,
+            footnoteText: "\u0002Foot\u001Ekeep\u001Fsoft\r",
+            endnoteText: "\u0002End\u001Fsoft\u001Ekeep\r",
+            mutate: main => { main[0x400 + 6] = 0x1E; main[0x400 + 16] = 0x1F; });
+        using WordDocument document = WordDocument.Load(new MemoryStream(input));
+        Assert.Empty(document.LegacyDocUnsupportedFeatures);
+        AssertHyphens(document, edited: false);
+        WordParagraph run = Assert.Single(document.FootNotes).Paragraphs!.First(paragraph => paragraph.Text.Contains("Foot"));
+        run.SetText(run.Text.Replace("Foot", "EditedFoot"));
+        using var output = new MemoryStream();
+        document.Save(output);
+        output.Position = 0;
+        using WordDocument reopened = WordDocument.Load(output);
+        AssertHyphens(reopened, edited: true);
+        Assert.Empty(reopened.ValidateDocument());
+
+        static void AssertHyphens(WordDocument doc, bool edited) {
+            WordParagraphInfo body = Assert.Single(doc.Inspect().Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
+            Assert.Equal("Before\u2011[F] between\u00AD[E] after", string.Concat(body.Runs.Select(run =>
+                run.Footnote != null ? "[F]" : run.Endnote != null ? "[E]" : run.Text)));
+            WordFootNote footnote = Assert.Single(doc.FootNotes);
+            WordEndNote endnote = Assert.Single(doc.EndNotes);
+            Assert.Equal(footnote.ReferenceId, Assert.Single(body.Runs, run => run.Footnote != null).Footnote!.ReferenceId);
+            Assert.Equal(endnote.ReferenceId, Assert.Single(body.Runs, run => run.Endnote != null).Endnote!.ReferenceId);
+            Assert.Equal(new[] { (edited ? "EditedFoot" : "Foot") + "\u2011keep\u00ADsoft" }, footnote.TextParagraphs);
+            Assert.Equal(new[] { "End\u00ADsoft\u2011keep" }, endnote.TextParagraphs);
+        }
+    }
+
+    [Theory]
+    [InlineData(101)]
+    [InlineData(104)]
     public void LegacyWord69_AutomaticNotesRetainAnchorsFormattingEncodingAndEditableDocx(int version) {
         using WordDocument document = WordDocument.Load(new MemoryStream(CreateWord69NotesFixture((ushort)version)));
         Assert.Empty(document.LegacyDocUnsupportedFeatures);

@@ -22,8 +22,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 cancellationToken.ThrowIfCancellationRequested();
                 byte value = text[i];
                 int offset = textStart + i;
-                char decoded = LegacyDocPieceTable.DecodeWindows1252(value);
+                char decoded = value switch {
+                    0x1E => LegacyDocSpecialCharacters.NoBreakHyphen,
+                    0x1F => LegacyDocSpecialCharacters.SoftHyphen,
+                    _ => LegacyDocPieceTable.DecodeWindows1252(value)
+                };
                 if (!inspectContexts || value < 0x20 || value == 0x7F || (!mayUseSymbol && value < 0x80)) {
+                    if (value >= 0x80) unsupported |= char.IsControl(decoded) || decoded == '\uFFFD';
                     characters[i] = new LegacyDocTextCharacter(decoded, offset, i);
                     continue;
                 }
@@ -51,9 +56,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     } else if (charset == 186) {
                         // BALTIC_CHARSET explicitly selects Windows-1257 for this text run.
                         decoded = OfficeLegacySingleByteEncoding.DecodeByte(value, 1257);
-                        // Undefined C1 slots decode deterministically but are omitted by
-                        // visible-story projection, so saving them requires explicit loss.
-                        unsupported |= char.IsControl(decoded);
                     } else if (charset > 1 || (context.FontIndex.HasValue && font >= charsets.Count)) {
                         unsupported = true;
                     } else {
@@ -67,6 +69,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         }
                     }
                 }
+                // A qualified font can replace the initial Western fallback with valid text.
+                // Report omitted controls or replacements only after the final decoding.
+                if (value >= 0x80) unsupported |= char.IsControl(decoded) || decoded == '\uFFFD';
                 characters[i] = new LegacyDocTextCharacter(decoded, offset, i);
             }
 
