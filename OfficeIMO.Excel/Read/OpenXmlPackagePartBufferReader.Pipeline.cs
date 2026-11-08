@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
                 || entry.Length < 1_048_576 || entry.Length > maximumBytes || entry.Length > int.MaxValue
                 || entry.CompressedLength >= entry.Length) return false;
             int total = checked((int)entry.Length);
-            using Stream input = entry.Open();
+            using Stream input = OpenEntry(entry, ct);
             byte[] prefix = ArrayPool<byte>.Shared.Rent(256);
             byte[]? output = null;
             Task<bool>? consumer = null;
