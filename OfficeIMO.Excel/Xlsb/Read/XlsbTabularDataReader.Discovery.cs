@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 int pendingRecordBudget = 0;
                 int pendingCellBudget = 0;
                 var currentRowSpanBounds = new int[32];
-                XlsbValidatedRowPlanBuilder? rowPlanBuilder = new XlsbValidatedRowPlanBuilder();
+                XlsbValidatedRowPlanBuilder? rowPlanBuilder = new XlsbValidatedRowPlanBuilder(treatDatesUsingNumberFormat);
                 int currentRowSpanCount = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 // Discovery is the full-buffer validation pass. Fuse BIFF12 framing with the

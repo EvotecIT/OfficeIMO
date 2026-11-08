@@ -83,8 +83,8 @@ public sealed partial class PdfReadPage {
 
     internal string ExtractText(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        // Plain text does not expose restampability; retain the full interpretation and layout.
-        var spans = GetTextSpans(_includeArtifactText, cancellationToken, markUnsafeRestamps: false);
+        // Plain text does not expose editing evidence; retain the full interpretation and layout.
+        var spans = GetTextSpans(_includeArtifactText, cancellationToken, retainEditingEvidence: false);
         var opts = new TextLayoutEngine.Options { ForceSingleColumn = true };
         var lines = TextLayoutEngine.BuildLines(
             spans,
@@ -244,7 +244,7 @@ public sealed partial class PdfReadPage {
         bool requireMappedText = false,
         bool ignoreActualText = false,
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
-        bool markUnsafeRestamps = true) {
+        bool retainEditingEvidence = true) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -284,7 +284,7 @@ public sealed partial class PdfReadPage {
                     : null,
                 invokedResourceNames: invokedResources,
                 onUnmappableText: onUnmappableText,
-                markUnsafeRestamps: markUnsafeRestamps);
+                retainEditingEvidence: retainEditingEvidence);
         }
 
         return spans;
@@ -948,7 +948,7 @@ public sealed partial class PdfReadPage {
         Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null,
         int initialStrokeLineCap = 0,
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
-        bool markUnsafeRestamps = true) {
+        bool retainEditingEvidence = true) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1109,7 +1109,7 @@ public sealed partial class PdfReadPage {
             onActualTextForm: (offset, state) => actualTextForms[offset] = state,
             onCompletedDrawingActualText: onCompletedDrawingActualText,
             twoByteFontForResource: ResolveTwoByteFont,
-            markUnsafeRestamps: markUnsafeRestamps));
+            retainEditingEvidence: retainEditingEvidence));
 
         // Text interpretation has already validated the stream and its limits.
         // A missing Do token rules out forms; strings containing Do simply keep
@@ -1238,7 +1238,7 @@ public sealed partial class PdfReadPage {
                     requireMappedText: requireMappedText,
                     onUnmappableText: onUnmappableText,
                     onCompletedDrawingActualText: onCompletedDrawingActualText,
-                    markUnsafeRestamps: markUnsafeRestamps);
+                    retainEditingEvidence: retainEditingEvidence);
             } finally {
                 activeForms.Remove(formStream);
             }
