@@ -70,7 +70,7 @@ public sealed partial class PdfTextSpan {
     internal IReadOnlyList<int>? EmbeddedLineBreakCounts { get; }
     internal IReadOnlyList<double>? CharacterAdvances { get; }
     internal IReadOnlyList<int>? GlyphCharacterLengths { get; }
-    internal IReadOnlyList<byte[]>? GlyphBytes { get; }
+    internal IReadOnlyList<byte[]>? GlyphBytes { get; private set; }
     internal IReadOnlyList<double>? GlyphPaintedAdvances { get; }
     internal double CharacterAdvanceDirection { get; }
     /// <summary>PDF text rendering mode active for this span (0 through 7).</summary>
@@ -89,7 +89,7 @@ public sealed partial class PdfTextSpan {
         OutlineStroke = (color, width, dashPattern, dashOffset, cap, join, miterLimit);
     internal void MarkAdditionalVisiblePaint() => HasAdditionalVisiblePaint = true;
     internal void MarkUnresolvedPaint() => HasUnresolvedPaint = true;
-    internal bool CanRestamp { get; }
+    internal bool CanRestamp { get; private set; }
     internal bool CanScaleAggregateAdvance { get; }
     internal double RestampFontSize { get; }
     internal string RestampText { get; }
@@ -263,10 +263,14 @@ public sealed partial class PdfTextSpan {
 
     private bool _completeTextProjectionSuppressed;
 
-    internal PdfTextSpan WithCanRestamp(bool canRestamp) => new PdfTextSpan(
-        Text, FontResource, FontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
-        PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
-        ContentOrderKey, CharacterAdvances, TextRenderingMode, canRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreakCounts) { DecodingEvidence = DecodingEvidence, TextSpaceFontSize = TextSpaceFontSize, _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed, _logicalLayoutAdvance = this._logicalLayoutAdvance, _logicalLayoutBaselineOffset = this._logicalLayoutBaselineOffset, LogicalDrawingText = LogicalDrawingText, LogicalGlyphTexts = LogicalGlyphTexts, HasUnresolvedPaint = HasUnresolvedPaint, HasAdditionalVisiblePaint = HasAdditionalVisiblePaint, VisibleStrokePadding = VisibleStrokePadding, OutlineStroke = OutlineStroke, IsPaintedGlyphProjection = IsPaintedGlyphProjection, SourceActualText = SourceActualText, _hasExactActualTextGlyphMapping = _hasExactActualTextGlyphMapping };
+    internal PdfTextSpan WithCanRestamp(bool canRestamp) {
+        // Numeric metadata is already owned; keep the writable glyph bytes independent.
+        var copy = (PdfTextSpan)MemberwiseClone();
+        copy.CanRestamp = canRestamp;
+        copy.GlyphBytes = GlyphBytes?.Select(static bytes => bytes.ToArray()).ToArray();
+        copy.GlyphSourceRunOrdinal = 0; // Preserve the constructor-based clone's source-run identity.
+        return copy;
+    }
 
     internal PdfTextSpan WithOffset(double deltaX, double deltaY) => new PdfTextSpan(
         Text, FontResource, FontSize, X + deltaX, Y + deltaY, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,

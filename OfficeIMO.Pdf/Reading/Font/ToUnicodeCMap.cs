@@ -293,7 +293,7 @@ internal sealed class ToUnicodeCMap {
         }
 
         allMapped = true;
-        var sb = new System.Text.StringBuilder();
+        System.Text.StringBuilder? sb = null;
         for (int i = 0; i < bytes.Length;) {
             // Greedy match up to _maxKeyBytes (1-2 bytes typical)
             int max = Math.Min(_maxKeyBytes, bytes.Length - i);
@@ -306,14 +306,16 @@ internal sealed class ToUnicodeCMap {
                 if (!allowUnmappedBytes) return string.Empty;
             }
             int appendLength = mapped?.Length ?? 1;
-            long nextLength = (long)sb.Length + appendLength;
+            long nextLength = (long)(sb?.Length ?? 0) + appendLength;
             if (nextLength > maxOutputCharacters) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxOutputCharacters, nextLength);
             }
 
+            if (i == 0 && mapped is not null && used == bytes.Length) return mapped;
+            sb ??= new System.Text.StringBuilder();
             if (mapped is null) { sb.Append((char)bytes[i]); i++; } else { sb.Append(mapped); i += used; }
         }
-        return sb.ToString();
+        return sb?.ToString() ?? string.Empty;
     }
 
     public bool TryEncodeText(string text, out string hex) {
