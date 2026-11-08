@@ -130,6 +130,7 @@ namespace OfficeIMO.Word {
                 ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
                 AddLegacyDocNumberingDefinitions(document, legacyDocument.Numbering, legacyDocument.StyleSheet);
                 AddLegacyDocParagraphStyleDefinitions(document, legacyDocument.StyleSheet);
+                using var styleResolution = document.BeginStyleDefinitionResolutionScope();
                 WordSection section = document.Sections.Count > 0
                     ? document.Sections[0]
                     : new WordSection(document, null!, null!);

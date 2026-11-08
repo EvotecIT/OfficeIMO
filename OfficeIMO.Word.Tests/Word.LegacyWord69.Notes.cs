@@ -1,5 +1,6 @@
 using System.Threading;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Word;
@@ -59,6 +60,32 @@ public partial class Word {
         using WordDocument reopened = WordDocument.Load(output);
         AssertWord69NotePackage(reopened, new[] { "Fřtnote", "", "Edited footnote" }, "Edited endnote");
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(reopened.OpenXmlDocument));
+
+        W.Styles styles = document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        string defaults = styles.DocDefaults!.OuterXml;
+        foreach (bool endnote in new[] { false, true }) {
+            string prefix = endnote ? "Endnote" : "Footnote";
+            string baseId = endnote ? "Heading2" : "Heading1";
+            W.Style noteStyle = styles.Elements<W.Style>().Single(style => style.StyleId?.Value == prefix + "Text");
+            noteStyle.BasedOn!.Val = baseId;
+            string authoredStyle = noteStyle.OuterXml;
+            foreach (W.Style dependency in styles.Elements<W.Style>()
+                         .Where(style => style.StyleId?.Value == baseId || style.StyleId?.Value == baseId + "Char").ToArray()) {
+                dependency.Remove();
+            }
+
+            WordParagraph added = document.AddParagraph("Later " + prefix);
+            if (endnote) added.AddEndNote("Later endnote");
+            else added.AddFootNote("Later footnote");
+
+            Assert.Equal(authoredStyle, noteStyle.OuterXml);
+            Assert.Single(styles.Elements<W.Style>(), style => style.StyleId?.Value == baseId);
+            Assert.Single(styles.Elements<W.Style>(), style => style.StyleId?.Value == baseId + "Char");
+        }
+        using var editedSource = new MemoryStream(document.ToBytes(), writable: false);
+        using WordprocessingDocument editedPackage = WordprocessingDocument.Open(editedSource, false);
+        Assert.Equal(defaults, editedPackage.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!.OuterXml);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(editedPackage));
     }
 
     [Fact]
