@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                     throw new InvalidDataException("Reader row count or width differs during full qualification.");
                 object[]? expected = _expectedValues?.Invoke(count);
                 for (int column = 0; column < _columns; column++) {
-                    object? value = PeerValue(row[column]);
+                    object? value = PeerValue(row[column], workbook.IsDate1904);
                     object? officeValue = office.IsDBNull(column) ? null : office.GetValue(column);
                     object? sylvanValue = SylvanValue(sylvan, column);
                     if (!Equals(value, officeValue) || !Equals(value, sylvanValue)

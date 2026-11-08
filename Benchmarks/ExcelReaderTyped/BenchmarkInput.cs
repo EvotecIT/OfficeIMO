@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         string? generatedMapping = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkGeneratedMapping").Value;
             string input = !string.IsNullOrEmpty(packageVersion) ? $"OfficeIMO NuGet {packageVersion}"
                 : !string.IsNullOrEmpty(directory) ? $"saved OfficeIMO assemblies from {directory}" : "OfficeIMO source";
-            Console.WriteLine($"Typed XLSX input: {input}; ExcelReader.NET 6.0.0; Sylvan.Data.Excel 0.5.8; Sylvan.Data 0.2.17.");
+            Console.WriteLine($"Typed XLSX input: {input}.");
             Console.WriteLine($"OfficeIMO new API cases enabled: {newApis}.");
             Console.WriteLine($"CSV comparison cases enabled: {csv}.");
             Console.WriteLine($"Arrow comparison cases enabled: {arrow}.");

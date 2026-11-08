@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Parser;
+using ExcelReader.Core.Reader;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.CSV;
 using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
@@ -8,6 +9,7 @@ using Sylvan.Data;
 using Sylvan.Data.Csv;
 using System.Data.Common;
 using System.Globalization;
+using nietras.SeparatedValues;
 using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 
 namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
@@ -32,6 +34,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             _validate = true;
             try {
                 await ExcelReaderParallel(); ExcelReaderSequential(); OfficeIMOCoreParallel(); SylvanSequential();
+                SepParallel(); SepSequential();
 #if OFFICEIMO_BENCHMARK_NEW_APIS
                 OfficeIMOTextParallel();
 #endif
@@ -45,14 +48,15 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         public async Task<long> ExcelReaderParallel() {
             int count = 0;
             long sum = 0;
-            CsvParallelOptions options = new CsvParallelOptions { DegreeOfParallelism = Dop };
+            SheetParallelOptions options = new SheetParallelOptions { DegreeOfParallelism = Dop };
+            await using CsvReader workbook = ExcelReaderApi.FromCsvFile(_fixture.Path);
             if (_fixture.Heavy) {
-                await foreach (CsvHeavyRecord row in CsvParallel.ParseAsync(_fixture.Path, ExcelParser.FromAttributes<CsvHeavyRecord>(), options)) {
+                await foreach (CsvHeavyRecord row in SheetParallel.ParseAsync(workbook.FirstSheet, ExcelParser.FromAttributes<CsvHeavyRecord>(), options)) {
                     if (_validate) _fixture.Validate(row, count);
                     sum += row.Units; count++;
                 }
             } else {
-                await foreach (CsvNarrowRecord row in CsvParallel.ParseAsync(_fixture.Path, ExcelParser.FromAttributes<CsvNarrowRecord>(), options)) {
+                await foreach (CsvNarrowRecord row in SheetParallel.ParseAsync(workbook.FirstSheet, ExcelParser.FromAttributes<CsvNarrowRecord>(), options)) {
                     if (_validate) _fixture.Validate(row, count);
                     sum += row.A; count++;
                 }
@@ -100,6 +104,51 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 new global::Sylvan.Data.Csv.CsvDataReaderOptions { Culture = CultureInfo.InvariantCulture });
             return _fixture.Heavy ? Consume(reader.GetRecords<CsvHeavyRecord>()) : Consume(reader.GetRecords<CsvNarrowRecord>());
         }
+
+        [Benchmark]
+        public long SepParallel() {
+            using SepReader reader = Sep.New(',').Reader(options => options with {
+                CultureInfo = CultureInfo.InvariantCulture, Unescape = true,
+            }).FromFile(_fixture.Path);
+            if (_fixture.Heavy)
+                return Consume(Dop == 0 ? reader.ParallelEnumerate(ParseSepHeavy)
+                    : reader.ParallelEnumerate(ParseSepHeavy, Dop));
+            return Consume(Dop == 0 ? reader.ParallelEnumerate(ParseSepNarrow)
+                : reader.ParallelEnumerate(ParseSepNarrow, Dop));
+        }
+
+        [Benchmark]
+        public long SepSequential() {
+            using SepReader reader = Sep.New(',').Reader(options => options with {
+                CultureInfo = CultureInfo.InvariantCulture, Unescape = true,
+            }).FromFile(_fixture.Path);
+            long sum = 0;
+            int count = 0;
+            if (_fixture.Heavy) {
+                foreach (SepReader.Row row in reader) {
+                    CsvHeavyRecord record = ParseSepHeavy(row);
+                    if (_validate) _fixture.Validate(record, count);
+                    sum += record.Units;
+                    count++;
+                }
+            } else {
+                foreach (SepReader.Row row in reader) {
+                    CsvNarrowRecord record = ParseSepNarrow(row);
+                    if (_validate) _fixture.Validate(record, count);
+                    sum += record.A;
+                    count++;
+                }
+            }
+            return _fixture.Check(sum, count);
+        }
+
+        private static CsvHeavyRecord ParseSepHeavy(SepReader.Row row) => new() {
+            Region = row[0].ToString(), Country = row[1].ToString(), OrderDate = row[2].Parse<DateTime>(),
+            UnitPrice = row[3].Parse<decimal>(), TotalRevenue = row[4].Parse<decimal>(), Units = row[5].Parse<int>(),
+        };
+        private static CsvNarrowRecord ParseSepNarrow(SepReader.Row row) => new() {
+            A = row[0].Parse<int>(), B = row[1].Parse<int>(), C = row[2].Parse<int>(),
+        };
 
         private long Consume(IEnumerable<CsvHeavyRecord> records) {
             long sum = 0;

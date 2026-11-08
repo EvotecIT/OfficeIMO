@@ -141,9 +141,10 @@ commit, and pinned package versions with results. Retain outliers and inspect
 variance and host activity before claiming a small win. The memory column reports
 warmed managed allocation, rather than retained or peak process memory.
 
-The exact ExcelReader.NET 6.0.0 package identifies source commit
-`ca5b50f99e8ef57ab476f0a2bc8043558d58b28d` and declares the MIT license. The workload
-adaptation is attributed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+ExcelReader.NET 7.4.1 identifies source commit
+`bb207565a6842a4db6a6e94f572c97dca9d64054` and declares the MIT license. The
+workload shapes retain their original source attribution in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 Sylvan.Data 0.2.17 and Sylvan.Data.Excel 0.5.8 are pinned for this lane. Check the
 complete BDN report for build or validation failures; process success alone does
 not establish that all expected benchmarks ran.
@@ -196,7 +197,7 @@ for timing and allocation comparisons.
 | Comparison dependency | Version | License in the exact package |
 | --- | --- | --- |
 | BenchmarkDotNet | 0.15.8 | MIT |
-| ExcelReader.NET | 6.0.0 | MIT |
+| ExcelReader.NET | 7.4.1 | MIT |
 | Sylvan.Data | 0.2.17 | MIT (`license.txt`) |
 | Sylvan.Data.Excel | 0.5.8 | MIT (`license.txt`) |
 | System.IO.Hashing (setup integrity validation) | 10.0.12 | MIT |
@@ -463,7 +464,7 @@ dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.B
 ## Optional CSV and Arrow builds
 
 Set `OfficeIMOBenchmarkCsv=true` to include the CSV classes, Sylvan.Data.Csv 1.4.4,
-and the matching OfficeIMO.CSV source, package, or saved assembly. XLSX-only saved
+Sep 0.17.1 (MIT), and the matching OfficeIMO.CSV source, package, or saved assembly. XLSX-only saved
 builds continue to require only Excel and Core. The CSV saved lane additionally
 requires `OfficeIMO.CSV.dll` in the selected directory. Borrowed UTF-8 API cases
 also require `OfficeIMOBenchmarkNewApis=true`; materialized and ordinary typed
@@ -498,12 +499,18 @@ asynchronous disk throughput or zero allocation.
 degrees of parallelism; measured cases retain their original 4.3M, 8M, and 3M
 sizes. `OFFICEIMO_CSV_PARALLEL_BENCHMARK_ROWS` and
 `OFFICEIMO_CSV_PARALLEL_BENCHMARK_DOP` select diagnostic sizes and degrees.
+An explicit row-count override includes one heavy and one narrow corpus; the
+otherwise separate 3M heavy case would repeat the same input. Typed parallel
+reads also include Sep's ordered `ParallelEnumerate` and sequential reader,
+using the same record fields, input bytes, and degree of parallelism.
 Set `OFFICEIMO_BENCHMARK_OUTPUT` to an existing task-owned scratch directory for
 parallel CSV input files; cleanup removes the generated input after each case.
 
 `CsvDirectAggregateBenchmarks` calls the public direct reduction APIs with an
-independent state per partition or batch and an associative merge. The peer
-retains its original `CsvParallel.AggregateAsync` operation. OfficeIMO's text
+independent state per partition or batch and an associative merge. ExcelReader
+uses `SheetParallel.AggregateAsync` over the CSV sheet, including opening and
+disposing its reader inside timing. Sep uses its native parallel row projection
+and reduces the returned values in the caller. OfficeIMO's text
 case reads and decodes the file inside the measured operation, then calls
 `AggregateTextRowsAsParallel`. Its two asynchronous cases call
 `AggregateRowsAsParallelAsync` with the file path or an asynchronous `FileStream`;
@@ -566,7 +573,7 @@ dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.B
 ```
 
 `OfficeIMOBenchmarkArrow=true` includes the optional Arrow owner and
-ExcelReader.Arrow 6.0.0. It requires both CSV and current-API flags. The saved
+ExcelReader.Arrow 7.4.1. It requires both CSV and current-API flags. The saved
 assembly lane additionally requires `OfficeIMO.Data.Arrow.dll`; Apache.Arrow
 23.0.0 supplies the matching binary contract. The default build loads none of
 these optional Arrow engines. Arrow schema inference policies must be qualified
@@ -581,7 +588,7 @@ Inference is a separate diagnostic without a paired ratio: ExcelReader returns
 four required string fields, while OfficeIMO returns string, Int32, microsecond
 timestamp, and Decimal128(29,10) fields under its ordinary inference policy.
 
-Sylvan.Data.Csv 1.4.4 and ExcelReader.Arrow 6.0.0 use MIT; Apache.Arrow 23.0.0 and
+Sylvan.Data.Csv 1.4.4 and ExcelReader.Arrow 7.4.1 use MIT; Apache.Arrow 23.0.0 and
 its Apache.Arrow.Scalars dependency use Apache-2.0. These dependencies remain in
 this opt-in comparison project.
 

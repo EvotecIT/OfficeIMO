@@ -1,11 +1,16 @@
 #if OFFICEIMO_BENCHMARK_NEW_APIS && OFFICEIMO_BENCHMARK_CSV
 using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Parser;
+using ExcelReader.Core.Reader;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.CSV;
 using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
 using OfficeIMO.Data;
 using System.Text;
+using System.Globalization;
+using nietras.SeparatedValues;
+
+using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 
 namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     /// <summary>Reduces the original CSV fields into independent states with complete input work timed.</summary>
@@ -30,6 +35,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             _fixture = new(Input);
             try {
                 await QualifyAsync(ExcelReaderAggregate);
+                await QualifyAsync(() => Task.FromResult(SepParallelAggregate()));
                 await QualifyAsync(() => Task.FromResult(OfficeIMOTextOwnedAggregate()));
                 await QualifyAsync(OfficeIMOAsyncPathAggregate);
                 await QualifyAsync(() => ReadOfficeStreamAsync(probe: true));
@@ -52,15 +58,45 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark(Baseline = true)]
         public async Task<long> ExcelReaderAggregate() {
-            CsvParallelOptions options = new CsvParallelOptions { DegreeOfParallelism = Dop, HeaderRow = 1 };
+            SheetParallelOptions options = new SheetParallelOptions { DegreeOfParallelism = Dop, HeaderRow = 1 };
+            await using CsvReader workbook = ExcelReaderApi.FromCsvFile(_fixture.Path);
             if (_fixture.Heavy) {
-                HeavyAccumulator result = await CsvParallel.AggregateAsync<HeavyAccumulator, CsvHeavyRefRecord>(
-                    _fixture.Path, ExcelParser.FromAttributes<CsvHeavyRefRecord>(), options);
+                HeavyAccumulator result = await SheetParallel.AggregateAsync<HeavyAccumulator, CsvHeavyRefRecord>(
+                    workbook.FirstSheet, ExcelParser.FromAttributes<CsvHeavyRefRecord>(), options);
                 return _fixture.Check(result.Sum, result.Count);
             }
-            NarrowAccumulator narrow = await CsvParallel.AggregateAsync<NarrowAccumulator, CsvNarrowStructRecord>(
-                _fixture.Path, ExcelParser.FromAttributes<CsvNarrowStructRecord>(), options);
+            NarrowAccumulator narrow = await SheetParallel.AggregateAsync<NarrowAccumulator, CsvNarrowStructRecord>(
+                workbook.FirstSheet, ExcelParser.FromAttributes<CsvNarrowStructRecord>(), options);
             return _fixture.Check(narrow.Sum, narrow.Count);
+        }
+
+        /// <summary>Projects rows with Sep's native parallel reader, then reduces the returned values.</summary>
+        [Benchmark]
+        public long SepParallelAggregate() {
+            using SepReader reader = Sep.New(',').Reader(options => options with {
+                CultureInfo = CultureInfo.InvariantCulture, Unescape = true,
+            }).FromFile(_fixture.Path);
+            SepReader.RowFunc<AggregateState> project = _fixture.Heavy ? ReadSepHeavyRow : ReadSepNarrowRow;
+            IEnumerable<AggregateState> rows = Dop == 0 ? reader.ParallelEnumerate(project)
+                : reader.ParallelEnumerate(project, Dop);
+            AggregateState result = default;
+            foreach (AggregateState row in rows) result = Merge(result, row);
+            return _fixture.Check(result.Sum, result.Count);
+        }
+
+        private AggregateState ReadSepHeavyRow(SepReader.Row row) {
+            ReadOnlySpan<char> region = row[0].Span, country = row[1].Span;
+            DateTime date = row[2].Parse<DateTime>();
+            decimal price = row[3].Parse<decimal>(), revenue = row[4].Parse<decimal>();
+            int units = row[5].Parse<int>();
+            _proof?.Heavy(region, country, date, price, revenue, units);
+            return new() { Sum = units, Count = 1 };
+        }
+
+        private AggregateState ReadSepNarrowRow(SepReader.Row row) {
+            int a = row[0].Parse<int>(), b = row[1].Parse<int>(), c = row[2].Parse<int>();
+            _proof?.Narrow(a, b, c);
+            return new() { Sum = a, Count = 1 };
         }
 
         [Benchmark]
@@ -145,7 +181,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 
         private struct AggregateState { internal long Sum; internal int Count; }
-        private sealed class HeavyAccumulator : ICsvAccumulator<HeavyAccumulator, CsvHeavyRefRecord> {
+        private sealed class HeavyAccumulator : IRowAccumulator<HeavyAccumulator, CsvHeavyRefRecord> {
             private readonly CsvAggregateProof? _validation = _peerProof;
             public long Sum { get; private set; }
             public int Count { get; private set; }
@@ -156,7 +192,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             }
             public void Merge(HeavyAccumulator following) { Sum += following.Sum; Count += following.Count; }
         }
-        private sealed class NarrowAccumulator : ICsvAccumulator<NarrowAccumulator, CsvNarrowStructRecord> {
+        private sealed class NarrowAccumulator : IRowAccumulator<NarrowAccumulator, CsvNarrowStructRecord> {
             private readonly CsvAggregateProof? _validation = _peerProof;
             public long Sum { get; private set; }
             public int Count { get; private set; }

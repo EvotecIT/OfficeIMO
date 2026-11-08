@@ -1,11 +1,14 @@
 using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Parser;
+using ExcelReader.Core.Reader;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.CSV;
 using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
 using OfficeIMO.Data;
 using System.Runtime.InteropServices;
 using System.Text;
+
+using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 
 namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     public ref struct CsvHeavyRefRecord {
@@ -72,14 +75,15 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark]
         public async Task<long> ExcelReaderAggregate() {
-            CsvParallelOptions options = new CsvParallelOptions { DegreeOfParallelism = Dop, HeaderRow = 1 };
+            SheetParallelOptions options = new SheetParallelOptions { DegreeOfParallelism = Dop, HeaderRow = 1 };
+            await using CsvReader workbook = ExcelReaderApi.FromCsvFile(_fixture.Path);
             if (_fixture.Heavy) {
-                HeavyAccumulator result = await CsvParallel.AggregateAsync<HeavyAccumulator, CsvHeavyRefRecord>(
-                    _fixture.Path, ExcelParser.FromAttributes<CsvHeavyRefRecord>(), options);
+                HeavyAccumulator result = await SheetParallel.AggregateAsync<HeavyAccumulator, CsvHeavyRefRecord>(
+                    workbook.FirstSheet, ExcelParser.FromAttributes<CsvHeavyRefRecord>(), options);
                 return _fixture.Check(result.Sum, result.Count);
             }
-            NarrowAccumulator narrow = await CsvParallel.AggregateAsync<NarrowAccumulator, CsvNarrowStructRecord>(
-                _fixture.Path, ExcelParser.FromAttributes<CsvNarrowStructRecord>(), options);
+            NarrowAccumulator narrow = await SheetParallel.AggregateAsync<NarrowAccumulator, CsvNarrowStructRecord>(
+                workbook.FirstSheet, ExcelParser.FromAttributes<CsvNarrowStructRecord>(), options);
             return _fixture.Check(narrow.Sum, narrow.Count);
         }
 
@@ -128,7 +132,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 #endif
 
-        private sealed class HeavyAccumulator : ICsvAccumulator<HeavyAccumulator, CsvHeavyRefRecord> {
+        private sealed class HeavyAccumulator : IRowAccumulator<HeavyAccumulator, CsvHeavyRefRecord> {
             private readonly CsvParallelFixture? _validation = _validationFixture;
             public long Sum { get; private set; }
             public int Count { get; private set; }
@@ -140,7 +144,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             public void Merge(HeavyAccumulator following) { Sum += following.Sum; Count += following.Count; }
         }
 
-        private sealed class NarrowAccumulator : ICsvAccumulator<NarrowAccumulator, CsvNarrowStructRecord> {
+        private sealed class NarrowAccumulator : IRowAccumulator<NarrowAccumulator, CsvNarrowStructRecord> {
             private readonly CsvParallelFixture? _validation = _validationFixture;
             public long Sum { get; private set; }
             public int Count { get; private set; }

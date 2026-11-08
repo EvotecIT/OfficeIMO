@@ -20,11 +20,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Keep the benchmark harness and competing engines on the audited upstream versions. -->
+    <!-- Keep the benchmark harness and comparison engines on the qualified published versions. -->
     <None Update="SavedAssemblyReferences.targets"
           CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-    <PackageReference Include="ExcelReader.NET" Version="6.0.0" ExcludeAssets="analyzers" />
+    <PackageReference Include="ExcelReader.NET" Version="7.4.1" ExcludeAssets="analyzers" />
     <PackageReference Include="Sylvan.Data" Version="0.2.17" />
     <PackageReference Include="Sylvan.Data.Excel" Version="0.5.8" />
     <!-- ZIP integrity validation runs only in setup, outside measured operations. -->
@@ -54,6 +54,7 @@
   </ItemGroup>
   <ItemGroup Condition="'$(OfficeIMOBenchmarkCsv)' == 'true'">
     <PackageReference Include="Sylvan.Data.Csv" Version="1.4.4" />
+    <PackageReference Include="Sep" Version="0.17.1" />
     <ProjectReference Include="../../OfficeIMO.CSV/OfficeIMO.CSV.csproj"
                       Condition="'$(OfficeIMOBenchmarkPackageVersion)' == '' and '$(OfficeIMOBenchmarkAssemblyDirectory)' == ''" />
     <PackageReference Include="OfficeIMO.CSV" Version="$(OfficeIMOBenchmarkPackageVersion)"
@@ -63,7 +64,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(OfficeIMOBenchmarkArrow)' == 'true'">
-    <PackageReference Include="ExcelReader.Arrow" Version="6.0.0" />
+    <PackageReference Include="ExcelReader.Arrow" Version="7.4.1" />
     <ProjectReference Include="../../OfficeIMO.Data.Arrow/OfficeIMO.Data.Arrow.csproj"
                       Condition="'$(OfficeIMOBenchmarkPackageVersion)' == '' and '$(OfficeIMOBenchmarkAssemblyDirectory)' == ''" />
     <PackageReference Include="OfficeIMO.Data.Arrow" Version="$(OfficeIMOBenchmarkPackageVersion)"
@@ -95,9 +96,4 @@
            Text="The Arrow saved assembly lane must contain its matching OfficeIMO.Data.Arrow.dll." />
   </Target>
 
-  <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">
-    <ItemGroup>
-      <Analyzer Remove="@(Analyzer)" Condition="'%(Analyzer.Filename)' == 'ExcelReader.Generator'" />
-    </ItemGroup>
-  </Target>
 </Project>

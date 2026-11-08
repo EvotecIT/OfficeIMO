@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             while (await rows.MoveNextAsync()) {
                 Row row = rows.Current;
                 if (!row[1].TryParse(CultureInfo.InvariantCulture, out int id)
-                    || !row[2].TryGetDateTime(out DateTime date)
+                    || !row[2].TryGetDateTime(workbook.IsDate1904, out DateTime date)
                     || !row[3].TryParse(CultureInfo.InvariantCulture, out double value))
                     throw new InvalidDataException("Borrowed CSV scalar parsing failed.");
                 state.Sum = unchecked(state.Sum + row[0].Value.Length + id + date.Ticks + (long)value);
@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                     TypedRecord expected = expectedRecord(count + 1);
                     if (row.ColumnCount != 4 || !row[0].Value.SequenceEqual(Encoding.UTF8.GetBytes(expected.Name!))
                         || !row[1].TryParse(CultureInfo.InvariantCulture, out int id) || id != expected.Id
-                        || !row[2].TryGetDateTime(out DateTime date) || date != expected.Date
+                        || !row[2].TryGetDateTime(workbook.IsDate1904, out DateTime date) || date != expected.Date
                         || !row[3].TryParse(CultureInfo.InvariantCulture, out double value) || value != expected.Value)
                         throw new InvalidDataException($"Peer borrowed CSV field/order differs at row {count + 1}.");
                     count++;
