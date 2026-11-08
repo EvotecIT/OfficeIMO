@@ -165,9 +165,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static void AssignSemanticFragmentOrders(IEnumerable<HtmlInlineRun> runs) {
-        var nextOrders = new Dictionary<int, int>();
+        Dictionary<int, int>? nextOrders = null;
         foreach (HtmlInlineRun run in runs) {
             if (!run.SemanticNodeId.HasValue) continue;
+            nextOrders ??= new Dictionary<int, int>();
             int nodeId = run.SemanticNodeId.Value;
             nextOrders.TryGetValue(nodeId, out int order);
             run.AssignSemanticNode(run.SemanticRole, nodeId, run.BookmarkAnchorText, order);

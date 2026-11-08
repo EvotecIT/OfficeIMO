@@ -360,7 +360,8 @@ internal static partial class TextContentParser {
         Action<DrawingActualTextScope>? onCompletedDrawingActualText = null,
         Func<string, PdfFontResource?>? twoByteFontForResource = null,
         int initialStrokeLineCap = 0,
-        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
+        bool markUnsafeRestamps = true) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
 
@@ -887,6 +888,7 @@ internal static partial class TextContentParser {
         }
 
         void MarkSpansCannotRestamp(int firstSpanIndex, int spanCount) {
+            if (!markUnsafeRestamps) return;
             int end = Math.Min(spans.Count, firstSpanIndex + spanCount);
             for (int index = firstSpanIndex; index < end; index++) spans[index] = spans[index].WithCanRestamp(false);
         }
