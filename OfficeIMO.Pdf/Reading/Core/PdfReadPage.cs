@@ -229,9 +229,11 @@ public sealed partial class PdfReadPage {
         if (content.IndexOf("/Artifact", StringComparison.Ordinal) < 0) return 0;
         // These passes count spans only. Inspection already recorded failures on its logical pass.
         Action<PdfUnsupportedTextMappingException, int?>? ignoreUnmappableText = recoverDecodableText ? static (_, _) => { } : null;
-        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken, onUnmappableText: ignoreUnmappableText)
+        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken,
+            onUnmappableText: ignoreUnmappableText, retainEditingEvidence: false)
             .Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
-        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken, onUnmappableText: ignoreUnmappableText)
+        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken,
+            onUnmappableText: ignoreUnmappableText, retainEditingEvidence: false)
             .Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
         return Math.Max(0, withArtifacts - withoutArtifacts);
     }
