@@ -172,7 +172,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static double PowerOfTen(int exponent) => exponent switch {
+        internal static double PowerOfTen(int exponent) => exponent switch {
             1 => 1e1,
             2 => 1e2,
             3 => 1e3,

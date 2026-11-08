@@ -49,17 +49,24 @@ public partial class Excel {
             + "<row><c/><c s=\"1\"><v>1E100</v></c><c><v>7</v></c></row>";
         string path = CreateIndexedNumericAccessWorkbook(cells, date1904, elapsed);
         try {
-            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { NumericAsDecimal = numericAsDecimal });
+            var options = new ExcelReaderOptions { NumericAsDecimal = numericAsDecimal };
+            using var reader = ExcelDocument.OpenReader(path, options);
             foreach (var row in rows) {
                 Assert.True(reader.Read());
                 double expectedNumber = numericAsDecimal ? (double)(decimal)row.Number : row.Number;
                 if (numericFirst) {
                     Assert.Equal(decimal.GetBits((decimal)row.Number), decimal.GetBits(reader.GetDecimal(0)));
-                    Assert.Equal(BitConverter.DoubleToInt64Bits(expectedNumber), BitConverter.DoubleToInt64Bits(reader.GetDouble(0)));
-                    Assert.Equal(row.Serial, reader.GetDouble(1));
                 } else {
                     if (numericAsDecimal) Assert.Equal(decimal.GetBits((decimal)row.Number), decimal.GetBits(Assert.IsType<decimal>(reader.GetValue(0))));
                     else Assert.Equal(row.Number, Assert.IsType<double>(reader.GetValue(0)));
+                }
+                options.NumericAsDecimal = !numericAsDecimal;
+                if (numericAsDecimal) Assert.Equal(decimal.GetBits((decimal)row.Number), decimal.GetBits(Assert.IsType<decimal>(reader.GetValue(0))));
+                else Assert.Equal(BitConverter.DoubleToInt64Bits(row.Number), BitConverter.DoubleToInt64Bits(Assert.IsType<double>(reader.GetValue(0))));
+                options.NumericAsDecimal = numericAsDecimal;
+                if (numericFirst) {
+                    Assert.Equal(BitConverter.DoubleToInt64Bits(expectedNumber), BitConverter.DoubleToInt64Bits(reader.GetDouble(0)));
+                    Assert.Equal(row.Serial, reader.GetDouble(1));
                 }
                 DateTime expectedDate = elapsed ? DateTime.FromOADate(row.Serial)
                     : ExcelDateSystemConverter.FromSerial(row.Serial, date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred);
