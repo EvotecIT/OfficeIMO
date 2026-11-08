@@ -128,7 +128,7 @@ namespace OfficeIMO.Word {
 
             // Null check for Endnotes property
             if (endnotesPart?.Endnotes != null) {
-                var endNote = endnotesPart.Endnotes.Descendants<Endnote>();
+                var endNote = endnotesPart.Endnotes.Elements<Endnote>();
 
                 // Null check for endNote variable
                 if (endNote != null && endNote.Any()) {

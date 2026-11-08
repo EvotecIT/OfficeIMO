@@ -48,6 +48,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         // EASTEUROPE_CHARSET explicitly selects Windows-1250, even when the
                         // document's default language is Western or the font is inherited.
                         decoded = OfficeLegacySingleByteEncoding.DecodeByte(value, 1250);
+                    } else if (charset == 186) {
+                        // BALTIC_CHARSET explicitly selects Windows-1257 for this text run.
+                        decoded = OfficeLegacySingleByteEncoding.DecodeByte(value, 1257);
                     } else if (charset > 1 || (context.FontIndex.HasValue && font >= charsets.Count)) {
                         unsupported = true;
                     } else {

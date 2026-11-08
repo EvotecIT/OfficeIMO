@@ -7,6 +7,59 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LegacyWord69_DirectOrInheritedWindows1257Font_PreservesBalticTextBesideWesternText(bool inheritedFont) {
+        byte[] original = CreateWord69Fixture(104, cyrillicFont: inheritedFont ? 2 : 1);
+        Assert.True(OfficeCompoundFileReader.TryRead(original, out OfficeCompoundFile? compound, out _));
+        byte[] main = compound!.Streams["WordDocument"].ToArray();
+        main[0x270 + 2 + 8 + 4] = 186;
+        byte[] baltic = { 0xC2, 0xE2, 0xC7, 0xE7, 0xCC, 0xEC, 0xCE };
+        baltic.CopyTo(main, 0x300);
+        main[0x300 + 13] = 0xE2;
+        byte[] input = OfficeCompoundFileWriter.Write(new[] { new OfficeCompoundStream("WordDocument", main) });
+
+        using WordDocument document = WordDocument.Load(new MemoryStream(input));
+        Assert.Empty(document.LegacyDocUnsupportedFeatures);
+        using var output = new MemoryStream();
+        document.Save(output);
+        output.Position = 0;
+        using WordDocument reopened = WordDocument.Load(output);
+        Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "ĀāĒēĢģĪ");
+        WordTableRow row = Assert.Single(Assert.Single(reopened.Tables).Rows);
+        Assert.Equal(new[] { "Left", "âight" }, row.Cells.Select(cell => Assert.Single(cell.Paragraphs).Text));
+    }
+
+    [Fact]
+    public void LegacyWord69_Windows1257NotesRetainBalticTextAndWesternStoryBoundary() {
+        const string expected = "Ābele ģimenē ēd ķiršus; žąsis Įlankoje; Õun.";
+        byte[] baltic = {
+            0xC2, 0x62, 0x65, 0x6C, 0x65, 0x20, 0xEC, 0x69, 0x6D, 0x65, 0x6E,
+            0xE7, 0x20, 0xE7, 0x64, 0x20, 0xED, 0x69, 0x72, 0xF0, 0x75, 0x73,
+            0x3B, 0x20, 0xFE, 0xE0, 0x73, 0x69, 0x73, 0x20, 0xC1, 0x6C, 0x61,
+            0x6E, 0x6B, 0x6F, 0x6A, 0x65, 0x3B, 0x20, 0xD5, 0x75, 0x6E, 0x2E
+        };
+        string rawBytes = new string(baltic.Select(value => (char)value).ToArray());
+        byte[] input = CreateWord69NotesFixture(104,
+            footnoteText: "\u0002\t" + rawBytes + "\rSecond Baltic paragraph\r",
+            mutate: main => main[0x282 + 8 + 4] = 186);
+        using WordDocument document = WordDocument.Load(new MemoryStream(input));
+        Assert.Empty(document.LegacyDocUnsupportedFeatures);
+        WordFootNote footnote = Assert.Single(document.FootNotes);
+        Assert.Equal(new[] { "\t" + expected, "Second Baltic paragraph" }, footnote.TextParagraphs);
+        Assert.Equal(new[] { "Eøndnote" }, Assert.Single(document.EndNotes).TextParagraphs);
+        WordParagraph editableRun = footnote.Paragraphs!.Single(run => run.Text.Contains("Ābele"));
+        editableRun.SetText(editableRun.Text + " Reviewed");
+        using var output = new MemoryStream();
+        document.Save(output);
+        output.Position = 0;
+        using WordDocument reopened = WordDocument.Load(output);
+        Assert.Equal(new[] { "\t" + expected + " Reviewed", "Second Baltic paragraph" }, Assert.Single(reopened.FootNotes).TextParagraphs);
+        Assert.Equal(new[] { "Eøndnote" }, Assert.Single(reopened.EndNotes).TextParagraphs);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
     [Fact]
     public void LegacyWord69_OpenOfficeWindows1250_LoadEditSaveRetainsCentralEuropeanText() {
         string source = GetFixtureDoc(Path.Combine("LegacyDocCorpus", "apache-poi-word69", "Bug60936.doc"));

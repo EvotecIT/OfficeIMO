@@ -1,5 +1,14 @@
 # Third-party notices
 
+## Windows-1257 mapping data
+
+The Windows-1257 table in `Internal/OfficeLegacySingleByteEncoding.cs` uses the
+`MBTABLE 256` decoding data from [Microsoft's Windows-1257 mapping hosted by Unicode](https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WindowsBestFit/bestfit1257.txt).
+The source SHA-256 is `B8C5D7F3B8C25C3D5625D44DD3D6EE7A06E652DDF77373D050282C1CB7517366`.
+Encoding uses exact reverse matches; the source's `WCTABLE` best-fit aliases are not used.
+The Unicode License V3 copyright and permission notice is retained in
+`Licenses/Unicode-LICENSE.txt`. This data introduces no runtime encoding provider dependency.
+
 ## Hyphenation patterns
 
 The embedded US English and reformed German resources are derived from

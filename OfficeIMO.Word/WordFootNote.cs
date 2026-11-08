@@ -124,7 +124,7 @@ namespace OfficeIMO.Word {
             var footnotesPart = document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
 
             if (footnotesPart?.Footnotes != null) {
-                var footNote = footnotesPart.Footnotes.Descendants<Footnote>();
+                var footNote = footnotesPart.Footnotes.Elements<Footnote>();
 
                 if (footNote.Any()) {
                     highestId = footNote.Max(en => en.Id?.Value ?? 0);

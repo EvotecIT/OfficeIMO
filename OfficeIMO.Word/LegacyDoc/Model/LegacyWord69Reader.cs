@@ -119,7 +119,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             if (unsupportedText) {
                 Report(LegacyDocUnsupportedFeatureKind.Formatting, "doc-word69-text-codepage-unsupported",
-                    "The Word 6/95 document uses text outside the supported Windows-1250/1252 font and language profile.");
+                    "The Word 6/95 document uses text outside the supported Windows-1250/1252/1257 font and language profile.");
             }
 
             if (properties.HasUnsupportedFormatting) {
