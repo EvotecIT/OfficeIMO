@@ -62,6 +62,11 @@ internal static partial class PdfWriter {
             string? unmeasuredReason = null;
             double baseline = firstBaseline;
             int? bidiLevel = ResolveRichParagraphBidiLevel(lines);
+            // Ink inspection consumes clips synchronously; keep separate scratch builders for its prefix comparisons.
+            List<OfficeTextInkClip>? intrinsicClipBuilder = null;
+            List<OfficeTextInkClip>? sourcePaintClipBuilder = null;
+            List<OfficeTextInkClip>? admittedClipBuilder = null;
+            List<OfficeTextInkClip>? frameClipBuilder = null;
             try {
                 for (int index = 0; index < lines.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -190,21 +195,29 @@ internal static partial class PdfWriter {
                         DiagnosticPaintBounds paintBounds = MeasureDiagnosticPaintBounds(contours);
                         if (imageClips == null && DiagnosticPaintContained(paintBounds, sourceClips, targetClips,
                             frameClip, pageClip, secondClip, transform)) return;
-                        var intrinsic = new List<OfficeTextInkClip>();
+                        var intrinsic = intrinsicClipBuilder ??= new List<OfficeTextInkClip>();
+                        intrinsic.Clear();
                         if (imageClips != null) foreach (var imageClip in imageClips) intrinsic.Add(DiagnosticMapClip(imageClip, transform));
                         // The source already paints through these clips. Only extra target
                         // clipping can remove ink relative to that source appearance. Keep
                         // the reference clips as a prefix for additional-loss measurement.
-                        var sourcePaintClips = new List<OfficeTextInkClip>(intrinsic);
+                        var sourcePaintClips = sourcePaintClipBuilder ??= new List<OfficeTextInkClip>();
+                        sourcePaintClips.Clear();
+                        sourcePaintClips.AddRange(intrinsic);
                         sourcePaintClips.AddRange(sourceClips);
-                        var admittedClips = new List<OfficeTextInkClip>(sourcePaintClips);
+                        var admittedClips = admittedClipBuilder ??= new List<OfficeTextInkClip>();
+                        admittedClips.Clear();
+                        admittedClips.AddRange(sourcePaintClips);
                         admittedClips.AddRange(targetClips);
                         var admitted = OfficeRasterCanvas.MeasureNominalFilledContourBounds(contours, OfficeFillRule.NonZero, admittedClips, cancellationToken);
                         RequireMeasured(admitted.IsMeasured);
                         if (targetClips.Count > 0 && !DiagnosticClipsContain(targetClips, paintBounds))
                             outerClipped |= Loss(sourcePaintClips, admittedClips);
                         if (!admitted.HasInk) return;
-                        var withFrame = new List<OfficeTextInkClip>(admittedClips) { frameClip };
+                        var withFrame = frameClipBuilder ??= new List<OfficeTextInkClip>();
+                        withFrame.Clear();
+                        withFrame.AddRange(admittedClips);
+                        withFrame.Add(frameClip);
                         OfficeTextInkClip? secondInkClip = secondClip.HasValue ? DiagnosticRectangleClip(secondClip.Value, transform) : null;
                         if (secondInkClip.HasValue) withFrame.Add(secondInkClip.Value);
                         if (!DiagnosticClipContains(frameClip, paintBounds)
