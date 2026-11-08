@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void AppendSupportedTableStyleBaseConditionalStyles(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, List<LegacyDocTableConditionalStyle> conditionalStyles) {
-            AppendSupportedTableStyleBaseConditionalStyles(style, tableStyleDefinitions, conditionalStyles, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            AppendSupportedTableStyleBaseConditionalStyles(style, tableStyleDefinitions, conditionalStyles, new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static void AppendSupportedTableStyleBaseConditionalStyles(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, List<LegacyDocTableConditionalStyle> conditionalStyles, ISet<string> visitedStyleIds) {

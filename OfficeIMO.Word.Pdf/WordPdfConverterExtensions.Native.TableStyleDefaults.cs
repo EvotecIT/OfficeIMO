@@ -484,7 +484,7 @@ namespace OfficeIMO.Word.Pdf {
             IsNativeNormalTableStyleId(styleId);
 
         private static bool IsNativeNormalTableStyleId(string? styleId) =>
-            string.Equals(styleId, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(styleId, "NormalTable", StringComparison.OrdinalIgnoreCase);
+            string.Equals(styleId, "TableNormal", StringComparison.Ordinal) ||
+            string.Equals(styleId, "NormalTable", StringComparison.Ordinal);
     }
 }

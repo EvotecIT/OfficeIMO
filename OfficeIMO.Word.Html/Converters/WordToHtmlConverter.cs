@@ -448,9 +448,9 @@ namespace OfficeIMO.Word.Html {
                             var artifactNodes = new List<INode>();
                             AppendRunArtifacts(sourceRun, artifactNodes, segment.ArtifactElement);
                             if (artifactNodes.Count == 0) continue;
-                            if (string.Equals(sourceRun.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(sourceRun.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.OrdinalIgnoreCase)) {
-                                var revision = CreateOutputElement(htmlDoc, string.Equals(sourceRun.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.OrdinalIgnoreCase) ? "ins" : "del");
+                            if (string.Equals(sourceRun.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.Ordinal) ||
+                                string.Equals(sourceRun.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.Ordinal)) {
+                                var revision = CreateOutputElement(htmlDoc, string.Equals(sourceRun.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.Ordinal) ? "ins" : "del");
                                 foreach (var artifact in artifactNodes) revision.AppendChild(artifact);
                                 artifactNodes = new List<INode> { revision };
                             }
@@ -583,11 +583,11 @@ namespace OfficeIMO.Word.Html {
                         continue;
                     }
 
-                    bool isHtmlDeletedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.OrdinalIgnoreCase);
-                    bool isHtmlInsertedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.OrdinalIgnoreCase);
-                    bool isHtmlMarkedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.OrdinalIgnoreCase);
+                    bool isHtmlDeletedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.Ordinal);
+                    bool isHtmlInsertedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.Ordinal);
+                    bool isHtmlMarkedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.Ordinal);
 
-                    if (string.Equals(run.CharacterStyleId, "HtmlQuote", StringComparison.OrdinalIgnoreCase)) {
+                    if (string.Equals(run.CharacterStyleId, "HtmlQuote", StringComparison.Ordinal)) {
                         if (!inQuote) {
                             quote = CreateOutputElement(htmlDoc, "q");
                             nodes.Add(quote);
@@ -601,7 +601,7 @@ namespace OfficeIMO.Word.Html {
                     // Ensure null-safe text handling
                     INode node = htmlDoc.CreateTextNode(run.Text ?? string.Empty);
                     if (IsInlineCodeRun(run, para._document.Settings.FontFamily)
-                        && !string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.OrdinalIgnoreCase)) {
+                        && !string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.Ordinal)) {
                         var inlineCode = CreateOutputElement(htmlDoc, "code");
                         inlineCode.AppendChild(node);
                         node = inlineCode;
@@ -882,8 +882,8 @@ namespace OfficeIMO.Word.Html {
                     (options.ExportFootnotes && run.FootNote != null) ||
                     (options.ExportEndnotes && run.EndNote != null) ||
                     (options.ExportComments && run._run?.Elements<CommentReference>().Any() == true))) return false;
-                if (string.Equals(para.StyleId, "Code", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(para.StyleId, "HTMLPreformatted", StringComparison.OrdinalIgnoreCase) ||
+                if (string.Equals(para.StyleId, "Code", StringComparison.Ordinal) ||
+                    string.Equals(para.StyleId, "HTMLPreformatted", StringComparison.Ordinal) ||
                     (para.StyleId?.StartsWith("CodeLang_", StringComparison.Ordinal) ?? false)) {
                     return true;
                 }
@@ -1090,7 +1090,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             bool IsCaptionParagraph(WordParagraph para) =>
-                string.Equals(para.StyleId, "Caption", StringComparison.OrdinalIgnoreCase);
+                string.Equals(para.StyleId, "Caption", StringComparison.Ordinal);
 
             bool HasFigureCaptionMarker(WordParagraph para, bool before) {
                 return para._paragraph.Descendants<BookmarkStart>()
@@ -1638,7 +1638,7 @@ namespace OfficeIMO.Word.Html {
                                     sectionParent.AppendChild(activeDefinitionList);
                                 }
                                 AppendDefinitionListItem(activeDefinitionList, paragraph);
-                            } else if (paragraph.IsImage && nextDistinctIndex < elements.Count && elements[nextDistinctIndex] is WordParagraph captionPara && string.Equals(captionPara.StyleId, "Caption", StringComparison.OrdinalIgnoreCase)) {
+                            } else if (paragraph.IsImage && nextDistinctIndex < elements.Count && elements[nextDistinctIndex] is WordParagraph captionPara && string.Equals(captionPara.StyleId, "Caption", StringComparison.Ordinal)) {
                                 activeDefinitionList = null;
                                 var figure = CreateOutputElement(htmlDoc, "figure");
                                 ApplyBookmarkId(figure, paragraph);

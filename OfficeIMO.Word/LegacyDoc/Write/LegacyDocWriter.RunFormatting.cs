@@ -266,10 +266,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case RunStyle noteStyle when allowNoteReferenceRunStyle &&
-                        (string.Equals(noteStyle.Val?.Value, "FootnoteReference", StringComparison.OrdinalIgnoreCase) ||
-                         string.Equals(noteStyle.Val?.Value, "EndnoteReference", StringComparison.OrdinalIgnoreCase)):
+                        (string.Equals(noteStyle.Val?.Value, "FootnoteReference", StringComparison.Ordinal) ||
+                         string.Equals(noteStyle.Val?.Value, "EndnoteReference", StringComparison.Ordinal)):
                         break;
-                    case RunStyle runStyle when allowHyperlinkRunStyle && string.Equals(runStyle.Val?.Value, "Hyperlink", StringComparison.OrdinalIgnoreCase):
+                    case RunStyle runStyle when allowHyperlinkRunStyle && string.Equals(runStyle.Val?.Value, "Hyperlink", StringComparison.Ordinal):
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, font family, character spacing, character scale, kerning, and language run formatting. Unsupported run property: {property.LocalName}.");

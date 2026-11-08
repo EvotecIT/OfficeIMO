@@ -47,9 +47,9 @@ namespace OfficeIMO.Word.Html {
             }
 
             foreach (Style style in WordRunFormatting.EnumerateStyleChain(styles, styleId, StyleValues.Paragraph)) {
-                if (!string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(style.StyleId?.Value, "Normal", StringComparison.OrdinalIgnoreCase)) {
+                if (!string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal) &&
+                    !string.Equals(styleId, "Normal", StringComparison.Ordinal) &&
+                    string.Equals(style.StyleId?.Value, "Normal", StringComparison.Ordinal)) {
                     // A heading that names no font of its own uses the body font.
                     return null;
                 }
@@ -59,7 +59,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            if (!string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+            if (!string.Equals(styleId, "Normal", StringComparison.Ordinal)) {
                 return null;
             }
 
@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.Html {
 
         private static string? GetFirstHeadingText(WordDocument document) {
             foreach (WordParagraph paragraph in document.Paragraphs.Take(200)) {
-                if (string.Equals(paragraph.StyleId, "Title", StringComparison.OrdinalIgnoreCase) ||
+                if (string.Equals(paragraph.StyleId, "Title", StringComparison.Ordinal) ||
                     (paragraph.Style.HasValue && WordHeadingStyleMapper.GetLevelForHeadingStyle(paragraph.Style.Value) == 1)) {
                     string text = paragraph.Text.Trim();
                     if (text.Length > 0) {

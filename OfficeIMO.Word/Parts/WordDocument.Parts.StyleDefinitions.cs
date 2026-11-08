@@ -34,8 +34,8 @@ namespace OfficeIMO.Word {
                     .ToList();
                 // Replace custom styles only when explicitly requested
                 var byId = customList
-                    .GroupBy(s => s.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+                    .GroupBy(s => s.StyleId!.Value!, StringComparer.Ordinal)
+                    .ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
 
                 Styles newStyles = new Styles();
                 foreach (var child in styles.ChildElements) {
@@ -151,9 +151,9 @@ namespace OfficeIMO.Word {
         /// <summary>Replaces only the creation-owned table style in a document-specific catalog clone.</summary>
         private static void ReplaceCreationTableStyle(Styles styles, OfficeTheme theme) {
             if (!styles.Elements<Style>().Any(style =>
-                string.Equals(style.StyleId?.Value, WordThemeDefaults.TableStyleId, StringComparison.OrdinalIgnoreCase))) return;
+                string.Equals(style.StyleId?.Value, WordThemeDefaults.TableStyleId, StringComparison.Ordinal))) return;
             foreach (Style existing in styles.Elements<Style>().Where(style =>
-                string.Equals(style.StyleId?.Value, WordThemeDefaults.TableStyleId, StringComparison.OrdinalIgnoreCase)).ToList()) {
+                string.Equals(style.StyleId?.Value, WordThemeDefaults.TableStyleId, StringComparison.Ordinal)).ToList()) {
                 existing.Remove();
             }
             styles.Append(WordThemeDefaults.CreateTableStyle(theme));
@@ -231,7 +231,7 @@ namespace OfficeIMO.Word {
                 if (paragraphStyle == WordParagraphStyles.Custom) continue;
                 string expectedId = paragraphStyle.ToStringStyle();
                 styles.Elements<Style>()
-                    .FirstOrDefault(style => string.Equals(style.StyleId?.Value, expectedId, StringComparison.OrdinalIgnoreCase))
+                    .FirstOrDefault(style => string.Equals(style.StyleId?.Value, expectedId, StringComparison.Ordinal))
                     ?.Remove();
                 Style? current = WordParagraphStyle.GetOpenXmlStyleDefinition(paragraphStyle);
                 if (current != null) styles.Append(current);
@@ -241,7 +241,7 @@ namespace OfficeIMO.Word {
                 string? styleId = custom.StyleId?.Value;
                 if (styleId == null) continue;
                 foreach (Style existing in styles.Elements<Style>()
-                    .Where(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase))
+                    .Where(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal))
                     .ToArray()) {
                     existing.Remove();
                 }

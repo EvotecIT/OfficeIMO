@@ -48,7 +48,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             OpenXmlPartRootElement? root = run.Ancestors<OpenXmlPartRootElement>().LastOrDefault();
             Styles? styles = (root?.OpenXmlPart?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
             string? styleId = run.RunProperties?.RunStyle?.Val?.Value;
-            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
             Dictionary<string, Style>? definitions = styles == null ? null : IndexStyles(styles);
             LegacyDocWritableFormatting styleFormatting = LegacyDocWritableFormatting.Plain;
             while (definitions != null && !string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {

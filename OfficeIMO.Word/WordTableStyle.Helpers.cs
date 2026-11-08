@@ -6,7 +6,7 @@ namespace OfficeIMO.Word;
 internal static partial class WordTableStyles {
     private static readonly Lazy<Dictionary<string, WordTableStyle>> StylesById = new(() =>
         global::OfficeIMO.Internal.EnumCompat.GetValues<WordTableStyle>()
-            .ToDictionary(style => GetStyle(style).Val!.Value!, style => style, StringComparer.OrdinalIgnoreCase));
+            .ToDictionary(style => GetStyle(style).Val!.Value!, style => style, StringComparer.Ordinal));
 
     internal static bool TryGetStyle(string styleId, out WordTableStyle style) =>
         StylesById.Value.TryGetValue(styleId, out style);

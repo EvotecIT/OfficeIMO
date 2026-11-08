@@ -34,7 +34,7 @@ public partial class WordDocument {
             ?? throw new InvalidOperationException("The document's main part is missing.");
         var part = main.StyleDefinitionsPart ?? main.AddNewPart<StyleDefinitionsPart>();
         var styles = part.Styles ??= new Styles();
-        if (!styles.Elements<Style>().Any(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase)))
+        if (!styles.Elements<Style>().Any(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal)))
             styles.Append(WordParagraphStyle.CreateFontStyle(styleId, font, "Code Block").ToOpenXml());
         return AddParagraph(code).SetStyleId(styleId);
     }

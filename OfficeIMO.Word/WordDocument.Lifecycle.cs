@@ -223,8 +223,8 @@ namespace OfficeIMO.Word {
             if (styles == null) return;
             var map = WordParagraphStyle.CustomStyles
                 .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
-                .GroupBy(s => s.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+                .GroupBy(s => s.StyleId!.Value!, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
             bool changed = false;
             foreach (var s in styles.OfType<DocumentFormat.OpenXml.Wordprocessing.Style>()) {
                 var id = s.StyleId?.Value;

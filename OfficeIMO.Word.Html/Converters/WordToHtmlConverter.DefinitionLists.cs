@@ -16,11 +16,11 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsDefinitionTerm(WordParagraph paragraph) {
-            return string.Equals(paragraph.StyleId, HtmlSemanticStyleIds.DefinitionTerm, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(paragraph.StyleId, HtmlSemanticStyleIds.DefinitionTerm, StringComparison.Ordinal);
         }
 
         private static bool IsDefinitionDescription(WordParagraph paragraph) {
-            return string.Equals(paragraph.StyleId, HtmlSemanticStyleIds.DefinitionDescription, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(paragraph.StyleId, HtmlSemanticStyleIds.DefinitionDescription, StringComparison.Ordinal);
         }
     }
 }

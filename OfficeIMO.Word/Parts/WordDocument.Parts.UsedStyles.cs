@@ -6,7 +6,7 @@ public partial class WordDocument {
     /// <summary>Adds a requested library style and its dependencies without replacing authored definitions.</summary>
     internal void EnsureStyleDefinition(string styleId) {
         if (FileOpenAccess == FileAccess.Read || string.IsNullOrEmpty(styleId)) return;
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var visited = new HashSet<string>(StringComparer.Ordinal);
         EnsureStyleDefinition(styleId, visited);
     }
 
@@ -14,7 +14,7 @@ public partial class WordDocument {
         if (!visited.Add(styleId)) return;
         var styles = _wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
         Style? definition = styles?.Elements<Style>().FirstOrDefault(style =>
-            string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase));
+            string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal));
         if (definition == null) {
             definition = FindLibraryStyleDefinition(styleId);
             if (definition == null) return; // An external/custom ID may intentionally be resolved by the document consumer.
@@ -36,7 +36,7 @@ public partial class WordDocument {
 
     private Style? FindLibraryStyleDefinition(string styleId) {
         Style? registered = WordParagraphStyle.CustomStyles.FirstOrDefault(style =>
-            string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase));
+            string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal));
         if (registered != null) return registered;
 
         if (WordTableStyles.TryGetStyle(styleId, out var tableStyle))
@@ -46,12 +46,12 @@ public partial class WordDocument {
 
         foreach (WordParagraphStyles paragraphStyle in global::OfficeIMO.Internal.EnumCompat.GetValues<WordParagraphStyles>()) {
             if (paragraphStyle != WordParagraphStyles.Custom &&
-                string.Equals(paragraphStyle.ToStringStyle(), styleId, StringComparison.OrdinalIgnoreCase))
+                string.Equals(paragraphStyle.ToStringStyle(), styleId, StringComparison.Ordinal))
                 return WordParagraphStyle.GetOpenXmlStyleDefinition(paragraphStyle);
         }
 
         return (Style?)BuiltInStyleDefinitions.Value.Elements<Style>().FirstOrDefault(style =>
-            string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase))?.CloneNode(true);
+            string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal))?.CloneNode(true);
     }
 
     /// <summary>Installs styles referenced by a newly generated content block, without scanning the loaded document.</summary>

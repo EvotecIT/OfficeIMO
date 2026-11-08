@@ -7,7 +7,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         private const ushort CustomParagraphStyleSti = 0x0FFE;
         private const ushort NoBaseStyleIndex = 0x0FFF;
-        private static readonly IReadOnlyDictionary<string, ushort> EmptyStyleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
+        private static readonly IReadOnlyDictionary<string, ushort> EmptyStyleIndexes = new Dictionary<string, ushort>(StringComparer.Ordinal);
 
         private static LegacyDocWritableStyleSheet CreateWritableStyleSheet(MainDocumentPart mainPart, Body body) {
             // Header/footer, note and comment stories share the document's style sheet.
@@ -40,8 +40,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 .Select(style => style.Val?.Value)
                 .Where(styleId => !string.IsNullOrWhiteSpace(styleId))
                 .Select(styleId => styleId!)
-                .Where(styleId => !string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(styleId => !string.Equals(styleId, "Normal", StringComparison.Ordinal))
+                .Distinct(StringComparer.Ordinal)
                 .ToArray();
             var builtInStyleIndexes = new SortedSet<ushort>(usedStyleIds
                 .Select(styleId => TryMapBuiltInParagraphStyleIndex(styleId, out ushort styleIndex) ? (ushort?)styleIndex : null)
@@ -61,23 +61,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             Dictionary<string, Style> paragraphStyles = (styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
                 .Where(style => style.Type?.Value == StyleValues.Paragraph)
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+                .GroupBy(style => style.StyleId!.Value!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
             paragraphStyles["Normal"] = CreateDefaultParagraphStyle(mainPart, paragraphStyles, styles);
             MaterializeParagraphStyleThemeFonts(paragraphStyles, mainPart);
             MaterializeDocumentDefaultSpacing(paragraphStyles, styles);
             MaterializeDocumentDefaultCharacterScale(paragraphStyles, styles);
 
             var orderedStyleIds = new List<string>();
-            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var visiting = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            var visiting = new HashSet<string>(StringComparer.Ordinal);
             foreach (string styleId in customStyleIds) {
                 AddCustomStyleWithBase(styleId, paragraphStyles, orderedStyleIds, builtInStyleIndexes, visited, visiting);
             }
 
             AddBuiltInBaseStyles(builtInStyleIndexes, paragraphStyles);
             Dictionary<ushort, Style> builtInStyles = ReadUsedBuiltInStyles(builtInStyleIndexes, paragraphStyles);
-            var styleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
+            var styleIndexes = new Dictionary<string, ushort>(StringComparer.Ordinal);
             for (int index = 0; index < orderedStyleIds.Count; index++) {
                 styleIndexes[orderedStyleIds[index]] = checked((ushort)(15 + index));
             }
@@ -98,7 +98,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ISet<ushort> builtInStyleIndexes,
             HashSet<string> visited,
             HashSet<string> visiting) {
-            if (string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(styleId, "Normal", StringComparison.Ordinal)) {
                 return;
             }
 
@@ -125,7 +125,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             string? nextStyleId = style.GetFirstChild<NextParagraphStyle>()?.Val?.Value;
-            if (!string.IsNullOrWhiteSpace(nextStyleId) && !string.Equals(nextStyleId, styleId, StringComparison.OrdinalIgnoreCase)) {
+            if (!string.IsNullOrWhiteSpace(nextStyleId) && !string.Equals(nextStyleId, styleId, StringComparison.Ordinal)) {
                 AddCustomStyleWithBase(nextStyleId!, paragraphStyles, orderedStyleIds, builtInStyleIndexes, visited, visiting);
             }
 
@@ -145,7 +145,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
                 if (!string.IsNullOrWhiteSpace(baseStyleId)
-                    && !string.Equals(baseStyleId, "Normal", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(baseStyleId, "Normal", StringComparison.Ordinal)
                     && TryMapBuiltInParagraphStyleIndex(baseStyleId!, out ushort baseStyleIndex)
                     && builtInStyleIndexes.Add(baseStyleIndex)) {
                     pending.Enqueue(baseStyleIndex);
@@ -153,7 +153,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 string? nextStyleId = style.GetFirstChild<NextParagraphStyle>()?.Val?.Value;
                 if (!string.IsNullOrWhiteSpace(nextStyleId)
-                    && !string.Equals(nextStyleId, "Normal", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(nextStyleId, "Normal", StringComparison.Ordinal)
                     && TryMapBuiltInParagraphStyleIndex(nextStyleId!, out ushort nextStyleIndex)
                     && builtInStyleIndexes.Add(nextStyleIndex)) {
                     pending.Enqueue(nextStyleIndex);
@@ -171,7 +171,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
                 if (!string.IsNullOrWhiteSpace(baseStyleId)
-                    && !string.Equals(baseStyleId, "Normal", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(baseStyleId, "Normal", StringComparison.Ordinal)
                     && !TryMapBuiltInParagraphStyleIndex(baseStyleId!, out _)) {
                     throw new NotSupportedException($"Native DOC saving cannot write built-in paragraph style '{styleId}' because basedOn style '{baseStyleId}' is not supported.");
                 }
@@ -271,10 +271,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static ushort ResolveBuiltInBaseStyleIndex(Style style) {
             string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
             if (string.IsNullOrWhiteSpace(baseStyleId)) {
-                return string.Equals(style.StyleId?.Value, "Normal", StringComparison.OrdinalIgnoreCase) ? NoBaseStyleIndex : (ushort)0;
+                return string.Equals(style.StyleId?.Value, "Normal", StringComparison.Ordinal) ? NoBaseStyleIndex : (ushort)0;
             }
 
-            if (string.Equals(baseStyleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(baseStyleId, "Normal", StringComparison.Ordinal)) {
                 return 0;
             }
 
@@ -291,7 +291,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return 0;
             }
 
-            if (string.Equals(baseStyleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(baseStyleId, "Normal", StringComparison.Ordinal)) {
                 return 0;
             }
 
@@ -312,11 +312,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return 0;
             }
 
-            if (string.Equals(nextStyleId, style.StyleId?.Value, StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(nextStyleId, style.StyleId?.Value, StringComparison.Ordinal)) {
                 return currentStyleIndex;
             }
 
-            if (string.Equals(nextStyleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(nextStyleId, "Normal", StringComparison.Ordinal)) {
                 return 0;
             }
 

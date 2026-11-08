@@ -85,7 +85,7 @@ namespace OfficeIMO.Word.Html {
                 bool isMarked = string.Equals(
                     properties.RunStyle?.Val?.Value,
                     HtmlSemanticStyleIds.MarkedText,
-                    StringComparison.OrdinalIgnoreCase);
+                    StringComparison.Ordinal);
                 if (isMarked) node = WrapRubyNode(htmlDoc, "mark", node);
 
                 var styles = new List<string>();
