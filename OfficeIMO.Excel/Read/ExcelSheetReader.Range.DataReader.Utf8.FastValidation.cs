@@ -277,13 +277,28 @@ namespace OfficeIMO.Excel {
             private bool HasOnlyRootDefaultNamespace() {
                 int searchStart = 0;
                 int defaultNamespaceCount = 0;
+                // Qualified row and cell tags cannot declare a default namespace.
+                // Text validation still covers the complete body; only this redundant
+                // declaration search shares the structural validator's proven interval.
+                bool skipBody = _sheetDataSupportsFastValidation
+                    && _sheetDataContentStart >= 0
+                    && _sheetDataEndTagStart >= _sheetDataContentStart
+                    && _sheetDataEndTagStart <= _length;
                 while (searchStart < _length) {
+                    if (skipBody && searchStart >= _sheetDataContentStart && searchStart < _sheetDataEndTagStart)
+                        searchStart = _sheetDataEndTagStart;
+                    int searchEnd = skipBody && searchStart < _sheetDataContentStart
+                        ? _sheetDataContentStart : _length;
 #if NET8_0_OR_GREATER
-                    int relative = _buffer!.AsSpan(searchStart, _length - searchStart).IndexOf("xmlns"u8);
+                    int relative = _buffer!.AsSpan(searchStart, searchEnd - searchStart).IndexOf("xmlns"u8);
 #else
-                    int relative = _buffer!.AsSpan(searchStart, _length - searchStart).IndexOf((byte)'x');
+                    int relative = _buffer!.AsSpan(searchStart, searchEnd - searchStart).IndexOf((byte)'x');
 #endif
                     if (relative < 0) {
+                        if (searchEnd < _length) {
+                            searchStart = _sheetDataEndTagStart;
+                            continue;
+                        }
                         return defaultNamespaceCount == 1;
                     }
                     int match = searchStart + relative;
