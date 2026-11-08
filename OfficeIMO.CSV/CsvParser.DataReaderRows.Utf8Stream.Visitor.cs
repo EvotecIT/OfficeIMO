@@ -145,10 +145,17 @@ internal static partial class CsvParser
                 }
                 else
                 {
-                    ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
-                    materialized = _allFieldsAscii || Ascii.IsValid(bytes)
-                        ? CreateAsciiString(_buffer, start, length)
-                        : _encoding.GetString(bytes);
+                    if (_allFieldsAscii)
+                    {
+                        materialized = CreateAsciiString(_buffer, start, length);
+                    }
+                    else
+                    {
+                        ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
+                        materialized = Ascii.IsValid(bytes)
+                            ? CreateAsciiString(_buffer, start, length)
+                            : _encoding.GetString(bytes);
+                    }
                 }
 
                 field.Materialized = materialized;
