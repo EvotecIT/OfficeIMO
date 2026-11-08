@@ -254,4 +254,30 @@ public partial class Excel {
         Assert.False(reader.Read());
     }
 
+    [Theory]
+    [InlineData(ExcelFileFormat.Xlsx)]
+    [InlineData(ExcelFileFormat.Xlsb)]
+    [InlineData(ExcelFileFormat.Xls)]
+    public void WorkbookWriter_PreservesCallbackFailureWhenDestinationCleanupAlsoFails(ExcelFileFormat format) {
+        using var output = new OfficeIMO.Tests.TestStreams.ThrowAfterBytesWriteStream(0);
+        var failure = new InvalidDataException("Synthetic callback failure.");
+        var writer = ExcelDocument.CreateWriter(format, output, leaveOpen: true);
+        int callbacks = 0;
+        ExcelDocument.ExcelTabularRowWriter? retained = null;
+        try {
+            Assert.Same(failure, Assert.Throws<InvalidDataException>(() => writer.WriteTable(
+                "Data", new[] { 1 }, new[] { "Value" }, (row, value) => {
+                    callbacks++;
+                    retained = row;
+                    row.Write(value);
+                    throw failure;
+                })));
+            Assert.Equal(1, callbacks);
+            Assert.Throws<InvalidOperationException>(() => retained!.Write(2));
+        } finally {
+            try { writer.Dispose(); }
+            catch (IOException) { /* The failed destination may also reject the ZIP trailer. */ }
+        }
+    }
+
 }
