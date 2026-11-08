@@ -25,6 +25,15 @@ internal sealed class RichParagraphBlock : IPdfBlock {
         DefaultColor = item.DefaultColor; Runs = runs;
     }
 
+    // Shares runs the caller already holds as an immutable snapshot (a table cell's) rather than copying them on
+    // every paint of the cell.
+    internal static RichParagraphBlock ForSnapshot(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, OfficeAlignment align, global::OfficeIMO.OfficeColor? defaultColor) =>
+        new RichParagraphBlock(runs, Guard.ParagraphAlign(align, nameof(align), "Paragraph"), defaultColor, shared: true);
+
+    private RichParagraphBlock(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, OfficeAlignment align, global::OfficeIMO.OfficeColor? defaultColor, bool shared) {
+        Align = align; DefaultColor = defaultColor; Runs = runs;
+    }
+
     // Shares the paragraph's run list so later AddText/Set* calls on the returned paragraph are rendered.
     internal RichParagraphBlock(PdfParagraph paragraph, PdfParagraphStyle? style) {
         Source = paragraph;

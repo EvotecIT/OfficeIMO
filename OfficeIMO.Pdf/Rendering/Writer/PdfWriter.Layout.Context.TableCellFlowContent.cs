@@ -60,7 +60,7 @@ internal static partial class PdfWriter {
                 double textClipX = inkClip.Left - textClipBleed;
                 double textClipWidth = inkClip.Width + (textClipBleed * 2D);
                 if (cell.Viewport == null && !style.ClipTextToCellBounds) ExpandTableCellTextClip(cellX + cellPadLeft, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
-                var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
+                var paragraph = RichParagraphBlock.ForSnapshot(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                 string structureType = renderAsHeader ? "TH" : "TD";
                 int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
                 int tableRowSpan = fragmentRowSpan ?? (wholeRowSegment && cell.RowSpan > 1 ? cell.RowSpan : 1);
