@@ -496,7 +496,7 @@ internal static partial class CsvParser
                 fieldIndex + 1,
                 _options.ColumnCountMismatchPolicy,
                 isAscii);
-            _visitor.InternFields(_stringCache);
+            if (_stringCache is { } stringCache) _visitor.InternFields(stringCache);
             _emittedRecordCount++;
             ReportProgress(_options, _emittedRecordCount, recordLineNumber);
             _currentPhysicalLineNumber = recordLineNumber;
