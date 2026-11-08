@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            RunProperties runProperties = run._runProperties ??= new RunProperties();
+            RunProperties runProperties = run.VerifyRunProperties();
             if (!append) runProperties.RemoveAllChildren<T>();
 
             var property = new T();
@@ -77,7 +77,7 @@ namespace OfficeIMO.Word {
 
             if (legacyRun.FontSizeHalfPoints != null) {
                 string fontSize = legacyRun.FontSizeHalfPoints.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                RunProperties runProperties = run._runProperties ??= new RunProperties();
+                RunProperties runProperties = run.VerifyRunProperties();
                 runProperties.FontSize = new FontSize {
                     Val = fontSize
                 };
@@ -107,7 +107,7 @@ namespace OfficeIMO.Word {
             }
 
             if (!string.IsNullOrEmpty(legacyRun.Language) || !string.IsNullOrEmpty(legacyRun.EastAsiaLanguage)) {
-                RunProperties runProperties = run._runProperties ??= new RunProperties();
+                RunProperties runProperties = run.VerifyRunProperties();
                 runProperties.Languages = CreateLegacyDocLanguages(legacyRun.Language, legacyRun.EastAsiaLanguage);
             }
         }

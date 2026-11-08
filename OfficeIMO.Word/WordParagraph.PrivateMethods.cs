@@ -72,10 +72,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Check if runProperties exists in run, if not create run, create run properties and and append to run
+        /// Returns the run properties, creating the run and its first child when needed.
         /// </summary>
         /// <returns></returns>
-        private RunProperties VerifyRunProperties() {
+        internal RunProperties VerifyRunProperties() {
             if (_stdRun != null) {
                 SdtContentRun content = _stdRun.SdtContentRun ??= new SdtContentRun();
                 Run run = content.Descendants<Run>().FirstOrDefault() ?? content.AppendChild(new Run());
