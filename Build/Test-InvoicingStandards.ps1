@@ -18,7 +18,24 @@ function Get-Constant([string] $Source, [string] $Name) {
 }
 function Get-PinnedArtifact([string] $Url, [string] $Hash, [string] $Name) {
     $target = Join-Path $OutputPath $Name
-    if (!(Test-Path -LiteralPath $target)) { Invoke-WebRequest -Uri $Url -OutFile $target -TimeoutSec 120 }
+    if (!(Test-Path -LiteralPath $target)) {
+        $request = @{ Uri = $Url; OutFile = $target; TimeoutSec = 120; MaximumRetryCount = 3; RetryIntervalSec = 2 }
+        $releaseUrl = [regex]::Match($Url, '^https://github.com/([^/]+/[^/]+)/releases/download/([^/]+)/([^/]+)$')
+        if ($releaseUrl.Success) {
+            $headers = @{ Accept = 'application/vnd.github+json' }
+            if ($env:GITHUB_TOKEN) { $headers.Authorization = "Bearer $env:GITHUB_TOKEN" }
+            $release = Invoke-RestMethod -Uri ('https://api.github.com/repos/{0}/releases/tags/{1}' -f
+                $releaseUrl.Groups[1].Value, $releaseUrl.Groups[2].Value) -Headers $headers `
+                -TimeoutSec 120 -MaximumRetryCount 3 -RetryIntervalSec 2
+            $assetName = [Uri]::UnescapeDataString($releaseUrl.Groups[3].Value)
+            $assets = @($release.assets | Where-Object name -CEQ $assetName)
+            if ($assets.Count -ne 1) { throw "Cannot find pinned release asset: $Url" }
+            $request.Uri = $assets[0].url
+            $headers.Accept = 'application/octet-stream'
+            $request.Headers = $headers
+        }
+        Invoke-WebRequest @request
+    }
     if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $Hash) { throw "Artifact hash mismatch: $target" }
     $target
 }
