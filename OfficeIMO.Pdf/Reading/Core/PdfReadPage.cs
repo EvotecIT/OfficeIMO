@@ -83,7 +83,8 @@ public sealed partial class PdfReadPage {
 
     internal string ExtractText(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        var spans = GetTextSpans(cancellationToken);
+        // Plain text does not expose restampability; retain the full interpretation and layout.
+        var spans = GetTextSpans(_includeArtifactText, cancellationToken, markUnsafeRestamps: false);
         var opts = new TextLayoutEngine.Options { ForceSingleColumn = true };
         var lines = TextLayoutEngine.BuildLines(
             spans,
@@ -242,7 +243,8 @@ public sealed partial class PdfReadPage {
         bool preserveGlyphText = false,
         bool requireMappedText = false,
         bool ignoreActualText = false,
-        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
+        bool markUnsafeRestamps = true) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -281,7 +283,8 @@ public sealed partial class PdfReadPage {
                     ? cancellationToken.ThrowIfCancellationRequested
                     : null,
                 invokedResourceNames: invokedResources,
-                onUnmappableText: onUnmappableText);
+                onUnmappableText: onUnmappableText,
+                markUnsafeRestamps: markUnsafeRestamps);
         }
 
         return spans;
@@ -944,7 +947,8 @@ public sealed partial class PdfReadPage {
         bool requireMappedText = false,
         Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null,
         int initialStrokeLineCap = 0,
-        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
+        bool markUnsafeRestamps = true) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1104,7 +1108,8 @@ public sealed partial class PdfReadPage {
             inheritedActualTextState: inheritedActualTextState,
             onActualTextForm: (offset, state) => actualTextForms[offset] = state,
             onCompletedDrawingActualText: onCompletedDrawingActualText,
-            twoByteFontForResource: ResolveTwoByteFont));
+            twoByteFontForResource: ResolveTwoByteFont,
+            markUnsafeRestamps: markUnsafeRestamps));
 
         // Text interpretation has already validated the stream and its limits.
         // A missing Do token rules out forms; strings containing Do simply keep
@@ -1232,7 +1237,8 @@ public sealed partial class PdfReadPage {
                 ignoreActualText: ignoreActualText,
                     requireMappedText: requireMappedText,
                     onUnmappableText: onUnmappableText,
-                    onCompletedDrawingActualText: onCompletedDrawingActualText);
+                    onCompletedDrawingActualText: onCompletedDrawingActualText,
+                    markUnsafeRestamps: markUnsafeRestamps);
             } finally {
                 activeForms.Remove(formStream);
             }
