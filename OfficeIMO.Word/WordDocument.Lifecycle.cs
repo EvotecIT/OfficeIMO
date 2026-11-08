@@ -181,8 +181,7 @@ namespace OfficeIMO.Word {
         private static void InitialiseStyleDefinitions(
             WordprocessingDocument wordDocument,
             bool readOnly,
-            bool overrideStyles,
-            WordStyleCatalogFingerprint? styleCatalogFingerprint = null) {
+            bool overrideStyles) {
             // In read-only mode we don't touch styles.
             if (readOnly) return;
 
@@ -197,9 +196,6 @@ namespace OfficeIMO.Word {
                 .GetPartsOfType<StyleDefinitionsPart>()
                 .FirstOrDefault();
             if (styleDefinitionsPart != null) {
-                if (!overrideStyles && HasCompleteStyleCatalog(styleDefinitionsPart, styleCatalogFingerprint)) {
-                    return;
-                }
                 // Safe-guard missing Styles root element.
                 styleDefinitionsPart.Styles ??= new Styles();
                 AddStyleDefinitions(styleDefinitionsPart, overrideStyles);
@@ -211,16 +207,11 @@ namespace OfficeIMO.Word {
         }
 
         internal void EnsureStyleDefinitionsInitialized() {
-            if (_styleDefinitionsInitialized || FileOpenAccess == FileAccess.Read) {
-                return;
-            }
-
-            InitialiseStyleDefinitions(
-                _wordprocessingDocument,
-                readOnly: false,
-                overrideStyles: false,
-                _styleCatalogFingerprint);
-            _styleDefinitionsInitialized = true;
+            if (FileOpenAccess == FileAccess.Read) return;
+            var mainPart = _wordprocessingDocument.MainDocumentPart;
+            if (mainPart == null) return;
+            var part = mainPart.StyleDefinitionsPart ?? mainPart.AddNewPart<StyleDefinitionsPart>();
+            part.Styles ??= new Styles();
         }
 
         internal WordSection _currentSection => this.Sections.Last();
@@ -232,8 +223,8 @@ namespace OfficeIMO.Word {
             if (styles == null) return;
             var map = WordParagraphStyle.CustomStyles
                 .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
-                .GroupBy(s => s.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+                .GroupBy(s => s.StyleId!.Value!, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
             bool changed = false;
             foreach (var s in styles.OfType<DocumentFormat.OpenXml.Wordprocessing.Style>()) {
                 var id = s.StyleId?.Value;

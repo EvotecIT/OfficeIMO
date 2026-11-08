@@ -297,6 +297,7 @@ public class RtfParagraphLayoutTests {
 
         Assert.Equal(RtfTextAlignment.Center, rtfDocument.Paragraphs[0].DirectAlignment);
         Assert.Equal(RtfTextAlignment.Justify, rtfDocument.Paragraphs[1].DirectAlignment);
+        Assert.Null(rtfDocument.Paragraphs[2].DirectAlignment);
         Assert.Equal(720, rtfDocument.Paragraphs[2].LeftIndentTwips);
         Assert.Equal(360, rtfDocument.Paragraphs[2].RightIndentTwips);
         Assert.Equal(-360, rtfDocument.Paragraphs[2].FirstLineIndentTwips);
@@ -309,8 +310,8 @@ public class RtfParagraphLayoutTests {
         Assert.Equal(3, roundTrip.Paragraphs.Count);
         Assert.Equal(WordParagraphAlignment.Center, roundTrip.Paragraphs[0].ParagraphAlignment);
         Assert.Equal(WordParagraphAlignment.Both, roundTrip.Paragraphs[1].ParagraphAlignment);
-        // The RTF writer always emits an explicit \ql for styleless paragraphs, so the round trip reads back as Left.
-        Assert.Equal(WordParagraphAlignment.Left, roundTrip.Paragraphs[2].ParagraphAlignment);
+        // The Normal style retains the source's unset direct alignment.
+        Assert.Null(roundTrip.Paragraphs[2].ParagraphAlignment);
         Assert.Equal(720, checked((int?)(roundTrip.Paragraphs[2].IndentationBefore?.ToTwips())));
         Assert.Equal(360, checked((int?)(roundTrip.Paragraphs[2].IndentationAfter?.ToTwips())));
         Assert.Null(checked((int?)(roundTrip.Paragraphs[2].IndentationFirstLine?.ToTwips())));

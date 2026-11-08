@@ -181,22 +181,29 @@ internal static partial class CsvParser
                 ref byte source = ref MemoryMarshal.GetReference(bytes);
                 ref byte destination = ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(characters));
                 int length = bytes.Length;
-                if (length >= 8)
-                {
-                    WidenEight(ref source, ref destination);
-                    WidenEight(ref Unsafe.Add(ref source, length - 8), ref Unsafe.Add(ref destination, (length - 8) * 2));
-                }
-                else if (length >= 4)
-                {
-                    WidenFour(ref source, ref destination);
-                    WidenFour(ref Unsafe.Add(ref source, length - 4), ref Unsafe.Add(ref destination, (length - 4) * 2));
-                }
-                else
-                {
-                    WidenTwo(ref source, ref destination);
-                    WidenTwo(ref Unsafe.Add(ref source, length - 2), ref Unsafe.Add(ref destination, (length - 2) * 2));
-                }
+                WidenShortAscii(ref source, ref destination, length);
             });
+        }
+
+        /// <summary>Widens an already validated 2..15-byte ASCII span within its exact destination length.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WidenShortAscii(ref byte source, ref byte destination, int length)
+        {
+            if (length >= 8)
+            {
+                WidenEight(ref source, ref destination);
+                WidenEight(ref Unsafe.Add(ref source, length - 8), ref Unsafe.Add(ref destination, (length - 8) * 2));
+            }
+            else if (length >= 4)
+            {
+                WidenFour(ref source, ref destination);
+                WidenFour(ref Unsafe.Add(ref source, length - 4), ref Unsafe.Add(ref destination, (length - 4) * 2));
+            }
+            else
+            {
+                WidenTwo(ref source, ref destination);
+                WidenTwo(ref Unsafe.Add(ref source, length - 2), ref Unsafe.Add(ref destination, (length - 2) * 2));
+            }
         }
 
         private static void WidenEight(ref byte source, ref byte destination)
@@ -225,6 +232,7 @@ internal static partial class CsvParser
             if (cache is null) return;
             int count = SourceColumnCount > 0 ? Math.Min(FieldCount, SourceColumnCount) : FieldCount;
 #if NET9_0_OR_GREATER
+            var lookup = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             Span<char> characters = stackalloc char[128];
 #endif
             for (int ordinal = 0; ordinal < count; ordinal++)
@@ -236,8 +244,21 @@ internal static partial class CsvParser
                     ReadOnlySpan<byte> bytes = _buffer.AsSpan(_fields[ordinal].Start, length);
                     if (_allFieldsAscii || Ascii.IsValid(bytes))
                     {
-                        int written = Encoding.Latin1.GetChars(bytes, characters);
-                        _fields[ordinal].Materialized = ReuseFieldSpan(characters.Slice(0, written), cache);
+                        if (length == 1)
+                        {
+                            characters[0] = (char)bytes[0];
+                        }
+                        else if (length < 16 && BitConverter.IsLittleEndian && Vector128.IsHardwareAccelerated)
+                        {
+                            ref byte source = ref MemoryMarshal.GetReference(bytes);
+                            ref byte destination = ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(characters));
+                            WidenShortAscii(ref source, ref destination, length);
+                        }
+                        else
+                        {
+                            Encoding.Latin1.GetChars(bytes, characters);
+                        }
+                        _fields[ordinal].Materialized = ReuseFieldSpan(characters.Slice(0, length), cache, lookup);
                         continue;
                     }
                 }

@@ -35,6 +35,7 @@ internal static partial class IWorkLegacyXmlReader {
             }
         }
         IWorkTextContent content = catalog.ReadText(body);
+        IReadOnlyList<IWorkPagesSection> sections = ReadLegacyPagesRunningStories(legacy, body, catalog);
         XNamespace pages = IWorkLegacyXmlSource.Pages;
         foreach (XElement page in legacy.Root.Element(pages + "drawables")?.Elements(pages + "page-group")
             ?? Enumerable.Empty<XElement>()) {
@@ -48,9 +49,10 @@ internal static partial class IWorkLegacyXmlReader {
             }
         }
         catalog.AddLoss("IWORK_LEGACY_PAGES_CONTENT_LIMITED",
-            "The iWork '09 Pages projection recovers selected text, formatting, tables, objects, and page dimensions. "
-            + "Section layouts, headers, footers, and unqualified objects remain outside the editable projection.");
-        return new IWorkPagesProjection(source, content, Array.Empty<IWorkPagesSection>(),
+            "The iWork '09 Pages projection recovers selected text, formatting, tables, objects, page dimensions, "
+            + "and qualified single-section default headers and footers. Other section layouts, running-story "
+            + "selection, and unqualified objects remain outside the editable projection.");
+        return new IWorkPagesProjection(source, content, sections,
             boxes, images, tables, drawables, ReadLegacyPageLayout(legacy), catalog.Diagnostics,
             supportsEditableReconstruction: false);
 

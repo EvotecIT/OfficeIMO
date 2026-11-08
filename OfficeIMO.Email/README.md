@@ -634,6 +634,13 @@ chains. EML export serializes the projected message. DBX writing, deleted-item
 carving, remote account recovery, and earlier Outlook Express mailbox formats
 are outside this profile.
 
+Native DBX original subject, importance and representable declared message size
+fill the existing typed metadata. MIME importance takes precedence over the
+native priority. Declared size is a source hint and never controls message
+admission, which uses the actual fragment lengths. Native strings retain the
+Windows-1252 qualification. Native subject text shares the selected read's
+decoded-property budget with MIME content.
+
 Native DBX received times fill missing MIME arrival metadata. An existing MIME
 `Received` timestamp takes precedence. Directory export appends `ReceivedAtUtc`
 to the preservation manifest, retaining arrival metadata beside EML files.

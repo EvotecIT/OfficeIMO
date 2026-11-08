@@ -14,9 +14,88 @@ using W15 = DocumentFormat.OpenXml.Office2013.Word;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void Merge_LiveHeaderFooterTableEditsPreserveGeometryWithoutChangingSource(bool footer) {
+        [InlineData(WordMergeStyleMode.UseDestinationStyles)]
+        [InlineData(WordMergeStyleMode.KeepDifferentStyles)]
+        public void MergeImportsUsedStylesAndDependenciesWithoutUnusedSourceStyles(WordMergeStyleMode mode) {
+            using WordDocument destination = WordDocument.Create();
+            destination.AddParagraph("Destination paragraph");
+            destination._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles = new Styles(
+                new Style(new StyleName { Val = "Normal" }) {
+                    Type = StyleValues.Paragraph, StyleId = "Normal", Default = true
+                });
+
+            using WordDocument source = WordDocument.Create();
+            source.AddParagraph("Source paragraph").SetStyleId("UsedBody");
+            source.AddTable(1, 1).SetStyleId("UsedTable");
+            var sourceStyles = new Styles(
+                new Style(new StyleName { Val = "Normal" }) {
+                    Type = StyleValues.Paragraph, StyleId = "Normal", Default = true
+                },
+                new Style(new StyleName { Val = "Base body" }, new BasedOn { Val = "Normal" }) {
+                    Type = StyleValues.Paragraph, StyleId = "BaseBody"
+                },
+                new Style(new StyleName { Val = "Used body" }, new BasedOn { Val = "BaseBody" },
+                    new NextParagraphStyle { Val = "NextBody" }, new LinkedStyle { Val = "UsedCharacter" }) {
+                    Type = StyleValues.Paragraph, StyleId = "UsedBody"
+                },
+                new Style(new StyleName { Val = "Next body" }, new BasedOn { Val = "Normal" }) {
+                    Type = StyleValues.Paragraph, StyleId = "NextBody"
+                },
+                new Style(new StyleName { Val = "Used character" }, new BasedOn { Val = "DefaultParagraphFont" },
+                    new LinkedStyle { Val = "UsedBody" }) {
+                    Type = StyleValues.Character, StyleId = "UsedCharacter"
+                },
+                new Style(new StyleName { Val = "Default paragraph font" }) {
+                    Type = StyleValues.Character, StyleId = "DefaultParagraphFont", Default = true
+                },
+                new Style(new StyleName { Val = "Normal table" }) {
+                    Type = StyleValues.Table, StyleId = "TableNormal", Default = true
+                },
+                new Style(new StyleName { Val = "Used table" }, new BasedOn { Val = "TableNormal" },
+                    new StyleTableProperties(new Shading { Val = ShadingPatternValues.Clear, Fill = "A1B2C3" })) {
+                    Type = StyleValues.Table, StyleId = "UsedTable"
+                },
+                new Style(new StyleName { Val = "Unused table" }, new BasedOn { Val = "TableNormal" }) {
+                    Type = StyleValues.Table, StyleId = "UnusedTable"
+                },
+                new Style(new StyleName { Val = "Unused paragraph" }) {
+                    Type = StyleValues.Paragraph, StyleId = "UnusedParagraph"
+                });
+            source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles = sourceStyles;
+            string sourceStylesBefore = sourceStyles.OuterXml;
+
+            destination.AppendDocument(source, new WordDocumentMergeOptions { StyleMode = mode });
+
+            Assert.Equal(sourceStylesBefore, sourceStyles.OuterXml);
+            using var savedStream = new MemoryStream(destination.ToBytes(), writable: false);
+            using WordprocessingDocument saved = WordprocessingDocument.Open(savedStream, false);
+            Styles savedStyles = saved.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            string[] styleIds = savedStyles.Elements<Style>().Select(style => style.StyleId!.Value!).ToArray();
+            Assert.DoesNotContain("UnusedTable", styleIds);
+            Assert.DoesNotContain("UnusedParagraph", styleIds);
+            foreach (string styleId in new[] { "Normal", "BaseBody", "UsedBody", "NextBody", "UsedCharacter", "DefaultParagraphFont", "TableNormal", "UsedTable" }) {
+                Assert.Contains(styleId, styleIds);
+            }
+            Style bodyStyle = savedStyles.Elements<Style>().Single(style => style.StyleId == "UsedBody");
+            Assert.Equal("BaseBody", bodyStyle.BasedOn!.Val!.Value);
+            Assert.Equal("NextBody", bodyStyle.NextParagraphStyle!.Val!.Value);
+            Assert.Equal("UsedCharacter", bodyStyle.LinkedStyle!.Val!.Value);
+            Style tableStyle = savedStyles.Elements<Style>().Single(style => style.StyleId == "UsedTable");
+            Assert.Equal("TableNormal", tableStyle.BasedOn!.Val!.Value);
+            Assert.Equal("A1B2C3", tableStyle.StyleTableProperties!.Shading!.Fill!.Value);
+            Assert.Contains(saved.MainDocumentPart.Document.Body!.Elements<Paragraph>(), paragraph =>
+                paragraph.InnerText == "Source paragraph" && paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value == "UsedBody");
+            Assert.Equal("UsedTable", saved.MainDocumentPart.Document.Body.Elements<Table>().Single()
+                .GetFirstChild<TableProperties>()!.TableStyle!.Val!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(saved));
+        }
+
+        [Theory]
+        [InlineData(false, WordMergeStyleMode.UseDestinationStyles)]
+        [InlineData(true, WordMergeStyleMode.UseDestinationStyles)]
+        [InlineData(false, WordMergeStyleMode.KeepDifferentStyles)]
+        [InlineData(true, WordMergeStyleMode.KeepDifferentStyles)]
+        public void Merge_LiveHeaderFooterTableEditsPreserveGeometryWithoutChangingSource(bool footer, WordMergeStyleMode mode) {
             using var sourceStream = new MemoryStream();
             using WordDocument source = WordDocument.Create(sourceStream);
             source.AddParagraph("SOURCE");
@@ -48,7 +127,7 @@ namespace OfficeIMO.Tests {
             Assert.False(unrelated.IsRootElementLoaded);
 
             using WordDocument destination = WordDocument.Create();
-            destination.AppendDocument(source);
+            destination.AppendDocument(source, new WordDocumentMergeOptions { StyleMode = mode });
             using var bytes = new MemoryStream(destination.ToBytes());
             using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
             OpenXmlPart outputPart = footer ? saved.MainDocumentPart!.FooterParts.Single() : saved.MainDocumentPart!.HeaderParts.Single();

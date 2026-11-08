@@ -11,7 +11,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             Styles? styles = (root?.OpenXmlPart?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
             if (styles == null) return properties;
             string? styleId = properties?.ParagraphStyleId?.Val?.Value ?? (noteKind == "footnote" ? "FootnoteText" : "EndnoteText");
-            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
             Dictionary<string, Style> definitions = IndexStyles(styles);
             SpacingBetweenLines? inherited = null;
             while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {

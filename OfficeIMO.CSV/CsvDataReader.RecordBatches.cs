@@ -1,4 +1,5 @@
 #if NET8_0_OR_GREATER
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,21 +14,27 @@ public partial class CsvDataReader
             : new ValueTask<bool>(ReadAsync(cancellationToken));
 
     /// <summary>Creates bounded storage whose caller owns its complete worker lifetime and disposal.</summary>
-    internal CsvRecordTextBatch CreateRecordTextBatch(int preferredRows) =>
-        new(preferredRows, FieldCount, _culture, _dateTimeFormats);
+    internal CsvRecordTextBatch CreateRecordTextBatch(int preferredRows, bool captureUtf8 = false, bool includePositions = false)
+    {
+        Encoding? encoding = captureUtf8 ? _stringRowOptions?.Encoding ?? Encoding.UTF8 : null;
+        // A custom encoding can have caller-owned behavior; keep its decoding on the source.
+        if (encoding is not null && !ReferenceEquals(encoding, Encoding.UTF8) &&
+            encoding.GetType() != typeof(UTF8Encoding)) encoding = null;
+        return new(preferredRows, FieldCount, _culture, _dateTimeFormats, encoding, includePositions);
+    }
 
     /// <summary>Resets and fills caller-owned storage after its previous worker has completed.</summary>
     /// <returns>Whether the source ended while filling the batch.</returns>
     [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
     internal async ValueTask<bool> ReadRecordTextBatchAsync(
-        CsvRecordTextBatch batch, CancellationToken cancellationToken)
+        CsvRecordTextBatch batch, CancellationToken cancellationToken, bool asynchronous = true)
     {
         batch.Reset();
         bool reachedEnd = false;
         while (batch.Count < batch.RowCapacity)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_useRawStringValues && !_hasBufferedRow &&
+            if (!batch.CapturesPositions && _useRawStringValues && !_hasBufferedRow &&
                 _textRowSource is CsvIncrementalRowSource rawSource && rawSource.CanCaptureRawRecords)
             {
                 var raw = await ReadRawRecordRunAsync(rawSource, batch, cancellationToken).ConfigureAwait(false);
@@ -36,7 +43,10 @@ public partial class CsvDataReader
                 // The same batch captures complex records and text-cap overflow canonically.
                 // Never dispatch a raw prefix before a later row has parsed successfully.
             }
-            if (!await ReadRecordAsync(cancellationToken).ConfigureAwait(false))
+            bool available = asynchronous
+                ? await ReadRecordAsync(cancellationToken).ConfigureAwait(false)
+                : ReadCore(cancellationToken);
+            if (!available)
             {
                 reachedEnd = true;
                 break;
@@ -46,8 +56,12 @@ public partial class CsvDataReader
             // Ordinary incremental records already expose aligned source text and metadata.
             if (_useRawStringValues && _textRowSource is CsvIncrementalRowSource incremental)
                 batch.CaptureRow(incremental, _stringNullValue);
+            else if (batch.CanCaptureUtf8 && _useRawStringValues &&
+                _textRowSource is CsvParser.CsvUtf8StreamDataReaderRowSource utf8Rows)
+                batch.CaptureRow(utf8Rows, _stringNullValue);
             else
                 batch.CaptureRow(this);
+            if (batch.CapturesPositions) batch.CapturePosition(PhysicalLineNumber, PhysicalEndLineNumber);
         }
         cancellationToken.ThrowIfCancellationRequested();
         return reachedEnd;

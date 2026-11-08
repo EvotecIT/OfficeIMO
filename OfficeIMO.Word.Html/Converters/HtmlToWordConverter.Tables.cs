@@ -50,18 +50,17 @@ namespace OfficeIMO.Word.Html {
 
             WordTable wordTable;
             if (captionParagraph != null) {
-                wordTable = captionParagraph.AddTableAfter(rows, cols);
+                wordTable = captionParagraph.AddTableAfter(rows, cols, WordTableStyle.TableNormal);
             } else if (cell != null) {
-                wordTable = cell.AddTable(rows, cols);
+                wordTable = cell.AddTable(rows, cols, WordTableStyle.TableNormal);
             } else if (currentParagraph != null) {
-                wordTable = currentParagraph.AddTableAfter(rows, cols);
+                wordTable = currentParagraph.AddTableAfter(rows, cols, WordTableStyle.TableNormal);
             } else if (headerFooter != null) {
-                wordTable = headerFooter.AddTable(rows, cols);
+                wordTable = headerFooter.AddTable(rows, cols, WordTableStyle.TableNormal);
             } else {
-                wordTable = section.AddTable(rows, cols);
+                wordTable = section.AddTable(rows, cols, WordTableStyle.TableNormal);
             }
             // Source HTML supplies table styling and header semantics independently of Word authoring defaults.
-            wordTable.Style = WordTableStyle.TableNormal;
             wordTable.RepeatHeaderRowAtTheTopOfEachPage = false;
             wordTable.ConditionalFormattingFirstRow = tableElem.Head?.Rows.Length > 0 ||
                 (tableElem.Rows.Length > 0 && tableElem.Rows[0].Cells.Any(sourceCell =>

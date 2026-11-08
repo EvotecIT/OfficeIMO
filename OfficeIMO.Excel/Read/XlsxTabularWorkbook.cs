@@ -190,7 +190,7 @@ namespace OfficeIMO.Excel {
                     ?? throw new XlsxTabularFastPathNotSupportedException(
                         "The workbook is not a readable Open XML package.");
                 if (!metadataOnly && (options.EnableWorksheetPrefetch || CanPipelineWorksheetIndex(options))) {
-                    prefetchedParts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1),
+                    prefetchedParts = parts.TryOpenIndependent(snapshot.CreateView(bufferSize: 1),
                         allowPipelining: CanPipelineWorksheetIndex(options));
                 }
                 var workbook = new XlsxTabularWorkbook(parts, prefetchedParts, snapshot, options, metadataOnly);
@@ -220,7 +220,8 @@ namespace OfficeIMO.Excel {
             OpenXmlPackagePartBufferReader? prefetchedParts = null;
             try {
                 prefetchedParts = options.EnableWorksheetPrefetch || CanPipelineWorksheetIndex(options)
-                    ? OpenXmlPackagePartBufferReader.TryOpen(bytes, allowPipelining: CanPipelineWorksheetIndex(options))
+                    ? parts.TryOpenIndependent(new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false),
+                        allowPipelining: CanPipelineWorksheetIndex(options))
                     : null;
                 var workbook = new XlsxTabularWorkbook(parts, prefetchedParts, ownedResource: null, options);
                 parts = null!;

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "https://github.com/jamesjohnmcguire/DbxOutlookExpress",
+    "revision": "49cccaa0c208abc9c4e1a366fd79dc6b43402857",
+    "directory": "DbxOutlookExpressTests",
+    "license": "MIT",
+    "licenseFile": "LICENSE",
+    "modifications": "None. Each DBX file is copied byte for byte from the pinned source."
+  },
+  "producer": {
+    "databaseApplicationAndBuild": "Unknown; upstream does not record the database producer.",
+    "mimeHeader": "Produced By Microsoft MimeOLE V6.00.2900.5579",
+    "qualification": "The MIME header identifies its message generator, not the application or build that wrote the enclosing DBX database."
+  },
+  "formatReference": "https://www.infobyte.hr/oedbx/doc/OE_Dbx_MessageInfo.html",
+  "scope": "Native indexed metadata for one publicly distributed Outlook Express welcome message and its local folder catalog.",
+  "files": [
+    {
+      "path": "Inbox.dbx",
+      "bytes": 142036,
+      "sha256": "5a7fa0c703030a9a4b2aab5e9249aab40d799ba3fc04b5df5fc9c4d4599272cc",
+      "activeMessageCount": 1
+    },
+    {
+      "path": "Folders.dbx",
+      "bytes": 75204,
+      "sha256": "d33b5a9e3217ed11e1fadcd5713e26762b50cd786b13c1a6e9aac2d2d55c195f",
+      "indexedFolderCount": 7,
+      "localFolderCount": 6
+    },
+    {
+      "path": "Outbox.dbx",
+      "bytes": 76500,
+      "sha256": "25bfb6bbe1431e1e356d5415457e15febbf55f7354e8ec0f234ef3079714e9dc",
+      "activeMessageCount": 0
+    }
+  ],
+  "indexedMessage": {
+    "recordAddress": "0x2e10",
+    "originalSubjectProperty": "0x05",
+    "originalSubject": "Welcome to Outlook Express 6",
+    "priorityProperty": "0x10",
+    "priority": 3,
+    "declaredSizeProperty": "0x11",
+    "declaredSize": 10139,
+    "declaredSizeQualification": "A source metadata hint only. The format reference warns that this value can be wrong."
+  },
+  "independentMimeObservation": {
+    "method": "Concatenate the indexed fragment payloads without OfficeIMO, then parse with Python's standard-library email parser.",
+    "bytes": 10139,
+    "sha256": "5690ac3f898d12554c351767385901b1281720a1b485b08057b47ced59891ec9",
+    "contentType": "text/html",
+    "charset": "iso-8859-1",
+    "transferEncoding": "quoted-printable",
+    "decodedBodyBytes": 9087,
+    "decodedBodySha256": "b1c7745401bac15851730c5d2bb0e754d253af0e799e50fff936b3ad16290968",
+    "importanceHeaderPresent": false,
+    "xPriorityHeaderPresent": false,
+    "attachmentCount": 0,
+    "embeddedMessageCount": 0
+  },
+  "limits": [
+    "The original DBX producer and build remain unknown.",
+    "The corpus has one HTML message and no attachment or embedded message.",
+    "Native string projection is qualified for the existing Windows-1252 profile only.",
+    "High and low priority values, conflicting MIME importance, invalid values and unreliable declared sizes use explicitly synthetic DBX cases.",
+    "This metadata evidence does not qualify another producer version, deleted-message recovery, raw carving or DBX writing."
+  ]
+}

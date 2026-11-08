@@ -34,6 +34,15 @@ Only Modern tables infer theme-based alignment for plain numeric values;
 explicit alignment and rich text retain their formatting. Loaded tables and
 PDF/image conversions retain the source style.
 
+Loading and saving a document preserves its style catalogue. Creating or
+restyling content adds the selected built-in style and its required base or
+linked styles, without replacing authored definitions. Merging copies the
+styles used by the imported content and their dependencies. Unused table
+presets are not added to the document's style gallery. `WordLoadOptions.OverrideStyles`
+opts into the full table catalogue and replaces matching table, note, header/footer,
+`NoList` and registered custom definitions. Other authored styles, such as `Heading1`,
+remain unchanged.
+
 Native DOC output uses a 16-colour palette for borders and fills. Saving an RGB
 colour that needs approximation throws `OfficeConversionException` with a
 `word-doc-color-approximated` report. Accept it with `WordSaveOptions.AllowLoss`;
@@ -761,8 +770,17 @@ their bytes and VML geometry; hyperlinks use native package relationships.
 Headers and footers have their own parts and image relationships. Section page
 sizes, margins, columns and document grids retain their supported native values.
 
+Ordinary list definitions and instances become editable numbering through the
+same list model used by DOCX. The native Word reference qualifies decimal and
+bullet markers, two-level numbering, continuation across plain paragraphs and
+separate restarts. Start overrides, direct and style bindings, and supported
+level fonts, indents and tabs retain their native numbering properties.
+Unsupported picture bullets and legacy declarations, and unresolved list
+bindings, remain reported losses. Invalid identifiers and duplicate definitions,
+instances or levels are rejected.
+
 The load report records unsupported elements and formatting attributes, including
-unmapped list definitions, floating text frames, non-picture drawings, active
+unsupported list definitions, floating text frames, non-picture drawings, active
 content and unsupported document settings. `WordLoadOptions.FailOnLoss` rejects
 sources that require those omissions. Import never retrieves linked resources.
 Legacy enumeration spellings map to native values. An unsupported value omits

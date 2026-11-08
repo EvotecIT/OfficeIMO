@@ -2,7 +2,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         private static IReadOnlyDictionary<string, ushort> CreateNoteParagraphStyleIndexes(
             IReadOnlyDictionary<string, ushort> styleIndexes, string noteStyleId) {
-            var noteStyleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
+            var noteStyleIndexes = new Dictionary<string, ushort>(StringComparer.Ordinal);
             foreach (KeyValuePair<string, ushort> styleIndex in styleIndexes) {
                 noteStyleIndexes.Add(styleIndex.Key, styleIndex.Value);
             }

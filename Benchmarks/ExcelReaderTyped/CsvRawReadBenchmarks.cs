@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             long sum = 0;
             foreach (Row row in workbook.FirstSheet) {
                 if (!row[1].TryParse(CultureInfo.InvariantCulture, out int id)
-                    || !row[2].TryGetDateTime(out DateTime date)
+                    || !row[2].TryGetDateTime(workbook.IsDate1904, out DateTime date)
                     || !row[3].TryParse(CultureInfo.InvariantCulture, out double value))
                     throw new InvalidDataException("CSV scalar conversion failed.");
                 sum = unchecked(sum + (materialize ? row[0].GetString().Length : row[0].Value.Length) + id + date.Ticks + (long)value);
@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             int count = 0;
             foreach (Row row in workbook.FirstSheet) {
                 if (row.ColumnCount != 4 || !row[1].TryParse(CultureInfo.InvariantCulture, out int id)
-                    || !row[2].TryGetDateTime(out DateTime date)
+                    || !row[2].TryGetDateTime(workbook.IsDate1904, out DateTime date)
                     || !row[3].TryParse(CultureInfo.InvariantCulture, out double value))
                     throw new InvalidDataException("CSV field shape or conversion differs.");
                 TypedWorkbookFixture.ValidateRecord(new TypedRecord { Name = row[0].GetString(), Id = id, Date = date, Value = value }, ++count);

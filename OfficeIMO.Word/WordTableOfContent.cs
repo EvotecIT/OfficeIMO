@@ -192,7 +192,9 @@ namespace OfficeIMO.Word {
                 this._document.AppendBlockToBody(_sdtBlock);
                 // A TOC added by this library owns its title and entry styles and
                 // its visible entries; both must exist for viewers that never update fields.
+                this._document.EnsureStyleDefinitionsInitialized();
                 WordTableOfContentStyles.EnsureDefined(this._document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart);
+                this._document.EnsureStyleDefinition("TOCHeading");
                 this._document._generatedTableOfContent = this;
             }
 

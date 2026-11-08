@@ -824,32 +824,46 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     }
 
 #if NET8_0_OR_GREATER
-    private async ValueTask<bool> ReadIncrementalAsync(ICsvAsyncDataReaderRowSource rows, bool asynchronous, CancellationToken cancellationToken)
+    private ValueTask<bool> ReadIncrementalAsync(ICsvAsyncDataReaderRowSource rows, bool asynchronous, CancellationToken cancellationToken)
     {
-        if (_closed) return false;
-        if (_readFailed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+        if (_closed) return new ValueTask<bool>(false);
+        if (_readFailed) return ValueTask.FromException<bool>(
+            new InvalidOperationException("The CSV reader cannot continue after a failed advance."));
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             _processingCancellationToken.ThrowIfCancellationRequested();
-            if (_hasBufferedRow) return ReadSlow(cancellationToken);
+            if (_hasBufferedRow) return new ValueTask<bool>(ReadSlow(cancellationToken));
             // Both synchronous and asynchronous failed advances hide the previous row.
             ClearCurrentRow();
-            bool available = asynchronous
-                ? await rows.ReadAsync(cancellationToken).ConfigureAwait(false)
-                : rows.Read(cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
-            _processingCancellationToken.ThrowIfCancellationRequested();
-            _hasCurrentTextRow = available;
-            _hasRows ??= available;
-            if (available) _rowIndex++;
-            return available;
+            ValueTask<bool> read = asynchronous
+                ? rows.ReadAsync(cancellationToken)
+                : new ValueTask<bool>(rows.Read(cancellationToken));
+            return read.IsCompletedSuccessfully
+                ? new ValueTask<bool>(CompleteIncrementalRead(read.Result, cancellationToken))
+                : AwaitIncrementalReadAsync(read, cancellationToken);
         }
-        catch
+        catch (Exception exception)
         {
             MarkReadFailed();
-            throw;
+            return CsvParser.PropagateReadFailureAsync(exception);
         }
+    }
+
+    private async ValueTask<bool> AwaitIncrementalReadAsync(ValueTask<bool> read, CancellationToken cancellationToken)
+    {
+        try { return CompleteIncrementalRead(await read.ConfigureAwait(false), cancellationToken); }
+        catch { MarkReadFailed(); throw; }
+    }
+
+    private bool CompleteIncrementalRead(bool available, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _processingCancellationToken.ThrowIfCancellationRequested();
+        _hasCurrentTextRow = available;
+        _hasRows ??= available;
+        if (available) _rowIndex++;
+        return available;
     }
 #endif
 

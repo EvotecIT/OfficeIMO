@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
     public enum WordMergeStyleMode {
         /// <summary>
         /// A source style that matches a destination style by name (or by id) uses the destination definition.
-        /// Source styles missing from the destination are copied.
+        /// Used source styles and their dependencies missing from the destination are copied.
         /// </summary>
         UseDestinationStyles,
 

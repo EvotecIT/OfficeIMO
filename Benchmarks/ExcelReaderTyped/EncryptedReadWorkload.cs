@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 TypedRecord? expected = fixture.Columns == 4 ? TypedWorkbookFixture.ExpectedRecord(count + 1) : null;
                 for (int column = 0; column < fixture.Columns; column++) {
                     object? value = OracleValue(oracle, column);
-                    object? peerValue = PeerValue(rows.Current[column]);
+                    object? peerValue = PeerValue(rows.Current[column], peer.IsDate1904);
                     object? officeValue = office.IsDBNull(column) ? null : office.GetValue(column);
                     object? generated = expected == null ? value : column switch {
                         0 => expected.Name, 1 => (double)expected.Id, 2 => expected.Date, 3 => expected.Value,
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             int count = 0;
             using IExcelRowEnumerator rows = workbook.FirstSheet.GetEnumerator();
             while (rows.MoveNext()) {
-                sum = unchecked(sum + AccumulatePeerRow(rows.Current));
+                sum = unchecked(sum + AccumulatePeerRow(rows.Current, workbook.IsDate1904));
                 count++;
             }
             return Check(sum, count);
@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             int count = 0;
             await using IExcelRowEnumerator rows = workbook.FirstSheet.GetAsyncEnumerator();
             while (await rows.MoveNextAsync()) {
-                sum = unchecked(sum + AccumulatePeerRow(rows.Current));
+                sum = unchecked(sum + AccumulatePeerRow(rows.Current, workbook.IsDate1904));
                 count++;
             }
             return Check(sum, count);
@@ -132,7 +132,7 @@ EncryptedWorkbookFixture.OfficeOptions());
                     throw new InvalidDataException("Async authenticated row shape differs.");
                 for (int column = 0; column < Fixture.Columns; column++) {
                     object? value = OracleValue(oracle, column);
-                    if (!Equals(value, PeerValue(rows.Current[column]))
+                    if (!Equals(value, PeerValue(rows.Current[column], peer.IsDate1904))
                         || !Equals(value, office.IsDBNull(column) ? null : office.GetValue(column)))
                         throw new InvalidDataException($"Async authenticated field differs at {count + 1}/{column + 1}.");
                 }
@@ -158,7 +158,7 @@ EncryptedWorkbookFixture.OfficeOptions());
                     || office.FieldCount != Fixture.Columns) throw new InvalidDataException("Memory/stream authenticated shape differs.");
                 for (int column = 0; column < Fixture.Columns; column++) {
                     object? value = OracleValue(oracle, column);
-                    if (!Equals(value, PeerValue(rows.Current[column]))
+                    if (!Equals(value, PeerValue(rows.Current[column], peer.IsDate1904))
                         || !Equals(value, office.IsDBNull(column) ? null : office.GetValue(column)))
                         throw new InvalidDataException($"Memory/stream authenticated field differs at {count + 1}/{column + 1}.");
                 }
@@ -173,7 +173,7 @@ EncryptedWorkbookFixture.OfficeOptions());
         private static long Accumulate(object? value) => value switch {
             string text => text.Length, double number => (long)number, DateTime date => date.Ticks, _ => 0,
         };
-        private static long AccumulatePeerRow(Row row) {
+        private static long AccumulatePeerRow(Row row, bool isDate1904) {
             long sum = 0;
             for (int column = 0; column < row.ColumnCount; column++) {
                 Cell cell = row[column];
@@ -181,16 +181,16 @@ EncryptedWorkbookFixture.OfficeOptions());
                     case CellType.Empty: break;
                     case CellType.ExcelString: sum = unchecked(sum + cell.GetString().Length); break;
                     case CellType.Number when cell.TryParse(null, out double number): sum = unchecked(sum + (long)number); break;
-                    case CellType.Date when cell.TryGetDateTime(out DateTime date): sum = unchecked(sum + date.Ticks); break;
+                    case CellType.Date when cell.TryGetDateTime(isDate1904, out DateTime date): sum = unchecked(sum + date.Ticks); break;
                     default: throw new InvalidDataException($"Unexpected encrypted field type: {cell.Type}");
                 }
             }
             return sum;
         }
-        private static object? PeerValue(Cell cell) => cell.Type switch {
+        private static object? PeerValue(Cell cell, bool isDate1904) => cell.Type switch {
             CellType.Empty => null, CellType.ExcelString => cell.GetString(),
             CellType.Number when cell.TryParse(null, out double number) => number,
-            CellType.Date when cell.TryGetDateTime(out DateTime date) => date,
+            CellType.Date when cell.TryGetDateTime(isDate1904, out DateTime date) => date,
             _ => throw new InvalidDataException($"Unexpected pinned encrypted field type: {cell.Type}"),
         };
         private static object? OracleValue(global::Sylvan.Data.Excel.ExcelDataReader reader, int column) {

@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
     /// </summary>
     public static class WordParagraphStyle {
         private static readonly object _stylesLock = new();
-        private static readonly Dictionary<string, Style> _customStyles = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, Style> _customStyles = new(StringComparer.Ordinal);
         private static readonly Dictionary<WordParagraphStyles, Style> _overrides = new();
 
         internal static IEnumerable<Style> CustomStyles {
@@ -87,7 +87,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Registers a custom paragraph style for later retrieval.
         /// </summary>
-        /// <param name="styleId">The style identifier used by paragraphs.</param>
+        /// <param name="styleId">The case-sensitive style identifier used by paragraphs.</param>
         /// <param name="styleDefinition">The OfficeIMO style definition to register.</param>
         /// <example>
         /// <code><![CDATA[
@@ -137,7 +137,6 @@ namespace OfficeIMO.Word {
                     }
                 }
                 _customStyles[styleId] = incoming;
-                WordDocument.InvalidateCompleteStyleCatalogCache();
             }
         }
 
@@ -178,7 +177,6 @@ namespace OfficeIMO.Word {
         internal static void OverrideBuiltInOpenXmlStyle(WordParagraphStyles style, Style styleDefinition) {
             lock (_stylesLock) {
                 _overrides[style] = (Style)styleDefinition.CloneNode(true);
-                WordDocument.InvalidateCompleteStyleCatalogCache();
             }
         }
 

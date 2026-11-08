@@ -171,7 +171,7 @@ public partial class WordRtfConverterTests {
             });
         Assert.Contains(@"\tx1440", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\tldot\tqr\tx2880", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"Name\tab Amount", rtf, StringComparison.Ordinal);
+        Assert.Equal("Name\tAmount", Assert.Single(RtfDocument.ParseResult(rtf).Document.Paragraphs).ToPlainText());
 
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs.GroupBy(item => item._paragraph).Select(group => group.First()));
         Assert.Equal(2, roundTripParagraph.TabStops.Count);
@@ -199,7 +199,8 @@ public partial class WordRtfConverterTests {
         Assert.Contains(rtfParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Line });
         Assert.Contains(rtfParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Page });
         Assert.Contains(rtfParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Column });
-        Assert.Contains(@"Before\line Line\page Page\column Column", rtf, StringComparison.Ordinal);
+        Assert.Equal("Before" + Environment.NewLine + "Line\fPage\vColumn",
+            Assert.Single(RtfDocument.ParseResult(rtf).Document.Paragraphs).ToPlainText());
 
         List<WordBreak> breaks = roundTrip.Breaks;
         Assert.Contains(breaks, item => item.BreakType == null);

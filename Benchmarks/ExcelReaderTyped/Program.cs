@@ -339,7 +339,9 @@ if (args.Length is 1 or 2 && args[0] == "--profile-officeimo") {
 
 // Preserve the explicit package choice in BDN's generated build; otherwise its
 // ProjectReference would silently compile the default source lane instead.
-List<Argument> buildArguments = new List<Argument> { new MsBuildArgument("/p:UseSharedCompilation=false") };
+List<Argument> buildArguments = new List<Argument> {
+    new MsBuildArgument("/p:UseSharedCompilation=false"), new MsBuildArgument("/m:2"),
+};
 if (!string.IsNullOrEmpty(packageVersion))
     buildArguments.Add(new MsBuildArgument($"/p:OfficeIMOBenchmarkPackageVersion={packageVersion}"));
 if (!string.IsNullOrEmpty(assemblyDirectory)) {

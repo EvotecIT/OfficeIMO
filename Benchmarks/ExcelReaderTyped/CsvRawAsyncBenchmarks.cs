@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             while (await rows.MoveNextAsync()) {
                 Row row = rows.Current;
                 if (!row[1].TryParse(CultureInfo.InvariantCulture, out int id)
-                    || !row[2].TryGetDateTime(out DateTime date)
+                    || !row[2].TryGetDateTime(workbook.IsDate1904, out DateTime date)
                     || !row[3].TryParse(CultureInfo.InvariantCulture, out double value))
                     throw new InvalidDataException("CSV scalar parsing failed.");
                 string name = row[0].GetString();

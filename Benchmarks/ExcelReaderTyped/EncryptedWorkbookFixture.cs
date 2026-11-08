@@ -16,6 +16,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         private const string PlainHash = "85FBDE3D5CC6C936BE8D9C8A5F9658E4CDED25145A2E6449C5D1FCD54F64E602";
         private const string EncryptedHash = "13F9532B916634CB112D3593E7AB859F67B2DA35A3A47E574F1C1E26C5DA370D";
         private const string Crypto = "Agile AES-256-CBC/SHA-512/spin100000/dataIntegrity";
+        private const string CurrentProducer = "ExcelReader.NET 7.4.1 / WorkbookGenerator.BuildAsync / Excel.EncryptPackage";
+        private const string PreviousProducer = "ExcelReader.NET 6.0.0 / WorkbookGenerator.BuildAsync / Excel.EncryptPackage";
 
         internal static int LargeRows {
             get {
@@ -43,7 +45,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             CacheManifest manifest = JsonSerializer.Deserialize<CacheManifest>(File.ReadAllText(manifestPath))
                 ?? throw new InvalidDataException("Invalid encrypted fixture manifest.");
             if (manifest.Upstream != UpstreamCommit || manifest.Rows != LargeRows || manifest.Crypto != Crypto
-                || manifest.Producer != "ExcelReader.NET 6.0.0 / WorkbookGenerator.BuildAsync / Excel.EncryptPackage")
+                || manifest.Producer is not (CurrentProducer or PreviousProducer))
                 throw new InvalidDataException("Generated input provenance differs from the pinned producer.");
             string plainPath = Path.Combine(cache, stem + ".plain.xlsx");
             string encryptedPath = Path.Combine(cache, stem + ".xlsx");
@@ -72,7 +74,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             WriteNew(plainPath, plain);
             WriteNew(encryptedPath, encrypted);
             CacheManifest manifest = new CacheManifest(UpstreamCommit,
-                "ExcelReader.NET 6.0.0 / WorkbookGenerator.BuildAsync / Excel.EncryptPackage", Crypto,
+                CurrentProducer, Crypto,
                 LargeRows, plain.Length, encrypted.Length, Hash(plain), Hash(encrypted));
             WriteNew(manifestPath, System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(manifest,
                 new JsonSerializerOptions { WriteIndented = true })));

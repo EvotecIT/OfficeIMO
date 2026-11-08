@@ -24,19 +24,21 @@ internal static partial class CsvParser
         return value;
     }
 
-#if NET8_0_OR_GREATER
-    /// <summary>Avoids allocating a repeated, already normalized character field.</summary>
-    private static string ReuseFieldSpan(ReadOnlySpan<char> value, CsvStringCache cache)
-    {
 #if NET9_0_OR_GREATER
-        var lookup = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+    /// <summary>Reuses the row's already qualified alternate lookup for normalized fields.</summary>
+    private static string ReuseFieldSpan(ReadOnlySpan<char> value, CsvStringCache cache,
+        CsvStringCache.AlternateLookup<ReadOnlySpan<char>> lookup)
+    {
         if (lookup.TryGetValue(value, out string? cached)) return cached;
         string owned = value.ToString();
         cache.Add(owned);
         return owned;
-#else
+    }
+#elif NET8_0_OR_GREATER
+    /// <summary>Avoids allocating a repeated, already normalized character field.</summary>
+    private static string ReuseFieldSpan(ReadOnlySpan<char> value, CsvStringCache cache)
+    {
         return ReuseFieldString(value.ToString(), cache);
-#endif
     }
 #endif
 }

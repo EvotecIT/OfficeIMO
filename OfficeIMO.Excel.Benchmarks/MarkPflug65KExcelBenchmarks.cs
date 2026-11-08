@@ -49,11 +49,6 @@ public partial class MarkPflug65KXlsxBenchmarks {
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        if (ExcelPackage.License.LicenseType != EPPlusLicenseType.NonCommercialPersonal
-            && ExcelPackage.License.LicenseType != EPPlusLicenseType.NonCommercialOrganization
-            && ExcelPackage.License.LicenseType != EPPlusLicenseType.Commercial) {
-            ExcelPackage.License.SetNonCommercialOrganization("OfficeIMO local benchmarks");
-        }
 
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsxFileName);
         _inputBytes = File.ReadAllBytes(MarkPflug65KFixture.XlsxPath);

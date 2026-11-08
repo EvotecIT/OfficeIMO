@@ -716,23 +716,44 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 3);
-                SetTocInstruction(toc, " TOC \\t \"CustomOnly,4\" \\h \\z ");
+                SetTocInstruction(toc, " TOC \\t \"included,1,CustomOnly,4\" \\h \\z ");
+
+                document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+                    new Style(new StyleName { Val = "Included" }) {
+                        Type = StyleValues.Paragraph,
+                        StyleId = "CaseTopic"
+                    },
+                    new Style(new StyleName { Val = "Excluded" }) {
+                        Type = StyleValues.Paragraph,
+                        StyleId = "caseTopic"
+                    });
 
                 document.AddParagraph("Heading should stay out").SetStyle(WordParagraphStyles.Heading1);
                 AppendBodyParagraph(document, new Paragraph(
                     new ParagraphProperties(new ParagraphStyleId { Val = "CustomOnly" }),
                     new Run(new Text("Custom style entry") { Space = SpaceProcessingModeValues.Preserve })));
+                document.AddParagraph("Included style entry").SetStyleId("CaseTopic");
+                document.AddParagraph("Excluded case-distinct body").SetStyleId("caseTopic");
 
                 WordTableOfContentRefreshReport report = toc.RefreshEntries();
 
-                Assert.Single(report.Entries);
-                Assert.Equal("Custom style entry", report.Entries[0].Text);
-                Assert.Equal(4, report.Entries[0].Level);
-                AssertGeneratedEntries(toc, "Custom style entry");
+                Assert.Equal(new[] { "Custom style entry", "Included style entry" }, report.Entries.Select(entry => entry.Text));
+                Assert.Equal(new[] { 4, 1 }, report.Entries.Select(entry => entry.Level));
+                AssertGeneratedEntries(toc, "Custom style entry", "Included style entry");
                 Assert.DoesNotContain("Heading should stay out", TocText(toc));
+                Assert.DoesNotContain("Excluded case-distinct body", TocText(toc));
                 Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\t \"CustomOnly,4\"", StringComparison.Ordinal));
+                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\t \"included,1,CustomOnly,4\"", StringComparison.Ordinal));
+                Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
+                document.Save();
             }
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
+            });
+            WordTableOfContent savedToc = Assert.IsType<WordTableOfContent>(loaded.TableOfContent);
+            AssertGeneratedEntries(savedToc, "Custom style entry", "Included style entry");
+            Assert.DoesNotContain("Excluded case-distinct body", TocText(savedToc));
         }
 
         [Fact]

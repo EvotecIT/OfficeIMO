@@ -19,6 +19,7 @@ internal sealed partial class IWorkLegacyXmlCatalog {
     private readonly HashSet<string> _lossCodes = new(StringComparer.Ordinal);
     private readonly Dictionary<XElement, IWorkObjectIdentity> _identities = new();
     private Dictionary<string, IWorkPackageEntry>? _packageEntries;
+    private Dictionary<IWorkPackageEntry, (int Width, int Height, long DecodedBytes)>? _validatedImages;
 
     internal IWorkLegacyXmlCatalog(IWorkSourceDocument source, IWorkLegacyXmlSource legacy,
         IWorkProjectionBudget budget) {
@@ -60,6 +61,20 @@ internal sealed partial class IWorkLegacyXmlCatalog {
     internal IWorkPackageEntry? PackageEntry(string path) {
         _packageEntries ??= _source.Entries.ToDictionary(entry => entry.Path, StringComparer.Ordinal);
         return _packageEntries.TryGetValue(path, out IWorkPackageEntry? entry) ? entry : null;
+    }
+
+    /// <summary>Reuses successful raster validation within this projection; occurrence budgets remain with the reader.</summary>
+    internal bool TryGetValidatedImage(IWorkPackageEntry entry, out (int Width, int Height, long DecodedBytes) metadata) {
+        _source.CancellationToken.ThrowIfCancellationRequested();
+        if (_validatedImages != null && _validatedImages.TryGetValue(entry, out metadata)) return true;
+        metadata = default;
+        return false;
+    }
+
+    /// <summary>Retains only metadata from a fully validated captured raster after its occurrence passed every budget.</summary>
+    internal void RememberValidatedImage(IWorkPackageEntry entry, int width, int height, long decodedBytes) {
+        _source.CancellationToken.ThrowIfCancellationRequested();
+        (_validatedImages ??= new()).Add(entry, (width, height, decodedBytes));
     }
 
     internal void AddLoss(string code, string message) {

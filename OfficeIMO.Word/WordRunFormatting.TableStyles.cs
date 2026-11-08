@@ -84,8 +84,8 @@ internal static partial class WordRunFormatting {
         properties?.GetFirstChild<Shading>() != null || ReadRunHighlight(properties).HasValue;
 
     private static bool IsBuiltInNormalTableStyle(string? styleId) =>
-        string.Equals(styleId, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(styleId, "NormalTable", StringComparison.OrdinalIgnoreCase);
+        string.Equals(styleId, "TableNormal", StringComparison.Ordinal) ||
+        string.Equals(styleId, "NormalTable", StringComparison.Ordinal);
 
     /// <summary>
     /// Resolves band-one and band-two run paint before the edge conditions, including the

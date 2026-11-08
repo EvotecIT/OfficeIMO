@@ -80,6 +80,8 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Footnotes cannot be added to header or footer paragraphs.");
             }
 
+            document.EnsureStyleDefinition("FootnoteReference");
+
             var footerReferenceId = GetNextFootNotesReferenceId(document);
 
             var newWordParagraph = new WordParagraph(document, wordParagraph._paragraph, true);
@@ -97,6 +99,7 @@ namespace OfficeIMO.Word {
             newWordParagraph._run.Append(footnoteReference);
 
             var footNote = GenerateFootNote(footerReferenceId, footerWordParagraph);
+            document.EnsureContentStyleDefinitions(footNote);
 
             var footNotesPart = document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
             if (footNotesPart == null) {

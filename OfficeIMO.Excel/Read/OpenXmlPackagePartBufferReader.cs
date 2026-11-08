@@ -10,8 +10,10 @@ namespace OfficeIMO.Excel {
     /// </summary>
     internal sealed partial class OpenXmlPackagePartBufferReader : IDisposable {
         private readonly Stream _stream;
-        private readonly ZipArchive _archive;
+        private ZipArchive? _archive;
         private readonly Dictionary<string, ZipArchiveEntry> _entries;
+        private readonly int _archiveEntryCount;
+        private readonly bool _sharedEntryIndex;
         private readonly object _prefetchSync = new object();
         private Task<PrefetchedPartBuffer?>? _prefetchTask;
         private CancellationTokenSource? _prefetchCancellation;
@@ -24,6 +26,7 @@ namespace OfficeIMO.Excel {
             _archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
             try {
                 _entries = BuildEntryIndex(_archive);
+                _archiveEntryCount = _archive.Entries.Count;
             } catch {
                 _archive.Dispose();
                 throw;
@@ -206,7 +209,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static PrefetchedPartBuffer? ReadPart(
+        private PrefetchedPartBuffer? ReadPart(
             ZipArchiveEntry entry,
             string normalizedPartName,
             CancellationToken cancellationToken,
@@ -214,7 +217,7 @@ namespace OfficeIMO.Excel {
             int length = checked((int)entry.Length);
             byte[]? prefix = null;
             try {
-                using Stream input = entry.Open();
+                using Stream input = OpenEntry(entry, cancellationToken);
                 int prefixLength = acceptPrefix == null ? 0 : Math.Min(length, 256);
                 if (acceptPrefix != null) {
                     prefix = ArrayPool<byte>.Shared.Rent(Math.Max(1, prefixLength));
@@ -302,13 +305,13 @@ namespace OfficeIMO.Excel {
                         cancellationToken, out byte[]? buffered, out int bufferedLength, acceptBufferedPrefix)) {
                     return new OpenXmlPooledPartStream(buffered!, bufferedLength, usesPartBufferPool: true);
                 }
-                return new OpenXmlPartLengthStream(entry.Open(), entry.Length, normalizedPartName);
+                return new OpenXmlPartLengthStream(OpenEntry(entry, cancellationToken), entry.Length, normalizedPartName);
             }
 
             int length = checked((int)entry.Length);
             byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
             try {
-                using Stream input = entry.Open();
+                using Stream input = OpenEntry(entry, cancellationToken);
                 ReadPartContents(input, buffer, length, normalizedPartName, cancellationToken);
                 return new OpenXmlPooledPartStream(buffer, length);
             } catch {
@@ -458,7 +461,7 @@ namespace OfficeIMO.Excel {
             } finally {
                 prefetchCancellation?.Dispose();
             }
-            _archive.Dispose();
+            _archive?.Dispose();
             _stream.Dispose();
         }
 

@@ -1,0 +1,535 @@
+{
+  "schema": 1,
+  "baseline": {
+    "commit": "b609d9788cd69c9af1861a0c4b2aad7181a03632",
+    "sourceBindingSha256": "1CBCBB6EE42D733BE11F7128A080DD28A9F3FB42924AF6821304A20D5FCCB9BF",
+    "files": [
+      {
+        "name": "DocumentFormat.OpenXml.dll",
+        "sha256": "EE2A31FF79DB570E2EB98EC7513B222F2B8C6BFCB638D66C2CEC8255B0BBE499",
+        "bytes": 7985120
+      },
+      {
+        "name": "DocumentFormat.OpenXml.Framework.dll",
+        "sha256": "FF3ED8318388D84FA5BBC5736DF6144ECFA3165C0B95F6B45B5330F463EDF7AE",
+        "bytes": 478688
+      },
+      {
+        "name": "OfficeIMO.Core.dll",
+        "sha256": "D6AC2209034D4C846BD1935F8D04EEE553145ABA7BF8234F4FE1F4553EC2D947",
+        "bytes": 5533696
+      },
+      {
+        "name": "OfficeIMO.Core.pdb",
+        "sha256": "E15F45AA67054633F969A30D2A7B40BB80DDCA64A3D3992DD7A63EF9D680C3B2",
+        "bytes": 1647088
+      },
+      {
+        "name": "OfficeIMO.Core.xml",
+        "sha256": "E1CFF70E5B0D4AD3087542E3F2656827A1C7E94619AA334EFCDC34D1B5CD0A12",
+        "bytes": 2088800
+      },
+      {
+        "name": "OfficeIMO.Email.dll",
+        "sha256": "A164A8FA3B8B9BE01F6751C15E0030561E1B67794FC7BC861C65898257D57703",
+        "bytes": 1802752
+      },
+      {
+        "name": "OfficeIMO.Email.pdb",
+        "sha256": "F250862F85394C75665E8BC9DA4C36F5786AEB0977330E80C5912D3D1E408AFE",
+        "bytes": 545324
+      },
+      {
+        "name": "OfficeIMO.Email.xml",
+        "sha256": "2BAE09E6F60377777C23D5BB44174ACF5A95907B102DA9D2BCF70A521480251B",
+        "bytes": 785906
+      },
+      {
+        "name": "OfficeIMO.Excel.dll",
+        "sha256": "391C4C16ACAB07076F98DBDF5F98299E7BADACCE54D577B709897FC2C70DC343",
+        "bytes": 6751744
+      },
+      {
+        "name": "OfficeIMO.Excel.pdb",
+        "sha256": "50DE32D0C6D5CEA906128211FD2EE5A82E74AB1F1B39EB68D09E1F94F2F22390",
+        "bytes": 2164112
+      },
+      {
+        "name": "OfficeIMO.Excel.xml",
+        "sha256": "2784E9FB5519479B271FB50CBE71A8A1B9E8AE93235EFB46886D55E72A5ACC02",
+        "bytes": 2178889
+      },
+      {
+        "name": "OfficeIMO.IWork.dll",
+        "sha256": "3B4AC4CAFC37D1B2534A0A07D56D344CCDE876E1FAE5C17D86367FD4CA76861E",
+        "bytes": 642560
+      },
+      {
+        "name": "OfficeIMO.IWork.pdb",
+        "sha256": "D72B99E3B56583B2925118C2E3E25CD9B312737B427BB30298C879DEEDCC7CC5",
+        "bytes": 212204
+      },
+      {
+        "name": "OfficeIMO.IWork.xml",
+        "sha256": "F05BE11B8A90CDEABEE8D5479F55B5418DC0B03B1A280E96C6C5FA31C61A9FC7",
+        "bytes": 220608
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.deps.json",
+        "sha256": "084A25D09B6F36894E1570C24282723DDDBFC1322151C77EFAB3E61E3CAAAB71",
+        "bytes": 5466
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.dll",
+        "sha256": "61A6B293FBD09F4D65DD66FD4857034A1677252DD0E5A2E4602B6450D8686690",
+        "bytes": 55296
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.exe",
+        "sha256": "B9383DBBEF7F6E35745F273538A17DB151F6E233788496F2CBA52685DFC3C19F",
+        "bytes": 162816
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.pdb",
+        "sha256": "847DB05F25549E815F3383CD9C4160F057617AD52BA1CA3CB3EC58873EE1B99F",
+        "bytes": 23440
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.runtimeconfig.json",
+        "sha256": "C230A317A54DD960BCBEB5F347F52E18DC665A26F7EFDA2159FCED9A5AC7E097",
+        "bytes": 342
+      },
+      {
+        "name": "OfficeIMO.Rtf.dll",
+        "sha256": "EB6D41A0609739CDCA69691C4597147EF4B521F7C7FEF2C21B7A0C424EE75279",
+        "bytes": 595456
+      },
+      {
+        "name": "OfficeIMO.Rtf.pdb",
+        "sha256": "E2A060EB817B0B3690FD2954537BDFF7DE58264C099B909E8F9620C05282E1AA",
+        "bytes": 217140
+      },
+      {
+        "name": "OfficeIMO.Rtf.xml",
+        "sha256": "E300A97456B954D58385C75CA1E81A850E0EC3913BA3064E384E86287CC3230F",
+        "bytes": 316227
+      },
+      {
+        "name": "OfficeIMO.Word.dll",
+        "sha256": "24597468DF6582D503AF229C78E864E178656747996B841B59FFDC3BCEB39B89",
+        "bytes": 5043200
+      },
+      {
+        "name": "OfficeIMO.Word.IWork.dll",
+        "sha256": "640247E7F27E89629DBF30E32436857C435ED019242DF3ED72EE301553A94C73",
+        "bytes": 88576
+      },
+      {
+        "name": "OfficeIMO.Word.IWork.pdb",
+        "sha256": "D4327E1F77E1DE2C423AB2BB9E2D6E0A963B83B96B4B6A079BE14CCA57FC423C",
+        "bytes": 29932
+      },
+      {
+        "name": "OfficeIMO.Word.IWork.xml",
+        "sha256": "E1997407AF49133EAC35C81EECD6ED72502B99F2E0F08067518F57BCB0926E76",
+        "bytes": 7057
+      },
+      {
+        "name": "OfficeIMO.Word.pdb",
+        "sha256": "F5E169AB422926E944C000ABB581D66818422B2B2BF6E764362A2814E599CDF2",
+        "bytes": 1376836
+      },
+      {
+        "name": "OfficeIMO.Word.xml",
+        "sha256": "1B40E0A274FE9DE4E912BFBCF5C06D94EDCF17089DA50043A6B38BBF8FE765B4",
+        "bytes": 1328085
+      },
+      {
+        "name": "System.IO.Packaging.dll",
+        "sha256": "1F27C2B1F02A185B370EF9D801597074B0EE09E338C6CF89193E403F7808821C",
+        "bytes": 159504
+      }
+    ]
+  },
+  "candidate": {
+    "commit": "78b6b825fc5d90bb1aa5bb14767bb70a36abd709",
+    "sourceBindingSha256": "FFC2FFA97ACD84DF036E599C5C3208248E9BC0302F4D05D546F92CF2DF391F00",
+    "productionSourceFingerprint": "A9A1D3FFF5601058C83287730E5A560F137ED8246A325B6E7C572A0412F80DDA",
+    "buildReceiptBaseCommit": "b609d9788cd69c9af1861a0c4b2aad7181a03632",
+    "sourceBytesVerifiedAgainstSelectedCommit": true,
+    "sourceFiles": [
+      {
+        "path": "OfficeIMO.Core/Diagnostics/OfficeDiagnostic.cs",
+        "sha256": "544A3B10CF0EA1083F96815D6FE485751356043F1EBBD9B2D5E4BA9DA31619A5"
+      },
+      {
+        "path": "OfficeIMO.Core/Internal/OfficeLegacySingleByteEncoding.cs",
+        "sha256": "5D06F813AE6698D693A810FD84A5353CB2CC9BD76BA3BAA263BA8DEF919ED114"
+      },
+      {
+        "path": "OfficeIMO.Email/Store/Dbx/DbxIndexedRecord.cs",
+        "sha256": "CDE8D0A1729A49F2707997D636E1F4B83860123A7BA184571FA46A9DD12DE0A7"
+      },
+      {
+        "path": "OfficeIMO.Email/Store/Dbx/DbxStoreSessionBackend.cs",
+        "sha256": "DFEE8A1BB9C033DF6636ABEEFB300E28E3880D28F7DBC544E1E090F43D14D35E"
+      },
+      {
+        "path": "OfficeIMO.Email/Store/Reading/EmailStoreSession.ContentSearch.cs",
+        "sha256": "F1DD6402DF75B3A89543C1D5D999E3CD45742A252D043B45A272ECD1006E2AFF"
+      },
+      {
+        "path": "OfficeIMO.Excel/ExcelDocument.Conversion.cs",
+        "sha256": "9DB31F43D5C632E4574C3689CE9A5F815E113213DC7ECFFACAB261DA0924EA7A"
+      },
+      {
+        "path": "OfficeIMO.Excel/Legacy/Internal/EarlyBiffWorkbook.ArrayFormulas.cs",
+        "sha256": "DCAF78C60826B0F01A7689232C02DFD72C410F6D56AAE1FB70E3D51803CB4E54"
+      },
+      {
+        "path": "OfficeIMO.Excel/Legacy/Internal/EarlyBiffWorkbook.Worksheet.cs",
+        "sha256": "47CF9B4B72CCAFD9031C314012A9E9094E8E2FC623BA2047B37C7290691561B3"
+      },
+      {
+        "path": "OfficeIMO.Excel/Legacy/Internal/LegacySpreadsheetModel.cs",
+        "sha256": "25A4C3A02AF815DE51006DD9F169BED9E9D1DBAF8EE2F35E179804F2D25A4805"
+      },
+      {
+        "path": "OfficeIMO.Excel/Legacy/LegacySpreadsheetImporter.cs",
+        "sha256": "26927E8A359722B5D37BB3A70DF20AFCD0C3E206F92B625CA447D9776E7E656A"
+      },
+      {
+        "path": "OfficeIMO.Excel/Read/Helpers/A1.cs",
+        "sha256": "B1FC900AD785F2E4E930EC5EF2FF085827FD3C150FC7FEAB26F9C971646D51B9"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/IWorkLegacyXmlCatalog.cs",
+        "sha256": "5B47BDB0708C210CB032A48637C4D17D9433515FC91E966407A5CEB6542634FD"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/IWorkLegacyXmlReader.Objects.cs",
+        "sha256": "8694BA6081196048CED38AFE69FF63200CB5F9FE3BEF2503C194B97BA17223A4"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/IWorkLegacyXmlReader.Pages.cs",
+        "sha256": "ABE21CC3F03C8635BFFB4492755F5CB15F801D12908601B434EBE8F0B013462B"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/IWorkLegacyXmlReader.Pages.RunningStories.cs",
+        "sha256": "76EF7855C0BB15EFC864D006C338185F3A4A61327A350BE56DD4CC5932973A9C"
+      },
+      {
+        "path": "OfficeIMO.Reader.Email/EmailReaderProjection.cs",
+        "sha256": "88A4EB26CF370DFF70CF3CF919DC0E31BC1A80D25558371F0E650FB9EA8D50F7"
+      },
+      {
+        "path": "OfficeIMO.Word/Converters/WordDocumentTraversal.cs",
+        "sha256": "5033AC072325FDA0FB852FB05FA075F32A77C409BB9E761B8995D9F915DADDF6"
+      },
+      {
+        "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyWord69Encoding.cs",
+        "sha256": "57FC7E7B3349F125F74DAA5504F98276DC40F2DB9FA57627A5AF205F224BE451"
+      },
+      {
+        "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyWord69Formatting.cs",
+        "sha256": "3696A95476B78C18F1F1AF97926EA748F3C354B1995234BA33916E7AB1B1339E"
+      },
+      {
+        "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyWord69Reader.cs",
+        "sha256": "9800F1044F272324E0FA247A895AD2F106FE3ADD264D56C6108D653648FAD4E8"
+      },
+      {
+        "path": "OfficeIMO.Word/WordDocument.Conversion.cs",
+        "sha256": "ED235F45B6882E5AF1DC54CB78441FF0507DD6943AF5C4B88AACEE1B54ECB3BF"
+      },
+      {
+        "path": "OfficeIMO.Word/WordMl2003Projection.cs",
+        "sha256": "19FC5232CF6D64E35BAB2984DABA3921BC1A8D6935E61C5191922770CC2E0E7E"
+      },
+      {
+        "path": "OfficeIMO.Word/WordMl2003Projection.Document.cs",
+        "sha256": "26BD8D5FD44E55A36E4CCFE5BA5552E3E5EC790014AF30522D7E4DDE8300DD82"
+      },
+      {
+        "path": "OfficeIMO.Word/WordMl2003Projection.Lists.cs",
+        "sha256": "EB7EDD5A566D37BFFE0026805733843BF811A72499E81C217A8420AA1270A99A"
+      },
+      {
+        "path": "OfficeIMO.Word/WordMl2003Projection.Properties.cs",
+        "sha256": "8913FAEA158E46D06E37B01F72D77A0CE3888C36C4E9E2D01D193E27EA4A9127"
+      },
+      {
+        "path": "OfficeIMO.Word/WordMl2003Projection.PropertyAdmission.cs",
+        "sha256": "51725BD071E145C5398BBFBA8C43A21F85C38B10E271D2FBA87F664498F1455D"
+      },
+      {
+        "path": "OfficeIMO.Word/WordMl2003Projection.Values.cs",
+        "sha256": "4DDF3EAD1D287E7186D3B69278374DB57DFE7DDF34D932B218E40CAE9A783EDE"
+      },
+      {
+        "path": "OfficeIMO.Word/WordParagraph.EffectiveCaps.cs",
+        "sha256": "3465AA9055FD98AA30BF3E76910CBF19CA39E550B7522F6533B6359961347B58"
+      },
+      {
+        "path": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/IWork/OpenOfficeIWorkCommand.cs",
+        "sha256": "9514A68EBF85E6614CABAED4021FC3B95D11B94F2368D822D2C96DDA41F297CE"
+      }
+    ],
+    "files": [
+      {
+        "name": "DocumentFormat.OpenXml.dll",
+        "sha256": "EE2A31FF79DB570E2EB98EC7513B222F2B8C6BFCB638D66C2CEC8255B0BBE499",
+        "bytes": 7985120
+      },
+      {
+        "name": "DocumentFormat.OpenXml.Framework.dll",
+        "sha256": "FF3ED8318388D84FA5BBC5736DF6144ECFA3165C0B95F6B45B5330F463EDF7AE",
+        "bytes": 478688
+      },
+      {
+        "name": "OfficeIMO.Core.dll",
+        "sha256": "52192C55B8DFBC8A91C95B9A26E98849F658703ECAB842524B7BCDC8D43DE127",
+        "bytes": 5533696
+      },
+      {
+        "name": "OfficeIMO.Core.pdb",
+        "sha256": "BF9457545EF791CF2D9257D8248560215DFF27CFD756CEB80E6AAC79EC408A54",
+        "bytes": 1647044
+      },
+      {
+        "name": "OfficeIMO.Core.xml",
+        "sha256": "E1CFF70E5B0D4AD3087542E3F2656827A1C7E94619AA334EFCDC34D1B5CD0A12",
+        "bytes": 2088800
+      },
+      {
+        "name": "OfficeIMO.Email.dll",
+        "sha256": "76713CAB2A72DC6AB31DC52D746D80B88BE6306CF19D429760CBAC29FEA07B5C",
+        "bytes": 1803776
+      },
+      {
+        "name": "OfficeIMO.Email.pdb",
+        "sha256": "2AC9355190AF77C6651CE23A7F40237632AD757D4EE7086A61E84FF6DFC3B533",
+        "bytes": 545664
+      },
+      {
+        "name": "OfficeIMO.Email.xml",
+        "sha256": "2BAE09E6F60377777C23D5BB44174ACF5A95907B102DA9D2BCF70A521480251B",
+        "bytes": 785906
+      },
+      {
+        "name": "OfficeIMO.Excel.dll",
+        "sha256": "7F73F818BBBD083732B9755DC2168C5BD1F4223ABBA2664C80BF245B80AE4B1A",
+        "bytes": 6755840
+      },
+      {
+        "name": "OfficeIMO.Excel.pdb",
+        "sha256": "40DBA92EC4A343E22D0EA665ADB5E236159BC8BDEB3A55FE36C15377CA48275D",
+        "bytes": 2165400
+      },
+      {
+        "name": "OfficeIMO.Excel.xml",
+        "sha256": "2784E9FB5519479B271FB50CBE71A8A1B9E8AE93235EFB46886D55E72A5ACC02",
+        "bytes": 2178889
+      },
+      {
+        "name": "OfficeIMO.IWork.dll",
+        "sha256": "C104B506AE18A1E6ED6AA92C12A17FDDD5DD61EE5CF1784A9766F1DEEEDFEF3F",
+        "bytes": 646144
+      },
+      {
+        "name": "OfficeIMO.IWork.pdb",
+        "sha256": "2AC4ED11CB5F6013094A5D9A4957545A3425884AB69F48B065DFA3C5C801C90B",
+        "bytes": 213024
+      },
+      {
+        "name": "OfficeIMO.IWork.xml",
+        "sha256": "F05BE11B8A90CDEABEE8D5479F55B5418DC0B03B1A280E96C6C5FA31C61A9FC7",
+        "bytes": 220608
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.deps.json",
+        "sha256": "084A25D09B6F36894E1570C24282723DDDBFC1322151C77EFAB3E61E3CAAAB71",
+        "bytes": 5466
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.dll",
+        "sha256": "61A6B293FBD09F4D65DD66FD4857034A1677252DD0E5A2E4602B6450D8686690",
+        "bytes": 55296
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.exe",
+        "sha256": "B9383DBBEF7F6E35745F273538A17DB151F6E233788496F2CBA52685DFC3C19F",
+        "bytes": 162816
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.pdb",
+        "sha256": "847DB05F25549E815F3383CD9C4160F057617AD52BA1CA3CB3EC58873EE1B99F",
+        "bytes": 23440
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.runtimeconfig.json",
+        "sha256": "C230A317A54DD960BCBEB5F347F52E18DC665A26F7EFDA2159FCED9A5AC7E097",
+        "bytes": 342
+      },
+      {
+        "name": "OfficeIMO.Rtf.dll",
+        "sha256": "8075F9D196A24AC2EF8EEA6E621452B20E86F06867BC28EAE55BEC8DC4EA1AEB",
+        "bytes": 595968
+      },
+      {
+        "name": "OfficeIMO.Rtf.pdb",
+        "sha256": "B912CD857DC70470E5A13FF18F11F41AFA19E1F71203C00478DA92961569E1E3",
+        "bytes": 217152
+      },
+      {
+        "name": "OfficeIMO.Rtf.xml",
+        "sha256": "E300A97456B954D58385C75CA1E81A850E0EC3913BA3064E384E86287CC3230F",
+        "bytes": 316227
+      },
+      {
+        "name": "OfficeIMO.Word.dll",
+        "sha256": "81E90A37B87E6CD20254A4BA1CB99363F230A6652200EB63ED1E08F11D7F8D9C",
+        "bytes": 5051392
+      },
+      {
+        "name": "OfficeIMO.Word.IWork.dll",
+        "sha256": "4BD0405736DD374366EB42F3C74A5D922C1F879154E1295D562ED3EC1DCB59B2",
+        "bytes": 88576
+      },
+      {
+        "name": "OfficeIMO.Word.IWork.pdb",
+        "sha256": "88B9DA0994A676CA67BC8AFD08CF26A3492AADC8EFB17388F4E1CD9B4B7E581A",
+        "bytes": 29944
+      },
+      {
+        "name": "OfficeIMO.Word.IWork.xml",
+        "sha256": "E1997407AF49133EAC35C81EECD6ED72502B99F2E0F08067518F57BCB0926E76",
+        "bytes": 7057
+      },
+      {
+        "name": "OfficeIMO.Word.pdb",
+        "sha256": "333B65DD36B0D293B2455D48908B898B7CB46004CA034C79A533DAE1A93659F7",
+        "bytes": 1378848
+      },
+      {
+        "name": "OfficeIMO.Word.xml",
+        "sha256": "1B40E0A274FE9DE4E912BFBCF5C06D94EDCF17089DA50043A6B38BBF8FE765B4",
+        "bytes": 1328085
+      },
+      {
+        "name": "System.IO.Packaging.dll",
+        "sha256": "1F27C2B1F02A185B370EF9D801597074B0EE09E338C6CF89193E403F7808821C",
+        "bytes": 159504
+      }
+    ]
+  },
+  "workload": {
+    "targetFramework": "net10.0",
+    "dllSha256": "61A6B293FBD09F4D65DD66FD4857034A1677252DD0E5A2E4602B6450D8686690",
+    "sourceFiles": [
+      {
+        "path": "OfficeIMO.Migration.Benchmarks/BiffWorkload.cs",
+        "sha256": "44E1F5C45634E0FAE59AF6FF9860D650ED376035F00D53DE9A11F1E330E608E7"
+      },
+      {
+        "path": "OfficeIMO.Migration.Benchmarks/DbxWorkload.cs",
+        "sha256": "74ADAC56664B464CFB04D8A3DBA76D964B65B6FAF2D674482C0797AC22BE6558"
+      },
+      {
+        "path": "OfficeIMO.Migration.Benchmarks/IWork09Workload.cs",
+        "sha256": "8D785F203E1E5885CD7FC0D9A7F8D19965BABE51A80AC493E6E8906D112B14E8"
+      },
+      {
+        "path": "OfficeIMO.Migration.Benchmarks/MigrationWorkload.cs",
+        "sha256": "255027055554F56044F956C7FE4384C7E4B9CC3FDB5349966DE1EE38A77A7E62"
+      },
+      {
+        "path": "OfficeIMO.Migration.Benchmarks/OfficeIMO.Migration.Benchmarks.csproj",
+        "sha256": "C7685F44DAEAC84615FACD53062D325A3AEAC424E1CFED3530A482FB884A8708"
+      },
+      {
+        "path": "OfficeIMO.Migration.Benchmarks/OfficeXmlWorkload.cs",
+        "sha256": "F74DE4AFBAB90082ACD7BC845AC54FFCED49349A5B23A823FA9A404A3FA3F181"
+      },
+      {
+        "path": "OfficeIMO.Migration.Benchmarks/Program.cs",
+        "sha256": "1DBDA5A27F1488F0EF697D87DB3FE7E21E4F2F0EF48C482B1B257BDE926B5C60"
+      },
+      {
+        "path": "OfficeIMO.Migration.Benchmarks/Word69Workload.cs",
+        "sha256": "1DE171103D1016893D61078D94773B71D1BBB0417A5D1912858C0CE7DE09C4C8"
+      }
+    ],
+    "specSha256": "74FEAD1204D489D40EA2DE73EC5DD05623580DB51F21C7B63D0A839DA89ADC1B"
+  },
+  "runner": {
+    "module": "PSPublishModule",
+    "version": "3.0.189",
+    "implementingAssemblySha256": "4412F36BE43086E1C0BD45422176524E017717599DDE3C8AA1DFF90E7C337D86",
+    "powerShell": "7.6.9",
+    "runtime": ".NET 10.0.14",
+    "sdk": "10.0.403",
+    "processArchitecture": "X64",
+    "ownerAssemblySha256": "CD1453BC1F88BBBDBD01CD69AAEEDDC74A9B77B79C18E81FBFC06FFA81F14E32",
+    "wrapperSha256": "FE86416DD21A2F484454A280BF7492F6E1A2A7066D961751715C746E0FF9700F"
+  },
+  "host": {
+    "processor": "AMD Ryzen 9 9950X3D2 16-Core Processor",
+    "physicalCores": 16,
+    "logicalProcessors": 32,
+    "operatingSystem": {
+      "Caption": "Microsoft Windows 11 Pro",
+      "Version": "10.0.26300",
+      "BuildNumber": "26300"
+    },
+    "powerPlan": "Power Scheme GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c  (High performance)",
+    "domains": [
+      {
+        "mask": "0xFFFF",
+        "l3Bytes": 100663296
+      },
+      {
+        "mask": "0xFFFF0000",
+        "l3Bytes": 100663296
+      }
+    ],
+    "normalSharedHost": true,
+    "loadObservationsAreDescriptive": true,
+    "topologyMethod": "Native GetLogicalProcessorInformation, group0, native-width masks"
+  },
+  "policy": {
+    "warmups": 3,
+    "iterationsPerLaunch": 7,
+    "launchesPerRevisionPerDomain": 2,
+    "samplesPerRevisionPhaseDomain": 14,
+    "sourceOrder": "Baseline,Candidate,Candidate,Baseline",
+    "runOrder": "Rotated",
+    "memoryCleanup": "BeforeIteration",
+    "outlierMode": "None",
+    "memorySamplingIntervalMilliseconds": 0,
+    "cooldownMilliseconds": 0,
+    "operationTimingBoundary": "GuardedScriptBodyV1",
+    "processPriority": "Normal",
+    "runMode": "standard",
+    "operations": [
+      "LoadInspect",
+      "ConvertSave",
+      "SearchContent"
+    ],
+    "supportedPhases": 33,
+    "skippedCombinationsPerLaunch": 12,
+    "profile": "Current"
+  },
+  "validation": {
+    "preflightPhases": 33,
+    "inputAndLossDigestsEqual": true,
+    "baselineLedgerSha256": "6F0DCDD326D838C8D90CDBCD31A50A63BE2F5B679E7E25B3526F4FF700E5BA40",
+    "candidateLedgerSha256": "08ABA7369BD4CFF8E1CF3814CBAC09E6393FCA0B3A83384969591CEFF8F6EB08",
+    "everySuccessfulSampleValidatesFullOrderedSemantics": true,
+    "applicableSavedOpenXmlSchemaAndReopen": true,
+    "savedEmlReparsed": true,
+    "packageByteIdentityRequired": false,
+    "packageByteIdentityReason": "Container metadata/compression size may vary; complete content and property validation remains mandatory."
+  },
+  "memoryBoundary": "Managed allocation volume including invocation and host effects; no retained, peak or native-memory qualification. WorkingSetDeltaBytes is an end-minus-start observation."
+}

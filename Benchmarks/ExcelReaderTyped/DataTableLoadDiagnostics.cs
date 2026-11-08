@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         private int LoadExcelReader(bool validate) {
             using XlsxWorkbook workbook = ExcelReaderApi.FromXlsx(new MemoryStream(_input.WorkbookBytes, writable: false));
-            using IDataReader reader = new global::ExcelReader.Core.Reader.ExcelDataReader(workbook.FirstSheet);
+            using IDataReader reader = new global::ExcelReader.Core.Reader.SheetDataReader(workbook.FirstSheet);
             return Load(reader, "ExcelReader", validate);
         }
 

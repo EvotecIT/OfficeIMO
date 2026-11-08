@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (style == null) return default;
             return ReadSupportedTableStyleOwnGapShading(style)
                 ?? ReadSupportedTableStyleBaseValue(style, tableStyleDefinitions,
-                    new HashSet<string>(StringComparer.OrdinalIgnoreCase), ReadSupportedTableStyleOwnGapShading)
+                    new HashSet<string>(StringComparer.Ordinal), ReadSupportedTableStyleOwnGapShading)
                 ?? default;
         }
 

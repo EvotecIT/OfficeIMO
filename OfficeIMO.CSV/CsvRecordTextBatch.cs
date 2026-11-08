@@ -3,7 +3,7 @@ using System.Buffers;
 
 namespace OfficeIMO.CSV;
 
-/// <summary>Owns decoded field text and metadata while the source reader advances.</summary>
+/// <summary>Owns detached field text and metadata while the source reader advances.</summary>
 internal sealed partial class CsvRecordTextBatch : IDisposable
 {
     private readonly int _maximumPooledTextLength;
@@ -27,17 +27,19 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
         internal byte Flags { get; }
     }
 
-    internal CsvRecordTextBatch(int preferredRows, int fieldCount, CultureInfo culture, IReadOnlyList<string>? dateFormats)
+    internal CsvRecordTextBatch(int preferredRows, int fieldCount, CultureInfo culture, IReadOnlyList<string>? dateFormats, System.Text.Encoding? utf8Encoding = null, bool includePositions = false)
     {
         const int maximumElements = 4 * 1024 * 1024;
         RowCapacity = fieldCount == 0 ? 1 : Math.Max(1, Math.Min(preferredRows, maximumElements / fieldCount));
         // Scale owned text with the effective batch size while retaining a fixed upper bound.
         _maximumPooledTextLength = Math.Max(256, Math.Min(RowCapacity, 1024)) * 256;
         FieldCount = fieldCount;
+        _utf8Encoding = utf8Encoding;
         Culture = culture;
         DateTimeFormats = dateFormats;
         int length = Math.Max(1, checked(RowCapacity * fieldCount));
         _fields = ArrayPool<CapturedField>.Shared.Rent(length);
+        if (includePositions) _positions = ArrayPool<(int? Start, int? End)>.Shared.Rent(RowCapacity);
     }
 
     internal int RowCapacity { get; }
@@ -55,6 +57,7 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
         Count = 0;
         _row = -1;
         _textLength = 0;
+        _utf8Length = 0;
         _rawDelimiter = default;
         _rawTrim = false;
         _rawNullValue = null;
@@ -66,8 +69,10 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
         for (int ordinal = 0; ordinal < FieldCount; ordinal++)
         {
             bool missing = reader.IsCurrentFieldMissing(ordinal);
-            ReadOnlySpan<char> value = reader.GetCurrentSourceSpan(ordinal, out string? materialized);
             byte flags = (byte)((missing ? 1 : 0) | (!missing && reader.IsCurrentFieldNull(ordinal) ? 2 : 0));
+            if (_utf8Encoding is not null && reader.TryGetUtf8Text(ordinal, out var bytes) &&
+                TryCaptureUtf8Field(offset + ordinal, bytes, flags)) continue;
+            ReadOnlySpan<char> value = reader.GetCurrentSourceSpan(ordinal, out string? materialized);
             CaptureField(offset + ordinal, value, materialized, flags);
         }
         Count++;
@@ -173,6 +178,8 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
         if (_values is not null) ArrayPool<string?>.Shared.Return(_values, clearArray: true);
         ArrayPool<CapturedField>.Shared.Return(_fields);
         if (_text is not null) ArrayPool<char>.Shared.Return(_text, clearArray: true);
+        if (_utf8Bytes is not null) ArrayPool<byte>.Shared.Return(_utf8Bytes, clearArray: true);
+        if (_positions is not null) ArrayPool<(int? Start, int? End)>.Shared.Return(_positions, clearArray: true);
     }
 }
 #endif

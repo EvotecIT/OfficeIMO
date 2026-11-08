@@ -97,9 +97,9 @@ namespace OfficeIMO.Word.Html {
             string? documentLanguage,
             ISet<string> runStyles,
             bool includeHyperlink = true) {
-            bool isHtmlDeletedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.OrdinalIgnoreCase);
-            bool isHtmlInsertedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.OrdinalIgnoreCase);
-            bool isHtmlMarkedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.OrdinalIgnoreCase);
+            bool isHtmlDeletedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.Ordinal);
+            bool isHtmlInsertedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.Ordinal);
+            bool isHtmlMarkedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.Ordinal);
             INode node = htmlDocument.CreateTextNode(text);
             if (run.Bold) {
                 var strong = CreateOutputElement(htmlDocument, "strong");
@@ -251,11 +251,11 @@ namespace OfficeIMO.Word.Html {
             out bool handled) {
             handled = true;
             IElement semanticNode;
-            if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.Ordinal)) {
                 semanticNode = CreateOutputElement(htmlDocument, "del");
-            } else if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.OrdinalIgnoreCase)) {
+            } else if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.Ordinal)) {
                 semanticNode = CreateOutputElement(htmlDocument, "ins");
-            } else if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.OrdinalIgnoreCase)) {
+            } else if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.Ordinal)) {
                 semanticNode = CreateOutputElement(htmlDocument, "mark");
                 string? normalizedRunBackground = includeRunHighlightStyles
                     ? NormalizeSixDigitHexColor(WordRunFormatting.ResolveRunShadingFillColorHex(run))
@@ -274,18 +274,18 @@ namespace OfficeIMO.Word.Html {
                 } else if (resolvedHighlight == HighlightColorValues.None) {
                     SetOutputAttribute(semanticNode, "style", "background-color:transparent", "EquationSemanticFormatting:highlight");
                 }
-            } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {
+            } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.Ordinal)) {
                 semanticNode = CreateOutputElement(htmlDocument, "cite");
-            } else if (string.Equals(run.CharacterStyleId, "HtmlDfn", StringComparison.OrdinalIgnoreCase)) {
+            } else if (string.Equals(run.CharacterStyleId, "HtmlDfn", StringComparison.Ordinal)) {
                 semanticNode = CreateOutputElement(htmlDocument, "dfn");
-            } else if (string.Equals(run.CharacterStyleId, "HtmlTime", StringComparison.OrdinalIgnoreCase)) {
+            } else if (string.Equals(run.CharacterStyleId, "HtmlTime", StringComparison.Ordinal)) {
                 semanticNode = CreateOutputElement(htmlDocument, "time");
                 bool hasImportedDateTime = HtmlSemanticMetadata.TryGetTimeDateTime(run, out string dateTime);
                 if (!hasImportedDateTime) {
                     dateTime = text;
                 }
                 SetOutputAttribute(semanticNode, "datetime", dateTime, "EquationSemanticFormatting:datetime");
-            } else if (string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.OrdinalIgnoreCase)) {
+            } else if (string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.Ordinal)) {
                 semanticNode = CreateOutputElement(htmlDocument, "code");
             } else {
                 handled = false;

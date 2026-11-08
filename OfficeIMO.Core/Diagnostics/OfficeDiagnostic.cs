@@ -18,8 +18,11 @@ public sealed class OfficeDiagnostic {
     public OfficeDiagnostic(string code, OfficeDiagnosticSeverity severity, string message, string? location = null,
         string? format = null, OfficeConversionLossKind lossKind = OfficeConversionLossKind.None) {
         ArgumentException.ThrowIfNullOrWhiteSpace(code);
-        if (!Enum.IsDefined(typeof(OfficeDiagnosticSeverity), severity)) throw new ArgumentOutOfRangeException(nameof(severity));
-        if (!Enum.IsDefined(typeof(OfficeConversionLossKind), lossKind)) throw new ArgumentOutOfRangeException(nameof(lossKind));
+        if (severity is not (OfficeDiagnosticSeverity.Information or OfficeDiagnosticSeverity.Warning or OfficeDiagnosticSeverity.Error))
+            throw new ArgumentOutOfRangeException(nameof(severity));
+        if (lossKind is not (OfficeConversionLossKind.None or OfficeConversionLossKind.Approximation
+            or OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure or OfficeConversionLossKind.Unassessed))
+            throw new ArgumentOutOfRangeException(nameof(lossKind));
         Code = code;
         Severity = severity;
         Message = message ?? throw new ArgumentNullException(nameof(message));

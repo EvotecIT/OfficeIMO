@@ -38,7 +38,8 @@ internal sealed class DbxIndexedRecord {
         return DbxDatabase.UInt32(bytes, 0) | (ulong)DbxDatabase.UInt32(bytes, 4) << 32;
     }
 
-    internal string? ReadString(byte property, CancellationToken cancellationToken) {
+    internal string? ReadString(byte property, CancellationToken cancellationToken,
+        long? maximumDecodedBytes = null, long previousDecodedBytes = 0) {
         int entry = Find(property);
         if (entry < 0) return null;
         if ((_table[entry] & 0x80) != 0)
@@ -46,15 +47,37 @@ internal sealed class DbxIndexedRecord {
         uint value = DbxDatabase.UInt32(_table, entry) >> 8;
         long length = EndOfValue(value) - value;
         if (length <= 0) throw DbxDatabase.Invalid("An indexed string starts outside its data area.");
-        // Outlook Express folder names are ANSI strings. Cap the probe before allocating.
-        var bytes = new byte[(int)Math.Min(length, 4096)];
-        _database.ReadAt(_dataOffset + value, bytes, 0, bytes.Length, cancellationToken);
-        int terminator = Array.IndexOf(bytes, (byte)0);
-        if (terminator < 0) throw DbxDatabase.Invalid("An indexed string has no bounded terminator.");
-        if (terminator == 0) return string.Empty;
-        if (!MimeTextCodec.TryDecodeTextStrict(bytes.AsSpan(0, terminator).ToArray(), "windows-1252", out string result))
-            throw DbxDatabase.Invalid("An indexed folder name cannot be decoded.");
-        return result;
+        // Catalog names retain their 4096-byte profile; message strings share the MIME decoded-byte budget.
+        long maximum = maximumDecodedBytes.HasValue ? Math.Max(0, maximumDecodedBytes.Value - previousDecodedBytes) : 4096;
+        var buffer = new byte[(int)Math.Min(length, Math.Min(4096, Math.Max(1, maximum)))];
+        MemoryStream? bytes = null;
+        long read = 0;
+        try {
+            while (read < length && read < maximum) {
+                int count = (int)Math.Min(buffer.Length, Math.Min(length - read, maximum - read));
+                _database.ReadAt(_dataOffset + value + read, buffer, 0, count, cancellationToken);
+                int terminator = Array.IndexOf(buffer, (byte)0, 0, count);
+                if (terminator >= 0) {
+                    if (bytes == null && terminator == 0) return string.Empty;
+                    if (bytes != null) bytes.Write(buffer, 0, terminator);
+                    byte[] text = bytes == null ? buffer.AsSpan(0, terminator).ToArray() : bytes.ToArray();
+                    if (!MimeTextCodec.TryDecodeTextStrict(text, "windows-1252", out string result))
+                        throw DbxDatabase.Invalid("An indexed string cannot be decoded.");
+                    return result;
+                }
+                read += count;
+                if (read < length && read < maximum) {
+                    bytes ??= new MemoryStream();
+                    bytes.Write(buffer, 0, count);
+                }
+            }
+            if (maximumDecodedBytes.HasValue && read < length)
+                throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem),
+                    checked(previousDecodedBytes + read + 1), maximumDecodedBytes.Value);
+            throw DbxDatabase.Invalid("An indexed string has no bounded terminator.");
+        } finally {
+            bytes?.Dispose();
+        }
     }
 
     private int Find(byte property) {

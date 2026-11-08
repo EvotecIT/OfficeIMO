@@ -74,15 +74,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 throw new InvalidDataException("The Word 6/95 FIB declares a piece table in a non-complex document.");
             }
 
-            var allCharacters = new LegacyDocTextCharacter[(int)storyLength];
-            for (int cp = 0; cp < allCharacters.Length; cp++) {
-                int fc = textStart + cp;
-                allCharacters[cp] = new LegacyDocTextCharacter(LegacyDocPieceTable.DecodeWindows1252(bytes[fc]), fc, cp);
-            }
-            var body = new ArraySegment<LegacyDocTextCharacter>(allCharacters, 0, bodyLength);
-            var fieldMetadata = LegacyDocFieldMetadataReader.ReadWord69(source, usedEnd, allCharacters,
-                bodyLength, I32(bytes, 0x38), I32(bytes, 0x3C));
-
             var findings = new List<LegacyDocUnsupportedFeature>();
             void Report(LegacyDocUnsupportedFeatureKind kind, string code, string message) =>
                 findings.Add(new LegacyDocUnsupportedFeature(kind, code, message));
@@ -94,6 +85,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 fonts, properties, options.MaxParagraphPropertyWorkBytes, out var contextRanges);
             var paragraphs = LegacyWord69Formatting.ReadParagraphRanges(bytes, usedEnd, ReadRange(bytes, usedEnd, 0xC0),
                 properties, options.MaxParagraphPropertyWorkBytes);
+            var allCharacters = LegacyWord69Encoding.DecodeText(bytes.Slice(textStart, (int)storyLength), textStart,
+                charsets, contextRanges, paragraphs, styleSheet, properties.StyleFonts, properties.StyleLanguages,
+                properties.DefaultFontIndex, U16(bytes, 6), out bool unsupportedText);
+            var body = new ArraySegment<LegacyDocTextCharacter>(allCharacters, 0, bodyLength);
+            var fieldMetadata = LegacyDocFieldMetadataReader.ReadWord69(source, usedEnd, allCharacters,
+                bodyLength, I32(bytes, 0x38), I32(bytes, 0x3C));
 
             if (LegacyDocField.HasUnprojectedFields(allCharacters)) {
                 Report(LegacyDocUnsupportedFeatureKind.Formatting, "doc-word69-fields-unsupported",
@@ -111,11 +108,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     "WordDocument", "Field:EQ:NativeAppearance"));
             }
 
-            if (LegacyWord69Encoding.HasUnsupportedText(bytes.Slice(textStart, allCharacters.Length), textStart,
-                charsets, contextRanges, paragraphs, styleSheet, properties.StyleFonts, properties.StyleLanguages,
-                properties.DefaultFontIndex, U16(bytes, 6))) {
+            if (unsupportedText) {
                 Report(LegacyDocUnsupportedFeatureKind.Formatting, "doc-word69-text-codepage-unsupported",
-                    "The Word 6/95 document uses a text font outside the Windows-1252 import profile.");
+                    "The Word 6/95 document uses text outside the supported Windows-1250/1252 font and language profile.");
             }
 
             if (properties.HasUnsupportedFormatting) {

@@ -3,6 +3,11 @@ namespace OfficeIMO.Excel.Utilities;
 internal static partial class ExcelSanitizer {
     /// <summary>Encodes semantic text as SpreadsheetML, preserving literal tokens and XML-illegal UTF-16 units.</summary>
     internal static string EncodeXString(string value) {
+#if NET8_0_OR_GREATER
+        // These BMP characters need neither XString escaping nor surrogate checks.
+        // Underscores retain the literal-token check in the existing scalar path.
+        if (value.AsSpan().IndexOfAnyExceptInRange(' ', '\uD7FF') < 0 && value.IndexOf('_') < 0) return value;
+#endif
         int first = 0;
         while (first < value.Length && !IsXStringEscape(value, first) && !RequiresXStringEscape(value, first)) first++;
         if (first == value.Length) return value;

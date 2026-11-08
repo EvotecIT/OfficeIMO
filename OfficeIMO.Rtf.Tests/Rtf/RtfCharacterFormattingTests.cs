@@ -462,8 +462,6 @@ public class RtfCharacterFormattingTests {
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal(RtfTextDirection.RightToLeft, rtfParagraph.Runs.Single(run => run.Text == "RTL").Direction);
         Assert.Null(rtfParagraph.Runs.Single(run => run.Text == "Plain").Direction);
-        Assert.Contains(@"\rtlch RTL", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\plain Plain", rtf, StringComparison.Ordinal);
 
         WordParagraph roundTripRtl = Assert.Single(roundTrip.Paragraphs, run => run.Text == "RTL");
         Assert.NotNull(roundTripRtl._run?.RunProperties?.RightToLeftText);

@@ -91,8 +91,8 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
         uint address = GetAddress(reference);
         using Stream? owned = _openSource?.Invoke();
         Stream input = owned ?? _source!;
-        using Stream message = OpenIndexedMessage(input, address, cancellationToken, out uint? flags,
-            out DateTimeOffset? receivedDate);
+        using Stream message = OpenIndexedMessage(input, address, cancellationToken,
+            out DbxIndexedRecord record, out uint? flags, out DateTimeOffset? receivedDate);
         var diagnostics = new List<EmailDiagnostic>();
         EmailDocument document;
         try {
@@ -101,6 +101,7 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
         } catch (EmailLimitExceededException exception) {
             throw EmailStoreMessageReader.ConvertLimit(exception);
         }
+        ApplyIndexedMetadata(document, record, _options.MaxDecodedPropertyBytesPerItem, 0, cancellationToken);
         _guard.Validate(input, cancellationToken, verifyFingerprint: !_bulkReadActive);
         document.ReceivedDate ??= receivedDate;
         CopyDiagnostics(diagnostics, reference.Id);
@@ -119,8 +120,8 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
 
     private EmailStoreItem ReadItem(Stream input, uint address, EmailStoreItemReference reference,
         EmailStoreItemReadOptions options, CancellationToken cancellationToken) {
-        using Stream message = OpenIndexedMessage(input, address, cancellationToken, out uint? flags,
-            out DateTimeOffset? receivedDate);
+        using Stream message = OpenIndexedMessage(input, address, cancellationToken,
+            out DbxIndexedRecord record, out uint? flags, out DateTimeOffset? receivedDate);
         bool includeAttachments = options.Includes(EmailStoreItemReadParts.AttachmentContent);
         bool includeEmbedded = options.Includes(EmailStoreItemReadParts.EmbeddedItems);
 
@@ -128,6 +129,10 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
             includeAttachments, options.MaxDecodedPropertyBytes, includeEmbedded, options.PreferStreamingAttachmentContent);
         if (result.Document.Format != EmailFileFormat.Eml)
             throw DbxDatabase.Invalid("The indexed payload is not an RFC message.");
+        long maximumDecodedBytes = Math.Min(options.MaxDecodedPropertyBytes ?? _options.MaxDecodedPropertyBytesPerItem,
+            _options.MaxDecodedPropertyBytesPerItem);
+        ApplyIndexedMetadata(result.Document, record, maximumDecodedBytes,
+            result.ProcessingBudget.DecodedPropertyBytes, cancellationToken);
         _guard.Validate(input, cancellationToken, verifyFingerprint: !_bulkReadActive);
         _resources.Adopt(result);
         CopyDiagnostics(result.Diagnostics, reference.Id);
@@ -148,15 +153,34 @@ internal sealed class DbxStoreSessionBackend : IEmailStoreSessionBackend {
         return new EmailStoreItem(reference.Id, FolderId, document, loadedParts: loaded, format: Format);
     }
 
-    private Stream OpenIndexedMessage(Stream input, uint address, CancellationToken cancellationToken, out uint? flags,
-        out DateTimeOffset? receivedDate) {
+    private Stream OpenIndexedMessage(Stream input, uint address, CancellationToken cancellationToken,
+        out DbxIndexedRecord record, out uint? flags, out DateTimeOffset? receivedDate) {
         _guard.Validate(input, cancellationToken, verifyFingerprint: !_bulkReadActive);
         var database = new DbxDatabase(input, _options);
-        DbxIndexedRecord record = database.ReadIndexedRecord(address, cancellationToken);
+        record = database.ReadIndexedRecord(address, cancellationToken);
         flags = record.ReadUInt32(0x01, cancellationToken);
         receivedDate = ReadReceivedDate(record, address, cancellationToken);
         uint firstFragment = record.ReadUInt32(0x04, cancellationToken) ?? 0;
         return database.OpenMessage(firstFragment, cancellationToken);
+    }
+
+    private static void ApplyIndexedMetadata(EmailDocument document, DbxIndexedRecord record,
+        long maximumDecodedBytes, long previousDecodedBytes, CancellationToken cancellationToken) {
+        EmailMessageMetadata metadata = document.MessageMetadata;
+        metadata.NormalizedSubject ??= record.ReadString(0x05, cancellationToken, maximumDecodedBytes, previousDecodedBytes);
+        if (!metadata.Importance.HasValue) {
+            metadata.Importance = record.ReadUInt32(0x10, cancellationToken) switch {
+                1 => EmailMessageImportance.High,
+                3 => EmailMessageImportance.Normal,
+                5 => EmailMessageImportance.Low,
+                _ => null
+            };
+        }
+        if (!metadata.DeclaredSize.HasValue) {
+            // This native hint can be inaccurate; fragment lengths alone enforce the message budget.
+            uint? size = record.ReadUInt32(0x11, cancellationToken);
+            if (size.HasValue && size.Value <= int.MaxValue) metadata.DeclaredSize = (int)size.Value;
+        }
     }
 
     private DateTimeOffset? ReadReceivedDate(DbxIndexedRecord record, uint address,

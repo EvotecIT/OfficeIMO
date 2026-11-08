@@ -129,11 +129,11 @@ internal static partial class WordRunFormatting {
                 style.Type?.Value == expectedType && style.Default?.Value == true)?.StyleId?.Value;
         if (string.IsNullOrWhiteSpace(styleId)) yield break;
 
-        HashSet<string> visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        HashSet<string> visited = new HashSet<string>(StringComparer.Ordinal);
         while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
             Style? style = styles.Elements<Style>()
                 .FirstOrDefault(candidate =>
-                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.Ordinal) &&
                     (candidate.Type == null || !candidate.Type.HasValue || candidate.Type.Value == expectedType));
             if (style == null) {
                 yield break;

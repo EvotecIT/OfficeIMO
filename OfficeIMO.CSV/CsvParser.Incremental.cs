@@ -8,6 +8,10 @@ namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
 {
+    /// <summary>Preserves async cancellation status and the original exception on a completed-read failure.</summary>
+    internal static async ValueTask<bool> PropagateReadFailureAsync(Exception exception) =>
+        await ValueTask.FromException<bool>(exception).ConfigureAwait(false);
+
     // The transport is asynchronous; field splitting and validation use the same grammar as Parse.
     internal sealed partial class IncrementalRecords : IDisposable
     {
@@ -37,7 +41,35 @@ internal static partial class CsvParser
         }
 
         // Initialization retains schema samples; normal traversal borrows fields until the next advance.
-        internal async ValueTask<bool> ReadAsync(bool asynchronous, CancellationToken token, bool reuseValues = false)
+        internal ValueTask<bool> ReadAsync(bool asynchronous, CancellationToken token, bool reuseValues = false)
+        {
+            // A complete unquoted record needs no asynchronous state machine. Refills and
+            // canonical parsing retain the existing advance, including its failure state.
+            if (reuseValues && !_disposed && !_failed && _pending.Count == 0 &&
+                CanBorrowFields && _offset < _length)
+            {
+                try
+                {
+                    _borrowedFields.Clear();
+                    while (_offset < _length)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        ThrowIfCancellationRequested(_options);
+                        if (!TryReadBorrowedRecord(out bool emitted, out _)) break;
+                        if (emitted) return new ValueTask<bool>(true);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    _failed = true;
+                    return CsvParser.PropagateReadFailureAsync(exception);
+                }
+            }
+
+            return ReadCoreAsync(asynchronous, token, reuseValues);
+        }
+
+        private async ValueTask<bool> ReadCoreAsync(bool asynchronous, CancellationToken token, bool reuseValues = false)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_failed) throw new InvalidOperationException("The CSV reader cannot continue after an interrupted record.");

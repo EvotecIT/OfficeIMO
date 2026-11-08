@@ -4,11 +4,12 @@ description: "Compare reproducible OfficeIMO performance evidence across documen
 meta.seo_title: "OfficeIMO benchmarks for .NET document workflows"
 layout: page
 meta.raw_html: true
+meta.content_engine: scriban
 ---
 
 <div class="imo-benchmark-hub">
   <div id="library-comparison-evidence">
-    {{< include path="../../themes/officeimo/partials/library-comparison-benchmarks.html" >}}
+    {{ include "library-comparison-benchmarks" }}
   </div>
 
   <details class="imo-benchmark-evidence-notes">
@@ -22,7 +23,7 @@ meta.raw_html: true
     <div class="imo-benchmark-evidence-model__grid">
       <article>
         <span class="imo-benchmark-evidence-model__index">01</span>
-        <strong>37 source suites</strong>
+        <strong>{{ data.documentation_catalog.repository.benchmarkProjectCount }} source suites</strong>
         <h3>What can be measured</h3>
         <p>Benchmark projects in the current repository define runnable workloads, validation, and reproduction commands. Their existence is coverage—not a performance claim.</p>
       </article>
@@ -69,13 +70,13 @@ meta.raw_html: true
       </div>
       <p>The full matrix keeps all 274 scenario rows, 1,106 measurements, eight libraries, row tiers, workloads, categories, package sizes, and relative timings available for filtering and sorting. Its original artifact did not record operating system or run mode, so it remains separate from the platform-specific selector above.</p>
     </header>
-    {{< include path="../../themes/officeimo/partials/generated/benchmarks-excel.html" >}}
+    {{ include "generated/benchmarks-excel" }}
     <details class="imo-benchmark-snapshots">
       <summary>
         <span><strong>Focused Excel and CSV snapshots</strong><small>Open compact scenario cards with dated, committed evidence.</small></span>
         <span aria-hidden="true">Open snapshots</span>
       </summary>
-      {{< include path="../../themes/officeimo/partials/generated/benchmarks-overview.html" >}}
+      {{ include "generated/benchmarks-overview" }}
     </details>
   </section>
 

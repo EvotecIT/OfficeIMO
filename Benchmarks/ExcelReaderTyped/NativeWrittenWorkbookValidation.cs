@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                             if (row[column].GetString() != TypedWorkbookFixture.Headers[column]) throw new InvalidDataException("The native header differs.");
                     } else {
                         if (row[0].Type != CellType.ExcelString || row[1].Type != CellType.Number || row[2].Type != CellType.Date || row[3].Type != CellType.Number
-                            || !row[1].TryParse(CultureInfo.InvariantCulture, out double id) || !row[2].TryGetDateTime(out DateTime date)
+                            || !row[1].TryParse(CultureInfo.InvariantCulture, out double id) || !row[2].TryGetDateTime(workbook.IsDate1904, out DateTime date)
                             || !row[3].TryParse(CultureInfo.InvariantCulture, out double value)) throw new InvalidDataException("The native writer lost numeric/date types.");
                         if (id != rowIndex - 1) throw new InvalidDataException("The native writer changed the numeric ID.");
                         TypedWorkbookFixture.ValidateRecord(new TypedRecord { Name = row[0].GetString(), Id = checked((int)id), Date = date, Value = value }, rowIndex - 1);

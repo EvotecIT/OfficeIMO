@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 };
                 int count = 0;
                 await using IExcelRowEnumerator enumerator = workbook.FirstSheet.GetAsyncEnumerator();
-                while (await enumerator.MoveNextAsync()) ValidateExcelReaderRow(enumerator.Current, ++count);
+                while (await enumerator.MoveNextAsync()) ValidateExcelReaderRow(enumerator.Current, ++count, workbook.IsDate1904);
                 if (count != RowCount || workbook.SheetCount != 1) throw new InvalidDataException("Incorrect async raw row/sheet count.");
             }
             await using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_workbook, writable: false), new ExcelReaderOptions { HasHeaderRow = false })) {
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             long sum = 0;
             int count = 0;
             while (await enumerator.MoveNextAsync()) {
-                sum = unchecked(sum + AccumulateRow(enumerator.Current, materializeStrings));
+                sum = unchecked(sum + AccumulateRow(enumerator.Current, materializeStrings, workbook.IsDate1904));
                 count++;
             }
             return Check(sum, count);
@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             long sum = 0;
             int count = 0;
             while (await enumerator.MoveNextAsync()) {
-                sum = unchecked(sum + AccumulateRow(enumerator.Current, materializeStrings));
+                sum = unchecked(sum + AccumulateRow(enumerator.Current, materializeStrings, workbook.IsDate1904));
                 count++;
             }
             return Check(sum, count);
@@ -93,7 +93,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             long sum = 0;
             int count = 0;
             while (await enumerator.MoveNextAsync()) {
-                sum = unchecked(sum + AccumulateRow(enumerator.Current, materializeStrings));
+                sum = unchecked(sum + AccumulateRow(enumerator.Current, materializeStrings, workbook.IsDate1904));
                 count++;
             }
             return Check(sum, count);

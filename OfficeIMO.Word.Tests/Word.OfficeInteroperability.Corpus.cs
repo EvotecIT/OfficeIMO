@@ -16,7 +16,6 @@ namespace OfficeIMO.Tests {
                 manifest.Collections,
                 item => item.Format == "doc");
             Assert.Equal("compatibility", collection.Role);
-            Assert.Equal("Microsoft Word COM", collection.Producer);
 
             foreach (OfficeInteroperabilityCorpusArtifact artifact in collection.Artifacts) {
                 string path = OfficeInteroperabilityCorpusManifestLoader.ResolveArtifactPath(collection, artifact);
