@@ -19,7 +19,7 @@ internal static partial class WordRunFormatting {
         BorderType? direct = ReadBorder(cell._tableCell.TableCellProperties?.TableCellBorders);
         if (direct != null || table == null) return direct;
         TableRunPaintState state = GetTableRunPaintState(table, cell.Document.MainDocumentPartRoot.StyleDefinitionsPart?.Styles);
-        if (state.HasConditionalPaint) {
+        if (state.HasConditionalFormatting) {
             foreach (TableStyleOverrideValues condition in EnumerateTableRunConditions(state, cell._tableCell)) {
                 foreach (Style style in state.Chain) {
                     foreach (TableStyleProperties conditional in style.Elements<TableStyleProperties>()

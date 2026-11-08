@@ -18,13 +18,13 @@ namespace OfficeIMO.Word.Html {
         }
 
         private struct TextFormatting {
-            internal TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, double? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, string? backgroundColorHex = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
+            internal TextFormatting(bool? bold = null, bool? italic = null, bool? underline = null, string? colorHex = null, string? fontFamily = null, double? fontSize = null, bool superscript = false, bool subscript = false, bool? strike = null, HighlightColorValues? highlight = null, string? backgroundColorHex = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
-                UnderlineStyle = underline ? UnderlineValues.Single : null;
+                UnderlineStyle = underline == true ? UnderlineValues.Single : null;
                 Strike = strike;
-                DoubleStrike = false;
+                DoubleStrike = null;
                 Superscript = superscript;
                 Subscript = subscript;
                 ColorHex = colorHex;
@@ -39,12 +39,13 @@ namespace OfficeIMO.Word.Html {
                 Language = language;
             }
 
-            internal bool Bold { get; set; }
-            internal bool Italic { get; set; }
-            internal bool Underline { get; set; }
+            // Unset preserves native style inheritance; false is an explicit CSS reset.
+            internal bool? Bold { get; set; }
+            internal bool? Italic { get; set; }
+            internal bool? Underline { get; set; }
             internal UnderlineValues? UnderlineStyle { get; set; }
-            internal bool Strike { get; set; }
-            internal bool DoubleStrike { get; set; }
+            internal bool? Strike { get; set; }
+            internal bool? DoubleStrike { get; set; }
             internal bool Superscript { get; set; }
             internal bool Subscript { get; set; }
             internal string? ColorHex { get; set; }
@@ -272,13 +273,7 @@ namespace OfficeIMO.Word.Html {
                 paragraph.ShadingFillValue = paragraphBackground!;
             }
 
-            if (parsed.LineHeight.HasValue) {
-                // CSS parsing is native-shaped; use the Word owner to interpret its units.
-                paragraph.LineSpacing = WordLineSpacing.Read(new DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines {
-                    Line = parsed.LineHeight.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    LineRule = parsed.LineHeightRule
-                });
-            }
+            ApplyParagraphLineHeight(paragraph, parsed);
 
             if (TryParseFontSize(GetInlinePropertyValue(declaration, styleAttribute, "font-size"), out double fontSize)) {
                 SetRunFontSizePoints(paragraph, fontSize);
@@ -544,11 +539,18 @@ namespace OfficeIMO.Word.Html {
         }
 
         private void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlWordExportOptions options) {
-            if (formatting.Bold) run.SetBold();
-            if (formatting.Italic) run.SetItalic();
-            if (formatting.Underline) run.SetUnderline((GetUnderlineValue(formatting) ?? UnderlineValues.Single).ToOfficeEnum());
-            if (formatting.Strike) run.SetStrikethrough();
-            if (formatting.DoubleStrike) run.SetDoubleStrikethrough();
+            if (formatting.Bold.HasValue) run.SetBold(formatting.Bold.Value);
+            if (formatting.Italic.HasValue) run.SetItalic(formatting.Italic.Value);
+            if (formatting.Underline.HasValue) run.SetUnderline((formatting.Underline.Value
+                ? GetUnderlineValue(formatting) ?? UnderlineValues.Single : UnderlineValues.None).ToOfficeEnum());
+            if (formatting.Strike.HasValue) {
+                run.SetStrikethrough(formatting.Strike.Value);
+                if (!formatting.Strike.Value) run.ScopedRunProperties!.Strike = new Strike { Val = false };
+            }
+            if (formatting.DoubleStrike.HasValue) {
+                run.SetDoubleStrikethrough(formatting.DoubleStrike.Value);
+                if (!formatting.DoubleStrike.Value) run.ScopedRunProperties!.DoubleStrike = new DoubleStrike { Val = false };
+            }
             if (formatting.Superscript) run.SetSuperscript();
             if (formatting.Subscript) run.SetSubscript();
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColor(OfficeIMO.OfficeColor.Parse(formatting.ColorHex!));
@@ -572,7 +574,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static UnderlineValues? GetUnderlineValue(TextFormatting formatting) =>
-            formatting.Underline ? formatting.UnderlineStyle ?? UnderlineValues.Single : null;
+            formatting.Underline == true ? formatting.UnderlineStyle ?? UnderlineValues.Single : null;
 
         private static void ApplySpanStyles(IElement element, ref TextFormatting formatting) {
             var styleText = element.GetAttribute("style") ?? string.Empty;
@@ -672,7 +674,7 @@ namespace OfficeIMO.Word.Html {
             }
             if (parsed.UnderlineStyle.HasValue && (parsed.Underline == true || parsed.Strike != true)) {
                 formatting.UnderlineStyle = parsed.UnderlineStyle.Value;
-            } else if (formatting.Underline && !formatting.UnderlineStyle.HasValue) {
+            } else if (formatting.Underline == true && !formatting.UnderlineStyle.HasValue) {
                 formatting.UnderlineStyle = UnderlineValues.Single;
             }
             if (parsed.Strike.HasValue) {

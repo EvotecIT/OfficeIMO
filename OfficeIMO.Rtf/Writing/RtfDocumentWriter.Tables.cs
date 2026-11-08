@@ -215,11 +215,16 @@ internal static partial class RtfDocumentWriter {
         if (!border.HasAnyValue) return;
 
         builder.Append(sideControl);
+        if (border.Style == RtfTableCellBorderStyle.None) {
+            // Word can paint a border if width or color follows the no-border control.
+            builder.Append(@"\brdrnone");
+            return;
+        }
+
         builder.Append(border.Style switch {
             RtfTableCellBorderStyle.Double => @"\brdrdb",
             RtfTableCellBorderStyle.Dotted => @"\brdrdot",
             RtfTableCellBorderStyle.Dashed => @"\brdrdash",
-            RtfTableCellBorderStyle.None => @"\brdrnil",
             _ => @"\brdrs"
         });
         AppendOptionalTwips(builder, @"\brdrw", border.Width);
@@ -321,11 +326,15 @@ internal static partial class RtfDocumentWriter {
         if (!border.HasAnyValue) return;
 
         builder.Append(sideControl);
+        if (border.Style == RtfTableCellBorderStyle.None) {
+            builder.Append(@"\brdrnone");
+            return;
+        }
+
         builder.Append(border.Style switch {
             RtfTableCellBorderStyle.Double => @"\brdrdb",
             RtfTableCellBorderStyle.Dotted => @"\brdrdot",
             RtfTableCellBorderStyle.Dashed => @"\brdrdash",
-            RtfTableCellBorderStyle.None => @"\brdrnil",
             _ => @"\brdrs"
         });
         AppendOptionalTwips(builder, @"\brdrw", border.Width);

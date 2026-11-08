@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.Markdown {
             private void RenderFallback(Omd.IMarkdownBlock block) {
                 var fallback = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(fallback, _quoteDepth, _alignment, _options);
-                fallback.AddText(block.RenderMarkdown());
+                AddContextText(fallback, block.RenderMarkdown(), _options);
                 ApplyBodyTextTheme(fallback, _options);
             }
 
@@ -86,9 +86,11 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitHeadingBlock(Omd.HeadingBlock block) {
                 var headingParagraph = _host.CreateParagraph();
+                bool nativeTheme = ResolveTheme(_options)?.SourceTheme != null;
+                if (nativeTheme) headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment, _options);
                 ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
-                headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
+                if (!nativeTheme) headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
                 ApplyHeadingTheme(headingParagraph, _options);
                 string? bookmark = _converter.ResolveHeadingBookmark(block, _options);
                 if (bookmark != null) {
@@ -120,7 +122,7 @@ namespace OfficeIMO.Word.Markdown {
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment, _options);
-                    captionParagraph.AddText(block.Caption!);
+                    AddContextText(captionParagraph, block.Caption!, _options);
                     ApplyBodyTextTheme(captionParagraph, _options);
                 }
             }
@@ -128,12 +130,12 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitCodeBlock(Omd.CodeBlock block) {
                 var codeParagraph = _host.CreateParagraph();
                 ApplyCodeBlockParagraphFormatting(codeParagraph);
-                AddCodeText(codeParagraph, block.Content, block.Language);
+                AddCodeText(codeParagraph, block.Content, block.Language, _options);
                 ApplyCodeTheme(codeParagraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
                     ApplyCodeBlockParagraphFormatting(captionParagraph);
-                    captionParagraph.AddText(block.Caption!);
+                    AddContextText(captionParagraph, block.Caption!, _options);
                     ApplyBodyTextTheme(captionParagraph, _options);
                 }
             }
@@ -149,12 +151,12 @@ namespace OfficeIMO.Word.Markdown {
 
                 var paragraph = _host.CreateParagraph();
                 ApplyCodeBlockParagraphFormatting(paragraph);
-                AddCodeText(paragraph, block.Content, block.Language);
+                AddCodeText(paragraph, block.Content, block.Language, _options);
                 ApplyCodeTheme(paragraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
                     ApplyCodeBlockParagraphFormatting(captionParagraph);
-                    captionParagraph.AddText(block.Caption!);
+                    AddContextText(captionParagraph, block.Caption!, _options);
                     ApplyBodyTextTheme(captionParagraph, _options);
                 }
             }
@@ -222,9 +224,11 @@ namespace OfficeIMO.Word.Markdown {
                         ? null
                         : ResolveInternalLinkBookmark("#" + entry.Anchor.TrimStart('#'), _options);
                     if (entryBookmark != null) {
-                        paragraph.AddHyperLink(entry.Text, entryBookmark, addStyle: true);
+                        WordParagraph link = paragraph.AddHyperLink(entry.Text, entryBookmark, addStyle: true).Paragraph;
+                        InlineFormatState format = ResolveNativeTextContext(paragraph, _options);
+                        if (format.NativeDefaults != null) ApplyHyperlinkFormattingOmd(link, format, ResolveDefaultFontFamily(_options), _options);
                     } else {
-                        paragraph.AddText(entry.Text);
+                        AddContextText(paragraph, entry.Text, _options);
                         ApplyBodyTextTheme(paragraph, _options);
                     }
                 }
@@ -238,9 +242,12 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 var headingParagraph = _host.CreateParagraph();
+                var headingStyle = WordHeadingStyleMapper.GetHeadingStyleForLevel(NormalizeTocTitleLevel(block.TitleLevel));
+                bool nativeTheme = ResolveTheme(_options)?.SourceTheme != null;
+                if (nativeTheme) headingParagraph.Style = headingStyle;
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment, _options);
-                headingParagraph.AddText(block.Title.Trim());
-                headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(NormalizeTocTitleLevel(block.TitleLevel));
+                AddContextText(headingParagraph, block.Title.Trim(), _options);
+                if (!nativeTheme) headingParagraph.Style = headingStyle;
                 ApplyHeadingTheme(headingParagraph, _options);
             }
 
@@ -274,7 +281,7 @@ namespace OfficeIMO.Word.Markdown {
                 } else {
                     var htmlParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(htmlParagraph, _quoteDepth, _alignment, _options);
-                    htmlParagraph.AddText(((Omd.IMarkdownBlock)block).RenderMarkdown());
+                    AddContextText(htmlParagraph, ((Omd.IMarkdownBlock)block).RenderMarkdown(), _options);
                     _options.DiagnosticSink?.Invoke(new WordMarkdownConversionDiagnostic(
                         OfficeDiagnosticCodes.HtmlBlockAsText,
                         "Raw HTML was retained as literal text because no HTML renderer was configured.",
@@ -289,7 +296,7 @@ namespace OfficeIMO.Word.Markdown {
                 } else {
                     var ruleParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(ruleParagraph, _quoteDepth, _alignment, _options);
-                    ruleParagraph.AddText("---");
+                    AddContextText(ruleParagraph, "---", _options);
                     ApplyBodyTextTheme(ruleParagraph, _options);
                 }
             }
@@ -354,7 +361,9 @@ namespace OfficeIMO.Word.Markdown {
                 for (int i = 0; i < lines.Length; i++) {
                     var paragraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
-                    paragraph.AddFormattedText(lines[i]).SetFontFamily(monoFont);
+                    WordParagraph run = AddContextText(paragraph, lines[i], _options);
+                    if (run.ScopedRunProperties is { } properties) properties.RunFonts = null;
+                    run.SetFontFamily(monoFont);
                     ApplyCodeTheme(paragraph, _options);
                 }
             }

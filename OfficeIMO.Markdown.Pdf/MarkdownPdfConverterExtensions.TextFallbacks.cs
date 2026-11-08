@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown.Pdf;
 
 // First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
-    private static void ApplyMarkdownTextFallbackOptions(PdfCore.PdfCreateOptions pdfOptions, MarkdownPdfExportOptions options, MarkdownDocument document) {
+    private static void ApplyMarkdownTextFallbackOptions(PdfCore.PdfCreateOptions pdfOptions, MarkdownPdfExportOptions options, MarkdownDocument document, bool hasResolvedSourceTheme) {
         bool hasCallerPdfOptions = options.PdfOptions != null;
         bool hasExplicitFontFamily = !string.IsNullOrWhiteSpace(options.FontFamily);
         if (hasExplicitFontFamily) {
@@ -24,7 +24,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return;
         }
 
-        bool preserveDocumentFontSlots = hasCallerPdfOptions || hasExplicitFontFamily;
+        bool preserveDocumentFontSlots = hasCallerPdfOptions || hasExplicitFontFamily || hasResolvedSourceTheme;
         bool usesCodeFont = MarkdownDocumentUsesCodeFont(document);
         if (!usesCodeFont) {
             fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.MonospaceFont;

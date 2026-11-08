@@ -26,11 +26,20 @@ namespace OfficeIMO.Word.Markdown {
             options ??= new MarkdownWordExportOptions();
 
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeTheme theme = options.ThemeSnapshot?.SourceTheme ?? OfficeTheme.Default;
+            OfficeTheme? sourceTheme = options.ThemeSnapshot?.EffectiveSourceTheme;
+            // Preserve the adapter's established implicit heading appearance through the native owner.
+            OfficeTheme theme = sourceTheme ?? OfficeTheme.Default.WithTextStyle(
+                OfficeTheme.Default.TextStyle.With(headingColor: WordThemeDefaults.PageText(OfficeTheme.Default),
+                    headingBold: true, lineSpacing: WordThemeDefaults.NativeBodyLineSpacing));
             var document = WordDocument.Create(new WordCreateOptions { Theme = theme });
             try {
+                if (sourceTheme != null) {
+                    document.PageSetup.Margins.Top = sourceTheme.Page.MarginTop;
+                    document.PageSetup.Margins.Right = sourceTheme.Page.MarginRight;
+                    document.PageSetup.Margins.Bottom = sourceTheme.Page.MarginBottom;
+                    document.PageSetup.Margins.Left = sourceTheme.Page.MarginLeft;
+                }
                 options.ApplyDefaults(document);
-                ApplyThemeHeadingStyles(document, theme);
                 var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
                 RenderDocument(markdown, document, options, pageContentWidthPixels, cancellationToken);
                 return document;
@@ -114,94 +123,6 @@ namespace OfficeIMO.Word.Markdown {
                 properties ??= paragraph.PrependChild(new ParagraphProperties());
                 properties.SpacingBetweenLines ??= new SpacingBetweenLines();
                 properties.SpacingBetweenLines.Before = SpaceAfterTableTwips;
-            }
-        }
-
-        /// <summary>
-        /// Gives a newly created document a clear heading hierarchy from the theme: heading font, type-scale
-        /// sizes, bold, the text colour and keep-with-next. Applied to new documents only, never to templates.
-        /// </summary>
-        private static void ApplyThemeHeadingStyles(WordDocument document, OfficeTheme theme) {
-            document.EnsureStyleDefinitionsInitialized();
-            var styles = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null) {
-                return;
-            }
-
-            OfficeLength[] sizes = {
-                theme.TypeScale.Heading1, theme.TypeScale.Heading2, theme.TypeScale.Heading3,
-                theme.TypeScale.Heading4, theme.TypeScale.Heading5, theme.TypeScale.Heading6
-            };
-            string font = theme.Fonts.Heading.Family;
-            string color = WordThemeDefaults.PageText(theme).ToRgbHex();
-            for (int level = 1; level <= sizes.Length; level++) {
-                string styleId = "Heading" + level.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                Style? style = styles.Elements<Style>().FirstOrDefault(item => string.Equals(item.StyleId?.Value, styleId, StringComparison.Ordinal));
-                if (style == null) {
-                    continue;
-                }
-
-                StyleParagraphProperties paragraphProperties = style.StyleParagraphProperties ??= new StyleParagraphProperties();
-                if (paragraphProperties.GetFirstChild<KeepNext>() == null) {
-                    paragraphProperties.PrependChild(new KeepNext());
-                }
-
-                StyleRunProperties runProperties = style.StyleRunProperties ??= new StyleRunProperties();
-                string halfPoints = Math.Round(sizes[level - 1].ToPoints() * 2D, MidpointRounding.AwayFromZero)
-                    .ToString(System.Globalization.CultureInfo.InvariantCulture);
-                SetStyleRunChild(runProperties, new RunFonts { Ascii = font, HighAnsi = font, ComplexScript = font, EastAsia = font });
-                SetStyleRunChild(runProperties, new Bold());
-                SetStyleRunChild(runProperties, new BoldComplexScript());
-                SetStyleRunChild(runProperties, new Color { Val = color });
-                SetStyleRunChild(runProperties, new FontSize { Val = halfPoints });
-                SetStyleRunChild(runProperties, new FontSizeComplexScript { Val = halfPoints });
-            }
-
-            // Normal: body font, body size and the text colour, with the theme's paragraph spacing.
-            Style? normal = styles.Elements<Style>().FirstOrDefault(item => string.Equals(item.StyleId?.Value, "Normal", StringComparison.Ordinal));
-            if (normal != null) {
-                string bodyFont = theme.Fonts.Body.Family;
-                string bodySize = Math.Round(theme.TypeScale.Body.ToPoints() * 2D, MidpointRounding.AwayFromZero)
-                    .ToString(System.Globalization.CultureInfo.InvariantCulture);
-                StyleRunProperties normalRun = normal.StyleRunProperties ??= new StyleRunProperties();
-                SetStyleRunChild(normalRun, new RunFonts { Ascii = bodyFont, HighAnsi = bodyFont, ComplexScript = bodyFont, EastAsia = bodyFont });
-                SetStyleRunChild(normalRun, new Color { Val = color });
-                SetStyleRunChild(normalRun, new FontSize { Val = bodySize });
-                SetStyleRunChild(normalRun, new FontSizeComplexScript { Val = bodySize });
-                StyleParagraphProperties normalParagraph = normal.StyleParagraphProperties ??= new StyleParagraphProperties();
-                SpacingBetweenLines spacing = normalParagraph.GetFirstChild<SpacingBetweenLines>() ?? normalParagraph.AppendChild(new SpacingBetweenLines());
-                spacing.After = Math.Round(theme.Spacing.ParagraphAfter.ToPoints() * 20D, MidpointRounding.AwayFromZero)
-                    .ToString(System.Globalization.CultureInfo.InvariantCulture);
-            }
-        }
-
-        // CT_RPr child sequence; children are re-ordered after edits so the style stays schema-valid.
-        private static readonly Type[] RunPropertyOrder = {
-            typeof(RunStyle), typeof(RunFonts), typeof(Bold), typeof(BoldComplexScript), typeof(Italic), typeof(ItalicComplexScript),
-            typeof(Caps), typeof(SmallCaps), typeof(Strike), typeof(DoubleStrike), typeof(Outline), typeof(Shadow), typeof(Emboss),
-            typeof(Imprint), typeof(NoProof), typeof(SnapToGrid), typeof(Vanish), typeof(WebHidden), typeof(Color), typeof(Spacing),
-            typeof(CharacterScale), typeof(Kern), typeof(Position), typeof(FontSize), typeof(FontSizeComplexScript), typeof(Highlight),
-            typeof(Underline), typeof(TextEffect), typeof(Border), typeof(Shading), typeof(FitText), typeof(VerticalTextAlignment),
-            typeof(RightToLeftText), typeof(ComplexScript), typeof(Emphasis), typeof(Languages), typeof(EastAsianLayout), typeof(SpecVanish)
-        };
-
-        private static void SetStyleRunChild<T>(StyleRunProperties runProperties, T value) where T : DocumentFormat.OpenXml.OpenXmlElement {
-            foreach (T existing in runProperties.Elements<T>().ToList()) {
-                existing.Remove();
-            }
-
-            runProperties.AppendChild(value);
-            var children = runProperties.ChildElements.ToList();
-            int Rank(DocumentFormat.OpenXml.OpenXmlElement element) {
-                int index = Array.IndexOf(RunPropertyOrder, element.GetType());
-                return index < 0 ? RunPropertyOrder.Length : index;
-            }
-
-            var ordered = children.Select((element, position) => (element, position))
-                .OrderBy(item => Rank(item.element)).ThenBy(item => item.position).Select(item => item.element).ToList();
-            runProperties.RemoveAllChildren();
-            foreach (var element in ordered) {
-                runProperties.AppendChild(element);
             }
         }
 

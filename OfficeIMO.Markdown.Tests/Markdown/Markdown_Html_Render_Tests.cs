@@ -26,17 +26,58 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Explicit_OfficeTheme_And_Word_Style_Emit_Their_Stylesheets() {
-            string clean = MarkdownDocument.Create()
-                .H1("Title")
-                .P("Hello")
-                .ToHtml(new global::OfficeIMO.Markdown.MarkdownHtmlExportOptions {
-                    Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document,
-                    Theme = MarkdownVisualTheme.FromOfficeTheme(global::OfficeIMO.OfficeTheme.Default)
-                });
+            OfficeTheme source = OfficeTheme.Modern
+                .WithFonts(OfficeTheme.Modern.Fonts.With(body: OfficeTheme.Modern.Fonts.Body.With(family: "Georgia")))
+                .WithTextStyle(OfficeTheme.Modern.TextStyle.With(headingColor: OfficeColor.Parse("#892345"), linkColor: OfficeColor.Parse("#136789"), titleColor: OfficeColor.Parse("#8844AA"), lineSpacing: 1.8))
+                .WithTableStyle(OfficeTheme.Modern.TableStyle.With(headerBold: false))
+                .WithPage(OfficeTheme.Modern.Page.With(marginLeft: OfficeLength.Points(37)));
+            using var document = MarkdownDocument.Parse("# Title\n\nHello **strong** [link](https://example.test). <span style=\"color:#008800\">Authored</span>");
+            var options = new MarkdownHtmlExportOptions {
+                Kind = MarkdownHtmlKind.Document,
+                Theme = MarkdownVisualTheme.FromOfficeTheme(source),
+                AssetMode = MarkdownAssetMode.Offline,
+                ExternalTextResolver = _ => "h1 { font-size: 41pt; color: #004400; }"
+            };
+            options.AdditionalCssHrefs.Add("https://example.test/author.css");
+            string clean = document.ToHtml(options);
 
-            Assert.Contains("--office-text: #" + global::OfficeIMO.OfficeTheme.Default.Palette.Text.ToRgbHex(), clean, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("--office-heading-color: #892345", clean, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("--office-link: #136789", clean, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("var(--office-font-heading", clean, StringComparison.Ordinal);
+            Assert.Contains("line-height: var(--office-line-spacing)", clean, StringComparison.Ordinal);
+            Assert.Contains("margin: var(--office-h1-before) 0 var(--office-h1-after)", clean, StringComparison.Ordinal);
+            Assert.Contains("@page { margin:", clean, StringComparison.Ordinal);
+            Assert.Contains("37pt; }", clean, StringComparison.Ordinal);
+            Assert.True(clean.IndexOf("h1 { font-size: 41pt", StringComparison.Ordinal) > clean.IndexOf("--office-heading-color:", StringComparison.Ordinal));
+            Assert.Contains("<strong>strong</strong>", clean, StringComparison.Ordinal);
+            Assert.Contains("style=\"color:#008800\"", clean, StringComparison.Ordinal);
             Assert.DoesNotContain("--md-heading: #111827", clean, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<style", document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document }), StringComparison.Ordinal);
+
+            MarkdownVisualTheme customized = options.Theme!.WithColorScheme(MarkdownColorSchemeKind.Emerald)
+                .WithColors(accent: "#AB3300", heading: "#004400")
+                .WithTable(table => table.CellPaddingY = OfficeLength.Points(8));
+            MarkdownVisualPalette palette = customized.Palette.Clone();
+            palette.CodeBackground = OfficeColor.Parse("#FFEEDD");
+            customized.Palette = palette;
+            customized.Table.CellPaddingX = OfficeLength.Points(13);
+            options.Theme = customized;
+            string edited = document.ToHtml(options);
+            Assert.Contains("--office-heading-color: #004400", edited, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("--office-link: #AB3300", edited, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("--office-title-color: #8844AA", edited, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("--office-table-header-fill: #D1FAE5", edited, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("--office-table-header-bold: 400", edited, StringComparison.Ordinal);
+            Assert.Contains("--office-table-cell-padding-x: 13pt", edited, StringComparison.Ordinal);
+            Assert.Contains("--office-table-cell-padding-y: 8pt", edited, StringComparison.Ordinal);
+            Assert.Contains("--md-code-background: #ffeedd", edited, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Georgia", edited, StringComparison.Ordinal);
+            Assert.Contains("37pt; }", edited, StringComparison.Ordinal);
+
+            options.Style = MarkdownHtmlStyle.Word;
+            string explicitStyle = document.ToHtml(options);
+            Assert.Contains("font-family: Cambria", explicitStyle, StringComparison.Ordinal);
+            Assert.DoesNotContain(":where(article.markdown-body) h1 { font-size: var(--office-size-h1)", explicitStyle, StringComparison.Ordinal);
 
             string html = MarkdownDocument.Create()
                 .H1("Title")

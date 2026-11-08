@@ -320,7 +320,10 @@ internal static class HtmlRenderer {
         MarkdownHtmlStyle effectiveStyle = NormalizeHtmlStyle(GetEffectiveStyle(options, effectiveVisualTheme));
         string rawBaseCss = _unscopedBaseCssCache.GetOrAdd(effectiveStyle,
             static style => style == MarkdownHtmlStyle.Plain ? string.Empty : HtmlResources.GetStyleCss(style) + HtmlResources.CommonExtraCss);
-        string baseCss = ScopeCss(rawBaseCss, options.CssScopeSelector);
+        bool nativeThemeDefaults = effectiveVisualTheme?.SourceTheme != null;
+        string baseCss = nativeThemeDefaults && options.Style == MarkdownHtmlStyle.Plain
+            ? HtmlResources.GetOfficeThemeCss(NormalizeScope(options.CssScopeSelector))
+            : ScopeCss(rawBaseCss, options.CssScopeSelector);
 
         // Additional CSS/JS URLs may be included in head as link/script or inlined depending on AssetMode
         StringBuilder headLinks = new StringBuilder();
@@ -350,6 +353,9 @@ internal static class HtmlRenderer {
         // Inline or ExternalFile, or LinkHref with Offline mode
         var cssBuilder = new StringBuilder();
         if (!linkPrimary && !string.IsNullOrEmpty(baseCss)) cssBuilder.Append(baseCss).Append('\n');
+        if (nativeThemeDefaults) {
+            cssBuilder.Append(BuildNativeThemeDefaults(options, effectiveVisualTheme!));
+        }
 
         if (options.CssDelivery == MarkdownCssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == MarkdownAssetMode.Offline) {
             // Attempt to download provided CSS and inline
@@ -367,8 +373,8 @@ internal static class HtmlRenderer {
         }
         extraHeadLinks = headLinks.ToString();
 
-        // Theme overrides appended last so they win
-        var overrides = BuildThemeOverrides(options, effectiveVisualTheme);
+        // Explicit Markdown color overrides retain priority over the common native-theme fallback.
+        var overrides = BuildThemeOverrides(options, nativeThemeDefaults ? null : effectiveVisualTheme);
         if (!string.IsNullOrEmpty(overrides)) cssBuilder.Append(overrides);
         var aggregatedCss = cssBuilder.ToString();
         if (options.CssDelivery == MarkdownCssDelivery.ExternalFile) {
@@ -429,8 +435,6 @@ internal static class HtmlRenderer {
         if (!any) return string.Empty;
         var sb = new StringBuilder();
         var scope = NormalizeScope(options.CssScopeSelector);
-        if (theme?.SourceTheme is { } nativeTheme)
-            sb.Append(global::OfficeIMO.Internal.OfficeThemeCssTokens.Build(nativeTheme, scope));
         // Expose variables on scope for both themes
         sb.Append('\n');
         AppendThemeVariableBlock(sb, scope, t.HeadingLight, t.AccentLight, t.TocBgLight, t.TocBorderLight, t.ActiveLinkLight);
@@ -484,6 +488,21 @@ internal static class HtmlRenderer {
             sb.Append(Descendant(scope, "code")).Append(" { color: ").Append(palette.Text.ToCssColor()).Append("; }\n");
         }
         return sb.ToString();
+    }
+
+    private static string BuildNativeThemeDefaults(MarkdownHtmlExportOptions options, MarkdownVisualTheme theme) {
+        OfficeTheme source = theme.EffectiveSourceTheme!;
+        string scope = NormalizeScope(options.CssScopeSelector);
+        string css = global::OfficeIMO.Internal.OfficeThemeCssTokens.Build(source, ":where(" + scope + ")");
+        css += ":where(" + scope + ") { --office-table-cell-padding-x: " + theme.TableSnapshot.CellPaddingX.ToPoints().ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "pt; --md-code-background: " + theme.PaletteSnapshot.CodeBackground.Resolve(source).ToCssColor() + "; }\n";
+        css += ":where(" + scope + ") { --md-heading: var(--office-heading-color); --md-accent: var(--office-link); --md-toc-bg: var(--office-surface); --md-toc-border: var(--office-rule); --md-active: var(--office-link); }\n";
+        if (options.Kind == MarkdownHtmlKind.Document) {
+            css += global::OfficeIMO.Internal.OfficeThemeCssTokens.ResolveReferences(":where(body) { background-color: var(--office-bg); }\n", source);
+            // Paged consumers resolve document defaults without inheriting body variables.
+            string page = "@page { margin: var(--office-page-top) var(--office-page-right) var(--office-page-bottom) var(--office-page-left); }\n";
+            css += global::OfficeIMO.Internal.OfficeThemeCssTokens.ResolveReferences(page, source);
+        }
+        return "@layer officeimo-theme {\n" + css + "}\n";
     }
 
     private static MarkdownHtmlColorOverrides BuildEffectiveThemeColors(MarkdownHtmlExportOptions options, MarkdownVisualTheme? visualTheme) {

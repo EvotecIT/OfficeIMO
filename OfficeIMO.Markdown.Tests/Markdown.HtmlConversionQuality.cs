@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using Xunit;
 using Omd = OfficeIMO.Markdown;
@@ -113,10 +114,59 @@ namespace OfficeIMO.Tests {
                 surface: color, rule: color, accent1Tint: color, successFill: color, warningFill: color, dangerFill: color))
                 .WithTextStyle(OfficeTheme.Modern.TextStyle.With(linkColor: color));
 
-            string css = global::OfficeIMO.Internal.OfficeThemeCssTokens.Build(theme, ":root");
+            using var source = Omd.MarkdownDocument.Parse("# Layered heading\n\n## Low-specificity heading\n\n" +
+                "[Surface link](https://example.test/theme)\n\n```text\nSurface code\n```\n");
+            string html = source.ToHtml(new Omd.MarkdownHtmlExportOptions {
+                Kind = Omd.MarkdownHtmlKind.Document,
+                Theme = Omd.MarkdownVisualTheme.FromOfficeTheme(theme),
+                AssetMode = Omd.MarkdownAssetMode.Offline,
+                AdditionalCssHrefs = { "https://example.test/author.css" },
+                ExternalTextResolver = _ => "@layer report{h1{color:#008800}}:where(h2){color:#880000}"
+            });
 
             foreach (string token in new[] { "surface", "rule", "accent-1-tint", "success-fill", "warning-fill", "danger-fill", "link" })
-                Assert.Contains("--office-" + token + ": #123456;", css, StringComparison.Ordinal);
+                Assert.Contains("--office-" + token + ": #123456;", html, StringComparison.Ordinal);
+            HtmlRenderVisual[] scene = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html)).Pages
+                .SelectMany(page => FlattenScene(page.Scene)).ToArray();
+            Assert.Contains(scene.OfType<HtmlRenderShape>(), shape => shape.Shape.FillColor == color);
+            Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.LinkUri == "https://example.test/theme" && text.Color == color);
+            Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Layered heading" && text.Color == OfficeColor.Parse("#008800"));
+            Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Low-specificity heading" && text.Color == OfficeColor.Parse("#880000"));
+
+            HtmlRenderPage RenderPage(string htmlDocument) {
+                HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(htmlDocument), new HtmlRenderOptions {
+                    Mode = HtmlRenderMode.Paged,
+                    PageSize = new OfficePageSize(OfficeLength.Inches(390D / 96D), OfficeLength.Inches(780D / 96D)),
+                    Margins = HtmlRenderMargins.All(0D)
+                });
+                return rendered.Pages[0];
+            }
+            OfficeColor CanvasPixel(string htmlDocument) {
+                var image = OfficeDrawingRasterRenderer.Render(RenderPage(htmlDocument).CreateDrawing());
+                return image.GetPixel(1, image.Height - 2);
+            }
+            using var darkSource = Omd.MarkdownDocument.Parse("Short dark document.");
+            var darkOptions = new Omd.MarkdownHtmlExportOptions {
+                Kind = Omd.MarkdownHtmlKind.Document,
+                Theme = Omd.MarkdownVisualTheme.FromOfficeTheme(OfficeTheme.Dark)
+            };
+            Assert.Equal(OfficeColor.Parse("#0F1620"), CanvasPixel(darkSource.ToHtml(darkOptions)));
+            darkOptions.AssetMode = Omd.MarkdownAssetMode.Offline;
+            darkOptions.AdditionalCssHrefs.Add("https://example.test/canvas.css");
+            darkOptions.ExternalTextResolver = _ => ":where(body){background-color:#665544}";
+            Assert.Equal(OfficeColor.Parse("#665544"), CanvasPixel(darkSource.ToHtml(darkOptions)));
+            string fragment = darkSource.ToHtml(new Omd.MarkdownHtmlExportOptions {
+                Kind = Omd.MarkdownHtmlKind.Fragment,
+                IncludeCssInFragment = true,
+                Theme = Omd.MarkdownVisualTheme.FromOfficeTheme(OfficeTheme.Dark)
+            });
+            string host = "<!doctype html><html><body>Host content.</body></html>";
+            string hosted = "<!doctype html><html><body>Host content." + fragment + "</body></html>";
+            Assert.Equal(OfficeColor.White, CanvasPixel(hosted));
+            HtmlRenderPage hostPage = RenderPage(host);
+            HtmlRenderPage fragmentPage = RenderPage(hosted);
+            Assert.Equal((hostPage.Width, hostPage.Height, hostPage.Margins.Top, hostPage.Margins.Right, hostPage.Margins.Bottom, hostPage.Margins.Left),
+                (fragmentPage.Width, fragmentPage.Height, fragmentPage.Margins.Top, fragmentPage.Margins.Right, fragmentPage.Margins.Bottom, fragmentPage.Margins.Left));
         }
 
         [Fact]

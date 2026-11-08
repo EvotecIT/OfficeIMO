@@ -253,10 +253,12 @@ internal static partial class RtfSemanticReader {
             _currentRow!.GetBorder(side).Style = RtfTableCellBorderStyle.Single;
         }
 
-        private void ApplyPendingCellBorderStyle(RtfTableCellBorderStyle style) {
+        private void ApplyPendingCellBorderStyle(RtfTableCellBorderStyle style, bool explicitReset) {
             RtfTableCellBorder? border = _pendingCellProperties.GetCurrentBorder();
             if (border != null) {
                 border.Style = style;
+                // Keep \brdrnone distinct from an untouched or unspecified border after normalization.
+                if (explicitReset) border.Width ??= 0;
             }
         }
 
@@ -282,7 +284,7 @@ internal static partial class RtfSemanticReader {
             state.GetParagraphBorder(side).Style = RtfParagraphBorderStyle.Single;
         }
 
-        private void ApplyCurrentBorderStyle(CharacterState state, RtfParagraphBorderStyle style) {
+        private void ApplyCurrentBorderStyle(CharacterState state, RtfParagraphBorderStyle style, bool explicitTableReset = false) {
             if (state.CurrentPageBorderSide.HasValue && TryApplyCurrentPageBorderStyle(state, ToPageBorderStyle(style))) {
                 return;
             }
@@ -301,10 +303,11 @@ internal static partial class RtfSemanticReader {
             RtfTableRowBorder? rowBorder = GetCurrentRowBorder();
             if (rowBorder != null) {
                 rowBorder.Style = ToCellBorderStyle(style);
+                if (explicitTableReset) rowBorder.Width ??= 0;
                 return;
             }
 
-            ApplyPendingCellBorderStyle(ToCellBorderStyle(style));
+            ApplyPendingCellBorderStyle(ToCellBorderStyle(style), explicitTableReset);
         }
 
         private void ApplyCurrentBorderWidth(CharacterState state, int? width) {

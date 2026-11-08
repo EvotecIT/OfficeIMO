@@ -767,8 +767,9 @@ public static partial class OfficeSvgDrawingReader {
         foreach (XElement current in element.AncestorsAndSelf()) {
             string? value = ReadPresentationProperty(current, "font-size");
             if (string.IsNullOrWhiteSpace(value) || string.Equals(value!.Trim(), "inherit", StringComparison.OrdinalIgnoreCase)) continue;
-            if (TrySvgLength(value, out double parsed)) {
-                if (parsed < 0D) return false;
+            // Legacy unitless/px zero sizes remain report-only evidence when text has no layout runs.
+            if (TrySvgFontSize(value, out double parsed) ||
+                (TrySvgLength(value, out parsed) && parsed == 0D)) {
                 fontSize = parsed;
                 return parsed * 72D / 96D <= options.MaximumTinyFontSize.ToPoints();
             }

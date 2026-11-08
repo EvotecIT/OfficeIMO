@@ -518,13 +518,19 @@ public sealed class SvgContentSafetyAdversarialTests {
     public void TextPathReplacementRunsRetainStructuralOwnership() {
         byte[] svg = Svg(
             "<defs><path id='offcanvas-path' d='M 500 50 L 700 50'/></defs>" +
-            "<text><textPath href='#offcanvas-path'>path payload</textPath></text>");
+            "<text><textPath href='#offcanvas-path'>path payload</textPath></text>" +
+            "<text font-size='0'><textPath href='#missing'>zero-size path payload</textPath></text>");
         var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
 
         Assert.Contains(report.Findings, item =>
             item.TextPreview == "path payload" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
+        OfficeContentSafetyFinding zero = Assert.Single(report.Findings, item =>
+            item.TextPreview == "zero-size path payload" && item.Kind == OfficeContentConcealmentKind.TinyText);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, zero.CleanupCapability);
+        Assert.Throws<InvalidOperationException>(() => OfficeSvgDrawingReader.RemoveSelectedContent(
+            svg, new OfficeContentCleanupSelection(new[] { zero.Id }), readerOptions: readerOptions));
     }
 
     [Fact]

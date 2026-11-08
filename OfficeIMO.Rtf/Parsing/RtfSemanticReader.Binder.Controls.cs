@@ -482,7 +482,7 @@ internal static partial class RtfSemanticReader {
                     return;
                 case "brdrnone":
                 case "brdrnil":
-                    ApplyCurrentBorderStyle(state, RtfParagraphBorderStyle.None);
+                    ApplyCurrentBorderStyle(state, RtfParagraphBorderStyle.None, explicitTableReset: control.Name == "brdrnone");
                     return;
                 case "brdrw":
                     ApplyCurrentBorderWidth(state, control.Parameter);

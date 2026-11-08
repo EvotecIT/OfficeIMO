@@ -100,7 +100,7 @@ namespace OfficeIMO.Word {
                 copied._persistenceMode = resolved.PersistenceMode;
                 return ApplyTemplateCreationTheme(copied, resolved.Theme);
             }
-            return CreateInternal(filePath: null, stream: null, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode, resolved.Theme ?? OfficeTheme.Default);
+            return CreateInternal(filePath: null, stream: null, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode, resolved.Theme);
         }
 
         /// <summary>Creates a Word document associated with a path that is written on explicit save.</summary>
@@ -116,7 +116,7 @@ namespace OfficeIMO.Word {
                 return ApplyTemplateCreationTheme(copied, resolved.Theme);
             }
             var documentType = GetDocumentType(filePath);
-            var word = CreateInternal(filePath, null, documentType, resolved.PersistenceMode, resolved.Theme ?? OfficeTheme.Default);
+            var word = CreateInternal(filePath, null, documentType, resolved.PersistenceMode, resolved.Theme);
             return word;
         }
 
@@ -170,9 +170,9 @@ namespace OfficeIMO.Word {
         }
 
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme) {
-            // The default theme projection is deterministic, so reuse a package that already carries it instead of
+            // The implicit native defaults are deterministic, so reuse a package that already carries them instead of
             // parsing, cloning and reserializing the style catalog and theme part for every new document.
-            bool themeApplied = ReferenceEquals(theme, OfficeTheme.Default) && !WordParagraphStyle.HasRuntimeStyleRegistrations;
+            bool themeApplied = theme == null && !WordParagraphStyle.HasRuntimeStyleRegistrations;
             return CreateInternal(filePath, stream, documentType, persistenceMode, theme,
                 themeApplied ? GetDefaultThemedPackageBytes(documentType) : GetDefaultPackageBytes(documentType),
                 themeApplied, applyStyleRegistrations: true);
@@ -210,8 +210,9 @@ namespace OfficeIMO.Word {
             if (applyStyleRegistrations && !themeApplied) ApplyCurrentStyleRegistrations(wordDocument.MainDocumentPart!.StyleDefinitionsPart);
             InitializeNewDocumentFacade(word);
             try {
-                if (themeApplied) word._creationTheme = theme;
+                if (themeApplied) word._creationTheme = OfficeTheme.Default;
                 else if (theme != null) word.ApplyCreationTheme(theme);
+                else word.ApplyDefaultCreationTheme();
                 return word;
             } catch {
                 word.Dispose();
@@ -237,7 +238,7 @@ namespace OfficeIMO.Word {
 
         private static byte[] CreateDefaultThemedPackageBytes(WordprocessingDocumentType documentType) {
             using WordDocument document = CreateInternal(filePath: null, stream: null, documentType, DocumentPersistenceMode.Explicit,
-                OfficeTheme.Default, GetDefaultPackageBytes(documentType), themeApplied: false, applyStyleRegistrations: false);
+                null, GetDefaultPackageBytes(documentType), themeApplied: false, applyStyleRegistrations: false);
             using var packageStream = new MemoryStream();
             using (document._wordprocessingDocument.Clone(packageStream, true)) {
             }
@@ -374,7 +375,7 @@ namespace OfficeIMO.Word {
                 copied._persistenceMode = resolved.PersistenceMode;
                 return ApplyTemplateCreationTheme(copied, resolved.Theme);
             }
-            var word = CreateInternal(null, stream, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode, resolved.Theme ?? OfficeTheme.Default);
+            var word = CreateInternal(null, stream, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode, resolved.Theme);
             return word;
         }
 

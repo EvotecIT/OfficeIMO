@@ -43,7 +43,7 @@ public static partial class WordHtmlConverterExtensions {
 
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
-        var converter = new HtmlToWordConverter();
+        var converter = new HtmlToWordConverter(GetWordMediaContext(htmlDocument));
         IReadOnlyList<WordElement> elements = await converter.AddHtmlToTableCellAsync(
             cell,
             CreateWordSourceDocument(htmlDocument, resolved.ConversionReport),

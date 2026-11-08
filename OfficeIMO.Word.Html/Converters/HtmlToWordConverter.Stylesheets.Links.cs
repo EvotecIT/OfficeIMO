@@ -1,6 +1,7 @@
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using OfficeIMO.Html;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -65,7 +66,8 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 if (node is IHtmlStyleElement styleElement) {
-                    ParseCss(styleElement.TextContent);
+                    ParseCss(styleElement.TextContent, media: HtmlResourcePipeline.IsCssStyleElement(styleElement)
+                        ? styleElement.GetAttribute("media") : "not all");
                     continue;
                 }
 
@@ -83,7 +85,8 @@ namespace OfficeIMO.Word.Html {
             foreach (IElement element in document.Body.QuerySelectorAll("style, link")) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (element is IHtmlStyleElement styleElement) {
-                    ParseCss(styleElement.TextContent);
+                    ParseCss(styleElement.TextContent, media: HtmlResourcePipeline.IsCssStyleElement(styleElement)
+                        ? styleElement.GetAttribute("media") : "not all");
                 } else {
                     await ProcessStylesheetLinkElementAsync(element, baseUri: null, cancellationToken).ConfigureAwait(false);
                 }
@@ -112,11 +115,12 @@ namespace OfficeIMO.Word.Html {
 
             if (!string.IsNullOrEmpty(hrefAttr) && File.Exists(hrefAttr)) {
                 if (TryApplyLocalStylesheetPolicy(hrefAttr!)) {
-                    ParseCss(ReadCssFileWithLimit(hrefAttr!), hrefAttr);
+                    ParseCss(ReadCssFileWithLimit(hrefAttr!), hrefAttr, element.GetAttribute("media"));
                 }
                 return;
             }
 
+            string? media = element.GetAttribute("media");
             var url = new Url(href);
             if (!url.IsAbsolute && baseUri != null) {
                 url = new Url(new Url(baseUri.ToString()), href);
@@ -126,10 +130,10 @@ namespace OfficeIMO.Word.Html {
 
             if (url.Scheme == "http" || url.Scheme == "https") {
                 if (_context != null) {
-                    await LoadAndParseCssAsync(url, cancellationToken).ConfigureAwait(false);
+                    await LoadAndParseCssAsync(url, cancellationToken, media).ConfigureAwait(false);
                 }
             } else if (url.Scheme == "file") {
-                TryLoadCssFromFileUrl(url);
+                TryLoadCssFromFileUrl(url, media);
             } else if (url.IsAbsolute && Uri.TryCreate(url.Href, UriKind.Absolute, out var unsupportedUri)) {
                 TryApplyStylesheetUriPolicy(unsupportedUri, url.Href);
             }

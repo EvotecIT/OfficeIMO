@@ -15,11 +15,23 @@ public static partial class MarkdownPdfConverterExtensions {
     internal static PdfCore.PdfDocument ConvertToPdfDocument(MarkdownDocument document, MarkdownPdfExportOptions options) {
         ArgumentNullException.ThrowIfNull(document);
 
+        MarkdownPdfStyle visualTheme = ResolveVisualTheme(document, options);
         PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfCreateOptions();
+        OfficeTheme? sourceTheme = visualTheme.SourceTheme;
+        if (sourceTheme != null) {
+            pdfOptions.Theme ??= sourceTheme;
+            if (!ReferenceEquals(pdfOptions.Theme, sourceTheme)) {
+                sourceTheme = pdfOptions.Theme;
+                visualTheme = MarkdownPdfStyle.FromMarkdownTheme(MarkdownVisualTheme.FromOfficeTheme(sourceTheme!));
+            }
+            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(options.FontFamily, out PdfCore.PdfStandardFont font)) {
+                pdfOptions.DefaultFont = font;
+            }
+        }
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Markdown.Pdf");
 
-        ApplyMarkdownTextFallbackOptions(pdfOptions, options, document);
+        ApplyMarkdownTextFallbackOptions(pdfOptions, options, document, sourceTheme != null);
         // The writer embeds theme fallback fonts for standard slots unless the resource policy forbids installed fonts.
         if (!options.ResourcePolicy.AllowSystemFontEmbedding) pdfOptions.EmbedDefaultFonts = false;
 
@@ -32,14 +44,21 @@ public static partial class MarkdownPdfConverterExtensions {
             pdfOptions.CreateOutlineFromHeadings = true;
         }
 
-        MarkdownPdfStyle visualTheme = ResolveVisualTheme(document, options);
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
+        PdfCore.PdfDocument pdf = sourceTheme != null
+            ? PdfCore.PdfDocument.Create(pdfOptions)
+            : PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
         PdfCore.PdfTheme? documentTheme = visualTheme.DocumentThemeSnapshot;
-        if (documentTheme != null) {
+        if (documentTheme != null && sourceTheme == null) {
             pdf.Theme(documentTheme);
         }
+        if (sourceTheme != null && pdfOptions.HasExplicitDefaultTableStyle) {
+            visualTheme.TableStyle = pdfOptions.DefaultTableStyle;
+        }
+        if (sourceTheme != null) {
+            options.PdfOptions = pdfOptions;
+        }
         ApplyMarkdownDefaultFont(pdf, options);
-        visualTheme.ApplyPageDecorations(pdf, pdfOptions);
+        if (sourceTheme == null) visualTheme.ApplyPageDecorations(pdf, pdfOptions);
 
         IReadOnlyList<IMarkdownBlock> topLevelBlocks = GetPdfTopLevelBlocks(document);
         options.Anchors = new AnchorContext(document, topLevelBlocks, options);

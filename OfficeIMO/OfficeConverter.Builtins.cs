@@ -36,6 +36,7 @@ public static partial class OfficeConverter {
         }
         ValidateDestinationSaveFormats(settings);
         string id = SelectRoute(settings).Id;
+        ValidateThemeRoute(settings, id);
         if (settings.OutputProfile != OfficeConversionProfile.Faithful && id is not ("doc-pdf" or "docx-pdf" or "xls-pdf" or "xlsb-pdf" or "xlsx-pdf" or "ppt-pdf" or "pptx-pdf"))
             throw new ArgumentException("The selected route supports only the Faithful output profile.", nameof(settings));
         if (Registrations.TryGetValue(id, out IOfficeConversionRoute? registration)) {
@@ -63,6 +64,7 @@ public static partial class OfficeConverter {
                     throw new NotSupportedException("This route requires Word 2003 XML or a plain Word Flat OPC document.");
                 sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
                 if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
+                if (settings.Theme != null) document.ApplyTheme(settings.Theme);
                 await document.SaveAsync(output, settings.WordSave, token).ConfigureAwait(false);
                 result = new OfficeConversionReport(settings.SourceName!, settings.TargetName!, itemsWritten: 1);
                 break;
@@ -85,11 +87,12 @@ public static partial class OfficeConverter {
                 using WordDocument document = await WordDocument.LoadAsync(input, WordInputOptions(settings), token).ConfigureAwait(false);
                 sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
                 if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
+                if (settings.Theme != null) document.ApplyTheme(settings.Theme);
                 if (id is "doc-pdf" or "docx-pdf") {
                     WordPdfExportOptions options = settings.Word ?? new WordPdfExportOptions().UseProfile(ExportProfile(settings.OutputProfile)); options.FailOnLoss |= settings.FailOnLoss;
                     result = await document.SaveAsPdfAsync(output, options, token).ConfigureAwait(false);
                 } else if (id == "docx-html") {
-                    WordHtmlExportOptions options = settings.WordHtml ?? new(); options.FailOnLoss |= settings.FailOnLoss;
+                    WordHtmlExportOptions options = settings.WordHtml ?? (settings.Theme == null ? new() : WordHtmlExportOptions.CreateSemanticDocumentProfile()); options.FailOnLoss |= settings.FailOnLoss;
                     result = await document.SaveAsHtmlAsync(output, options, token).ConfigureAwait(false);
                 } else {
                     WordMarkdownExportOptions options = settings.WordMarkdown ?? new(); options.FailOnLoss |= settings.FailOnLoss;
@@ -153,15 +156,17 @@ public static partial class OfficeConverter {
                 using MarkdownDocument document = await MarkdownDocument.LoadAsync(input, load, token).ConfigureAwait(false);
                 if (id == "markdown-pdf") {
                     MarkdownPdfExportOptions options = settings.Markdown ?? new(); options.FailOnLoss |= settings.FailOnLoss;
+                    if (settings.Theme != null) options.Theme ??= MarkdownVisualTheme.FromOfficeTheme(settings.Theme);
                     options.BaseDirectory ??= settings.ResourceDirectory;
                     result = await document.SaveAsPdfAsync(output, options, token).ConfigureAwait(false);
                 } else if (id == "markdown-docx") {
                     MarkdownWordExportOptions options = ConfigureMarkdownHtml(settings.MarkdownWord, token); options.FailOnLoss |= settings.FailOnLoss;
+                    if (settings.Theme != null) options.Theme ??= MarkdownVisualTheme.FromOfficeTheme(settings.Theme);
                     options.SourceDirectory ??= settings.ResourceDirectory;
                     result = await SaveConvertedAsync(await document.ToWordAsync(options, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, settings.WordSave, token), options.Template).ConfigureAwait(false);
                 } else {
-                    MarkdownHtmlExportOptions options = settings.MarkdownHtml ?? new(); options.FailOnLoss |= settings.FailOnLoss;
+                    MarkdownHtmlExportOptions options = ConfigureThemedMarkdownHtml(settings); options.FailOnLoss |= settings.FailOnLoss;
                     result = await document.SaveAsHtmlAsync(output, options, token).ConfigureAwait(false);
                 }
                 break;
@@ -174,8 +179,10 @@ public static partial class OfficeConverter {
                     sourceOptions.BaseUri = new Uri(settings.ResourceSourcePath ?? Path.Combine(settings.ResourceDirectory, settings.SourceName!));
                 if (settings.ResourceDirectory != null && settings.HtmlLoad == null) sourceOptions.ResourceUrlPolicy = OfficeHtmlResourceResolver.CreateResourcePolicy();
                 var document = await HtmlConversionDocument.LoadAsync(input, sourceOptions, cancellationToken: token).ConfigureAwait(false);
+                if (settings.Theme != null && id == "html-pdf") document = document.WithTheme(settings.Theme);
                 if (id == "html-docx") {
                     HtmlWordExportOptions options = settings.HtmlWord ?? new(); options.FailOnLoss |= settings.FailOnLoss;
+                    options.Theme ??= settings.Theme;
                     result = await SaveConvertedAsync(await document.ToWordAsync(options, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, settings.WordSave, token)).ConfigureAwait(false);
                 } else if (id == "html-markdown") {

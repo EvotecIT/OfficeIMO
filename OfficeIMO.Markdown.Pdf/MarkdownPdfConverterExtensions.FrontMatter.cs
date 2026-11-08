@@ -40,14 +40,22 @@ public static partial class MarkdownPdfConverterExtensions {
             options.Anchors?.RegisterNamed(pdf, anchor!);
         }
 
-        pdf.H1(title, global::OfficeIMO.OfficeAlignment.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: new PdfCore.PdfHeadingStyle {
+        OfficeTheme? source = visualTheme.SourceTheme;
+        var titleStyle = new PdfCore.PdfHeadingStyle {
             FontSize = visualTheme.DocumentHeaderTitleFontSizeSnapshot,
             LineHeight = 1.12,
-            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
-            SpacingAfter = global::OfficeIMO.OfficeLength.Points(3),
+            SpacingBefore = source?.TextStyle.TitleSpacing.Before ?? global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = source?.TextStyle.TitleSpacing.After ?? global::OfficeIMO.OfficeLength.Points(3),
+            Bold = source?.TextStyle.HeadingBold ?? true,
             Color = visualTheme.DocumentHeaderTitleColorSnapshot,
             KeepWithNext = true
-        });
+        };
+        if (source != null) {
+            if (options.PdfOptions?.HasExplicitDefaultFont != true) PdfCore.PdfTheme.ApplyThemeHeadingFont(source, titleStyle);
+            pdf.Title(title, global::OfficeIMO.OfficeAlignment.Left, visualTheme.DocumentHeaderTitleColorSnapshot, titleStyle);
+        } else {
+            pdf.H1(title, global::OfficeIMO.OfficeAlignment.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: titleStyle);
+        }
 
         string? subtitle = GetFrontMatterMetadata(frontMatter, "subtitle")
             ?? GetFrontMatterMetadata(frontMatter, "description")
@@ -57,8 +65,8 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf.Paragraph(builder => builder.AddText(subtitle).SetColor(visualTheme.DocumentHeaderSubtitleColorSnapshot).SetFontSize(visualTheme.DocumentHeaderSubtitleFontSizeSnapshot),
                 color: visualTheme.DocumentHeaderSubtitleColorSnapshot,
                 style: new PdfCore.PdfParagraphStyle {
-                    LineHeight = 1.25,
-                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
+                    LineHeight = source?.TextStyle.LineSpacing ?? 1.25,
+                    SpacingAfter = source?.Spacing.ParagraphAfter ?? global::OfficeIMO.OfficeLength.Points(4),
                     KeepWithNext = true
                 });
         }
@@ -68,17 +76,17 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf.Paragraph(builder => builder.AddText(metadataLine).SetColor(visualTheme.DocumentHeaderMetadataColorSnapshot).SetFontSize(visualTheme.DocumentHeaderMetadataFontSizeSnapshot),
                 color: visualTheme.DocumentHeaderMetadataColorSnapshot,
                 style: new PdfCore.PdfParagraphStyle {
-                    LineHeight = 1.2,
-                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(6),
+                    LineHeight = source?.TextStyle.LineSpacing ?? 1.2,
+                    SpacingAfter = source?.Spacing.ParagraphAfter ?? global::OfficeIMO.OfficeLength.Points(6),
                     KeepWithNext = true
                 });
         }
 
-        pdf.HR(style: new PdfCore.PdfHorizontalRuleStyle {
+        if (source == null || source.TextStyle.TitleRule.IsVisible) pdf.HR(style: new PdfCore.PdfHorizontalRuleStyle {
             Color = visualTheme.DocumentHeaderRuleColorSnapshot,
-            Thickness = global::OfficeIMO.OfficeLength.Points(0.8),
+            Thickness = source?.TextStyle.TitleRule.Width ?? global::OfficeIMO.OfficeLength.Points(0.8),
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
-            SpacingAfter = global::OfficeIMO.OfficeLength.Points(12),
+            SpacingAfter = source?.Spacing.ParagraphAfter ?? global::OfficeIMO.OfficeLength.Points(12),
             KeepWithNext = false
         });
         return true;

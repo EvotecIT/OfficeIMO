@@ -161,26 +161,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocTableLook ReadSupportedTableLook(TableLook? tableLook) {
-            if (tableLook == null) {
-                return LegacyDocTableLook.Empty;
+            string? value = tableLook?.Val?.Value;
+            if (tableLook != null && !WordTable.HasExpandedTableLookFlags(tableLook) && !string.IsNullOrWhiteSpace(value)
+                && !int.TryParse(value, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out _)) {
+                throw new NotSupportedException($"Native DOC saving supports table look masks only as hexadecimal values. Unsupported table look value: {value}.");
             }
-
-            int mask = 0;
-            string? value = tableLook.Val?.Value;
-            if (!string.IsNullOrWhiteSpace(value)) {
-                if (!int.TryParse(value, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int parsed)) {
-                    throw new NotSupportedException($"Native DOC saving supports table look masks only as hexadecimal values. Unsupported table look value: {value}.");
-                }
-
-                mask = parsed;
-            }
-
-            ApplyExpandedTableLookFlag(tableLook.FirstRow, TableLookFirstRow, ref mask);
-            ApplyExpandedTableLookFlag(tableLook.LastRow, TableLookLastRow, ref mask);
-            ApplyExpandedTableLookFlag(tableLook.FirstColumn, TableLookFirstColumn, ref mask);
-            ApplyExpandedTableLookFlag(tableLook.LastColumn, TableLookLastColumn, ref mask);
-            ApplyExpandedTableLookFlag(tableLook.NoHorizontalBand, TableLookNoHorizontalBand, ref mask);
-            ApplyExpandedTableLookFlag(tableLook.NoVerticalBand, TableLookNoVerticalBand, ref mask);
+            int mask = WordTable.GetTableLookMask(tableLook);
 
             int unsupportedMask = mask & ~SupportedTableLookMask;
             if (unsupportedMask != 0) {
@@ -244,18 +230,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return new LegacyDocWritableTableRowFormatting(rowHeightTwips, rowHeightIsExact, rowCantSplit, rowIsHeader);
-        }
-
-        private static void ApplyExpandedTableLookFlag(OnOffValue? value, int flag, ref int mask) {
-            if (value == null) {
-                return;
-            }
-
-            if (value.Value) {
-                mask |= flag;
-            } else {
-                mask &= ~flag;
-            }
         }
 
         private static LegacyDocTableCellShading ReadSupportedConditionalTableStyleShading(TableStyleConditionalFormattingTableCellProperties? cellProperties) {
@@ -648,8 +622,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 NoHorizontalBand = noHorizontalBand;
                 NoVerticalBand = noVerticalBand;
             }
-
-            internal static LegacyDocTableLook Empty { get; } = new LegacyDocTableLook(false, false, false, false, false, false);
 
             internal bool FirstRow { get; }
 

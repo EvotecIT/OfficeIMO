@@ -59,12 +59,12 @@ namespace OfficeIMO.Word {
         internal static Style GetStyleDefinition(WordCharacterStyles style) {
             switch (style) {
                 case WordCharacterStyles.DefaultParagraphFont: return DefaultParagraphFont;
-                case WordCharacterStyles.Heading1Char: return WordThemeDefaults.CreateHeadingCharacter(1);
-                case WordCharacterStyles.Heading2Char: return WordThemeDefaults.CreateHeadingCharacter(2);
-                case WordCharacterStyles.Heading3Char: return WordThemeDefaults.CreateHeadingCharacter(3);
-                case WordCharacterStyles.Heading4Char: return WordThemeDefaults.CreateHeadingCharacter(4);
-                case WordCharacterStyles.Heading5Char: return WordThemeDefaults.CreateHeadingCharacter(5);
-                case WordCharacterStyles.Heading6Char: return WordThemeDefaults.CreateHeadingCharacter(6);
+                case WordCharacterStyles.Heading1Char: return WordThemeDefaults.CreateHeadingCharacter(1, OfficeTheme.Default);
+                case WordCharacterStyles.Heading2Char: return WordThemeDefaults.CreateHeadingCharacter(2, OfficeTheme.Default);
+                case WordCharacterStyles.Heading3Char: return WordThemeDefaults.CreateHeadingCharacter(3, OfficeTheme.Default);
+                case WordCharacterStyles.Heading4Char: return WordThemeDefaults.CreateHeadingCharacter(4, OfficeTheme.Default);
+                case WordCharacterStyles.Heading5Char: return WordThemeDefaults.CreateHeadingCharacter(5, OfficeTheme.Default);
+                case WordCharacterStyles.Heading6Char: return WordThemeDefaults.CreateHeadingCharacter(6, OfficeTheme.Default);
                 case WordCharacterStyles.Heading7Char: return StyleHeading7;
                 case WordCharacterStyles.Heading8Char: return StyleHeading8;
                 case WordCharacterStyles.Heading9Char: return StyleHeading9;
