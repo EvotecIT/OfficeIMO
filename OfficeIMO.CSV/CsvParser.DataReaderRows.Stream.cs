@@ -518,13 +518,28 @@ internal static partial class CsvParser
         {
             if (cache is null) return;
             int count = SourceColumnCount > 0 ? Math.Min(FieldCount, SourceColumnCount) : FieldCount;
+#if NET9_0_OR_GREATER
+            var lookup = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+#endif
             for (int ordinal = 0; ordinal < count; ordinal++)
             {
                 string? materialized = _materialized[ordinal];
-                _materialized[ordinal] = materialized is not null
-                    ? ReuseFieldString(materialized, cache)
-                    : _lengths[ordinal] <= 0 ? string.Empty
-                    : ReuseFieldSpan(_buffer.AsSpan(_starts[ordinal], _lengths[ordinal]), cache);
+                if (materialized is not null)
+                {
+                    _materialized[ordinal] = ReuseFieldString(materialized, cache);
+                }
+                else if (_lengths[ordinal] <= 0)
+                {
+                    _materialized[ordinal] = string.Empty;
+                }
+                else
+                {
+#if NET9_0_OR_GREATER
+                    _materialized[ordinal] = ReuseFieldSpan(_buffer.AsSpan(_starts[ordinal], _lengths[ordinal]), cache, lookup);
+#else
+                    _materialized[ordinal] = ReuseFieldSpan(_buffer.AsSpan(_starts[ordinal], _lengths[ordinal]), cache);
+#endif
+                }
             }
         }
 
