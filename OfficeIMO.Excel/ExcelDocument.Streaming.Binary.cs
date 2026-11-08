@@ -27,7 +27,7 @@ public partial class ExcelDocument {
         internal async Task<int> WriteTable<T>(string name, string[] headers, IAsyncEnumerable<T> rows,
             Action<ExcelTabularRowWriter, T> writeRow, CancellationToken ct) {
             Stream? output = null;
-            XlsbStreamingCompression? compression = null;
+            StreamingWorksheetCompression? compression = null;
             ExcelTabularRowSink? sink = null;
             bool completed = false;
             try {
@@ -38,7 +38,7 @@ public partial class ExcelDocument {
                     output = entry.Open();
                     Stream records = output;
                     if (ExcelExecutionPolicy.SupportsBackgroundProcessing) {
-                        compression = new XlsbStreamingCompression(output);
+                        compression = new StreamingWorksheetCompression(output);
                         records = compression;
                     }
                     sink = new XlsbWorksheetPartWriter.StreamingRowSink(records, headers.Length);
