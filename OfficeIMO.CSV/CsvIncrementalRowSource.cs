@@ -39,34 +39,58 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
     public bool Read(CancellationToken token) => AdvanceAsync(false, token).GetAwaiter().GetResult();
     public ValueTask<bool> ReadAsync(CancellationToken token) => AdvanceAsync(true, token);
 
-    private async ValueTask<bool> AdvanceAsync(bool asynchronous, CancellationToken token)
+    private ValueTask<bool> AdvanceAsync(bool asynchronous, CancellationToken token)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_failed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+        CancellationTokenSource? operation = null;
         try
         {
-            token.ThrowIfCancellationRequested();
-            _options.CancellationToken.ThrowIfCancellationRequested();
-            // The lifetime already observes both tokens used to open the reader. Only a new
-            // per-read token needs another link; aggregation reuses its opening token for every row.
-            using var operation = LinkReadCancellation(token);
-            var effective = operation?.Token ?? _options.CancellationToken;
-            if (_buffered.Count > 0)
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_failed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+            try
             {
-                SetCurrent(_buffered.Dequeue());
-                return true;
+                token.ThrowIfCancellationRequested();
+                _options.CancellationToken.ThrowIfCancellationRequested();
+                // A pending read keeps its linked token alive until completion.
+                operation = LinkReadCancellation(token);
+                var effective = operation?.Token ?? _options.CancellationToken;
+                if (_buffered.Count > 0)
+                {
+                    SetCurrent(_buffered.Dequeue());
+                    return new ValueTask<bool>(true);
+                }
+                ValueTask<bool> read = _records.ReadAsync(asynchronous, effective, reuseValues: true);
+                if (read.IsCompletedSuccessfully)
+                    return new ValueTask<bool>(CompleteRecordRead(read.Result, effective));
+
+                var pendingOperation = operation;
+                operation = null;
+                return AwaitRecordReadAsync(read, effective, pendingOperation);
             }
-            if (!await _records.ReadAsync(asynchronous, effective, reuseValues: true).ConfigureAwait(false))
-            {
-                _current = Array.Empty<string>();
-                CurrentPhysicalLineNumber = CurrentPhysicalEndLineNumber = null;
-                return false;
-            }
-            effective.ThrowIfCancellationRequested();
-            SetCurrent(new BufferedRecord(_records.Current.Values, _records.StartLine, _records.EndLine));
-            return true;
+            catch { _failed = true; throw; }
         }
+        catch (Exception exception) { return CsvParser.PropagateReadFailureAsync(exception); }
+        finally { operation?.Dispose(); }
+    }
+
+    private async ValueTask<bool> AwaitRecordReadAsync(ValueTask<bool> read,
+        CancellationToken effective, CancellationTokenSource? operation)
+    {
+        try { return CompleteRecordRead(await read.ConfigureAwait(false), effective); }
         catch { _failed = true; throw; }
+        finally { operation?.Dispose(); }
+    }
+
+    private bool CompleteRecordRead(bool available, CancellationToken effective)
+    {
+        if (!available)
+        {
+            _current = Array.Empty<string>();
+            CurrentPhysicalLineNumber = CurrentPhysicalEndLineNumber = null;
+            return false;
+        }
+        effective.ThrowIfCancellationRequested();
+        SetCurrent(new BufferedRecord(_records.Current.Values, _records.StartLine, _records.EndLine));
+        return true;
     }
 
     internal bool CanCaptureRawRecords => _buffered.Count == 0 && !HasStaticValues &&
