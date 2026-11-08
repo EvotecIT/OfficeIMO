@@ -123,15 +123,20 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void SchemaReplayAndGeneralXmlFallbackKeepTheSameValues(bool inferSchema) {
+    public void SchemaReplayAndGeneralXmlFallbackPreserveSampledUtcAndLiveNativeDates(bool inferSchema) {
         string path = CreateWorkbook(
-            "<row r=\"2\"><c r=\"A2\" t=\"inlineStr\"><is><t>2024-01-02T03:04:05Z</t></is></c></row>",
-            new[] { "Date" }, 2, utf16: !inferSchema);
+            "<row r=\"2\"><c r=\"A2\" t=\"inlineStr\"><is><t>2024-01-02T03:04:05Z</t></is></c></row>" +
+            "<row r=\"3\"><c r=\"A3\" s=\"1\"><v>45292.25</v></c></row>" +
+            "<row r=\"4\"><c r=\"A4\" s=\"1\"><v>45294.5</v></c></row>",
+            new[] { "Date" }, 4, utf16: !inferSchema);
         try {
-            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = inferSchema, SchemaSampleRows = 1 });
-            DateRow row = Assert.Single(reader.RowsAs<DateRow>());
-            Assert.Equal(DateTime.Parse("2024-01-02T03:04:05Z", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), row.Date);
-            Assert.Equal(DateTimeKind.Utc, row.Date.Kind);
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = inferSchema, SchemaSampleRows = 2 });
+            DateRow[] rows = reader.RowsAs<DateRow>().ToArray();
+            Assert.Equal(3, rows.Length);
+            Assert.Equal(DateTime.Parse("2024-01-02T03:04:05Z", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), rows[0].Date);
+            Assert.Equal(DateTimeKind.Utc, rows[0].Date.Kind);
+            Assert.Equal(DateTime.FromOADate(45292.25), rows[1].Date);
+            Assert.Equal(DateTime.FromOADate(45294.5), rows[2].Date);
         } finally { File.Delete(path); }
     }
 
