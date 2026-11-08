@@ -62,12 +62,12 @@ internal static partial class PdfWriter {
             string? unmeasuredReason = null;
             double baseline = firstBaseline;
             int? bidiLevel = ResolveRichParagraphBidiLevel(lines);
-            // Ink inspection consumes clips synchronously; keep separate scratch builders for its prefix comparisons.
-            List<OfficeTextInkClip>? intrinsicClipBuilder = null;
-            List<OfficeTextInkClip>? sourcePaintClipBuilder = null;
-            List<OfficeTextInkClip>? admittedClipBuilder = null;
-            List<OfficeTextInkClip>? frameClipBuilder = null;
             try {
+                // Ink inspection consumes clips synchronously; keep separate scratch builders for its prefix comparisons.
+                List<OfficeTextInkClip>? intrinsicClipBuilder = null;
+                List<OfficeTextInkClip>? sourcePaintClipBuilder = null;
+                List<OfficeTextInkClip>? admittedClipBuilder = null;
+                List<OfficeTextInkClip>? frameClipBuilder = null;
                 for (int index = 0; index < lines.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     List<RichSeg> line = lines[index];
