@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Threading;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 
@@ -106,8 +107,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// <summary>
         /// Loads a legacy DOC model from compound document bytes.
         /// </summary>
-        private static LegacyDocDocument LoadCore(byte[] bytes, LegacyDocImportOptions? options) {
+        private static LegacyDocDocument LoadCore(byte[] bytes, LegacyDocImportOptions? options, CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(bytes);
+            cancellationToken.ThrowIfCancellationRequested();
             options ??= new LegacyDocImportOptions();
             options.Validate();
             if (bytes.Length > options.MaxInputBytes) {
@@ -121,7 +123,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             document.SourceCompoundFile = compoundFile;
-            document.LoadFromCompound(compoundFile!, options);
+            cancellationToken.ThrowIfCancellationRequested();
+            document.LoadFromCompound(compoundFile!, options, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             return document;
         }
 
@@ -132,7 +136,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return new LegacyDocImportReport(this);
         }
 
-        private void LoadFromCompound(OfficeCompoundFile compoundFile, LegacyDocImportOptions options) {
+        private void LoadFromCompound(OfficeCompoundFile compoundFile, LegacyDocImportOptions options, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!TryGetRootStream(compoundFile, "WordDocument", out byte[]? wordDocumentStreamCandidate)) {
                 AddError("doc-worddocument-missing", "The compound document does not contain a WordDocument stream.");
                 return;
@@ -145,7 +150,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             if (LegacyWord69Reader.IsProfile(wordDocumentStream)) {
-                LoadWord69(compoundFile, wordDocumentStream, options);
+                LoadWord69(compoundFile, wordDocumentStream, options, cancellationToken);
                 return;
             }
             LegacyDocFib fib;
@@ -182,6 +187,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddError("doc-piece-table-invalid", textError ?? "The legacy DOC piece table could not be decoded.");
                 return;
             }
+            cancellationToken.ThrowIfCancellationRequested();
 
             var fieldMetadata = LegacyDocFieldMetadataReader.Read(tableStream, fib, textContent.AllCharacters, tableStreamName);
 
@@ -270,12 +276,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 bookmarkProjection,
                 pictures.PicturesByCharacterPosition,
                 options.ReportUnsupportedContent, fieldMetadata: fieldMetadata);
-            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? footnoteWarning, fieldMetadata);
+            cancellationToken.ThrowIfCancellationRequested();
+            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? footnoteWarning, fieldMetadata, cancellationToken: cancellationToken);
             if (footnoteWarning != null) {
                 AddWarning("doc-footnote-plc-invalid", footnoteWarning);
             }
 
-            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? endnoteWarning, fieldMetadata);
+            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? endnoteWarning, fieldMetadata, cancellationToken: cancellationToken);
             if (endnoteWarning != null) {
                 AddWarning("doc-endnote-plc-invalid", endnoteWarning);
             }

@@ -327,6 +327,7 @@ namespace OfficeIMO.Tests {
                 result.Document.Paragraphs,
                 item => item.Text == "Heading Layout Flags");
             Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
+            Assert.Empty(result.Document.ValidateDocument());
 
             using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToBytes()));
             Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
@@ -334,6 +335,10 @@ namespace OfficeIMO.Tests {
                 .First(style => style.StyleId?.Value == headingStyleId);
 
             StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyle.GetFirstChild<StyleParagraphProperties>());
+            Assert.Equal("720", paragraphProperties.GetFirstChild<Indentation>()?.Left?.Value);
+            TabStop tab = Assert.Single(Assert.IsType<Tabs>(paragraphProperties.GetFirstChild<Tabs>()).Elements<TabStop>());
+            Assert.Equal(1440, tab.Position?.Value);
+            Assert.Equal(TabStopValues.Left, tab.Val?.Value);
             Assert.NotNull(paragraphProperties.GetFirstChild<SuppressLineNumbers>());
             Assert.NotNull(paragraphProperties.GetFirstChild<SuppressAutoHyphens>());
             Assert.NotNull(paragraphProperties.GetFirstChild<ContextualSpacing>());
@@ -347,6 +352,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(paragraphProperties.GetFirstChild<BiDi>());
             TextAlignment textAlignment = Assert.IsType<TextAlignment>(paragraphProperties.GetFirstChild<TextAlignment>());
             Assert.Equal(VerticalTextAlignmentValues.Center, textAlignment.Val?.Value);
+            Assert.Empty(converted.ValidateDocument());
         }
 
         [Fact]
@@ -1270,6 +1276,8 @@ namespace OfficeIMO.Tests {
                         "heading 1",
                         basedOnStyleIndex: 0,
                         paragraphUpx: CreateStyleParagraphUpx(
+                            CreateParagraphSprm(SprmPDxaLeft, 0xD0, 0x02),
+                            CreateParagraphSprm(0xC60D, 5, 0, 1, 0xA0, 0x05, 0),
                             CreateParagraphSprm(SprmPFNoLineNumb, 1),
                             CreateParagraphSprm(SprmPFNoAutoHyph, 1),
                             CreateParagraphSprm(SprmPFContextualSpacing, 1),

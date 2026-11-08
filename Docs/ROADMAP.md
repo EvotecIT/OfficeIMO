@@ -586,6 +586,10 @@ TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split arc
 
 - [ ] Qualify XML Spreadsheet 2003 physical column widths against native Excel across Normal fonts and window DPI settings. Cover point-to-character conversion, default and explicit widths, zero-width hidden columns, and repeated XML/XLSX conversion. Extend the current reported 96-DPI approximation only with independent evidence for the receiving environment. See the [Excel compatibility contract](../OfficeIMO.Excel/COMPATIBILITY.md).
 
+### Legacy Word note qualification
+
+- [ ] Qualify Word 95 (`nFib=104`) endnotes with an independently produced original containing an endnote story. Record provenance and rights, complete anchors and paragraph content, supported formatting and note settings, editable DOCX save/reopen and native Word readback. Retain the [qualified Word 6 and Word 95 note controls](officeimo.word.legacy-doc-compatibility.md#import-word-6-and-word-95-documents) and matched note-scaling measurements.
+
 ### OpenDocument qualification and depth
 
 - [ ] Extend the native ODS evaluator with named references, date arithmetic, logical functions, and conditional evaluation. Qualify each accepted subset against independent Calc-produced values, including errors, scalar-versus-reference coercion, dependency cycles, and resource bounds; preserve unsupported formulas and report failed recalculations.

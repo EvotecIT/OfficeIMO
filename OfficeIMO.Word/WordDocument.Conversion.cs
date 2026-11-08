@@ -237,7 +237,8 @@ namespace OfficeIMO.Word {
                             sourcePath,
                             saveOnDispose: false,
                             readOnly: false,
-                            importOptions: importOptions);
+                            importOptions: importOptions,
+                            cancellationToken: cancellationToken);
                     }
                 }
             }

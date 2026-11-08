@@ -8,10 +8,15 @@ optional process-memory sampling and JSON/CSV/Markdown reports.
 | Profile | Small / medium / large | Shared input contract |
 | --- | --- | --- |
 | `Word69` | 100 / 1,000 / 10,000 runs | One ASCII paragraph, alternating bold runs; each FKP shares two character-property records |
+| `Word69Notes` | 10 / 100 / 1,000 notes | FIB101; alternating automatic footnotes and endnotes, with two paragraphs per note |
+| `Word95Notes` | 10 / 100 / 1,000 notes | FIB104; the same complete note contract as `Word69Notes` |
 | `Biff4` | 1,000 / 4,000 / 16,000 rows | BIFF4 workspace with ordered cell-style findings and repeated global number-format findings |
 | `IWork09` | 6 / 64 / 512 images | Pages 2009 XML with repeated references to one raster asset |
 | `Dbx` | 6 / 64 / 512 messages | Indexed messages with distinct bodies, identities and attachment bytes |
 | `OfficeXml` | 100 / 1,000 / 10,000 paragraphs | WordML 2003 with repeated paragraph and run property groups |
+
+The note profiles require an explicit `-BenchmarkProfile` selection. The default
+matrix retains the five original profiles.
 
 The [2026-11-07 two-domain comparison](../Docs/benchmarks/officeimo.migration-runtime-2026-11-07.md) records all 1,848 validated samples, exact source/binary identities, allocation gains, slower observations and launch variation.
 
@@ -37,6 +42,7 @@ Run a small smoke case before the full matrix:
 ./Build/Benchmarks/Run-MigrationBenchmarks.ps1 -BenchmarkProfile Word69 -Scale Small -WarmupCount 1 -IterationCount 3
 ./Build/Benchmarks/Run-MigrationBenchmarks.ps1
 ./Build/Benchmarks/Run-MigrationBenchmarks.ps1 -BenchmarkProfile Dbx -Operation SearchContent
+./Build/Benchmarks/Run-MigrationBenchmarks.ps1 -BenchmarkProfile Word69Notes,Word95Notes -Scale Small -WarmupCount 1 -IterationCount 3
 ```
 
 `-BinaryRoot` selects a directory containing the workload host and the exact product
@@ -59,11 +65,20 @@ other cases require their declared loss-free contract. Every saved Open XML
 artifact is schema validated and reopened; every EML is parsed again and checked.
 A failed semantic check fails the benchmark lane.
 
+The note profiles verify every body reference and its position, both note kinds,
+complete ordered paragraph text, numbering and placement. Saved DOCX validation
+also checks the note parts, reference identities, schema and public reopen. Their
+semantic digest is separate from the diagnostic digest. A revision that omits
+notes fails this contract and cannot serve as an equivalent performance baseline;
+compare note optimizations with a fully correct feature baseline and retain the
+original `Word69` profile as an unchanged control.
+
 The executable also validates one input without measurement (including eager search for DBX) and prints its source
 and diagnostic digests:
 
 ```powershell
 dotnet OfficeIMO.Migration.Benchmarks/bin/Release/net10.0/OfficeIMO.Migration.Benchmarks.dll --validate OfficeXml 100
+dotnet OfficeIMO.Migration.Benchmarks/bin/Release/net10.0/OfficeIMO.Migration.Benchmarks.dll --validate Word95Notes 1000
 ```
 
 Inspect all raw samples, including regressions and repeated-launch variation.

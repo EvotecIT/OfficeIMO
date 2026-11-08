@@ -1,7 +1,7 @@
 using OfficeIMO.Migration.Benchmarks;
 
 if (args.Length != 3 || args[0] != "--validate" || !int.TryParse(args[2], out int units)) {
-    Console.Error.WriteLine("Use --validate <Word69|Biff4|IWork09|Dbx|OfficeXml> <units>. PowerForge owns timing.");
+    Console.Error.WriteLine("Use --validate <Word69|Word69Notes|Word95Notes|Biff4|IWork09|Dbx|OfficeXml> <units>. PowerForge owns timing.");
     return 2;
 }
 try {
@@ -14,7 +14,7 @@ try {
             if (workload.VerifiedUnits != units) throw new InvalidDataException("Incomplete workload validation.");
             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new {
                 Profile = args[1], Operation = operation, Units = units, workload.InputBytes,
-                workload.InputSha256, workload.OutputBytes, workload.VerifiedUnits, workload.DiagnosticDigest
+                workload.InputSha256, workload.OutputBytes, workload.VerifiedUnits, workload.DiagnosticDigest, workload.SemanticDigest
             }));
         } finally { workload.ReleaseResults(); }
     }

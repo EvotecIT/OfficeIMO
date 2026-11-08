@@ -39,6 +39,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets visible text for each top-level paragraph of the referenced ordinary endnote,
+        /// or null when its body cannot be resolved. Preserves empty paragraphs, whitespace and
+        /// tabs, and includes cached field results without field instructions.
+        /// </summary>
+        public IReadOnlyList<string>? TextParagraphs => WordNoteResolver.GetTextParagraphs(
+            _document, WordNoteResolver.FindEndnote(_document._wordprocessingDocument.MainDocumentPart, _reference?.Id?.Value));
+
+        /// <summary>
         /// Parent paragraph containing the endnote reference.
         /// </summary>
         public WordParagraph? ParentParagraph {

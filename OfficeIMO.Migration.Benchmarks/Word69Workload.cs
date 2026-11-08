@@ -1,9 +1,9 @@
-using System.Reflection;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Word;
+using static OfficeIMO.Migration.Benchmarks.Word69BenchmarkInput;
 
 namespace OfficeIMO.Migration.Benchmarks;
 
@@ -133,28 +133,4 @@ internal sealed class Word69Workload : MigrationWorkload {
         return WrapCompound(main);
     }
 
-    private static byte[] WrapCompound(byte[] main) {
-        // Reflection is confined to untimed setup so benchmark inputs use the canonical
-        // internal container writer without exposing fixture-generation APIs in product code.
-        Assembly core = Assembly.Load("OfficeIMO.Core");
-        Type streamType = core.GetType("OfficeIMO.Core.Internal.OfficeCompoundStream", throwOnError: true)!;
-        Type writerType = core.GetType("OfficeIMO.Core.Internal.OfficeCompoundFileWriter", throwOnError: true)!;
-        object stream = Activator.CreateInstance(streamType, BindingFlags.Instance | BindingFlags.NonPublic,
-            binder: null, args: new object[] { "WordDocument", main }, culture: null)!;
-        Array streams = Array.CreateInstance(streamType, 1);
-        streams.SetValue(stream, 0);
-        MethodInfo write = writerType.GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
-            .Single(method => method.Name == "Write" && method.ReturnType == typeof(byte[]) && method.GetParameters().Length == 2);
-        return (byte[])write.Invoke(null, new object?[] { streams, null })!;
-    }
-
-    private static void WriteWord(byte[] bytes, int offset, ushort value) {
-        bytes[offset] = (byte)value;
-        bytes[offset + 1] = (byte)(value >> 8);
-    }
-
-    private static void WriteInt(byte[] bytes, int offset, int value) {
-        WriteWord(bytes, offset, (ushort)value);
-        WriteWord(bytes, offset + 2, (ushort)(value >> 16));
-    }
 }

@@ -3,7 +3,7 @@ param(
     [string] $OutputRoot = (Join-Path $PSScriptRoot '../../Ignore/Benchmarks/Migration'),
     [string] $ModulePath = 'PSPublishModule',
     [string] $ProductSource = '',
-    [ValidateSet('Word69', 'Biff4', 'IWork09', 'Dbx', 'OfficeXml')] [string[]] $BenchmarkProfile = @('Word69', 'Biff4', 'IWork09', 'Dbx', 'OfficeXml'),
+    [ValidateSet('Word69', 'Word69Notes', 'Word95Notes', 'Biff4', 'IWork09', 'Dbx', 'OfficeXml')] [string[]] $BenchmarkProfile = @('Word69', 'Biff4', 'IWork09', 'Dbx', 'OfficeXml'),
     [ValidateSet('Small', 'Medium', 'Large')] [string[]] $Scale = @('Small', 'Medium', 'Large'),
     [ValidateSet('LoadInspect', 'ConvertSave', 'SearchContent')] [string[]] $Operation = @('LoadInspect', 'ConvertSave'),
     [ValidateRange(0, 100)] [int] $WarmupCount = 2,

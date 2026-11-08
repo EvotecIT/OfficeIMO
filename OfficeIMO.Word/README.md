@@ -115,6 +115,12 @@ document.Save("Status-updated.docx");
 
 `Save()` writes to the path the document was created or loaded with; `Save(path)` writes a copy and keeps working on it. For files from outside your organization, load with `WordLoadOptions.UntrustedDefaults`, which rejects macros, embedded objects, ActiveX and external relationships before parsing.
 
+For notes in `FootNotes` and `EndNotes`, `TextParagraphs` returns visible text per
+top-level paragraph, retaining blank paragraphs, whitespace and tabs. It returns
+`null` when the referenced ordinary note body cannot be resolved. The live
+`Paragraphs` collection provides run handles for formatting and editing;
+`document.Inspect()` provides rich semantic snapshots.
+
 ## Convert
 
 Conversions are called on the document and return an `OfficeConversionReport` that lists anything the target could not carry:

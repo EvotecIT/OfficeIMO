@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Word;
@@ -34,11 +33,8 @@ public sealed class GetOfficeWordFootnoteCommand : PSCmdlet {
 
     private void Inspect(WordDocument document) => WriteObject(document.Sections.SelectMany(section => section.FootNotes).Select(ToInfo), true);
     private static WordNoteInfo ToInfo(WordFootNote note) {
-        var paragraphs = note.Paragraphs?
-            .Select(paragraph => paragraph.Text)
-            .Where(text => !string.IsNullOrWhiteSpace(text))
-            .ToArray() ?? Array.Empty<string>();
-
-        return new WordNoteInfo("Footnote", note.ReferenceId, note.ParentParagraph?.Text, paragraphs);
+        return new WordNoteInfo("Footnote", note.ReferenceId,
+            string.Concat(note.Paragraph.GetRuns().Select(run => run.Text)),
+            note.TextParagraphs ?? Array.Empty<string>());
     }
 }

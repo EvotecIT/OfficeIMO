@@ -252,6 +252,14 @@ internal static class WordReaderAdapter {
                     prefix = string.Empty;
                 }
             }
+            if (includeFootnotes && run.Endnote != null) {
+                string note = string.Join(" ", run.Endnote.Paragraphs.Select(static item => item.Text).Where(static item => !string.IsNullOrWhiteSpace(item)));
+                if (note.Length > 0) {
+                    AppendRunAnnotation(fragments, firstRunFragmentIndex,
+                        prefix + " [^note: " + note + "]", limit, warningList);
+                    prefix = string.Empty;
+                }
+            }
             if (run.InlineImage?.Bytes is { Length: > 0 }) {
                 WordInlineImageInfo image = run.InlineImage;
                 string id = "word-image-" + imageIndex.ToString("D4", CultureInfo.InvariantCulture);

@@ -7,7 +7,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<byte> charsets, IReadOnlyList<TextContextRange> contexts,
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphs, LegacyDocStyleSheet stylesheet,
             IReadOnlyDictionary<ushort, int> styleFonts, IReadOnlyDictionary<ushort, ushort> styleLanguages,
-            int defaultFont, ushort defaultLanguage, out bool unsupported) {
+            int defaultFont, ushort defaultLanguage, out bool unsupported,
+            System.Threading.CancellationToken cancellationToken = default) {
             unsupported = false;
             var characters = new LegacyDocTextCharacter[text.Length];
             bool inspectContexts = charsets.Count != 0 || contexts.Count != 0 || styleFonts.Count != 0 || styleLanguages.Count != 0;
@@ -18,6 +19,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int characterIndex = 0;
             int paragraphIndex = 0;
             for (int i = 0; i < text.Length; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 byte value = text[i];
                 int offset = textStart + i;
                 char decoded = LegacyDocPieceTable.DecodeWindows1252(value);

@@ -95,7 +95,11 @@ namespace OfficeIMO.Word {
             }
 
             if (paragraphFormat.LeftIndentTwips != null || paragraphFormat.RightIndentTwips != null || paragraphFormat.FirstLineIndentTwips != null) {
-                Indentation indentation = properties.GetFirstChild<Indentation>() ?? properties.AppendChild(new Indentation());
+                Indentation? indentation = properties.GetFirstChild<Indentation>();
+                if (indentation == null) {
+                    indentation = new Indentation();
+                    properties.AddChild(indentation, true);
+                }
                 if (paragraphFormat.LeftIndentTwips != null) {
                     indentation.Left = paragraphFormat.LeftIndentTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
@@ -115,8 +119,7 @@ namespace OfficeIMO.Word {
 
             Tabs? tabs = CreateLegacyDocTabs(paragraphFormat.TabStops);
             if (tabs != null) {
-                RemoveStyleProperties<Tabs>(properties);
-                properties.Append(tabs);
+                ReplaceStyleProperty(properties, tabs);
             }
 
             if (paragraphFormat.KeepLinesTogether.HasValue) {

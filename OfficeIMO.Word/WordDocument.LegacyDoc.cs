@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -48,12 +49,14 @@ namespace OfficeIMO.Word {
             string? sourcePath,
             bool saveOnDispose,
             bool readOnly,
-            LegacyDocImportOptions? importOptions = null) {
+            LegacyDocImportOptions? importOptions = null,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (saveOnDispose) {
                 throw new NotSupportedException("SaveOnDispose is not supported when loading legacy binary .doc files. Load the document, then save explicitly to a .docx path.");
             }
 
-            LegacyDocDocument document = LegacyDocDocument.Load(bytes, importOptions ?? new LegacyDocImportOptions());
+            LegacyDocDocument document = LegacyDocDocument.Load(bytes, importOptions ?? new LegacyDocImportOptions(), cancellationToken);
             LegacyDocImportDiagnostic[] errors = document.Diagnostics
                 .Where(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error)
                 .ToArray();
@@ -61,21 +64,23 @@ namespace OfficeIMO.Word {
                 throw new InvalidDataException("Legacy DOC import failed: " + FormatLegacyDocDiagnostics(errors));
             }
 
-            WordDocument projectedDocument = ProjectLoadedLegacyDocDocument(document, sourcePath, attachSourcePathForSave: sourcePath != null);
+            WordDocument projectedDocument = ProjectLoadedLegacyDocDocument(document, sourcePath, attachSourcePathForSave: sourcePath != null, cancellationToken: cancellationToken);
             return readOnly
-                ? ReopenProjectedLegacyDocReadOnly(projectedDocument, sourcePath, document)
+                ? ReopenProjectedLegacyDocReadOnly(projectedDocument, sourcePath, document, cancellationToken)
                 : projectedDocument;
         }
 
-        private static WordDocument ReopenProjectedLegacyDocReadOnly(WordDocument projectedDocument, string? sourcePath, LegacyDocDocument legacyDocument) {
+        private static WordDocument ReopenProjectedLegacyDocReadOnly(WordDocument projectedDocument, string? sourcePath, LegacyDocDocument legacyDocument, CancellationToken cancellationToken = default) {
             var packageStream = new MemoryStream();
             try {
+                cancellationToken.ThrowIfCancellationRequested();
                 // This is an internal package transition used only to enforce read-only access.
                 // The caller has not requested a lossy export, so the public loss gate must not
                 // prevent inspection of the projection and its diagnostics.
                 projectedDocument.Save(packageStream, WordFileFormat.Docx, new WordSaveOptions {
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 });
+                cancellationToken.ThrowIfCancellationRequested();
                 packageStream.Seek(0, SeekOrigin.Begin);
                 projectedDocument.Dispose();
 
@@ -84,7 +89,9 @@ namespace OfficeIMO.Word {
                 });
                 packageStream.Dispose();
                 try {
+                    cancellationToken.ThrowIfCancellationRequested();
                     readOnlyDocument.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave: sourcePath != null);
+                    cancellationToken.ThrowIfCancellationRequested();
                     return readOnlyDocument;
                 } catch {
                     readOnlyDocument.Dispose();
@@ -108,7 +115,8 @@ namespace OfficeIMO.Word {
         private static WordDocument ProjectLoadedLegacyDocDocument(LegacyDocDocument legacyDocument, string? sourcePath) =>
             ProjectLoadedLegacyDocDocument(legacyDocument, sourcePath, attachSourcePathForSave: sourcePath != null);
 
-        private static WordDocument ProjectLoadedLegacyDocDocument(LegacyDocDocument legacyDocument, string? sourcePath, bool attachSourcePathForSave) {
+        private static WordDocument ProjectLoadedLegacyDocDocument(LegacyDocDocument legacyDocument, string? sourcePath, bool attachSourcePathForSave, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             LegacyDocImportDiagnostic[] errors = legacyDocument.Diagnostics
                 .Where(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error)
                 .ToArray();
@@ -117,57 +125,67 @@ namespace OfficeIMO.Word {
             }
 
             WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, DocumentPersistenceMode.Explicit, theme: null);
-            ApplyLegacyDocParagraphDefaults(document);
-            ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
-            AddLegacyDocNumberingDefinitions(document, legacyDocument.Numbering, legacyDocument.StyleSheet);
-            AddLegacyDocParagraphStyleDefinitions(document, legacyDocument.StyleSheet);
-            WordSection section = document.Sections.Count > 0
-                ? document.Sections[0]
-                : new WordSection(document, null!, null!);
-            var sectionFormats = new List<(WordSection Section, LegacyDocSectionFormat Format)> {
-                (section, legacyDocument.SectionFormat)
-            };
-            LegacyDocNoteProjection notes = LegacyDocNoteProjection.Create(legacyDocument.Footnotes, legacyDocument.Endnotes, legacyDocument.Comments, legacyDocument.StyleSheet);
+            try {
+                ApplyLegacyDocParagraphDefaults(document);
+                ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
+                AddLegacyDocNumberingDefinitions(document, legacyDocument.Numbering, legacyDocument.StyleSheet);
+                AddLegacyDocParagraphStyleDefinitions(document, legacyDocument.StyleSheet);
+                WordSection section = document.Sections.Count > 0
+                    ? document.Sections[0]
+                    : new WordSection(document, null!, null!);
+                var sectionFormats = new List<(WordSection Section, LegacyDocSectionFormat Format)> {
+                    (section, legacyDocument.SectionFormat)
+                };
+                LegacyDocNoteProjection notes = LegacyDocNoteProjection.Create(legacyDocument.Footnotes, legacyDocument.Endnotes, legacyDocument.Comments, legacyDocument.StyleSheet, cancellationToken);
 
-            if (legacyDocument.BodyBlocks.Count == 0) {
-                section.AddParagraph();
-            } else {
-                Paragraph? pendingBoundaryParagraph = null;
-                foreach (LegacyDocBodyBlock block in legacyDocument.BodyBlocks) {
-                    if (block is LegacyDocParagraphBlock paragraphBlock) {
-                        WordParagraph paragraph = AddLegacyDocParagraph(section, paragraphBlock, legacyDocument.StyleSheet, notes);
-                        pendingBoundaryParagraph = paragraphBlock.EndsWithSectionMark ? paragraph._paragraph : null;
-                    } else if (block is LegacyDocSectionBreakBlock sectionBreakBlock) {
-                        section = document.AddSectionCore(sectionBreakBlock.Format.SectionBreakType ?? SectionMarkValues.NextPage, pendingBoundaryParagraph);
-                        pendingBoundaryParagraph = null;
-                        sectionFormats.Add((section, sectionBreakBlock.Format));
-                    } else if (block is LegacyDocTableBlock tableBlock) {
-                        pendingBoundaryParagraph = null;
-                        AddLegacyDocTable(section, tableBlock, legacyDocument.StyleSheet, notes);
+                if (legacyDocument.BodyBlocks.Count == 0) {
+                    section.AddParagraph();
+                } else {
+                    Paragraph? pendingBoundaryParagraph = null;
+                    foreach (LegacyDocBodyBlock block in legacyDocument.BodyBlocks) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (block is LegacyDocParagraphBlock paragraphBlock) {
+                            WordParagraph paragraph = AddLegacyDocParagraph(section, paragraphBlock, legacyDocument.StyleSheet, notes);
+                            pendingBoundaryParagraph = paragraphBlock.EndsWithSectionMark ? paragraph._paragraph : null;
+                        } else if (block is LegacyDocSectionBreakBlock sectionBreakBlock) {
+                            section = document.AddSectionCore(sectionBreakBlock.Format.SectionBreakType ?? SectionMarkValues.NextPage, pendingBoundaryParagraph);
+                            pendingBoundaryParagraph = null;
+                            sectionFormats.Add((section, sectionBreakBlock.Format));
+                        } else if (block is LegacyDocTableBlock tableBlock) {
+                            pendingBoundaryParagraph = null;
+                            AddLegacyDocTable(section, tableBlock, legacyDocument.StyleSheet, notes);
+                        }
                     }
                 }
-            }
 
-            foreach ((WordSection targetSection, LegacyDocSectionFormat sectionFormat) in sectionFormats) {
-                ApplyLegacyDocSectionFormatting(targetSection, sectionFormat);
-            }
+                foreach ((WordSection targetSection, LegacyDocSectionFormat sectionFormat) in sectionFormats) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ApplyLegacyDocSectionFormatting(targetSection, sectionFormat);
+                }
 
-            ApplyLegacyDocDocumentOptions(document, legacyDocument);
-            AddLegacyDocHeaderFooterStories(document, legacyDocument.HeaderFooterStories, legacyDocument.StyleSheet);
-            AddLegacyDocTextBoxStories(document, legacyDocument.TextBoxStories, legacyDocument.StyleSheet, notes);
-            document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave);
-            return document;
+                ApplyLegacyDocDocumentOptions(document, legacyDocument);
+                AddLegacyDocHeaderFooterStories(document, legacyDocument.HeaderFooterStories, legacyDocument.StyleSheet);
+                AddLegacyDocTextBoxStories(document, legacyDocument.TextBoxStories, legacyDocument.StyleSheet, notes);
+                cancellationToken.ThrowIfCancellationRequested();
+                document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave);
+                return document;
+            } catch {
+                document.Dispose();
+                throw;
+            }
         }
 
         private static void AddLegacyDocTextBoxStories(WordDocument document, IReadOnlyList<LegacyDocTextBoxStory> textBoxStories,
             LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
             foreach (LegacyDocTextBoxStory story in textBoxStories) {
+                notes.CancellationToken.ThrowIfCancellationRequested();
                 if (story.IsHeaderFooterTextBox) continue;
                 WordTextBox textBox = document.AddTextBox(story.Text);
                 TextBoxContent? content = textBox.Content;
                 if (content == null || story.Paragraphs.Count == 0) continue;
                 content.RemoveAllChildren<Paragraph>();
                 foreach (LegacyDocNoteParagraph source in story.Paragraphs) {
+                    notes.CancellationToken.ThrowIfCancellationRequested();
                     var paragraph = content.AppendChild(new Paragraph());
                     var target = new WordParagraph(document, paragraph, newRun: false);
                     ApplyLegacyDocParagraphFormatting(target, source.Format, styleSheet);
@@ -494,7 +512,9 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, int startIndex, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
+            notes.CancellationToken.ThrowIfCancellationRequested();
             for (int index = startIndex; index < paragraphRuns.Count; index++) {
+                notes.CancellationToken.ThrowIfCancellationRequested();
                 LegacyDocTextRun legacyRun = paragraphRuns[index];
                 if (legacyRun.Picture != null) {
                     AddLegacyDocPicture(paragraph, legacyRun, bookmarks);
@@ -511,6 +531,7 @@ namespace OfficeIMO.Word {
                     LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
                     while (index + 1 < paragraphRuns.Count
                         && paragraphRuns[index + 1].HyperlinkTarget == hyperlinkTarget) {
+                        notes.CancellationToken.ThrowIfCancellationRequested();
                         index++;
                     }
 
@@ -596,6 +617,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddLegacyDocRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
+            notes.CancellationToken.ThrowIfCancellationRequested();
             if (legacyRun.IsPageNumber) {
                 AddLegacyDocPageNumber(paragraph, legacyRun, bookmarks);
                 return;
@@ -624,6 +646,7 @@ namespace OfficeIMO.Word {
             string text = legacyRun.Text;
             int segmentStart = 0;
             for (int index = 0; index < text.Length; index++) {
+                notes.CancellationToken.ThrowIfCancellationRequested();
                 char character = text[index];
                 if (!IsLegacyDocSpecialRunCharacter(character)) {
                     int? markerPosition = GetLegacyDocRunCharacterPosition(legacyRun, index);
@@ -670,15 +693,17 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddLegacyDocNoteReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition, LegacyDocTextRun legacyRun) {
+            notes.CancellationToken.ThrowIfCancellationRequested();
             if (characterPosition == null) {
                 return;
             }
 
             if (notes.TryGetFootnote(characterPosition.Value, out LegacyDocFootnote? footnote)) {
-                AddLegacyDocFootnoteReference(paragraph, footnote!, notes.StyleSheet, legacyRun);
+                AddLegacyDocFootnoteReference(paragraph, footnote!, notes, legacyRun);
             } else if (notes.TryGetEndnote(characterPosition.Value, out LegacyDocEndnote? endnote)) {
-                AddLegacyDocEndnoteReference(paragraph, endnote!, notes.StyleSheet, legacyRun);
+                AddLegacyDocEndnoteReference(paragraph, endnote!, notes, legacyRun);
             }
+            notes.CancellationToken.ThrowIfCancellationRequested();
         }
 
         private static void AddLegacyDocCommentReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition, LegacyDocTextRun legacyRun) {
@@ -722,70 +747,78 @@ namespace OfficeIMO.Word {
             return wordComment;
         }
 
-        private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote, LegacyDocStyleSheet styleSheet, LegacyDocTextRun legacyRun) {
+        private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote, LegacyDocNoteProjection notes, LegacyDocTextRun legacyRun) {
+            notes.CancellationToken.ThrowIfCancellationRequested();
             if (footnote.ParagraphRuns.Count == 0) {
                 return;
             }
 
             WordParagraph reference = paragraph.AddFootNote(footnote.ParagraphRuns[0].Text).Paragraph;
+            notes.CancellationToken.ThrowIfCancellationRequested();
             ApplyLegacyDocReferenceFormatting(paragraph, reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.FootNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
                 return;
             }
 
-            ApplyLegacyDocParagraphFormatting(noteParagraphs[0], footnote.ParagraphRuns[0].Format, styleSheet);
+            ApplyLegacyDocParagraphFormatting(noteParagraphs[0], footnote.ParagraphRuns[0].Format, notes.StyleSheet);
             ReplaceLegacyDocNoteParagraphRuns(
                 noteParagraphs[0],
                 footnote.ParagraphRuns[0],
                 keepNoteReferenceMark: true,
-                LegacyDocNoteProjection.Empty,
+                notes.WithoutReferences,
                 LegacyDocBookmarkProjection.Create(footnote.ParagraphRuns[0].Bookmarks, footnote.ParagraphRuns[0].StartCharacter, footnote.ParagraphRuns[0].EndCharacter));
             WordParagraph lastParagraph = noteParagraphs[0];
             for (int index = 1; index < footnote.ParagraphRuns.Count; index++) {
+                notes.CancellationToken.ThrowIfCancellationRequested();
                 LegacyDocNoteParagraph sourceParagraph = footnote.ParagraphRuns[index];
                 lastParagraph = lastParagraph.AddParagraph(sourceParagraph.Bookmarks.Count == 0 ? sourceParagraph.Text : string.Empty);
-                ApplyLegacyDocParagraphFormatting(lastParagraph, sourceParagraph.Format, styleSheet);
+                ApplyLegacyDocParagraphFormatting(lastParagraph, sourceParagraph.Format, notes.StyleSheet);
                 ReplaceLegacyDocNoteParagraphRuns(
                     lastParagraph,
                     sourceParagraph,
                     keepNoteReferenceMark: false,
-                    LegacyDocNoteProjection.Empty,
+                    notes.WithoutReferences,
                     LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
             }
+            notes.CancellationToken.ThrowIfCancellationRequested();
         }
 
-        private static void AddLegacyDocEndnoteReference(WordParagraph paragraph, LegacyDocEndnote endnote, LegacyDocStyleSheet styleSheet, LegacyDocTextRun legacyRun) {
+        private static void AddLegacyDocEndnoteReference(WordParagraph paragraph, LegacyDocEndnote endnote, LegacyDocNoteProjection notes, LegacyDocTextRun legacyRun) {
+            notes.CancellationToken.ThrowIfCancellationRequested();
             if (endnote.ParagraphRuns.Count == 0) {
                 return;
             }
 
             WordParagraph reference = paragraph.AddEndNote(endnote.ParagraphRuns[0].Text).Paragraph;
+            notes.CancellationToken.ThrowIfCancellationRequested();
             ApplyLegacyDocReferenceFormatting(paragraph, reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.EndNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
                 return;
             }
 
-            ApplyLegacyDocParagraphFormatting(noteParagraphs[0], endnote.ParagraphRuns[0].Format, styleSheet);
+            ApplyLegacyDocParagraphFormatting(noteParagraphs[0], endnote.ParagraphRuns[0].Format, notes.StyleSheet);
             ReplaceLegacyDocNoteParagraphRuns(
                 noteParagraphs[0],
                 endnote.ParagraphRuns[0],
                 keepNoteReferenceMark: true,
-                LegacyDocNoteProjection.Empty,
+                notes.WithoutReferences,
                 LegacyDocBookmarkProjection.Create(endnote.ParagraphRuns[0].Bookmarks, endnote.ParagraphRuns[0].StartCharacter, endnote.ParagraphRuns[0].EndCharacter));
             WordParagraph lastParagraph = noteParagraphs[0];
             for (int index = 1; index < endnote.ParagraphRuns.Count; index++) {
+                notes.CancellationToken.ThrowIfCancellationRequested();
                 LegacyDocNoteParagraph sourceParagraph = endnote.ParagraphRuns[index];
                 lastParagraph = lastParagraph.AddParagraph(sourceParagraph.Bookmarks.Count == 0 ? sourceParagraph.Text : string.Empty);
-                ApplyLegacyDocParagraphFormatting(lastParagraph, sourceParagraph.Format, styleSheet);
+                ApplyLegacyDocParagraphFormatting(lastParagraph, sourceParagraph.Format, notes.StyleSheet);
                 ReplaceLegacyDocNoteParagraphRuns(
                     lastParagraph,
                     sourceParagraph,
                     keepNoteReferenceMark: false,
-                    LegacyDocNoteProjection.Empty,
+                    notes.WithoutReferences,
                     LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
             }
+            notes.CancellationToken.ThrowIfCancellationRequested();
         }
 
         private static void ReplaceLegacyDocNoteParagraphRuns(WordParagraph target, LegacyDocNoteParagraph source, bool keepNoteReferenceMark, LegacyDocNoteProjection notes) {
@@ -793,7 +826,9 @@ namespace OfficeIMO.Word {
         }
 
         private static void ReplaceLegacyDocNoteParagraphRuns(WordParagraph target, LegacyDocNoteParagraph source, bool keepNoteReferenceMark, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
+            notes.CancellationToken.ThrowIfCancellationRequested();
             foreach (Run run in target._paragraph.Elements<Run>().ToArray()) {
+                notes.CancellationToken.ThrowIfCancellationRequested();
                 if (keepNoteReferenceMark && ContainsLegacyDocNoteReferenceMark(run)) {
                     continue;
                 }
@@ -829,30 +864,44 @@ namespace OfficeIMO.Word {
             private readonly IReadOnlyDictionary<int, LegacyDocFootnote> _footnotesByReferencePosition;
             private readonly IReadOnlyDictionary<int, LegacyDocEndnote> _endnotesByReferencePosition;
             private readonly IReadOnlyDictionary<int, LegacyDocComment> _commentsByReferencePosition;
+            private LegacyDocNoteProjection? _withoutReferences;
 
             private LegacyDocNoteProjection(
                 IReadOnlyDictionary<int, LegacyDocFootnote> footnotesByReferencePosition,
                 IReadOnlyDictionary<int, LegacyDocEndnote> endnotesByReferencePosition,
                 IReadOnlyDictionary<int, LegacyDocComment> commentsByReferencePosition,
-                LegacyDocStyleSheet styleSheet) {
+                LegacyDocStyleSheet styleSheet,
+                CancellationToken cancellationToken = default) {
                 _footnotesByReferencePosition = footnotesByReferencePosition;
                 _endnotesByReferencePosition = endnotesByReferencePosition;
                 _commentsByReferencePosition = commentsByReferencePosition;
                 StyleSheet = styleSheet;
+                CancellationToken = cancellationToken;
             }
 
-            internal static LegacyDocNoteProjection Create(IReadOnlyList<LegacyDocFootnote> footnotes, IReadOnlyList<LegacyDocEndnote> endnotes, IReadOnlyList<LegacyDocComment> comments, LegacyDocStyleSheet styleSheet) {
+            internal static LegacyDocNoteProjection Create(IReadOnlyList<LegacyDocFootnote> footnotes, IReadOnlyList<LegacyDocEndnote> endnotes, IReadOnlyList<LegacyDocComment> comments, LegacyDocStyleSheet styleSheet, CancellationToken cancellationToken = default) {
+                cancellationToken.ThrowIfCancellationRequested();
                 return new LegacyDocNoteProjection(
                     footnotes
-                        .GroupBy(footnote => footnote.ReferenceCharacterPosition)
+                        .GroupBy(footnote => {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            return footnote.ReferenceCharacterPosition;
+                        })
                         .ToDictionary(group => group.Key, group => group.First()),
                     endnotes
-                        .GroupBy(endnote => endnote.ReferenceCharacterPosition)
+                        .GroupBy(endnote => {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            return endnote.ReferenceCharacterPosition;
+                        })
                         .ToDictionary(group => group.Key, group => group.First()),
                     comments
-                        .GroupBy(comment => comment.ReferenceCharacterPosition)
+                        .GroupBy(comment => {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            return comment.ReferenceCharacterPosition;
+                        })
                         .ToDictionary(group => group.Key, group => group.First()),
-                    styleSheet);
+                    styleSheet,
+                    cancellationToken);
             }
 
             internal static LegacyDocNoteProjection Empty { get; } = new LegacyDocNoteProjection(
@@ -862,6 +911,15 @@ namespace OfficeIMO.Word {
                 LegacyDocStyleSheet.Empty);
 
             internal LegacyDocStyleSheet StyleSheet { get; }
+
+            internal CancellationToken CancellationToken { get; }
+
+            internal LegacyDocNoteProjection WithoutReferences => _withoutReferences ??= new LegacyDocNoteProjection(
+                Empty._footnotesByReferencePosition,
+                Empty._endnotesByReferencePosition,
+                Empty._commentsByReferencePosition,
+                Empty.StyleSheet,
+                CancellationToken);
 
             internal bool TryGetFootnote(int referenceCharacterPosition, out LegacyDocFootnote? footnote) {
                 return _footnotesByReferencePosition.TryGetValue(referenceCharacterPosition, out footnote);
