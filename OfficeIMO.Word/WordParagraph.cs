@@ -249,7 +249,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value != null) {
-                    _document?.EnsureStyleDefinitionsInitialized();
+                    _document?.EnsureStyleDefinition(value.Value.ToStringStyle());
                     if (_paragraphProperties == null) {
                         _paragraph.ParagraphProperties = new ParagraphProperties();
                     }

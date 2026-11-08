@@ -82,6 +82,8 @@ namespace OfficeIMO.Word {
 
         internal static WordEndNote AddEndNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
 
+            document.EnsureStyleDefinition("EndnoteReference");
+
             var endNoteReferenceId = GetNextEndNoteReferenceId(document);
 
             var newWordParagraph = new WordParagraph(document, wordParagraph._paragraph, true);
@@ -99,6 +101,7 @@ namespace OfficeIMO.Word {
             newWordParagraph._run.Append(endNoteReference);
 
             var endNote = GenerateEndNote(endNoteReferenceId, footerWordParagraph);
+            document.EnsureContentStyleDefinitions(endNote);
 
             var main = document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
             var endNotesPart = main.EndnotesPart;

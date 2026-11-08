@@ -4,6 +4,13 @@ namespace OfficeIMO.Word;
 
 // Provides helper methods for working with table styles.
 internal static partial class WordTableStyles {
+    private static readonly Lazy<Dictionary<string, WordTableStyle>> StylesById = new(() =>
+        global::OfficeIMO.Internal.EnumCompat.GetValues<WordTableStyle>()
+            .ToDictionary(style => GetStyle(style).Val!.Value!, style => style, StringComparer.OrdinalIgnoreCase));
+
+    internal static bool TryGetStyle(string styleId, out WordTableStyle style) =>
+        StylesById.Value.TryGetValue(styleId, out style);
+
     /// <summary>
     /// Converts a style name into its corresponding <see cref="WordTableStyle"/> value.
     /// </summary>

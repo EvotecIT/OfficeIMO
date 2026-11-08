@@ -72,6 +72,7 @@ namespace OfficeIMO.Tests
             WordToMarkdownResult directResult = document.ConvertToMarkdownWithEvidence();
             Assert.Contains(directResult.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
             direct._tableProperties.TableBorders = null;
+            direct.Style = WordTableStyle.TableGrid;
             direct._tableProperties.TableStyle!.Val = "InheritedGrid";
             document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(new Style(new BasedOn { Val = "TableGrid" }) { Type = StyleValues.Table, StyleId = "InheritedGrid" });
             WordToMarkdownResult inheritedResult = document.ConvertToMarkdownWithEvidence();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -24,7 +25,7 @@ namespace OfficeIMO.Word {
         private bool _foldSourceDefaults;
 
         /// <summary>
-        /// Decides, for every source style, whether it maps onto a destination style or is copied (possibly renamed).
+        /// Maps source styles used by the appended content and their dependencies, copying or renaming where needed.
         /// </summary>
         private void PlanStyles() {
             _sourceStyles = _sourceMain.StyleDefinitionsPart?.Styles;
@@ -51,9 +52,7 @@ namespace OfficeIMO.Word {
             bool keepDifferent = _options.StyleMode == WordMergeStyleMode.KeepDifferentStyles;
             _foldSourceDefaults = keepDifferent &&
                 !string.Equals(Canonicalize(_sourceStyles.DocDefaults), Canonicalize(_destinationStyles.DocDefaults), StringComparison.Ordinal);
-            HashSet<string> usedSourceStyles = keepDifferent
-                ? CollectUsedSourceStyles(sourceById)
-                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> usedSourceStyles = CollectUsedSourceStyles(sourceById);
 
             Style? FindMatch(Style style) {
                 string? key = GetStyleNameKey(style);
@@ -124,14 +123,14 @@ namespace OfficeIMO.Word {
 
             foreach (Style style in _sourceStyles.Elements<Style>()) {
                 string? id = style.StyleId?.Value;
-                if (string.IsNullOrEmpty(id) || _styleMap.ContainsKey(id!)) {
+                if (string.IsNullOrEmpty(id) || !usedSourceStyles.Contains(id!) || _styleMap.ContainsKey(id!)) {
                     continue;
                 }
 
                 string sourceId = id!;
                 Style? match = FindMatch(style);
                 if (match != null) {
-                    if (!keepDifferent || !usedSourceStyles.Contains(sourceId) || AreEquivalent(style, match)) {
+                    if (!keepDifferent || AreEquivalent(style, match)) {
                         _styleMap[sourceId] = match.StyleId!.Value!;
                         continue;
                     }
@@ -332,12 +331,33 @@ namespace OfficeIMO.Word {
             }
 
             AddReferences(_sourceMain.Document);
-            foreach (HeaderPart part in _sourceMain.HeaderParts) AddReferences(part.Header);
-            foreach (FooterPart part in _sourceMain.FooterParts) AddReferences(part.Footer);
-            AddReferences(_sourceMain.FootnotesPart?.Footnotes);
-            AddReferences(_sourceMain.EndnotesPart?.Endnotes);
-            AddReferences(_sourceMain.WordprocessingCommentsPart?.Comments);
-            AddReferences(_sourceMain.NumberingDefinitionsPart?.Numbering);
+            void AddPartReferences(OpenXmlPart? part) {
+                if (part == null) return;
+                if (part.IsRootElementLoaded) {
+                    AddReferences(part.RootElement);
+                    return;
+                }
+
+                // Keep unsaved live edits above, but do not materialize unrelated cold source DOMs.
+                using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+                using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Prohibit
+                });
+                while (reader.Read()) {
+                    if (reader.NodeType == XmlNodeType.Element && reader.NamespaceURI == WordNamespace &&
+                        StyleReferenceElements.Contains(reader.LocalName) &&
+                        reader.GetAttribute("val", WordNamespace) is { Length: > 0 } value) {
+                        used.Add(value);
+                    }
+                }
+            }
+
+            foreach (HeaderPart part in _sourceMain.HeaderParts) AddPartReferences(part);
+            foreach (FooterPart part in _sourceMain.FooterParts) AddPartReferences(part);
+            AddPartReferences(_sourceMain.FootnotesPart);
+            AddPartReferences(_sourceMain.EndnotesPart);
+            AddPartReferences(_sourceMain.WordprocessingCommentsPart);
+            AddPartReferences(_sourceMain.NumberingDefinitionsPart);
 
             foreach (Style style in sourceById.Values) {
                 if (style.Default?.Value == true && style.StyleId?.Value is string id) {
