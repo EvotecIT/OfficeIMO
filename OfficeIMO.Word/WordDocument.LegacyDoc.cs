@@ -1282,15 +1282,15 @@ namespace OfficeIMO.Word {
         }
 
         private static void ApplyLegacyDocParagraphMarkRunFormatting(WordParagraph paragraph, LegacyDocCharacterFormat characterFormat) {
-            StyleRunProperties? styleRunProperties = CreateLegacyDocStyleRunProperties(characterFormat, GetLegacyDocStyleToggles(paragraph));
-            if (styleRunProperties == null) {
+            RunProperties? runProperties = CreateLegacyDocCharacterRunProperties(characterFormat, GetLegacyDocStyleToggles(paragraph));
+            if (runProperties == null) {
                 return;
             }
 
             ParagraphProperties paragraphProperties = EnsureLegacyDocParagraphProperties(paragraph);
             paragraphProperties.RemoveAllChildren<ParagraphMarkRunProperties>();
             var paragraphMarkRunProperties = new ParagraphMarkRunProperties();
-            foreach (OpenXmlElement property in styleRunProperties.ChildElements) {
+            foreach (OpenXmlElement property in runProperties.ChildElements) {
                 paragraphMarkRunProperties.AddChild(property.CloneNode(true), true);
             }
 

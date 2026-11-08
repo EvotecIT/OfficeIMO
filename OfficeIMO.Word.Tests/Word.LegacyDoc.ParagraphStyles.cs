@@ -452,8 +452,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleItalicUnderlineStrikeVerticalAndHighlightFromStyleSheet() {
-            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleItalicUnderlineStrikeVerticalAndHighlight();
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleItalicUnderlineStrikeAndVerticalFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleItalicUnderlineStrikeAndVertical();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
@@ -473,13 +473,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(UnderlineValues.Single, runProperties.GetFirstChild<Underline>()?.Val?.Value);
             Assert.NotNull(runProperties.GetFirstChild<Strike>());
             Assert.Equal(VerticalPositionValues.Superscript, runProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
-            DocumentFormat.OpenXml.OpenXmlElement highlight = Assert.Single(runProperties.ChildElements, element => element.LocalName == "highlight");
-            Assert.Equal("yellow", highlight.GetAttribute("val", "http://schemas.openxmlformats.org/wordprocessingml/2006/main").Value);
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBuiltInParagraphStyleItalicUnderlineStrikeVerticalAndHighlightFromStyleSheet() {
-            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithBuiltInParagraphStyleItalicUnderlineStrikeVerticalAndHighlight();
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBuiltInParagraphStyleItalicUnderlineStrikeAndVerticalFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithBuiltInParagraphStyleItalicUnderlineStrikeAndVertical();
             string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
@@ -499,8 +497,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal(UnderlineValues.Single, runProperties.GetFirstChild<Underline>()?.Val?.Value);
             Assert.NotNull(runProperties.GetFirstChild<Strike>());
             Assert.Equal(VerticalPositionValues.Superscript, runProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
-            DocumentFormat.OpenXml.OpenXmlElement highlight = Assert.Single(runProperties.ChildElements, element => element.LocalName == "highlight");
-            Assert.Equal("yellow", highlight.GetAttribute("val", "http://schemas.openxmlformats.org/wordprocessingml/2006/main").Value);
         }
 
         [Fact]
@@ -706,7 +702,6 @@ namespace OfficeIMO.Tests {
                         new Bold(),
                         new BoldComplexScript(),
                         new Underline { Val = UnderlineValues.Single },
-                        new Highlight { Val = HighlightColorValues.Yellow },
                         new VerticalTextAlignment { Val = VerticalPositionValues.Superscript }));
                     styles.Append(baseStyle);
 
@@ -719,7 +714,6 @@ namespace OfficeIMO.Tests {
                         new Italic(),
                         new ItalicComplexScript(),
                         new Underline { Val = UnderlineValues.None },
-                        new Highlight { Val = HighlightColorValues.None },
                         new VerticalTextAlignment { Val = VerticalPositionValues.Baseline }));
                     styles.Append(childStyle);
 
@@ -740,7 +734,6 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(baseRunProperties.GetFirstChild<Bold>());
                 Assert.NotNull(baseRunProperties.GetFirstChild<BoldComplexScript>());
                 Assert.Equal(UnderlineValues.Single, baseRunProperties.GetFirstChild<Underline>()?.Val?.Value);
-                Assert.Equal(HighlightColorValues.Yellow, baseRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
                 Assert.Equal(VerticalPositionValues.Superscript, baseRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
 
                 Style childStyleAfterReload = Assert.Single(reloadedStyles.Elements<Style>(), style => style.StyleId == "LegacyDocNativeDOCOffChild");
@@ -753,7 +746,6 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(childRunProperties.GetFirstChild<Italic>());
                 Assert.NotNull(childRunProperties.GetFirstChild<ItalicComplexScript>());
                 Assert.Equal(UnderlineValues.None, childRunProperties.GetFirstChild<Underline>()?.Val?.Value);
-                Assert.Equal(HighlightColorValues.None, childRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
                 Assert.Equal(VerticalPositionValues.Baseline, childRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
             } finally {
                 if (File.Exists(docPath)) {
@@ -877,7 +869,6 @@ namespace OfficeIMO.Tests {
             private const ushort SprmCFBold = 0x0835;
             private const ushort SprmCFItalic = 0x0836;
             private const ushort SprmCFStrike = 0x0837;
-            private const ushort SprmCHighlight = 0x2A0C;
             private const ushort SprmCKul = 0x2A3E;
             private const ushort SprmCIss = 0x2A48;
             private const ushort SprmCIco = 0x2A42;
@@ -1309,7 +1300,7 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateDocWithCustomParagraphStyleItalicUnderlineStrikeVerticalAndHighlight() {
+            internal static byte[] CreateDocWithCustomParagraphStyleItalicUnderlineStrikeAndVertical() {
                 const string text = "Styled Italic Underline Strike Super Mark\rBody\r";
                 byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
                     [CustomStyleIndex] = new LegacyDocStyleDefinition(
@@ -1320,7 +1311,6 @@ namespace OfficeIMO.Tests {
                             CreateCharacterSprm(SprmCFItalic, 1),
                             CreateCharacterSprm(SprmCFStrike, 1),
                             CreateCharacterSprm(SprmCIss, 1),
-                            CreateCharacterSprm(SprmCHighlight, 7),
                             CreateCharacterSprm(SprmCKul, 1)))
                 });
                 byte[] wordDocumentStream = CreateWordDocumentStream(
@@ -1340,7 +1330,7 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateDocWithBuiltInParagraphStyleItalicUnderlineStrikeVerticalAndHighlight() {
+            internal static byte[] CreateDocWithBuiltInParagraphStyleItalicUnderlineStrikeAndVertical() {
                 const string text = "Heading Italic Underline Strike Super Mark\rBody\r";
                 byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
                     [1] = new LegacyDocStyleDefinition(
@@ -1351,7 +1341,6 @@ namespace OfficeIMO.Tests {
                             CreateCharacterSprm(SprmCFItalic, 1),
                             CreateCharacterSprm(SprmCFStrike, 1),
                             CreateCharacterSprm(SprmCIss, 1),
-                            CreateCharacterSprm(SprmCHighlight, 7),
                             CreateCharacterSprm(SprmCKul, 1)))
                 });
                 byte[] wordDocumentStream = CreateWordDocumentStream(

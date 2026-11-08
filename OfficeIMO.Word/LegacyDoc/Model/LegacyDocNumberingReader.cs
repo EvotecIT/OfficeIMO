@@ -8,7 +8,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             warning = null;
             if (fib.LcbPlfLst == 0 && fib.LcbPlfLfo == 0) return LegacyDocNumbering.Empty;
             try {
-                return ReadTables(table, fib, fonts);
+                LegacyDocNumbering numbering = ReadTables(table, fib, fonts);
+                if (numbering.Definitions.Any(definition => definition.Levels.Any(level => level.CharacterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Highlight)))
+                    || numbering.Instances.Any(instance => instance.Overrides.Any(item => item.Formatting?.CharacterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Highlight) == true))) {
+                    warning = "Native list marker highlight cannot be represented in Word numbering properties. Other supported list formatting was retained.";
+                }
+                return numbering;
             } catch (InvalidDataException exception) {
                 warning = exception.Message;
                 return LegacyDocNumbering.Empty;
