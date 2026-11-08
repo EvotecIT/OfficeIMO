@@ -737,6 +737,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(UnderlineValues.Single, styleRunProperties.GetFirstChild<Underline>()?.Val?.Value);
             Assert.Equal(HighlightColorValues.Yellow, styleRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
             Assert.Equal(VerticalPositionValues.Superscript, styleRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
+
+            using var saved = new MemoryStream(result.Document.ToBytes(WordFileFormat.Docx), writable: false);
+            using WordprocessingDocument reopened = WordprocessingDocument.Open(saved, isEditable: false);
+            Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(reopened));
         }
 
         [Fact]

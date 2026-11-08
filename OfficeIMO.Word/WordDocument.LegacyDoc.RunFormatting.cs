@@ -9,20 +9,29 @@ namespace OfficeIMO.Word {
         private Dictionary<string, Style>? _legacyDocToggleStyleIndex;
         private readonly Dictionary<(string? Run, string? Paragraph), LegacyDocCharacterFormatProperties> _legacyDocToggleCache = new();
 
-        private static void ApplyLegacyDocRunOnOffProperty<T>(WordParagraph run, bool enabled, bool specified) where T : OnOffType, new() {
+        private static bool CanAppendLegacyDocRunToggles(RunProperties? properties) {
+            if (properties == null) return true;
+            foreach (OpenXmlElement property in properties.ChildElements) {
+                if (property is not RunStyle && property is not RunFonts) return false;
+            }
+            return true;
+        }
+
+        private static void ApplyLegacyDocRunOnOffProperty<T>(WordParagraph run, bool enabled, bool specified, bool append) where T : OnOffType, new() {
             if (!enabled && !specified) {
                 return;
             }
 
             RunProperties runProperties = run._runProperties ??= new RunProperties();
-            runProperties.RemoveAllChildren<T>();
+            if (!append) runProperties.RemoveAllChildren<T>();
 
             var property = new T();
             if (!enabled) {
                 property.Val = false;
             }
 
-            runProperties.AddChild(property, true);
+            if (append) runProperties.AppendChild(property);
+            else runProperties.AddChild(property, true);
         }
 
         private static void ApplyLegacyDocRunFormatting(WordParagraph run, LegacyDocTextRun legacyRun) {
@@ -31,20 +40,22 @@ namespace OfficeIMO.Word {
             bool Resolve(bool value, LegacyDocCharacterFormatProperties property) =>
                 ResolveLegacyDocToggle(value, property, legacyRun.StyleRelative, legacyRun.StyleInverted, styleToggles);
 
-            ApplyLegacyDocRunOnOffProperty<Bold>(run, Resolve(legacyRun.Bold, LegacyDocCharacterFormatProperties.Bold), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
-            ApplyLegacyDocRunOnOffProperty<BoldComplexScript>(run, Resolve(legacyRun.Bold, LegacyDocCharacterFormatProperties.Bold), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
-            ApplyLegacyDocRunOnOffProperty<Italic>(run, Resolve(legacyRun.Italic, LegacyDocCharacterFormatProperties.Italic), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
-            ApplyLegacyDocRunOnOffProperty<ItalicComplexScript>(run, Resolve(legacyRun.Italic, LegacyDocCharacterFormatProperties.Italic), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
-            ApplyLegacyDocRunOnOffProperty<Strike>(run, Resolve(legacyRun.Strike, LegacyDocCharacterFormatProperties.Strike), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Strike));
-            ApplyLegacyDocRunOnOffProperty<DoubleStrike>(run, Resolve(legacyRun.DoubleStrike, LegacyDocCharacterFormatProperties.DoubleStrike), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.DoubleStrike));
-            ApplyLegacyDocRunOnOffProperty<Outline>(run, Resolve(legacyRun.Outline, LegacyDocCharacterFormatProperties.Outline), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Outline));
-            ApplyLegacyDocRunOnOffProperty<Shadow>(run, Resolve(legacyRun.Shadow, LegacyDocCharacterFormatProperties.Shadow), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Shadow));
-            ApplyLegacyDocRunOnOffProperty<Emboss>(run, Resolve(legacyRun.Emboss, LegacyDocCharacterFormatProperties.Emboss), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Emboss));
-            ApplyLegacyDocRunOnOffProperty<Imprint>(run, Resolve(legacyRun.Imprint, LegacyDocCharacterFormatProperties.Imprint), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Imprint));
-            ApplyLegacyDocRunOnOffProperty<Vanish>(run, Resolve(legacyRun.Hidden, LegacyDocCharacterFormatProperties.Hidden), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Hidden));
-            ApplyLegacyDocRunOnOffProperty<NoProof>(run, Resolve(legacyRun.NoProof, LegacyDocCharacterFormatProperties.NoProof), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.NoProof));
-            ApplyLegacyDocRunOnOffProperty<Caps>(run, Resolve(legacyRun.Caps == LegacyDocCapsKind.Caps, LegacyDocCharacterFormatProperties.Caps), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Caps));
-            ApplyLegacyDocRunOnOffProperty<SmallCaps>(run, Resolve(legacyRun.Caps == LegacyDocCapsKind.SmallCaps, LegacyDocCharacterFormatProperties.SmallCaps), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
+            bool appendToggles = CanAppendLegacyDocRunToggles(run._runProperties);
+            // Keep construction in RunProperties schema order after its optional style/font prefix.
+            ApplyLegacyDocRunOnOffProperty<Bold>(run, Resolve(legacyRun.Bold, LegacyDocCharacterFormatProperties.Bold), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Bold), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<BoldComplexScript>(run, Resolve(legacyRun.Bold, LegacyDocCharacterFormatProperties.Bold), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Bold), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<Italic>(run, Resolve(legacyRun.Italic, LegacyDocCharacterFormatProperties.Italic), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Italic), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<ItalicComplexScript>(run, Resolve(legacyRun.Italic, LegacyDocCharacterFormatProperties.Italic), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Italic), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<Caps>(run, Resolve(legacyRun.Caps == LegacyDocCapsKind.Caps, LegacyDocCharacterFormatProperties.Caps), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Caps), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<SmallCaps>(run, Resolve(legacyRun.Caps == LegacyDocCapsKind.SmallCaps, LegacyDocCharacterFormatProperties.SmallCaps), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<Strike>(run, Resolve(legacyRun.Strike, LegacyDocCharacterFormatProperties.Strike), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Strike), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<DoubleStrike>(run, Resolve(legacyRun.DoubleStrike, LegacyDocCharacterFormatProperties.DoubleStrike), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.DoubleStrike), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<Outline>(run, Resolve(legacyRun.Outline, LegacyDocCharacterFormatProperties.Outline), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Outline), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<Shadow>(run, Resolve(legacyRun.Shadow, LegacyDocCharacterFormatProperties.Shadow), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Shadow), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<Emboss>(run, Resolve(legacyRun.Emboss, LegacyDocCharacterFormatProperties.Emboss), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Emboss), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<Imprint>(run, Resolve(legacyRun.Imprint, LegacyDocCharacterFormatProperties.Imprint), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Imprint), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<NoProof>(run, Resolve(legacyRun.NoProof, LegacyDocCharacterFormatProperties.NoProof), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.NoProof), appendToggles);
+            ApplyLegacyDocRunOnOffProperty<Vanish>(run, Resolve(legacyRun.Hidden, LegacyDocCharacterFormatProperties.Hidden), legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Hidden), appendToggles);
 
             if (legacyRun.VerticalPosition != null && TryMapVerticalPosition(legacyRun.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
                 run.VerticalTextAlignment = verticalPosition.ToOfficeEnum();
