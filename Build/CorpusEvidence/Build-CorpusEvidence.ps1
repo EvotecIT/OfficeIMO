@@ -138,13 +138,13 @@ function Get-ManifestRecordCount {
             foreach ($record in $records) {
                 Assert-Text $record.producer "$Label collection '$($record.id)' is missing producer provenance."
                 Assert-Text $record.producerVersion "$Label collection '$($record.id)' is missing producerVersion provenance."
+                $collectionRoot = Resolve-ContainedArtifactPath $documentsRoot ([string] $record.root) $Label
                 foreach ($artifact in @($record.artifacts)) {
                     Assert-Sha256 $artifact.sha256 "$Label artifact '$($record.id)/$($artifact.file)' is missing a stable SHA-256."
-                    $relativePath = Join-Path ([string] $record.root) ([string] $artifact.file)
-                    $artifactPath = Resolve-ContainedArtifactPath $documentsRoot $relativePath $Label
+                    $artifactPath = Resolve-ContainedArtifactPath $collectionRoot ([string] $artifact.file) $Label
                     Assert-ArtifactIdentity $artifactPath ([string] $artifact.sha256) $null 'raw' "$Label artifact '$($record.id)/$($artifact.file)'"
                     if ($artifact.approvedReport) {
-                        $reportPath = Resolve-ContainedArtifactPath ([IO.Path]::GetDirectoryName($artifactPath)) ([string] $artifact.approvedReport) $Label
+                        $reportPath = Resolve-ContainedArtifactPath $collectionRoot ([string] $artifact.approvedReport) $Label
                         if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) {
                             throw "$Label approved report is missing for '$($record.id)/$($artifact.file)': $reportPath"
                         }
