@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/EvotecIT/OfficeIMO",
+  "baseCommit": "f9d02fda5e27d16051d3e16ba27143da17647ecd",
+  "initialNoteCommit": "c4072bd0d1a5801da0acfa1a547d1e0025104c69",
+  "sourceContract": "Base checkout plus exactly these 12 paths from initialNoteCommit, then the two-file LF patch, then the recorded per-file line endings.",
+  "patchFile": "first-correct.patch",
+  "patchSha256": "F0BB673CCD6EE6928E7199E725D0C805C4490DAD97CFEB3ABB05C90F33DB3289",
+  "files": [
+    {
+      "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.Load.cs",
+      "initialNoteCommitGitBlobSha1": "1a6864b6f88929a9e71414aace0e0b4b7f72bee8",
+      "frozenNormalizedGitBlobSha1": "1a6864b6f88929a9e71414aace0e0b4b7f72bee8",
+      "frozenSha256": "C9BA4B5B9ED5A0D274E91C5B086F91FD0C80093F4C40E23DD9753ED04E87E6FC",
+      "normalizedLfSha256": "9BBDF36D21BA85D801CCAB18B21D32CCEFDE1385C43514EA1A737217DB8FEB6B",
+      "frozenBytes": 886,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": false,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.ParagraphProjection.cs",
+      "initialNoteCommitGitBlobSha1": "d4711757c983f27fa37519e9eee945301c1d2f9a",
+      "frozenNormalizedGitBlobSha1": "d4711757c983f27fa37519e9eee945301c1d2f9a",
+      "frozenSha256": "9877CC586F01AF53FC13201C7F3EF582C4DE283141105F3D87A91D9E3501D924",
+      "normalizedLfSha256": "DC71E47ECFDFE14FE3FF68041B94115A30061457A40EE1E7291F579ED7F9E043",
+      "frozenBytes": 40935,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": false,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.Word69.cs",
+      "initialNoteCommitGitBlobSha1": "fe9b1c60a00ce7fa307cf779f15e40260ad746eb",
+      "frozenNormalizedGitBlobSha1": "fe9b1c60a00ce7fa307cf779f15e40260ad746eb",
+      "frozenSha256": "6A306FFFB4FB04D423CB65C0A91598549EBCE1B1186A2AA16755FECDD74DDF96",
+      "normalizedLfSha256": "94BEA00230C150079B442B4398C4BD9B8F86423F5655868D45222039E7083815",
+      "frozenBytes": 2210,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": false,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.cs",
+      "initialNoteCommitGitBlobSha1": "741e25ae33c2bd33bd1083b22234e265ebcb083a",
+      "frozenNormalizedGitBlobSha1": "741e25ae33c2bd33bd1083b22234e265ebcb083a",
+      "frozenSha256": "8EF02F6833458ACECB259B4F60B3C49B31102A1C6232D6FE6A7582E3D7A8F767",
+      "normalizedLfSha256": "86799599FA274E696211CAC92C44A84D7EE5F09D621C88A5168BA7D16BC66854",
+      "frozenBytes": 39254,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": false,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocFieldMetadataReader.cs",
+      "initialNoteCommitGitBlobSha1": "7648c918552fb251320c78580f637034245e4d6f",
+      "frozenNormalizedGitBlobSha1": "7648c918552fb251320c78580f637034245e4d6f",
+      "frozenSha256": "D59396220C69EB68C04C48C970D255434F0EED06514A2BE21C23EEFDBA610A8E",
+      "normalizedLfSha256": "46BB02EAFCB4A52F07A13A7B2EB0A4D516CF72A7C192F4B78472BAFAF355B3DF",
+      "frozenBytes": 12269,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": false,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocFootnoteReader.cs",
+      "initialNoteCommitGitBlobSha1": "2adbe7f250c941b2dec4971f154c5f8de13d30e5",
+      "frozenNormalizedGitBlobSha1": "caa567924d2763f26c649569e8e9817cdf9805f3",
+      "frozenSha256": "E6DF89CF7F3ED30417593E67EBD0303082CE344723D9AAA5E1EC60FD6D396518",
+      "normalizedLfSha256": "F6500E8B2A1954D12D553666A39790DC0CCDD8520B98C47FEF3E82A648EC3744",
+      "frozenBytes": 33824,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": true,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyWord69Encoding.cs",
+      "initialNoteCommitGitBlobSha1": "641c85dde1be0fea128c25af82260930e2d70d10",
+      "frozenNormalizedGitBlobSha1": "641c85dde1be0fea128c25af82260930e2d70d10",
+      "frozenSha256": "2CB689D1CF5A55ED60BC6FF66732A39367B41A79DD1C1496A16AF2ADAA752D3A",
+      "normalizedLfSha256": "6E4ADE419FB87ACB9A5AB0085D048D02FD8A3ADB6E1C7269BD75FF044C1700B1",
+      "frozenBytes": 5539,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": false,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyWord69Reader.cs",
+      "initialNoteCommitGitBlobSha1": "3def3a16d83006dbe09cbfcdc882673b1458dd67",
+      "frozenNormalizedGitBlobSha1": "3def3a16d83006dbe09cbfcdc882673b1458dd67",
+      "frozenSha256": "8B2F76DD6F8C34A40D3D4437E7C7913DA792E418A69A5644B4AECDB7674BB09F",
+      "normalizedLfSha256": "18A42CB68AF154382368B3FF940EC1540D54DAE469C4C51F909D045C3991079D",
+      "frozenBytes": 13186,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": false,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/WordDocument.Conversion.cs",
+      "initialNoteCommitGitBlobSha1": "fddfbdd17315f63e765b7bcd02e62de0d4d70089",
+      "frozenNormalizedGitBlobSha1": "fddfbdd17315f63e765b7bcd02e62de0d4d70089",
+      "frozenSha256": "11108D39BFAD02F56D5E4AB97CEF683D32D87A398CE31309ECB0D70395B7AB02",
+      "normalizedLfSha256": "C2BB91F67B5E72CE8CA7A1BBCE0DF74CA3C9C09E3360A9B71C5AA70EACDFD77D",
+      "frozenBytes": 27687,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": false,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/WordDocument.CreateLoad.cs",
+      "initialNoteCommitGitBlobSha1": "86f3bd01261f640ae7f9e4eaa2db8be49d69eb44",
+      "frozenNormalizedGitBlobSha1": "86f3bd01261f640ae7f9e4eaa2db8be49d69eb44",
+      "frozenSha256": "2698EFEC2D549ED2DD9F0463C6DFB10CEA7D02EE0AF80F34B19E9975B80CC1C1",
+      "normalizedLfSha256": "F008FD0BCE09E3444C4CD07FDE0F4EEED845CBCBB29E2B1D4235BF773B527966",
+      "frozenBytes": 48205,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": false,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/WordDocument.LegacyDoc.cs",
+      "initialNoteCommitGitBlobSha1": "110504eab3a05b2c50949beacf67c20999fd519a",
+      "frozenNormalizedGitBlobSha1": "110504eab3a05b2c50949beacf67c20999fd519a",
+      "frozenSha256": "F48903F10B977E51900114985716D72A07A4BD41FD8CB1C0001AFB748F5A483D",
+      "normalizedLfSha256": "03B4F9EB8D12F9463BCC8AFA738C0BA248CBC42A0C087F9B2F3F764BE4D43A05",
+      "frozenBytes": 122767,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "CRLF",
+      "contentPatchRequired": false,
+      "reconstructionVerified": true
+    },
+    {
+      "path": "OfficeIMO.Word/LegacyDoc/Model/LegacyWord69Notes.cs",
+      "initialNoteCommitGitBlobSha1": "adb6d1c1ab265cb0b6f44c22ff5bbc3954e3f914",
+      "frozenNormalizedGitBlobSha1": "150f0ec42040159242f07059c0191ac918147b86",
+      "frozenSha256": "B45BECA0D60E77D2C74DCD123452C7B480E048C346C1574EB76D015E6D0724F6",
+      "normalizedLfSha256": "B45BECA0D60E77D2C74DCD123452C7B480E048C346C1574EB76D015E6D0724F6",
+      "frozenBytes": 14914,
+      "encoding": "UTF-8",
+      "bom": false,
+      "lineEndings": "LF",
+      "contentPatchRequired": true,
+      "reconstructionVerified": true
+    }
+  ],
+  "verification": {
+    "fileCount": 12,
+    "unchangedNormalizedGitBlobs": 10,
+    "patchedFiles": 2,
+    "exactFrozenByteReconstructions": 12,
+    "crlfFiles": 11,
+    "lfFiles": 1,
+    "normalization": "CRLF to LF only; UTF-8 without BOM",
+    "proof": "Unified patch hunks applied independently in memory to original Git blobs; all 12 normalized Git blob IDs and final byte SHA256 values matched."
+  },
+  "commonRuntime": {
+    "sourceCommit": "3bcbdb49d74fb31b46aba197025acec98f352d19",
+    "coreGitTree": "c2c7f230886db6f8c3598a5f66e1e19fd481d98f",
+    "sharedSourceGitTree": "f0cd9dc3f42cdafadc2825d6b0fb8f3db35140d2",
+    "selectedRecordedBinaries": [
+      {
+        "name": "OfficeIMO.Core.dll",
+        "sha256": "56C2BEB9247E15A0A8F13666DDBF3FFC0213572F53C5C8DC25A3AD24AAB7EC66",
+        "bytes": 5544448
+      },
+      {
+        "name": "OfficeIMO.Core.pdb",
+        "sha256": "5EA620D506ACA5D5C515B1C867B0D4129782B50D44A57D974C458C9B02419CD8",
+        "bytes": 1650292
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.dll",
+        "sha256": "C958313919E8269B279FE5B1756E47DE070767E278403927FE394ADA9F28F144",
+        "bytes": 68608
+      },
+      {
+        "name": "OfficeIMO.Migration.Benchmarks.pdb",
+        "sha256": "7394382A89C77C8D5E681BE94FE7C1611812E0293AF8AB026A0C0D956B0F62A8",
+        "bytes": 26904
+      }
+    ],
+    "rule": "Compile historical Word source against the separate final Core; use identical common runtime and workload in every compared reader root. This is not a whole historical checkout runtime."
+  },
+  "recordedReaderBinaries": [
+    {
+      "name": "OfficeIMO.Word.dll",
+      "sha256": "A44B517B2EBA6D6AE2540D1F3EB823F47E830A1766DB473129DE8CF76C0F3F9D",
+      "bytes": 5060608
+    },
+    {
+      "name": "OfficeIMO.Word.pdb",
+      "sha256": "5F17826E7FF4AD2C2D6015A47A66FF737D3BA3936C2236BC6E81826AF020BD8F",
+      "bytes": 1380108
+    }
+  ],
+  "build": {
+    "sdk": "10.0.403",
+    "configuration": "Release",
+    "targetFramework": "net10.0",
+    "buildProjectReferences": false,
+    "produceReferenceAssembly": false,
+    "restoreArguments": [
+      "restore",
+      "OfficeIMO.Word/OfficeIMO.Word.csproj",
+      "--artifacts-path",
+      "<reference-artifacts>",
+      "--disable-parallel",
+      "-p:BuildProjectReferences=false"
+    ],
+    "buildArguments": [
+      "build",
+      "OfficeIMO.Word/OfficeIMO.Word.csproj",
+      "-c",
+      "Release",
+      "-f",
+      "net10.0",
+      "--no-restore",
+      "--artifacts-path",
+      "<reference-artifacts>",
+      "-m:1",
+      "-p:UseSharedCompilation=false",
+      "-nodeReuse:false",
+      "-p:BuildProjectReferences=false",
+      "-p:SourceRevisionId=f9d02fda5e27d16051d3e16ba27143da17647ecd"
+    ],
+    "environment": {
+      "MSBUILDDISABLENODEREUSE": "1",
+      "DOTNET_CLI_USE_MSBUILD_SERVER": "0"
+    },
+    "coreSeedTarget": "bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll",
+    "wordTarget": "bin/OfficeIMO.Word/release_net10.0/OfficeIMO.Word.dll"
+  },
+  "license": {
+    "file": "LICENSE",
+    "spdx": "MIT",
+    "copyright": "2022 Evotec",
+    "sha256": "96FD82DDF9AC4B16FA90DE88D74C05D751DFD4FBDA352665033A8809EB9DC6BF"
+  },
+  "contentAudit": {
+    "files": 12,
+    "bytes": 361676,
+    "lines": 6544,
+    "result": "Passed full-text and complete literal/comment inspection for private paths, credentials, customer data, embedded fixture/corpus content, private history and third-party copied-source notices.",
+    "notes": [
+      "Only public Microsoft/Open XML namespace URL literals were present.",
+      "A generic OpenOffice Word 6/Czech charset comment contains no fixture identity or payload."
+    ]
+  },
+  "limits": [
+    "Source reconstruction does not promise a byte-identical rebuilt DLL; compiler, SDK, path and source metadata can affect it.",
+    "This packet contains no compiled runtime, workload, fixture, trace, timing samples or native application history.",
+    "The original independent FIB104 endnote fixture remains a separate qualification gap."
+  ]
+}

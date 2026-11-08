@@ -20,6 +20,12 @@ matrix retains the five original profiles.
 
 The [2026-11-07 two-domain comparison](../Docs/benchmarks/officeimo.migration-runtime-2026-11-07.md) records all 1,848 validated samples, exact source/binary identities, allocation gains, slower observations and launch variation.
 
+The [2026-11-08 Word notes comparison](../Docs/benchmarks/word69-notes-2026-11-08.md)
+records 2,160 validated samples for the unchanged Word69 control and both note
+profiles. Allocation and note latency budgets pass; six ordinary-document
+latency checks fail. The report retains the complete matrix, raw numerical
+observations and exact reconstruction of the note-preserving reference.
+
 Input generation and complete output validation occur outside timing. The inputs
 are synthetic scale workloads. Independent producer fixtures belong to the format
 correctness evidence and do not establish a timing comparison when one revision
