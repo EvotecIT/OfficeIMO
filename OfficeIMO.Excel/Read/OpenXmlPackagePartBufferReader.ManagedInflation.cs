@@ -69,25 +69,10 @@ internal sealed partial class OpenXmlPackagePartBufferReader {
         buffer = null;
         length = 0;
         if (!_stream.CanSeek || entry.CompressedLength <= 0 || entry.CompressedLength > int.MaxValue) return false;
-        foreach (char character in entry.FullName) if (character > 127) return false;
         byte[]? rented = null;
         long position = _stream.Position;
         try {
-            _stream.Position = 0;
-            var records = new List<OfficeArchiveSafety.ZipCentralDirectoryRecord>();
-            var scan = OfficeArchiveSafety.ScanZipCentralDirectoryForExtraction(
-                _stream, _stream.Length, _archive.Entries.Count, records, ct);
-            if (!scan.IsValid || scan.LimitExceeded) return false;
-            byte[] name = Encoding.ASCII.GetBytes(entry.FullName);
-            OfficeArchiveSafety.ZipCentralDirectoryRecord? selected = null;
-            foreach (var record in records) {
-                ct.ThrowIfCancellationRequested();
-                if (!record.NameBytes.AsSpan().SequenceEqual(name)) continue;
-                if (selected != null) return false;
-                selected = record;
-            }
-            if (selected == null) return false;
-            var item = selected.Value;
+                if (!TryGetZipCoordinates(entry, ct, out var item)) return false;
             if (item.CompressionMethod != 8 || item.CompressedSize != entry.CompressedLength
                 || item.UncompressedSize != entry.Length) return false;
             long payload = OfficeArchiveSafety.ValidateEntryPayload(_stream, item);
