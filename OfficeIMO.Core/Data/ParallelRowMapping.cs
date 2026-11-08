@@ -1,7 +1,4 @@
 using System;
-#if NET8_0_OR_GREATER
-using System.Buffers;
-#endif
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -44,7 +41,7 @@ public sealed class ParallelRowMappingOptions {
 }
 
 /// <summary>Ordered parallel typed projections over forward-only data readers.</summary>
-public static class ParallelRowMappingExtensions {
+public static partial class ParallelRowMappingExtensions {
     internal static bool TryCreateIndependentSnapshotPlan(
         IDataRecord reader,
         out bool[] cloneColumns) {
@@ -357,6 +354,7 @@ public static class ParallelRowMappingExtensions {
         Action<DbDataReader, object?[]>? captureValues,
         CancellationToken cancellationToken) {
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var snapshots = new RowSnapshotPool(batchSize, reader.FieldCount);
         var pending = new Queue<Task<T[]>>(degreeOfParallelism);
         ExceptionDispatchInfo? sourceError = null;
         try {
@@ -367,7 +365,7 @@ public static class ParallelRowMappingExtensions {
                 try {
                     batch = ReadBatch(
                         reader,
-                        batchSize,
+                        snapshots,
                         captureValues,
                         cancellationToken,
                         out reachedEnd);
@@ -613,6 +611,7 @@ public static class ParallelRowMappingExtensions {
             yield break;
         }
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var snapshots = new RowSnapshotPool(batchSize, reader.FieldCount);
         var pending = new Queue<Task<T[]>>(degreeOfParallelism);
         ExceptionDispatchInfo? sourceError = null;
         try {
@@ -623,7 +622,7 @@ public static class ParallelRowMappingExtensions {
                 try {
                     batch = ReadBatch(
                         reader,
-                        batchSize,
+                        snapshots,
                         captureValues: null,
                         cancellationToken,
                         out reachedEnd);
@@ -660,129 +659,6 @@ public static class ParallelRowMappingExtensions {
                     // Observe remaining canceled/faulted work after the ordered exception is propagated.
                 }
             }
-        }
-    }
-
-    private static T[] MapFactorySnapshotBatch<T>(
-        RowSnapshotBatch batch,
-        RowSnapshotSchema schema,
-        Func<IDataRecord, T> factory,
-        CancellationToken cancellationToken) {
-        try {
-            var result = new T[batch.Count];
-            var record = new RowSnapshotRecord(schema);
-            for (int index = 0; index < result.Length; index++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                record.SetValues(batch[index]);
-                result[index] = factory(record);
-            }
-            return result;
-        } finally {
-            batch.Dispose();
-        }
-    }
-
-    private static RowSnapshotBatch ReadBatch(
-        DbDataReader reader,
-        int batchSize,
-        Action<DbDataReader, object?[]>? captureValues,
-        CancellationToken cancellationToken,
-        out bool reachedEnd) {
-        var batch = new RowSnapshotBatch(batchSize, reader.FieldCount);
-        reachedEnd = false;
-        try {
-            while (batch.Count < batchSize) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!reader.Read()) {
-                    reachedEnd = true;
-                    break;
-                }
-                batch.Add(reader, captureValues);
-            }
-            return batch;
-        } catch {
-            batch.Dispose();
-            throw;
-        }
-    }
-
-    private static T[] MapBatch<T>(
-        RowSnapshotBatch batch,
-        Func<object?[], T> map,
-        CancellationToken cancellationToken) {
-        try {
-            var result = new T[batch.Count];
-            for (int index = 0; index < result.Length; index++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                result[index] = map(batch[index]);
-            }
-            return result;
-        } finally {
-            batch.Dispose();
-        }
-    }
-
-    private sealed class RowSnapshotBatch : IDisposable {
-        private readonly object?[][] _rows;
-        private readonly bool[] _pooledRows;
-        private readonly int _fieldCount;
-
-        internal RowSnapshotBatch(int capacity, int fieldCount) {
-            _rows = new object?[capacity][];
-            _pooledRows = new bool[capacity];
-            _fieldCount = fieldCount;
-        }
-
-        internal int Count { get; private set; }
-        internal object?[] this[int index] => _rows[index];
-
-        internal void Add(
-            DbDataReader reader,
-            Action<DbDataReader, object?[]>? captureValues) {
-            object?[] values;
-#if NET8_0_OR_GREATER
-            values = ArrayPool<object?>.Shared.Rent(_fieldCount);
-#else
-            values = new object?[_fieldCount];
-#endif
-            try {
-                if (captureValues is null) {
-                    int copied = reader.GetValues(values!);
-                    for (int index = copied; index < _fieldCount; index++) values[index] = DBNull.Value;
-                } else {
-                    for (int index = 0; index < _fieldCount; index++) values[index] = DBNull.Value;
-                    captureValues(reader, values);
-                }
-                for (int index = 0; index < _fieldCount; index++) {
-                    if (values[index] is byte[] bytes) values[index] = (byte[])bytes.Clone();
-                    else if (values[index] is char[] characters) values[index] = (char[])characters.Clone();
-                }
-            } catch {
-#if NET8_0_OR_GREATER
-                ArrayPool<object?>.Shared.Return(values, clearArray: true);
-#endif
-                throw;
-            }
-#if NET8_0_OR_GREATER
-            _pooledRows[Count] = true;
-#else
-            _pooledRows[Count] = false;
-#endif
-            _rows[Count++] = values;
-        }
-
-        public void Dispose() {
-            for (int index = 0; index < Count; index++) {
-                object?[]? values = _rows[index];
-                if (values is null) continue;
-                _rows[index] = null!;
-#if NET8_0_OR_GREATER
-                if (_pooledRows[index]) {
-                    ArrayPool<object?>.Shared.Return(values, clearArray: true);
-                }
-#endif
-            }
-            Count = 0;
         }
     }
 
