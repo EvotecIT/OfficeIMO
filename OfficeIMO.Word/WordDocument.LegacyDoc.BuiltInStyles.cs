@@ -268,12 +268,6 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new FontSizeComplexScript { Val = fontSize });
             }
 
-            if (characterFormat.Highlight != null && TryMapHighlight(characterFormat.Highlight.Value, out HighlightColorValues highlight)) {
-                ReplaceStyleProperty(properties, new Highlight { Val = highlight });
-            } else if (characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Highlight)) {
-                ReplaceStyleProperty(properties, new Highlight { Val = HighlightColorValues.None });
-            }
-
             if (characterFormat.Underline != null && TryMapUnderline(characterFormat.Underline.Value, out UnderlineValues underline)) {
                 ReplaceStyleProperty(properties, new Underline { Val = underline });
             } else if (characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Underline)) {

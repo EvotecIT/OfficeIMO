@@ -177,18 +177,25 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
 
                 _ = ReadSupportedBuiltInStyleParagraphFormatting(styleIndex, style.StyleParagraphProperties);
-                _ = ReadSupportedRunFormatting(style.StyleRunProperties);
+                _ = ReadSupportedStyleRunFormatting(style);
                 builtInStyles[styleIndex] = style;
             }
 
             return builtInStyles;
         }
 
+        private static LegacyDocWritableFormatting ReadSupportedStyleRunFormatting(Style style) {
+            if (style.StyleRunProperties?.GetFirstChild<Highlight>() != null) {
+                throw new NotSupportedException($"Native DOC saving cannot write paragraph style '{style.StyleId?.Value}' because highlight is not permitted in DOC styles.");
+            }
+
+            return ReadSupportedRunFormatting(style.StyleRunProperties);
+        }
+
         private static IReadOnlyList<string> ReadStyleFontFamilies(IEnumerable<Style> builtInStyles, IReadOnlyList<string> styleIds, IReadOnlyDictionary<string, Style> paragraphStyles) {
             return builtInStyles
                 .Concat(styleIds.Select(styleId => paragraphStyles[styleId]))
-                .Select(style => style.StyleRunProperties)
-                .Select(ReadSupportedRunFormatting)
+                .Select(ReadSupportedStyleRunFormatting)
                 .Select(formatting => formatting.FontFamily)
                 .Where(fontFamily => !string.IsNullOrWhiteSpace(fontFamily))
                 .Select(fontFamily => fontFamily!)
@@ -219,7 +226,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ushort nextStyleIndex = ResolveNextStyleIndex(style, styleIndex, styleIndexes);
                 string styleName = ReadStyleName(style, styleId);
                 LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedCustomParagraphStyleParagraphFormatting(style.StyleParagraphProperties);
-                LegacyDocWritableFormatting characterFormatting = ReadSupportedRunFormatting(style.StyleRunProperties);
+                LegacyDocWritableFormatting characterFormatting = ReadSupportedStyleRunFormatting(style);
                 byte[] paragraphUpx = LegacyDocParagraphFormattingWriter.CreateStyleParagraphUpx(paragraphFormatting);
                 byte[] characterUpx = CreateStyleCharacterUpx(characterFormatting, fontFamilyIndexes);
                 styleRecords.Add(CreateParagraphStyleRecord(CustomParagraphStyleSti, baseStyleIndex, nextStyleIndex, styleName, paragraphUpx, characterUpx, styleIndex));
@@ -262,7 +269,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ushort nextStyleIndex = ResolveNextStyleIndex(style, styleIndex, EmptyStyleIndexes);
             string styleName = ReadStyleName(style, GetBuiltInParagraphStyleName(styleIndex));
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBuiltInStyleParagraphFormatting(styleIndex, style.StyleParagraphProperties);
-            LegacyDocWritableFormatting characterFormatting = ReadSupportedRunFormatting(style.StyleRunProperties);
+            LegacyDocWritableFormatting characterFormatting = ReadSupportedStyleRunFormatting(style);
             byte[] paragraphUpx = LegacyDocParagraphFormattingWriter.CreateStyleParagraphUpx(paragraphFormatting);
             byte[] characterUpx = CreateStyleCharacterUpx(characterFormatting, fontFamilyIndexes);
             return CreateParagraphStyleRecord(styleIndex, basedOnStyleIndex, nextStyleIndex, styleName, paragraphUpx, characterUpx);

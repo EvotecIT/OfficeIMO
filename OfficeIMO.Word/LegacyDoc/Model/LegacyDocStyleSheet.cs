@@ -71,6 +71,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 if (TryReadParagraphStyle(tableStream, offset, cbStd, cbStdBaseInFile, styleIndex, usedStyleIds, fontFamilies, defaultFont, out LegacyDocParagraphStyle? style)) {
                     styles[styleIndex] = style!;
+                    // MS-DOC UpxChpx excludes properties preserved when sprmCIstd is applied.
+                    if (style!.CharacterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Highlight)) {
+                        warning ??= $"The DOC stylesheet contains prohibited highlight formatting in paragraph style '{style.Name}'. Other supported style formatting was retained.";
+                    }
                 } else if (TryReadTableStyle(tableStream, offset, cbStd, cbStdBaseInFile, out LegacyDocTableStyle? tableStyle)) {
                     tableStyles[styleIndex] = tableStyle!;
                 }
