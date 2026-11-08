@@ -39,7 +39,8 @@ public partial class Word {
         using WordDocument migrated = WordDocument.Load(new MemoryStream(highlighted), options: null, out OfficeConversionReport report);
 
         OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics,
-            item => item.Code == "doc-numbering-invalid");
+            item => item.Code is "doc-numbering-marker-format-unsupported" or "doc-numbering-invalid");
+        Assert.Equal("doc-numbering-marker-format-unsupported", diagnostic.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.Contains("highlight cannot be represented", diagnostic.Message);
         Level actual = migrated._wordprocessingDocument!.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!

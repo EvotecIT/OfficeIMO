@@ -211,6 +211,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(LegacyDocUnsupportedFeatureKind.Numbering,
                     "doc-numbering-invalid", numberingWarning, detailCode: "PlfLst/PlfLfo"), options.ReportUnsupportedContent);
             }
+            if (Numbering.Definitions.Any(definition => definition.Levels.Any(level => level.CharacterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Highlight)))
+                || Numbering.Instances.Any(instance => instance.Overrides.Any(item => item.Formatting?.CharacterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Highlight) == true))) {
+                // This retained source formatting is an omission, not a list-table parse warning.
+                AddUnsupportedFeature(new LegacyDocUnsupportedFeature(LegacyDocUnsupportedFeatureKind.Numbering,
+                    "doc-numbering-marker-format-unsupported",
+                    "Native list marker highlight cannot be represented in Word numbering properties. Other supported list formatting was retained.",
+                    detailCode: "MarkerHighlight"), reportDiagnostic: false);
+            }
 
             Sections = ApplyDopEndnotePlacement(
                 LegacyDocSectionFormattingReader.ReadSections(wordDocumentStream, tableStream, fib, out string? sectionFormattingWarning),
