@@ -42,7 +42,7 @@
 
 ## Testing evidence
 
-Resolve shared procedures against `CODEX_HOME` (default `~/.codex`). Before adding or changing tests, read `skills/test-audit/SKILL.md` (the authoring gate), then `skills/contract-focused-tests/SKILL.md`. Deliberate pruning follows `skills/test-audit/CAMPAIGN.md`; its coverage evidence stays local and is never a CI or merge gate.
+Resolve shared procedures against `CODEX_HOME` (default `~/.codex`). Before adding or changing tests, read the [test-audit authoring gate](skills/test-audit/SKILL.md#authoring-gate), then [contract-focused proof design](skills/contract-focused-tests/SKILL.md). Deliberate pruning follows `skills/test-audit/CAMPAIGN.md`; its coverage evidence stays local and is never a CI or merge gate.
 
 
 - Do not use product unit tests to pin human-authored README, roadmap, migration, compatibility, planning, or agent prose.
