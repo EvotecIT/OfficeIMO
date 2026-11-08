@@ -51,6 +51,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     } else if (charset == 186) {
                         // BALTIC_CHARSET explicitly selects Windows-1257 for this text run.
                         decoded = OfficeLegacySingleByteEncoding.DecodeByte(value, 1257);
+                        // Undefined C1 slots decode deterministically but are omitted by
+                        // visible-story projection, so saving them requires explicit loss.
+                        unsupported |= char.IsControl(decoded);
                     } else if (charset > 1 || (context.FontIndex.HasValue && font >= charsets.Count)) {
                         unsupported = true;
                     } else {

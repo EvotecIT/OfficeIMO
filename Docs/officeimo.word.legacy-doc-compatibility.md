@@ -14,6 +14,12 @@ Section layout retains supported section starts, paper dimensions, orientation, 
 
 Automatic footnotes and endnotes retain their body references, multiple paragraphs, literal spaces and tabs, and supported paragraph and run formatting through the existing `FootNotes`, `EndNotes` and `Inspect()` APIs. Common document note settings retain supported numbering formats, starting values, restart rules and placement. Cached note fields use the same supported instruction and lock grammar as other stories. Custom note marks, additional note-reference markers, note tables and unprojected separator stories retain explicit loss diagnostics; unsupported numbering or placement reports `doc-word69-note-settings`.
 
+The Core byte decoder retains every Windows-1257 decoding-table value. The Word
+visible-text profile reports undefined Baltic slots that decode to C1 controls
+as `doc-word69-text-codepage-unsupported`; strict saving blocks their loss.
+Import does not assign a guessed visible glyph to those slots. Font charset 0
+or 1 with an unqualified language fallback retains its existing loss report.
+
 The [independent Word 6 note fixture](../OfficeIMO.TestAssets/Documents/LegacyDocCorpus/word69-notes/apache-openoffice-4.1.17-notes.oracle.json) qualifies both note kinds, anchors, multiple paragraphs, tabs and selected formatting. Independent Word 95 qualification covers automatic footnotes. The Word 95 endnote profile has binary-grammar regression coverage and remains unqualified against an independently produced original.
 
 Supported page-count, date/time, document-property, `FILENAME` and `STYLEREF` fields retain their editable representation. Filename and style references retain the source instruction, switches and cached text. Cached result runs retain their formatting and revision marks in DOCX. A style reference without a matching projected source style is reported explicitly. Unsupported or localized field instructions retain cached text under an explicit loss policy. Import does not evaluate fields.

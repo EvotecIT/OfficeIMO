@@ -32,6 +32,30 @@ public partial class Word {
     }
 
     [Fact]
+    public void LegacyWord69_Windows1257ControlSlotsRequireExplicitLossBeforeDocxSave() {
+        byte[] original = CreateWord69Fixture(104, cyrillicFont: 1);
+        Assert.True(OfficeCompoundFileReader.TryRead(original, out OfficeCompoundFile? compound, out _));
+        byte[] main = compound!.Streams["WordDocument"].ToArray();
+        main[0x270 + 2 + 8 + 4] = 186;
+        main[0x300] = 0x8A;
+        byte[] input = OfficeCompoundFileWriter.Write(new[] { new OfficeCompoundStream("WordDocument", main) });
+        using WordDocument document = WordDocument.Load(new MemoryStream(input));
+        Assert.Equal("doc-word69-text-codepage-unsupported", Assert.Single(document.LegacyDocUnsupportedFeatures).Code);
+        using var strict = new MemoryStream();
+        byte[] sentinel = { 0x51, 0x52, 0x53 };
+        strict.Write(sentinel, 0, sentinel.Length);
+        strict.Position = 0;
+        Assert.Throws<NotSupportedException>(() => document.Save(strict));
+        Assert.Equal(sentinel, strict.ToArray());
+        using var allowed = new MemoryStream();
+        document.Save(allowed, new WordSaveOptions { AllowLoss = true });
+        allowed.Position = 0;
+        using WordDocument reopened = WordDocument.Load(allowed);
+        Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "eading");
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
     public void LegacyWord69_Windows1257NotesRetainBalticTextAndWesternStoryBoundary() {
         const string expected = "Ābele ģimenē ēd ķiršus; žąsis Įlankoje; Õun.";
         byte[] baltic = {

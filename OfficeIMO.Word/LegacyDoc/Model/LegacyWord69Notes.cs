@@ -163,7 +163,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         new LegacyDocBookmarkProjectionTracker(Array.Empty<LegacyDocBookmark>()),
                         new Dictionary<int, LegacyDocPicture>(), fieldMetadata,
                         orderedFormattingRanges: true, preserveExplicitEmptyParagraphs: true, cancellationToken: cancellationToken);
-                    int contentStart = start + (noteCharacters[0].Character == LegacyDocFootnoteReader.FootnoteReferenceCharacter ? 1 : 0);
+                    int contentStart = start + (characters[storyStart + start].Character == LegacyDocFootnoteReader.FootnoteReferenceCharacter ? 1 : 0);
                     for (int position = contentStart; position < end; position++) {
                         cancellationToken.ThrowIfCancellationRequested();
                         // A flat note paragraph model cannot retain nested anchors or table cells.
