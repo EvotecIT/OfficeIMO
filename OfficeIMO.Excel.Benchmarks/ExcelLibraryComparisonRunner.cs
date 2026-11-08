@@ -76,7 +76,6 @@ internal static partial class ExcelLibraryComparisonRunner {
 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(measuredIterations);
 
-        ConfigureEpPlusLicense();
         _libraryFilter = BuildLibraryFilter(libraryFilters);
         var scenarioFilter = BuildScenarioFilter(scenarioFilters);
         if (ContainsOnlyHelloWorldScenarios(scenarioFilter)) {
@@ -709,7 +708,6 @@ internal static partial class ExcelLibraryComparisonRunner {
 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(measuredIterations);
 
-        ConfigureEpPlusLicense();
         var scenarioFilter = BuildScenarioFilter(scenarioFilters);
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(rowCount);
         var firstTableRows = rows.Take(rowCount / 2).ToList();
@@ -1546,16 +1544,6 @@ internal static partial class ExcelLibraryComparisonRunner {
         }
 
         throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
-    }
-
-    private static void ConfigureEpPlusLicense() {
-        if (ExcelPackage.License.LicenseType == EPPlusLicenseType.NonCommercialPersonal
-            || ExcelPackage.License.LicenseType == EPPlusLicenseType.NonCommercialOrganization
-            || ExcelPackage.License.LicenseType == EPPlusLicenseType.Commercial) {
-            return;
-        }
-
-        ExcelPackage.License.SetNonCommercialOrganization("OfficeIMO local benchmarks");
     }
 
     private static int ByteCount(byte[] bytes) {
