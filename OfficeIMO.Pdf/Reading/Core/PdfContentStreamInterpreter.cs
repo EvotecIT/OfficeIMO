@@ -254,7 +254,11 @@ internal static class PdfContentStreamInterpreter {
 
 #pragma warning disable CA1846 // Keep netstandard2.0-safe parsing.
             bool parsed = double.TryParse(
+#if NET8_0_OR_GREATER
+                _content.AsSpan(start, _index - start),
+#else
                 _content.Substring(start, _index - start),
+#endif
                 NumberStyles.Float,
                 CultureInfo.InvariantCulture,
                 out double value);
