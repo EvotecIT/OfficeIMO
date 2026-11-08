@@ -225,6 +225,7 @@ internal static partial class CsvParser
             if (cache is null) return;
             int count = SourceColumnCount > 0 ? Math.Min(FieldCount, SourceColumnCount) : FieldCount;
 #if NET9_0_OR_GREATER
+            var lookup = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             Span<char> characters = stackalloc char[128];
 #endif
             for (int ordinal = 0; ordinal < count; ordinal++)
@@ -237,7 +238,7 @@ internal static partial class CsvParser
                     if (_allFieldsAscii || Ascii.IsValid(bytes))
                     {
                         int written = Encoding.Latin1.GetChars(bytes, characters);
-                        _fields[ordinal].Materialized = ReuseFieldSpan(characters.Slice(0, written), cache);
+                        _fields[ordinal].Materialized = ReuseFieldSpan(characters.Slice(0, written), cache, lookup);
                         continue;
                     }
                 }
