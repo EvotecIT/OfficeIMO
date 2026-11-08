@@ -192,7 +192,9 @@ public static partial class ParallelRowMappingExtensions {
             requireAllColumnsMapped);
         int genericBatchSize = options.GetBatchSize(128);
 
-        if (reader is IDataReaderParallelBatchSource { CanReadParallelBatches: true } batchSource) {
+        if (reader is IDataReaderParallelBatchSource batchSource &&
+            (batchSource.CanReadParallelBatches ||
+             batchSource is IDataReaderTypedParallelBatchSource { CanReadTypedParallelBatches: true })) {
             foreach (T row in EnumerateReaderBatches(
                          reader,
                          batchSource,
@@ -258,13 +260,16 @@ public static partial class ParallelRowMappingExtensions {
             out DataMappingErrorValuePolicy errorValuePolicy);
         int genericBatchSize = options.GetBatchSize(128);
 
-        if (reader is IDataReaderParallelBatchSource { CanReadParallelBatches: true } batchSource) {
+        if (reader is IDataReaderParallelBatchSource batchSource &&
+            (batchSource.CanReadParallelBatches ||
+             batchSource is IDataReaderTypedParallelBatchSource { CanReadTypedParallelBatches: true })) {
             foreach (T row in EnumerateReaderBatches(
                          reader,
                          batchSource,
                          options.GetBatchSize(batchSource.PreferredParallelBatchSize),
                          degreeOfParallelism,
-                         batchReader => batchReader.RowsAs(configure),
+                         batchReader => EnumerateExplicitBatch(batchReader, plan, culture, dateTimeFormats,
+                             typeConverter, errorValuePolicy),
                          () => EnumerateBatches(
                              reader,
                              genericBatchSize,
@@ -439,7 +444,8 @@ public static partial class ParallelRowMappingExtensions {
                     () => {
                         using (batchReader) {
                             stop.Token.ThrowIfCancellationRequested();
-                            return MaterializeRows(mapReader(batchReader), stop.Token);
+                            return MaterializeRows(mapReader(batchReader), stop.Token,
+                                batchReader is IDataReaderParallelBatchInfo info ? info.ParallelBatchRowCount : 0);
                         }
                     },
                     CancellationToken.None,
@@ -493,9 +499,34 @@ public static partial class ParallelRowMappingExtensions {
         }
     }
 
+    /// <summary>Uses the caller's prepared mapping without running its configuration on workers.</summary>
+    private static IEnumerable<T> EnumerateExplicitBatch<T>(
+        DbDataReader reader,
+        ExplicitRowMappingPlan<T> plan,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        DataMappingErrorValuePolicy errorValuePolicy) where T : new() {
+        while (reader.Read()) {
+            yield return plan.MapReaderRow(reader, culture, dateTimeFormats, typeConverter, errorValuePolicy);
+        }
+    }
+
     private static T[] MaterializeRows<T>(
         IEnumerable<T> rows,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        int expectedCount = 0) {
+        if (expectedCount > 0) {
+            var exact = new T[expectedCount];
+            int count = 0;
+            foreach (T row in rows) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (count == exact.Length) Array.Resize(ref exact, checked(exact.Length * 2));
+                exact[count++] = row;
+            }
+            if (count != exact.Length) Array.Resize(ref exact, count);
+            return exact;
+        }
         var materialized = new List<T>();
         foreach (T row in rows) {
             cancellationToken.ThrowIfCancellationRequested();
