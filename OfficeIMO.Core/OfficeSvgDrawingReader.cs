@@ -1419,7 +1419,8 @@ public static partial class OfficeSvgDrawingReader {
                 else style.FontFamily = normalized;
                 break;
             case "font-size":
-                if (!TrySvgLength(normalized, out double fontSize) || fontSize <= 0D) unsupported++;
+                if ((!TrySvgLength(normalized, out double fontSize) &&
+                     !OfficeImageReader.TryParseSvgLength(normalized, out fontSize)) || fontSize <= 0D) unsupported++;
                 else style.FontSize = fontSize;
                 break;
             case "line-height":

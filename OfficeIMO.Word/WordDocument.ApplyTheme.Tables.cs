@@ -1,16 +1,25 @@
 using System.Globalization;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
 public partial class WordDocument {
+    /// <summary>Uses declared headers or an active first-row region in the existing table style.</summary>
     internal static bool IsThemeHeaderCell(TableCell cell) {
         TableRow? row = cell.Ancestors<TableRow>().FirstOrDefault();
         Table? table = row?.Ancestors<Table>().FirstOrDefault();
         if (row == null || table == null) return false;
         TableHeader? declared = row.TableRowProperties?.GetFirstChild<TableHeader>();
-        return declared != null && WordTableRow.ReadOnOff(declared) ||
-            ReferenceEquals(WordTableContent.Rows(table).FirstOrDefault(), row) && WordTable.HasFirstRowFormatting(table);
+        if (declared != null && WordTableRow.ReadOnOff(declared)) return true;
+        if (!ReferenceEquals(WordTableContent.Rows(table).FirstOrDefault(), row) || !WordTable.HasFirstRowFormatting(table)) return false;
+        // Native first-row look defaults select style regions; they do not declare a header by themselves.
+        OpenXmlPartRootElement? root = table.Ancestors<OpenXmlPartRootElement>().LastOrDefault();
+        Styles? styles = (root?.OpenXmlPart?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+        string? styleId = table.GetFirstChild<TableProperties>()?.TableStyle?.Val?.Value;
+        return WordRunFormatting.EnumerateStyleChain(styles, styleId, StyleValues.Table)
+            .Any(style => style.Elements<TableStyleProperties>().Any(part => part.Type?.Value == TableStyleOverrideValues.FirstRow));
     }
 
     private static void ApplyThemeTable(Table table, OfficeTheme theme) {

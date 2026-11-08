@@ -29,21 +29,34 @@ internal partial class HtmlToWordConverter {
 
         // The importer already admitted these sources in order, with its resource and byte limits.
         // Reuse them without fetching again, and remove the original nodes to avoid a second cascade.
-        foreach (IElement style in document.QuerySelectorAll("style").ToArray()) style.Remove();
-        foreach (var stylesheet in _pageStylesheets) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            IElement style = document.CreateElement("style");
-            style.TextContent = stylesheet.Css;
-            if (!string.IsNullOrWhiteSpace(stylesheet.Media)) style.SetAttribute("media", stylesheet.Media);
-            document.Head!.AppendChild(style);
+        var svgStyles = new List<(IElement Style, IElement Parent, INode? NextSibling)>();
+        foreach (IElement style in document.QuerySelectorAll("style").ToArray()) {
+            if (style.ParentElement is IElement parent && style.Closest("svg")?.NamespaceUri == "http://www.w3.org/2000/svg") {
+                svgStyles.Add((style, parent, style.NextSibling));
+            }
+            style.Remove();
         }
 
         IReadOnlyDictionary<IElement, HtmlComputedStyle> computed;
         try {
+            foreach (var stylesheet in _pageStylesheets) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                IElement style = document.CreateElement("style");
+                style.TextContent = stylesheet.Css;
+                if (!string.IsNullOrWhiteSpace(stylesheet.Media)) style.SetAttribute("media", stylesheet.Media);
+                document.Head!.AppendChild(style);
+            }
             computed = HtmlComputedStyleEngine.Compute(document, _sourceMediaContext, _options.Limits);
         } catch (HtmlDomLimitException exception) {
             ThrowLimitExceeded(_options, exception.Code, exception.Message, exception.LimitSource, exception.Actual, exception.Limit);
             throw;
+        } finally {
+            // SVG is embedded as an image later. Keep its authored styles and media
+            // without admitting them into the host document's computed cascade.
+            for (int index = svgStyles.Count - 1; index >= 0; index--) {
+                var retained = svgStyles[index];
+                retained.Parent.InsertBefore(retained.Style, retained.NextSibling);
+            }
         }
 
         var authoredProperties = new Dictionary<IElement, HashSet<string>>();

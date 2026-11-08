@@ -119,6 +119,16 @@ public class MarkdownSaveAsPdfOptionsTests {
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
         Assert.Contains(polish, text, StringComparison.Ordinal);
+
+        using var styled = OfficeIMO.Markdown.MarkdownDocument.Parse("# Faktura\n\n" + polish).ToPdf(new MarkdownPdfExportOptions {
+            Style = MarkdownPdfStyle.Plain(),
+            Theme = OfficeIMO.Markdown.MarkdownVisualTheme.FromOfficeTheme(OfficeTheme.Boardroom),
+            TextFallbacks = PdfCore.PdfTextFallbackFeatures.DocumentFont
+        });
+        byte[] styledBytes = styled.ToBytes();
+        Assert.Contains("/Subtype /Type0", Encoding.ASCII.GetString(styledBytes), StringComparison.Ordinal);
+        using var styledArtifact = PdfPigDocument.Open(styledBytes);
+        Assert.Contains(polish, string.Join(" ", styledArtifact.GetPage(1).GetWords().Select(word => word.Text)), StringComparison.Ordinal);
     }
 
     [Fact]

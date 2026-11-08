@@ -8,8 +8,8 @@ namespace OfficeIMO.Word.Markdown;
 internal partial class MarkdownToWordConverter {
     /// <summary>Seeds a fresh cell paragraph from the native role owner before authored inline formatting.</summary>
     private static StyleRunProperties? PrepareNativeTableTextDefaults(WordParagraph paragraph, Omd.MarkdownVisualTheme? theme) {
-        if (theme?.EffectiveSourceTheme is not { } source ||
-            paragraph._paragraph.Ancestors<TableCell>().FirstOrDefault() is not { } cell) return null;
+        if (paragraph._paragraph.Ancestors<TableCell>().FirstOrDefault() is not { } cell ||
+            theme?.EffectiveSourceTheme is not { } source) return null;
         // Explicit block roles retain their own native typography and spacing.
         string? style = paragraph._paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
         if (!string.IsNullOrEmpty(style) && style is not ("Normal" or "ListParagraph")) return null;

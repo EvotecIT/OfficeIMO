@@ -10,11 +10,12 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public void ApplyingThemeIsExplicitAndPreservesLoadedContentAndGeometry(bool apply, bool dark) {
-        byte[] source = CreateAuthoredThemeSource();
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    public void ApplyingThemeIsExplicitAndPreservesLoadedContentAndGeometry(bool apply, bool dark, bool inheritedDefaultHeader) {
+        byte[] source = CreateAuthoredThemeSource(inheritedDefaultHeader);
         using var input = new MemoryStream(source, writable: false);
         using WordDocument document = WordDocument.Load(input);
         MainDocumentPart before = document._wordprocessingDocument.MainDocumentPart!;
@@ -74,7 +75,17 @@ public partial class Word {
             Assert.Equal(OfficeTheme.Modern.Surfaces.Surface.Resolve(theme).ToRgbHex(), ThemeRun(main.Document, "Code block").Ancestors<Paragraph>().First().ParagraphProperties!.Shading!.Fill!.Value);
             Table[] tables = main.Document.Descendants<Table>().ToArray();
             Assert.Equal(dark ? "1E2A39" : "375A74", tables[0].Descendants<TableCell>().First().TableCellProperties!.Shading!.Fill!.Value);
-            Assert.Equal("FFFFFF", tables[1].Descendants<TableCell>().First().TableCellProperties!.Shading!.Fill!.Value);
+            TableCell undeclared = tables[1].Descendants<TableCell>().First();
+            Assert.Equal(inheritedDefaultHeader ? "375A74" : "FFFFFF", undeclared.TableCellProperties!.Shading!.Fill!.Value);
+            Run undeclaredText = ThemeRun(main.Document, "Undeclared first row");
+            Assert.Equal(inheritedDefaultHeader ? "FFFFFF" : WordThemeDefaults.PageText(theme).ToRgbHex(), undeclaredText.RunProperties!.Color!.Val!.Value);
+            if (inheritedDefaultHeader) {
+                Assert.True(undeclaredText.RunProperties.Bold!.Val?.Value ?? true);
+                Assert.NotNull(undeclared.TableCellProperties.TableCellBorders);
+            } else {
+                Assert.Null(undeclaredText.RunProperties.Bold);
+                Assert.Null(undeclared.TableCellProperties.TableCellBorders);
+            }
             Assert.NotNull(ThemeRun(main.Document, "Declared header").RunProperties!.Bold);
             Assert.Equal("22", ThemeRun(main.HeaderParts.Single().Header, "Header story").RunProperties!.FontSize!.Val!.Value);
             Assert.Equal("22", ThemeRun(main.FootnotesPart!.Footnotes!, "Note story").RunProperties!.FontSize!.Val!.Value);
@@ -174,7 +185,7 @@ public partial class Word {
         return stream;
     }
 
-    private static byte[] CreateAuthoredThemeSource() {
+    private static byte[] CreateAuthoredThemeSource(bool inheritedDefaultHeader) {
         using var input = CreateBareThemeSource();
         using (WordprocessingDocument package = WordprocessingDocument.Open(input, true)) {
             MainDocumentPart main = package.MainDocumentPart!;
@@ -184,6 +195,14 @@ public partial class Word {
                 new Style(new StyleName { Val = "Document title" }) { Type = StyleValues.Paragraph, StyleId = "Title" },
                 new Style(new StyleName { Val = "Document subtitle" }) { Type = StyleValues.Paragraph, StyleId = "Subtitle" },
                 new Style(new StyleName { Val = "Code block" }, new StyleRunProperties(new RunFonts { Ascii = "Consolas" })) { Type = StyleValues.Paragraph, StyleId = "OfficeIMOCodeBlock" });
+            if (inheritedDefaultHeader) {
+                main.StyleDefinitionsPart!.Styles!.Append(
+                    new Style(new StyleName { Val = "Source header base" },
+                        new TableStyleProperties(new RunPropertiesBaseStyle(new Color { Val = "234567" })) { Type = TableStyleOverrideValues.FirstRow })
+                        { Type = StyleValues.Table, StyleId = "SourceHeaderBase" },
+                    new Style(new StyleName { Val = "Inherited default table" }, new BasedOn { Val = "SourceHeaderBase" })
+                        { Type = StyleValues.Table, StyleId = "SourceDefaultTable", Default = true });
+            }
             main.Document.DocumentBackground = new DocumentBackground { Color = "101820", ThemeColor = ThemeColorValues.Dark1, ThemeTint = "20", ThemeShade = "80" };
             Body body = main.Document.Body!;
             body.RemoveAllChildren();
@@ -198,7 +217,10 @@ public partial class Word {
             string linkId = main.AddHyperlinkRelationship(new Uri("https://example.com/source"), true).Id;
             body.Append(new Paragraph(new Hyperlink(new Run(new Text("Linked text"))) { Id = linkId },
                 new SimpleField(new Run(new Text("1"))) { Instruction = " PAGE " }, new Run(new FootnoteReference { Id = 1 })));
-            body.Append(CreateThemeSourceTable(true), CreateThemeSourceTable(false));
+            Table undeclared = CreateThemeSourceTable(false);
+            undeclared.GetFirstChild<TableProperties>()!.TableLook!.Remove();
+            undeclared.Elements<TableRow>().First().TableRowProperties!.GetFirstChild<TableHeader>()!.Remove();
+            body.Append(CreateThemeSourceTable(true), undeclared);
             HeaderPart header = main.AddNewPart<HeaderPart>();
             header.Header = new Header(new Paragraph(new Run(new Text("Header story"))));
             main.AddNewPart<FootnotesPart>().Footnotes = new Footnotes(new Footnote(new Paragraph(new Run(new Text("Note story")))) { Id = 1 });
@@ -219,7 +241,7 @@ public partial class Word {
         new TableGrid(new GridColumn { Width = "2400" }, new GridColumn { Width = "2600" }),
         new TableRow(new TableRowProperties(new CantSplit(), new TableRowHeight { Val = 600U, HeightType = HeightRuleValues.AtLeast }, new TableHeader { Val = header ? OnOffOnlyValues.On : OnOffOnlyValues.Off }),
             new TableCell(new TableCellProperties(new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "5000" }, new GridSpan { Val = 2 }),
-                new Paragraph(new Run(new Text(header ? "Declared header" : "Ordinary first row"))))),
+                new Paragraph(new Run(new Text(header ? "Declared header" : "Undeclared first row"))))),
         new TableRow(new TableCell(new TableCellProperties(new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "2400" }), new Paragraph(new Run(new Text("Value")))),
             new TableCell(new TableCellProperties(new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "2600" }), new Paragraph(new Run(new Text("42"))))));
 
