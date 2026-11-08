@@ -361,13 +361,15 @@ internal static partial class TextContentParser {
         Func<string, PdfFontResource?>? twoByteFontForResource = null,
         int initialStrokeLineCap = 0,
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
-        bool markUnsafeRestamps = true) {
+        bool retainEditingEvidence = true) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
 
         textOutputBudget ??= new TextOutputBudget(maxActualTextCharacters, maxDecodedTextCharacters);
         textClippingBudget ??= new PdfTextClippingBudget();
 
+        // Plain string extraction never exposes encoded glyphs or paint identities.
+        bool retainGlyphAndPaintEvidence = retainEditingEvidence || !useLogicalTextFilters;
         var spans = new List<PdfTextSpan>();
         PdfTextStateSnapshot startingTextState = initialTextState ?? PdfTextStateSnapshot.Default;
         // Text state
@@ -888,7 +890,7 @@ internal static partial class TextContentParser {
         }
 
         void MarkSpansCannotRestamp(int firstSpanIndex, int spanCount) {
-            if (!markUnsafeRestamps) return;
+            if (!retainEditingEvidence) return;
             int end = Math.Min(spans.Count, firstSpanIndex + spanCount);
             for (int index = firstSpanIndex; index < end; index++) spans[index] = spans[index].WithCanRestamp(false);
         }
@@ -1327,7 +1329,7 @@ internal static partial class TextContentParser {
                     currentContentStreamObjectNumber,
                     currentTextObjectOrderKey,
                     Matrix2D.Multiply(ctm, spanTextMatrix),
-                    string.Join(",", new[] {
+                    retainGlyphAndPaintEvidence ? string.Join(",", new[] {
                         fillColor.R.ToString(CultureInfo.InvariantCulture), fillColor.G.ToString(CultureInfo.InvariantCulture), fillColor.B.ToString(CultureInfo.InvariantCulture), fillColor.A.ToString(CultureInfo.InvariantCulture),
                         strokeColor.R.ToString(CultureInfo.InvariantCulture), strokeColor.G.ToString(CultureInfo.InvariantCulture), strokeColor.B.ToString(CultureInfo.InvariantCulture), strokeColor.A.ToString(CultureInfo.InvariantCulture),
                         fillOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null", strokeOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null",
@@ -1337,11 +1339,11 @@ internal static partial class TextContentParser {
                         UsesStrokeTextPaint(textRenderingMode) ? strokeLineJoin.ToString(CultureInfo.InvariantCulture) : "none",
                         UsesStrokeTextPaint(textRenderingMode) ? miterLimit.ToString("R", CultureInfo.InvariantCulture) : "none",
                         UsesStrokeTextPaint(textRenderingMode) ? strokeDashIdentity : "none"
-                    }),
+                    }) : null,
                     !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
                         ? spanGlyphCharacterLengths
                         : null,
-                    !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length &&
+                    retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length &&
                         spanGlyphBytes.Count == spanGlyphCharacterLengths.Count
                         ? spanGlyphBytes
                         : null,
