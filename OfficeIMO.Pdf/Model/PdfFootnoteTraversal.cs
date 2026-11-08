@@ -2,7 +2,10 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Visits authored references without materializing dynamic content or following definitions recursively.</summary>
 internal static class PdfFootnoteTraversal {
-    internal static IEnumerable<PdfFootnoteDefinition> References(IPdfBlock block) {
+    internal static IEnumerable<PdfFootnoteDefinition> References(IPdfBlock block) =>
+        PdfFootnoteDefinition.AnyCreated ? ReferencesCore(block) : Array.Empty<PdfFootnoteDefinition>();
+
+    private static IEnumerable<PdfFootnoteDefinition> ReferencesCore(IPdfBlock block) {
         IEnumerable<PdfTextRun> runs = block switch {
             RichParagraphBlock paragraph => paragraph.Runs,
             HeadingBlock heading => heading.Runs ?? Array.Empty<PdfTextRun>(),
@@ -13,7 +16,7 @@ internal static class PdfFootnoteTraversal {
         foreach (PdfTextRun run in runs)
             if (run.FootnoteReference is { } note) yield return note;
         foreach (IPdfBlock child in Children(block))
-            foreach (PdfFootnoteDefinition note in References(child)) yield return note;
+            foreach (PdfFootnoteDefinition note in ReferencesCore(child)) yield return note;
     }
 
     /// <summary>Authoring paragraphs inside a block, so flow that cannot place footnotes can reject later footnote runs.</summary>
