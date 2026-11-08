@@ -1,5 +1,4 @@
 #if NET8_0_OR_GREATER
-using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -146,10 +145,17 @@ internal static partial class CsvParser
                 }
                 else
                 {
-                    ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
-                    materialized = _allFieldsAscii || Ascii.IsValid(bytes)
-                        ? CreateAsciiString(_buffer, start, length)
-                        : _encoding.GetString(bytes);
+                    if (_allFieldsAscii)
+                    {
+                        materialized = CreateAsciiString(_buffer, start, length);
+                    }
+                    else
+                    {
+                        ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
+                        materialized = Ascii.IsValid(bytes)
+                            ? CreateAsciiString(_buffer, start, length)
+                            : _encoding.GetString(bytes);
+                    }
                 }
 
                 field.Materialized = materialized;
@@ -170,48 +176,51 @@ internal static partial class CsvParser
             return string.Create(length, (Buffer: buffer, Start: start), static (characters, state) =>
             {
                 ReadOnlySpan<byte> bytes = state.Buffer.AsSpan(state.Start, characters.Length);
-                Span<byte> destination = MemoryMarshal.AsBytes(characters);
+                // The caller admits 2..15 bytes. Each endpoint load stays inside
+                // that span, and its widened store ends within the exact string length.
+                ref byte source = ref MemoryMarshal.GetReference(bytes);
+                ref byte destination = ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(characters));
                 int length = bytes.Length;
                 if (length >= 8)
                 {
-                    WidenEight(bytes, destination);
-                    WidenEight(bytes.Slice(length - 8), destination.Slice((length - 8) * 2));
+                    WidenEight(ref source, ref destination);
+                    WidenEight(ref Unsafe.Add(ref source, length - 8), ref Unsafe.Add(ref destination, (length - 8) * 2));
                 }
                 else if (length >= 4)
                 {
-                    WidenFour(bytes, destination);
-                    WidenFour(bytes.Slice(length - 4), destination.Slice((length - 4) * 2));
+                    WidenFour(ref source, ref destination);
+                    WidenFour(ref Unsafe.Add(ref source, length - 4), ref Unsafe.Add(ref destination, (length - 4) * 2));
                 }
                 else
                 {
-                    WidenTwo(bytes, destination);
-                    WidenTwo(bytes.Slice(length - 2), destination.Slice((length - 2) * 2));
+                    WidenTwo(ref source, ref destination);
+                    WidenTwo(ref Unsafe.Add(ref source, length - 2), ref Unsafe.Add(ref destination, (length - 2) * 2));
                 }
             });
         }
 
-        private static void WidenEight(ReadOnlySpan<byte> bytes, Span<byte> destination)
+        private static void WidenEight(ref byte source, ref byte destination)
         {
-            ulong word = BinaryPrimitives.ReadUInt64LittleEndian(bytes);
-            Vector128.WidenLower(Vector128.CreateScalarUnsafe(word).AsByte()).AsByte().CopyTo(destination);
+            ulong word = Unsafe.ReadUnaligned<ulong>(ref source);
+            Vector128.WidenLower(Vector128.CreateScalarUnsafe(word).AsByte()).AsByte().StoreUnsafe(ref destination);
         }
 
-        private static void WidenFour(ReadOnlySpan<byte> bytes, Span<byte> destination)
+        private static void WidenFour(ref byte source, ref byte destination)
         {
-            ulong word = BinaryPrimitives.ReadUInt32LittleEndian(bytes);
+            ulong word = Unsafe.ReadUnaligned<uint>(ref source);
             word = (word | (word << 16)) & 0x0000ffff0000ffffUL;
             word = (word | (word << 8)) & 0x00ff00ff00ff00ffUL;
-            BinaryPrimitives.WriteUInt64LittleEndian(destination, word);
+            Unsafe.WriteUnaligned(ref destination, word);
         }
 
-        private static void WidenTwo(ReadOnlySpan<byte> bytes, Span<byte> destination)
+        private static void WidenTwo(ref byte source, ref byte destination)
         {
-            uint word = BinaryPrimitives.ReadUInt16LittleEndian(bytes);
-            BinaryPrimitives.WriteUInt32LittleEndian(destination, (word | (word << 8)) & 0x00ff00ffU);
+            uint word = Unsafe.ReadUnaligned<ushort>(ref source);
+            Unsafe.WriteUnaligned(ref destination, (word | (word << 8)) & 0x00ff00ffU);
         }
 
         /// <summary>Completes requested per-read string sharing before exposing the row.</summary>
-        internal void InternFields(Dictionary<string, string>? cache)
+        internal void InternFields(CsvStringCache? cache)
         {
             if (cache is null) return;
             int count = SourceColumnCount > 0 ? Math.Min(FieldCount, SourceColumnCount) : FieldCount;

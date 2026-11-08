@@ -17,7 +17,7 @@ internal static partial class CsvParser
         private readonly TextReader _reader;
         private readonly CsvLineReader _lineReader;
         private readonly CsvParsingSettings _options;
-        private readonly Dictionary<string, string>? _stringCache;
+        private CsvStringCache? _stringCache;
         private readonly char _delimiter;
         private readonly bool _trim;
         private readonly bool _strictQuotes;
@@ -38,7 +38,7 @@ internal static partial class CsvParser
             CsvParsingSettings options,
             int initialEmittedRecordCount = 0,
             int physicalLineOffset = 0,
-            Dictionary<string, string>? stringCache = null)
+            CsvStringCache? stringCache = null)
         {
             _reader = reader ?? throw new ArgumentNullException(nameof(reader));
             _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -301,8 +301,16 @@ internal static partial class CsvParser
             }
 
             _disposed = true;
-            _lineReader.Dispose();
-            _reader.Dispose();
+            try
+            {
+                _lineReader.Dispose();
+                _reader.Dispose();
+            }
+            finally
+            {
+                // A UTF-8 owner may reuse this storage after its fallback is closed.
+                _stringCache = null;
+            }
         }
     }
 
@@ -506,7 +514,7 @@ internal static partial class CsvParser
         }
 
         /// <summary>Retains the same cache when UTF-8 reading transfers to the character parser.</summary>
-        internal void InternFields(Dictionary<string, string>? cache)
+        internal void InternFields(CsvStringCache? cache)
         {
             if (cache is null) return;
             int count = SourceColumnCount > 0 ? Math.Min(FieldCount, SourceColumnCount) : FieldCount;
