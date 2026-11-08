@@ -479,12 +479,13 @@ internal static class HtmlRenderCssValues {
 
     internal static IReadOnlyList<string> SplitTopLevel(string? value, char separator) {
         if (string.IsNullOrWhiteSpace(value)) return Array.Empty<string>();
+        string text = value!;
+        if (text.IndexOf(separator) < 0) return Array.AsReadOnly(new[] { text.Trim() });
 
         var parts = new List<string>();
         int start = 0;
         int depth = 0;
         char quote = '\0';
-        string text = value!;
         for (int index = 0; index < text.Length; index++) {
             char current = text[index];
             if (current == '\\') {
