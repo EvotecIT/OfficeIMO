@@ -397,10 +397,7 @@ public static partial class OfficeSvgDrawingReader {
         double fontSize = inherited.FontSize;
         string? fontSizeText = ReadRasterPresentationProperty(element, "font-size");
         if (!string.IsNullOrWhiteSpace(fontSizeText) && !fontSizeText!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase)) {
-            if (!OfficeImageReader.TryParseSvgLength(fontSizeText, out fontSize)
-                || double.IsNaN(fontSize)
-                || double.IsInfinity(fontSize)
-                || fontSize <= 0D) {
+            if (!TrySvgFontSize(fontSizeText, out fontSize)) {
                 style = default;
                 return false;
             }

@@ -1419,8 +1419,7 @@ public static partial class OfficeSvgDrawingReader {
                 else style.FontFamily = normalized;
                 break;
             case "font-size":
-                if ((!TrySvgLength(normalized, out double fontSize) &&
-                     !OfficeImageReader.TryParseSvgLength(normalized, out fontSize)) || fontSize <= 0D) unsupported++;
+                if (!TrySvgFontSize(normalized, out double fontSize)) unsupported++;
                 else style.FontSize = fontSize;
                 break;
             case "line-height":
@@ -1632,6 +1631,10 @@ public static partial class OfficeSvgDrawingReader {
         int separator = value!.IndexOfAny(new[] { ' ', '\t', '\r', '\n', ',' });
         return TrySvgLength(separator < 0 ? value : value.Substring(0, separator), out double parsed) ? parsed : 0D;
     }
+
+    /// <summary>Keeps paint, raster safety and content-safety decisions on the same positive font-length contract.</summary>
+    private static bool TrySvgFontSize(string? value, out double result) =>
+        (TrySvgLength(value, out result) || OfficeImageReader.TryParseSvgLength(value, out result)) && result > 0D;
 
     private static bool TrySvgLength(string? value, out double result) {
         result = 0D;
