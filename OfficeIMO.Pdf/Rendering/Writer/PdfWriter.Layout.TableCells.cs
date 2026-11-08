@@ -476,14 +476,15 @@ internal static partial class PdfWriter {
     // called O(passes x rows) times per table (autofit, flow metrics, rendering), and each call re-walked
     // rows 0..rowIndex rebuilding the layout structs. Memoize the whole split per table so it is computed
     // once; every caller only reads the returned lists (verified), so the cached instances are shareable.
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TableBlock, TableCellLayoutCache> _tableCellLayoutCache = new();
+    private static TableCellLayoutCache GetTableCellLayoutCache(TableBlock table) =>
+        table.WriterCellLayouts as TableCellLayoutCache ?? (TableCellLayoutCache)(table.WriterCellLayouts = new TableCellLayoutCache());
 
     private static System.Collections.Generic.List<TableCellLayout> GetTableCellLayouts(TableBlock table, int rowIndex, int columnCount) {
         if (rowIndex < 0 || rowIndex >= table.Cells.Count) {
             return new System.Collections.Generic.List<TableCellLayout>();
         }
 
-        TableCellLayoutCache cache = _tableCellLayoutCache.GetValue(table, static _ => new TableCellLayoutCache());
+        TableCellLayoutCache cache = GetTableCellLayoutCache(table);
         System.Collections.Generic.List<TableCellLayout>[]? byRow = cache.ByRow;
         if (byRow == null || cache.ColumnCount != columnCount) {
             byRow = GetTableCellLayoutsByRow(table, columnCount);
@@ -510,7 +511,7 @@ internal static partial class PdfWriter {
         }
 
         GetTableCellLayouts(table, 0, columnCount);
-        return _tableCellLayoutCache.GetValue(table, static _ => new TableCellLayoutCache()).MaxRowSpan;
+        return GetTableCellLayoutCache(table).MaxRowSpan;
     }
 
     private static System.Collections.Generic.List<TableCellLayout>[] GetTableCellLayoutsByRow(TableBlock table, int columnCount) {

@@ -7,6 +7,10 @@ internal sealed class TableBlock : IPdfBlock {
     public OfficeAlignment Align { get; }
     public PdfTableStyle? Style { get; }
     internal int CellBlockDepth { get; }
+    // Writer-owned caches of this table's cell layouts and viewport row groups. Held on the table rather than in
+    // a process-wide weak table, whose lookup takes a lock, on every row.
+    internal object? WriterCellLayouts;
+    internal object? WriterViewportRowGroups;
 
     public TableBlock(System.Collections.Generic.IEnumerable<string[]> rows, OfficeAlignment align, PdfTableStyle? style) {
         Guard.NotNull(rows, nameof(rows));
