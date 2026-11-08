@@ -6,7 +6,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
         private bool TryReadValidatedRowPlan(int rowIndex) {
             XlsbValidatedRowPlan? plan = _validatedRowPlan;
-            if (plan == null || rowIndex < plan.FirstRowIndex || rowIndex > plan.LastRowIndex) {
+            if (plan == null || rowIndex < plan.FirstRowIndex || rowIndex > plan.LastRowIndex
+                || plan.TreatDatesUsingNumberFormat != _options.TreatDatesUsingNumberFormat) {
                 return false;
             }
 
@@ -51,6 +52,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     }
 
     internal sealed class XlsbValidatedRowPlanBuilder {
+        private readonly bool _treatDatesUsingNumberFormat;
         private readonly List<XlsbValidatedCellPlan> _candidateCells = new List<XlsbValidatedCellPlan>();
         private XlsbValidatedCellPlan[]? _cells;
         private int _physicalRowIndex = -1;
@@ -63,6 +65,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private int _firstContentPosition;
         private int _rowStride;
         private int _pendingCompletedRowIndex = -1;
+
+        internal XlsbValidatedRowPlanBuilder(bool treatDatesUsingNumberFormat) {
+            _treatDatesUsingNumberFormat = treatDatesUsingNumberFormat;
+        }
 
         internal XlsbValidatedRowPlanBuilder? BeginRow(int rowIndex, int contentPosition) {
             // A rejected layout never becomes a delivery plan. Stop tracking its
@@ -122,7 +128,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 _lastRowIndex,
                 _firstContentPosition,
                 _rowStride,
-                _cells);
+                _cells,
+                _treatDatesUsingNumberFormat);
         }
 
         private bool CompleteCurrentRow(int nextRowIndex, int nextContentPosition) {
@@ -161,12 +168,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int lastRowIndex,
             int firstContentPosition,
             int rowStride,
-            XlsbValidatedCellPlan[] cells) {
+            XlsbValidatedCellPlan[] cells,
+            bool treatDatesUsingNumberFormat) {
             FirstRowIndex = firstRowIndex;
             LastRowIndex = lastRowIndex;
             FirstContentPosition = firstContentPosition;
             RowStride = rowStride;
             Cells = cells;
+            TreatDatesUsingNumberFormat = treatDatesUsingNumberFormat;
         }
 
         internal int FirstRowIndex { get; }
@@ -178,6 +187,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         internal int RowStride { get; }
 
         internal XlsbValidatedCellPlan[] Cells { get; }
+
+        internal bool TreatDatesUsingNumberFormat { get; }
     }
 
     internal readonly struct XlsbValidatedCellPlan : IEquatable<XlsbValidatedCellPlan> {
