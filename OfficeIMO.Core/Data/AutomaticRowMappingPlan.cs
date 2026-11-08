@@ -321,9 +321,11 @@ internal sealed partial class AutomaticRowMappingPlan<
         internal T Assign(T instance, object? value) => _assign(instance, value);
 
         internal object? ReadReaderValue(DbDataReader reader, int ordinal) {
-            if (reader.IsDBNull(ordinal)) return null;
+            bool nonNullTypedValue = _readReaderValue is not null &&
+                DataReaderTypedMappingCompatibility.CanUseNonNullTypedGetter(reader, ordinal, ValueType);
+            if (!nonNullTypedValue && reader.IsDBNull(ordinal)) return null;
             if (_readReaderValue is not null &&
-                DataReaderTypedMappingCompatibility.CanUseTypedGetter(reader, ordinal, ValueType)) {
+                (nonNullTypedValue || DataReaderTypedMappingCompatibility.CanUseTypedGetter(reader, ordinal, ValueType))) {
                 try {
                     return _readReaderValue(reader, ordinal);
                 } catch (InvalidCastException) {
@@ -345,10 +347,10 @@ internal sealed partial class AutomaticRowMappingPlan<
             IReadOnlyList<string>? dateTimeFormats,
             Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
             DataMappingErrorValuePolicy errorValuePolicy) {
-            if (typeConverter is null &&
+            if (_assignReader is not null &&
+                typeConverter is null &&
                 DataReaderTypedMappingCompatibility.CanUseTypedGetter(reader, ordinal, ValueType) &&
-                !reader.IsDBNull(ordinal) &&
-                _assignReader is not null) {
+                !reader.IsDBNull(ordinal)) {
                 try {
                     return _assignReader(instance, reader, ordinal);
                 } catch (TypedReaderValueException) {

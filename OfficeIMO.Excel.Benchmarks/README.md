@@ -23,6 +23,18 @@ header before timing; each scan still verifies the complete row count and checks
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelReaderGeneratedZipPrefetchBenchmarks*" --inProcess --warmupCount 12 --iterationCount 12 --iterationTime 250 --unrollFactor 1 --outliers DontRemove
 ```
 
+I use `ExcelOrderedParallelComparisonBenchmarks` for complete, ordered typed
+reads of the same 50,000-row XLSX and XLSB inputs, including escaped names.
+OfficeIMO enables schema inference so column types permit parallel mapping.
+Each library receives a requested degree of one or four through its public API;
+these settings have different producer and worker counts. Setup checks every
+field and source order, and each measured read checks the complete row count
+and checksum. ZIP checksum validation keeps its default setting.
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelOrderedParallelComparisonBenchmarks*" --inProcess --warmupCount 12 --iterationCount 12 --iterationTime 250 --unrollFactor 1 --outliers DontRemove
+```
+
 `ExcelReaderGeneratedXlsxWriteBenchmarks` compares complete in-memory XLSX
 packages from OfficeIMO, ExcelReader.NET and SpreadCheetah.
 `ExcelReaderGeneratedWriteBenchmarks` covers XLSB and XLS. I retain both the typed

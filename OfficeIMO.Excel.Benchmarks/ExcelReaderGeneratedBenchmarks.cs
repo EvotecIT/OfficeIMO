@@ -169,7 +169,7 @@ public partial class ExcelReaderGeneratedBenchmarks {
             throw new InvalidDataException($"Incorrect row {index}.");
     }
 
-    private static long Add(long checksum, GeneratedRecord row) => Add(checksum, row.Name, row.Id, row.CreatedOn, row.Amount);
+    internal static long Add(long checksum, GeneratedRecord row) => Add(checksum, row.Name, row.Id, row.CreatedOn, row.Amount);
     private static long Add(long checksum, string name, int id, DateTime date, double amount) {
         unchecked {
             // Observe every decoded character and typed value, identically for all engines.

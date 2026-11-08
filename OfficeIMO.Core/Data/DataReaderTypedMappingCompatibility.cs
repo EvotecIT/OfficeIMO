@@ -12,6 +12,13 @@ namespace OfficeIMO.Data {
     }
 
     internal static class DataReaderTypedMappingCompatibility {
+        /// <summary>Proves the same typed conversion and a non-null current field before snapshot capture.</summary>
+        internal static bool CanUseNonNullTypedGetter(DbDataReader reader, int ordinal, Type targetType) =>
+            reader is IDataReaderFastMappingValues fastValues &&
+            (reader is IDataReaderTypedMappingCompatibility compatibility
+                ? compatibility.CanUseNonNullTypedGetter(ordinal, targetType)
+                : fastValues.HasOnlyNonNullFastValues);
+
         internal static bool CanUseTypedGetter(DbDataReader reader, int ordinal, Type targetType) =>
             reader is IDataReaderFastMappingValues &&
             (reader is not IDataReaderTypedMappingCompatibility compatibility ||
