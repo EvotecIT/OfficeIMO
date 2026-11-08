@@ -11,7 +11,7 @@ using CsvDataReaderTextRowSource = OfficeIMO.CSV.ICsvDataReaderTextRowSource;
 
 namespace OfficeIMO.CSV;
 
-public partial class CsvDataReader
+public partial class CsvDataReader : IDataReaderTypedParallelBatchSource
 {
     internal bool HasIncrementalSource =>
 #if NET8_0_OR_GREATER
@@ -26,10 +26,20 @@ public partial class CsvDataReader
         _currentStringRow is null && !_hasCurrentTextRow &&
         _textRowSource is CsvParser.CsvTextDataReaderRowSource { CanTakeParallelBatch: true };
 
+    bool IDataReaderTypedParallelBatchSource.CanReadTypedParallelBatches => CanTakeStreamRecordBatches;
+
+    private bool CanTakeStreamRecordBatches => !_closed && !_readFailed &&
+        _useRawStringValues && _textRowSource is CsvParser.CsvUtf8StreamDataReaderRowSource &&
+        _stringRowOptions is { ProgressCallback: null, CollectParseErrors: false, InternStrings: false } &&
+        (_stringRowOptions.StaticColumns is null || _stringRowOptions.StaticColumns.Count == 0);
+
     int IDataReaderParallelBatchSource.PreferredParallelBatchSize =>
+        CanTakeStreamRecordBatches ? Math.Max(1, Math.Min(1024, 8192 / Math.Max(1, FieldCount))) :
         (_textRowSource as CsvParser.CsvTextDataReaderRowSource)?.PreferredParallelBatchSize ?? 128;
 #else
     bool IDataReaderParallelBatchSource.CanReadParallelBatches => false;
+
+    bool IDataReaderTypedParallelBatchSource.CanReadTypedParallelBatches => false;
 
     int IDataReaderParallelBatchSource.PreferredParallelBatchSize => 128;
 #endif
@@ -59,6 +69,21 @@ public partial class CsvDataReader
         cancellationToken.ThrowIfCancellationRequested();
         batchReader = null;
 #if NET8_0_OR_GREATER
+        if (CanTakeStreamRecordBatches)
+        {
+            int firstCapturedRowIndex = _rowIndex;
+            CsvRecordTextBatch batch = CreateRecordTextBatch(preferredBatchSize, captureUtf8: true, includePositions: true);
+            try
+            {
+                ReadRecordTextBatchAsync(batch, cancellationToken, asynchronous: false).GetAwaiter().GetResult();
+                if (batch.Count == 0) { batch.Dispose(); return true; }
+                batchReader = new CsvDataReader(_columns, new CsvRecordBatchRowSource(batch),
+                    _sourceColumnCount, _stringRowOptions!, _culture, _dateTimeFormats,
+                    initialRowIndex: firstCapturedRowIndex);
+                return true;
+            }
+            catch { batch.Dispose(); throw; }
+        }
         if (_closed || _readFailed || _checkedForRows || _currentRawRow is not null ||
             _currentStringRow is not null || _hasCurrentTextRow ||
             _textRowSource is not CsvParser.CsvTextDataReaderRowSource textRows)
