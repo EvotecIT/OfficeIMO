@@ -20,6 +20,6 @@ $atRisk = $rows | Where-Object Status -eq 'At risk'
 
 Use `Get-OfficeDocumentInfo -Detailed` for a workbook-level inventory, then query tables, named ranges, formulas, comments, validation, pivots, worksheet views, page breaks, links, queries, and rich text only when needed.
 
-The [read-and-filter recipe](https://github.com/EvotecIT/OfficeIMO/blob/77332dd52570c13a4a881558ac7a5ecabf01a946/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ReadAndFilter.ps1) creates a table, imports typed rows, and filters the records that require attention.
+The [read-and-filter recipe](https://github.com/EvotecIT/OfficeIMO/blob/19df174fa85898137a6cf44c2ffc190e8a3a0905/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ReadAndFilter.ps1) creates a table, imports typed rows, and filters the records that require attention.
 
 For semicolon-delimited or other text data, continue with [delimited import and publishing](/docs/pswriteoffice/excel-export-publish/).

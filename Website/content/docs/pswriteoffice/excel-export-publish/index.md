@@ -15,7 +15,7 @@ Import-OfficeCsv -Path '.\Sales.csv' -Delimiter ';' -Culture en-US |
     Export-OfficeExcel -Path '.\Report.xlsx' -Sheet Sales -Append
 ```
 
-The [delimited-import recipe](https://github.com/EvotecIT/OfficeIMO/blob/77332dd52570c13a4a881558ac7a5ecabf01a946/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ImportDelimited.ps1) imports an existing semicolon-delimited file into a named worksheet.
+The [delimited-import recipe](https://github.com/EvotecIT/OfficeIMO/blob/19df174fa85898137a6cf44c2ffc190e8a3a0905/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ImportDelimited.ps1) imports an existing semicolon-delimited file into a named worksheet.
 
 ## Publish the useful part
 

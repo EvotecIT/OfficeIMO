@@ -1,7 +1,7 @@
 {
-  "generatedAtUtc": "2026-11-08T21:04:58.4480500Z",
+  "generatedAtUtc": "2026-11-08T23:13:23.7602927Z",
   "sourceCount": 128,
-  "referenceCount": 101416,
+  "referenceCount": 101445,
   "duplicateCount": 0,
   "references": [
     {
@@ -164448,6 +164448,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Email.EmailImageExportExtensions.ToImages(OfficeIMO.Email.EmailDocument,OfficeIMO.Email.EmailImageExportOptions,System.Threading.CancellationToken)",
+      "name": "EmailImageExportExtensions.ToImages",
+      "href": "/api/email-image/officeimo-email-emailimageexportextensions/#method-toimages-officeimo-email-emaildocument-officeimo-email-emailimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Email.EmailImageExportExtensions.ToImages",
+        "OfficeIMO.Email.EmailImageExportExtensions.ToImages",
+        "OfficeIMO.Email.EmailImageExportExtensions.ToImages(OfficeIMO.Email.EmailDocument,OfficeIMO.Email.EmailImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Email.EmailImageExportExtensions.ToImagesAsync(OfficeIMO.Email.EmailDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Drawing.OfficeImageExportAsyncConsumer,OfficeIMO.Email.EmailImageExportOptions,System.Threading.CancellationToken)",
       "name": "EmailImageExportExtensions.ToImagesAsync",
       "href": "/api/email-image/officeimo-email-emailimageexportextensions/#method-toimagesasync-officeimo-email-emaildocument-officeimo-drawing-officeimageexportformat-officeimo-drawing-officeimageexportasyncconsumer-officeimo-email-emailimageexportoptions-threading-cancellationtoken",
@@ -164465,6 +164475,16 @@
         "global::OfficeIMO.Email.EmailImageExportExtensions.ToImagesAsync",
         "OfficeIMO.Email.EmailImageExportExtensions.ToImagesAsync",
         "OfficeIMO.Email.EmailImageExportExtensions.ToImagesAsync(OfficeIMO.Email.EmailDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Email.EmailImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Email.EmailImageExportExtensions.ToImagesAsync(OfficeIMO.Email.EmailDocument,OfficeIMO.Email.EmailImageExportOptions,System.Threading.CancellationToken)",
+      "name": "EmailImageExportExtensions.ToImagesAsync",
+      "href": "/api/email-image/officeimo-email-emailimageexportextensions/#method-toimagesasync-officeimo-email-emaildocument-officeimo-email-emailimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Email.EmailImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.Email.EmailImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.Email.EmailImageExportExtensions.ToImagesAsync(OfficeIMO.Email.EmailDocument,OfficeIMO.Email.EmailImageExportOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -190429,6 +190449,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImages(OfficeIMO.Epub.EpubDocument,OfficeIMO.Epub.Image.EpubImageExportOptions,System.Threading.CancellationToken)",
+      "name": "EpubImageExportExtensions.ToImages",
+      "href": "/api/epub-image/officeimo-epub-image-epubimageexportextensions/#method-toimages-officeimo-epub-epubdocument-officeimo-epub-image-epubimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImages",
+        "OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImages",
+        "OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImages(OfficeIMO.Epub.EpubDocument,OfficeIMO.Epub.Image.EpubImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImagesAsync(OfficeIMO.Epub.EpubDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Drawing.OfficeImageExportAsyncConsumer,OfficeIMO.Epub.Image.EpubImageExportOptions,System.Threading.CancellationToken)",
       "name": "EpubImageExportExtensions.ToImagesAsync",
       "href": "/api/epub-image/officeimo-epub-image-epubimageexportextensions/#method-toimagesasync-officeimo-epub-epubdocument-officeimo-drawing-officeimageexportformat-officeimo-drawing-officeimageexportasyncconsumer-officeimo-epub-image-epubimageexportoptions-threading-cancellationtoken",
@@ -190446,6 +190476,16 @@
         "global::OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImagesAsync",
         "OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImagesAsync",
         "OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImagesAsync(OfficeIMO.Epub.EpubDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Epub.Image.EpubImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImagesAsync(OfficeIMO.Epub.EpubDocument,OfficeIMO.Epub.Image.EpubImageExportOptions,System.Threading.CancellationToken)",
+      "name": "EpubImageExportExtensions.ToImagesAsync",
+      "href": "/api/epub-image/officeimo-epub-image-epubimageexportextensions/#method-toimagesasync-officeimo-epub-epubdocument-officeimo-epub-image-epubimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImagesAsync(OfficeIMO.Epub.EpubDocument,OfficeIMO.Epub.Image.EpubImageExportOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -200538,6 +200578,26 @@
         "global::OfficeIMO.Excel.ExcelDocument.ToImages",
         "OfficeIMO.Excel.ExcelDocument.ToImages",
         "OfficeIMO.Excel.ExcelDocument.ToImages(OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Excel.ExcelImageExportOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocument.ToImages(OfficeIMO.Excel.ExcelImageExportOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocument.ToImages",
+      "href": "/api/excel/officeimo-excel-exceldocument/#method-toimages-officeimo-excel-excelimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocument.ToImages",
+        "OfficeIMO.Excel.ExcelDocument.ToImages",
+        "OfficeIMO.Excel.ExcelDocument.ToImages(OfficeIMO.Excel.ExcelImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocument.ToImagesAsync(OfficeIMO.Excel.ExcelImageExportOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocument.ToImagesAsync",
+      "href": "/api/excel/officeimo-excel-exceldocument/#method-toimagesasync-officeimo-excel-excelimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocument.ToImagesAsync",
+        "OfficeIMO.Excel.ExcelDocument.ToImagesAsync",
+        "OfficeIMO.Excel.ExcelDocument.ToImagesAsync(OfficeIMO.Excel.ExcelImageExportOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -213836,6 +213896,26 @@
         "global::OfficeIMO.Excel.ExcelSheet.ToImages",
         "OfficeIMO.Excel.ExcelSheet.ToImages",
         "OfficeIMO.Excel.ExcelSheet.ToImages(OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Excel.ExcelImageExportOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelSheet.ToImages(OfficeIMO.Excel.ExcelImageExportOptions,System.Threading.CancellationToken)",
+      "name": "ExcelSheet.ToImages",
+      "href": "/api/excel/officeimo-excel-excelsheet/#method-toimages-officeimo-excel-excelimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelSheet.ToImages",
+        "OfficeIMO.Excel.ExcelSheet.ToImages",
+        "OfficeIMO.Excel.ExcelSheet.ToImages(OfficeIMO.Excel.ExcelImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelSheet.ToImagesAsync(OfficeIMO.Excel.ExcelImageExportOptions,System.Threading.CancellationToken)",
+      "name": "ExcelSheet.ToImagesAsync",
+      "href": "/api/excel/officeimo-excel-excelsheet/#method-toimagesasync-officeimo-excel-excelimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelSheet.ToImagesAsync",
+        "OfficeIMO.Excel.ExcelSheet.ToImagesAsync",
+        "OfficeIMO.Excel.ExcelSheet.ToImagesAsync(OfficeIMO.Excel.ExcelImageExportOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -242803,6 +242883,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.WithTheme(OfficeIMO.OfficeTheme)",
+      "name": "HtmlConversionDocument.WithTheme",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#method-withtheme-officeimo-officetheme",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.WithTheme",
+        "OfficeIMO.Html.HtmlConversionDocument.WithTheme",
+        "OfficeIMO.Html.HtmlConversionDocument.WithTheme(OfficeIMO.OfficeTheme)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Html.HtmlConversionDocumentOptions.#ctor",
       "name": "HtmlConversionDocumentOptions.HtmlConversionDocumentOptions",
       "href": "/api/html/officeimo-html-htmlconversiondocumentoptions/#constructor-ctor",
@@ -254655,6 +254745,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImages(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderOptions,System.Threading.CancellationToken)",
+      "name": "HtmlImageExportExtensions.ToImages",
+      "href": "/api/html-pdf/officeimo-html-pdf-htmlimageexportextensions/#method-toimages-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImages",
+        "OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImages",
+        "OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImages(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImagesAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Drawing.OfficeImageExportAsyncConsumer,OfficeIMO.Html.HtmlRenderOptions,System.Threading.CancellationToken)",
       "name": "HtmlImageExportExtensions.ToImagesAsync",
       "href": "/api/html-pdf/officeimo-html-pdf-htmlimageexportextensions/#method-toimagesasync-officeimo-html-htmlconversiondocument-officeimo-drawing-officeimageexportformat-officeimo-drawing-officeimageexportasyncconsumer-officeimo-html-htmlrenderoptions-threading-cancellationtoken",
@@ -254672,6 +254772,16 @@
         "global::OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImagesAsync",
         "OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImagesAsync",
         "OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImagesAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Html.HtmlRenderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImagesAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderOptions,System.Threading.CancellationToken)",
+      "name": "HtmlImageExportExtensions.ToImagesAsync",
+      "href": "/api/html-pdf/officeimo-html-pdf-htmlimageexportextensions/#method-toimagesasync-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImagesAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -318243,6 +318353,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages(OfficeIMO.OneNote.OneNoteNotebook,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
+      "name": "OneNoteImageExportExtensions.ToImages",
+      "href": "/api/onenote/officeimo-onenote-onenoteimageexportextensions/#method-toimages-officeimo-onenote-onenotenotebook-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages",
+        "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages",
+        "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages(OfficeIMO.OneNote.OneNoteNotebook,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Drawing.OfficeImageExportConsumer,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
       "name": "OneNoteImageExportExtensions.ToImages",
       "href": "/api/onenote/officeimo-onenote-onenoteimageexportextensions/#method-toimages-officeimo-onenote-onenotesection-officeimo-drawing-officeimageexportformat-officeimo-drawing-officeimageexportconsumer-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
@@ -318260,6 +318380,16 @@
         "global::OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages",
         "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages",
         "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
+      "name": "OneNoteImageExportExtensions.ToImages",
+      "href": "/api/onenote/officeimo-onenote-onenoteimageexportextensions/#method-toimages-officeimo-onenote-onenotesection-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages",
+        "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages",
+        "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -318283,6 +318413,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync(OfficeIMO.OneNote.OneNoteNotebook,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
+      "name": "OneNoteImageExportExtensions.ToImagesAsync",
+      "href": "/api/onenote/officeimo-onenote-onenoteimageexportextensions/#method-toimagesasync-officeimo-onenote-onenotenotebook-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync(OfficeIMO.OneNote.OneNoteNotebook,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Drawing.OfficeImageExportAsyncConsumer,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
       "name": "OneNoteImageExportExtensions.ToImagesAsync",
       "href": "/api/onenote/officeimo-onenote-onenoteimageexportextensions/#method-toimagesasync-officeimo-onenote-onenotesection-officeimo-drawing-officeimageexportformat-officeimo-drawing-officeimageexportasyncconsumer-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
@@ -318300,6 +318440,16 @@
         "global::OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync",
         "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync",
         "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
+      "name": "OneNoteImageExportExtensions.ToImagesAsync",
+      "href": "/api/onenote/officeimo-onenote-onenoteimageexportextensions/#method-toimagesasync-officeimo-onenote-onenotesection-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImagesAsync(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -318817,6 +318967,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.OneNote.OneNoteNotebook.ToImages(OfficeIMO.OneNote.OneNoteNotebook,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
+      "name": "OneNoteNotebook.ToImages",
+      "href": "/api/onenote/officeimo-onenote-onenotenotebook/#extension-toimages-officeimo-onenote-onenotenotebook-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.OneNote.OneNoteNotebook.ToImages",
+        "OfficeIMO.OneNote.OneNoteNotebook.ToImages",
+        "OfficeIMO.OneNote.OneNoteNotebook.ToImages(OfficeIMO.OneNote.OneNoteNotebook,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.OneNote.OneNoteNotebook.ToImagesAsync(OfficeIMO.OneNote.OneNoteNotebook,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Drawing.OfficeImageExportAsyncConsumer,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
       "name": "OneNoteNotebook.ToImagesAsync",
       "href": "/api/onenote/officeimo-onenote-onenotenotebook/#extension-toimagesasync-officeimo-onenote-onenotenotebook-officeimo-drawing-officeimageexportformat-officeimo-drawing-officeimageexportasyncconsumer-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
@@ -318834,6 +318994,16 @@
         "global::OfficeIMO.OneNote.OneNoteNotebook.ToImagesAsync",
         "OfficeIMO.OneNote.OneNoteNotebook.ToImagesAsync",
         "OfficeIMO.OneNote.OneNoteNotebook.ToImagesAsync(OfficeIMO.OneNote.OneNoteNotebook,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.OneNote.OneNoteNotebook.ToImagesAsync(OfficeIMO.OneNote.OneNoteNotebook,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
+      "name": "OneNoteNotebook.ToImagesAsync",
+      "href": "/api/onenote/officeimo-onenote-onenotenotebook/#extension-toimagesasync-officeimo-onenote-onenotenotebook-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.OneNote.OneNoteNotebook.ToImagesAsync",
+        "OfficeIMO.OneNote.OneNoteNotebook.ToImagesAsync",
+        "OfficeIMO.OneNote.OneNoteNotebook.ToImagesAsync(OfficeIMO.OneNote.OneNoteNotebook,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -320981,6 +321151,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.OneNote.OneNoteSection.ToImages(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
+      "name": "OneNoteSection.ToImages",
+      "href": "/api/onenote/officeimo-onenote-onenotesection/#extension-toimages-officeimo-onenote-onenotesection-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.OneNote.OneNoteSection.ToImages",
+        "OfficeIMO.OneNote.OneNoteSection.ToImages",
+        "OfficeIMO.OneNote.OneNoteSection.ToImages(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.OneNote.OneNoteSection.ToImagesAsync(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Drawing.OfficeImageExportAsyncConsumer,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
       "name": "OneNoteSection.ToImagesAsync",
       "href": "/api/onenote/officeimo-onenote-onenotesection/#extension-toimagesasync-officeimo-onenote-onenotesection-officeimo-drawing-officeimageexportformat-officeimo-drawing-officeimageexportasyncconsumer-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
@@ -320998,6 +321178,16 @@
         "global::OfficeIMO.OneNote.OneNoteSection.ToImagesAsync",
         "OfficeIMO.OneNote.OneNoteSection.ToImagesAsync",
         "OfficeIMO.OneNote.OneNoteSection.ToImagesAsync(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.OneNote.OneNoteSection.ToImagesAsync(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)",
+      "name": "OneNoteSection.ToImagesAsync",
+      "href": "/api/onenote/officeimo-onenote-onenotesection/#extension-toimagesasync-officeimo-onenote-onenotesection-officeimo-onenote-onenotepagebatchrenderingoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.OneNote.OneNoteSection.ToImagesAsync",
+        "OfficeIMO.OneNote.OneNoteSection.ToImagesAsync",
+        "OfficeIMO.OneNote.OneNoteSection.ToImagesAsync(OfficeIMO.OneNote.OneNoteSection,OfficeIMO.OneNote.OneNotePageBatchRenderingOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -405853,6 +406043,26 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointDocument.ToImages(OfficeIMO.PowerPoint.PowerPointImageExportOptions,System.Threading.CancellationToken)",
+      "name": "PowerPointDocument.ToImages",
+      "href": "/api/powerpoint/officeimo-powerpoint-powerpointdocument/#method-toimages-officeimo-powerpoint-powerpointimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.PowerPoint.PowerPointDocument.ToImages",
+        "OfficeIMO.PowerPoint.PowerPointDocument.ToImages",
+        "OfficeIMO.PowerPoint.PowerPointDocument.ToImages(OfficeIMO.PowerPoint.PowerPointImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointDocument.ToImagesAsync(OfficeIMO.PowerPoint.PowerPointImageExportOptions,System.Threading.CancellationToken)",
+      "name": "PowerPointDocument.ToImagesAsync",
+      "href": "/api/powerpoint/officeimo-powerpoint-powerpointdocument/#method-toimagesasync-officeimo-powerpoint-powerpointimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.PowerPoint.PowerPointDocument.ToImagesAsync",
+        "OfficeIMO.PowerPoint.PowerPointDocument.ToImagesAsync",
+        "OfficeIMO.PowerPoint.PowerPointDocument.ToImagesAsync(OfficeIMO.PowerPoint.PowerPointImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.PowerPoint.PowerPointDocument.ToString",
       "name": "PowerPointDocument.ToString",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointdocument/#method-tostring",
@@ -450966,6 +451176,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Rtf.RtfDocument.ApplyTheme(OfficeIMO.OfficeTheme)",
+      "name": "RtfDocument.ApplyTheme",
+      "href": "/api/rtf/officeimo-rtf-rtfdocument/#method-applytheme-officeimo-officetheme",
+      "aliases": [
+        "global::OfficeIMO.Rtf.RtfDocument.ApplyTheme",
+        "OfficeIMO.Rtf.RtfDocument.ApplyTheme",
+        "OfficeIMO.Rtf.RtfDocument.ApplyTheme(OfficeIMO.OfficeTheme)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Rtf.RtfDocument.Clone",
       "name": "RtfDocument.Clone",
       "href": "/api/rtf/officeimo-rtf-rtfdocument/#method-clone",
@@ -482165,6 +482385,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Visio.VisioDocument.ToImages(OfficeIMO.Visio.VisioDocument,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)",
+      "name": "VisioDocument.ToImages",
+      "href": "/api/visio/officeimo-visio-visiodocument/#extension-toimages-officeimo-visio-visiodocument-officeimo-visio-visioimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Visio.VisioDocument.ToImages",
+        "OfficeIMO.Visio.VisioDocument.ToImages",
+        "OfficeIMO.Visio.VisioDocument.ToImages(OfficeIMO.Visio.VisioDocument,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Visio.VisioDocument.ToImagesAsync(OfficeIMO.Visio.VisioDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Drawing.OfficeImageExportAsyncConsumer,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)",
       "name": "VisioDocument.ToImagesAsync",
       "href": "/api/visio/officeimo-visio-visiodocument/#extension-toimagesasync-officeimo-visio-visiodocument-officeimo-drawing-officeimageexportformat-officeimo-drawing-officeimageexportasyncconsumer-officeimo-visio-visioimageexportoptions-threading-cancellationtoken",
@@ -482182,6 +482412,16 @@
         "global::OfficeIMO.Visio.VisioDocument.ToImagesAsync",
         "OfficeIMO.Visio.VisioDocument.ToImagesAsync",
         "OfficeIMO.Visio.VisioDocument.ToImagesAsync(OfficeIMO.Visio.VisioDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Visio.VisioDocument.ToImagesAsync(OfficeIMO.Visio.VisioDocument,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)",
+      "name": "VisioDocument.ToImagesAsync",
+      "href": "/api/visio/officeimo-visio-visiodocument/#extension-toimagesasync-officeimo-visio-visiodocument-officeimo-visio-visioimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Visio.VisioDocument.ToImagesAsync",
+        "OfficeIMO.Visio.VisioDocument.ToImagesAsync",
+        "OfficeIMO.Visio.VisioDocument.ToImagesAsync(OfficeIMO.Visio.VisioDocument,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -483564,6 +483804,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Visio.VisioImageExportExtensions.ToImages(OfficeIMO.Visio.VisioDocument,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)",
+      "name": "VisioImageExportExtensions.ToImages",
+      "href": "/api/visio/officeimo-visio-visioimageexportextensions/#method-toimages-officeimo-visio-visiodocument-officeimo-visio-visioimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Visio.VisioImageExportExtensions.ToImages",
+        "OfficeIMO.Visio.VisioImageExportExtensions.ToImages",
+        "OfficeIMO.Visio.VisioImageExportExtensions.ToImages(OfficeIMO.Visio.VisioDocument,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Visio.VisioImageExportExtensions.ToImagesAsync(OfficeIMO.Visio.VisioDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Drawing.OfficeImageExportAsyncConsumer,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)",
       "name": "VisioImageExportExtensions.ToImagesAsync",
       "href": "/api/visio/officeimo-visio-visioimageexportextensions/#method-toimagesasync-officeimo-visio-visiodocument-officeimo-drawing-officeimageexportformat-officeimo-drawing-officeimageexportasyncconsumer-officeimo-visio-visioimageexportoptions-threading-cancellationtoken",
@@ -483581,6 +483831,16 @@
         "global::OfficeIMO.Visio.VisioImageExportExtensions.ToImagesAsync",
         "OfficeIMO.Visio.VisioImageExportExtensions.ToImagesAsync",
         "OfficeIMO.Visio.VisioImageExportExtensions.ToImagesAsync(OfficeIMO.Visio.VisioDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Visio.VisioImageExportExtensions.ToImagesAsync(OfficeIMO.Visio.VisioDocument,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)",
+      "name": "VisioImageExportExtensions.ToImagesAsync",
+      "href": "/api/visio/officeimo-visio-visioimageexportextensions/#method-toimagesasync-officeimo-visio-visiodocument-officeimo-visio-visioimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Visio.VisioImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.Visio.VisioImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.Visio.VisioImageExportExtensions.ToImagesAsync(OfficeIMO.Visio.VisioDocument,OfficeIMO.Visio.VisioImageExportOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -510383,6 +510643,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Word.WordDocument.ApplyTheme(OfficeIMO.OfficeTheme)",
+      "name": "WordDocument.ApplyTheme",
+      "href": "/api/word/officeimo-word-worddocument/#method-applytheme-officeimo-officetheme",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.ApplyTheme",
+        "OfficeIMO.Word.WordDocument.ApplyTheme",
+        "OfficeIMO.Word.WordDocument.ApplyTheme(OfficeIMO.OfficeTheme)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Word.WordDocument.AssessLegacyDocWrite(OfficeIMO.Word.WordSaveOptions)",
       "name": "WordDocument.AssessLegacyDocWrite",
       "href": "/api/word/officeimo-word-worddocument/#method-assesslegacydocwrite-officeimo-word-wordsaveoptions",
@@ -516827,6 +517097,26 @@
         "global::OfficeIMO.Word.WordImageExportExtensions.ToImages",
         "OfficeIMO.Word.WordImageExportExtensions.ToImages",
         "OfficeIMO.Word.WordImageExportExtensions.ToImages(OfficeIMO.Word.WordDocument,OfficeIMO.Drawing.OfficeImageExportFormat,OfficeIMO.Word.WordImageExportOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordImageExportExtensions.ToImages(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordImageExportOptions,System.Threading.CancellationToken)",
+      "name": "WordImageExportExtensions.ToImages",
+      "href": "/api/word-pdf/officeimo-word-wordimageexportextensions/#method-toimages-officeimo-word-worddocument-officeimo-word-wordimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordImageExportExtensions.ToImages",
+        "OfficeIMO.Word.WordImageExportExtensions.ToImages",
+        "OfficeIMO.Word.WordImageExportExtensions.ToImages(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordImageExportExtensions.ToImagesAsync(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordImageExportOptions,System.Threading.CancellationToken)",
+      "name": "WordImageExportExtensions.ToImagesAsync",
+      "href": "/api/word-pdf/officeimo-word-wordimageexportextensions/#method-toimagesasync-officeimo-word-worddocument-officeimo-word-wordimageexportoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.Word.WordImageExportExtensions.ToImagesAsync",
+        "OfficeIMO.Word.WordImageExportExtensions.ToImagesAsync(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordImageExportOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -969655,7 +969945,7 @@
       ]
     }
   ],
-  "previousReferenceCount": 101442,
-  "referenceDeltaCount": -26,
-  "referenceDeltaPercent": -0.0256
+  "previousReferenceCount": 101416,
+  "referenceDeltaCount": 29,
+  "referenceDeltaPercent": 0.0286
 }
