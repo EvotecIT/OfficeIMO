@@ -132,7 +132,7 @@ internal static partial class PdfTextDiagnostics {
         return AnalyzeGeneratedTextCore(text, options, font, source, location, null);
     }
 
-    private static List<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextCore(
+    private static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextCore(
         string text,
         PdfCreateOptions options,
         PdfStandardFont font,
@@ -150,7 +150,7 @@ internal static partial class PdfTextDiagnostics {
         if (IsWinAnsiText(text) &&
             !options.TryGetEmbeddedStandardFontProgram(font, out _) &&
             !options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out _)) {
-            return new List<PdfTextEncodingDiagnostic>();
+            return Array.Empty<PdfTextEncodingDiagnostic>();
         }
 
         return AnalyzeGeneratedTextCoreSlow(text, options, font, source, location, runIndex, fallbackSet, shapingRun);
