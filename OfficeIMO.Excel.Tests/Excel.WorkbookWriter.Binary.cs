@@ -95,38 +95,45 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenHundred)]
-    [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenFour)]
-    [InlineData(ExcelFileFormat.Xls, ExcelDateSystem.NineteenHundred)]
-    [InlineData(ExcelFileFormat.Xls, ExcelDateSystem.NineteenFour)]
-    public void WorkbookWriter_BinaryFormatsPreserveSinglePassValuesAcrossRowBlocksAndSheets(ExcelFileFormat format, ExcelDateSystem dateSystem) {
+    [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenHundred, false)]
+    [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenHundred, true)]
+    [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenFour, false)]
+    [InlineData(ExcelFileFormat.Xls, ExcelDateSystem.NineteenHundred, false)]
+    [InlineData(ExcelFileFormat.Xls, ExcelDateSystem.NineteenFour, false)]
+    public async System.Threading.Tasks.Task WorkbookWriter_BinaryFormatsPreserveSinglePassValuesAcrossRowBlocksAndSheets(ExcelFileFormat format, ExcelDateSystem dateSystem, bool asynchronous) {
+        int caller = System.Threading.Thread.CurrentThread.ManagedThreadId;
+        int rowCount = format == ExcelFileFormat.Xlsb ? 16_384 : 33;
         using var output = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
-        var rows = new SinglePassRows<int>(Enumerable.Range(0, 33));
+        var rows = new SinglePassRows<int>(Enumerable.Range(0, rowCount));
         var date = new DateTime(2026, 8, 6, 14, 35, 12);
         var offset = new DateTimeOffset(date, TimeSpan.Zero);
         string[] headers = { "Text", "Id", "Date", "Flag", "Blank", "Duration", "Decimal", "Offset" };
         int callbacks = 0;
         ExcelDocument.ExcelTabularRowWriter? retained = null;
         using (var writer = ExcelDocument.CreateWriter(format, output, new ExcelWriterOptions { DateSystem = dateSystem }, leaveOpen: true)) {
-            var result = writer.WriteTable("Events", rows, headers, (row, index) => {
+            void WriteRow(ExcelDocument.ExcelTabularRowWriter row, int index) {
+                if (!asynchronous) Assert.Equal(caller, System.Threading.Thread.CurrentThread.ManagedThreadId);
                 Assert.Equal(callbacks++, index);
                 retained = row;
                 row.Write("Żółć 🚀\r\n&").Write(index).Write(date).Write(index % 2 == 0).WriteBlank()
                     .Write(TimeSpan.FromHours(30)).Write(index + 0.25m).Write((object)offset);
-            });
-            Assert.Equal(("Events", (string?)null, "A1:H34", 33, 8),
+            }
+            var result = asynchronous
+                ? await writer.WriteTable("Events", AsyncRows(), headers, WriteRow)
+                : writer.WriteTable("Events", rows, headers, WriteRow);
+            Assert.Equal(("Events", (string?)null, "A1:H" + (rowCount + 1), rowCount, 8),
                 (result.SheetName, result.TableName, result.Range, result.RowCount, result.ColumnCount));
             Assert.Throws<InvalidOperationException>(() => retained!.Write(1));
             var empty = writer.WriteTable("Empty", Array.Empty<int>(), new[] { "Value" }, (row, value) => row.Write(value));
             Assert.Equal(0, empty.RowCount);
         }
         Assert.Equal(1, rows.Enumerations);
-        Assert.Equal(33, callbacks);
+        Assert.Equal(rowCount, callbacks);
         Assert.True(output.CanWrite);
         using var reader = ExcelDocument.OpenReader(output.ToArray());
         Assert.Equal(8, reader.FieldCount);
         for (int column = 0; column < headers.Length; column++) Assert.Equal(headers[column], reader.GetName(column));
-        for (int index = 0; index < 33; index++) {
+        for (int index = 0; index < rowCount; index++) {
             Assert.True(reader.Read());
             Assert.Equal("Żółć 🚀\r\n&", reader.GetString(0));
             Assert.Equal(index, reader.GetInt32(1));
@@ -142,6 +149,14 @@ public partial class Excel {
         Assert.Equal("Value", reader.GetName(0));
         Assert.False(reader.Read());
         Assert.False(reader.NextResult());
+
+        async IAsyncEnumerable<int> AsyncRows() {
+            foreach (int index in rows) {
+                if (index % 1024 == 0) await System.Threading.Tasks.Task.Yield();
+                yield return index;
+            }
+        }
+
     }
 
     [Theory]
@@ -149,17 +164,22 @@ public partial class Excel {
     [InlineData(ExcelFileFormat.Xlsb)]
     [InlineData(ExcelFileFormat.Xls)]
     public void WorkbookWriter_ReleasesTheRowWhenItsCallbackThrows(ExcelFileFormat format) {
+        int rowCount = format == ExcelFileFormat.Xlsb ? 8192 : 1;
+        int callbacks = 0;
+        string text = new string('X', 128);
         using var output = new MemoryStream();
         var failure = new InvalidDataException("callback failed");
         ExcelDocument.ExcelTabularRowWriter? retained = null;
         using (var writer = ExcelDocument.CreateWriter(format, output, leaveOpen: true)) {
-            Assert.Same(failure, Assert.Throws<InvalidDataException>(() => writer.WriteTable("Data", new[] { 1 },
+            Assert.Same(failure, Assert.Throws<InvalidDataException>(() => writer.WriteTable("Data", Enumerable.Range(1, rowCount),
                 new[] { "First", "Second" }, (row, value) => {
                     retained = row;
                     row.Write(value);
-                    throw failure;
+                    if (format == ExcelFileFormat.Xlsb) row.Write(text);
+                    if (++callbacks == rowCount) throw failure;
                 })));
         }
+        Assert.Equal(rowCount, callbacks);
         Assert.Throws<InvalidOperationException>(() => retained!.Write(2));
     }
 
@@ -277,6 +297,40 @@ public partial class Excel {
         } finally {
             try { writer.Dispose(); }
             catch (IOException) { /* The failed destination may also reject the ZIP trailer. */ }
+        }
+    }
+
+    [Fact]
+    public void WorkbookWriter_LargeXlsbDestinationFailureStopsTheSinglePassSource() {
+        const int rowCount = 256;
+        using var output = new OfficeIMO.Tests.TestStreams.ThrowAfterBytesWriteStream(2 * 1024 * 1024);
+        var random = new Random(42);
+        bool disposed = false;
+        int advances = 0;
+        var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsb, output, leaveOpen: true);
+        try {
+            Assert.Throws<IOException>(() => writer.WriteTable("Data", Rows(), new[] { "Text" },
+                static (row, value) => row.Write(value)));
+            Assert.True(disposed);
+            Assert.InRange(advances, 1, rowCount - 1);
+            Assert.InRange(output.Length, 1024L * 1024, 2L * 1024 * 1024);
+            Assert.Throws<InvalidOperationException>(() => writer.WriteTable("Later", new[] { "unused" },
+                new[] { "Text" }, static (row, value) => row.Write(value)));
+        } finally {
+            try { writer.Dispose(); }
+            catch (IOException) { /* The failed destination may also reject the ZIP trailer. */ }
+        }
+
+        IEnumerable<string> Rows() {
+            try {
+                for (int index = 0; index < rowCount; index++) {
+                    var characters = new char[16_384];
+                    for (int character = 0; character < characters.Length; character++)
+                        characters[character] = (char)random.Next(32, 0xD800);
+                    advances++;
+                    yield return new string(characters);
+                }
+            } finally { disposed = true; }
         }
     }
 
