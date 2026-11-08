@@ -1101,7 +1101,7 @@ internal static partial class TextContentParser {
                     + (kerningAfterByte != null ? kerningAfterByte[idx + step - 1] : 0D)) * hScale;
                 if (ch != '\0') {
                     decodedGlyphCount++;
-                    eachDecodedGlyphIsOneTextElement &= t.Length == 1 || OfficeTextElements.Split(t).Count == 1;
+                    eachDecodedGlyphIsOneTextElement &= t.Length == 1 || OfficeTextElements.Enumerate(t).Count() == 1;
                     sbOut.Append(t);
                     decodedGlyphCharacterLengths.Add(t.Length);
                     decodedGlyphBytes.Add(g);
@@ -1358,7 +1358,7 @@ internal static partial class TextContentParser {
                         !usedWholeDecodedText &&
                         spanGlyphCount >= 2 &&
                         eachDecodedGlyphIsOneTextElement &&
-                        spanGlyphCount == OfficeTextElements.Split(spanText).Count &&
+                        spanGlyphCount == OfficeTextElements.Enumerate(spanText).Count() &&
                         spanEndX - spanX > Math.Max(0.000001D, Math.Abs(spanEndY - spanY)),
                     isArtifactContent: hasActiveArtifact,
                     fontWeight: fontWeightForResource?.Invoke(font),
