@@ -13,6 +13,16 @@ measured reads verify the row count and a checksum over every value.
 `EscapedNames` selects either `Name 123` or `Name <123> & "quoted" 'apostrophe'`.
 I measure both profiles independently, including the owned strings each returns.
 
+I use `ExcelReaderGeneratedZipPrefetchBenchmarks` to include the optional
+decompression-prefetch reader on XLSX and XLSB. It runs the same plain and
+escaped-name scans through the ordinary OfficeIMO reader and both ExcelReader.NET
+options, with ZIP checksum verification enabled. Setup checks every field and
+header before timing; each scan still verifies the complete row count and checksum.
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelReaderGeneratedZipPrefetchBenchmarks*" --inProcess --warmupCount 12 --iterationCount 12 --iterationTime 250 --unrollFactor 1 --outliers DontRemove
+```
+
 `ExcelReaderGeneratedXlsxWriteBenchmarks` compares complete in-memory XLSX
 packages from OfficeIMO, ExcelReader.NET and SpreadCheetah.
 `ExcelReaderGeneratedWriteBenchmarks` covers XLSB and XLS. I retain both the typed

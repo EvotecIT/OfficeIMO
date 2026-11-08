@@ -53,6 +53,7 @@ public partial class ExcelReaderGeneratedBenchmarks {
         try {
             OfficeIMO_Read();
             ExcelReaderNet_Read();
+            if (Format is ExcelFileFormat.Xlsx or ExcelFileFormat.Xlsb) ReadExcelReader(PrefetchReaderOptions);
             Sylvan_Read();
             ExcelDataReader_Read();
             OfficeIMO_Parse();
