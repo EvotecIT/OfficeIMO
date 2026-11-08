@@ -410,75 +410,6 @@ public static partial class ParallelRowMappingExtensions {
         }
     }
 
-    private static IEnumerable<T> EnumerateReaderBatches<T>(
-        DbDataReader sourceReader,
-        IDataReaderParallelBatchSource batchSource,
-        int preferredBatchSize,
-        int degreeOfParallelism,
-        Func<DbDataReader, IEnumerable<T>> mapReader,
-        Func<IEnumerable<T>> mapGenericRemainder,
-        CancellationToken cancellationToken) {
-        using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var pending = new Queue<Task<T[]>>(degreeOfParallelism);
-        bool useGenericRemainder = false;
-        ExceptionDispatchInfo? sourceError = null;
-        try {
-            while (true) {
-                cancellationToken.ThrowIfCancellationRequested();
-                DbDataReader? batchReader;
-                try {
-                    if (!batchSource.TryReadParallelBatch(
-                            preferredBatchSize,
-                            cancellationToken,
-                            out batchReader)) {
-                        useGenericRemainder = true;
-                        break;
-                    }
-                } catch (Exception exception) when (!cancellationToken.IsCancellationRequested) {
-                    sourceError = ExceptionDispatchInfo.Capture(exception);
-                    break;
-                }
-                if (batchReader is null) break;
-
-                pending.Enqueue(Task.Factory.StartNew(
-                    () => {
-                        using (batchReader) {
-                            stop.Token.ThrowIfCancellationRequested();
-                            return MaterializeRows(mapReader(batchReader), stop.Token,
-                                batchReader is IDataReaderParallelBatchInfo info ? info.ParallelBatchRowCount : 0);
-                        }
-                    },
-                    CancellationToken.None,
-                    TaskCreationOptions.DenyChildAttach,
-                    TaskScheduler.Default));
-
-                if (pending.Count < degreeOfParallelism) continue;
-                foreach (T row in AwaitNext(pending, stop, cancellationToken)) yield return row;
-            }
-
-            while (pending.Count > 0) {
-                foreach (T row in AwaitNext(pending, stop, cancellationToken)) yield return row;
-            }
-
-            if (useGenericRemainder) {
-                foreach (T row in mapGenericRemainder()) {
-                    yield return row;
-                }
-            }
-            sourceError?.Throw();
-        } finally {
-            stop.Cancel();
-            while (pending.Count > 0) {
-                Task<T[]> task = pending.Dequeue();
-                try {
-                    task.GetAwaiter().GetResult();
-                } catch {
-                    // Observe remaining canceled/faulted work after the ordered exception is propagated.
-                }
-            }
-        }
-    }
-
     private static IEnumerable<T> AwaitNext<T>(
         Queue<Task<T[]>> pending,
         CancellationTokenSource stop,
@@ -510,29 +441,6 @@ public static partial class ParallelRowMappingExtensions {
         while (reader.Read()) {
             yield return plan.MapReaderRow(reader, culture, dateTimeFormats, typeConverter, errorValuePolicy);
         }
-    }
-
-    private static T[] MaterializeRows<T>(
-        IEnumerable<T> rows,
-        CancellationToken cancellationToken,
-        int expectedCount = 0) {
-        if (expectedCount > 0) {
-            var exact = new T[expectedCount];
-            int count = 0;
-            foreach (T row in rows) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (count == exact.Length) Array.Resize(ref exact, checked(exact.Length * 2));
-                exact[count++] = row;
-            }
-            if (count != exact.Length) Array.Resize(ref exact, count);
-            return exact;
-        }
-        var materialized = new List<T>();
-        foreach (T row in rows) {
-            cancellationToken.ThrowIfCancellationRequested();
-            materialized.Add(row);
-        }
-        return materialized.ToArray();
     }
 
     private static IEnumerable<T> EnumerateFactoryReaderBatches<T>(
