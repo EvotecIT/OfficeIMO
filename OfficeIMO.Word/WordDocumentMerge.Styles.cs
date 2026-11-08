@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
             "pStyle", "rStyle", "tblStyle", "styleLink", "numStyleLink"
         };
 
-        private readonly Dictionary<string, string> _styleMap = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _styleMap = new(StringComparer.Ordinal);
         private readonly List<(Style Source, string Id, string? Name)> _styleCopies = new();
         private Styles? _sourceStyles;
         private Styles? _destinationStyles;
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            var usedIds = new HashSet<string>(destinationById.Keys, StringComparer.OrdinalIgnoreCase);
+            var usedIds = new HashSet<string>(destinationById.Keys, StringComparer.Ordinal);
             var usedNames = new HashSet<string>(
                 _destinationStyles.Elements<Style>().Select(_ => _.StyleName?.Val?.Value).OfType<string>(),
                 StringComparer.OrdinalIgnoreCase);
@@ -68,8 +68,8 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            var equivalence = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-            var comparing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var equivalence = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var comparing = new HashSet<string>(StringComparer.Ordinal);
 
             bool AreEquivalent(Style source, Style destination) {
                 string sourceId = source.StyleId!.Value!;
@@ -115,7 +115,7 @@ namespace OfficeIMO.Word {
 
                 if (!sourceById.TryGetValue(sourceBase, out Style? sourceParent) ||
                     !destinationById.TryGetValue(destinationBase, out Style? destinationParent)) {
-                    return string.Equals(sourceBase, destinationBase, StringComparison.OrdinalIgnoreCase);
+                    return string.Equals(sourceBase, destinationBase, StringComparison.Ordinal);
                 }
 
                 return ReferenceEquals(FindMatch(sourceParent), destinationParent) && AreEquivalent(sourceParent, destinationParent);
@@ -270,7 +270,7 @@ namespace OfficeIMO.Word {
             }
 
             string? destinationDefault = GetDefaultStyleId(_destinationStyles!, type);
-            if (string.Equals(mapped, destinationDefault, StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(mapped, destinationDefault, StringComparison.Ordinal)) {
                 return null;
             }
 
@@ -314,7 +314,7 @@ namespace OfficeIMO.Word {
         }
 
         private HashSet<string> CollectUsedSourceStyles(Dictionary<string, Style> sourceById) {
-            var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var used = new HashSet<string>(StringComparer.Ordinal);
 
             void AddReferences(OpenXmlElement? root) {
                 if (root == null) {
@@ -402,7 +402,7 @@ namespace OfficeIMO.Word {
         }
 
         private static Dictionary<string, Style> IndexStylesById(Styles styles) {
-            var index = new Dictionary<string, Style>(StringComparer.OrdinalIgnoreCase);
+            var index = new Dictionary<string, Style>(StringComparer.Ordinal);
             foreach (Style style in styles.Elements<Style>()) {
                 string? id = style.StyleId?.Value;
                 if (!string.IsNullOrEmpty(id) && !index.ContainsKey(id!)) {
