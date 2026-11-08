@@ -168,6 +168,23 @@ BenchmarkDotNet output. Compare this explicit prepared-input cohort separately
 from historical runs that generated PDFs independently in each worker and did
 not retain their byte hashes.
 
+The [paired reader record](../Website/static/data/benchmarks/library-comparisons/support/reader-pair-7a-e835.json)
+accompanies the full Windows reader results in the
+[benchmark catalog](../Website/static/data/benchmarks/library-comparisons/index.json).
+It compares reader sources `7a6e8831` and `e835d297` across 19 inputs and 57 engine
+cases; the generated input bytes come from producer source `63fb9e81`.
+
+The record preserves BenchmarkDotNet's original statistics, original values,
+outlier arrays and raw measurements from both runs, including OfficeIMO losses
+and movement in the unchanged PdfPig and iText implementations. Ratios are
+candidate/baseline: values below one describe lower elapsed time or allocation
+for that metric. Peer movement and load snapshots help interpret variation
+without establishing its cause.
+
+This is one Windows BenchmarkDotNet 0.15.8 `DefaultJob` pair with fixed CPU
+affinity. Other catalog lanes retain their own source and input identities;
+HTML results and the opt-in `WarmedV1` profile are separate cohorts.
+
 Pass `-KeepBenchmarkFiles` when worker binaries and child build binlogs are
 needed for identity verification and diagnostics. It forwards BenchmarkDotNet's
 `--keepFiles` and `--generateBinLog` options and records both in provenance.

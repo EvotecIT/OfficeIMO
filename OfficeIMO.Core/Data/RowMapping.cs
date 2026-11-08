@@ -70,6 +70,11 @@ internal interface IDataReaderParallelBatchSource {
         out DbDataReader? batchReader);
 }
 
+/// <summary>Allows typed batches without changing the record exposed to caller factories.</summary>
+internal interface IDataReaderTypedParallelBatchSource : IDataReaderParallelBatchSource {
+    bool CanReadTypedParallelBatches { get; }
+}
+
 internal interface IDataReaderParallelBatchInfo {
     int ParallelBatchRowCount { get; }
 }

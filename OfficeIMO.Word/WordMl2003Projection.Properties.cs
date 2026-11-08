@@ -7,7 +7,7 @@ namespace OfficeIMO.Word;
 internal sealed partial class WordMl2003Projection {
     private static readonly Dictionary<string, HashSet<string>> PropertyChildren = new(StringComparer.Ordinal) {
         ["rPr"] = Names("rStyle rFonts b b-cs i i-cs caps smallCaps strike dstrike outline shadow emboss imprint noProof snapToGrid vanish webHidden color spacing w kern position sz sz-cs highlight u effect bdr shd fitText vertAlign rtl cs em lang specVanish oMath"),
-        ["pPr"] = Names("pStyle keepNext keepLines pageBreakBefore widowControl suppressLineNumbers pBdr shd tabs suppressAutoHyphens kinsoku wordWrap overflowPunct topLinePunct autoSpaceDE autoSpaceDN bidi adjustRightInd snapToGrid spacing ind contextualSpacing mirrorIndents suppressOverlap jc textDirection textAlignment textboxTightWrap outlineLvl divId cnfStyle rPr"),
+        ["pPr"] = Names("pStyle keepNext keepLines pageBreakBefore widowControl listPr suppressLineNumbers pBdr shd tabs suppressAutoHyphens kinsoku wordWrap overflowPunct topLinePunct autoSpaceDE autoSpaceDN bidi adjustRightInd snapToGrid spacing ind contextualSpacing mirrorIndents suppressOverlap jc textDirection textAlignment textboxTightWrap outlineLvl divId cnfStyle rPr"),
         ["tblPr"] = Names("tblStyle tblpPr tblOverlap bidiVisual tblStyleRowBandSize tblStyleColBandSize tblW jc tblCellSpacing tblInd tblBorders shd tblLayout tblCellMar tblLook tblCaption tblDescription"),
         ["tblPrEx"] = Names("tblW jc tblCellSpacing tblInd tblBorders shd tblLayout tblCellMar tblLook"),
         ["trPr"] = Names("cnfStyle divId gridBefore gridAfter wBefore wAfter cantSplit trHeight tblHeader tblCellSpacing jc hidden"),
@@ -22,7 +22,11 @@ internal sealed partial class WordMl2003Projection {
         ["tblCellMar"] = Names("top left bottom right"),
         ["tcMar"] = Names("top left bottom right"),
         ["cols"] = Names("col"),
-        ["tblStylePr"] = Names("pPr rPr tblPr trPr tcPr")
+        ["tblStylePr"] = Names("pPr rPr tblPr trPr tcPr"),
+        ["listDef"] = Names("lsid plt tmpl name styleLink listStyleLink lvl"),
+        ["list"] = Names("ilst lvlOverride"),
+        ["lvlOverride"] = Names("startOverride lvl"),
+        ["lvl"] = Names("start nfc lvlRestart pStyle isLgl suff lvlText lvlJc pPr rPr")
     };
     private static readonly Dictionary<string, HashSet<string>> PropertyAttributes = new(StringComparer.Ordinal) {
         ["rFonts"] = Names("ascii h-ansi fareast cs hint"),
@@ -59,11 +63,18 @@ internal sealed partial class WordMl2003Projection {
         ["zoom"] = Names("val percent"),
         ["br"] = Names("type clear"),
         ["fldChar"] = Names("fldCharType fldLock dirty"),
-        ["tblStylePr"] = Names("type")
+        ["tblStylePr"] = Names("type"),
+        ["listDef"] = Names("listDefId"),
+        ["list"] = Names("ilfo"),
+        ["lvlOverride"] = Names("ilvl"),
+        ["lvl"] = Names("ilvl tplc tentative")
     };
     private static readonly Dictionary<string, string> ElementNames = new(StringComparer.Ordinal) {
         ["b-cs"] = "bCs", ["i-cs"] = "iCs", ["sz-cs"] = "szCs",
-        ["hmerge"] = "hMerge", ["vmerge"] = "vMerge", ["panose-1"] = "panose1"
+        ["hmerge"] = "hMerge", ["vmerge"] = "vMerge", ["panose-1"] = "panose1",
+        ["listDef"] = "abstractNum", ["list"] = "num", ["ilst"] = "abstractNumId",
+        ["lsid"] = "nsid", ["plt"] = "multiLevelType", ["listStyleLink"] = "numStyleLink", ["nfc"] = "numFmt",
+        ["listPr"] = "numPr", ["ilfo"] = "numId"
     };
     private static readonly Dictionary<string, string> AttributeNames = new(StringComparer.Ordinal) {
         ["h-ansi"] = "hAnsi", ["fareast"] = "eastAsia", ["line-rule"] = "lineRule",
@@ -72,13 +83,15 @@ internal sealed partial class WordMl2003Projection {
         ["left-chars"] = "leftChars", ["right-chars"] = "rightChars", ["hanging-chars"] = "hangingChars",
         ["first-line"] = "firstLine", ["first-line-chars"] = "firstLineChars",
         ["h-rule"] = "hRule", ["count-by"] = "countBy", ["chap-style"] = "chapStyle",
-        ["chap-sep"] = "chapSep", ["line-pitch"] = "linePitch", ["char-space"] = "charSpace"
+        ["chap-sep"] = "chapSep", ["line-pitch"] = "linePitch", ["char-space"] = "charSpace",
+        ["listDefId"] = "abstractNumId", ["ilfo"] = "numId"
     };
 
     private static HashSet<string> Names(string words) => new(words.Split(' '), StringComparer.Ordinal);
 
     private XElement? MapProperties(XElement source, string context, string? parent = null) {
         _token.ThrowIfCancellationRequested();
+        if (context == "listPr") return MapListProperties(source);
         string name = ElementNames.TryGetValue(context, out string? mappedName) ? mappedName : context;
         var output = new XElement(ModernWord + name);
         output.SetAttributeValue(XNamespace.Xmlns + "w", ModernWord.NamespaceName);
@@ -129,9 +142,9 @@ internal sealed partial class WordMl2003Projection {
         return output;
     }
 
-    private T NormalizeMappedProperties<T>(T properties) where T : OpenXmlCompositeElement {
+    private T NormalizeMappedProperties<T>(T properties, string? mappedXml = null) where T : OpenXmlCompositeElement {
         OrderMappedProperties(properties);
-        AdmitMappedProperties(properties);
+        AdmitMappedProperties(properties, mappedXml);
         return properties;
     }
 
@@ -142,22 +155,26 @@ internal sealed partial class WordMl2003Projection {
         OpenXmlElement[] children = properties.ChildElements.ToArray();
         if (!preserveOrder) properties.RemoveAllChildren();
         foreach (OpenXmlElement child in children) {
-            bool duplicate = !preserveOrder && properties.ChildElements.Any(existing =>
+            bool repeatedListChild = properties is AbstractNum && child is Level ||
+                properties is NumberingInstance && child is LevelOverride;
+            bool duplicate = !preserveOrder && !repeatedListChild && properties.ChildElements.Any(existing =>
                 existing.LocalName == child.LocalName && existing.NamespaceUri == child.NamespaceUri);
-            if (child is OpenXmlUnknownElement || duplicate || !preserveOrder && !properties.AddChild(child, false)) {
+            if (child is OpenXmlUnknownElement || duplicate || !preserveOrder && !repeatedListChild && !properties.AddChild(child, false)) {
                 if (preserveOrder) child.Remove();
                 string name = LegacyPropertyName(child.LocalName);
                 Omit(Word + name, duplicate ? "duplicate " + properties.LocalName + " property"
                     : properties.LocalName + " property not supported in this formatting context");
                 continue;
             }
+            if (repeatedListChild) properties.AppendChild(child);
             if (child is OpenXmlCompositeElement nested) OrderMappedProperties(nested);
         }
     }
 
     private static bool IsHexPropertyAttribute(string context, string attribute) =>
         attribute is "color" or "fill" ||
-        attribute == "val" && context is "color" or "tblLook" or "panose-1" or "charset";
+        attribute == "val" && context is "color" or "tblLook" or "panose-1" or "charset" or "lsid" or "tmpl" ||
+        context == "lvl" && attribute == "tplc";
 
     private static string LegacyPropertyName(string name) {
         foreach (KeyValuePair<string, string> mapping in ElementNames) {

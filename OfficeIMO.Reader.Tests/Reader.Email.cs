@@ -91,6 +91,7 @@ public sealed class ReaderEmailTests {
         Assert.Contains("officeimo.email.eml", result.CapabilitiesUsed);
         Assert.Contains(result.Metadata, item => item.Name == "MessageCount" && item.Value == "1");
         Assert.Contains(result.Metadata, item => item.Name == "To" && item.Value!.Contains("recipient@example.test", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Metadata, item => item.Name is "NormalizedSubject" or "Importance" or "DeclaredSize");
         OfficeDocumentAsset asset = Assert.Single(result.Assets);
         Assert.Equal("notes.txt", asset.FileName);
         Assert.Equal("text/plain", asset.MediaType);

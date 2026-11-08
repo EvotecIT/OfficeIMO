@@ -19,22 +19,20 @@ function Get-Constant([string] $Source, [string] $Name) {
 function Get-PinnedArtifact([string] $Url, [string] $Hash, [string] $Name) {
     $target = Join-Path $OutputPath $Name
     if (!(Test-Path -LiteralPath $target)) {
-        $request = @{ Uri = $Url; OutFile = $target; TimeoutSec = 120; MaximumRetryCount = 3; RetryIntervalSec = 2 }
-        $releaseUrl = [regex]::Match($Url, '^https://github.com/([^/]+/[^/]+)/releases/download/([^/]+)/([^/]+)$')
-        if ($releaseUrl.Success) {
+        $download = @{ Uri = $Url; OutFile = $target; TimeoutSec = 120; MaximumRetryCount = 3; RetryIntervalSec = 2 }
+        if ($Url -match '^https://github\.com/([^/]+/[^/]+)/releases/download/([^/]+)/[^/]+$') {
+            # Keep the validator's canonical URL and select those same pinned bytes through the asset API.
+            $releaseUrl = "https://api.github.com/repos/$($Matches[1])/releases/tags/$($Matches[2])"
             $headers = @{ Accept = 'application/vnd.github+json' }
             if ($env:GITHUB_TOKEN) { $headers.Authorization = "Bearer $env:GITHUB_TOKEN" }
-            $release = Invoke-RestMethod -Uri ('https://api.github.com/repos/{0}/releases/tags/{1}' -f
-                $releaseUrl.Groups[1].Value, $releaseUrl.Groups[2].Value) -Headers $headers `
-                -TimeoutSec 120 -MaximumRetryCount 3 -RetryIntervalSec 2
-            $assetName = [Uri]::UnescapeDataString($releaseUrl.Groups[3].Value)
-            $assets = @($release.assets | Where-Object name -CEQ $assetName)
-            if ($assets.Count -ne 1) { throw "Cannot find pinned release asset: $Url" }
-            $request.Uri = $assets[0].url
+            $release = Invoke-RestMethod -Uri $releaseUrl -Headers $headers -TimeoutSec 120 -MaximumRetryCount 3 -RetryIntervalSec 2
+            $assets = @($release.assets | Where-Object { $_.browser_download_url -ceq $Url })
+            if ($assets.Count -ne 1) { throw "Pinned release asset not found: $Url" }
+            $download.Uri = $assets[0].url
             $headers.Accept = 'application/octet-stream'
-            $request.Headers = $headers
+            $download.Headers = $headers
         }
-        Invoke-WebRequest @request
+        Invoke-WebRequest @download
     }
     if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $Hash) { throw "Artifact hash mismatch: $target" }
     $target

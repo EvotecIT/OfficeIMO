@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # Open-OfficeIWork
 ## SYNOPSIS
-Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.
+Reads a supported Apple Pages, Numbers, or Keynote package without launching iWork.
 
 ## SYNTAX
 ### Path (Default)
@@ -20,7 +20,7 @@ Open-OfficeIWork -LiteralPath <string> [-Kind <IWorkDocumentKind>] [-Options <IW
 ```
 
 ## DESCRIPTION
-Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.
+Reads supported iWork packages, including the qualified iWork '09 XML profile, into OfficeIMO's bounded source model.
 
 ## EXAMPLES
 
@@ -84,7 +84,7 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Path to a modern Pages, Numbers, or Keynote package or directory bundle.
+Path to a supported Pages, Numbers, or Keynote package or directory bundle, including the qualified iWork '09 XML profile.
 
 ```yaml
 Type: String

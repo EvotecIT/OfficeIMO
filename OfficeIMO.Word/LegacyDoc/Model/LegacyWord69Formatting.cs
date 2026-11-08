@@ -9,9 +9,27 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var ranges = new List<LegacyDocCharacterFormatRange>();
             var textContexts = new List<LegacyWord69Encoding.TextContextRange>();
             contextRanges = textContexts;
+            Dictionary<int, (LegacyDocCharacterFormat Format, int? Font, ushort? Language)>? parsed = null;
+            int cachedPage = -1;
             foreach (var run in ReadRuns(bytes, usedEnd, bin, paragraph: false, maximumWork)) {
                 if (run.Length == 0) continue;
-                var format = properties.ReadCharacter(bytes.Slice(run.Offset, run.Length), fonts, out int? fontIndex, out ushort? languageId);
+                // FKP runs can share one immutable property record. Retain only the current
+                // page's parsed records; every range still passes ReadRuns' bounds/work checks.
+                int page = run.Offset / PageSize;
+                if (page != cachedPage) {
+                    parsed?.Clear();
+                    cachedPage = page;
+                }
+                parsed ??= new();
+                if (!parsed.TryGetValue(run.Offset, out var cached)) {
+                    var value = properties.ReadCharacter(bytes.Slice(run.Offset, run.Length), fonts,
+                        out int? selectedFont, out ushort? selectedLanguage);
+                    cached = (value, selectedFont, selectedLanguage);
+                    parsed.Add(run.Offset, cached);
+                }
+                var format = cached.Format;
+                int? fontIndex = cached.Font;
+                ushort? languageId = cached.Language;
                 if (fontIndex.HasValue || languageId.HasValue) {
                     textContexts.Add(new LegacyWord69Encoding.TextContextRange(run.Start, run.End, fontIndex, languageId));
                 }

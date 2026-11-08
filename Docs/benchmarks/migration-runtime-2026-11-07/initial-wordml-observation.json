@@ -1,0 +1,227 @@
+{
+  "kind": "Initial selection observation, not final balanced evidence",
+  "warmups": {
+    "Baseline": 2,
+    "CandidateV1": 3,
+    "CandidateV2": 3
+  },
+  "iterations": 5,
+  "affinity": "0xFFFF",
+  "note": "Element serialization for cache keys was replaced by the already-created mapped XML. Complete initial run reports remain retained separately.",
+  "sourceBindings": {
+    "CandidateV1": "7700D9B5388E971092D8B85A9D9AB0CF784F49015739B07D9002F54880A9C509",
+    "CandidateV2": "88F8A5AA45987DA175078F963875838C9BD41F616568284D7112FA4F64F10412"
+  },
+  "rows": [
+    {
+      "suite": "officeimo-migration",
+      "scenario": "OfficeXml-Large",
+      "operation": "ConvertSave",
+      "engine": "Baseline",
+      "host": "Core-7.6.9",
+      "os": "Windows",
+      "runMode": "standard",
+      "variables": {
+        "Family": "OfficeXml",
+        "Scale": "Large",
+        "Units": "10000",
+        "InputSha256": "19636B86D4E1078AB220BA05AD73463185FC679F163F0849ED94A3B993065D22"
+      },
+      "sampleCount": 5,
+      "failureCount": 0,
+      "status": "Succeeded",
+      "medianMs": 936.5575,
+      "meanMs": 1124.0225,
+      "minMs": 837.9381,
+      "maxMs": 1844.3574,
+      "p95Ms": 1703.25108,
+      "p99Ms": 1816.136136,
+      "stdDevMs": 419.6777383548894,
+      "stdErrMs": 187.68559032098068,
+      "outlierCount": 0,
+      "failureReasons": {},
+      "metrics": {
+        "VerifiedUnits": 10000,
+        "InputBytes": 3030113,
+        "OutputBytes": 78454.4,
+        "AllocatedBytes": 1410509961.6,
+        "WorkingSetDeltaBytes": 42925260.8
+      }
+    },
+    {
+      "suite": "officeimo-migration",
+      "scenario": "OfficeXml-Large",
+      "operation": "ConvertSave",
+      "engine": "CandidateV1",
+      "host": "Core-7.6.9",
+      "os": "Windows",
+      "runMode": "standard",
+      "variables": {
+        "Family": "OfficeXml",
+        "Scale": "Large",
+        "Units": "10000",
+        "InputSha256": "19636B86D4E1078AB220BA05AD73463185FC679F163F0849ED94A3B993065D22"
+      },
+      "sampleCount": 5,
+      "failureCount": 0,
+      "status": "Succeeded",
+      "medianMs": 1032.2845,
+      "meanMs": 1038.65664,
+      "minMs": 928.7789,
+      "maxMs": 1137.7682,
+      "p95Ms": 1126.48382,
+      "p99Ms": 1135.511324,
+      "stdDevMs": 78.12186199783001,
+      "stdErrMs": 34.937158791201085,
+      "outlierCount": 0,
+      "failureReasons": {},
+      "metrics": {
+        "VerifiedUnits": 10000,
+        "InputBytes": 3030113,
+        "OutputBytes": 78454.8,
+        "AllocatedBytes": 1644713420.8,
+        "WorkingSetDeltaBytes": 37454643.2
+      }
+    },
+    {
+      "suite": "officeimo-migration",
+      "scenario": "OfficeXml-Large",
+      "operation": "ConvertSave",
+      "engine": "CandidateV2",
+      "host": "Core-7.6.9",
+      "os": "Windows",
+      "runMode": "standard",
+      "variables": {
+        "Family": "OfficeXml",
+        "Scale": "Large",
+        "Units": "10000",
+        "InputSha256": "19636B86D4E1078AB220BA05AD73463185FC679F163F0849ED94A3B993065D22"
+      },
+      "sampleCount": 5,
+      "failureCount": 0,
+      "status": "Succeeded",
+      "medianMs": 958.2508,
+      "meanMs": 951.8380199999999,
+      "minMs": 809.0199,
+      "maxMs": 1117.3276,
+      "p95Ms": 1100.70818,
+      "p99Ms": 1114.0037160000002,
+      "stdDevMs": 129.46092083979244,
+      "stdErrMs": 57.89668388549901,
+      "outlierCount": 0,
+      "failureReasons": {},
+      "metrics": {
+        "VerifiedUnits": 10000,
+        "InputBytes": 3030113,
+        "OutputBytes": 78455.2,
+        "AllocatedBytes": 1324642641.6,
+        "WorkingSetDeltaBytes": 28374630.4
+      }
+    },
+    {
+      "suite": "officeimo-migration",
+      "scenario": "OfficeXml-Large",
+      "operation": "LoadInspect",
+      "engine": "Baseline",
+      "host": "Core-7.6.9",
+      "os": "Windows",
+      "runMode": "standard",
+      "variables": {
+        "Family": "OfficeXml",
+        "Scale": "Large",
+        "Units": "10000",
+        "InputSha256": "19636B86D4E1078AB220BA05AD73463185FC679F163F0849ED94A3B993065D22"
+      },
+      "sampleCount": 5,
+      "failureCount": 0,
+      "status": "Succeeded",
+      "medianMs": 1613.5309,
+      "meanMs": 2133.2695200000003,
+      "minMs": 1468.773,
+      "maxMs": 4329.555,
+      "p95Ms": 3798.39688,
+      "p99Ms": 4223.323376,
+      "stdDevMs": 1230.0208273969906,
+      "stdErrMs": 550.0820367600413,
+      "outlierCount": 0,
+      "failureReasons": {},
+      "metrics": {
+        "VerifiedUnits": 10000,
+        "InputBytes": 3030113,
+        "OutputBytes": 0,
+        "AllocatedBytes": 1922044808,
+        "WorkingSetDeltaBytes": 88594841.6
+      }
+    },
+    {
+      "suite": "officeimo-migration",
+      "scenario": "OfficeXml-Large",
+      "operation": "LoadInspect",
+      "engine": "CandidateV1",
+      "host": "Core-7.6.9",
+      "os": "Windows",
+      "runMode": "standard",
+      "variables": {
+        "Family": "OfficeXml",
+        "Scale": "Large",
+        "Units": "10000",
+        "InputSha256": "19636B86D4E1078AB220BA05AD73463185FC679F163F0849ED94A3B993065D22"
+      },
+      "sampleCount": 5,
+      "failureCount": 0,
+      "status": "Succeeded",
+      "medianMs": 1664.7965,
+      "meanMs": 1642.8555199999998,
+      "minMs": 1438.2501,
+      "maxMs": 1792.3481,
+      "p95Ms": 1781.56414,
+      "p99Ms": 1790.191308,
+      "stdDevMs": 139.39229450149674,
+      "stdErrMs": 62.33812920900337,
+      "outlierCount": 0,
+      "failureReasons": {},
+      "metrics": {
+        "VerifiedUnits": 10000,
+        "InputBytes": 3030113,
+        "OutputBytes": 0,
+        "AllocatedBytes": 2156364620.8,
+        "WorkingSetDeltaBytes": 112491724.8
+      }
+    },
+    {
+      "suite": "officeimo-migration",
+      "scenario": "OfficeXml-Large",
+      "operation": "LoadInspect",
+      "engine": "CandidateV2",
+      "host": "Core-7.6.9",
+      "os": "Windows",
+      "runMode": "standard",
+      "variables": {
+        "Family": "OfficeXml",
+        "Scale": "Large",
+        "Units": "10000",
+        "InputSha256": "19636B86D4E1078AB220BA05AD73463185FC679F163F0849ED94A3B993065D22"
+      },
+      "sampleCount": 5,
+      "failureCount": 0,
+      "status": "Succeeded",
+      "medianMs": 1346.3271,
+      "meanMs": 1434.97526,
+      "minMs": 1206.846,
+      "maxMs": 1864.4484,
+      "p95Ms": 1792.45492,
+      "p99Ms": 1850.049704,
+      "stdDevMs": 265.6958098277389,
+      "stdErrMs": 118.82277842233617,
+      "outlierCount": 0,
+      "failureReasons": {},
+      "metrics": {
+        "VerifiedUnits": 10000,
+        "InputBytes": 3030113,
+        "OutputBytes": 0,
+        "AllocatedBytes": 1823408580.8,
+        "WorkingSetDeltaBytes": 101386649.6
+      }
+    }
+  ]
+}

@@ -4,9 +4,12 @@ using Xunit;
 namespace OfficeIMO.Drawing.Tests;
 
 public class OfficeConversionReportTests {
-    [Fact]
-    public void CompletedReportRetainsMetadataAndSnapshotsDiagnostics() {
-        var diagnostics = new List<OfficeDiagnostic> { new OfficeDiagnostic("font-selected", OfficeDiagnosticSeverity.Warning, "Font selected.", "page 1", "Pdf") };
+    [Theory]
+    [InlineData(OfficeDiagnosticSeverity.Information)]
+    [InlineData(OfficeDiagnosticSeverity.Warning)]
+    [InlineData(OfficeDiagnosticSeverity.Error)]
+    public void CompletedReportRetainsMetadataAndSnapshotsDiagnostics(OfficeDiagnosticSeverity severity) {
+        var diagnostics = new List<OfficeDiagnostic> { new OfficeDiagnostic("font-selected", severity, "Font selected.", "page 1", "Pdf") };
         var report = new OfficeConversionReport("input.docx", "Pdf", "output.pdf", 3, TimeSpan.FromSeconds(1), diagnostics);
         diagnostics.Clear();
         Assert.Equal("input.docx", report.Source);
@@ -15,6 +18,7 @@ public class OfficeConversionReportTests {
         Assert.Equal(3, report.ItemsWritten);
         Assert.Equal(TimeSpan.FromSeconds(1), report.Elapsed);
         OfficeDiagnostic item = Assert.Single(report.Diagnostics);
+        Assert.Equal(severity, item.Severity);
         Assert.Equal("page 1", item.Location);
         Assert.Equal("Pdf", item.Format);
         Assert.False(report.HasLoss);
@@ -52,7 +56,13 @@ public class OfficeConversionReportTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeConversionReport("Word", "Pdf", elapsed: TimeSpan.FromTicks(-1)));
         Assert.Throws<ArgumentException>(() => new OfficeConversionReport("Word", "Pdf", diagnostics: new OfficeDiagnostic[] { null! }));
         Assert.Throws<ArgumentException>(() => new OfficeDiagnostic(" ", OfficeDiagnosticSeverity.Warning, "message"));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeDiagnostic("x", (OfficeDiagnosticSeverity)99, "message"));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeDiagnostic("x", OfficeDiagnosticSeverity.Warning, "message", lossKind: (OfficeConversionLossKind)99));
+        foreach (int severity in new[] { -1, 3, 99 }) {
+            Assert.Equal("severity", Assert.Throws<ArgumentOutOfRangeException>(
+                () => new OfficeDiagnostic("x", (OfficeDiagnosticSeverity)severity, "message")).ParamName);
+        }
+        foreach (int lossKind in new[] { -1, 5, 99 }) {
+            Assert.Equal("lossKind", Assert.Throws<ArgumentOutOfRangeException>(
+                () => new OfficeDiagnostic("x", OfficeDiagnosticSeverity.Warning, "message", lossKind: (OfficeConversionLossKind)lossKind)).ParamName);
+        }
     }
 }

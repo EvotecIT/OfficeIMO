@@ -16,6 +16,8 @@ public sealed partial class EmailStoreSession {
             throw new ArgumentException("The body projection identity changed after query construction.", nameof(query));
         string sourceFingerprint = GetDurableSourceFingerprint(cancellationToken);
         query.ResumeFrom?.Validate(sourceFingerprint, query.Signature);
+        using IDisposable? bulkRead = Format == EmailStoreFormat.Dbx
+            ? BeginBulkRead(cancellationToken) : null;
 
         var results = new List<EmailStoreContentSearchResult>();
         var diagnostics = new List<EmailStoreDiagnostic>();

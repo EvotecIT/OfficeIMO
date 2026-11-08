@@ -1,0 +1,111 @@
+{
+  "source": "https://svn.apache.org/repos/asf/!svn/rvr/1935757/incubator/ooo/ooo-site/trunk/content/sc/testdocs/formula_import_biff4.xlw",
+  "sourceIndex": "https://svn.apache.org/repos/asf/!svn/rvr/1935757/incubator/ooo/ooo-site/trunk/content/sc/testdocs/index.html",
+  "revision": 1935757,
+  "file": "formula_import_biff4.xlw",
+  "sha256": "BCB19B7BC4769BDFF67A200E08ECEAE377E54AD65CEC6629A78254F2A5AD08C9",
+  "producer": "Microsoft Excel 4.0 German, as documented by the source index",
+  "license": "Apache-2.0",
+  "licensePolicy": "https://www.openoffice.org/license.html",
+  "licenseEvidence": "The website policy applies Apache License 2.0 to content without a separate notice. The source index has no file-specific notice.",
+  "purpose": "Test-only native BIFF4 workbook fixture; no external runtime engine is required.",
+  "oracle": {
+    "producerExpectations": "The Array worksheet contains authored Formula labels and separate Must values.",
+    "decoder": "xlrd 2.0.2 standalone formula decompiler, BIFF version 45",
+    "decoderSource": "https://github.com/python-excel/xlrd/blob/2.0.2/xlrd/formula.py",
+    "decoderLimit": "The full xlrd workbook reader fails on the 10-byte BIFF4 ARRAY header. Array constants remain unsupported by this decompiler."
+  },
+  "sheet": "Array",
+  "qualifiedArrayGroups": [
+    {
+      "range": "B7:C8",
+      "formula": "1",
+      "sourceOffset": 146241,
+      "cachedValues": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "expectedValueCells": [
+        "D7",
+        "E7",
+        "D8",
+        "E8"
+      ]
+    },
+    {
+      "range": "B9:C10",
+      "formula": "H9:I10",
+      "sourceOffset": 147099,
+      "cachedValues": [
+        1.0,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "expectedValueCells": [
+        "D9",
+        "E9",
+        "D10",
+        "E10"
+      ]
+    },
+    {
+      "range": "B11:C12",
+      "formula": "$H$9:$I$10",
+      "sourceOffset": 148021,
+      "cachedValues": [
+        1.0,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "expectedValueCells": [
+        "D11",
+        "E11",
+        "D12",
+        "E12"
+      ]
+    },
+    {
+      "range": "B18:C19",
+      "formula": "MINVERSE(H18:I19)+H20:I21",
+      "sourceOffset": 150052,
+      "cachedValues": [
+        1.0,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "expectedValueCells": [
+        "D18",
+        "E18",
+        "D19",
+        "E19"
+      ]
+    },
+    {
+      "range": "B20:C21",
+      "formula": "MINVERSE($H$18:$I$19)+$H$20:$I$21",
+      "sourceOffset": 151008,
+      "cachedValues": [
+        1.0,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "expectedValueCells": [
+        "D20",
+        "E20",
+        "D21",
+        "E21"
+      ]
+    }
+  ],
+  "unsupportedArrayConstantRanges": [
+    "B13:C14",
+    "B22:C23",
+    "B27:C28"
+  ]
+}

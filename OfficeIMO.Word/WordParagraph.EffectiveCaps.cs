@@ -6,20 +6,25 @@ public partial class WordParagraph {
     // Formatting inspection is independent of any page renderer.
     internal WordCapsStyle ResolveEffectiveCapsStyle() {
         RunProperties? direct = IsHyperLink ? Hyperlink?._runProperties : _runProperties;
-        bool caps = ResolveEffectiveOnOff<Caps>(direct?.Caps);
-        bool smallCaps = ResolveEffectiveOnOff<SmallCaps>(direct?.SmallCaps);
-        return caps ? WordCapsStyle.Caps : smallCaps ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
-    }
+        bool? caps = ReadOnOff(direct?.Caps);
+        bool? smallCaps = ReadOnOff(direct?.SmallCaps);
+        if (!caps.HasValue || !smallCaps.HasValue) {
+            foreach (StyleRunProperties properties in WordRunFormatting.EnumerateRunStyleProperties(this)) {
+                caps ??= ReadOnOff(properties.GetFirstChild<Caps>());
+                smallCaps ??= ReadOnOff(properties.GetFirstChild<SmallCaps>());
+                if (caps.HasValue && smallCaps.HasValue) break;
+            }
 
-    private bool ResolveEffectiveOnOff<T>(T? direct) where T : OnOffType {
-        if (direct != null) return direct.Val?.Value ?? true;
-        Styles? styles = _document?._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-        foreach (StyleRunProperties properties in WordRunFormatting.EnumerateRunStyleProperties(this)) {
-            T? value = properties.GetFirstChild<T>();
-            if (value != null) return value.Val?.Value ?? true;
+            if (!caps.HasValue || !smallCaps.HasValue) {
+                RunPropertiesBaseStyle? defaults = _document?._wordprocessingDocument.MainDocumentPart?
+                    .StyleDefinitionsPart?.Styles?.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
+                caps ??= ReadOnOff(defaults?.GetFirstChild<Caps>());
+                smallCaps ??= ReadOnOff(defaults?.GetFirstChild<SmallCaps>());
+            }
         }
-        T? fallback = styles?.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.GetFirstChild<T>();
-        return fallback != null && (fallback.Val?.Value ?? true);
+        return caps == true ? WordCapsStyle.Caps : smallCaps == true ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
+
+        static bool? ReadOnOff(OnOffType? value) => value == null ? null : value.Val?.Value ?? true;
     }
 
 }

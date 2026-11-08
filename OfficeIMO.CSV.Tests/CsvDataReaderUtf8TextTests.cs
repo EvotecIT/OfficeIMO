@@ -2,6 +2,7 @@
 using System;
 using System.Data.Common;
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -190,5 +191,45 @@ public sealed class CsvDataReaderUtf8TextTests {
         Assert.ThrowsAny<OperationCanceledException>(() => canceled.Read());
         Assert.True(canceledStream.CanRead);
     }
+    [Fact]
+    public void ParallelMappingRetainsUtf8ValuesAcrossRefillsAndTextFallback() {
+        const int count = 2053;
+        var names = new string[count];
+        var money = new decimal[count];
+        var text = new StringBuilder("Id,Money,Name\n");
+        string padding = new string('x', 700);
+        for (int row = 0; row < count; row++) {
+            names[row] = "Zażółć 🙂-" + row + "-" + padding;
+            if (row == 1027) names[row] += "\n\"quoted fallback\"";
+            money[row] = 1.2500m + (row % 17) / 10000m;
+            text.Append(9007199254740993L + row).Append(',')
+                .Append(money[row].ToString(CultureInfo.InvariantCulture)).Append(',');
+            if (row == 1027) text.Append('"').Append(names[row].Replace("\"", "\"\"")).Append('"');
+            else text.Append(names[row]);
+            text.Append('\n');
+        }
+        ParallelRefillRow[] actual;
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(text.ToString()));
+        using (var reader = CsvDocument.OpenReader(input,
+            options: new CsvReaderOptions { Culture = CultureInfo.InvariantCulture })) {
+            Assert.True(reader.HasRows);
+            actual = reader.RowsAsParallel<ParallelRefillRow>(new ParallelRowMappingOptions {
+                BatchSize = 1024, MaxDegreeOfParallelism = 2,
+            }).ToArray();
+        }
+        Assert.Equal(count, actual.Length);
+        for (int row = 0; row < count; row++) {
+            Assert.Equal(9007199254740993L + row, actual[row].Id);
+            Assert.Equal(decimal.GetBits(money[row]), decimal.GetBits(actual[row].Money));
+            Assert.Equal(names[row], actual[row].Name);
+        }
+    }
+
+    public sealed class ParallelRefillRow {
+        public long Id { get; set; }
+        public decimal Money { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
 }
 #endif

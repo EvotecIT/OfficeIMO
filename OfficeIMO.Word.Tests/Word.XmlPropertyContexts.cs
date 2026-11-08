@@ -224,6 +224,34 @@ public sealed class WordMlPropertyContextTests {
     }
 
     [Fact]
+    public void RepeatedMappedGroupsKeepInvalidValuesIsolatedAndLossesInFirstOccurrenceOrder() {
+        string[] colors = { "112233", "112233", "ZZZZZZ", "YYYYYY", "ZZZZZZ", "005577" };
+        string runs = string.Concat(colors.Select((color, index) => "<w:r><w:rPr><w:b/><w:color w:val=\"" + color +
+            "\"/></w:rPr><w:t>Run " + index + "</w:t></w:r>"));
+        byte[] source = Encoding.UTF8.GetBytes(Source("<w:p>" + runs + "</w:p>"));
+        using var input = new MemoryStream(source);
+        using WordDocument document = WordDocument.Load(input, null, out OfficeConversionReport report);
+        Assert.Equal(2, report.Diagnostics.Count);
+        Assert.All(report.Diagnostics, diagnostic => {
+            Assert.Equal("WORDML2003_OMITTED", diagnostic.Code);
+            Assert.Equal((Word + "color").ToString(), diagnostic.Location);
+            Assert.Contains("Sch_AttributeUnionFailedEx", diagnostic.Message);
+        });
+        Assert.Contains("val='ZZZZZZ'", report.Diagnostics[0].Message);
+        Assert.Contains("val='YYYYYY'", report.Diagnostics[1].Message);
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(saved));
+        Run[] output = saved.MainDocumentPart!.Document!.Body!.Descendants<Run>().ToArray();
+        Assert.Equal(Enumerable.Range(0, colors.Length).Select(index => "Run " + index), output.Select(run => run.InnerText));
+        Assert.All(output, run => Assert.NotNull(run.RunProperties!.Bold));
+        Assert.Equal(new string?[] { "112233", "112233", null, null, null, "005577" }, output.Select(run => run.RunProperties!.Color?.Val?.Value));
+        using var strict = new MemoryStream(source);
+        Assert.Throws<OfficeConversionException>(() => WordDocument.Load(strict,
+            new WordLoadOptions { FailOnLoss = true, ReportUnsupportedContent = false }));
+    }
+
+    [Fact]
     public void MappedPropertyValidationRejectsACappedInvalidGroupBeforePartialEmission() {
         int count = new OpenXmlValidator(FileFormatVersions.Microsoft365).MaxNumberOfErrors + 1;
         string grid = string.Concat(Enumerable.Repeat("<w:gridCol w:w=\"invalid\"/>", count));

@@ -14,6 +14,8 @@ internal sealed partial class WordMl2003Projection {
     // Word 2003 wordnet.xsd uses hyphen-separated tokens. The target SDK owns the
     // accepted value vocabulary; a token without a qualified target is a reported loss.
     private static bool TryMapPropertyValue(string context, string attribute, string? parent, string source, out string value) {
+        if (attribute == "val" && context is "nfc" or "plt" or "suff")
+            return TryMapListValue(context, source, out value);
         Func<string, bool>? valid = (context, attribute) switch {
             ("spacing", "line-rule") => IsEnum<LineSpacingRuleValues>,
             ("trHeight", "h-rule") => IsEnum<HeightRuleValues>,
@@ -60,6 +62,7 @@ internal sealed partial class WordMl2003Projection {
             ("view", "val") => IsEnum<ViewValues>,
             ("zoom", "val") => IsEnum<PresetZoomValues>,
             ("characterSpacingControl", "val") => IsEnum<CharacterSpacingValues>,
+            ("lvlJc", "val") => IsEnum<LevelJustificationValues>,
             _ when attribute == "val" && parent is "pBdr" or "tblBorders" or "tcBorders" or "pgBorders" => IsEnum<BorderValues>,
             _ when attribute == "type" && parent is "tblCellMar" or "tcMar" => IsEnum<TableWidthUnitValues>,
             _ => null
@@ -69,6 +72,7 @@ internal sealed partial class WordMl2003Projection {
             value = NormalizeLegacyEnum(source);
             if (context is "tblLayout" or "tblOverlap" or "family" or "pitch") value = value.ToLowerInvariant();
             if (context == "rFonts" && source == "fareast") value = "eastAsia";
+            if (context == "tab" && attribute == "val" && source == "list") value = "num";
             if (context == "characterSpacingControl") value = source switch {
                 "DontCompress" => "doNotCompress", "CompressPunctuation" => "compressPunctuation",
                 "CompressPunctuationAndJapaneseKana" => "compressPunctuationAndJapaneseKana", _ => value
@@ -80,6 +84,8 @@ internal sealed partial class WordMl2003Projection {
             context == "cols" && attribute is "equalWidth" or "sep" ||
             context == "tblLook" && attribute is "firstRow" or "lastRow" or "firstColumn" or "lastColumn" or "noHBand" or "noVBand" ||
             context == "fldChar" && attribute is "fldLock" or "dirty" ||
+            context == "lvl" && attribute == "tentative" ||
+            context == "isLgl" && attribute == "val" ||
             attribute is "shadow" or "frame" && (context == "bdr" || parent is "pBdr" or "tblBorders" or "tcBorders" or "pgBorders");
         return !onOff || source is "on" or "off" or "true" or "false" or "1" or "0";
     }

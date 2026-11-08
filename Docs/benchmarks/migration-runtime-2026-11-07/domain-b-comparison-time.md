@@ -1,0 +1,35 @@
+| Scenario | Variables | Host | Operation | Baseline | Candidate | Result |
+| --- | --- | --- | --- | ---: | ---: | --- |
+| Biff4-Large | Family=Biff4, InputSha256=4CA43CC12B6C0EE8DEB59CFF1AD593E58E273A7E6E840F1C7D25E0328F58939C, Scale=Large, Units=16000 | Core-7.6.9 | ConvertSave | 1.00x (27ms) | 1.01x (27ms) | Fastest: Baseline |
+| Biff4-Large | Family=Biff4, InputSha256=4CA43CC12B6C0EE8DEB59CFF1AD593E58E273A7E6E840F1C7D25E0328F58939C, Scale=Large, Units=16000 | Core-7.6.9 | LoadInspect | 1.00x (24ms) | 0.98x (24ms) | Fastest: Candidate |
+| Biff4-Medium | Family=Biff4, InputSha256=C61DA1FFB1937D60C3FB23B3DC2B086E156376E1BBEE3E6A37E1DA6BA39E9A22, Scale=Medium, Units=4000 | Core-7.6.9 | ConvertSave | 1.00x (9ms) | 1.01x (9ms) | Fastest: Baseline |
+| Biff4-Medium | Family=Biff4, InputSha256=C61DA1FFB1937D60C3FB23B3DC2B086E156376E1BBEE3E6A37E1DA6BA39E9A22, Scale=Medium, Units=4000 | Core-7.6.9 | LoadInspect | 1.00x (8ms) | 0.90x (7ms) | Fastest: Candidate |
+| Biff4-Small | Family=Biff4, InputSha256=990BA418404E2C8204F48032445C7866D9D3E224A7A7389326F995776AC73370, Scale=Small, Units=1000 | Core-7.6.9 | ConvertSave | 1.00x (4ms) | 1.04x (4ms) | Fastest: Baseline |
+| Biff4-Small | Family=Biff4, InputSha256=990BA418404E2C8204F48032445C7866D9D3E224A7A7389326F995776AC73370, Scale=Small, Units=1000 | Core-7.6.9 | LoadInspect | 1.00x (3ms) | 0.98x (3ms) | Fastest: Candidate |
+| Dbx-Large | Family=Dbx, InputSha256=5A1B4E7946618034120A25A7FE4F8D6B9909D329F64C6829FD48C2C57A49745C, Scale=Large, Units=512 | Core-7.6.9 | ConvertSave | 1.00x (13ms) | 1.05x (13ms) | Fastest: Baseline |
+| Dbx-Large | Family=Dbx, InputSha256=5A1B4E7946618034120A25A7FE4F8D6B9909D329F64C6829FD48C2C57A49745C, Scale=Large, Units=512 | Core-7.6.9 | LoadInspect | 1.00x (11ms) | 1.01x (11ms) | Fastest: Baseline |
+| Dbx-Large | Family=Dbx, InputSha256=5A1B4E7946618034120A25A7FE4F8D6B9909D329F64C6829FD48C2C57A49745C, Scale=Large, Units=512 | Core-7.6.9 | SearchContent | 1.00x (1.90s) | 0.50x (950ms) | Fastest: Candidate |
+| Dbx-Medium | Family=Dbx, InputSha256=8E573F15CCB63DBE791776E51E26A5CA40419AE4E5F99C9F1DC8B15E50059D04, Scale=Medium, Units=64 | Core-7.6.9 | ConvertSave | 1.00x (2ms) | 1.02x (2ms) | Fastest: Baseline |
+| Dbx-Medium | Family=Dbx, InputSha256=8E573F15CCB63DBE791776E51E26A5CA40419AE4E5F99C9F1DC8B15E50059D04, Scale=Medium, Units=64 | Core-7.6.9 | LoadInspect | 1.00x (2ms) | 1.01x (2ms) | Fastest: Baseline |
+| Dbx-Medium | Family=Dbx, InputSha256=8E573F15CCB63DBE791776E51E26A5CA40419AE4E5F99C9F1DC8B15E50059D04, Scale=Medium, Units=64 | Core-7.6.9 | SearchContent | 1.00x (146ms) | 0.92x (134ms) | Fastest: Candidate |
+| Dbx-Small | Family=Dbx, InputSha256=BD89D439B51B2F0DA9D0B0FCB84E1E9C4B1462EA0ABB251B2A8EFB9C349AA6A7, Scale=Small, Units=6 | Core-7.6.9 | ConvertSave | 1.00x (1ms) | 1.00x (1ms) | Fastest: Candidate |
+| Dbx-Small | Family=Dbx, InputSha256=BD89D439B51B2F0DA9D0B0FCB84E1E9C4B1462EA0ABB251B2A8EFB9C349AA6A7, Scale=Small, Units=6 | Core-7.6.9 | LoadInspect | 1.00x (1ms) | 1.01x (1ms) | Fastest: Baseline |
+| Dbx-Small | Family=Dbx, InputSha256=BD89D439B51B2F0DA9D0B0FCB84E1E9C4B1462EA0ABB251B2A8EFB9C349AA6A7, Scale=Small, Units=6 | Core-7.6.9 | SearchContent | 1.00x (11ms) | 0.99x (11ms) | Fastest: Candidate |
+| IWork09-Large | Family=IWork09, InputSha256=70499680A640EA12199AF669E8CB6D034F842525B1C313C6FC8BFEDBC0187C47, Scale=Large, Units=512 | Core-7.6.9 | ConvertSave | 1.00x (150ms) | 1.01x (152ms) | Fastest: Baseline |
+| IWork09-Large | Family=IWork09, InputSha256=70499680A640EA12199AF669E8CB6D034F842525B1C313C6FC8BFEDBC0187C47, Scale=Large, Units=512 | Core-7.6.9 | LoadInspect | 1.00x (4ms) | 0.83x (3ms) | Fastest: Candidate |
+| IWork09-Medium | Family=IWork09, InputSha256=01F1B6F24E9FCE00394CC5DDAD1FEDD5D94CC0FC79BF026ABFF9E9E726023891, Scale=Medium, Units=64 | Core-7.6.9 | ConvertSave | 1.00x (7ms) | 0.94x (6ms) | Fastest: Candidate |
+| IWork09-Medium | Family=IWork09, InputSha256=01F1B6F24E9FCE00394CC5DDAD1FEDD5D94CC0FC79BF026ABFF9E9E726023891, Scale=Medium, Units=64 | Core-7.6.9 | LoadInspect | 1.00x (1ms) | 0.92x (1ms) | Fastest: Candidate |
+| IWork09-Small | Family=IWork09, InputSha256=8B4C5DFD2E97DD44569DC57150C84558F5CE60BCD67FBF7FC773BDDA1F46E6F3, Scale=Small, Units=6 | Core-7.6.9 | ConvertSave | 1.00x (2ms) | 1.03x (3ms) | Fastest: Baseline |
+| IWork09-Small | Family=IWork09, InputSha256=8B4C5DFD2E97DD44569DC57150C84558F5CE60BCD67FBF7FC773BDDA1F46E6F3, Scale=Small, Units=6 | Core-7.6.9 | LoadInspect | 1.00x (1ms) | 1.00x (1ms) | Fastest: Baseline |
+| OfficeXml-Large | Family=OfficeXml, InputSha256=19636B86D4E1078AB220BA05AD73463185FC679F163F0849ED94A3B993065D22, Scale=Large, Units=10000 | Core-7.6.9 | ConvertSave | 1.00x (710ms) | 0.97x (688ms) | Fastest: Candidate |
+| OfficeXml-Large | Family=OfficeXml, InputSha256=19636B86D4E1078AB220BA05AD73463185FC679F163F0849ED94A3B993065D22, Scale=Large, Units=10000 | Core-7.6.9 | LoadInspect | 1.00x (1.03s) | 0.93x (966ms) | Fastest: Candidate |
+| OfficeXml-Medium | Family=OfficeXml, InputSha256=E7C17379421CE0CE729D893D907394F5B45A6C59E2E15C1308BB00562C91434B, Scale=Medium, Units=1000 | Core-7.6.9 | ConvertSave | 1.00x (67ms) | 0.90x (60ms) | Fastest: Candidate |
+| OfficeXml-Medium | Family=OfficeXml, InputSha256=E7C17379421CE0CE729D893D907394F5B45A6C59E2E15C1308BB00562C91434B, Scale=Medium, Units=1000 | Core-7.6.9 | LoadInspect | 1.00x (90ms) | 0.91x (82ms) | Fastest: Candidate |
+| OfficeXml-Small | Family=OfficeXml, InputSha256=3C6655290D6EF3D38E21572D351E5C42D37EED79C2226DD77A17F91E2C1F5D9B, Scale=Small, Units=100 | Core-7.6.9 | ConvertSave | 1.00x (10ms) | 0.92x (9ms) | Fastest: Candidate |
+| OfficeXml-Small | Family=OfficeXml, InputSha256=3C6655290D6EF3D38E21572D351E5C42D37EED79C2226DD77A17F91E2C1F5D9B, Scale=Small, Units=100 | Core-7.6.9 | LoadInspect | 1.00x (9ms) | 0.95x (8ms) | Fastest: Candidate |
+| Word69-Large | Family=Word69, InputSha256=DECD05A55D8975D24CD3BF4736CACF2DA8F8CDD301EB90402A475C7BE5AC95F0, Scale=Large, Units=10000 | Core-7.6.9 | ConvertSave | 1.00x (58ms) | 1.01x (59ms) | Fastest: Baseline |
+| Word69-Large | Family=Word69, InputSha256=DECD05A55D8975D24CD3BF4736CACF2DA8F8CDD301EB90402A475C7BE5AC95F0, Scale=Large, Units=10000 | Core-7.6.9 | LoadInspect | 1.00x (442ms) | 0.50x (223ms) | Fastest: Candidate |
+| Word69-Medium | Family=Word69, InputSha256=71BF3841CF701575BCA96E930E2AA33CCB94B615C08F81BE2D82C1162FA5D9F0, Scale=Medium, Units=1000 | Core-7.6.9 | ConvertSave | 1.00x (15ms) | 0.99x (14ms) | Fastest: Candidate |
+| Word69-Medium | Family=Word69, InputSha256=71BF3841CF701575BCA96E930E2AA33CCB94B615C08F81BE2D82C1162FA5D9F0, Scale=Medium, Units=1000 | Core-7.6.9 | LoadInspect | 1.00x (32ms) | 0.73x (23ms) | Fastest: Candidate |
+| Word69-Small | Family=Word69, InputSha256=CABAF03B39EF123C00E9C047DB649E11205E139F4F5B0FC747F1F72758B13C7A, Scale=Small, Units=100 | Core-7.6.9 | ConvertSave | 1.00x (11ms) | 0.97x (10ms) | Fastest: Candidate |
+| Word69-Small | Family=Word69, InputSha256=CABAF03B39EF123C00E9C047DB649E11205E139F4F5B0FC747F1F72758B13C7A, Scale=Small, Units=100 | Core-7.6.9 | LoadInspect | 1.00x (11ms) | 0.89x (9ms) | Fastest: Candidate |

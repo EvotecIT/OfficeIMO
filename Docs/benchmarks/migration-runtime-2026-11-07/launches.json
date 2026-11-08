@@ -1,0 +1,260 @@
+{
+  "schema": 1,
+  "evidenceDateUtc": "2026-11-07",
+  "selectedCommit": "78b6b825fc5d90bb1aa5bb14767bb70a36abd709",
+  "baselineCommit": "b609d9788cd69c9af1861a0c4b2aad7181a03632",
+  "succeededSamples": 1848,
+  "failedSamples": 0,
+  "expectedSkippedRecords": 96,
+  "supportedPhases": 33,
+  "samplesPerRevisionPerPhasePerDomain": 14,
+  "domainsKeptSeparate": true,
+  "outliersRemoved": 0,
+  "recordedCpuPercentRange": [
+    17.0,
+    99.0
+  ],
+  "launches": [
+    {
+      "domain": "domain-a",
+      "mask": "0xFFFF",
+      "order": 1,
+      "revision": "Baseline",
+      "runId": "20261107-223550-a5c28fa7",
+      "startedUtc": "2026-11-07T22:35:46.8992777Z",
+      "endedUtc": "2026-11-07T22:37:50.1411643Z",
+      "succeededSamples": 231,
+      "skippedRecords": 12,
+      "sourceIdentity": "commit:b609d9788cd69c9af1861a0c4b2aad7181a03632;binding-sha256:1CBCBB6EE42D733BE11F7128A080DD28A9F3FB42924AF6821304A20D5FCCB9BF",
+      "csv": "raw/domain-a-01-baseline.csv",
+      "csvSha256": "879DBB32B75EC9741B4FBD492A0652C0289DD9B9C6D3ECA7E7DF1B6189F5D7AC",
+      "originalPrivateRunReportSha256": "4FB2CF1A64EEB452E7363FE3CE3B9D2BDC09E84E51A8AB5FFEA177638E09C266",
+      "loadObservations": [
+        {
+          "utc": "2026-11-07T22:35:46.8992777Z",
+          "point": "start",
+          "cpuPercent": 57
+        },
+        {
+          "utc": "2026-11-07T22:36:29.9325111Z",
+          "point": "during",
+          "cpuPercent": 48
+        },
+        {
+          "utc": "2026-11-07T22:37:50.1411643Z",
+          "point": "end",
+          "cpuPercent": 26
+        }
+      ]
+    },
+    {
+      "domain": "domain-a",
+      "mask": "0xFFFF",
+      "order": 2,
+      "revision": "Candidate",
+      "runId": "20261107-223807-356b7399",
+      "startedUtc": "2026-11-07T22:38:04.9085739Z",
+      "endedUtc": "2026-11-07T22:40:03.266023Z",
+      "succeededSamples": 231,
+      "skippedRecords": 12,
+      "sourceIdentity": "commit:78b6b825fc5d90bb1aa5bb14767bb70a36abd709;binding-sha256:FFC2FFA97ACD84DF036E599C5C3208248E9BC0302F4D05D546F92CF2DF391F00",
+      "csv": "raw/domain-a-02-candidate.csv",
+      "csvSha256": "ADC89CC0201FCB3AB5D1BE4A74CBB5939F92441032587DFC3EC00B6DDFE032D6",
+      "originalPrivateRunReportSha256": "2C0E476502749A433515A1B57B74E930DEE57CCEFB61C09C1BA0ACD796ED0944",
+      "loadObservations": [
+        {
+          "utc": "2026-11-07T22:38:04.9085739Z",
+          "point": "start",
+          "cpuPercent": 20
+        },
+        {
+          "utc": "2026-11-07T22:39:28.4625686Z",
+          "point": "during",
+          "cpuPercent": 99
+        },
+        {
+          "utc": "2026-11-07T22:40:03.266023Z",
+          "point": "end",
+          "cpuPercent": 18
+        }
+      ]
+    },
+    {
+      "domain": "domain-a",
+      "mask": "0xFFFF",
+      "order": 3,
+      "revision": "Candidate",
+      "runId": "20261107-224059-4dd45924",
+      "startedUtc": "2026-11-07T22:40:57.5089707Z",
+      "endedUtc": "2026-11-07T22:42:37.92995Z",
+      "succeededSamples": 231,
+      "skippedRecords": 12,
+      "sourceIdentity": "commit:78b6b825fc5d90bb1aa5bb14767bb70a36abd709;binding-sha256:FFC2FFA97ACD84DF036E599C5C3208248E9BC0302F4D05D546F92CF2DF391F00",
+      "csv": "raw/domain-a-03-candidate.csv",
+      "csvSha256": "83D070BAF5E0260A27D6D85A7981229A8095E281961B2A21773BFC4A36536CC0",
+      "originalPrivateRunReportSha256": "2878256FCFA9772BEA880352A36698E74A553B8333CBA421A4BFB108B865E8AF",
+      "loadObservations": [
+        {
+          "utc": "2026-11-07T22:40:57.5089707Z",
+          "point": "start",
+          "cpuPercent": 29
+        },
+        {
+          "utc": "2026-11-07T22:42:26.6471661Z",
+          "point": "during",
+          "cpuPercent": 41
+        },
+        {
+          "utc": "2026-11-07T22:42:37.92995Z",
+          "point": "end",
+          "cpuPercent": 68
+        }
+      ]
+    },
+    {
+      "domain": "domain-a",
+      "mask": "0xFFFF",
+      "order": 4,
+      "revision": "Baseline",
+      "runId": "20261107-224254-3c90a647",
+      "startedUtc": "2026-11-07T22:42:52.6453832Z",
+      "endedUtc": "2026-11-07T22:45:22.4641778Z",
+      "succeededSamples": 231,
+      "skippedRecords": 12,
+      "sourceIdentity": "commit:b609d9788cd69c9af1861a0c4b2aad7181a03632;binding-sha256:1CBCBB6EE42D733BE11F7128A080DD28A9F3FB42924AF6821304A20D5FCCB9BF",
+      "csv": "raw/domain-a-04-baseline.csv",
+      "csvSha256": "1BED51DF51021695D592222A909C76D8939E75DA2D9C75C3C5BD662F20C5599B",
+      "originalPrivateRunReportSha256": "35CB8C72F688FF7895984B9C6440EB89B075D18E051AE80F1F34310FC3B24FE5",
+      "loadObservations": [
+        {
+          "utc": "2026-11-07T22:42:52.6453832Z",
+          "point": "start",
+          "cpuPercent": 41
+        },
+        {
+          "utc": "2026-11-07T22:44:32.9579982Z",
+          "point": "during",
+          "cpuPercent": 62
+        },
+        {
+          "utc": "2026-11-07T22:45:22.4641778Z",
+          "point": "end",
+          "cpuPercent": 39
+        }
+      ]
+    },
+    {
+      "domain": "domain-b",
+      "mask": "0xFFFF0000",
+      "order": 1,
+      "revision": "Baseline",
+      "runId": "20261107-224719-9e29e62d",
+      "startedUtc": "2026-11-07T22:47:16.9795409Z",
+      "endedUtc": "2026-11-07T22:48:57.4270452Z",
+      "succeededSamples": 231,
+      "skippedRecords": 12,
+      "sourceIdentity": "commit:b609d9788cd69c9af1861a0c4b2aad7181a03632;binding-sha256:1CBCBB6EE42D733BE11F7128A080DD28A9F3FB42924AF6821304A20D5FCCB9BF",
+      "csv": "raw/domain-b-01-baseline.csv",
+      "csvSha256": "0F30ACFFCF9ADCCD982A0F7AE437C0397587EA818899853BCA3F1352CC388ACD",
+      "originalPrivateRunReportSha256": "82B61139553898E643D135E3F7729BE4CAB3BB3865B43D4A53614AD99345A056",
+      "loadObservations": [
+        {
+          "utc": "2026-11-07T22:47:16.9795409Z",
+          "point": "start",
+          "cpuPercent": 19
+        },
+        {
+          "utc": "2026-11-07T22:48:57.4270452Z",
+          "point": "end",
+          "cpuPercent": 17
+        }
+      ]
+    },
+    {
+      "domain": "domain-b",
+      "mask": "0xFFFF0000",
+      "order": 2,
+      "revision": "Candidate",
+      "runId": "20261107-224925-60b57f52",
+      "startedUtc": "2026-11-07T22:49:22.8849663Z",
+      "endedUtc": "2026-11-07T22:50:47.8050262Z",
+      "succeededSamples": 231,
+      "skippedRecords": 12,
+      "sourceIdentity": "commit:78b6b825fc5d90bb1aa5bb14767bb70a36abd709;binding-sha256:FFC2FFA97ACD84DF036E599C5C3208248E9BC0302F4D05D546F92CF2DF391F00",
+      "csv": "raw/domain-b-02-candidate.csv",
+      "csvSha256": "E25CDFBD73F040A8AA38AF5BD4D45D9E73D4995783F535DEB4FBB00FB891F836",
+      "originalPrivateRunReportSha256": "2A72A83502A0B5150AA4D4200B66F84E0DDF6F068539B2063040FE175024C967",
+      "loadObservations": [
+        {
+          "utc": "2026-11-07T22:49:22.8849663Z",
+          "point": "start",
+          "cpuPercent": 62
+        },
+        {
+          "utc": "2026-11-07T22:50:47.8050262Z",
+          "point": "end",
+          "cpuPercent": 46
+        }
+      ]
+    },
+    {
+      "domain": "domain-b",
+      "mask": "0xFFFF0000",
+      "order": 3,
+      "revision": "Candidate",
+      "runId": "20261107-225139-2d89ecca",
+      "startedUtc": "2026-11-07T22:51:37.4607271Z",
+      "endedUtc": "2026-11-07T22:53:00.8082391Z",
+      "succeededSamples": 231,
+      "skippedRecords": 12,
+      "sourceIdentity": "commit:78b6b825fc5d90bb1aa5bb14767bb70a36abd709;binding-sha256:FFC2FFA97ACD84DF036E599C5C3208248E9BC0302F4D05D546F92CF2DF391F00",
+      "csv": "raw/domain-b-03-candidate.csv",
+      "csvSha256": "7532591E321C0A4E73EA24CCC0ECDF41D93A31D981F096E85B660DC67AEAC2B2",
+      "originalPrivateRunReportSha256": "30514B93A147E32E5300DF6E1E0F9E9CF72CB89650A49EE3B2F5806D90D4BA35",
+      "loadObservations": [
+        {
+          "utc": "2026-11-07T22:51:37.4607271Z",
+          "point": "start",
+          "cpuPercent": 30
+        },
+        {
+          "utc": "2026-11-07T22:53:00.8082391Z",
+          "point": "end",
+          "cpuPercent": 87
+        }
+      ]
+    },
+    {
+      "domain": "domain-b",
+      "mask": "0xFFFF0000",
+      "order": 4,
+      "revision": "Baseline",
+      "runId": "20261107-225358-f22055f0",
+      "startedUtc": "2026-11-07T22:53:56.6706495Z",
+      "endedUtc": "2026-11-07T22:55:35.4611946Z",
+      "succeededSamples": 231,
+      "skippedRecords": 12,
+      "sourceIdentity": "commit:b609d9788cd69c9af1861a0c4b2aad7181a03632;binding-sha256:1CBCBB6EE42D733BE11F7128A080DD28A9F3FB42924AF6821304A20D5FCCB9BF",
+      "csv": "raw/domain-b-04-baseline.csv",
+      "csvSha256": "E98AB7B09E6C7B2A8EF0E58C2C5E32BEE3E84444D68003EA4B8075F47B7FCB0A",
+      "originalPrivateRunReportSha256": "9D4D4427C0EBA37D2D5805E7E5AD29EE03D62C098B29546015E0AE3AAEFD1F9A",
+      "loadObservations": [
+        {
+          "utc": "2026-11-07T22:53:56.6706495Z",
+          "point": "start",
+          "cpuPercent": 28
+        },
+        {
+          "utc": "2026-11-07T22:54:16.7546424Z",
+          "point": "during",
+          "cpuPercent": 40
+        },
+        {
+          "utc": "2026-11-07T22:55:35.4611946Z",
+          "point": "end",
+          "cpuPercent": 48
+        }
+      ]
+    }
+  ]
+}

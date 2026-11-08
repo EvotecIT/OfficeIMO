@@ -1,0 +1,108 @@
+{
+  "Producer": "Microsoft Word 16.0 build 16.0.20527",
+  "CreatedUtc": "2026-11-07T20:03:22.2684892Z",
+  "NativeVisibleWindows": 0,
+  "Paragraphs": [
+    {
+      "Text": "Decimal one",
+      "ListType": 3,
+      "ListString": "1.",
+      "ListValue": 1,
+      "ListLevelNumber": 1
+    },
+    {
+      "Text": "Decimal two",
+      "ListType": 3,
+      "ListString": "2.",
+      "ListValue": 2,
+      "ListLevelNumber": 1
+    },
+    {
+      "Text": "Plain separator",
+      "ListType": 0,
+      "ListString": "",
+      "ListValue": 0,
+      "ListLevelNumber": 1
+    },
+    {
+      "Text": "Decimal continued",
+      "ListType": 3,
+      "ListString": "3.",
+      "ListValue": 3,
+      "ListLevelNumber": 1
+    },
+    {
+      "Text": "Decimal restarted",
+      "ListType": 3,
+      "ListString": "1.",
+      "ListValue": 1,
+      "ListLevelNumber": 1
+    },
+    {
+      "Text": "Decimal starts seven",
+      "ListType": 3,
+      "ListString": "7.",
+      "ListValue": 7,
+      "ListLevelNumber": 1
+    },
+    {
+      "Text": "Bullet one",
+      "ListType": 2,
+      "ListString": "•",
+      "ListValue": 1,
+      "ListLevelNumber": 1
+    },
+    {
+      "Text": "Bullet two",
+      "ListType": 2,
+      "ListString": "•",
+      "ListValue": 2,
+      "ListLevelNumber": 1
+    },
+    {
+      "Text": "Outline first",
+      "ListType": 4,
+      "ListString": "1.",
+      "ListValue": 1,
+      "ListLevelNumber": 1
+    },
+    {
+      "Text": "Outline child one",
+      "ListType": 4,
+      "ListString": "1.1)",
+      "ListValue": 1,
+      "ListLevelNumber": 2
+    },
+    {
+      "Text": "Outline child two",
+      "ListType": 4,
+      "ListString": "1.2)",
+      "ListValue": 2,
+      "ListLevelNumber": 2
+    },
+    {
+      "Text": "Outline second",
+      "ListType": 4,
+      "ListString": "2.",
+      "ListValue": 2,
+      "ListLevelNumber": 1
+    },
+    {
+      "Text": "End of list control",
+      "ListType": 0,
+      "ListString": "",
+      "ListValue": 0,
+      "ListLevelNumber": 1
+    }
+  ],
+  "Files": [
+    {
+      "Sha256": "1526FDF1FF7C607170F95BBCFAE1A0690542A60D3D3085AFDB0333A57794E431",
+      "File": "word-lists-native.docx"
+    },
+    {
+      "Sha256": "528E411D2DF454513297484F48E1C8F969CEF06FE2B7B19BAA8A3F8709A4A415",
+      "File": "word-lists-native-2003.xml"
+    }
+  ]
+}
