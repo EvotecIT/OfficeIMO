@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 entry.LastWriteTime = ReproducibleEntryTime;
                 using (Stream output = entry.Open()) {
                     using var pipeline = pooledSnapshot && source.Rows.RowCount >= 4096
-                        && document.Execution.AllowsBackgroundProcessing ? new XlsbCompressionPipeline(output) : null;
+                        && document.Execution.AllowsBackgroundProcessing ? new WorksheetCompressionPipeline(output) : null;
                     if (!XlsbWorksheetPartWriter.TryWriteDirectTabular(
                         dateSystem, sheet, source, pipeline ?? output, cancellationToken, sharedStrings)) return false;
                     pipeline?.Complete();

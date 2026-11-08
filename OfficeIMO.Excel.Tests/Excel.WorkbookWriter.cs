@@ -96,7 +96,7 @@ public partial class Excel {
         File.WriteAllText(path, "original");
         using var cancellation = new CancellationTokenSource();
         bool disposed = false;
-        int rowCount = format == ExcelFileFormat.Xlsb ? 16_384 : 1;
+        int rowCount = format == ExcelFileFormat.Xls ? 1 : 16_384;
         string text = new string('X', 128);
         try {
             using (var writer = ExcelDocument.CreateWriter(format, path)) {
