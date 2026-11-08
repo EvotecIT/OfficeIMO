@@ -207,7 +207,8 @@ public static partial class ParallelRowMappingExtensions {
                              degreeOfParallelism,
                              values => plan.MapValues(values, culture, dateTimeFormats, typeConverter, errorValuePolicy),
                              typeConverter is null ? plan.CaptureReaderValues : (source, values) => plan.CaptureReaderValues(source, values, preserveConverterInput: true),
-                             cancellationToken),
+                             cancellationToken,
+                             typeConverter is null ? plan.CreateSnapshotColumnsFactory(reader, culture, dateTimeFormats, errorValuePolicy) : null),
                          cancellationToken)) {
                 yield return row;
             }
@@ -227,7 +228,8 @@ public static partial class ParallelRowMappingExtensions {
                      degreeOfParallelism,
                      values => plan.MapValues(values, culture, dateTimeFormats, typeConverter, errorValuePolicy),
                      typeConverter is null ? plan.CaptureReaderValues : (source, values) => plan.CaptureReaderValues(source, values, preserveConverterInput: true),
-                     cancellationToken)) {
+                     cancellationToken,
+                     typeConverter is null ? plan.CreateSnapshotColumnsFactory(reader, culture, dateTimeFormats, errorValuePolicy) : null)) {
             yield return row;
         }
     }
@@ -357,9 +359,10 @@ public static partial class ParallelRowMappingExtensions {
         int degreeOfParallelism,
         Func<object?[], T> map,
         Action<DbDataReader, object?[]>? captureValues,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Func<int, IRowMappingSnapshotColumns>? columnsFactory = null) {
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        using var snapshots = new RowSnapshotPool(batchSize, reader.FieldCount);
+        using var snapshots = new RowSnapshotPool(batchSize, reader.FieldCount, columnsFactory);
         var pending = new Queue<Task<T[]>>(degreeOfParallelism);
         ExceptionDispatchInfo? sourceError = null;
         try {

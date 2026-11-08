@@ -59,9 +59,16 @@ public static partial class ParallelRowMappingExtensions {
         CancellationToken cancellationToken) {
         try {
             var result = new T[batch.Count];
-            for (int index = 0; index < result.Length; index++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                result[index] = map(batch[index]);
+            if (batch.Columns is IRowMappingSnapshotColumns<T> columns) {
+                for (int index = 0; index < result.Length; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    result[index] = columns.Map(index);
+                }
+            } else {
+                for (int index = 0; index < result.Length; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    result[index] = map(batch[index]);
+                }
             }
             return result;
         } finally {
@@ -72,18 +79,20 @@ public static partial class ParallelRowMappingExtensions {
     /// <summary>Owns reusable row storage until the bounded workers have stopped.</summary>
     private sealed class RowSnapshotPool : IDisposable {
         private readonly int _capacity, _fieldCount;
+        private readonly Func<int, IRowMappingSnapshotColumns>? _columnsFactory;
         private readonly System.Collections.Concurrent.ConcurrentQueue<RowSnapshotBatch> _available = new();
         // Only the producer creates workspaces. Disposal follows the worker-join finally.
         private readonly List<RowSnapshotBatch> _allocated = new();
 
-        internal RowSnapshotPool(int capacity, int fieldCount) {
+        internal RowSnapshotPool(int capacity, int fieldCount, Func<int, IRowMappingSnapshotColumns>? columnsFactory = null) {
             _capacity = capacity;
             _fieldCount = fieldCount;
+            _columnsFactory = columnsFactory;
         }
 
         internal RowSnapshotBatch Rent() {
             if (!_available.TryDequeue(out RowSnapshotBatch? batch)) {
-                batch = new RowSnapshotBatch(this, _capacity, _fieldCount);
+                batch = new RowSnapshotBatch(this, _capacity, _fieldCount, _columnsFactory);
                 _allocated.Add(batch);
             }
             batch.Lease();
@@ -102,21 +111,30 @@ public static partial class ParallelRowMappingExtensions {
     private sealed class RowSnapshotBatch : IDisposable {
         private readonly RowSnapshotPool _owner;
         private readonly object?[][] _rows;
-        private readonly int _fieldCount;
+        private readonly int _fieldCount, _capacity;
+        internal IRowMappingSnapshotColumns? Columns { get; }
         private bool _leased;
 
-        internal RowSnapshotBatch(RowSnapshotPool owner, int capacity, int fieldCount) {
+        internal RowSnapshotBatch(RowSnapshotPool owner, int capacity, int fieldCount,
+            Func<int, IRowMappingSnapshotColumns>? columnsFactory) {
             _owner = owner;
-            _rows = new object?[capacity][];
+            _capacity = capacity;
+            Columns = columnsFactory?.Invoke(capacity);
+            _rows = Columns is null ? new object?[capacity][] : Array.Empty<object?[]>();
             _fieldCount = fieldCount;
         }
 
         internal int Count { get; private set; }
-        internal int Capacity => _rows.Length;
+        internal int Capacity => _capacity;
         internal object?[] this[int index] => _rows[index];
         internal void Lease() => _leased = true;
 
         internal void Add(DbDataReader reader, Action<DbDataReader, object?[]>? captureValues) {
+            if (Columns is not null) {
+                Columns.Capture(reader, Count);
+                Count++;
+                return;
+            }
             object?[]? values = _rows[Count];
             if (values is null) {
 #if NET8_0_OR_GREATER
@@ -143,6 +161,7 @@ public static partial class ParallelRowMappingExtensions {
         public void Dispose() {
             if (!_leased) return;
             _leased = false;
+            Columns?.Clear();
             // Include an incomplete row whose capture threw before Count advanced.
             foreach (object?[]? values in _rows) {
                 if (values is not null) Array.Clear(values, 0, values.Length);
@@ -152,6 +171,7 @@ public static partial class ParallelRowMappingExtensions {
         }
 
         internal void ReleaseRows() {
+            Columns?.Clear();
             for (int index = 0; index < _rows.Length; index++) {
                 object?[]? values = _rows[index];
                 if (values is null) continue;

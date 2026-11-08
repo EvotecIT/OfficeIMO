@@ -320,6 +320,7 @@ internal sealed partial class AutomaticRowMappingPlan<
         internal string Name { get; }
         internal Type ValueType { get; }
         internal bool CanAssign => Property.SetMethod?.IsPublic == true;
+        internal bool SupportsTypedSnapshot => _assignReader is not null && CanAssign;
 
         internal T Assign(T instance, object? value) => _assign(instance, value);
 
