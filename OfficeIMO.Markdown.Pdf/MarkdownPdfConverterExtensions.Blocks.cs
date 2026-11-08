@@ -83,20 +83,38 @@ public static partial class MarkdownPdfConverterExtensions {
             options.Anchors?.RegisterNamed(pdf, anchor);
         }
 
-        if (heading.Level <= 1) {
-            pdf.H1(text);
-        } else if (heading.Level == 2) {
-            pdf.H2(text);
-        } else if (heading.Level == 3) {
-            pdf.H3(text);
-        } else {
-            double fontSize = heading.Level == 4 ? 13D : 11.5D;
-            global::OfficeIMO.OfficeColor headingColor = ResolveManualHeadingColor(visualTheme);
-            pdf.Paragraph(builder => {
-                builder.RunDefaults.Bold = true; builder.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
-                AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true, color: headingColor, fontSize: fontSize));
-            }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(8), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4), KeepWithNext = true });
+        PdfCore.PdfHeadingStyle? style = ResolveHeadingStyle(heading.Level, options, visualTheme);
+        InlineStyle inlineStyle = CreateInlineStyle(visualTheme, options.Anchors)
+            .With(bold: style?.Bold ?? true, color: style?.Color, font: style?.Font, fontFamily: style?.FontFamily);
+        pdf.Heading(heading.Level, text,
+            builder => AppendInlines(builder, heading.Inlines, inlineStyle),
+            global::OfficeIMO.OfficeAlignment.Left, style?.Color, style);
+    }
+
+    private static PdfCore.PdfHeadingStyle? ResolveHeadingStyle(int level, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
+        PdfCore.PdfHeadingStyles? styles = visualTheme.SourceTheme != null
+            ? options.PdfOptions?.DefaultHeadingStyles
+            : visualTheme.DocumentThemeSnapshot?.HeadingStyles;
+        if (level <= 3) {
+            return level switch { 1 => styles?.Level1, 2 => styles?.Level2, _ => styles?.Level3 };
         }
+
+        if (visualTheme.SourceTheme is { } source) {
+            PdfCore.PdfHeadingStyle native = PdfCore.PdfTheme.CreateHeadingStyle(source, level);
+            if (options.PdfOptions?.HasExplicitDefaultFont == true) {
+                native.Font = null;
+                native.FontFamily = null;
+            }
+            return native;
+        }
+
+        return new PdfCore.PdfHeadingStyle {
+            FontSize = global::OfficeIMO.OfficeLength.Points(level == 4 ? 13D : 11.5D),
+            Color = ResolveManualHeadingColor(visualTheme),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(8),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
+            KeepWithNext = true
+        };
     }
 
     private static global::OfficeIMO.OfficeColor ResolveManualHeadingColor(MarkdownPdfStyle visualTheme) {

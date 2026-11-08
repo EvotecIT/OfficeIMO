@@ -1,5 +1,4 @@
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Xlsb.Write;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -7,9 +6,9 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
-        public void Xlsb_CompressionTransport_PropagatesWorkerFailureWithoutReplay() {
+        public void WorksheetCompression_PropagatesWorkerFailureWithoutReplay() {
             using var destination = new PartiallyFailingXlsbRecordStream(rejectSecondWrite: true);
-            using var pipeline = new XlsbCompressionPipeline(destination);
+            using var pipeline = new WorksheetCompressionPipeline(destination);
             byte[] payload = new byte[4 * 64 * 1024];
             IOException error = Assert.Throws<IOException>(() => {
                 pipeline.Write(payload, 0, payload.Length);
@@ -22,7 +21,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Xlsb_CompressionTransport_AbortKeepsProducerFailureAndJoinsConsumer() {
+        public async Task WorksheetCompression_AbortKeepsProducerFailureAndJoinsConsumer() {
             using var destination = new GatedCompressionFailureStream();
             using var producerFailed = new ManualResetEventSlim();
             var initial = new InvalidOperationException("Producer validation failure.");
@@ -32,7 +31,7 @@ namespace OfficeIMO.Tests {
             });
             try {
                 Exception error = Assert.Throws<InvalidOperationException>((Action)(() => {
-                    using var pipeline = new XlsbCompressionPipeline(destination);
+                    using var pipeline = new WorksheetCompressionPipeline(destination);
                     byte[] payload = new byte[64 * 1024];
                     pipeline.Write(payload, 0, payload.Length);
                     Assert.True(destination.Entered.Wait(TimeSpan.FromSeconds(10)));

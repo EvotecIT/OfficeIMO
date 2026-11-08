@@ -45,6 +45,7 @@ namespace OfficeIMO.Word {
                 "Word document");
 
             using WordDocument document = await LoadWordConversionSourceAsync(paths.Source, options, cancellationToken).ConfigureAwait(false);
+            if (options.Theme != null) document.ApplyTheme(options.Theme);
             WordFileFormat sourceFormat = document.SourceFormat;
             WordFileFormat destinationFormat = GetWordFormat(paths.Destination);
             OfficeFormatDescriptor sourceDescriptor = document.SourceFormatDescriptor;

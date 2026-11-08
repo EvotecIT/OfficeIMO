@@ -14,11 +14,13 @@ namespace OfficeIMO.Internal;
 internal static class OfficeThemeCssTokens {
     internal const string MonospaceStack = "ui-monospace, SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", \"Courier New\", monospace";
 
-    internal static string Build(OfficeTheme theme, string selector) {
+    /// <summary>Declares theme tokens, optionally restricted to a consumer's supported names.</summary>
+    internal static string Build(OfficeTheme theme, string selector, ISet<string>? tokenNames = null) {
         var css = new StringBuilder();
         css.Append(selector).Append(" {");
         if (IsDark(theme.Palette.Background)) css.Append(" color-scheme: dark;");
         foreach (KeyValuePair<string, string> token in GetTokens(theme)) {
+            if (tokenNames != null && !tokenNames.Contains(token.Key)) continue;
             css.Append(' ').Append(token.Key).Append(": ").Append(token.Value).Append(';');
         }
         css.Append(" }\n");
@@ -45,6 +47,11 @@ internal static class OfficeThemeCssTokens {
         Append("--office-surface", Hex(theme.Surfaces.Surface, theme));
         Append("--office-rule", Hex(theme.Surfaces.Rule, theme));
         Append("--office-link", Hex(theme.TextStyle.LinkColor, theme));
+        Append("--office-title-color", Hex(theme.TextStyle.TitleColor, theme));
+        Append("--office-subtitle-color", Hex(theme.TextStyle.SubtitleColor, theme));
+        Append("--office-heading-color", Hex(theme.TextStyle.HeadingColor, theme));
+        Append("--office-heading-bold", theme.TextStyle.HeadingBold ? "700" : "400");
+        Append("--office-line-spacing", theme.TextStyle.LineSpacing.ToString("0.###", CultureInfo.InvariantCulture));
         OfficeColor[] accents = { palette.Accent1, palette.Accent2, palette.Accent3, palette.Accent4, palette.Accent5, palette.Accent6 };
         // Longer names first so a reference to --office-accent-1-tint is never cut short by --office-accent-1.
         Append("--office-accent-1-tint", Hex(theme.Surfaces.Accent1Tint, theme));
@@ -74,15 +81,33 @@ internal static class OfficeThemeCssTokens {
         Append("--office-size-h6", Points(scale.Heading6));
         Append("--office-size-body", Points(scale.Body));
         Append("--office-size-caption", Points(scale.Caption));
+        Append("--office-paragraph-before", Points(theme.Spacing.ParagraphBefore));
         Append("--office-paragraph-after", Points(theme.Spacing.ParagraphAfter));
         Append("--office-list-indent", Points(theme.Spacing.ListIndent));
+        Append("--office-title-before", Points(theme.TextStyle.TitleSpacing.Before));
+        Append("--office-title-after", Points(theme.TextStyle.TitleSpacing.After));
+        for (int level = 1; level <= 6; level++) {
+            OfficeThemeParagraphSpacing spacing = theme.TextStyle.GetHeadingSpacing(level);
+            string prefix = "--office-h" + level.ToString(CultureInfo.InvariantCulture);
+            Append(prefix + "-before", Points(spacing.Before));
+            Append(prefix + "-after", Points(spacing.After));
+        }
+        Append("--office-page-top", Points(theme.Page.MarginTop));
+        Append("--office-page-right", Points(theme.Page.MarginRight));
+        Append("--office-page-bottom", Points(theme.Page.MarginBottom));
+        Append("--office-page-left", Points(theme.Page.MarginLeft));
 
         OfficeThemeTableStyle table = theme.TableStyle;
         Append("--office-table-header-fill", Hex(table.HeaderFill, theme));
         Append("--office-table-header-text", Hex(table.HeaderText, theme));
+        Append("--office-table-header-bold", table.HeaderBold ? "700" : "400");
         Append("--office-table-band-fill", table.Banding ? Hex(table.BandFill, theme) : "transparent");
         Append("--office-table-border-width", Points(table.BorderWidth));
         Append("--office-table-border", Hex(table.BorderColor, theme));
+        Append("--office-table-border-style", table.BorderMode == OfficeThemeTableBorderMode.None ? "none" : "solid");
+        Append("--office-table-grid-style", table.BorderMode == OfficeThemeTableBorderMode.Grid ? "solid" : "none");
+        Append("--office-table-header-rule-width", Points(table.HeaderRule.IsVisible ? table.HeaderRule.Width : OfficeLength.Zero));
+        Append("--office-table-header-rule-color", Hex(table.HeaderRule.Color, theme));
         Append("--office-table-cell-padding-y", Points(table.CellPadding));
         Append("--office-table-cell-padding-x", Points(OfficeLength.Points(table.CellPadding.ToPoints() * 1.4D)));
         Append("--office-chart-gridline", Hex(theme.ChartStyle.GridlineColor, theme));
@@ -116,7 +141,7 @@ internal static class OfficeThemeCssTokens {
 
     private static string Hex(OfficeColor color, OfficeTheme theme) {
         OfficeColor resolved = color.IsThemeRole ? color.Resolve(theme) : color;
-        return resolved.A == 0 ? "transparent" : "#" + resolved.ToRgbHex();
+        return resolved.A == 0 ? "transparent" : "#" + (resolved.A == 255 ? resolved.ToRgbHex() : resolved.ToHex());
     }
 
     private static bool IsDark(OfficeColor background) {
@@ -146,11 +171,14 @@ internal static class OfficeThemeCssTokens {
         var stack = new StringBuilder();
         foreach (string name in names) {
             if (stack.Length > 0) stack.Append(", ");
-            stack.Append(IsGeneric(name) ? name : "\"" + name.Replace("\"", string.Empty) + "\"");
+            stack.Append(IsGeneric(name) ? name : QuoteFont(name));
         }
 
         return stack.ToString();
     }
+
+    private static string QuoteFont(string name) => "\"" + name.Replace("\\", "\\\\").Replace("\"", "\\\"")
+        .Replace("\r", "\\d ").Replace("\n", "\\a ").Replace("\f", "\\c ").Replace("<", "\\3c ") + "\"";
 
     private static bool IsGeneric(string name) => name is "serif" or "sans-serif" or "monospace" or "cursive" or "fantasy"
         or "system-ui" or "ui-serif" or "ui-sans-serif" or "ui-monospace" or "math";

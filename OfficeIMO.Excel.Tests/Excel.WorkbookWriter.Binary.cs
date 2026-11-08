@@ -95,14 +95,17 @@ public partial class Excel {
     }
 
     [Theory]
+    [InlineData(ExcelFileFormat.Xlsx, ExcelDateSystem.NineteenHundred, false)]
+    [InlineData(ExcelFileFormat.Xlsx, ExcelDateSystem.NineteenHundred, true)]
+    [InlineData(ExcelFileFormat.Xlsx, ExcelDateSystem.NineteenFour, false)]
     [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenHundred, false)]
     [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenHundred, true)]
     [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenFour, false)]
     [InlineData(ExcelFileFormat.Xls, ExcelDateSystem.NineteenHundred, false)]
     [InlineData(ExcelFileFormat.Xls, ExcelDateSystem.NineteenFour, false)]
-    public async System.Threading.Tasks.Task WorkbookWriter_BinaryFormatsPreserveSinglePassValuesAcrossRowBlocksAndSheets(ExcelFileFormat format, ExcelDateSystem dateSystem, bool asynchronous) {
+    public async System.Threading.Tasks.Task WorkbookWriter_FormatsPreserveSinglePassValuesAcrossSheets(ExcelFileFormat format, ExcelDateSystem dateSystem, bool asynchronous) {
         int caller = System.Threading.Thread.CurrentThread.ManagedThreadId;
-        int rowCount = format == ExcelFileFormat.Xlsb ? 16_384 : 33;
+        int rowCount = format == ExcelFileFormat.Xls ? 33 : 16_384;
         using var output = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
         var rows = new SinglePassRows<int>(Enumerable.Range(0, rowCount));
         var date = new DateTime(2026, 8, 6, 14, 35, 12);
@@ -164,7 +167,7 @@ public partial class Excel {
     [InlineData(ExcelFileFormat.Xlsb)]
     [InlineData(ExcelFileFormat.Xls)]
     public void WorkbookWriter_ReleasesTheRowWhenItsCallbackThrows(ExcelFileFormat format) {
-        int rowCount = format == ExcelFileFormat.Xlsb ? 8192 : 1;
+        int rowCount = format == ExcelFileFormat.Xls ? 1 : 8192;
         int callbacks = 0;
         string text = new string('X', 128);
         using var output = new MemoryStream();
@@ -175,7 +178,7 @@ public partial class Excel {
                 new[] { "First", "Second" }, (row, value) => {
                     retained = row;
                     row.Write(value);
-                    if (format == ExcelFileFormat.Xlsb) row.Write(text);
+                    if (format != ExcelFileFormat.Xls) row.Write(text);
                     if (++callbacks == rowCount) throw failure;
                 })));
         }
@@ -300,14 +303,16 @@ public partial class Excel {
         }
     }
 
-    [Fact]
-    public void WorkbookWriter_LargeXlsbDestinationFailureStopsTheSinglePassSource() {
+    [Theory]
+    [InlineData(ExcelFileFormat.Xlsx)]
+    [InlineData(ExcelFileFormat.Xlsb)]
+    public void WorkbookWriter_LargeDestinationFailureStopsTheSinglePassSource(ExcelFileFormat format) {
         const int rowCount = 256;
         using var output = new OfficeIMO.Tests.TestStreams.ThrowAfterBytesWriteStream(2 * 1024 * 1024);
         var random = new Random(42);
         bool disposed = false;
         int advances = 0;
-        var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsb, output, leaveOpen: true);
+        var writer = ExcelDocument.CreateWriter(format, output, leaveOpen: true);
         try {
             Assert.Throws<IOException>(() => writer.WriteTable("Data", Rows(), new[] { "Text" },
                 static (row, value) => row.Write(value)));

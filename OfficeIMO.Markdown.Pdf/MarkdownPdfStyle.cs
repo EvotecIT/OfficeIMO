@@ -6,6 +6,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// Markdown-aware visual profile used by the first-party Markdown to PDF adapter.
 /// </summary>
 public sealed partial class MarkdownPdfStyle {
+    internal OfficeTheme? SourceTheme { get; private set; }
     private PdfCore.PdfTheme? _documentTheme;
     private PdfCore.PdfPanelStyle? _codeBlockPanelStyle;
     private PdfCore.PdfPanelStyle? _semanticBlockPanelStyle;
@@ -549,6 +550,7 @@ public sealed partial class MarkdownPdfStyle {
 
     /// <summary>Creates a copy of this visual theme.</summary>
     public MarkdownPdfStyle Clone() => new MarkdownPdfStyle {
+        SourceTheme = SourceTheme,
         Name = Name,
         DocumentTheme = _documentTheme,
         CodeBlockPanelStyle = _codeBlockPanelStyle,

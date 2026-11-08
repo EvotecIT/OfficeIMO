@@ -83,7 +83,8 @@ public sealed partial class PdfReadPage {
 
     internal string ExtractText(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        var spans = GetTextSpans(cancellationToken);
+        // Plain text does not expose editing evidence; retain the full interpretation and layout.
+        var spans = GetTextSpans(_includeArtifactText, cancellationToken, retainEditingEvidence: false);
         var opts = new TextLayoutEngine.Options { ForceSingleColumn = true };
         var lines = TextLayoutEngine.BuildLines(
             spans,
@@ -228,9 +229,11 @@ public sealed partial class PdfReadPage {
         if (content.IndexOf("/Artifact", StringComparison.Ordinal) < 0) return 0;
         // These passes count spans only. Inspection already recorded failures on its logical pass.
         Action<PdfUnsupportedTextMappingException, int?>? ignoreUnmappableText = recoverDecodableText ? static (_, _) => { } : null;
-        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken, onUnmappableText: ignoreUnmappableText)
+        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken,
+            onUnmappableText: ignoreUnmappableText, retainEditingEvidence: false)
             .Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
-        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken, onUnmappableText: ignoreUnmappableText)
+        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken,
+            onUnmappableText: ignoreUnmappableText, retainEditingEvidence: false)
             .Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
         return Math.Max(0, withArtifacts - withoutArtifacts);
     }
@@ -242,7 +245,8 @@ public sealed partial class PdfReadPage {
         bool preserveGlyphText = false,
         bool requireMappedText = false,
         bool ignoreActualText = false,
-        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
+        bool retainEditingEvidence = true) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -281,7 +285,8 @@ public sealed partial class PdfReadPage {
                     ? cancellationToken.ThrowIfCancellationRequested
                     : null,
                 invokedResourceNames: invokedResources,
-                onUnmappableText: onUnmappableText);
+                onUnmappableText: onUnmappableText,
+                retainEditingEvidence: retainEditingEvidence);
         }
 
         return spans;
@@ -944,7 +949,8 @@ public sealed partial class PdfReadPage {
         bool requireMappedText = false,
         Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null,
         int initialStrokeLineCap = 0,
-        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
+        bool retainEditingEvidence = true) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1104,7 +1110,8 @@ public sealed partial class PdfReadPage {
             inheritedActualTextState: inheritedActualTextState,
             onActualTextForm: (offset, state) => actualTextForms[offset] = state,
             onCompletedDrawingActualText: onCompletedDrawingActualText,
-            twoByteFontForResource: ResolveTwoByteFont));
+            twoByteFontForResource: ResolveTwoByteFont,
+            retainEditingEvidence: retainEditingEvidence));
 
         // Text interpretation has already validated the stream and its limits.
         // A missing Do token rules out forms; strings containing Do simply keep
@@ -1232,7 +1239,8 @@ public sealed partial class PdfReadPage {
                 ignoreActualText: ignoreActualText,
                     requireMappedText: requireMappedText,
                     onUnmappableText: onUnmappableText,
-                    onCompletedDrawingActualText: onCompletedDrawingActualText);
+                    onCompletedDrawingActualText: onCompletedDrawingActualText,
+                    retainEditingEvidence: retainEditingEvidence);
             } finally {
                 activeForms.Remove(formStream);
             }

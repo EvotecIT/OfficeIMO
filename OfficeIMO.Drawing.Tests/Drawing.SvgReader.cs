@@ -348,10 +348,12 @@ public class DrawingSvgReaderTests {
         Assert.Contains("transform=\"matrix(", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void SvgReaderMapsSimpleAnchoredTextToSharedSearchableText() {
-        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20' fill='navy' font-family='Arial'>"
-            + "<text x='20' y='12' font-size='4' font-weight='700' font-style='italic' text-anchor='middle'>Label</text></svg>";
+    [Theory]
+    [InlineData("4")]
+    [InlineData("3pt")]
+    public void SvgReaderMapsSimpleAnchoredTextToSharedSearchableText(string fontSize) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20' fill='navy' font-family='Arial'>"
+            + "<text x='20' y='12' font-size='" + fontSize + "' font-weight='700' font-style='italic' text-anchor='middle'>Label</text></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.NotNull(drawing);
@@ -359,6 +361,7 @@ public class DrawingSvgReaderTests {
         OfficeDrawingText text = Assert.Single(SvgTestScene.Content(drawing!).Elements.OfType<OfficeDrawingText>());
         Assert.Equal("Label", text.Text);
         Assert.Equal("Arial", text.Font.FamilyName);
+        Assert.Equal(4D, text.Font.Size);
         Assert.True(text.Font.IsBold);
         Assert.True(text.Font.IsItalic);
         Assert.Equal(OfficeColor.Navy, text.Color);

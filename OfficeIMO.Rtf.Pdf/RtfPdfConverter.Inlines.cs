@@ -47,7 +47,7 @@ internal static partial class RtfPdfConverter {
                         inheritedLinkContents: field.HyperlinkField?.ScreenTip);
                     break;
                 case RtfGeneratedText generatedText:
-                    AppendGeneratedText(generatedText, pendingRuns, state);
+                    AppendGeneratedText(document, paragraph, generatedText, pendingRuns, options, state);
                     break;
                 case RtfImage image:
                     FlushParagraph(document, paragraph, pdf, pendingRuns, align, state);
@@ -99,9 +99,7 @@ internal static partial class RtfPdfConverter {
         } else {
             // RtfBreak carries no character state. Use only the source defaults
             // or inherited style the existing semantic model can resolve.
-            RtfRun inherited = document.GetRunFormatting(source, new RtfRun(string.Empty) {
-                UseDefaultCharacterFormatting = source.UseParsedParagraphDefaults
-            });
+            RtfRun inherited = GetParagraphCharacterDefaults(document, source, string.Empty);
             strut = new PdfCore.PdfTextRun(string.Empty, bold: inherited.Bold, italic: inherited.Italic,
                 fontSize: inherited.FontSize.HasValue ? OfficeLength.Points(inherited.FontSize.Value) : null, standardFont: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic),
                 fontFamily: state.ResolveFontFamily(inherited.FontId));
@@ -173,7 +171,7 @@ internal static partial class RtfPdfConverter {
                         context);
                     break;
                 case RtfGeneratedText generatedText:
-                    AppendGeneratedText(generatedText, runs, state, collectNotes);
+                    AppendGeneratedText(document, paragraph, generatedText, runs, options, state, collectNotes);
                     break;
                 case RtfImage image when context == PdfInlineProjectionContext.RunningStory:
                     AppendInlineImage(image, runs, options, paragraph, inlineIndex);
@@ -294,13 +292,28 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void AppendGeneratedText(RtfGeneratedText generatedText, List<PdfCore.PdfTextRun> runs, PdfRenderState state, bool collectNotes = true) {
+    private static void AppendGeneratedText(RtfDocument document, RtfParagraph paragraph, RtfGeneratedText generatedText,
+        List<PdfCore.PdfTextRun> runs, RtfPdfExportOptions options, PdfRenderState state, bool collectNotes = true) {
         string text = generatedText.ToPlainText();
         if (collectNotes && generatedText.Note != null) {
             state.AddNote(generatedText.Note, text);
         }
 
-        AppendPlainText(text, runs, state);
+        AppendRun(document, GetParagraphCharacterDefaults(document, paragraph, text), runs, options, state, collectNotes: false);
+    }
+
+    // Generated controls and empty paragraphs cannot carry local run properties.
+    // Preserve their explicit style, then fill only missing values from parsed RTF defaults.
+    private static RtfRun GetParagraphCharacterDefaults(RtfDocument document, RtfParagraph paragraph, string text) {
+        RtfRun run = document.GetRunFormatting(paragraph, new RtfRun(text));
+        if (paragraph.UseParsedParagraphDefaults) {
+            RtfRun defaults = document.GetRunFormatting(paragraph, new RtfRun(text) { UseDefaultCharacterFormatting = true });
+            run.FontId ??= defaults.FontId;
+            run.FontSize ??= defaults.FontSize;
+            run.ForegroundColorIndex ??= defaults.ForegroundColorIndex;
+            run.HighlightColorIndex ??= defaults.HighlightColorIndex;
+        }
+        return run;
     }
 
     private static void AppendListMarker(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, PdfRenderState state, RtfPdfExportOptions options) {

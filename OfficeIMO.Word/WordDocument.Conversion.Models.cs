@@ -168,6 +168,7 @@ namespace OfficeIMO.Word {
 
     /// <summary>Controls file-to-file Word document conversion.</summary>
     internal sealed class WordDocumentConversionOptions {
+        internal OfficeTheme? Theme { get; set; }
         internal WordLoadOptions? LoadOptions { get; set; }
         internal Func<WordDocument, IReadOnlyList<OfficeImageExportResult>>? VisualFallbackRenderer { get; set; }
 

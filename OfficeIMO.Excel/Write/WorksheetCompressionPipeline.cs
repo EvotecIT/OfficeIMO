@@ -4,13 +4,13 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Excel.Xlsb.Write {
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Overlaps one private worksheet entry's compression with caller-side serialization.
     /// Two owned buffers bound the handoff. Completion publishes all bytes; disposal
     /// after a failed producer aborts and joins before clearing pooled storage.
     /// </summary>
-    internal sealed class XlsbCompressionPipeline : Stream {
+    internal sealed class WorksheetCompressionPipeline : Stream {
         private const int ChunkSize = 64 * 1024;
         private readonly Stream _destination;
         private readonly BlockingCollection<byte[]> _available = new(2);
@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             internal readonly byte[] Buffer = buffer;
             internal readonly int Count = count;
         }
-        internal XlsbCompressionPipeline(Stream destination) {
+        internal WorksheetCompressionPipeline(Stream destination) {
             _destination = destination;
             try {
                 for (int i = 0; i < _owned.Length; i++) {
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             } catch (OperationCanceledException) { ThrowFailure(); throw; }
         }
         public override void Write(byte[] buffer, int offset, int count) {
-            if (_disposed || _complete) throw new ObjectDisposedException(nameof(XlsbCompressionPipeline));
+            if (_disposed || _complete) throw new ObjectDisposedException(nameof(WorksheetCompressionPipeline));
             if (buffer == null) throw new ArgumentNullException(nameof(buffer));
             if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException();
             ThrowFailure();
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
         /// <summary>Drains all accepted bytes and surfaces the original worker failure.</summary>
         internal void Complete() {
-            if (_disposed) throw new ObjectDisposedException(nameof(XlsbCompressionPipeline));
+            if (_disposed) throw new ObjectDisposedException(nameof(WorksheetCompressionPipeline));
             if (_complete) return;
             Publish();
             _ready.CompleteAdding();

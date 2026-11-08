@@ -139,10 +139,13 @@ internal sealed partial class AutomaticRowMappingPlan<
     internal void CaptureReaderValues(DbDataReader reader, object?[] values) => CaptureReaderValues(reader, values, preserveConverterInput: false);
 
     internal void CaptureReaderValues(DbDataReader reader, object?[] values, bool preserveConverterInput) {
+        DbDataReader fastReader = preserveConverterInput
+            ? reader
+            : (reader as IDataReaderMappingRowSource)?.CurrentRowReader ?? reader;
         foreach (MappingBinding binding in _bindings) {
             values[binding.ColumnIndex] = preserveConverterInput
                 ? DataReaderMappingValue.Read(reader, binding.ColumnIndex, binding.Property.ValueType)
-                : binding.Property.ReadReaderValue(reader, binding.ColumnIndex);
+                : binding.Property.ReadReaderValue(reader, fastReader, binding.ColumnIndex);
         }
     }
 
@@ -320,12 +323,14 @@ internal sealed partial class AutomaticRowMappingPlan<
 
         internal T Assign(T instance, object? value) => _assign(instance, value);
 
-        internal object? ReadReaderValue(DbDataReader reader, int ordinal) {
-            if (reader.IsDBNull(ordinal)) return null;
+        internal object? ReadReaderValue(DbDataReader reader, DbDataReader fastReader, int ordinal) {
+            bool nonNullTypedValue = _readReaderValue is not null &&
+                DataReaderTypedMappingCompatibility.CanUseNonNullTypedGetter(fastReader, ordinal, ValueType);
+            if (!nonNullTypedValue && reader.IsDBNull(ordinal)) return null;
             if (_readReaderValue is not null &&
-                DataReaderTypedMappingCompatibility.CanUseTypedGetter(reader, ordinal, ValueType)) {
+                (nonNullTypedValue || DataReaderTypedMappingCompatibility.CanUseTypedGetter(fastReader, ordinal, ValueType))) {
                 try {
-                    return _readReaderValue(reader, ordinal);
+                    return _readReaderValue(fastReader, ordinal);
                 } catch (InvalidCastException) {
                 } catch (FormatException) {
                 } catch (OverflowException) {
@@ -345,10 +350,10 @@ internal sealed partial class AutomaticRowMappingPlan<
             IReadOnlyList<string>? dateTimeFormats,
             Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
             DataMappingErrorValuePolicy errorValuePolicy) {
-            if (typeConverter is null &&
+            if (_assignReader is not null &&
+                typeConverter is null &&
                 DataReaderTypedMappingCompatibility.CanUseTypedGetter(reader, ordinal, ValueType) &&
-                !reader.IsDBNull(ordinal) &&
-                _assignReader is not null) {
+                !reader.IsDBNull(ordinal)) {
                 try {
                     return _assignReader(instance, reader, ordinal);
                 } catch (TypedReaderValueException) {

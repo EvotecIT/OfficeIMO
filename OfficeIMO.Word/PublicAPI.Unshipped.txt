@@ -1,4 +1,5 @@
 #nullable enable
+OfficeIMO.Word.WordDocument.ApplyTheme(OfficeIMO.OfficeTheme! theme) -> OfficeIMO.Word.WordDocument!
 *REMOVED*OfficeIMO.Word.Legacy.LegacyWordImportResult.RequireNoLoss() -> OfficeIMO.Word.WordDocument!
 OfficeIMO.Word.Legacy.LegacyWordImportResult.ThrowIfLoss() -> void
 OfficeIMO.Word.Legacy.LegacyWordRunContent.Color.get -> OfficeIMO.OfficeColor?

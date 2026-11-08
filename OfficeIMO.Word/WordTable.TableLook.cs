@@ -4,6 +4,8 @@ using System.Globalization;
 
 namespace OfficeIMO.Word {
     public partial class WordTable {
+        private const int NativeDefaultTableLook = 0x04A0;
+        private const int ExpandedDefaultTableLook = 0x07E0;
         private const int TableLookFirstRow = 0x0020;
         private const int TableLookLastRow = 0x0040;
         private const int TableLookFirstColumn = 0x0080;
@@ -27,22 +29,10 @@ namespace OfficeIMO.Word {
         /// <summary>Reads the native first-row role without constructing another table wrapper.</summary>
         internal static bool HasFirstRowFormatting(Table table) {
             TableLook? look = table.GetFirstChild<TableProperties>()?.TableLook;
-            return look != null && (GetTableLookMask(look) & TableLookFirstRow) != 0;
+            return (GetTableLookMask(look) & TableLookFirstRow) != 0;
         }
 
-        private bool? GetTableLookFlag(int flag, Func<TableLook, OnOffValue?> expandedAttribute) {
-            var tableLook = _tableProperties?.TableLook;
-            if (tableLook == null) {
-                return null;
-            }
-
-            var attributeValue = expandedAttribute(tableLook);
-            if (attributeValue != null) {
-                return attributeValue.Value;
-            }
-
-            return (GetTableLookMask(tableLook) & flag) == flag;
-        }
+        private bool? GetTableLookFlag(int flag) => (GetTableLookMask(_tableProperties?.TableLook) & flag) == flag;
 
         private void SetTableLookFlag(int flag, bool? value) {
             if (value == null) {
@@ -51,12 +41,11 @@ namespace OfficeIMO.Word {
 
             CheckTableProperties();
             var tableLook = _tableProperties!.TableLook;
+            var mask = GetTableLookMask(tableLook);
             if (tableLook == null) {
-                tableLook = CreateTableLook(firstRow: false, lastRow: false, firstColumn: false, lastColumn: false, noHorizontalBand: false, noVerticalBand: false);
+                tableLook = new TableLook();
                 _tableProperties.Append(tableLook);
             }
-
-            var mask = GetTableLookMask(tableLook);
             if (value.Value) {
                 mask |= flag;
             } else {
@@ -65,24 +54,31 @@ namespace OfficeIMO.Word {
             SetTableLookMask(tableLook, mask);
         }
 
-        /// <summary>Resolves packed and expanded table-look flags; expanded values override the packed mask.</summary>
-        internal static int GetTableLookMask(TableLook tableLook) {
-            var mask = 0;
-            var value = tableLook.Val?.Value;
-            if (!string.IsNullOrWhiteSpace(value)
-                && int.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var parsed)) {
-                mask = parsed;
+        /// <summary>Reads Word's native defaults; expanded attributes collectively replace packed val and default on.</summary>
+        internal static int GetTableLookMask(TableLook? tableLook) {
+            if (tableLook == null) return NativeDefaultTableLook;
+            if (!HasExpandedTableLookFlags(tableLook)) {
+                string? value = tableLook.Val?.Value;
+                if (string.IsNullOrWhiteSpace(value)) return NativeDefaultTableLook;
+                return int.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int parsed) ? parsed : 0;
             }
 
+            // Native Word uses on for omitted expanded attributes. Their presence makes
+            // the packed value irrelevant, including when that packed value is zero.
+            int mask = ExpandedDefaultTableLook;
             ApplyExpandedTableLookFlag(tableLook.FirstRow, TableLookFirstRow, ref mask);
             ApplyExpandedTableLookFlag(tableLook.LastRow, TableLookLastRow, ref mask);
             ApplyExpandedTableLookFlag(tableLook.FirstColumn, TableLookFirstColumn, ref mask);
             ApplyExpandedTableLookFlag(tableLook.LastColumn, TableLookLastColumn, ref mask);
             ApplyExpandedTableLookFlag(tableLook.NoHorizontalBand, TableLookNoHorizontalBand, ref mask);
             ApplyExpandedTableLookFlag(tableLook.NoVerticalBand, TableLookNoVerticalBand, ref mask);
-
             return mask;
         }
+
+        /// <summary>Whether expanded flags, rather than the legacy packed mask, are authoritative.</summary>
+        internal static bool HasExpandedTableLookFlags(TableLook tableLook) =>
+            tableLook.FirstRow != null || tableLook.LastRow != null || tableLook.FirstColumn != null ||
+            tableLook.LastColumn != null || tableLook.NoHorizontalBand != null || tableLook.NoVerticalBand != null;
 
         private static void ApplyExpandedTableLookFlag(OnOffValue? value, int flag, ref int mask) {
             if (value == null) {

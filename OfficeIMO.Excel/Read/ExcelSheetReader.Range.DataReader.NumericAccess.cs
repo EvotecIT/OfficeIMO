@@ -62,10 +62,21 @@ namespace OfficeIMO.Excel {
                 if (_utf8Source == null || _currentRowIsBlank || _currentRow == null) return false;
                 ref bool loaded = ref _currentValueLoaded[ordinal];
                 if (loaded || _owner._opt.CellValueConverter != null) return false;
-                if (_owner._opt.NumericAsDecimal
-                    && _utf8Source.TryGetShortDecimal(ordinal + _utf8SourceOrdinalOffset, out value)) {
-                    GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Decimal;
-                    GetValidatedOrdinalSlot(_currentDecimalValues, ordinal) = value;
+                bool numericAsDecimal = _owner._opt.NumericAsDecimal;
+#if NET8_0_OR_GREATER
+                bool tryLiteral = true;
+#else
+                bool tryLiteral = numericAsDecimal;
+#endif
+                if (tryLiteral && _utf8Source.TryGetShortDecimal(
+                        ordinal + _utf8SourceOrdinalOffset, numericAsDecimal, out value, out double parsedNumber)) {
+                    if (numericAsDecimal) {
+                        GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Decimal;
+                        GetValidatedOrdinalSlot(_currentDecimalValues, ordinal) = value;
+                    } else {
+                        GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Double;
+                        GetValidatedOrdinalSlot(_currentDoubleValues, ordinal) = parsedNumber;
+                    }
                     loaded = true;
                     return true;
                 }
@@ -148,10 +159,13 @@ namespace OfficeIMO.Excel {
             /// Plain literals with at most fifteen digits fit the IEEE-to-decimal
             /// conversion's precision. Normalize their scale and zero just as that
             /// conversion does; other numeric spellings keep the ordinary parser.
+            /// When rounding is disabled, also retain the ordinary double for the
+            /// default object cache; a rounded decimal cannot reconstruct its bits.
             /// </summary>
-            internal bool TryGetShortDecimal(int ordinal, out decimal value) {
+            internal bool TryGetShortDecimal(int ordinal, bool allowRounded, out decimal value, out double number) {
                 EnsureNotDisposed();
                 value = default;
+                number = default;
                 int cellIndex = _currentRowOffset + ordinal;
                 if (_cellKinds![cellIndex] != (byte)Utf8CellKind.Number
                     || _formulaLengths != null && _formulaLengths[cellIndex] >= 0
@@ -163,7 +177,7 @@ namespace OfficeIMO.Excel {
                 bool negative = token[0] == (byte)'-';
                 if (token.Length > (negative ? 17 : 16)) {
 #if NET8_0_OR_GREATER
-                    return ExcelUtf8NumberParser.TryParseRoundedFixedPointDecimal(token, out value);
+                    return allowRounded && ExcelUtf8NumberParser.TryParseRoundedFixedPointDecimal(token, out value);
 #else
                     return false;
 #endif
@@ -183,6 +197,15 @@ namespace OfficeIMO.Excel {
                     } else return false;
                 }
                 if (digits == 0) return false;
+#if NET8_0_OR_GREATER
+                if (!allowRounded) {
+                    // Use the same exact mantissa and division as the common double
+                    // parser before normalizing the decimal coefficient and zero.
+                    double parsed = mantissa;
+                    if (scale != 0) parsed /= ExcelUtf8NumberParser.PowerOfTen(scale);
+                    number = negative ? -parsed : parsed;
+                }
+#endif
                 if (mantissa == 0) return true;
                 while (scale > 0 && mantissa % 10 == 0) {
                     mantissa /= 10;

@@ -137,8 +137,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MarkdownToWord_HeadingStylesHaveAThemeHierarchy() {
             using var document = Omd.MarkdownDocument.Parse("# One\n\n## Two\n\n### Three\n\nBody").ToWord();
-            var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            var main = document._wordprocessingDocument.MainDocumentPart!;
+            var styles = main.StyleDefinitionsPart!.Styles!;
             OfficeTheme theme = OfficeTheme.Default;
+            var fonts = main.ThemePart!.Theme.ThemeElements!.FontScheme!;
+            Assert.Equal(theme.Fonts.Heading.Family, fonts.MinorFont!.LatinFont!.Typeface!.Value);
             double previous = double.MaxValue;
             foreach ((string id, OfficeLength size) in new[] {
                 ("Heading1", theme.TypeScale.Heading1), ("Heading2", theme.TypeScale.Heading2), ("Heading3", theme.TypeScale.Heading3) }) {
@@ -149,7 +152,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(points < previous);
                 previous = points;
                 Assert.NotNull(run.Bold);
-                Assert.Equal(theme.Fonts.Heading.Family, run.RunFonts!.Ascii!.Value);
+                Assert.Equal(ThemeFontValues.MinorHighAnsi, run.RunFonts!.AsciiTheme!.Value);
                 Assert.NotNull(style.StyleParagraphProperties!.KeepNext);
             }
             Assert.True(previous > theme.TypeScale.Body.ToPoints());
@@ -163,9 +166,12 @@ namespace OfficeIMO.Tests {
             using var document = applyTheme
                 ? markdown.ToWord(new MarkdownWordExportOptions { ApplyDefaultTheme = true })
                 : markdown.ToWord();
-            var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            var main = document._wordprocessingDocument.MainDocumentPart!;
+            var styles = main.StyleDefinitionsPart!.Styles!;
             Style normal = styles.Elements<Style>().Single(item => item.StyleId == "Normal");
-            Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, normal.StyleRunProperties!.RunFonts!.Ascii!.Value);
+            Assert.Equal(ThemeFontValues.MinorAscii, normal.StyleRunProperties!.RunFonts!.AsciiTheme!.Value);
+            Assert.Equal(OfficeTheme.Default.Fonts.Body.Family,
+                main.ThemePart!.Theme.ThemeElements!.FontScheme!.MinorFont!.LatinFont!.Typeface!.Value);
             Assert.Equal((OfficeTheme.Default.TypeScale.Body.ToPoints() * 2D).ToString(System.Globalization.CultureInfo.InvariantCulture),
                 normal.StyleRunProperties.FontSize!.Val!.Value);
 

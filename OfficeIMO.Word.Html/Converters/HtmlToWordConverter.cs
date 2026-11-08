@@ -95,6 +95,9 @@ namespace OfficeIMO.Word.Html {
                     wordDoc.PageSetup.Orientation = options.DefaultOrientation.Value;
                 }
 
+                ApplyPageDefaults(wordDoc, document, options);
+                ApplyDocumentCanvasBackground(wordDoc, document);
+
                 var section = wordDoc.Sections.First();
                 var listStack = new Stack<WordList>();
                 WordList? headingList = options.SupportsHeadingNumbering ? wordDoc.AddList(WordListStyle.Headings111) : null;
@@ -210,6 +213,7 @@ namespace OfficeIMO.Word.Html {
             _cancellationToken = cancellationToken;
             _resourceTimeout = options.ResourceTimeout;
             _options = options;
+            _useCanonicalLayerCascade = document.QuerySelector("style[data-officeimo-theme]") != null;
             _cssProcessingBudget = new HtmlCssProcessingBudget(options.Limits);
             _context = document.Context;
             ValidateDocumentLimits(document, options);
@@ -223,6 +227,7 @@ namespace OfficeIMO.Word.Html {
             _imageCache.Clear();
             _unscaledImageSizes.Clear();
             _computedFontSizePixels.Clear();
+            _injectedInheritedCssProperties.Clear();
             _materializedRoleTableElements.Clear();
             _computedBoxStyles.Clear();
             _inlineStyles.Clear();
@@ -235,6 +240,7 @@ namespace OfficeIMO.Word.Html {
             _remoteImageFailureCache.Clear();
             _cssClassStyles.Clear();
             _stylesheetCache.Clear();
+            _pageStylesheets.Clear();
             _pendingTopBookmark = false;
             _figureSequence = 0;
             _imageBytesUsed = 0;
@@ -245,6 +251,7 @@ namespace OfficeIMO.Word.Html {
             await LoadConfiguredStylesheetsAsync(document, options, cancellationToken).ConfigureAwait(false);
             await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
             await LoadBodyStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
+            MaterializeLayeredCascade(document);
             _rootFontSizePixels = ResolveRootFontSizePixels(document.DocumentElement);
             _computedFontSizePixels[document.DocumentElement] = _rootFontSizePixels;
             // Resolve selectors against the original ARIA subtree before its structural
@@ -260,6 +267,9 @@ namespace OfficeIMO.Word.Html {
         private void RegisterNativeRoleTableElement(IElement source, IElement native) {
             _materializedRoleTableElements.Add(native);
             _computedFontSizePixels[native] = ResolveComputedFontSizePixels(source);
+            if (_injectedInheritedCssProperties.TryGetValue(source, out HashSet<string>? injected)) {
+                _injectedInheritedCssProperties[native] = new HashSet<string>(injected, StringComparer.OrdinalIgnoreCase);
+            }
         }
 
         private static void ValidateResourceConcurrency(HtmlWordExportOptions options) {

@@ -7,23 +7,28 @@ using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 namespace OfficeIMO.Excel.Benchmarks;
 
 public partial class ExcelReaderGeneratedBenchmarks {
+    internal static readonly global::ExcelReader.Core.Reader.ExcelReaderOptions PrefetchReaderOptions =
+        global::ExcelReader.Core.Reader.ExcelReaderOptions.Default with { PrefetchDecompression = true };
+
     [Benchmark, BenchmarkCategory("Read")]
-    public long ExcelReaderNet_Read() {
+    public long ExcelReaderNet_Read() => ReadExcelReader(options: null);
+
+    internal long ReadExcelReader(global::ExcelReader.Core.Reader.ExcelReaderOptions? options) {
         long checksum = 0;
         int count = 0;
         switch (Format) {
             case ExcelFileFormat.Xlsx:
-                using (var reader = ExcelReaderApi.FromXlsxFile(_path)) {
+                using (var reader = ExcelReaderApi.FromXlsxFile(_path, options)) {
                     foreach (Row row in reader.FirstSheet) ReadRow(row, reader.IsDate1904, ref checksum, ref count);
                 }
                 break;
             case ExcelFileFormat.Xlsb:
-                using (var reader = ExcelReaderApi.FromXlsbFile(_path)) {
+                using (var reader = ExcelReaderApi.FromXlsbFile(_path, options)) {
                     foreach (Row row in reader.FirstSheet) ReadRow(row, reader.IsDate1904, ref checksum, ref count);
                 }
                 break;
             case ExcelFileFormat.Xls:
-                using (var reader = ExcelReaderApi.FromXlsFile(_path)) {
+                using (var reader = ExcelReaderApi.FromXlsFile(_path, options)) {
                     foreach (Row row in reader.FirstSheet) ReadRow(row, reader.IsDate1904, ref checksum, ref count);
                 }
                 break;

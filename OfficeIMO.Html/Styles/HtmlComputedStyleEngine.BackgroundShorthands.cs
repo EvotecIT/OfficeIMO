@@ -9,7 +9,8 @@ public static partial class HtmlComputedStyleEngine {
         "background-attachment", "background-origin", "background-clip", "background-color"
     };
 
-    private static string BackgroundInitialValue(string propertyName) => propertyName.ToLowerInvariant() switch {
+    /// <summary>Returns the canonical background reset value for consumers lowering the computed property map.</summary>
+    internal static string BackgroundInitialValue(string propertyName) => propertyName.ToLowerInvariant() switch {
         "background-image" => "none",
         "background-position" => "0% 0%",
         "background-size" => "auto",

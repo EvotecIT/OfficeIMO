@@ -360,13 +360,16 @@ internal static partial class TextContentParser {
         Action<DrawingActualTextScope>? onCompletedDrawingActualText = null,
         Func<string, PdfFontResource?>? twoByteFontForResource = null,
         int initialStrokeLineCap = 0,
-        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
+        bool retainEditingEvidence = true) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
 
         textOutputBudget ??= new TextOutputBudget(maxActualTextCharacters, maxDecodedTextCharacters);
         textClippingBudget ??= new PdfTextClippingBudget();
 
+        // Plain string extraction never exposes encoded glyphs or paint identities.
+        bool retainGlyphAndPaintEvidence = retainEditingEvidence || !useLogicalTextFilters;
         var spans = new List<PdfTextSpan>();
         PdfTextStateSnapshot startingTextState = initialTextState ?? PdfTextStateSnapshot.Default;
         // Text state
@@ -887,6 +890,7 @@ internal static partial class TextContentParser {
         }
 
         void MarkSpansCannotRestamp(int firstSpanIndex, int spanCount) {
+            if (!retainEditingEvidence) return;
             int end = Math.Min(spans.Count, firstSpanIndex + spanCount);
             for (int index = firstSpanIndex; index < end; index++) spans[index] = spans[index].WithCanRestamp(false);
         }
@@ -1097,7 +1101,7 @@ internal static partial class TextContentParser {
                     + (kerningAfterByte != null ? kerningAfterByte[idx + step - 1] : 0D)) * hScale;
                 if (ch != '\0') {
                     decodedGlyphCount++;
-                    eachDecodedGlyphIsOneTextElement &= t.Length == 1 || OfficeTextElements.Split(t).Count == 1;
+                    eachDecodedGlyphIsOneTextElement &= t.Length == 1 || OfficeTextElements.Enumerate(t).Count() == 1;
                     sbOut.Append(t);
                     decodedGlyphCharacterLengths.Add(t.Length);
                     decodedGlyphBytes.Add(g);
@@ -1173,10 +1177,10 @@ internal static partial class TextContentParser {
                 outputIntentColorTransform == null &&
                 !forceCannotRestamp;
             double restampFontSize = size * unitYLength;
-            IReadOnlyList<double>? transformedCharacterAdvances = !hasUndecodableGlyph && decodedAdvances.Count == textOut.Length
+            IReadOnlyList<double>? transformedCharacterAdvances = retainGlyphAndPaintEvidence && !hasUndecodableGlyph && decodedAdvances.Count == textOut.Length
                 ? decodedAdvances.Select(advance => advance * unitXLength).ToArray()
                 : null;
-            double[]? transformedGlyphPaintedAdvances = decodedGlyphPaintedAdvances.Count == decodedGlyphCharacterLengths.Count
+            double[]? transformedGlyphPaintedAdvances = retainGlyphAndPaintEvidence && decodedGlyphPaintedAdvances.Count == decodedGlyphCharacterLengths.Count
                 ? decodedGlyphPaintedAdvances.Select(advance => advance * unitXLength).ToArray()
                 : null;
             bool useStrokePaint = !usesVisibleFill && usesVisibleStroke;
@@ -1325,7 +1329,7 @@ internal static partial class TextContentParser {
                     currentContentStreamObjectNumber,
                     currentTextObjectOrderKey,
                     Matrix2D.Multiply(ctm, spanTextMatrix),
-                    string.Join(",", new[] {
+                    retainGlyphAndPaintEvidence ? string.Join(",", new[] {
                         fillColor.R.ToString(CultureInfo.InvariantCulture), fillColor.G.ToString(CultureInfo.InvariantCulture), fillColor.B.ToString(CultureInfo.InvariantCulture), fillColor.A.ToString(CultureInfo.InvariantCulture),
                         strokeColor.R.ToString(CultureInfo.InvariantCulture), strokeColor.G.ToString(CultureInfo.InvariantCulture), strokeColor.B.ToString(CultureInfo.InvariantCulture), strokeColor.A.ToString(CultureInfo.InvariantCulture),
                         fillOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null", strokeOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null",
@@ -1335,11 +1339,11 @@ internal static partial class TextContentParser {
                         UsesStrokeTextPaint(textRenderingMode) ? strokeLineJoin.ToString(CultureInfo.InvariantCulture) : "none",
                         UsesStrokeTextPaint(textRenderingMode) ? miterLimit.ToString("R", CultureInfo.InvariantCulture) : "none",
                         UsesStrokeTextPaint(textRenderingMode) ? strokeDashIdentity : "none"
-                    }),
-                    !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
+                    }) : null,
+                    retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
                         ? spanGlyphCharacterLengths
                         : null,
-                    !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length &&
+                    retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length &&
                         spanGlyphBytes.Count == spanGlyphCharacterLengths.Count
                         ? spanGlyphBytes
                         : null,
@@ -1354,7 +1358,7 @@ internal static partial class TextContentParser {
                         !usedWholeDecodedText &&
                         spanGlyphCount >= 2 &&
                         eachDecodedGlyphIsOneTextElement &&
-                        spanGlyphCount == OfficeTextElements.Split(spanText).Count &&
+                        spanGlyphCount == OfficeTextElements.Enumerate(spanText).Count() &&
                         spanEndX - spanX > Math.Max(0.000001D, Math.Abs(spanEndY - spanY)),
                     isArtifactContent: hasActiveArtifact,
                     fontWeight: fontWeightForResource?.Invoke(font),

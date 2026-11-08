@@ -27,6 +27,7 @@ public partial class WordDocument {
             "Word document");
         using WordDocument document = await LoadWordConversionSourceAsync(paths.Source, options, cancellationToken)
             .ConfigureAwait(false);
+        if (options.Theme != null) document.ApplyTheme(options.Theme);
         OfficeFormatDescriptor sourceDescriptor = document.SourceFormatDescriptor;
         OfficeFormatDescriptor destinationDescriptor = WordFormatCatalog.GetByExtension(paths.Destination);
         OfficeCompatibilityMode mode = GetCompatibilityMode(options);

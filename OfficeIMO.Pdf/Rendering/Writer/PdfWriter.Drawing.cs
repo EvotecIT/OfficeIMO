@@ -142,16 +142,16 @@ internal static partial class PdfWriter {
             return;
         }
 
+        ContentStreamBuilder.AppendGraphicsSave(sb);
         var content = new ContentStreamBuilder(sb)
-            .SaveState()
             .StrokeColor(strokeColor.Value)
             .LineWidth(strokeWidth);
         ApplyStrokeStyle(content, strokeDashStyle, strokeWidth, strokeLineCap, strokeLineJoin);
         content
             .MoveTo(x + points[0].X, y + h - points[0].Y)
             .LineTo(x + points[1].X, y + h - points[1].Y)
-            .StrokePath()
-            .RestoreState();
+            .StrokePath();
+        ContentStreamBuilder.AppendGraphicsRestore(sb);
     }
 
     private static void DrawRoundedRectangle(StringBuilder sb, global::OfficeIMO.OfficeColor? fillColor, global::OfficeIMO.OfficeColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, double x, double y, double w, double h, double cornerRadius) {

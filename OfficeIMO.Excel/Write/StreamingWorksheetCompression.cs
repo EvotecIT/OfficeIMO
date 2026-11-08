@@ -1,15 +1,15 @@
-namespace OfficeIMO.Excel.Xlsb.Write;
+namespace OfficeIMO.Excel;
 
 /// <summary>Defers the bounded worksheet compression handoff until a streamed sheet is large enough.</summary>
-internal sealed class XlsbStreamingCompression(Stream destination) : Stream {
+internal sealed class StreamingWorksheetCompression(Stream destination) : Stream {
     private const int SynchronousPrefixLength = 1024 * 1024;
-    private XlsbCompressionPipeline? _pipeline;
+    private WorksheetCompressionPipeline? _pipeline;
     private int _prefixBytes;
     private bool _disposed;
     private bool _complete;
 
     public override void Write(byte[] buffer, int offset, int count) {
-        if (_disposed || _complete) throw new ObjectDisposedException(nameof(XlsbStreamingCompression));
+        if (_disposed || _complete) throw new ObjectDisposedException(nameof(StreamingWorksheetCompression));
         if (buffer == null) throw new ArgumentNullException(nameof(buffer));
         if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException();
         if (_pipeline == null && _prefixBytes < SynchronousPrefixLength) {
@@ -17,13 +17,13 @@ internal sealed class XlsbStreamingCompression(Stream destination) : Stream {
             _prefixBytes += count;
             return;
         }
-        _pipeline ??= new XlsbCompressionPipeline(destination);
+        _pipeline ??= new WorksheetCompressionPipeline(destination);
         _pipeline.Write(buffer, offset, count);
     }
 
     /// <summary>Joins the compressor before the owning ZIP entry can be closed.</summary>
     internal void Complete() {
-        if (_disposed) throw new ObjectDisposedException(nameof(XlsbStreamingCompression));
+        if (_disposed) throw new ObjectDisposedException(nameof(StreamingWorksheetCompression));
         if (_complete) return;
         _pipeline?.Complete();
         _complete = true;

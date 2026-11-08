@@ -147,6 +147,21 @@ report.ThrowIfLoss();
 
 ## Semantic editing
 
+Apply an `OfficeTheme` explicitly when an existing document needs a new appearance:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Rtf;
+
+using RtfDocument document = RtfDocument.Load("notes.rtf");
+document.ApplyTheme(OfficeTheme.Boardroom);
+File.WriteAllText("notes-styled.rtf", document.ToRtf());
+```
+
+The theme changes the native model's typography, paragraph spacing and table decoration. Content, emphasis, code and symbol fonts, lists, fields, page geometry, table widths and merged cells remain attached to their existing objects. Declared repeating rows receive header styling. New typography and padding can change wrapping and pagination. Export this model with the existing adapters to carry the selected appearance into Word, HTML or PDF; ordinary reads and conversions do not apply a theme.
+
+RTF stores RGB colors without alpha. Reapplying a theme during the same editing session retains the distinction between theme fonts and authored code fonts; after saving and reopening, loaded formatting is treated as authored formatting.
+
 Semantic editing produces normalized RTF and is the simplest option when the document meaning is more important than its original control-word layout:
 
 ```csharp
