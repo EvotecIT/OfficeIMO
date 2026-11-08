@@ -43,6 +43,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             Path = System.IO.Path.Combine(_directory, "input.csv");
             try {
                 using (StreamWriter writer = new StreamWriter(Path, false, new UTF8Encoding(false))) {
+                    writer.NewLine = "\n";
                     writer.WriteLine(Heavy ? "Region,Country,OrderDate,UnitPrice,TotalRevenue,Units" : "A,B,C");
                     long sum = 0;
                     for (int index = 0; index < input.Rows; index++) {
@@ -77,7 +78,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             if (rows is < 1 or > 10_000_000) throw new ArgumentOutOfRangeException(nameof(configured));
             yield return new("ConversionHeavy", rows ?? 4_300_000);
             yield return new("NarrowInt", rows ?? 8_000_000);
-            yield return new("ConversionHeavy3M", rows ?? 3_000_000);
+            // An explicit row override already includes this same corpus above.
+            if (!rows.HasValue) yield return new("ConversionHeavy3M", 3_000_000);
         }
 
         internal static IEnumerable<int> Degrees() {

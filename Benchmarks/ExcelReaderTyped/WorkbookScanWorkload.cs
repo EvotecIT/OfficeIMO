@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 : ExcelReaderApi.FromXlsx(stream!, options: options);
             long sum = 0;
             int rows = 0;
-            foreach (Row row in workbook.FirstSheet) { sum = unchecked(sum + AccumulateRow(row, materialize)); rows++; }
+            foreach (Row row in workbook.FirstSheet) { sum = unchecked(sum + AccumulateRow(row, materialize, workbook.IsDate1904)); rows++; }
             return Check(sum, rows, materialize ? _stringChecksum : _spanChecksum);
         }
 
@@ -78,7 +78,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 : ExcelReaderApi.FromXlsb(stream!, options: options);
             long sum = 0;
             int rows = 0;
-            foreach (Row row in workbook.FirstSheet) { sum = unchecked(sum + AccumulateRow(row, materialize)); rows++; }
+            foreach (Row row in workbook.FirstSheet) { sum = unchecked(sum + AccumulateRow(row, materialize, workbook.IsDate1904)); rows++; }
             return Check(sum, rows, materialize ? _stringChecksum : _spanChecksum);
         }
 
@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 : ExcelReaderApi.FromXls(stream!, options: options);
             long sum = 0;
             int rows = 0;
-            foreach (Row row in workbook.FirstSheet) { sum = unchecked(sum + AccumulateRow(row, materialize)); rows++; }
+            foreach (Row row in workbook.FirstSheet) { sum = unchecked(sum + AccumulateRow(row, materialize, workbook.IsDate1904)); rows++; }
             return Check(sum, rows, materialize ? _stringChecksum : _spanChecksum);
         }
 
@@ -148,11 +148,11 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 _ => throw new ArgumentOutOfRangeException(),
             }, new ExcelDataReaderOptions { Schema = ExcelSchema.NoHeaders });
 
-        private static object? PeerValue(Cell cell) => cell.Type switch {
+        private static object? PeerValue(Cell cell, bool isDate1904) => cell.Type switch {
             CellType.Empty => null,
             CellType.ExcelString => cell.GetString(),
             CellType.Number when cell.TryParse(null, out double number) => number,
-            CellType.Date when cell.TryGetDateTime(out DateTime date) => date,
+            CellType.Date when cell.TryGetDateTime(isDate1904, out DateTime date) => date,
             _ => throw new InvalidDataException($"Unsupported oracle field type {cell.Type}."),
         };
 
@@ -174,14 +174,14 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             _ => 0,
         };
 
-        private static long AccumulateRow(Row row, bool materializeStrings) {
+        private static long AccumulateRow(Row row, bool materializeStrings, bool isDate1904) {
             long sum = 0;
             foreach (RowCell rowCell in row.Cells) {
                 Cell cell = rowCell.Value;
                 switch (cell.Type) {
                     case CellType.ExcelString: sum = unchecked(sum + (materializeStrings ? cell.GetString().Length : cell.Value.Length)); break;
                     case CellType.Number: if (cell.TryParse(null, out double number)) sum = unchecked(sum + (long)number); break;
-                    case CellType.Date: if (cell.TryGetDateTime(out DateTime date)) sum = unchecked(sum + date.Ticks); break;
+                    case CellType.Date: if (cell.TryGetDateTime(isDate1904, out DateTime date)) sum = unchecked(sum + date.Ticks); break;
                 }
             }
             return sum;

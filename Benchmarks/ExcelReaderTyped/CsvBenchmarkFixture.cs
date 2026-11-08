@@ -69,7 +69,10 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         internal static void DescribeEngines() {
             BenchmarkInput.WriteDescription();
-            foreach (Assembly assembly in new[] { typeof(CsvDocument).Assembly, typeof(global::Sylvan.Data.Csv.CsvDataReader).Assembly }) {
+            foreach (Assembly assembly in new[] { typeof(CsvDocument).Assembly,
+                typeof(global::ExcelReader.Core.Reader.Excel).Assembly,
+                typeof(global::Sylvan.Data.Csv.CsvDataReader).Assembly,
+                typeof(global::nietras.SeparatedValues.SepReader).Assembly }) {
                 string version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
                     ?? assembly.GetName().Version?.ToString() ?? "unknown";
                 Console.WriteLine($"CSV engine={assembly.GetName().Name}, version={version}, "

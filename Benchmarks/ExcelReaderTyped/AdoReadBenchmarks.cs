@@ -6,7 +6,7 @@ using System.Data;
 using System.Globalization;
 using System.Text;
 using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
-using PeerDataReader = ExcelReader.Core.Reader.ExcelDataReader;
+using PeerDataReader = ExcelReader.Core.Reader.SheetDataReader;
 
 namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     public enum AdoAccess {

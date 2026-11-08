@@ -6,6 +6,7 @@ using ExcelReader.Core.Reader;
 using ExcelReader.Core.Reader.Schema;
 using OfficeIMO.CSV;
 using OfficeIMO.Data.Arrow;
+using ArrowReadOptions = OfficeIMO.Data.Arrow.ArrowReadOptions;
 using System.Data.Common;
 using System.Globalization;
 using System.Text;
@@ -77,15 +78,17 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             if (scenario == ArrowConversionScenario.XlsbTyped) {
                 using MemoryStream source = new MemoryStream(_xlsbTyped, writable: false);
                 using IExcelWorkbook reader = ExcelReaderApi.FromXlsb(source);
-                using RecordBatch batch = reader.FirstSheet.ToArrowRecordBatch(TypedSchema);
+                using RecordBatch batch = reader.FirstSheet.ToArrowRecordBatch(
+                    new ExcelReader.Arrow.ArrowReadOptions { Schema = TypedSchema });
                 validate?.Invoke(batch, 0);
                 return batch.Length;
             }
             using IExcelWorkbook csv = ExcelReaderApi.FromCsv(
                 scenario == ArrowConversionScenario.CsvAllString ? _csvWide : _csvTyped);
-            using RecordBatch converted = csv.FirstSheet.ToArrowRecordBatch(
-                scenario == ArrowConversionScenario.CsvAllString ? WideSchema : TypedSchema,
-                headerRow: scenario == ArrowConversionScenario.CsvAllString ? 0 : 1);
+            using RecordBatch converted = csv.FirstSheet.ToArrowRecordBatch(new ExcelReader.Arrow.ArrowReadOptions {
+                Schema = scenario == ArrowConversionScenario.CsvAllString ? WideSchema : TypedSchema,
+                HeaderRow = scenario == ArrowConversionScenario.CsvAllString ? 0 : 1,
+            });
             validate?.Invoke(converted, 0);
             return converted.Length;
         }

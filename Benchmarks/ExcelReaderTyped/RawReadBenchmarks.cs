@@ -104,7 +104,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             long sum = 0;
             int count = 0;
             foreach (Row row in workbook.FirstSheet) {
-                sum = unchecked(sum + AccumulateRow(row, materializeStrings));
+                sum = unchecked(sum + AccumulateRow(row, materializeStrings, workbook.IsDate1904));
                 count++;
             }
             return Check(sum, count);
@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             long sum = 0;
             int count = 0;
             foreach (Row row in workbook.FirstSheet) {
-                sum = unchecked(sum + AccumulateRow(row, materializeStrings));
+                sum = unchecked(sum + AccumulateRow(row, materializeStrings, workbook.IsDate1904));
                 count++;
             }
             return Check(sum, count);
@@ -128,13 +128,13 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             long sum = 0;
             int count = 0;
             foreach (Row row in workbook.FirstSheet) {
-                sum = unchecked(sum + AccumulateRow(row, materializeStrings));
+                sum = unchecked(sum + AccumulateRow(row, materializeStrings, workbook.IsDate1904));
                 count++;
             }
             return Check(sum, count);
         }
 
-        private static long AccumulateRow(Row row, bool materializeStrings) {
+        private static long AccumulateRow(Row row, bool materializeStrings, bool isDate1904) {
             long sum = 0;
             foreach (RowCell rowCell in row.Cells) {
                 Cell cell = rowCell.Value;
@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                         if (cell.TryParse(null, out double number)) sum = unchecked(sum + (long)number);
                         break;
                     case CellType.Date:
-                        if (cell.TryGetDateTime(out DateTime date)) sum = unchecked(sum + date.Ticks);
+                        if (cell.TryGetDateTime(isDate1904, out DateTime date)) sum = unchecked(sum + date.Ticks);
                         break;
                 }
             }
@@ -174,15 +174,15 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             if (workbook.SheetCount != 1) throw new InvalidDataException("Incorrect sheet count.");
             int count = 0;
             foreach (Row row in workbook.FirstSheet) {
-                ValidateExcelReaderRow(row, ++count);
+                ValidateExcelReaderRow(row, ++count, workbook.IsDate1904);
             }
             if (count != RowCount) throw new InvalidDataException("Incorrect raw row count.");
         }
 
-        private static void ValidateExcelReaderRow(Row row, int index) {
+        private static void ValidateExcelReaderRow(Row row, int index, bool isDate1904) {
             if (row.ColumnCount != 4 || row[0].Type != CellType.ExcelString || row[1].Type != CellType.Number
                 || row[2].Type != CellType.Date || row[3].Type != CellType.Number
-                || !row[1].TryParse(null, out double id) || !row[2].TryGetDateTime(out DateTime date)
+                || !row[1].TryParse(null, out double id) || !row[2].TryGetDateTime(isDate1904, out DateTime date)
                 || !row[3].TryParse(null, out double value))
                 throw new InvalidDataException("Incorrect raw field type or shape.");
             TypedWorkbookFixture.ValidateRecord(new TypedRecord { Name = row[0].GetString(), Id = (int)id,
