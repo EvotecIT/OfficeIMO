@@ -16,7 +16,12 @@ namespace OfficeIMO.Excel {
                 CancellationToken ct) {
                 int originalPosition = position;
                 if (_cachedImplicitRowReady) {
-                    if (TryIndexCachedImplicitRow(ref position, rowIndex, rowOffset, ct)) return true;
+                    try {
+                        if (TryIndexCachedImplicitRow(ref position, rowIndex, rowOffset, ct)) return true;
+                    } catch (InvalidDataException) {
+                        // A later explicit cell can still change this provisional row.
+                        // Ordinary lookahead repeats validation with the actual reference.
+                    }
                     // A changing layout keeps the adaptive per-cell parser. Do not
                     // repeatedly scan prefixes through a rejected whole-row shape.
                     _cachedImplicitRowRejected = true;
@@ -29,8 +34,11 @@ namespace OfficeIMO.Excel {
                 int maximumCellRow = _maximumCellRow;
                 int minimumCellColumn = _minimumCellColumn;
                 int maximumCellColumn = _maximumCellColumn;
-                if (TryIndexCanonicalImplicitDenseRowCore(ref position, rowIndex, rowOffset, ct)) {
-                    return true;
+                try {
+                    if (TryIndexCanonicalImplicitDenseRowCore(ref position, rowIndex, rowOffset, ct)) return true;
+                } catch (InvalidDataException) {
+                    // Resolve the row before reporting a provisional style or string error.
+                    // The ordinary parser validates the same cells again after rollback.
                 }
 
                 position = originalPosition;
