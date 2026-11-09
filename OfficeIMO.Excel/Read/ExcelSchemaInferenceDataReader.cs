@@ -204,6 +204,9 @@ namespace OfficeIMO.Excel {
         }
 
         public override bool IsDBNull(int ordinal) {
+            // Owned batches already qualify scalar payloads, including date conversion.
+            // Keep their live null checks in the inner reader without boxing values.
+            if (_usesOwnedMappingRows && !IsSampledRow) return _inner.IsDBNull(ordinal);
             object value = GetValue(ordinal);
             return value == null || ReferenceEquals(value, DBNull.Value);
         }

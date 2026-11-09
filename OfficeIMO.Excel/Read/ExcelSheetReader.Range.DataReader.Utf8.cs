@@ -442,7 +442,10 @@ namespace OfficeIMO.Excel {
 
                 _disposed = true;
                 if (_buffer != null) {
-                    if (_ownsBuffer) OpenXmlPartBufferPool.Return(_buffer);
+                    if (_ownsBuffer) {
+                        if (_mappingBufferFromSharedPool) ArrayPool<byte>.Shared.Return(_buffer, clearArray: true);
+                        else OpenXmlPartBufferPool.Return(_buffer);
+                    }
                     _buffer = null;
                 }
 

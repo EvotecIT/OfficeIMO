@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel;
 
 internal sealed partial class ExcelSchemaInferenceDataReader {
     private bool _mappingReplayOnly;
+    private readonly bool _usesOwnedMappingRows;
 
     internal bool CanCaptureMappingBatch => !_closed && !_mappingReplayOnly &&
         Array.IndexOf(_columnTypes, typeof(object)) < 0 &&
@@ -17,6 +18,7 @@ internal sealed partial class ExcelSchemaInferenceDataReader {
         _columnTypes = source._columnTypes;
         _sampledRows = samples;
         _mappingReplayOnly = replayOnly;
+        _usesOwnedMappingRows = true;
     }
 
     internal bool TryCaptureMappingBatch(int preferredBatchSize, CancellationToken ct,

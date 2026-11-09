@@ -6,6 +6,7 @@ namespace OfficeIMO.Excel;
 internal sealed partial class ExcelSheetReader {
     private sealed partial class ExcelUtf8RangeRowSource {
         private bool _mappingRowsQualified;
+        private bool _mappingBufferFromSharedPool;
 
         internal bool CanCopyMappingRows => !_disposed && !UsesCellWindow && _mappingRowsQualified;
 
@@ -44,11 +45,13 @@ internal sealed partial class ExcelSheetReader {
             } catch (ArgumentException) { return false; }
             finally { _currentRowOffset = savedOffset; }
             int lengthToCopy = maximum > minimum ? maximum - minimum : 0;
-            byte[] buffer = OpenXmlPartBufferPool.Rent(lengthToCopy);
+            // Worker batches need concurrent leases of the same size.
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(lengthToCopy);
             var target = new ExcelUtf8RangeRowSource(owner, buffer, lengthToCopy) {
                 _firstColumn = _firstColumn + firstOrdinal,
                 _fieldCount = fieldCount, _rowCount = count,
                 _mappingRowsQualified = true,
+                _mappingBufferFromSharedPool = true,
 #if NET8_0_OR_GREATER
                 _canonicalTextHasNonSimpleBytes = _canonicalTextHasNonSimpleBytes,
                 _validatedCanonicalTextLength = maximum <= _validatedCanonicalTextLength ? lengthToCopy : 0,
