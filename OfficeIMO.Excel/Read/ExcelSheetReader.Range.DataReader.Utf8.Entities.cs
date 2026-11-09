@@ -47,10 +47,10 @@ namespace OfficeIMO.Excel {
                         while (true) {
                             int entity = remaining.IndexOf((byte)'&');
                             if (entity < 0) {
-                                _ = Encoding.ASCII.GetChars(remaining, destination);
+                                _ = Ascii.ToUtf16(remaining, destination, out _);
                                 return;
                             }
-                            int written = Encoding.ASCII.GetChars(remaining.Slice(0, entity), destination);
+                            _ = Ascii.ToUtf16(remaining.Slice(0, entity), destination, out int written);
                             destination = destination.Slice(written);
                             if (!TryReadPredefinedXmlEntity(remaining.Slice(entity), out char value, out int consumed)) {
                                 throw new InvalidOperationException("Qualified XML entity changed during decoding.");
