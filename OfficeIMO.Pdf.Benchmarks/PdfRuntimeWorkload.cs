@@ -90,6 +90,12 @@ public sealed partial class PdfRuntimeWorkload {
             case "GenerateForward":
                 Generate(PdfObjectSerializationMode.ForwardOnly);
                 break;
+            case "GenerateBytes":
+                GenerateBytes(allowLoss: false);
+                break;
+            case "GenerateBytesAllowLoss":
+                GenerateBytes(allowLoss: true);
+                break;
             case "InspectCold":
                 _inspections = new PdfDocumentInfo[4];
                 for (int index = 0; index < _inspections.Length; index++) {
@@ -128,6 +134,11 @@ public sealed partial class PdfRuntimeWorkload {
         PdfSaveResult result = document.SaveWithEvidence(stream);
         _serialization = result.Serialization ?? throw new InvalidDataException("Generation returned no serialization report.");
         _output = stream.ToArray();
+    }
+
+    private void GenerateBytes(bool allowLoss) {
+        using PdfDocument document = PdfRuntimeCorpus.Create(Pages, PdfObjectSerializationMode.Buffered, _textOnly);
+        _output = document.ToBytes(options: new PdfSaveOptions { AllowLoss = allowLoss });
     }
 
     private void Render(global::OfficeIMO.Drawing.OfficeImageExportFormat format, int count) {

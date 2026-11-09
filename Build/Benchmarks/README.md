@@ -44,7 +44,8 @@ dotnet build OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release
 ./Build/Benchmarks/Run-PdfRuntimeBenchmarks.ps1 -OutputRoot ./Ignore/Benchmarks/PdfRuntime
 ```
 
-The default 1-, 20- and 100-page matrix measures buffered/forward generation, four
+The default 1-, 20- and 100-page matrix measures buffered/forward generation,
+byte-returning generation with strict or explicitly loss-allowed output, and four
 inspections with fresh or reused loading, SVG/PNG rendering, and one region
 replacement or movement on the middle page. Generation includes composition,
 layout, serialization and the final byte-array copy. Buffered output uses PDF 1.4;
