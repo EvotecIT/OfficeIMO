@@ -68,12 +68,7 @@ public partial class Excel {
                   </sheetData>
                 </worksheet>
                 """;
-            if (prefixed) {
-                var document = System.Xml.Linq.XDocument.Parse(xml);
-                document.Root!.SetAttributeValue(System.Xml.Linq.XNamespace.Xmlns + "s", document.Root.Name.NamespaceName);
-                document.Root.Attribute("xmlns")!.Remove();
-                xml = document.ToString();
-            }
+            if (prefixed) xml = ApplyDimensionlessWorksheetPrefix(xml);
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
             using var reader = ExcelDocument.OpenReader(path);
             Assert.Equal(3, reader.FieldCount);
@@ -98,10 +93,13 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData("s=\"99999\"", "<v>42</v>", typeof(InvalidDataException))]
-    [InlineData("t=\"s\"", "<v>99999</v>", typeof(InvalidDataException))]
-    [InlineData("", "<f t=\"shared\" si=\"0\"/><v>42</v>", typeof(NotSupportedException))]
-    public void DataReader_DimensionlessWorksheetValidatesBeforeExposingRows(string attributes, string content, Type error) {
+    [InlineData("s=\"99999\"", "<v>42</v>", typeof(InvalidDataException), false)]
+    [InlineData("t=\"s\"", "<v>99999</v>", typeof(InvalidDataException), false)]
+    [InlineData("", "<f t=\"shared\" si=\"0\"/><v>42</v>", typeof(NotSupportedException), false)]
+    [InlineData("s=\"99999\"", "<v>42</v>", typeof(InvalidDataException), true)]
+    [InlineData("t=\"s\"", "<v>99999</v>", typeof(InvalidDataException), true)]
+    [InlineData("", "<f t=\"shared\" si=\"0\"/><v>42</v>", typeof(NotSupportedException), true)]
+    public void DataReader_DimensionlessWorksheetValidatesBeforeExposingRows(string attributes, string content, Type error, bool prefixed) {
         string path = CreateCompactFastPathWorkbook();
         try {
             string xml = $$"""
@@ -111,6 +109,7 @@ public partial class Excel {
                   <row r="3"><c r="A3" {{attributes}}>{{content}}</c></row>
                 </sheetData></worksheet>
                 """;
+            if (prefixed) xml = ApplyDimensionlessWorksheetPrefix(xml);
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
             Assert.Throws(error, () => { using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { UseCachedFormulaResult = false }); _ = reader.FieldCount; });
         } finally {
@@ -131,4 +130,11 @@ public partial class Excel {
             File.Delete(path);
         }
     }
+    private static string ApplyDimensionlessWorksheetPrefix(string xml) {
+        var document = System.Xml.Linq.XDocument.Parse(xml);
+        document.Root!.SetAttributeValue(System.Xml.Linq.XNamespace.Xmlns + "s", document.Root.Name.NamespaceName);
+        document.Root.Attribute("xmlns")!.Remove();
+        return document.ToString();
+    }
+
 }

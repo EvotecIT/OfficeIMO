@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
         private sealed partial class ExcelUtf8RangeRowSource {
             /// <summary>
             /// Proposes bounds for an undimensioned worksheet from its first populated
-            /// row and final explicit row tag, or the number of unprefixed row tags
+            /// row and final explicit row tag, or the number of matching row tags
             /// when the final row omits its coordinate. During inflation, the end remains
             /// a bounded unknown proposal. These are only an indexing candidate:
             /// the complete index and XML validation must still prove every cell fits.
@@ -29,12 +29,7 @@ namespace OfficeIMO.Excel {
                 } else {
                     // Reject a known large rectangular extent before renting its metadata.
                     // Unusual final tags retain the existing XML discovery path.
-                    int lastRowStart = _buffer!.AsSpan(0, _length).LastIndexOf("<row"u8);
-                    if (lastRowStart < 0
-                        || !TryParseTag(lastRowStart, _length, out Utf8Tag finalRow)
-                        || finalRow.NameStart != finalRow.LocalNameStart
-                        || finalRow.IsEnd
-                        || !LocalNameEquals(finalRow, "row")
+                    if (!TryFindFinalUndeclaredRow(ct, out Utf8Tag finalRow)
                         || !TryGetAttribute(finalRow, "r", out bool hasFinalReference, out int finalStart, out int finalLength)) {
                         return false;
                     }
@@ -51,7 +46,6 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                     if (!inSheetData) {
                         if (!tag.IsEnd && LocalNameEquals(tag, "worksheet")) {
-                            if (tag.NameStart != tag.LocalNameStart) return false;
                             SetWorksheetPrefix(tag);
                         }
                         if (!tag.IsEnd && IsIndexedTag(tag) && LocalNameEquals(tag, "sheetData")) {
@@ -94,6 +88,46 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            // Bounds remain a proposal: the complete index and existing XML/namespace
+            // validation must still qualify the document before any row is exposed.
+            private bool TryFindFinalUndeclaredRow(CancellationToken ct, out Utf8Tag row) {
+                row = default;
+                int unprefixed = _buffer!.AsSpan(0, _length).LastIndexOf("<row"u8);
+                if (unprefixed >= 0 && TryParseTag(unprefixed, _length, out row)
+                    && row.NameStart == row.LocalNameStart && !row.IsEnd
+                    && LocalNameEquals(row, "row")) return true;
+
+                int rootPosition = 0;
+                if (!TryReadNextTag(ref rootPosition, _length, out Utf8Tag root)
+                    || root.IsEnd || !LocalNameEquals(root, "worksheet")) return false;
+                SetWorksheetPrefix(root);
+                if (_worksheetPrefixLength == 0) return false;
+
+                int position = _length;
+                while (position > 0) {
+                    ct.ThrowIfCancellationRequested();
+                    int start = _buffer!.AsSpan(0, position).LastIndexOf((byte)'<');
+                    if (start < 0 || !TryParseTag(start, _length, out Utf8Tag tag)) return false;
+                    position = start;
+                    if (!tag.IsEnd && IsIndexedTag(tag) && LocalNameEquals(tag, "row")) {
+                        row = tag;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            private int CountPrefixedUndeclaredRowCandidate(CancellationToken ct) {
+                int position = 0;
+                int count = 0;
+                while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
+                    ct.ThrowIfCancellationRequested();
+                    if (!tag.IsEnd && IsIndexedTag(tag) && LocalNameEquals(tag, "row")
+                        && ++count > ExcelA1.MaxRows) return 0;
+                }
+                return _parseFailed ? 0 : count;
+            }
+
             /// <summary>
             /// Counts possible implicit rows without decoding their cell payloads. Tokens in
             /// comments or nested content can overestimate this proposal; the complete index
@@ -101,6 +135,7 @@ namespace OfficeIMO.Excel {
             /// Explicit coordinates outside the proposal retain normal range discovery.
             /// </summary>
             private int CountUndeclaredRowCandidate(CancellationToken ct) {
+                if (_worksheetPrefixLength != 0) return CountPrefixedUndeclaredRowCandidate(ct);
                 ReadOnlySpan<byte> document = _buffer!.AsSpan(0, _length);
                 int position = 0;
                 int count = 0;

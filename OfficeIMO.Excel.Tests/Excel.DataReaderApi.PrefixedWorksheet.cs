@@ -8,14 +8,29 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Theory]
-    [InlineData("x", true)]
-    [InlineData("sheet", true)]
-    [InlineData("x", false)]
-    [InlineData("", true)]
-    public void DataReader_PrefixedWorksheetPreservesTypedValuesAndEmptyCells(string prefix, bool workbookReader) {
+    [InlineData("x", true, false)]
+    [InlineData("sheet", true, false)]
+    [InlineData("x", false, false)]
+    [InlineData("", true, false)]
+    [InlineData("x", true, true)]
+    public void DataReader_PrefixedWorksheetPreservesTypedValuesAndEmptyCells(string prefix, bool workbookReader, bool dimensionlessImplicitCoordinates) {
         string path = CreateCompactFastPathWorkbook();
         try {
             string xml = PrefixedWorksheetXml(prefix).Replace(" spaced", " literal\r\nline\r spaced");
+            if (dimensionlessImplicitCoordinates) {
+                var worksheet = System.Xml.Linq.XDocument.Parse(xml);
+                var ns = worksheet.Root!.Name.Namespace;
+                worksheet.Root.Element(ns + "dimension")!.Remove();
+                foreach (var element in worksheet.Descendants(ns + "row").Concat(worksheet.Descendants(ns + "c")))
+                    element.Attribute("r")?.Remove();
+                var serialized = new StringBuilder();
+                using (var writer = XmlWriter.Create(serialized, new XmlWriterSettings {
+                    OmitXmlDeclaration = true, NewLineHandling = NewLineHandling.Entitize
+                })) {
+                    worksheet.Save(writer);
+                }
+                xml = serialized.ToString();
+            }
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
             using var document = workbookReader ? null : ExcelDocumentReader.Open(path);
             using IDataReader reader = workbookReader
