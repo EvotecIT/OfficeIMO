@@ -1710,3 +1710,60 @@ first baseline launch of 18.9449 ms. Its other three launches range from
 10.2794 ms to 10.3961 ms. I retain that launch and keep the wider XLSX
 assessment mixed. These results continue the same complete-output validation,
 12 warmups, 12 measured samples and 16 invocations.
+
+### Qualified prefixed XLSX indexes
+
+I reuse the dense index for consistently prefixed rows and cells. Compact
+bodies retain complete UTF-8, XML character and structural proof, while
+`XmlReader` validates their enclosing namespaces and document structure.
+Mixed qualification, local namespace bindings and richer XML retain complete
+XML traversal. Diagnostics resolve implicit row coordinates before reporting
+missing styles or shared strings.
+
+The reader-boundary cases include strict namespaces, rebound values, duplicate
+attributes, malformed suffixes, mixed cell tags and valid mixed qualification.
+The same 568 reader cases pass before and after; NativeAOT checks the large
+input and rejection paths. The two malformed mixed-prefix cases were caught
+and corrected before retaining the measured implementation.
+
+On the same Apple M4, a matched 50,000-row comparison with fixed Core,
+harness, peer libraries and physical inputs records prefixed plain reads at
+57.8006 ms to 13.4411 ms and escaped reads at 40.7108 ms to
+23.0561 ms. Both adjacent pairs improve. Allocation falls by about 28–30 KB
+per complete read. This comparison uses `8fb4eb743bec` as its reader baseline
+and the qualified compact-prefix proof change from `d5c30a5e4fdf`, with the
+same Core from `d21ee0216bf2` in both variants. Each shape retains four engines,
+12 warmups, 12 actual 250 ms samples, normal priority and all outliers.
+
+The ordinary-workbook control is inconclusive. Its ABBA means are
+6.7930 ms to 8.9097 ms for plain text and 8.8354 ms to 9.2048 ms
+for escaped text. One plain after launch takes 11.9872 ms, versus 5.8321 ms
+in the other after launch. A bounded reversed confirmation with the same
+reader and unchanged default comparison control records
+15.1424 ms to 13.9346 ms and 18.2394 ms to 14.7146 ms, with both pairs improving.
+I retain all 80 executions and 960 samples, including those losses and the
+recorded background compiler activity. The differing launch results do not
+establish a repeatable ordinary-read improvement or regression.
+
+The earlier authentic 65,535-row, fourteen-column comparison remains
+inconclusive because unchanged controls vary sharply. I keep the targeted
+prefix improvement and the smaller qualified gains; neither these measurements
+nor the 20% research target establishes portable leadership.
+
+The existing generated-reader comparison accepts fixed input fixtures through
+`OFFICEIMO_EXCEL_GENERATED_INPUT`. The cohorts use the same generated four-column
+files with consistently prefixed worksheet elements, then the ordinary files.
+The maintained comparison setup validates every field, type, header, order and
+EOF; timed calls retain the complete count and checksum checks. The benchmark
+filter is `*ExcelReaderGeneratedBenchmarks.*Read*Xlsx,*`, with
+`--inProcess --warmupCount 12 --iterationCount 12 --iterationTime 250
+--unrollFactor 1 --outliers DontRemove`. Only the reader assembly changes
+between the pinned variants.
+
+The current profile places the remaining costs in index construction, qualified
+tag matching and inflation. Existing row-layout and tag-cache trials have not
+shown a repeatable gain. I stop this iteration with the qualified prefix change;
+another trial needs new profile evidence or a relevant source change. Windows
+qualification remains separate. Final .NET 10 checks pass 8,400 Excel tests with
+five existing skips and all 1,002 CSV tests; .NET 8 passes 568 reader cases, all
+four library targets compile and NativeAOT executes the validation cases.
