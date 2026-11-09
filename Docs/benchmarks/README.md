@@ -121,6 +121,11 @@ and the [source reconstruction packet](references/legacy-word-notes-baseline/REA
 identifies the exact note-preserving reference. The original independent 5%
 allocation and 10% median/P95 budgets remain unchanged.
 
+The [2026-11-09 integrated Word notes comparison](word69-notes-2026-11-09.md)
+uses the same workloads and budgets with the integrated Word and Core builds.
+One P95 check exceeds budget. Its [data companion](word69-notes-2026-11-09.json)
+retains all 2,160 measurements and their launch order.
+
 ## Word Open XML SDK evidence
 
 `OfficeIMO.Word.Benchmarks` has a publishable lane containing only OfficeIMO and
