@@ -871,22 +871,8 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static PdfCellBorderSide? ResolveCellBorderSide(PdfCellBorderSide? sideBorder, PdfCellBorder border) {
-        if (sideBorder != null) {
-            return sideBorder;
-        }
-
-        if (!border.Color.HasValue || border.Width.ToPoints() <= 0) {
-            return null;
-        }
-
-        return new PdfCellBorderSide {
-            Color = border.Color.Value,
-            Width = border.Width,
-            DashStyle = border.DashStyle,
-            LineStyle = border.LineStyle
-        };
-    }
+    private static PdfCellBorderSide? ResolveCellBorderSide(PdfCellBorderSide? sideBorder, PdfCellBorder border) =>
+        sideBorder ?? border.UniformSide;
 
     private static void DrawCellHBorder(StringBuilder sb, PdfCellBorderSide? border, double x1, double x2, double y, double doubleLineDirection, bool artifact = false, PdfCellBorderSide? leftSide = null, PdfCellBorderSide? rightSide = null) {
         if (border?.Color == null || border.Width.ToPoints() <= 0) {
