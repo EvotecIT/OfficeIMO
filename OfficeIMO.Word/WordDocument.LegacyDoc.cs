@@ -124,7 +124,10 @@ namespace OfficeIMO.Word {
                 throw new InvalidDataException("Legacy DOC import failed: " + FormatLegacyDocDiagnostics(errors));
             }
 
-            WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, DocumentPersistenceMode.Explicit, theme: null);
+            // Binary DOC projects its own formatting onto the neutral package, without authoring defaults.
+            const WordprocessingDocumentType documentType = WordprocessingDocumentType.Document;
+            WordDocument document = CreateInternal(filePath: null, stream: null, documentType, DocumentPersistenceMode.Explicit, theme: null,
+                templateBytes: GetDefaultPackageBytes(documentType), themeApplied: false, applyStyleRegistrations: true, applyDefaultTheme: false);
             try {
                 ApplyLegacyDocParagraphDefaults(document);
                 ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);

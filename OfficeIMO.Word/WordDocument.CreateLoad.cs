@@ -179,7 +179,7 @@ namespace OfficeIMO.Word {
         }
 
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme,
-            byte[] templateBytes, bool themeApplied, bool applyStyleRegistrations) {
+            byte[] templateBytes, bool themeApplied, bool applyStyleRegistrations, bool applyDefaultTheme = true) {
             var packageStream = new MemoryStream(templateBytes.Length + 4096);
             packageStream.Write(templateBytes, 0, templateBytes.Length);
             packageStream.Position = 0;
@@ -212,7 +212,7 @@ namespace OfficeIMO.Word {
             try {
                 if (themeApplied) word._creationTheme = OfficeTheme.Default;
                 else if (theme != null) word.ApplyCreationTheme(theme);
-                else word.ApplyDefaultCreationTheme();
+                else if (applyDefaultTheme) word.ApplyDefaultCreationTheme();
                 return word;
             } catch {
                 word.Dispose();

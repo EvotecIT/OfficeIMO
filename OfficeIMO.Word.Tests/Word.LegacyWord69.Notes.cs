@@ -244,6 +244,13 @@ public partial class Word {
 
     private static void AssertWord69NotePackage(WordDocument document, string[] footnoteParagraphs, string endnoteText) {
         W.Body body = document.OpenXmlDocument.MainDocumentPart!.Document.Body!;
+        // The fixture uses automatic text color in both note stories.
+        W.Color? defaultColor = document.OpenXmlDocument.MainDocumentPart.StyleDefinitionsPart!.Styles!
+            .DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.Color;
+        if (defaultColor != null) {
+            Assert.Equal("auto", defaultColor.Val?.Value);
+            Assert.Null(defaultColor.ThemeColor);
+        }
         W.Paragraph paragraph = Assert.Single(body.Elements<W.Paragraph>());
         string anchors = string.Concat(paragraph.Descendants().Select(element => element switch {
             W.Text text => text.Text,
