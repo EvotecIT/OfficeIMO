@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Epub;
 
 /// <summary>Document-local identifiers shared by manuscript splitting and authored-content validation.</summary>

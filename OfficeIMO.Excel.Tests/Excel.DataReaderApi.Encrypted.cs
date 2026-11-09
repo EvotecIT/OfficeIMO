@@ -1,7 +1,5 @@
 using System.Globalization;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Tests;
 using OpenMcdf;

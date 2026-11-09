@@ -1,5 +1,4 @@
 using OfficeIMO.Word;
-using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
 using Color = OfficeIMO.OfficeColor;

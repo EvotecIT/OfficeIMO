@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System;
-
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingRasterRenderer {

@@ -1,5 +1,3 @@
-using System;
-using System.Threading;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 

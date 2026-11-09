@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Normative Main-8/Main10 horizontal superresolution with immutable input and bounded owned output.</summary>

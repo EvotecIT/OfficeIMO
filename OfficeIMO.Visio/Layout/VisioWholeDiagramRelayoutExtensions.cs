@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio {
     /// <summary>Topology-aware whole-page relayout for dense imported diagrams.</summary>
     public static class VisioWholeDiagramRelayoutExtensions {

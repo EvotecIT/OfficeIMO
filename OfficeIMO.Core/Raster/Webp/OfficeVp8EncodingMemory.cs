@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Accounts for live encoding buffers and the transient peak during their growth.</summary>

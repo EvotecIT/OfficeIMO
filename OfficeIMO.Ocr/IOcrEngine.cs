@@ -1,7 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Ocr;
 
 /// <summary>Recognizes text and layout from one bounded raster payload.</summary>

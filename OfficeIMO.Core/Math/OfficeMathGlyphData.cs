@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Static glyph-specific data owned by the first-party font readers.</summary>

@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Writes owned protobuf records and their reference indexes before shared IWA framing.</summary>

@@ -5,8 +5,6 @@ using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Word {
     /// <summary>

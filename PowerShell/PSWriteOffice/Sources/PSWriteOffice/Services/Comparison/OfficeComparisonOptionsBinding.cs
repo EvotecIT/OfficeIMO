@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
 using OfficeIMO.Pdf;

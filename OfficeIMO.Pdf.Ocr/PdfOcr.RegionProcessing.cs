@@ -1,6 +1,5 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Ocr;
-using System.Threading;
 
 namespace OfficeIMO.Pdf.Ocr;
 

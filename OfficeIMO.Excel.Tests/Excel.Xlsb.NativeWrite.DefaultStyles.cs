@@ -1,7 +1,6 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Write;
-using System.Threading;
 using System.Xml.Linq;
 using Xunit;
 

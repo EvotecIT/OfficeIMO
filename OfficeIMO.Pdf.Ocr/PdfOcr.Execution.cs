@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using System.Runtime.ExceptionServices;
 using OfficeIMO.Ocr;
 

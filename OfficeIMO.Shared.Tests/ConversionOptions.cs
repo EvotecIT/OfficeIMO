@@ -2,7 +2,6 @@ using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using System;
 using System.Net.Http;
 using Xunit;
 

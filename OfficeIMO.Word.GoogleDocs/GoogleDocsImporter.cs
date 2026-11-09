@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
-using System.IO;
 using System.Text;
 
 namespace OfficeIMO.Word.GoogleDocs {

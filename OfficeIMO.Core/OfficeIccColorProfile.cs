@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Provides bounded, dependency-free conversion for supported ICC color profiles.</summary>

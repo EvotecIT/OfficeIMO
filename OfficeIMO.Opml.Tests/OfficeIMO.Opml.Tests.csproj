@@ -23,11 +23,7 @@
     <ProjectReference Include="..\OfficeIMO.Opml\OfficeIMO.Opml.csproj"/>
   </ItemGroup>
   <ItemGroup>
-    <Using Include="System"/>
-    <Using Include="System.IO"/>
-    <Using Include="System.Linq"/>
     <Using Include="System.Text"/>
-    <Using Include="System.Threading"/>
     <Using Include="System.Xml.Linq"/>
     <Using Include="OfficeIMO.Opml"/>
     <Using Include="Xunit"/>

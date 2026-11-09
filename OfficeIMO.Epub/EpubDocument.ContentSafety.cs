@@ -2,8 +2,6 @@ using OfficeIMO.ContentSafety;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Html;
 using OfficeIMO.Provenance;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Epub;
 

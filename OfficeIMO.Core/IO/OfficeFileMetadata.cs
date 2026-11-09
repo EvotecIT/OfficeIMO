@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Internal {
     /// <summary>Describes the physical identity and link metadata of one opened filesystem entry.</summary>
     internal readonly struct OfficeFileMetadata {

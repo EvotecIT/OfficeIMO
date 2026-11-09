@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing {
     public static partial class OfficeRasterResampler {
         /// <summary>Captures fit, pixel rounding, crop and peak storage before allocating raster pixels.</summary>

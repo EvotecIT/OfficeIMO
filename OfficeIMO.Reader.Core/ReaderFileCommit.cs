@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO.Reader.Internal.IO;
 
 namespace OfficeIMO.Reader;

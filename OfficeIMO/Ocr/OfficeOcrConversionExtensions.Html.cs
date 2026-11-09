@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
 using OfficeIMO.Html.Pdf;

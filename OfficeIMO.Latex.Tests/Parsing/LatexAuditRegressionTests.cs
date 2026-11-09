@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Latex.Tests;
 
 public sealed class LatexAuditRegressionTests {

@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Consumes one result from a streaming batch export.</summary>

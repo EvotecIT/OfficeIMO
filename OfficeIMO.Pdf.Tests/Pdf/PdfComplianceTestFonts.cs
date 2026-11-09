@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Tests.Pdf;
 
 internal static class PdfComplianceTestFonts {

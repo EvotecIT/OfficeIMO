@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Font-unit line metrics used by document layout, independently of PDF descriptor rounding.</summary>

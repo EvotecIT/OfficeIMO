@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>A finite, precompiled style catalog shared by all tabular row-writing routes.</summary>

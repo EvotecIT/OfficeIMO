@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Represents a parsed section inside an OLE property set stream.

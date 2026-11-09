@@ -42,11 +42,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.IO" />
     <Using Include="System.Text" />
-    <Using Include="System.Threading" />
-    <Using Include="System.Threading.Tasks" />
     <Using Include="OfficeIMO.Rtf" />
     <Using Include="OfficeIMO.Word" />
   </ItemGroup>

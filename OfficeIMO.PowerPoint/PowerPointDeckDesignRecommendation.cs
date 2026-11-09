@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Lightweight recommendation for a generated deck design alternative.

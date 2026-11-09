@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Latex;
 
 /// <summary>Parsed LaTeX document with lossless syntax and bounded profile semantics.</summary>

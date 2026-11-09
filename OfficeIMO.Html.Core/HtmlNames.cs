@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Html.Dom;
 
 internal static class HtmlNames {

@@ -1,6 +1,5 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.TestAssets;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Drawing.Tests;

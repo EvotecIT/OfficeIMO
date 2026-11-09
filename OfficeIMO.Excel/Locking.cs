@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel {
     internal static class Locking {
         private static readonly AsyncLocal<bool> _noLockScope = new();

@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-
 namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {

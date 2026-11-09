@@ -1,10 +1,8 @@
 using System.Globalization;
 using System.Text;
-using System.Threading;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
 using OfficeIMO.Ocr;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;

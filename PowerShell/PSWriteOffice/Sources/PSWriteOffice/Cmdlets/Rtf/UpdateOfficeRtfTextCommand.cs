@@ -1,8 +1,6 @@
 using PSWriteOffice.Foundation;
-using System;
 using System.Collections;
 using System.Globalization;
-using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Rtf;
 using PSWriteOffice.Services.Pdf;

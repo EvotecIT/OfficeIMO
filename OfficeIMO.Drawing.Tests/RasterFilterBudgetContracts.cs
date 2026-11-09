@@ -1,5 +1,4 @@
 using OfficeIMO.Drawing;
-using System;
 using Xunit;
 
 namespace OfficeIMO.Tests {

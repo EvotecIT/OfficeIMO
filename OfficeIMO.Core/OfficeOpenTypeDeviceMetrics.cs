@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Square-device font heights from the optional OpenType VDMX table.</summary>

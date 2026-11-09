@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 // Retained for the existing HTML/PDF adapter's fallback catch. Nearest-neighbour

@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using System.Text;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;

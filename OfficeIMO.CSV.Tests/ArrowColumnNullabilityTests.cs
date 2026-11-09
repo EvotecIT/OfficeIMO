@@ -1,10 +1,6 @@
 #if NET8_0_OR_GREATER
-using System;
 using System.Data;
 using System.Data.Common;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Apache.Arrow;
 using Apache.Arrow.Ipc;
 using OfficeIMO.Data.Arrow;

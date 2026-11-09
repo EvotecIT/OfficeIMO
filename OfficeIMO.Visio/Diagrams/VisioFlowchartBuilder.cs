@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio.Diagrams {

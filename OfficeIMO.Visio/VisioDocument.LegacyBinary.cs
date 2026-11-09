@@ -1,4 +1,3 @@
-using System.Threading;
 using System.IO.Packaging;
 using OfficeIMO.Core.Internal;
 

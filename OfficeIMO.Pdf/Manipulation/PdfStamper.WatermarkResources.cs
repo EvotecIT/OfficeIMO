@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;

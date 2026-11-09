@@ -1,8 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
-using System;
-using System.Linq;
 using Xunit;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 

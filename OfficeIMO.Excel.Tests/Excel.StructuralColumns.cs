@@ -1,5 +1,3 @@
-using System.Linq;
-using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;

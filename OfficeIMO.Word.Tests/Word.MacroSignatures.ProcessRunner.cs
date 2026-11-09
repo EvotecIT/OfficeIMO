@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading;
 using OfficeIMO.Word;
 using Xunit;
 

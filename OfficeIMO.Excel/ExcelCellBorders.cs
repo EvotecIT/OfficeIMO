@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Excel;
 
 /// <summary>Independent rectangular cell edges selected for border formatting.</summary>

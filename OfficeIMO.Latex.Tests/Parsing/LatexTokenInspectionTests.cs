@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Latex.Tests;
 

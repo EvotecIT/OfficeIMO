@@ -1,6 +1,4 @@
 using OfficeIMO.Pdf;
-using System.Collections.Generic;
-using System.IO;
 
 namespace OfficeIMO.Examples.Pdf {
     internal static class TableStyleGalleryPdf {

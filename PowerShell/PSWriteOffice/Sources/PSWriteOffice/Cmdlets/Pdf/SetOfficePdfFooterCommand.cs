@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.Pdf;

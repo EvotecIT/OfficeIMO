@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using OfficeIMO.Core.Internal;
 using System.Xml.Linq;
 

@@ -1,6 +1,3 @@
-using System.Linq;
-using System;
-using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = OfficeIMO.OfficeColor;

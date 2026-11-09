@@ -1,8 +1,6 @@
 #nullable enable
 
 using System.Buffers;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class OpenXmlPackagePartBufferReader {

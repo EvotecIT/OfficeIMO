@@ -1,10 +1,6 @@
-using System;
-using System.IO;
 using System.IO.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Core.Internal;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Visio {
     // Load orchestrator for VisioDocument.

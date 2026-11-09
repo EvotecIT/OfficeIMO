@@ -1,7 +1,5 @@
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
-using System;
-using System.IO;
 using System.Management.Automation;
 using System.Text;
 using OfficeIMO.Markdown;

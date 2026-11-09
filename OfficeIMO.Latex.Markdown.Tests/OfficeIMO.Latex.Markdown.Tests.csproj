@@ -31,8 +31,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Linq" />
     <Using Include="System.Text" />
     <Using Include="OfficeIMO.Latex" />
     <Using Include="OfficeIMO.Latex.Markdown" />

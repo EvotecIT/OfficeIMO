@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;

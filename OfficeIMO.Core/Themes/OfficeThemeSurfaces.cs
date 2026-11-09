@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>Background tints and structural colours: panels, hairlines, the accent tint and status row fills.</summary>

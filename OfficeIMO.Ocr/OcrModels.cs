@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Ocr;
 
 /// <summary>Capabilities exposed by one configured OCR engine.</summary>

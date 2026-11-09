@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.OpenDocument.Odg.Pdf;
 using OfficeIMO.Pdf;

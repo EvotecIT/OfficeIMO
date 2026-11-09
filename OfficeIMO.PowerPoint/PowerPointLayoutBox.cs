@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>Represents a rectangular layout region on a slide.</summary>
     public readonly struct PowerPointLayoutBox {

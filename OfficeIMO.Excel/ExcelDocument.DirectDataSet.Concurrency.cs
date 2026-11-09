@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private bool RequiresDeferredMaterialization

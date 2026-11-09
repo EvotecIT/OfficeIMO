@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static partial class BiffFormulaFunctionMetadata {
         private static readonly Dictionary<ushort, string> VariableFunctionNames = new Dictionary<ushort, string> {

@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

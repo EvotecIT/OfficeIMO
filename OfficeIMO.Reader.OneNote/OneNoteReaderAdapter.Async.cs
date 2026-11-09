@@ -1,5 +1,4 @@
 using OfficeIMO.OneNote;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader.OneNote;
 

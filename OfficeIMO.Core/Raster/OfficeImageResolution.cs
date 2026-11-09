@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Immutable native image resolution values and their physical unit or aspect-ratio unit.</summary>

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Internal.Invoicing;
 
 internal sealed class InvoiceSourceFieldException : InvalidOperationException {

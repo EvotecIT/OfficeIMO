@@ -1,8 +1,4 @@
 using OfficeIMO.Html.Pdf;
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using Xunit;

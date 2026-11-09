@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO;
 
 /// <summary>Shared composition helpers for common conversion diagnostics.</summary>

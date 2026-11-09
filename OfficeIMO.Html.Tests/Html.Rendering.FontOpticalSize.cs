@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using Xunit;

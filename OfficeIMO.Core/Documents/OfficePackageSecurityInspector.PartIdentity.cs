@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO {
     public static partial class OfficePackageSecurityInspector {
         /// <summary>Retains physical names and unique once-decoded aliases without merging source entries.</summary>

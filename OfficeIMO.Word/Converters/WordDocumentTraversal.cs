@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace OfficeIMO.Word {
     /// <summary>

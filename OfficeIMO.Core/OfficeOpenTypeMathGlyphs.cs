@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Table-local bounded reader for static MATH constructions and glyph placement.</summary>

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Data {
     public partial class ObjectFlattenerOptions {
         // Native table hosts share display headers without changing the paths used to select values.

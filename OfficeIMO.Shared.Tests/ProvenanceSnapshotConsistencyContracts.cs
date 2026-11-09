@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Provenance;
 using Xunit;
 

@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.OneNote.Pdf;
 using OfficeIMO.TestAssets;
-using System.Threading;
 
 namespace OfficeIMO.OneNote.Tests;
 

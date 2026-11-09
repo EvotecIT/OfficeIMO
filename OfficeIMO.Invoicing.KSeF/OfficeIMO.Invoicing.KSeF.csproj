@@ -6,7 +6,7 @@
     <PackageTags>invoice;ksef;fa3;poland</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl><RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression><PackageReadmeFile>README.md</PackageReadmeFile><PackageIcon>OfficeIMO.png</PackageIcon>
-    <IsPublishable>true</IsPublishable><GenerateDocumentationFile>true</GenerateDocumentationFile><LangVersion>latest</LangVersion><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+    <IsPublishable>true</IsPublishable><GenerateDocumentationFile>true</GenerateDocumentationFile><LangVersion>latest</LangVersion><Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.Invoicing.Validation/OfficeIMO.Invoicing.Validation.csproj" />

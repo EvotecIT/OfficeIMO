@@ -1,9 +1,6 @@
 #if NET10_0_OR_GREATER
-using System;
 using System.Data;
-using System.IO;
 using System.Text;
-using System.Threading;
 using OfficeIMO.Data;
 using Xunit;
 

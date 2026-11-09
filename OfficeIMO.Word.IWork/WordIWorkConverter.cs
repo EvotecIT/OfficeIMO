@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Globalization;
 using OfficeIMO.Drawing;
 using OfficeIMO.IWork;

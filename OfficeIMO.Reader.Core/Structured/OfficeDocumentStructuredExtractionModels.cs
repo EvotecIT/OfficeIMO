@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Reader;
 
 /// <summary>Version identifiers for schema-friendly structured extraction output.</summary>

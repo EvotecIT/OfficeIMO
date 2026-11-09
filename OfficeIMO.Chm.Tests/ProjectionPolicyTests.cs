@@ -3,7 +3,6 @@ using OfficeIMO.Markdown.Html;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Chm;
 using OfficeIMO.Reader.Html;
-using System.Threading;
 
 namespace OfficeIMO.Chm.Tests;
 

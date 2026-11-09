@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Excel;
 
 namespace OfficeIMO.Examples.Excel

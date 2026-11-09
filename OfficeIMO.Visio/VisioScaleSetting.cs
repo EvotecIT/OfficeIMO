@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Represents a scale value stored on a Visio page (PageScale/DrawingScale).

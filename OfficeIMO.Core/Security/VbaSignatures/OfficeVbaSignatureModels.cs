@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Security;
 
 /// <summary>Microsoft Office VBA signature profile carried next to vbaProject.bin.</summary>

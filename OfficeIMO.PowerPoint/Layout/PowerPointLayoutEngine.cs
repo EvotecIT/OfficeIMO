@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     The slide layout system: selects a designed layout from the slide's content, resolves overflow into

@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
-using System.IO;
 
 namespace OfficeIMO.Word {
     internal static partial class WordFieldUpdater {

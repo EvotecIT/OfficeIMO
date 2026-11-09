@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Lightweight description of a creative direction pack that can be shown before applying it to a design brief.

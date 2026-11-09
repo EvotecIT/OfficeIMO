@@ -1,7 +1,5 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Html;
-using System.Threading;
-using System.Threading.Tasks;
 using PptCore = OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.Html;

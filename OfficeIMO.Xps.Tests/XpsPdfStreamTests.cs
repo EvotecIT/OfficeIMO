@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 using static OfficeIMO.Xps.Tests.XpsLogicalStructureTests;

@@ -1,6 +1,3 @@
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 internal delegate bool PdfColorSpaceTintTransform(IReadOnlyList<double> components, double[] output);

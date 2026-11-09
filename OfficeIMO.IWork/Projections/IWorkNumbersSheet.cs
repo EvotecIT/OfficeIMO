@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.IWork;
 
 /// <summary>One Numbers drawable retained in sheet source order.</summary>

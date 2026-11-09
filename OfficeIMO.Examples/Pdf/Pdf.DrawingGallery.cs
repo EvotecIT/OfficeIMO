@@ -1,6 +1,5 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
-using System.IO;
 
 namespace OfficeIMO.Examples.Pdf {
     internal static class DrawingGalleryPdf {

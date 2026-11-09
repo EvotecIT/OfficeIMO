@@ -1,8 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
-using System;
-using System.IO;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Pdf {

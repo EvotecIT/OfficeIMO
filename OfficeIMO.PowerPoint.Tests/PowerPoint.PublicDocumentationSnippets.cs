@@ -1,4 +1,3 @@
-using System.IO;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;

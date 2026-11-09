@@ -1,4 +1,3 @@
-using System.Linq;
 using OfficeIMO.Excel;
 using Xunit;
 using S = DocumentFormat.OpenXml.Spreadsheet;

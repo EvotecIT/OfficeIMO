@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>One immutable AV1 restoration unit, before the post-reconstruction filter is applied.</summary>

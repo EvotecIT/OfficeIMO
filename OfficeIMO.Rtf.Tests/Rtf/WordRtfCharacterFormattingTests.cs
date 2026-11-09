@@ -1,8 +1,6 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Rtf;
-using System;
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 

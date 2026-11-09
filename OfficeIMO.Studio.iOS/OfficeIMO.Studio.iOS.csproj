@@ -12,7 +12,6 @@
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
     <CodesignKey Condition="'$(RuntimeIdentifier)' == 'ios-arm64'">Apple Development</CodesignKey>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug' and $(RuntimeIdentifier.StartsWith('iossimulator-'))">

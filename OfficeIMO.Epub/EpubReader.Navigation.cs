@@ -1,7 +1,6 @@
 namespace OfficeIMO.Epub;
 
 using System.Globalization;
-using System.Threading;
 
 internal static partial class EpubReader {
     private static EpubNavigationResult ReadNavigation(

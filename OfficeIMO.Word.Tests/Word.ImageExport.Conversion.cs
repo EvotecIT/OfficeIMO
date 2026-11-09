@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;

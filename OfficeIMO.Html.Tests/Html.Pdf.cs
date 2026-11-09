@@ -9,7 +9,6 @@ using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Pdf;
 using System.Globalization;
 using System.Text;
-using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;

@@ -1,7 +1,5 @@
 // Adapted from the Evotec ImagePlayground HEIF metadata implementation.
 // Copyright (c) 2022 Evotec. MIT license; see Licenses/ImagePlayground-LICENSE.txt.
-using System;
-using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
 

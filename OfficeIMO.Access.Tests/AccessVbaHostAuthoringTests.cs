@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Access.Tests {
     public sealed class AccessVbaHostAuthoringTests {
         private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Designer", name);

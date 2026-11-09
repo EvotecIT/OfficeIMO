@@ -1,7 +1,6 @@
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;

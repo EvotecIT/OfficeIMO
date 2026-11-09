@@ -5,8 +5,6 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Mhtml;
 using OfficeIMO.Tests.Pdf;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 

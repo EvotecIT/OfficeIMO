@@ -1,9 +1,4 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Management.Automation;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;

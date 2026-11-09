@@ -1,6 +1,4 @@
 using OfficeIMO.Word;
-using System;
-using System.IO;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Fonts {

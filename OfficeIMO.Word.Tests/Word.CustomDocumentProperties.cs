@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using DocumentFormat.OpenXml.CustomProperties;
+﻿using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;

@@ -1,7 +1,6 @@
 using OfficeIMO.Pdf;
 using System.Collections;
 using System.Text;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;

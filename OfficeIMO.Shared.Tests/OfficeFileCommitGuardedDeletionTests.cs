@@ -1,7 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System;
-using System.IO;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests {

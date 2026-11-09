@@ -1,8 +1,5 @@
-using System;
 using PSWriteOffice.Foundation;
-using System.IO;
 using System.Management.Automation;
-using System.Threading.Tasks;
 using OfficeIMO.Confluence;
 
 namespace PSWriteOffice.Cmdlets.Confluence;

@@ -3,7 +3,6 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using OfficeFormula = DocumentFormat.OpenXml.Office.Excel.Formula;
 using OfficeReferenceSequence = DocumentFormat.OpenXml.Office.Excel.ReferenceSequence;
-using System.Collections.Generic;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Coordinates an encoded-byte ceiling across one or more concurrent image encoders.</summary>

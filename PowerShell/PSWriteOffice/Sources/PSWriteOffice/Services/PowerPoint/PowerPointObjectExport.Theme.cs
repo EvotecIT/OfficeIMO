@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Foundation;

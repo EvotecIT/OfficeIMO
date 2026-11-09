@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.IWork.Internal;

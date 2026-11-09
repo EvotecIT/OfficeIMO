@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Text;
-using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.TestAssets;
 using Xunit;

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Core.Internal;
 
 /// <summary>Shared stateful RC4 keystream primitive for qualified legacy carriers and fixed native header obfuscation.</summary>

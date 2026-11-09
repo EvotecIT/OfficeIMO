@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio {
 /// <summary>
     /// Snapshot of a registered Visio master.

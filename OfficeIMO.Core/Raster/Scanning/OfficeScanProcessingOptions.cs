@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Output color treatment for an explicitly requested scan-cleanup operation.</summary>

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using OfficeIMO.Word.Pdf;
 
 namespace OfficeIMO.OpenDocument.Odt.Pdf;

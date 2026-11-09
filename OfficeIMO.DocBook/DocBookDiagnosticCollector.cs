@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.DocBook;
 
 /// <summary>Keeps repeated diagnostics bounded while retaining the format's diagnostic contract.</summary>

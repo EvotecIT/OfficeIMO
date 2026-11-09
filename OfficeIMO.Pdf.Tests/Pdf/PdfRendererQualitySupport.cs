@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;

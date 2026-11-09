@@ -4,7 +4,6 @@ using OfficeIMO.Mhtml;
 using OfficeIMO.Tests.Pdf;
 using OfficeIMO.Word.Html;
 using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Html.Tests;

@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Existing-document annotation creation, update, removal, and flattening operations.</summary>

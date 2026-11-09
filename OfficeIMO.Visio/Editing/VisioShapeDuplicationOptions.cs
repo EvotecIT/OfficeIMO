@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Options controlling how shapes and internal connectors are duplicated on a Visio page.

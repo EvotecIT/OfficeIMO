@@ -1,5 +1,4 @@
 using OfficeIMO.ContentSafety;
-using System.Threading;
 
 namespace OfficeIMO.OpenDocument;
 

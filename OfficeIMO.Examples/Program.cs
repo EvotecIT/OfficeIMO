@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
 namespace OfficeIMO.Examples {
     internal static class Program {
         private static void Setup(string path) {

@@ -1,4 +1,3 @@
-using System;
 using System.Management.Automation;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;

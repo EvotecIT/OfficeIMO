@@ -3,7 +3,6 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Finite input and retained-evidence limits for passive image metadata inspection.</summary>

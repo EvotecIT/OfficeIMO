@@ -3,7 +3,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {

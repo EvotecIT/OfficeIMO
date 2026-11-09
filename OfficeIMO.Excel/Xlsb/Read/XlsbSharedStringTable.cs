@@ -1,7 +1,6 @@
 using OfficeIMO.Excel.Xlsb.Package;
 using System.Buffers;
 using System.Collections;
-using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     /// <summary>

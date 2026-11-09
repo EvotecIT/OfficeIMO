@@ -1,7 +1,5 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
-using System;
-using System.IO;
 
 namespace OfficeIMO.Examples.Word.Converters {
     internal static class Markdown03_ImageExportModes {

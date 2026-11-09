@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.IO;
 using System.Text;
-using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {

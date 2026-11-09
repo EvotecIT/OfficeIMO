@@ -3,7 +3,6 @@ using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using System.Data.Common;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Read {
     /// <summary>

@@ -1,7 +1,6 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.Utilities;
-using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Write;
 

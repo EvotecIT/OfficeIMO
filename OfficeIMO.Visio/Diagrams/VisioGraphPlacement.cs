@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>Explicit graph bounds in the builder's page unit, with a center pin and bottom-up Y axis.</summary>
     public sealed class VisioGraphPlacement {

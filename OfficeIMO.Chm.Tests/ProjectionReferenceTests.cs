@@ -1,5 +1,4 @@
 using OfficeIMO.Html;
-using System.Threading;
 
 namespace OfficeIMO.Chm.Tests;
 

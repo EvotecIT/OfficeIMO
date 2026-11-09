@@ -1,10 +1,6 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Pdf;

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Word;
 
 /// <summary>Converts physical border lengths at the WordprocessingML storage boundary.</summary>

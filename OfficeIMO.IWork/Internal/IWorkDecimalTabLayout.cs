@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Assesses only decimal tabs that survive paragraph overrides and table merging.</summary>

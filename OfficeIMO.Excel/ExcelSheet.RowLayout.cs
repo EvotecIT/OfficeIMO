@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>

@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Replaces one existing fixed-width scalar without reserializing unknown protobuf fields.</summary>

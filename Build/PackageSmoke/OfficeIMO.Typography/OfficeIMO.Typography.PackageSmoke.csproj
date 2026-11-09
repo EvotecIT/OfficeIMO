@@ -8,7 +8,6 @@
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableOfficeIMOTypographyPackageSmoke)' == 'true'">

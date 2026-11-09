@@ -2,7 +2,6 @@
 using System.Buffers;
 #endif
 using System.Globalization;
-using System.Threading;
 
 namespace OfficeIMO.Pdf;
 

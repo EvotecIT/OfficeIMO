@@ -1,10 +1,6 @@
 using OfficeIMO.Email;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Mhtml;

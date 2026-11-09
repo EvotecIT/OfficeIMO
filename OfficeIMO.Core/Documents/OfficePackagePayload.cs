@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO;
 
 /// <summary>Classifies an inert embedded payload identified by a native OfficeIMO owner.</summary>

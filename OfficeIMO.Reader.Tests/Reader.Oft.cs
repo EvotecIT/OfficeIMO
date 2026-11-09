@@ -1,6 +1,5 @@
 using OfficeIMO.Email;
 using OfficeIMO.Reader;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests;

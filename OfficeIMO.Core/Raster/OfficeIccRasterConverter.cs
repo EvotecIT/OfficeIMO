@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Reason a packed ICC raster conversion did not produce sRGB pixels.</summary>

@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using OfficeIMO.Epub;
 using OfficeIMO.Html;

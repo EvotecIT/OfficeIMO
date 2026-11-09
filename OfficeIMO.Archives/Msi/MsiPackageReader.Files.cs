@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
 namespace OfficeIMO.Archives;
 
 internal sealed partial class MsiPackageReader {

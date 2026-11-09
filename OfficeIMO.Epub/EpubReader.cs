@@ -1,8 +1,6 @@
 namespace OfficeIMO.Epub;
 
 using OfficeIMO.Core.Internal;
-using System.Threading;
-using System.Threading.Tasks;
 
 /// <summary>
 /// Standards-based EPUB extractor using container/OPF/spine/navigation metadata.

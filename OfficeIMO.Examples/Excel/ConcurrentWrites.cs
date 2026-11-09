@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using OfficeIMO.Excel;
 
 namespace OfficeIMO.Examples.Excel {

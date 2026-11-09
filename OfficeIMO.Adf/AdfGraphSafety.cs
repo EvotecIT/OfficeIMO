@@ -1,5 +1,3 @@
-using System.IO;
-using System.Threading;
 using System.Text.Json;
 
 namespace OfficeIMO.Adf;

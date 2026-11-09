@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Markdown;
 

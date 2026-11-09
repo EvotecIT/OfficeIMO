@@ -1,6 +1,5 @@
 using AngleSharp.Dom;
 using OfficeIMO.Drawing;
-using System.IO;
 using System.Xml;
 using System.Xml.Linq;
 

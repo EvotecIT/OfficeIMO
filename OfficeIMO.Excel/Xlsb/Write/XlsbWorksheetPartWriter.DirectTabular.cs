@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel.Xlsb.Write {
     internal static partial class XlsbWorksheetPartWriter {
         /// <summary>Emits each source value once to an owned worksheet entry before package publication.</summary>

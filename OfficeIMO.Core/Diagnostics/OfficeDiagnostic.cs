@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>Severity of a diagnostic. Severity and fidelity loss are independent.</summary>

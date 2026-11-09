@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>AV1 7.14.6 Main-8/Main10 narrow/wide filtering across one sample boundary.</summary>

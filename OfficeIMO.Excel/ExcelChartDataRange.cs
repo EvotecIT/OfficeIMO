@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Describes how categories and series values are arranged in a worksheet chart data range.

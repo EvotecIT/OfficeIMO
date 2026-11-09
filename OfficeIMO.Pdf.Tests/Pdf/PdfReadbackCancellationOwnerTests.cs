@@ -1,6 +1,5 @@
 using System.Text;
 using System.Net;
-using System.Threading;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Filters;
 using Xunit;

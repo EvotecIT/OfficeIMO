@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Reader;
 
 /// <summary>Operation-local budgets and nested result capture. Iterator callers restore this scope on every move.</summary>

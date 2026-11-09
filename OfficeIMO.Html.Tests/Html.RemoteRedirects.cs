@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using Xunit;

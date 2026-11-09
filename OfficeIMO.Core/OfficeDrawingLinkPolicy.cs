@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Validates interactive drawing targets before they reach SVG or document exporters.</summary>

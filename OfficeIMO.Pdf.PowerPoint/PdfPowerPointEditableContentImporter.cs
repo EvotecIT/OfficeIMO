@@ -1,5 +1,4 @@
 using OfficeIMO.Drawing;
-using System.Threading;
 using PdfCore = OfficeIMO.Pdf;
 using PptCore = OfficeIMO.PowerPoint;
 

@@ -1,6 +1,4 @@
-using System;
 using System.Globalization;
-using System.Linq;
 using DocumentFormat.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
 

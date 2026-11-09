@@ -6,8 +6,6 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data.Common;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     /// <summary>

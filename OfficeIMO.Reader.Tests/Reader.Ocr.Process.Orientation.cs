@@ -2,7 +2,6 @@ using OfficeIMO.Ocr;
 using OfficeIMO.Ocr.Process;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

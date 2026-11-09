@@ -30,8 +30,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Linq" />
     <Using Include="System.Text" />
     <Using Include="OfficeIMO.AsciiDoc" />
     <Using Include="OfficeIMO.AsciiDoc.Markdown" />

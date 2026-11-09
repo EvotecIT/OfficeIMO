@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Dependency-free PDF diagnostics and optimization analysis.</summary>

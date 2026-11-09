@@ -1,6 +1,4 @@
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {

@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using Xunit;

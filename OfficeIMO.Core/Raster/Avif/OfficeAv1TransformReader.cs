@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Tile-owned transform-size syntax and Main-8 residual traversal geometry.</summary>

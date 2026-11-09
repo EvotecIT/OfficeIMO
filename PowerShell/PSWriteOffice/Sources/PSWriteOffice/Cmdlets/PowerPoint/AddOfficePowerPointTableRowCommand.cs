@@ -1,7 +1,4 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Services.PowerPoint;

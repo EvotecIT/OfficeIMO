@@ -1,7 +1,5 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
-using System;
-using System.IO;
 namespace OfficeIMO.Examples.Word {
     internal static partial class Pdf {
         public static void Example_SaveAsPdfWithMetadata(string folderPath, bool openWord) {

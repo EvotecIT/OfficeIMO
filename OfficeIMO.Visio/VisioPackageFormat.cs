@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Visio {
     internal static class VisioPackageFormat {
         internal const string DrawingContentType = "application/vnd.ms-visio.drawing.main+xml";

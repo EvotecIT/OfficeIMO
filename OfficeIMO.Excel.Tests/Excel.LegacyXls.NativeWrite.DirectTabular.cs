@@ -6,8 +6,6 @@ using OfficeIMO.Excel.LegacyXls.Write;
 using System.Buffers;
 using System.Data;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

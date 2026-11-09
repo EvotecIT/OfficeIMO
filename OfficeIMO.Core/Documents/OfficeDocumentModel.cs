@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO;
 
 /// <summary>Identifies the source format represented by an <see cref="OfficeDocumentModel"/>.</summary>

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Tile-owned Main-8 coefficient grammar, transform types and evolving border contexts.</summary>

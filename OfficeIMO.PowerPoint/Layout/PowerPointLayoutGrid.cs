@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>A box in points.</summary>
     internal readonly struct PowerPointLayoutRect {

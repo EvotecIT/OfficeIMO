@@ -1,7 +1,5 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Benchmarks.Comparison;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

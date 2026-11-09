@@ -3,8 +3,6 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System;
-using System.IO;
 using Xunit;
 using M = DocumentFormat.OpenXml.Math;
 

@@ -1,10 +1,7 @@
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeColor = OfficeIMO.OfficeColor;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

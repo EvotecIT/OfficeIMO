@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         internal void PreserveDeferredDataSetFastSaveModelAndClearCandidate() {

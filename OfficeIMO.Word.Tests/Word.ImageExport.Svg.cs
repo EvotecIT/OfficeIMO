@@ -4,7 +4,6 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
-using System.Threading;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 

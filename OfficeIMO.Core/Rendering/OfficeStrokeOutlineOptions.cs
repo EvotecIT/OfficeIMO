@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 // Native document formats distinguish the caps of dash pieces and open figures.

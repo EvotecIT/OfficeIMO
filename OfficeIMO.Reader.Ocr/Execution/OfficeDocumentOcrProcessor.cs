@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using OfficeIMO.Ocr;
 
 namespace OfficeIMO.Reader;

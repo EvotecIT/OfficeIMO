@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Core.Internal {
     /// <summary>Exposes a bounded, zero-based view of a readable seekable stream without owning it.</summary>
     internal sealed class SeekableReadWindowStream : Stream {

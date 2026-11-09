@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word

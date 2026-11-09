@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using System.Threading;
 using OfficeIMO.Ocr;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;

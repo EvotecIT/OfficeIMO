@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Collects plain text cells and encodes the workbook's BIFF12 shared-string part.</summary>
     internal sealed class XlsbSharedStringTable {

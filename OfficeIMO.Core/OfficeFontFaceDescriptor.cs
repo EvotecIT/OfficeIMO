@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>CSS-compatible face attributes used when selecting among registered font faces.</summary>

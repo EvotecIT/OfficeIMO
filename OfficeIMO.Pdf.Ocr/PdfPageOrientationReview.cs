@@ -1,6 +1,4 @@
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf.Ocr;

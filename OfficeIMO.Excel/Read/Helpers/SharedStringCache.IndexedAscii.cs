@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class SharedStringCache {

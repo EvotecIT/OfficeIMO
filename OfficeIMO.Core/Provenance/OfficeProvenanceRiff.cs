@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;

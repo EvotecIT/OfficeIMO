@@ -1,6 +1,4 @@
 #pragma warning disable RS0026, RS0027 // Existing optional-parameter overload families keep their shape.
-using System.Collections.Generic;
-using System.Threading;
 
 namespace OfficeIMO.Pdf;
 

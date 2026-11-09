@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Qualifies optional source projections before consumers infer content absence or loss.</summary>

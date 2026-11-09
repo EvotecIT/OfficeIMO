@@ -1,6 +1,4 @@
-using System;
 using System.Management.Automation;
-using System.Threading;
 using OfficeIMO.Pdf;
 
 namespace PSWriteOffice.Services.Pdf;

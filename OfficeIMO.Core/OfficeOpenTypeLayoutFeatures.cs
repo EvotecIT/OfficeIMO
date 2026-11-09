@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Bounded metadata access shared by substitution and font line-metric selection.</summary>

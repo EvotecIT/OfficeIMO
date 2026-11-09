@@ -4,7 +4,6 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.Utilities;
 using System.Xml;
-using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Write;
 

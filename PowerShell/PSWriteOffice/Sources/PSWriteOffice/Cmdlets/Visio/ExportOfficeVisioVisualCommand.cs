@@ -1,4 +1,3 @@
-using System.IO;
 using System.Management.Automation;
 using OfficeIMO.ChartForgeX;
 using PSWriteOffice.Foundation;

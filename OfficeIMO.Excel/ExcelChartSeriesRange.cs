@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Describes chart series ranges for scatter/bubble charts.

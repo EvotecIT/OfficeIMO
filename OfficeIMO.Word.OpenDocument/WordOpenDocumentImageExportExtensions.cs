@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Word;
-using System.Threading;
 
 namespace OfficeIMO.Word.OpenDocument;
 

@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-using System.IO;
 using DocumentFormat.OpenXml.Features;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;

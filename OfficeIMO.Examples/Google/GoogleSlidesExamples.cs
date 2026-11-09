@@ -1,7 +1,6 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.GoogleSlides;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Examples.Google {
     internal static class GoogleSlidesExamples {

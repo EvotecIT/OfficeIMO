@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using OfficeIMO.Epub;
 
 namespace OfficeIMO.Chm.Tests;

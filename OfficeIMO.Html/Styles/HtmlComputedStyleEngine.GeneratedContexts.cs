@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {

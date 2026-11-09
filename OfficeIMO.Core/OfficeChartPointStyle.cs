@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Bounded hatch patterns shared by native chart writers and static renderers.</summary>

@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Emits the owned 30-slot color palette addressed by native iWork style controls.</summary>

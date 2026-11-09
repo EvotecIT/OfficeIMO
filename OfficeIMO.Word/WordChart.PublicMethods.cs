@@ -1,6 +1,4 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
     // Partial class containing public methods for building chart content.

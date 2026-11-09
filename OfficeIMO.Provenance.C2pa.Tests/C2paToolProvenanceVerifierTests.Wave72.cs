@@ -1,4 +1,3 @@
-using System.IO;
 using Xunit;
 
 namespace OfficeIMO.Provenance.C2pa.Tests;

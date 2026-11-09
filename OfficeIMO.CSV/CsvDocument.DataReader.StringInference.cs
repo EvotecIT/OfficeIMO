@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.CSV;
 
 public sealed partial class CsvDocument

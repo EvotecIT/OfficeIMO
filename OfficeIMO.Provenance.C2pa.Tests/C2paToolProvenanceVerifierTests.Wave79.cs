@@ -1,6 +1,3 @@
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Provenance.C2pa.Tests;
 
 public sealed class C2paToolProvenanceVerifierTestsWave79 {

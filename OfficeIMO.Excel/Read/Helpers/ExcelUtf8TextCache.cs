@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>Retains a bounded set of immutable UTF-8 encodings of canonical reader text.</summary>

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Immutable text-style overrides for a textual tab leader. Unspecified properties inherit the tab run.</summary>

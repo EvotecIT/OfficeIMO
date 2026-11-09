@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Plans bounded pixel references before expanding ranges used by lossless metadata edits.</summary>

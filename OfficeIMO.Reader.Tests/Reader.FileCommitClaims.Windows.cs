@@ -1,9 +1,6 @@
-using System;
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using Microsoft.Win32.SafeHandles;
 using Xunit;
 using CoreCommitClaim = OfficeIMO.Core.Internal.IO.OfficeFileCommitClaim;

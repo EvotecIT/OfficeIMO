@@ -2,8 +2,6 @@ using OfficeIMO.Word.Html;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
-using System.IO;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {

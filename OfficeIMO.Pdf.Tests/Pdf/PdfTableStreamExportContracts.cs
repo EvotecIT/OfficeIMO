@@ -4,8 +4,6 @@ using OfficeIMO.Pdf.PowerPoint;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 using S = DocumentFormat.OpenXml.Spreadsheet;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;

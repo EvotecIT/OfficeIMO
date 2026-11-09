@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Reads bounded frame, timing, page, disposal, and blending information after validating managed payloads.</summary>

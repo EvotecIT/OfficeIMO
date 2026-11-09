@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {

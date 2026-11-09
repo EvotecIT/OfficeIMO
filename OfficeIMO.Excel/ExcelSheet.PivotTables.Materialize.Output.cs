@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Threading;
 using PivotField2010 = DocumentFormat.OpenXml.Office2010.Excel.PivotField;
 using PivotTableDefinition2010 = DocumentFormat.OpenXml.Office2010.Excel.PivotTableDefinition;
 

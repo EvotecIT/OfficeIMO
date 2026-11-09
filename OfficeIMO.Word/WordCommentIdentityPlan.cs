@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Threading;
 using DocumentFormat.OpenXml.Office2013.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 

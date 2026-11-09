@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using OfficeIMO.Drawing;
-using System.Linq;
 
 namespace OfficeIMO.Visio {
     internal sealed class VisioRenderLabelLayout {

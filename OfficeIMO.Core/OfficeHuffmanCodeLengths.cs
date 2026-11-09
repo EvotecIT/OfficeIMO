@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Deterministic frequency-based Huffman lengths shared by native raster encoders.</summary>

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Output-density presets. Vector geometry remains resolution independent; raster detail is rendered at the selected density.</summary>

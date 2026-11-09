@@ -2,7 +2,6 @@ using OfficeIMO.Rtf;
 using OfficeIMO.Html;
 using OfficeIMO.Rtf.Pdf;
 using PdfCore = OfficeIMO.Pdf;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;

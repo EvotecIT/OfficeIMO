@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Foundation;

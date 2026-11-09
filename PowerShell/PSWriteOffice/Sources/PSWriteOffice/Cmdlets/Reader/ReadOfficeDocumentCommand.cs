@@ -1,8 +1,5 @@
-using System;
 using OfficeIMO.Excel;
-using System.Collections.Generic;
 using System.Management.Automation;
-using System.Threading.Tasks;
 using OfficeIMO.Reader;
 using OfficeIMO.Ocr;
 using OfficeIMO.Pdf.Ocr;

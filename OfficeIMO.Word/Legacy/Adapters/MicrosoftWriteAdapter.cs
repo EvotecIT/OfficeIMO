@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Word.Legacy;
 
 internal sealed class MicrosoftWriteAdapter : LegacyWordAdapterBase {

@@ -40,9 +40,4 @@
     <None Include="README.md" Pack="True" PackagePath="\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" />
-  </ItemGroup>
 </Project>

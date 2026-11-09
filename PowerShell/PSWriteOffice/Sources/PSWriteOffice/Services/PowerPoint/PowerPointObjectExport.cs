@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Services.Excel;

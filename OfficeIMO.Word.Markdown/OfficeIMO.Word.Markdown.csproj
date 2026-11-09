@@ -50,9 +50,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
     <Using Include="System.Text" />
     <Using Include="System.Text.RegularExpressions" />
   </ItemGroup>

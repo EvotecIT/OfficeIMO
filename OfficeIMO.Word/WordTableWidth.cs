@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Word;
 
 /// <summary>The interpretation of an atomic Word preferred table or cell width.</summary>

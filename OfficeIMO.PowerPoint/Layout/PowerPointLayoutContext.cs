@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>Everything a layout renderer needs: document, tokens, grid and deck state.</summary>
     internal sealed class PowerPointLayoutContext {

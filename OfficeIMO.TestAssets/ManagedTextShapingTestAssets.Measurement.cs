@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.TestAssets;
 
 internal static partial class ManagedTextShapingTestAssets {

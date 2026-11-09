@@ -1,10 +1,6 @@
 #if NET8_0_OR_GREATER
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.CSV;
 using Xunit;
 using AsyncInput = OfficeIMO.CSV.Tests.CsvIncrementalAsyncReaderTests.AsyncInput;

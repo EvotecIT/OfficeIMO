@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {

@@ -1,9 +1,6 @@
-using System;
-using System.IO;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml;
-using System.Linq;
 using OfficeIMO.PowerPoint;
 using Xunit;
 

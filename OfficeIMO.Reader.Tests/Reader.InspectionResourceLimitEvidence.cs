@@ -1,8 +1,4 @@
-using System;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Threading.Tasks;
 using OfficeIMO.Reader.Word;
 using OfficeIMO.Reader.Zip;
 using OfficeIMO.Reader.Excel;

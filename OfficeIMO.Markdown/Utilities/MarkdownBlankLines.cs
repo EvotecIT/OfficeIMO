@@ -1,8 +1,5 @@
 namespace OfficeIMO.Markdown;
 
-using System;
-using System.Collections.Generic;
-
 /// <summary>
 /// Helpers for normalizing blank-line runs in markdown text.
 /// </summary>

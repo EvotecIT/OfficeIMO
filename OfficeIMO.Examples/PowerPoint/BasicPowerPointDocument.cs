@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.Examples.PowerPoint {

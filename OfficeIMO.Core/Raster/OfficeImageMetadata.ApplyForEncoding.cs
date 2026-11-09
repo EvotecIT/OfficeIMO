@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing {
     public sealed partial class OfficeImageMetadata {
         internal long RetainedEncodingBytes => checked(RetainedProfileBytes * 4L + 65536L);

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private readonly struct FormulaDependencyReferenceMatch {

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using W = DocumentFormat.OpenXml.Wordprocessing;

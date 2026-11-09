@@ -1,10 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {

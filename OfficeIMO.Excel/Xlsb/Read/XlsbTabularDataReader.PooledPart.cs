@@ -1,6 +1,5 @@
 using OfficeIMO.Excel.Xlsb.Package;
 using System.Buffers;
-using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {

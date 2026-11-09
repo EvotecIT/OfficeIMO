@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {

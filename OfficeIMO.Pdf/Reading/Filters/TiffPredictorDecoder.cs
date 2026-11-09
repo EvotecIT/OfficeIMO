@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf.Filters;
 
 internal static class TiffPredictorDecoder {

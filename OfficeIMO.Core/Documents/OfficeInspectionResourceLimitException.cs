@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO;
 
 /// <summary>An owning inspection engine reached an explicit admission ceiling. This is a resource failure, not malformed input.</summary>

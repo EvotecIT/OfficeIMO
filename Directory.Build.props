@@ -6,6 +6,7 @@
     <BaseOutputPath Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio' and '$(OfficeIMOStudioMobile)' == 'true'">bin/mobile/</BaseOutputPath>
     <DefaultItemExcludes Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio'">$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ImplicitUsings>enable</ImplicitUsings>
     <!-- Do not elevate informational messages (e.g., preview SDK notice). -->
     <OfficeIMOSharedSourceDir>$(MSBuildThisFileDirectory)OfficeIMO.SharedSource</OfficeIMOSharedSourceDir>
     <OfficeIMOTrimmingPolyfillsFile>$(OfficeIMOSharedSourceDir)\Compatibility\TrimmingAttributes.cs</OfficeIMOTrimmingPolyfillsFile>

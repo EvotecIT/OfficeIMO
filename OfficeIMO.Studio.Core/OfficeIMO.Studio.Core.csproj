@@ -4,7 +4,6 @@
     <IsPackable>false</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>Latest</LangVersion>
     <Description>UI-independent document sessions, editing, storage and recovery for OfficeIMO Studio hosts.</Description>
   </PropertyGroup>

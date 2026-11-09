@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Latex;
 
 /// <summary>Lossless, non-executing LaTeX parser.</summary>

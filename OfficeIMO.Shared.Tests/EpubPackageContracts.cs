@@ -2,7 +2,6 @@ using OfficeIMO.Epub;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;

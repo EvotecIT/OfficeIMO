@@ -1,6 +1,5 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
-using System.Threading;
 
 namespace OfficeIMO.Epub;
 

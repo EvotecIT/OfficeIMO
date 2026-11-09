@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Creates backend-neutral horizontal text-decoration paint at an explicit thickness.</summary>

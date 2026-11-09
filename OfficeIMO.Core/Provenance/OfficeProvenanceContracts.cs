@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Provenance;
 
 /// <summary>Identifies the asset container inspected for provenance.</summary>

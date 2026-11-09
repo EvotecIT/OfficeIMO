@@ -35,11 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.IO" />
     <Using Include="System.IO.Compression" />
-    <Using Include="System.Linq" />
     <Using Include="System.Net" />
     <Using Include="System.Text" />
     <Using Include="System.Xml" />

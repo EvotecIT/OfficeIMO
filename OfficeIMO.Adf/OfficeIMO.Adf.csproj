@@ -41,10 +41,4 @@
     <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" />
-  </ItemGroup>
-
 </Project>

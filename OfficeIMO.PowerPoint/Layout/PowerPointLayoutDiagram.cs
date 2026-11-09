@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Draws an architecture diagram in a content zone: one lane per node group, evenly spaced boxes, and

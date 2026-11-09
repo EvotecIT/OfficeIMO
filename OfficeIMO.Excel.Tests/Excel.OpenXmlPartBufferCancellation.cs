@@ -1,7 +1,6 @@
 #if NET8_0_OR_GREATER
 using System.Buffers.Binary;
 using System.IO.Compression;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;

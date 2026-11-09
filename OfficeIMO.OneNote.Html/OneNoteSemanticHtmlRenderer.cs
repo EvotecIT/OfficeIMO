@@ -1,9 +1,7 @@
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 using OfficeIMO.OneNote.Markdown;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Net;
 
 namespace OfficeIMO.OneNote.Html;

@@ -1,7 +1,5 @@
 using System.Globalization;
 
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {

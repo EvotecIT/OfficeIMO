@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.TestAssets;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Mhtml;
 using OfficeIMO.Tests;

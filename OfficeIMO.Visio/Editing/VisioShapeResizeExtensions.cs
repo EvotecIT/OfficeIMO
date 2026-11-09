@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio;
 
 /// <summary>Explicit resizing of an existing shape and its editable child tree.</summary>

@@ -1,16 +1,10 @@
 #if NET8_0_OR_GREATER
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using Apache.Arrow;
 using Apache.Arrow.C;
 using Apache.Arrow.Ipc;
 using Apache.Arrow.Types;
 using OfficeIMO.Data.Arrow;
-using System.IO;
 using Xunit;
 
 namespace OfficeIMO.CSV.Tests;

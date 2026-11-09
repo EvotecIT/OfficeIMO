@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Finds locally cached Office fonts without downloading or installing them.</summary>

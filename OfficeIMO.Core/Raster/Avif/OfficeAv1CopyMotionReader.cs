@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Tile-owned reduced-still intra-block-copy prediction, displacement syntax and source validation.</summary>

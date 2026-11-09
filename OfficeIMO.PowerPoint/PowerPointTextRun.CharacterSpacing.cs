@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint;
 
 public partial class PowerPointTextRun {

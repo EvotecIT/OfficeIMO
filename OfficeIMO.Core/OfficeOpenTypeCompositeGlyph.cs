@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared structural validation for TrueType composite glyph records.</summary>

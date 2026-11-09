@@ -1,6 +1,5 @@
 using OfficeIMO.IWork;
 using OfficeIMO.IWork.Internal;
-using System.Threading;
 
 namespace OfficeIMO.IWork.Tests;
 

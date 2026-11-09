@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.IWork;

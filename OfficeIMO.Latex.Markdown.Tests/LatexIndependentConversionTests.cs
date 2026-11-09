@@ -1,4 +1,3 @@
-using System.IO;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Latex.Markdown.Tests;

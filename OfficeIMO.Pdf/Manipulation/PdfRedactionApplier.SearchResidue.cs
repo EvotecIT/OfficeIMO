@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Text.RegularExpressions;
 using System.Globalization;
 using OfficeIMO.Pdf.Filters;

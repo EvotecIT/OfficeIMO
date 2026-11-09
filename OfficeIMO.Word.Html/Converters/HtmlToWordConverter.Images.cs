@@ -5,8 +5,6 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using System.Globalization;
 using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {

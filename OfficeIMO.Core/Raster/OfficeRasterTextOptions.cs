@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing {
     /// <summary>Shared font, layout and effect settings for raster text measurement and drawing.</summary>
     /// <remarks>Operations snapshot scalar settings and the font collection. Font and shaping providers, and the optional

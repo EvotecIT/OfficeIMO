@@ -9,7 +9,6 @@
     <DebugType Condition="'$(TargetFramework)' == 'net8.0' and ('$(RuntimeIdentifier)' == 'win-x64' or '$(RuntimeIdentifier)' == 'linux-x64')">none</DebugType>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.Workflows.IWork/OfficeIMO.Workflows.IWork.csproj" />

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 // Paired callbacks keep width and ink geometry on the same selected font/shaping path.

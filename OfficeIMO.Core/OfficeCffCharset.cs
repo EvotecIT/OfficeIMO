@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Validated CFF1 charset lookup used by Type 2 seac-compatible endchar programs.</summary>

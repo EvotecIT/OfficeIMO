@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Html.Pdf;
 
 /// <summary>Operation-local link coverage and logical ownership for one rendered page.</summary>

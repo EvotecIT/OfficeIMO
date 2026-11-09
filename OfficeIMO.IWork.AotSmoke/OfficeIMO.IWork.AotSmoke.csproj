@@ -5,7 +5,6 @@
     <PublishAot>true</PublishAot>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-future-functions-qualified-input.xlsx" Link="future-functions-input.xlsx" CopyToOutputDirectory="PreserveNewest" />

@@ -1,7 +1,6 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using System.Threading;
 
 namespace OfficeIMO.PowerPoint {
     internal enum LegacyBinaryEncryptionKind {

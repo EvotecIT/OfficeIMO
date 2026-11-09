@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel;

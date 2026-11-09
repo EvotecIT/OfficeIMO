@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Provenance;

@@ -1,9 +1,5 @@
 using OfficeIMO.Core.Internal;
-using System;
 using System.Globalization;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Drawing;
 

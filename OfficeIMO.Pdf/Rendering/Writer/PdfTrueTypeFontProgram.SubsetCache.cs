@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfTrueTypeFontProgram {

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO {
 
     /// <summary>Bounds detailed diagnostics per code and summarizes suppressed severity and loss.</summary>

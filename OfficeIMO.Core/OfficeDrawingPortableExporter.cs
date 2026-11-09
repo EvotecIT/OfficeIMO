@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Projects canonical drawing elements to version 1 portable report drawing JSON.</summary>

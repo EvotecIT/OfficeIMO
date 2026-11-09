@@ -1,6 +1,5 @@
 using PdfCore = OfficeIMO.Pdf;
 using DrawingCore = OfficeIMO.Drawing;
-using System.Threading;
 
 namespace OfficeIMO.Excel.Pdf {
     /// <summary>

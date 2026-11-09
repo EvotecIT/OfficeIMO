@@ -1,7 +1,6 @@
 using OfficeIMO.Email;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Email.Store.Tests;
 

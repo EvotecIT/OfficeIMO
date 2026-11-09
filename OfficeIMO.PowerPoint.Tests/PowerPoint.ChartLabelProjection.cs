@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using DocumentFormat.OpenXml.Packaging;
-using System.IO;
 using System.Xml.Linq;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;

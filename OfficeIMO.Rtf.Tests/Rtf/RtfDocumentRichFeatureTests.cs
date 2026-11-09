@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Diagnostics;
 using Xunit;

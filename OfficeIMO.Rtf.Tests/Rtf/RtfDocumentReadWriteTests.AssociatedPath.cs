@@ -1,5 +1,4 @@
 using OfficeIMO.Rtf;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;

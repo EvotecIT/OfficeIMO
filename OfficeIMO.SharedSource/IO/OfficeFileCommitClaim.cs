@@ -1,9 +1,6 @@
-using System;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using Microsoft.Win32.SafeHandles;
 
 #if OFFICEIMO_READER_CORE

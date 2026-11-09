@@ -3,7 +3,6 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using OfficeIMO.Drawing;
-using System.Threading;
 
 namespace OfficeIMO.Html;
 

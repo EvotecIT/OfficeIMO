@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Word;
 using Xunit;

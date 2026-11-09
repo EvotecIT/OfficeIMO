@@ -1,7 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Rewrites a worksheet cell table while preserving all records outside it and unknown in-table metadata.</summary>

@@ -1,6 +1,5 @@
 using OfficeIMO.Email;
 using System.Reflection;
-using System.Threading;
 
 namespace OfficeIMO.Email.Store.Tests;
 

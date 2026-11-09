@@ -1,7 +1,5 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Core.Internal;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Word;
 

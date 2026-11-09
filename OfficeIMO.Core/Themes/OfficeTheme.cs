@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>An immutable visual identity shared by document formats. Loading a document does not apply a theme.</summary>

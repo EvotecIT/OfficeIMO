@@ -1,10 +1,5 @@
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 

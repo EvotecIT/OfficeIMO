@@ -2,7 +2,6 @@ using AngleSharp.Html.Parser;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests;

@@ -1,4 +1,3 @@
-using System;
 using BenchmarkDotNet.Running;
 
 if (args.Length == 1 && args[0].Equals("--complexity", StringComparison.OrdinalIgnoreCase)) {

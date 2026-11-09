@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading;
 using OfficeIMO.Reader.IWork;
 
 namespace OfficeIMO.IWork.Tests;

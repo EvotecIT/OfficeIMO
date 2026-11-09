@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.Visio {
     public partial class VisioPage {
         /// <summary>

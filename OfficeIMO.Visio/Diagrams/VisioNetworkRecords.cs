@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
     /// Simple data record used to import network zones into <see cref="VisioNetworkDiagramBuilder"/>.

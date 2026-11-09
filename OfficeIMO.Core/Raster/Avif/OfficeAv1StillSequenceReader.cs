@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Checks low-overhead OBU boundaries and Main 8/10-bit still headers, without allocating planes.</summary>

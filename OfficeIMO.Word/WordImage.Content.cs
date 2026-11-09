@@ -8,8 +8,6 @@ using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
 using V = DocumentFormat.OpenXml.Vml;
 
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;

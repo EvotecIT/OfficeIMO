@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal sealed class LegacyDocBookmarkProjectionTracker {
         private readonly IReadOnlyList<LegacyDocBookmark> _bookmarks;

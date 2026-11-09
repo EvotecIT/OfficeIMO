@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.IWork.Internal;
 using OfficeIMO.PowerPoint;

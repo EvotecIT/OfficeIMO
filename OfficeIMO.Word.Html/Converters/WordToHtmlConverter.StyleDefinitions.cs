@@ -2,7 +2,6 @@ using AngleSharp.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text;
 using System.Security.Cryptography;
-using System.Threading;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {

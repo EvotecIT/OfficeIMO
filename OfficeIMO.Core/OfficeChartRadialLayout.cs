@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Native-compatible geometry for pie and doughnut charts.</summary>

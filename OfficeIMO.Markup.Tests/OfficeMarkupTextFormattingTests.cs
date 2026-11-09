@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Markup;

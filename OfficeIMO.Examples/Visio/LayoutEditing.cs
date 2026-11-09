@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;

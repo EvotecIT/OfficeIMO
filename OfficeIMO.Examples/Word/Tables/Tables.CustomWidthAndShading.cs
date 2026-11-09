@@ -1,9 +1,5 @@
-using System.Collections.Generic;
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using System;
-using System.IO;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Tables {

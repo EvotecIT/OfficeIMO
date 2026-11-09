@@ -1,7 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Xunit;
 using Microsoft.Win32.SafeHandles;
 

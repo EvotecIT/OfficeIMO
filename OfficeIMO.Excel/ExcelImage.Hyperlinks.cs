@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml.Packaging;
-using System.IO;
 using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 

@@ -8,7 +8,6 @@ using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Reader.Excel;
 using OfficeIMO.Word;
 using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

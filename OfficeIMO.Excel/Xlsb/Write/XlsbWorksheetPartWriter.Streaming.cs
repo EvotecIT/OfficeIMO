@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel.Xlsb.Write {
     internal static partial class XlsbWorksheetPartWriter {
         /// <summary>Writes an already validated cell snapshot to the worksheet ZIP entry.</summary>

@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using OpenMcdf;
 using OfficeIMO.Drawing;

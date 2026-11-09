@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel;
 
 /// <summary>Spools normalized scalar rows to disk while collecting columns in first-seen order.</summary>

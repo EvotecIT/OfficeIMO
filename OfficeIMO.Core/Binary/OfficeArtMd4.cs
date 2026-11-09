@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Computes the MD4 digest required by OfficeArt BLIP identifiers.</summary>

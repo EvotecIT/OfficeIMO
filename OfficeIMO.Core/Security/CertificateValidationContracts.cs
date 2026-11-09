@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Security;
 
 /// <summary>Certificate usage profile applied during public trust validation.</summary>

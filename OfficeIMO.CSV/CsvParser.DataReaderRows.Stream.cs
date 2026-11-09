@@ -1,7 +1,6 @@
 #if NET8_0_OR_GREATER
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace OfficeIMO.CSV;
 

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio;
 
 public partial class VisioDocument : IDisposable {

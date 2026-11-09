@@ -1,8 +1,6 @@
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.CustomProperties;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 
 namespace OfficeIMO.Word.Rtf;
 

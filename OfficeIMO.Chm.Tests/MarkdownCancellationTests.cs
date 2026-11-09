@@ -1,6 +1,5 @@
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
-using System.Threading;
 
 namespace OfficeIMO.Chm.Tests;
 

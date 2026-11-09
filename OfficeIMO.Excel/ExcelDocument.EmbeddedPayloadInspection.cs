@@ -1,5 +1,4 @@
 using OfficeIMO.OpenXml.Internal;
-using System.Threading;
 
 namespace OfficeIMO.Excel;
 

@@ -1,6 +1,4 @@
 using OfficeIMO.Drawing;
-using System.Collections.Generic;
-using System.Threading;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;

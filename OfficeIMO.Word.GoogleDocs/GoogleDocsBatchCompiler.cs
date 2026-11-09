@@ -1,7 +1,6 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
-using System.IO;
 
 namespace OfficeIMO.Word.GoogleDocs {
     internal static class GoogleDocsBatchCompiler {

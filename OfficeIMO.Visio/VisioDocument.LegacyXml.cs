@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using System.IO.Packaging;
-using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Core.Internal;

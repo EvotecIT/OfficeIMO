@@ -1,4 +1,3 @@
-using System.IO;
 using System.IO.Compression;
 using OfficeIMO.Drawing;
 using Xunit;

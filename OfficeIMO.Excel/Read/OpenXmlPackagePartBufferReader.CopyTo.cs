@@ -1,5 +1,4 @@
 #if NET8_0_OR_GREATER
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class OpenXmlPackagePartBufferReader {

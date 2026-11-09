@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
 using System.Globalization;
-using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Utilities;
 

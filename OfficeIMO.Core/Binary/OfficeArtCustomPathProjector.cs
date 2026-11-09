@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-
 namespace OfficeIMO.Drawing.Binary;
 
 // MS-ODRAW 2.3.6 and 2.4.30 describe native geometry and command consumption.

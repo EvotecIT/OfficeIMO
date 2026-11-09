@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Recognizes the bounded, opaque Gray/RGB subset safe for codec pass-through.</summary>

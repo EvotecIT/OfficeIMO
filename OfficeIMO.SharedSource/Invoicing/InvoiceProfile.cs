@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-
 namespace OfficeIMO.Internal.Invoicing;
 
 /// <summary>Declared electronic invoice profiles. Recognition alone does not establish compliance.</summary>

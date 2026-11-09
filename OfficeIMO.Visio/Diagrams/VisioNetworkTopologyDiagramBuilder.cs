@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
     /// High-level builder for network topologies where OfficeIMO places devices from links.

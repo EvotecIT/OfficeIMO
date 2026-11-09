@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>One request's validated PNG container, bound to the inspected byte array.</summary>

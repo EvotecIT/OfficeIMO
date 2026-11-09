@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word.Pdf;
 using PdfCore = OfficeIMO.Pdf;

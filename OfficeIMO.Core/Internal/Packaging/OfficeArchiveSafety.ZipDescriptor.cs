@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Core.Internal;
 
 internal static partial class OfficeArchiveSafety {

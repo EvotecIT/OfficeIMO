@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Latex;
 
 /// <summary>Lexical control-word whitespace rules shared by binding and literal projection.</summary>

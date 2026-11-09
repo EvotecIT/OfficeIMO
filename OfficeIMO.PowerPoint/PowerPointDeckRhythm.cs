@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Severity of a deck-rhythm finding.</summary>

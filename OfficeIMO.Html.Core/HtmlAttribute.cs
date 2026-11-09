@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Html.Dom;
 
 /// <summary>An immutable attribute, including its namespace and qualified name.</summary>

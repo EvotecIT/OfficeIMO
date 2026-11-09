@@ -1,12 +1,8 @@
-using System;
 using System.Data.Common;
 using System.Data;
 using System.Globalization;
-using System.IO;
 using System.IO.Compression;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.CSV;
 using Xunit;
 

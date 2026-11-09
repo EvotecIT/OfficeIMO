@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
-using System.IO;
 using System.IO.Compression;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;

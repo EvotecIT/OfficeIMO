@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using A = DocumentFormat.OpenXml.Drawing;

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Produces sequential chart placements for worksheet dashboards that use the default Excel row and column grid.

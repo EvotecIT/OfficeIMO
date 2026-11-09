@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Html.Pdf;
 
 /// <summary>Controls a reproducible direct-render HTML/PDF capability gallery scenario.</summary>

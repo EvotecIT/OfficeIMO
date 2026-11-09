@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeManagedTextShapingProvider {

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Controls how a semantic <see cref="PowerPointDeckPlan" /> is composed into a presentation.

@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Provenance;
 
 /// <summary>Marks configured provenance resource limits without changing the public exception contract.</summary>

@@ -1,9 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using System;
-using System.IO;
-using System.Linq;
 using Xunit;
 using Color = OfficeIMO.OfficeColor;
 using V = DocumentFormat.OpenXml.Vml;

@@ -3,8 +3,6 @@ using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word.Html;
-using System;
-using System.IO;
 
 namespace OfficeIMO.Examples.Word {
     internal static class ConversionExamples {

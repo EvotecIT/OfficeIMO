@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Collections.Generic;
 using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown;

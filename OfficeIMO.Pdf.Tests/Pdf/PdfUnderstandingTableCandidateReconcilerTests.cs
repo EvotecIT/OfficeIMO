@@ -1,5 +1,4 @@
 using OfficeIMO.Pdf.Word;
-using System.Threading;
 using OfficeIMO.Pdf;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Reader.Pdf;

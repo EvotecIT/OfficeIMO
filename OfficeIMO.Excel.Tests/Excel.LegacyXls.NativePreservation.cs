@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls.Biff;

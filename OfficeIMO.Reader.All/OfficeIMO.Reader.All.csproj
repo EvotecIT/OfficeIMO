@@ -65,7 +65,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
     <Using Include="OfficeIMO.Reader" />
   </ItemGroup>
 </Project>

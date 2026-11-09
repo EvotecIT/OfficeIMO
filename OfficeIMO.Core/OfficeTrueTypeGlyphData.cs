@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared bounded structural validation for TrueType <c>glyf</c> records.</summary>

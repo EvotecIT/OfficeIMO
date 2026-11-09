@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Reader;
 
 /// <summary>Immutable OCR provenance attached to recognized text. Missing values mean unknown, never approval.</summary>

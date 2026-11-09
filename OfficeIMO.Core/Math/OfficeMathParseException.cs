@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Reports a stable failure while parsing portable mathematical markup.</summary>

@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Management.Automation;
 using OfficeIMO.Pdf;

@@ -1,6 +1,5 @@
 #if NET8_0_OR_GREATER
 using System.Runtime.ExceptionServices;
-using System.Threading;
 
 namespace OfficeIMO.CSV;
 

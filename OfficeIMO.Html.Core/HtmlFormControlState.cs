@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Html.Dom;
 
 /// <summary>The kind of form element whose live properties were captured.</summary>

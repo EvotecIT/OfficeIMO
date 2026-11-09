@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Controls where paragraph text begins after a separately measured label.</summary>

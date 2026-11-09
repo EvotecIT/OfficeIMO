@@ -2,8 +2,6 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
-using System.IO;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests;

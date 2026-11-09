@@ -5,7 +5,6 @@ using OfficeIMO.Mhtml;
 using OfficeIMO.Provenance;
 using System.IO.Compression;
 using System.Text;
-using System.Threading;
 using System.Xml.Linq;
 using Xunit;
 

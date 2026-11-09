@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 

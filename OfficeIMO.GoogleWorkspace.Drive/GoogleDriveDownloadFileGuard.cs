@@ -1,6 +1,5 @@
 using Microsoft.Win32.SafeHandles;
 using OfficeIMO.Internal;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 

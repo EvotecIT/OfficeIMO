@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.PowerPoint;
 
 namespace PSWriteOffice.Services.PowerPoint;

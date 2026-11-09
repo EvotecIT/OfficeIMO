@@ -1,7 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Rtf;
 using System.Text;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

@@ -4,7 +4,6 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

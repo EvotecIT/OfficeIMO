@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.Drawing;
 
 internal sealed partial class OfficeHeifImageComposer {

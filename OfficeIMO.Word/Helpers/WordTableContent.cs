@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.IO;
 
 namespace OfficeIMO.Word {
     /// <summary>Enumerates logical table rows and cells through their inert content-control and custom-XML containers.</summary>

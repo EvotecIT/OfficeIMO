@@ -1,6 +1,5 @@
 using OfficeIMO.Pdf;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;

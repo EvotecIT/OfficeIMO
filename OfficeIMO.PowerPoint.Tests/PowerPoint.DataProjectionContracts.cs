@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO.Data;
 using OfficeIMO.PowerPoint;
 using Xunit;

@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Features;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
-using System.Threading;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 

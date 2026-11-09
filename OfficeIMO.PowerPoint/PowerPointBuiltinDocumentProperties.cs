@@ -1,4 +1,3 @@
-using System;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.PowerPoint {

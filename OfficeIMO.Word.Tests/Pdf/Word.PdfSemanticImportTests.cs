@@ -5,7 +5,6 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Tests.Pdf;
 using OfficeIMO.Word.Pdf;
-using System.Collections.Generic;
 using System.Text;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;

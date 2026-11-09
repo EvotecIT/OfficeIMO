@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Reads Main 8/10-bit shown-key-frame syntax and a complete combined-OBU tile group.</summary>

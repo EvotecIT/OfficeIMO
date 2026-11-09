@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Pdf;
 
 internal static class PdfActiveContentPolicy {

@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using OfficeIMO.Ocr;
 using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Pdf;

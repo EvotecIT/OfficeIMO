@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>Direction used when inserting or deleting a rectangular block of cells.</summary>

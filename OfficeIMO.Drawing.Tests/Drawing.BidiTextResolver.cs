@@ -1,6 +1,4 @@
 using OfficeIMO.Drawing;
-using System;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

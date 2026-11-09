@@ -1,6 +1,5 @@
 using OfficeIMO.Pdf;
 using System.Text.RegularExpressions;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {

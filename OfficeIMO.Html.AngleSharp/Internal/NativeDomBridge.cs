@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using OfficeIMO.Html.Dom;

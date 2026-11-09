@@ -1,4 +1,3 @@
-using System.Threading;
 #if NET8_0_OR_GREATER
 using System.Numerics;
 using System.Runtime.InteropServices;

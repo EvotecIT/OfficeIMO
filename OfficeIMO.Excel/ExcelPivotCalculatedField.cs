@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Describes a formula-backed pivot cache field to author.

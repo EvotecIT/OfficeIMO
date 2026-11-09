@@ -1,7 +1,6 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.GoogleSheets;
 using OfficeIMO.GoogleWorkspace;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Examples.Google {
     internal static class GoogleSheetsExamples {

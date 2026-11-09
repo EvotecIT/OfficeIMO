@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Semantic classifications produced by a PDF understanding pipeline.</summary>

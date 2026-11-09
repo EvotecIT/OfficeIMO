@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Reads the bounded WPG1 basic-vector profile into the shared drawing model.</summary>

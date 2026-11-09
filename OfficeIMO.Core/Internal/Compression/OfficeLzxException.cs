@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace OfficeIMO;
 
 /// <summary>Internal compression failure translated by the format-specific adapter.</summary>

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointLayoutEngine {
         /// <summary>Continues individual oversized cards after reducing the grid's density.</summary>

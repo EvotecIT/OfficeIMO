@@ -61,8 +61,4 @@
     <None Include="README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Using Include="System" />
-  </ItemGroup>
-
 </Project>

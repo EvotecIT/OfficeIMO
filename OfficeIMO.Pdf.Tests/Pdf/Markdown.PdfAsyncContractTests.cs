@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using Xunit;

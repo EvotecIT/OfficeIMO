@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Bounds-checks the self-contained AV1 item path before any entropy decoder allocates image planes.</summary>

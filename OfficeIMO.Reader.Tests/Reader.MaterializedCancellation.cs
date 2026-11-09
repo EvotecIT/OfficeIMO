@@ -1,5 +1,4 @@
 using OfficeIMO.Reader;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;

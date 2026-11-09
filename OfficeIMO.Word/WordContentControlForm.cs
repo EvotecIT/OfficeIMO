@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using W15 = DocumentFormat.OpenXml.Office2013.Word;

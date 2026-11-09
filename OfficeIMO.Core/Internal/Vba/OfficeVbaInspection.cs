@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Core.Internal;
 
 /// <summary>Inert directory and source inspection for document-specific native storage adapters.</summary>

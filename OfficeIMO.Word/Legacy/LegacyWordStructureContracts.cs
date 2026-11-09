@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Word.Legacy;
 
 /// <summary>A recovered paragraph or table in source order.</summary>

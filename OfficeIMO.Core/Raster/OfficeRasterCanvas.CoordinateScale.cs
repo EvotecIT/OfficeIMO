@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing {
     public sealed partial class OfficeRasterCanvas {
         // Raster layers can sample the two local axes independently. Layout and

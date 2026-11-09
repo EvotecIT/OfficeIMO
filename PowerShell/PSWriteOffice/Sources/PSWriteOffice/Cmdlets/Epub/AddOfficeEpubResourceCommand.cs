@@ -1,7 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System;
-using System.IO;
-using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Epub;
 using PSWriteOffice.Services;

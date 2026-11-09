@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Html.Dom;
 
 namespace OfficeIMO.Html.Providers;

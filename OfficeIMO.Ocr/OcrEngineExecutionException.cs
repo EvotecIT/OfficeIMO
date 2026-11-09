@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Ocr;
 
 /// <summary>Content-free failure at the OCR provider boundary. Provider exception details are never retained.</summary>

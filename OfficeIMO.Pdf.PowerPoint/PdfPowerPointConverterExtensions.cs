@@ -1,6 +1,4 @@
 using A = DocumentFormat.OpenXml.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 using PptCore = OfficeIMO.PowerPoint;

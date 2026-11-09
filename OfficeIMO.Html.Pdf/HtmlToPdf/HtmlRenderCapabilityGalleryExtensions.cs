@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
-using System.Linq;
-using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Core.Internal;
 using PdfCore = OfficeIMO.Pdf;

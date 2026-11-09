@@ -1,7 +1,5 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using System;
-using System.IO;
 using Xunit;
 
 namespace OfficeIMO.Tests {

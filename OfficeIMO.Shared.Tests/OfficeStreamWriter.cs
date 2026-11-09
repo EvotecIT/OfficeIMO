@@ -1,6 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

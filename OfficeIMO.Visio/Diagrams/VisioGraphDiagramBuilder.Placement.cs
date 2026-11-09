@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio.Diagrams {
     public sealed partial class VisioGraphDiagramBuilder {
         private bool _preserveLayout;

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Freezes renderer diagnostics at the public conversion boundary without inferring severity from loss.</summary>

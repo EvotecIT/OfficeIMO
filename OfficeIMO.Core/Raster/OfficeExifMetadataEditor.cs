@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Applies bounded semantic rewrites to copied Exif TIFF metadata.</summary>

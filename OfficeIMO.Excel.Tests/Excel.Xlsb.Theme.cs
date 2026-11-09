@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb.Write;
 using System.IO.Compression;
-using System.Threading;
 using System.Xml.Linq;
 using Xunit;
 

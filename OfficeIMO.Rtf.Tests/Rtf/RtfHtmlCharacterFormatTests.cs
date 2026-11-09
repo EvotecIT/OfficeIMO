@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using OfficeIMO.Rtf;
 using OfficeIMO.Html;
 using Xunit;

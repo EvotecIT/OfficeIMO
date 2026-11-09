@@ -2,9 +2,6 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Word;
-using System;
-using System.IO;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {

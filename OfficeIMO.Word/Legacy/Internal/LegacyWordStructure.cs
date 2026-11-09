@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Word.Legacy;
 
 /// <summary>Source-order block shared by legacy decoders and the normal Word projection.</summary>

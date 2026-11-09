@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Excel.Legacy;
 
 internal enum LaterNumberKind { Double64, Single32, Extended80, Compact16, Compact32 }

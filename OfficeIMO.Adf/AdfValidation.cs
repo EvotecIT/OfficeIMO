@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Adf;
 
 /// <summary>Severity of an ADF validation issue.</summary>

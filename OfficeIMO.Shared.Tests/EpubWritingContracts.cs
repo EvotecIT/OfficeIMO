@@ -1,8 +1,6 @@
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Epub;
 using OfficeIMO.Provenance;
 using Xunit;

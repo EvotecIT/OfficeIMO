@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDeckPlan {
         /// <summary>Adds an executive-summary slide request.</summary>

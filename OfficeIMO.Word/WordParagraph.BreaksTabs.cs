@@ -1,8 +1,6 @@
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Break = DocumentFormat.OpenXml.Wordprocessing.Break;
 using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;

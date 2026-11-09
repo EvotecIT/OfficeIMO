@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Core.Internal;
 
 /// <summary>Shared ISSN shape and checksum validation for document and publishing owners.</summary>

@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-
 namespace OfficeIMO.Internal.Invoicing;
 
 /// <summary>Canonical profile identifiers shared by invoice XML and hybrid-PDF adapters.</summary>

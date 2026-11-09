@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;

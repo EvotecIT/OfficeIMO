@@ -1,8 +1,5 @@
 using DocumentFormat.OpenXml;
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Utilities;

@@ -1,4 +1,3 @@
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 using Color = OfficeIMO.OfficeColor;

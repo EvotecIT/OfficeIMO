@@ -1,8 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Word {
     // Provides public methods for manipulating a Word document.

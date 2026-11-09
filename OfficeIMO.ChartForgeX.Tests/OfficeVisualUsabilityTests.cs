@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
 using global::ChartForgeX.Core;
 using global::ChartForgeX.Primitives;

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Archives {
 
     /// <summary>Thread-safe cumulative budget shared explicitly by related archive operations.

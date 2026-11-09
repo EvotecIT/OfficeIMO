@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared font-resolution diagnostics for dependency-free image exporters.</summary>

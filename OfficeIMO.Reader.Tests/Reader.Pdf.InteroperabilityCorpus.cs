@@ -1,6 +1,5 @@
 using OfficeIMO.Pdf;
 using System.Text.Json;
-using System.Threading;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 using Xunit;

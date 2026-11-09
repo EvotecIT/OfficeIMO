@@ -1,6 +1,4 @@
-using System;
 using System.Buffers.Binary;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.TestAssets;
 using Xunit;

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Tile-local reduced-still segment, skip, CDEF and delta state (AV1 5.11.7–13, 5.11.56).</summary>

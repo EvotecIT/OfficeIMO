@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         private readonly List<(PowerPointShape Shape, PowerPointLayoutBox Applied)> _authoringContent = new();

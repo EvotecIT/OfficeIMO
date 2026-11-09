@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using Color = OfficeIMO.OfficeColor;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;

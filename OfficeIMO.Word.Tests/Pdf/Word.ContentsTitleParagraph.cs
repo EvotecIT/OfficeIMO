@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;

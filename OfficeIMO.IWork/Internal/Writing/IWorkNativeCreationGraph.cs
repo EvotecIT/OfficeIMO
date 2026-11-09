@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Owns deterministic object allocation and shared style, image and table records for native creation graphs.</summary>

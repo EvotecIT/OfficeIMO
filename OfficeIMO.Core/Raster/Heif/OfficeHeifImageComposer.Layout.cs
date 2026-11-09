@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Interprets HEIF items and presentation properties; compressed pixels remain an OS-codec boundary.</summary>

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
     /// High-level generic graph diagram authoring extensions for <see cref="VisioDocument"/>.

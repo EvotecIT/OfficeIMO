@@ -7,8 +7,6 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
 using A = DocumentFormat.OpenXml.Drawing;
 using M = DocumentFormat.OpenXml.Math;
 using Xunit;

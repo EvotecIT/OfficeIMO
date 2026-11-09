@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio;
 
 internal static partial class VisioShapeResizing {
