@@ -2327,11 +2327,30 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # Managed ODBC workbook and command contracts. The native driver smoke through the
+  # Windows ODBC manager stays in odbc-contracts.yml.
+  odbc-contracts:
+    needs: changes
+    name: 'ODBC managed contracts'
+    if: fromJSON(needs.changes.outputs.suites)['odbc-contracts']
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/windows-nuget-folders
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Test workbook snapshots and command contracts
+        run: dotnet test OfficeIMO.Odbc.Tests/OfficeIMO.Odbc.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --filter "Category!=Performance" -m:1
+
   pr-validation:
     name: PR validation
     if: always()
     runs-on: ubuntu-latest
-    needs: ["coverage", "changes", "archives-contracts", "chm-contracts", "legacy-imports", "browser-exports", "workflow-contracts", "document-ai-contracts", "studio-contracts", "studio-release-restore", "invoice-standards", "build-matrix", "html-package-consumers", "typography-package-consumers", "email-package-consumers", "google-workspace-package-consumers", "onenote-package-consumers", "opendocument-schema", "binary-powerpoint-libreoffice", "office-corpus-libreoffice", "test-windows", "word-vba-office-sip", "test-ubuntu-matrix", "officeimo-tool-package-gate", "excel-image-visual-gate", "office-interoperability-gate", "test-ubuntu", "test-macos-matrix", "test-macos", "aot-managed-analyzers", "aot-linux-scenarios", "aot-trim-analyzers", "aot-windows-scenarios", "aot-windows", "dbf-contracts"]
+    needs: ["coverage", "changes", "archives-contracts", "chm-contracts", "legacy-imports", "browser-exports", "workflow-contracts", "document-ai-contracts", "studio-contracts", "studio-release-restore", "invoice-standards", "build-matrix", "html-package-consumers", "typography-package-consumers", "email-package-consumers", "google-workspace-package-consumers", "onenote-package-consumers", "opendocument-schema", "binary-powerpoint-libreoffice", "office-corpus-libreoffice", "test-windows", "word-vba-office-sip", "test-ubuntu-matrix", "officeimo-tool-package-gate", "excel-image-visual-gate", "office-interoperability-gate", "test-ubuntu", "test-macos-matrix", "test-macos", "aot-managed-analyzers", "aot-linux-scenarios", "aot-trim-analyzers", "aot-windows-scenarios", "aot-windows", "dbf-contracts", "odbc-contracts"]
     steps:
       - name: Require selection and every selected contract
         env:
