@@ -5800,7 +5800,7 @@ RTF PDF export exposes `RtfPdfExportOptions.TextFallbacks` with the same default
 
 Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfCreateOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.
 
-Line wrapping follows Unicode line breaking (UAX #14). Words can now break after hyphens and slashes, at zero-width spaces and between CJK characters, so a token such as `buyer-service-1` can wrap as `buyer-` / `service-1`. `PdfCreateOptions.UseAutomaticHyphenation(language)` adds opt-in US English and German pattern hyphenation; it replaces any `UseTextHyphenationDictionary` configuration, and the last one configured applies.
+Line wrapping follows Unicode line breaking (UAX #14). Words can now break after hyphens and slashes, at zero-width spaces and between CJK characters, so a token such as `buyer-service-1` can wrap as `buyer-` / `service-1`. Set `PdfCreateOptions.SplitWordsAtLineEnd = false` to move a word that fits the next line there whole; a word longer than a line still breaks at those opportunities. `PdfCreateOptions.UseAutomaticHyphenation(language)` adds opt-in US English and German pattern hyphenation; it replaces any `UseTextHyphenationDictionary` configuration, and the last one configured applies.
 
 Right-to-left and Arabic text is shaped and ordered automatically, without configuring a shaping provider. Glyphs are written in visual order, and pure right-to-left runs no longer carry a run-wide `ActualText`; their Unicode text comes from the font's `ToUnicode` map. Logical text extraction is unchanged.
 

@@ -90,6 +90,7 @@ public sealed partial class PdfCreateOptions {
             TextLineBreakCallback = _textLineBreakCallback,
             TextHyphenationCallback = _textHyphenationCallback,
             TextShapingMode = TextShapingMode,
+            SplitWordsAtLineEnd = SplitWordsAtLineEnd,
             DefaultTextFeatureSettings = DefaultTextFeatureSettings,
             TextShapingProvider = TextShapingProvider,
             TextShapingLanguageOverride = TextShapingLanguageOverride,

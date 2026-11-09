@@ -1039,9 +1039,11 @@ internal static partial class PdfWriter {
                     ? (pendingLeadingIsTab || preserveWhitespace ? pendingLeadingAdvance + wrappingWidth : wrappingWidth)
                     : pendingLeadingAdvance + wrappingWidth;
                 // A word that overflows the line end wraps at its last fitting Unicode line-break
-                // opportunity (hyphen, solidus, CJK boundary) or opt-in hyphenation point.
+                // opportunity (hyphen, solidus, CJK boundary) or opt-in hyphenation point, unless the
+                // options keep a word that fits a fresh line whole.
                 if (MinimumCandidateWidth(tokenProbe, continuation.Parts, lineWidth + needed + boundaryAdvance) > currentMaxWidth + RichTextWidthTolerance && lastLine.Count > 0
                     && token.Length > 1 && continuation.Width <= 0D && !pendingLeadingIsTab && whitespaceMode != PdfTextWhitespaceMode.Preserve
+                    && (options?.SplitWordsAtLineEnd != false || wrappingWidth > maxWidthPts + RichTextWidthTolerance)
                     && TrySplitTokenAtLineEnd(token, currentMaxWidth + RichTextWidthTolerance - lineWidth - boundaryAdvance -
                             (pendingLeadingSeparator ? pendingLeadingAdvance : 0D), options,
                         part => MeasureRichText(part, fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing),

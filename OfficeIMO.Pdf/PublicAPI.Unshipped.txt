@@ -2,6 +2,8 @@
 OfficeIMO.Pdf.PdfTableStyle.CellHeaderScopes.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCanvasTableHeaderScope>?
 OfficeIMO.Pdf.PdfTableStyle.CellHeaderScopes.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.EmbedDefaultFonts.get -> bool
+OfficeIMO.Pdf.PdfCreateOptions.SplitWordsAtLineEnd.get -> bool
+OfficeIMO.Pdf.PdfCreateOptions.SplitWordsAtLineEnd.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.EmbedDefaultFonts.set -> void
 OfficeIMO.Pdf.PdfLoadOptions.Clone(long? maximumInputBytes, string? passwordOverride) -> OfficeIMO.Pdf.PdfLoadOptions!
 OfficeIMO.Pdf.PdfLogicalHeading.Lines.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfLogicalTextBlock!>!
