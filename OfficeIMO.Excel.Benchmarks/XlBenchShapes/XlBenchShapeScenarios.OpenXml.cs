@@ -73,25 +73,6 @@ internal static partial class XlBenchShapeScenarios {
         writer.WriteEndElement();
     }
 
-    internal static long OpenXmlReadAll() {
-        using var document = SpreadsheetDocument.Open(new MemoryStream(ReadWorkbook), false);
-        var workbookPart = document.WorkbookPart!;
-        string[] shared = SharedStrings(workbookPart);
-        long checksum = 0;
-        using var reader = OpenXmlReader.Create(workbookPart.WorksheetParts.First());
-        while (reader.Read()) {
-            if (reader.ElementType == typeof(Cell) && reader.IsStartElement) {
-                var cell = (Cell)reader.LoadCurrentElement()!;
-                string raw = cell.CellValue?.InnerText ?? cell.InnerText;
-                if (cell.DataType?.Value == CellValues.SharedString) {
-                    raw = shared[int.Parse(raw, CultureInfo.InvariantCulture)];
-                }
-                checksum += raw.Length;
-            }
-        }
-        return checksum;
-    }
-
     internal static long OpenXmlSheets() {
         using var document = SpreadsheetDocument.Open(new MemoryStream(SheetsWorkbook), false);
         var workbookPart = document.WorkbookPart!;

@@ -7,7 +7,6 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Mhtml.Pdf</PackageId>
     <PackageTags>mhtml;mht;html;pdf;converter;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -18,7 +17,6 @@
     <IsPublishable>True</IsPublishable>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png" />

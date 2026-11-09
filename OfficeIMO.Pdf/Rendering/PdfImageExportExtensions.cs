@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Canonical PDF page image-export entry points.</summary>
 public static partial class PdfImageExportExtensions {
     /// <summary>Exports pages from an authored or opened PDF document using the shared five-format result contract.</summary>
-    internal static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    internal static IReadOnlyList<OfficeImageExportResult> ToImages(
         this PdfDocument document,
         OfficeImageExportFormat format,
         PdfImageExportOptions? options = null,
@@ -28,14 +28,14 @@ public static partial class PdfImageExportExtensions {
     }
 
     /// <summary>Exports one loaded PDF page using the shared five-format result contract.</summary>
-    internal static OfficeImageExportResult ExportImage(
+    internal static OfficeImageExportResult ToImage(
         this PdfReadPage page,
         OfficeImageExportFormat format,
         PdfImageExportOptions? options = null) =>
-        page.ExportImage(format, options, CancellationToken.None);
+        page.ToImage(format, options, CancellationToken.None);
 
     /// <summary>Exports one loaded PDF page and observes cancellation throughout supported render stages.</summary>
-    internal static OfficeImageExportResult ExportImage(
+    internal static OfficeImageExportResult ToImage(
         this PdfReadPage page,
         OfficeImageExportFormat format,
         PdfImageExportOptions? options,
@@ -47,7 +47,7 @@ public static partial class PdfImageExportExtensions {
             cancellationToken: cancellationToken);
 
     /// <summary>Exports selected loaded PDF pages using the shared five-format result contract.</summary>
-    internal static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    internal static IReadOnlyList<OfficeImageExportResult> ToImages(
         this PdfReadDocument document,
         OfficeImageExportFormat format,
         PdfImageExportOptions? options = null,
@@ -65,7 +65,7 @@ public static partial class PdfImageExportExtensions {
     /// Exports pages from a source-to-PDF conversion while preserving its conversion diagnostics.
     /// This is the shared paged-image bridge for Markdown, AsciiDoc, LaTeX, RTF, OneNote, and other PDF adapters.
     /// </summary>
-    internal static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    internal static IReadOnlyList<OfficeImageExportResult> ToImages(
         this PdfDocumentConversionResult conversion,
         OfficeImageExportFormat format,
         PdfImageExportOptions? options = null,

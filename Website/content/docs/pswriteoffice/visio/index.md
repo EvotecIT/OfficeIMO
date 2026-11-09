@@ -20,4 +20,4 @@ Stencil commands can discover catalogs, find shapes, import packages, and export
 
 `Open-OfficeVisio` returns the editable document. `Get-OfficeDocumentInfo -Detailed` returns a detached diagram snapshot in `Details`; use `.Details.ToText()` for its text report. `Export-OfficeDocumentImage` writes portable SVG or PNG review output from the editable VSDX source. Use `-Page 1 -OutputPath ./diagram.svg`, or `-OutputDirectory ./pages -Format Png` for every page. `ConvertTo-OfficeDocumentImage` returns the same native image results without writing files.
 
-See the [Visio examples](https://github.com/EvotecIT/OfficeIMO/tree/3b3a029106ece280577eca40744bd196d6c7b5c4/PowerShell/PSWriteOffice/Examples/Visio) and search the [command reference](/api/powershell/) for `OfficeVisio`.
+See the [Visio examples](https://github.com/EvotecIT/OfficeIMO/tree/19df174fa85898137a6cf44c2ffc190e8a3a0905/PowerShell/PSWriteOffice/Examples/Visio) and search the [command reference](/api/powershell/) for `OfficeVisio`.

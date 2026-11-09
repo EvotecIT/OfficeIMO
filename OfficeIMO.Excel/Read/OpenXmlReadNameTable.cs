@@ -10,16 +10,33 @@ namespace OfficeIMO.Excel {
         private static readonly NameTable SchemaNames = CreateSchemaNames();
         private NameTable? _documentNames;
 
-        public override string Add(string value) => SchemaNames.Get(value)
+        public override string Add(string value) => GetSchemaName(value)
             ?? (_documentNames ??= new NameTable()).Add(value);
 
-        public override string Add(char[] value, int start, int length) => SchemaNames.Get(value, start, length)
+        public override string Add(char[] value, int start, int length) => GetSchemaName(value, start, length)
             ?? (_documentNames ??= new NameTable()).Add(value, start, length);
 
-        public override string? Get(string value) => SchemaNames.Get(value) ?? _documentNames?.Get(value);
+        public override string? Get(string value) => GetSchemaName(value) ?? _documentNames?.Get(value);
 
-        public override string? Get(char[] value, int start, int length) => SchemaNames.Get(value, start, length)
+        public override string? Get(char[] value, int start, int length) => GetSchemaName(value, start, length)
             ?? _documentNames?.Get(value, start, length);
+
+        // Cell names and attributes dominate worksheet reads. Keep their existing
+        // schema atoms without hashing a one-character name for every cell.
+        private static string? GetSchemaName(string value) =>
+            (value is { Length: 1 } ? SingleCharacterSchemaName(value[0]) : null)
+            ?? SchemaNames.Get(value);
+
+        private static string? GetSchemaName(char[] value, int start, int length) =>
+            (value != null && length == 1 && (uint)start < (uint)value.Length
+                ? SingleCharacterSchemaName(value[start]) : null)
+            ?? SchemaNames.Get(value!, start, length);
+
+        private static string? SingleCharacterSchemaName(char value) => value switch {
+            'b' => "b", 'c' => "c", 'f' => "f", 'i' => "i", 'r' => "r",
+            's' => "s", 't' => "t", 'u' => "u", 'v' => "v",
+            _ => null
+        };
 
         internal static XmlReaderSettings WithSchemaNames(XmlReaderSettings template) {
             XmlReaderSettings settings = template.Clone();

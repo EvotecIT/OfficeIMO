@@ -32,8 +32,8 @@ namespace OfficeIMO.Workflows.Tests {
                     ComparisonPath = actual,
                     PdfPassword = encrypted && !unreadableActual ? "wrong" : null,
                     ComparisonPdfPassword = encrypted && unreadableActual ? "wrong" : null,
-                    ComparisonExpectedPages = PdfPageSelector.Parse("1"),
-                    ComparisonActualPages = PdfPageSelector.Parse("1"),
+                    ComparisonExpectedPages = OfficePageSelector.Parse("1"),
+                    ComparisonActualPages = OfficePageSelector.Parse("1"),
                     OutputPath = output,
                     ConflictPolicy = OfficePublicationPolicy.Replace
                 });
@@ -77,8 +77,8 @@ namespace OfficeIMO.Workflows.Tests {
                     Operation = OfficeWorkflowOperation.Compare,
                     InputPath = expected,
                     ComparisonPath = actual,
-                    ComparisonExpectedPages = selectActual == false ? PdfPageSelector.Parse("1") : null,
-                    ComparisonActualPages = selectActual == true ? PdfPageSelector.Parse("1") : null,
+                    ComparisonExpectedPages = selectActual == false ? OfficePageSelector.Parse("1") : null,
+                    ComparisonActualPages = selectActual == true ? OfficePageSelector.Parse("1") : null,
                     OutputPath = output,
                     ConflictPolicy = OfficePublicationPolicy.Replace
                 });

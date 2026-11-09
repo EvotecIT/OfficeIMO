@@ -65,6 +65,8 @@ try {
     }
     dotnet test (Join-Path $repository 'OfficeIMO.Invoicing.Validation.Tests/OfficeIMO.Invoicing.Validation.Tests.csproj') -c Release -f $Framework --logger 'console;verbosity=normal'
     if ($LASTEXITCODE -ne 0) { throw "Invoice standards tests failed ($LASTEXITCODE)." }
+    dotnet test (Join-Path $repository 'OfficeIMO.Invoicing.KSeF.Tests/OfficeIMO.Invoicing.KSeF.Tests.csproj') -c Release -f $Framework --logger 'console;verbosity=normal'
+    if ($LASTEXITCODE -ne 0) { throw "KSeF invoice tests failed ($LASTEXITCODE)." }
 } finally {
     foreach ($name in $previous.Keys) { [Environment]::SetEnvironmentVariable($name, $previous[$name], 'Process') }
 }

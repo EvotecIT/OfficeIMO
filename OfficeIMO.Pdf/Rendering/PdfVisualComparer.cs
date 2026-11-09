@@ -72,7 +72,7 @@ public static class PdfVisualComparer {
             PdfArtifactInfo.CaptureKnownPageCount(actualPdf, actual.Pages.Count, cancellationToken).Sha256, independentSelection || selection is not null);
     }
 
-    private static int[] ResolvePages(PdfPageSelector? selector, PdfPageSelection? selection, int count, int maximum) {
+    private static int[] ResolvePages(OfficePageSelector? selector, PdfPageSelection? selection, int count, int maximum) {
         if (selector is not null) return selector.Resolve(count, maximum).ToArray();
         long selectedCount = selection is null ? count : selection.Ranges.Sum(range => (long)range.LastPage - range.FirstPage + 1);
         if (selectedCount > maximum) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, maximum, selectedCount);

@@ -24,8 +24,8 @@ public sealed class ProjectImageQualityTests {
         project.Tasks.Add("Task").Duration = ProjectDuration.WorkingHours(8);
         var view = project.CreateView(project.CalculateSchedule(), options: new ProjectViewOptions { Kind = ProjectViewKind.Table });
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
-        Assert.ThrowsAny<OperationCanceledException>(() => ProjectReportWorkflow.ExportImages(view, cancellationToken: cancellation.Token));
-        Assert.Throws<OfficeImageExportLimitException>(() => ProjectReportWorkflow.ExportImages(view, options: new ProjectImageExportOptions { MaximumRasterPixels = 1 }));
+        Assert.ThrowsAny<OperationCanceledException>(() => ProjectReportWorkflow.ToImages(view, cancellationToken: cancellation.Token));
+        Assert.Throws<OfficeImageExportLimitException>(() => ProjectReportWorkflow.ToImages(view, options: new ProjectImageExportOptions { MaximumRasterPixels = 1 }));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public sealed class ProjectImageQualityTests {
         project.Tasks.Add("Delivery").Duration = ProjectDuration.WorkingHours(8);
         var view = project.CreateView(project.CalculateSchedule());
         var options = new ProjectImageExportOptions().UseQuality(OfficeImageExportQuality.Preview);
-        var image = Assert.Single(ProjectReportWorkflow.ExportImages(view, options: options));
+        var image = Assert.Single(ProjectReportWorkflow.ToImages(view, options: options));
         Assert.Equal((int)Math.Ceiling(view.PageWidth * 96 / 72), image.Width);
         Assert.Equal(1, options.Scale);
         using var word = ProjectReportWorkflow.CreateWord(view, new ProjectOfficeReportOptions { Images = options });

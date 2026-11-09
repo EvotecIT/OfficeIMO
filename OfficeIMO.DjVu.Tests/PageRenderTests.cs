@@ -20,6 +20,12 @@ public sealed class PageRenderTests {
         Assert.Equal((expected.Width, expected.Height), (result.Image.Width, result.Image.Height));
         Assert.Equal(expected.GetPixels(), result.Image.GetPixels());
         Assert.Equal(page.Dpi, result.Dpi);
+        OfficeImageExportResult encoded = page.ToImage(new OfficeImageExportOptions { Format = OfficeImageExportFormat.Png });
+        Assert.True(OfficeRasterImageDecoder.TryDecode(encoded.Bytes, out var decoded));
+        Assert.Equal(expected.GetPixels(), decoded!.GetPixels());
+        // PNG stores an integer number of pixels per metre (one unit is 0.0254 DPI).
+        Assert.InRange(encoded.DpiX, page.Dpi - .0127D, page.Dpi + .0127D);
+
     }
 
     [Fact]

@@ -132,10 +132,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 string stem = "Slide " + (slideIndex + 1).ToString("00");
                 presentation.Slides[slideIndex]
-                    .ExportImage(OfficeImageExportFormat.Png)
+                    .ToImage(OfficeImageExportFormat.Png)
                     .Save(Path.Combine(outputFolder, stem + ".png"), OfficeImageExportFileConflictPolicy.Replace);
                 presentation.Slides[slideIndex]
-                    .ExportImage(OfficeImageExportFormat.Svg)
+                    .ToImage(OfficeImageExportFormat.Svg)
                     .Save(Path.Combine(outputFolder, stem + ".svg"), OfficeImageExportFileConflictPolicy.Replace);
             }
             var pdfOptions = new PowerPointPdfExportOptions().UseProfile(PdfExportProfile.Faithful);

@@ -121,7 +121,7 @@ public sealed class VisioGeneratedChildPrimitivesTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(new VisioImageExportOptions {
             TargetDpi = 100, BackgroundColor = OfficeColor.White, Supersampling = 1,
             RenderText = false, RenderStencilArtwork = false
-        }), out OfficeRasterImage? image));
+        }).Bytes, out OfficeRasterImage? image));
         return image!;
     }
 

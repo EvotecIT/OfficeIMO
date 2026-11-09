@@ -105,8 +105,8 @@ public sealed partial class ConversionCmdletWorkflowTests {
             Assert.Equal(2, result.Count);
             var range = Assert.IsType<OfficeImageExportResult>(result[0].BaseObject);
             var actualChart = Assert.IsType<OfficeImageExportResult>(result[1].BaseObject);
-            Assert.Equal(sheet.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { Range = "A1:B3", ShowGridlines = false }).Bytes, range.Bytes);
-            Assert.Equal(chart.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { TargetDpi = 144 }).Bytes, actualChart.Bytes);
+            Assert.Equal(sheet.ToImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { Range = "A1:B3", ShowGridlines = false }).Bytes, range.Bytes);
+            Assert.Equal(chart.ToImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { TargetDpi = 144 }).Bytes, actualChart.Bytes);
             Assert.Equal(outputPath, actualChart.SavedPath);
             Assert.False(Directory.Exists(Path.GetDirectoryName(invalidPath)));
             Assert.Equal("East", sheet.Cell(2, 1).GetValue<string>());

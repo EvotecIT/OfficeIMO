@@ -55,7 +55,26 @@ OfficeConversionReport saved = await document.SaveAsImagesAsync("pages",
     }, cancellation.Token);
 ```
 
-Add TrueType faces to `options.Fonts` when typography must not depend on installed fonts. A missing requested face reports `font-family-substitution`; `FailOnLoss` rejects the diagnosed approximation. Word uses `WordImageExportOptions` from the `OfficeIMO.Word.Pdf` package, Excel uses `ExcelImageExportOptions`, and PowerPoint uses `PowerPointImageExportOptions`. Tier 2 adapters retain their source-specific selection and rendering APIs.
+Add TrueType faces to `options.Fonts` when typography must not depend on installed fonts. A missing requested face reports `font-family-substitution`; `FailOnLoss` rejects the diagnosed approximation. Word uses `WordImageExportOptions` from the `OfficeIMO.Word.Pdf` package, Excel uses `ExcelImageExportOptions`, and PowerPoint uses `PowerPointImageExportOptions`. All paged adapters accept `OfficeImageExportOptions.PageSelector` for ordered one-based surface selection, including repetitions. It overrides source-specific index, range or name filters for a batch. Hidden-content policies still apply. A surface is a worksheet for Excel, a chapter for EPUB, and a page or slide for paged documents; an EPUB chapter may produce multiple laid-out pages.
+
+## Results and selection
+
+`ToImage` returns one `OfficeImageExportResult`; `ToImages` returns or streams a sequence of those results. The plural name describes cardinality. Read `Bytes`, `Width`, `Height`, `MimeType`, `Source` and `Diagnostics` from the result, or call `CreateReport()` for common conversion evidence. `ExportImage` and `ExportImages` are removed; they do not form a second API family.
+
+```csharp
+OfficeImageExportResult image = presentation.Slides[0].ToImage();
+byte[] png = image.Bytes;
+OfficeConversionReport findings = image.CreateReport();
+
+var options = new PowerPointImageExportOptions {
+    Format = OfficeImageExportFormat.Png,
+    PageSelector = OfficePageSelector.Parse("last,1,last"),
+    TargetDpi = 144
+};
+IReadOnlyList<OfficeImageExportResult> ordered = presentation.ToImages(options);
+```
+
+`OfficePageSelector` lives in Core and uses the existing range/exclusion grammar: `1-3`, `last`, `odd`, `even`, `!2`, and descending `5..2`. A supplied selector is resolved before rendering selected surfaces; `MaximumOutputCount` still bounds output. Singular operations use their explicit page or object selection.
 
 ## Source Bridges
 
@@ -63,7 +82,7 @@ The direct bridges retain the source conversion evidence:
 
 ```csharp
 IReadOnlyList<OfficeImageExportResult> slides =
-    odp.ExportImages(OfficeImageExportFormat.Png);
+    odp.ToImages(OfficeImageExportFormat.Png);
 
 OfficeConversionReport chapters = await epub.SaveAsImagesAsync("chapters",
     new EpubImageExportOptions {
@@ -72,7 +91,7 @@ OfficeConversionReport chapters = await epub.SaveAsImagesAsync("chapters",
         Format = OfficeImageExportFormat.Png
     });
 
-OfficeConversionResult<byte[]> message = await email.ToImageAsync(
+OfficeImageExportResult message = await email.ToImageAsync(
     new EmailImageExportOptions {
         Mode = HtmlRenderMode.Continuous,
         Format = OfficeImageExportFormat.Png
@@ -80,6 +99,10 @@ OfficeConversionResult<byte[]> message = await email.ToImageAsync(
 ```
 
 Load EPUB with `IncludeRawHtml = true` and `IncludeResourceData = true` for the best result. Email resolves allowed CID/content-location MIME resources through the HTML resource pipeline. ODT/ODS/ODP diagnostics are attached to the resulting Word/Excel/PowerPoint image diagnostics.
+
+RTF images live in `OfficeIMO.Rtf.Pdf`, and MHTML images in `OfficeIMO.Mhtml.Pdf`; both preserve their PDF conversion evidence before image encoding. ODT, ODS and ODP expose `ToImages`, `ToImagesAsync`, `SaveAsImages` and `SaveAsImagesAsync` from the Word, Excel and PowerPoint OpenDocument adapters. ODG, XPS, Publisher and DjVu expose the same batch operations from their native format packages. DjVu SVG embeds the native raster rather than reconstructing vector artwork. Project image operations accept an explicit `ProjectView`; constructing a schedule requires a project calendar. Access tables are data, and do not imply a page renderer for Access forms or reports.
+
+The package capability catalog lists library routes. `OfficeConverter.Routes` lists only routes executable by that front door and registered adapters. A catalog image route does not imply that the single-file `OfficeConverter.Convert` creates a page directory or ZIP; call the owning format's `ToImages` or `SaveAsImages` API.
 
 ## Encoder and SVG output
 

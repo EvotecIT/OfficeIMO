@@ -42,7 +42,7 @@ internal static class BudgetScenarios {
         sheet.Range("A10:F10").Merge();
         sheet.Cell(10, 1).SetValue("Change volume, price, or fixed cost to compare a different plan.");
         document.Calculate();
-        sheet.Range("A1:F12").ExportImage(OfficeImageExportFormat.Png)
+        sheet.Range("A1:F12").ToImage(OfficeImageExportFormat.Png)
             .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();
     }

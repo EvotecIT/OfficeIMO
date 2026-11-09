@@ -11,29 +11,29 @@ namespace OfficeIMO.Html.Pdf;
 
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders the selected page using the encoding in <see cref="OfficeImageExportOptions.Format"/>.</summary>
-    public static byte[] ToImage(this HtmlConversionDocument document, HtmlRenderOptions? options = null,
+    public static OfficeImageExportResult ToImage(this HtmlConversionDocument document, HtmlRenderOptions? options = null,
         CancellationToken cancellationToken = default) => document.ToImage(options, out _, cancellationToken);
 
     /// <summary>Renders the selected page and returns its immutable fidelity report.</summary>
-    public static byte[] ToImage(this HtmlConversionDocument document, HtmlRenderOptions? options,
+    public static OfficeImageExportResult ToImage(this HtmlConversionDocument document, HtmlRenderOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var timer = Stopwatch.StartNew();
         HtmlRenderOptions resolved = SnapshotHtmlConversionDocumentImageOptions(options);
         OfficeImageExportResult result = CreateImageExportOperation(document, resolved).Export(cancellationToken);
         report = OfficeImageExportEvidence.CreateReport("HTML", result, timer.Elapsed);
-        return result.Bytes;
+        return result;
     }
 
-    /// <summary>Renders the selected page with cancellation and returns the bytes and fidelity report.</summary>
-    public static async Task<OfficeConversionResult<byte[]>> ToImageAsync(this HtmlConversionDocument document,
+    /// <summary>Renders the selected page with cancellation and returns the encoded image and its diagnostics.</summary>
+    public static async Task<OfficeImageExportResult> ToImageAsync(this HtmlConversionDocument document,
         HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var timer = Stopwatch.StartNew();
         HtmlRenderOptions resolved = SnapshotHtmlConversionDocumentImageOptions(options);
         OfficeImageExportResult result = await CreateImageExportOperation(document, resolved)
             .ExportAsync(cancellationToken).ConfigureAwait(false);
-        return new OfficeConversionResult<byte[]>(result.Bytes, OfficeImageExportEvidence.CreateReport("HTML", result, timer.Elapsed));
+        return result;
     }
 
     /// <summary>Writes the selected page to a file and returns its fidelity report.</summary>
@@ -85,8 +85,8 @@ public static partial class HtmlImageExportExtensions {
         HtmlConversionDocument document, HtmlRenderOptions options) {
         ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportOperation<HtmlRenderOptions>(options, options.Format, options.FileConflictPolicy,
-            (encoding, effective) => document.ExportImage(encoding, effective, effective.PageIndex),
-            exportWithCancellation: (encoding, effective, token) => document.ExportImage(encoding, effective, effective.PageIndex, token),
-            exportAsync: (encoding, effective, token) => document.ExportImageAsync(encoding, effective, effective.PageIndex, token));
+            (encoding, effective) => document.ToImage(encoding, effective, effective.PageIndex),
+            exportWithCancellation: (encoding, effective, token) => document.ToImage(encoding, effective, effective.PageIndex, token),
+            exportAsync: (encoding, effective, token) => document.ToImageAsync(encoding, effective, effective.PageIndex, token));
     }
 }

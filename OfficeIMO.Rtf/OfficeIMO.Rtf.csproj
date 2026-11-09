@@ -8,7 +8,6 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Rtf</PackageId>
     <PackageTags>rtf;rich-text-format;builder;fluent;parser;writer;lossless;document-conversion</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -22,7 +21,6 @@
     <SignAssembly>False</SignAssembly>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

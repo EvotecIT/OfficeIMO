@@ -36,9 +36,9 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:C3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
             ExcelRangeVisualInfo includeHidden = range.CreateVisualSnapshot(new ExcelImageExportOptions { IncludeHidden = true });
-            OfficeImageExportResult includeHiddenPng = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
+            OfficeImageExportResult includeHiddenPng = range.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
 
             Assert.Equal(new[] { 1, 3 }, snapshot.Columns.Select(column => column.Index).ToArray());
             Assert.Equal(new[] { 1, 3 }, snapshot.Rows.Select(row => row.Index).ToArray());
@@ -106,8 +106,8 @@ namespace OfficeIMO.Tests {
                 Name = "HiddenLogo"
             });
 
-            OfficeImageExportResult defaultResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-            OfficeImageExportResult includeHiddenResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
+            OfficeImageExportResult defaultResult = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult includeHiddenResult = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
 
             Assert.Equal("HiddenAnchor!A1:A1", defaultResult.Source);
             Assert.Equal("HiddenAnchor!A1:J1", includeHiddenResult.Source);
@@ -129,8 +129,8 @@ namespace OfficeIMO.Tests {
                 Name = "DefaultHiddenLogo"
             });
 
-            OfficeImageExportResult defaultResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-            OfficeImageExportResult includeHiddenResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
+            OfficeImageExportResult defaultResult = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult includeHiddenResult = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
 
             Assert.Equal("DefaultHiddenAnchor!A1:A1", defaultResult.Source);
             Assert.Equal("DefaultHiddenAnchor!A1:A10", includeHiddenResult.Source);
@@ -150,11 +150,11 @@ namespace OfficeIMO.Tests {
             hidden.SetHidden(true);
             veryHidden.SetVeryHidden(true);
 
-            IReadOnlyList<OfficeImageExportResult> defaultResults = document.ExportImages(OfficeImageExportFormat.Svg);
-            IReadOnlyList<OfficeImageExportResult> explicitResults = document.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> defaultResults = document.ToImages(OfficeImageExportFormat.Svg);
+            IReadOnlyList<OfficeImageExportResult> explicitResults = document.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 SheetNames = new[] { "Hidden" }
             });
-            IReadOnlyList<OfficeImageExportResult> includeHiddenResults = document.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> includeHiddenResults = document.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 IncludeHiddenSheets = true
             });
 
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
                 Name = "VisibleLogo"
             });
 
-            OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult result = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
             Assert.Equal("VisibleExtent!A1:C1", result.Source);
             Assert.True(result.Width > 100, $"Expected the visible canvas to extend beyond column A when hidden column B has no visible width. width={result.Width}");
@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests {
                 Name = "OffsetLogo"
             });
 
-            OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult result = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
             Assert.Equal("OffsetImage!A1:C1", result.Source);
         }
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests {
                 ShowGridlines = false, DefaultColumnWidth = OfficeLength.Pixels(columnWidth), DefaultRowHeight = OfficeLength.Pixels(rowHeight)
             };
 
-            OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult png = sheet.ToImage(OfficeImageExportFormat.Png, options);
             ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(options);
 
             Assert.Equal("GridImage!A1:C3", png.Source);
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
                 Name = "JpegOutside"
             });
 
-            OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult png = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
             ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 
             Assert.Equal("unsupported-image!A1:H13", png.Source);

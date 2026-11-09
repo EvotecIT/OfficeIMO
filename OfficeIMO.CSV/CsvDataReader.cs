@@ -69,6 +69,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     internal CsvDataReader(CsvDataReader source)
     {
         _columns = source._columns;
+        _processingCancellationToken = source._processingCancellationToken;
         _culture = source._culture;
         _dateTimeFormats = source._dateTimeFormats;
         _mappingErrorValuePolicy = source._mappingErrorValuePolicy;

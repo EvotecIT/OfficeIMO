@@ -36,7 +36,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         Assert.Equal((int)((200D + margins.Top) * 9525D), positionedWordBox.VerticalPositionOffset?.ToEmus());
         Assert.Equal(240L * 9525L, positionedWordBox.Width.ToEmus());
         Assert.Equal(72L * 9525L, positionedWordBox.Height.ToEmus());
-        byte[] wordPng = word.ToImage(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+        byte[] wordPng = word.ToImage(new WordImageExportOptions { BackgroundColor = OfficeColor.White }).Bytes;
 
         HtmlToRtfResult rtfResult = source.ConvertToRtfWithEvidence();
         byte[] rtf = Encoding.ASCII.GetBytes(rtfResult.Value.ToRtf());
@@ -49,7 +49,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
             new MemoryStream(xlsx),
             new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         byte[] excelPng = Assert.Single(excel.Sheets).ToImage(
-            new ExcelImageExportOptions { Range = "A1:E16" });
+            new ExcelImageExportOptions { Range = "A1:E16" }).Bytes;
 
         HtmlToPowerPointResult powerPointResult = source.ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
@@ -63,7 +63,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         PowerPointTextBox gridBox = Assert.Single(powerPointSlide.TextBoxes, box => box.Text == "Grid content");
         Assert.False(Overlaps(ordinaryFlow, gridBox));
         Assert.False(Overlaps(positionedBox, gridBox));
-        byte[] powerPointPng = powerPointSlide.ToImage();
+        byte[] powerPointPng = powerPointSlide.ToImage().Bytes;
 
         WriteEvidenceWhenRequested("editable-layout.docx", docx);
         WriteEvidenceWhenRequested("editable-layout.rtf", rtf);
@@ -72,7 +72,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         WriteEvidenceWhenRequested("editable-layout-word.png", wordPng);
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OFFICEIMO_HTML_LAYOUT_EVIDENCE_DIR"))) {
             WriteEvidenceWhenRequested("editable-layout-word.pdf", word.ToPdf().ToBytes());
-            WriteEvidenceWhenRequested("editable-layout-word.svg", word.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Svg }));
+            WriteEvidenceWhenRequested("editable-layout-word.svg", word.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Svg }).Bytes);
         }
         WriteEvidenceWhenRequested("editable-layout-excel.png", excelPng);
         WriteEvidenceWhenRequested("editable-layout-powerpoint.png", powerPointPng);

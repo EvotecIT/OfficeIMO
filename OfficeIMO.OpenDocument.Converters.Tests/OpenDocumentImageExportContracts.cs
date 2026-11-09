@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
@@ -12,6 +13,24 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class OpenDocumentImageExportContracts {
+    [Fact]
+    public async System.Threading.Tasks.Task DirectOpenDocumentImageSavesRetainCountsSourceAndEncoding() {
+        var text = OdtDocument.Create(); text.AddParagraph("Saved ODT");
+        var spreadsheet = OdsDocument.Create(); spreadsheet.AddSheet("Saved ODS").Cell(0, 0).SetString("Cell");
+        var presentation = OdpPresentation.Create(); presentation.AddSlide("Saved ODP");
+        string folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeimo-odf-images-" + System.Guid.NewGuid().ToString("N"));
+        try {
+            OfficeConversionReport[] reports = {
+                await text.SaveAsImagesAsync(System.IO.Path.Combine(folder, "odt"), new WordImageExportOptions { Format = OfficeImageExportFormat.Svg }),
+                await spreadsheet.SaveAsImagesAsync(System.IO.Path.Combine(folder, "ods"), new ExcelImageExportOptions { Format = OfficeImageExportFormat.Svg }),
+                await presentation.SaveAsImagesAsync(System.IO.Path.Combine(folder, "odp"), new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Svg })
+            };
+            Assert.Equal(new[] { "ODT", "ODS", "ODP" }, reports.Select(report => report.Source));
+            Assert.All(reports, report => { Assert.Equal(1, report.ItemsWritten); Assert.Equal("Svg", report.Target); });
+            Assert.Equal(3, System.IO.Directory.GetFiles(folder, "*.svg", System.IO.SearchOption.AllDirectories).Length);
+        } finally { if (System.IO.Directory.Exists(folder)) System.IO.Directory.Delete(folder, true); }
+    }
+
     [Theory]
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Svg)]
@@ -43,9 +62,9 @@ public sealed class OpenDocumentImageExportContracts {
         slideRun.UnderlineStyle = OdfTextDecorationStyle.Wave;
         slideRun.TextPosition = OdfTextPosition.Superscript;
 
-        OfficeImageExportResult odt = Assert.Single(text.ExportImages(format));
-        OfficeImageExportResult ods = Assert.Single(spreadsheet.ExportImages(format));
-        OfficeImageExportResult odp = Assert.Single(presentation.ExportImages(format));
+        OfficeImageExportResult odt = Assert.Single(text.ToImages(format));
+        OfficeImageExportResult ods = Assert.Single(spreadsheet.ToImages(format));
+        OfficeImageExportResult odp = Assert.Single(presentation.ToImages(format));
 
         Assert.All(new[] { odt, ods, odp }, result => {
             Assert.Equal(format, result.Format);
@@ -59,7 +78,7 @@ public sealed class OpenDocumentImageExportContracts {
         source.AddParagraph("Rendered through Word");
         source.AddTrackedParagraphInsertion("Unsupported change", "Reviewer");
 
-        OfficeImageExportResult result = source.ExportImage(
+        OfficeImageExportResult result = source.ToImage(
             OfficeImageExportFormat.Png);
 
         Assert.Equal(OfficeImageExportFormat.Png, result.Format);
@@ -79,7 +98,7 @@ public sealed class OpenDocumentImageExportContracts {
         };
 
         Assert.Throws<OfficeImageExportPolicyException>(() =>
-            source.ExportImage(OfficeImageExportFormat.Png, options));
+            source.ToImage(OfficeImageExportFormat.Png, options));
     }
 
     [Fact]
@@ -89,7 +108,7 @@ public sealed class OpenDocumentImageExportContracts {
         source.AddSheet("Two").Cell(0, 0).SetNumber(2);
         var names = new List<string?>();
 
-        source.ExportImages(
+        source.ToImages(
             OfficeImageExportFormat.Svg,
             result => names.Add(result.Name));
 
@@ -107,7 +126,7 @@ public sealed class OpenDocumentImageExportContracts {
             "Second slide");
 
         IReadOnlyList<OfficeImageExportResult> results =
-            source.ExportImages(OfficeImageExportFormat.Png);
+            source.ToImages(OfficeImageExportFormat.Png);
 
         Assert.Equal(2, results.Count);
         Assert.Equal("Slide 1", results[0].Name);

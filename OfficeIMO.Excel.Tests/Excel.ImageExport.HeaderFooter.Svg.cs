@@ -36,7 +36,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='96' height='16'><rect width='96' height='16' fill='red'/></svg>");
         sheet.PageSetup.Header.Left.SetImage(svg, "image/svg+xml", width: OfficeLength.Points(72), height: OfficeLength.Points(12));
 
-        OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png,
+        OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Png,
             new ExcelImageExportOptions {
                 Range = "A1:D4", ShowGridlines = false, SplitByManualPageBreaks = true,
                 TextShapingProvider = new RecordingShaper(), TextShapingLanguage = "ar-SA"
@@ -71,10 +71,10 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
             Range = "A1:A1", ShowGridlines = false, SplitByManualPageBreaks = true, MaximumRasterPixels = 10_000,
             TextShapingProvider = new RecordingShaper(), TextShapingLanguage = "ar-SA"
         };
-        sheet.ExportImages(OfficeImageExportFormat.Png, options);
+        sheet.ToImages(OfficeImageExportFormat.Png, options);
         sheet.PageSetup.Footer.Center.SetImage(svg, "image/svg+xml", width: OfficeLength.Points(36), height: OfficeLength.Points(36));
 
-        Assert.Throws<OfficeImageExportLimitException>(() => sheet.ExportImages(OfficeImageExportFormat.Png, options));
+        Assert.Throws<OfficeImageExportLimitException>(() => sheet.ToImages(OfficeImageExportFormat.Png, options));
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         };
         int deliveries = 0;
 
-        Assert.Throws<OperationCanceledException>(() => sheet.ExportImages(OfficeImageExportFormat.Png,
+        Assert.Throws<OperationCanceledException>(() => sheet.ToImages(OfficeImageExportFormat.Png,
             _ => deliveries++, options, cancellation.Token));
         Assert.Equal(1, codec.Calls);
         Assert.Equal(0, deliveries);
@@ -104,14 +104,14 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
             Range = "A1:A1", SplitByManualPageBreaks = true, MaximumRasterPixels = 5_000
         };
 
-        OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, options)[0];
+        OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Png, options)[0];
 
         OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics,
             d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted);
         Assert.Equal("Report!headerFooter:header-left-image", diagnostic.Source);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         options.Policy = new OfficeImageExportPolicy { RequireNoOmissions = true };
-        Assert.Throws<OfficeImageExportPolicyException>(() => sheet.ExportImages(OfficeImageExportFormat.Png, options));
+        Assert.Throws<OfficeImageExportPolicyException>(() => sheet.ToImages(OfficeImageExportFormat.Png, options));
     }
 
     [Theory]
@@ -135,7 +135,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
             Height = OfficeIMO.OfficeLength.Pixels(40)
         });
         var anchored = new RecordingShaper();
-        sheet.Range("A1:D4").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+        sheet.Range("A1:D4").ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
             ShowGridlines = false, TextShapingProvider = anchored, TextShapingLanguage = "ar-SA"
         });
         Assert.Contains("A|ar-SA", anchored.Requests);
@@ -143,7 +143,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         else sheet.PageSetup.Header.Left.SetImage(svg, "image/svg+xml", OfficeLength.Points(60), OfficeLength.Points(30));
         var composed = new RecordingShaper();
 
-        sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+        sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
             Range = "A1:D4", SplitByManualPageBreaks = true, ShowGridlines = false,
             TextShapingProvider = composed, TextShapingLanguage = "ar-SA"
         });
@@ -161,7 +161,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
             document.Save();
         }
         using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(stream.ToArray()));
-        return reloaded.Sheets[0].ExportImages(OfficeImageExportFormat.Png,
+        return reloaded.Sheets[0].ToImages(OfficeImageExportFormat.Png,
             new ExcelImageExportOptions { Range = "A1:D4", ShowGridlines = false, SplitByManualPageBreaks = true })[0];
     }
 

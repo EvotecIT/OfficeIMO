@@ -35,10 +35,10 @@ public sealed partial class HtmlRenderingTests {
         foreach (int x in new[] { 0, 16, 19, 23, 256, 319 }) {
             foreach (int y in new[] { 16, 17, 19, 20, 96 }) Assert.Equal(viewport.GetPixel(x, y), raster.GetPixel(x, y));
         }
-        string svg = Encoding.UTF8.GetString(Assert.Single(result.ExportImages()).Bytes);
+        string svg = Encoding.UTF8.GetString(Assert.Single(result.ToImages()).Bytes);
         OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
         OfficeRasterImage svgViewport = RasterizeHtmlImageSvg(Encoding.UTF8.GetString(
-            RenderOverflowPattern(html, HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Svg).ExportImage().Bytes));
+            RenderOverflowPattern(html, HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Svg).ToImage().Bytes));
         foreach (int x in new[] { 0, 16, 19, 23, 256, 319 }) {
             foreach (int y in new[] { 16, 17, 19, 20, 96 }) Assert.Equal(svgViewport.GetPixel(x, y), svgRaster.GetPixel(x, y));
         }
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(320D, drawing.Width);
         Assert.Equal(230D, drawing.Height);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
-            Assert.Single(RenderOverflowPattern(html, profile, HtmlRenderEncoder.Png).ExportImages()).Bytes.Take(8));
+            Assert.Single(RenderOverflowPattern(html, profile, HtmlRenderEncoder.Png).ToImages()).Bytes.Take(8));
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(drawing.ImagePatterns);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
         Assert.Equal(OfficeColor.White, raster.GetPixel(319, 20));
-        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(Encoding.UTF8.GetString(Assert.Single(result.ExportImages()).Bytes));
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(Encoding.UTF8.GetString(Assert.Single(result.ToImages()).Bytes));
         Assert.Equal(OfficeColor.White, svgRaster.GetPixel(319, 20));
     }
 
@@ -75,7 +75,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotEqual(OfficeColor.White, raster.GetPixel(20, 20));
         if (transform) Assert.NotEqual(OfficeColor.White, raster.GetPixel(256, 20));
         else Assert.Equal(OfficeColor.White, raster.GetPixel(256, 20));
-        Assert.Single(result.ExportImages());
+        Assert.Single(result.ToImages());
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed partial class HtmlRenderingTests {
         string html = OverflowPatternHtml("height:400px;");
         HtmlRenderResult result = RenderOverflowPattern(html, HtmlRenderIntentProfile.ScreenMediaPaged, HtmlRenderEncoder.Svg);
         Assert.True(result.Document.Pages.Count > 1);
-        Assert.Equal(result.Document.Pages.Count, result.ExportImages().Count);
+        Assert.Equal(result.Document.Pages.Count, result.ToImages().Count);
         OfficeRasterImage firstPage = OfficeDrawingRasterRenderer.Render(result.Document.Pages[0].CreateDrawing(), 1D, OfficeColor.White);
         foreach (HtmlRenderPage page in result.Document.Pages) {
             HtmlRenderImagePattern authored = Assert.Single(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderImagePattern>());
@@ -114,8 +114,8 @@ public sealed partial class HtmlRenderingTests {
         foreach (int x in new[] { 0, 16, 19, 100, 256, 319 }) {
             foreach (int y in new[] { 16, 17, 40, 95, 96 }) Assert.Equal(viewport.GetPixel(x, y), raster.GetPixel(x, y));
         }
-        Assert.Single(result.ExportImages());
-        Assert.Single(RenderOverflowPattern(html, profile, HtmlRenderEncoder.Png).ExportImages());
+        Assert.Single(result.ToImages());
+        Assert.Single(RenderOverflowPattern(html, profile, HtmlRenderEncoder.Png).ToImages());
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>body{margin:0}</style><img src='data:image/png;base64," + OverflowPatternTile
             + "' style='display:block;width:400px;height:80px;position:relative;left:400px'>";
         HtmlRenderResult result = RenderOverflowPattern(html, HtmlRenderIntentProfile.ScreenMediaPaged, HtmlRenderEncoder.Svg);
-        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(Encoding.UTF8.GetString(Assert.Single(result.ExportImages()).Bytes));
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(Encoding.UTF8.GetString(Assert.Single(result.ToImages()).Bytes));
         Assert.Equal(OfficeColor.White, svgRaster.GetPixel(20, 20));
         Assert.Equal(OfficeColor.White, svgRaster.GetPixel(319, 20));
     }

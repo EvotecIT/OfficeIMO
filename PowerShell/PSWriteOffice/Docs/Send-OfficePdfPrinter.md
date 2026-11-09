@@ -11,12 +11,12 @@ Prepares PDF sheets and submits them to an explicitly named printer. Requires Po
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Send-OfficePdfPrinter [-Path] <string[]> -PrinterName <string> [-Page <PdfPageSelector>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Send-OfficePdfPrinter [-Path] <string[]> -PrinterName <string> [-Page <OfficePageSelector>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Send-OfficePdfPrinter -LiteralPath <string[]> -PrinterName <string> [-Page <PdfPageSelector>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Send-OfficePdfPrinter -LiteralPath <string[]> -PrinterName <string> [-Page <OfficePageSelector>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputPath <string>] [-Dpi <double>] [-Margin <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ScaleMode <string>] [-PaperSize <OfficePageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -148,7 +148,7 @@ Accept wildcard characters: False
 Page selection such as 1-3,last.
 
 ```yaml
-Type: PdfPageSelector
+Type: OfficePageSelector
 Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:

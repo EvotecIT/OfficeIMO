@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,8 +18,8 @@ public partial class PowerPointImageExportTests {
         for (int i = 0; i < 3; i++) presentation.AddSlide();
         var options = new PowerPointImageExportOptions { SlideNumbers = new[] { 1, 3 } };
         var results = new List<OfficeImageExportResult>();
-        if (streaming) presentation.ExportImages(OfficeImageExportFormat.Svg, results.Add, options);
-        else results.AddRange(presentation.ExportImages(OfficeImageExportFormat.Svg, options));
+        if (streaming) presentation.ToImages(OfficeImageExportFormat.Svg, results.Add, options);
+        else results.AddRange(presentation.ToImages(OfficeImageExportFormat.Svg, options));
         Assert.Equal(2, results.Count);
         for (int index = 0; index < results.Count; index++) {
             Assert.Equal(index, results[index].SequenceIndex);
@@ -28,24 +29,31 @@ public partial class PowerPointImageExportTests {
             Assert.NotEmpty(results[index].Bytes);
         }
 
+        options.PageSelector = OfficePageSelector.Parse("3,1,3");
+        var ordered = new List<OfficeImageExportResult>();
+        if (streaming) presentation.ToImages(OfficeImageExportFormat.Svg, ordered.Add, options);
+        else ordered.AddRange(presentation.ToImages(OfficeImageExportFormat.Svg, options));
+        Assert.Equal(new[] { "Slide 3", "Slide 1", "Slide 3" }, ordered.Select(image => image.Name));
+        options.PageSelector = null;
+
         options.MaximumOutputCount = 1;
         results.Clear();
         var failure = Assert.Throws<OfficeImageExportBatchLimitException>(() => {
-            if (streaming) presentation.ExportImages(OfficeImageExportFormat.Svg, results.Add, options);
-            else results.AddRange(presentation.ExportImages(OfficeImageExportFormat.Svg, options));
+            if (streaming) presentation.ToImages(OfficeImageExportFormat.Svg, results.Add, options);
+            else results.AddRange(presentation.ToImages(OfficeImageExportFormat.Svg, options));
         });
         Assert.Equal(nameof(options.MaximumOutputCount), failure.LimitName);
         Assert.Empty(results);
 
         options.MaximumOutputCount = 2;
         options.SlideNumbers = new[] { 3, 1, 3 };
-        Assert.Equal(2, presentation.ExportImages(OfficeImageExportFormat.Svg, options).Count);
+        Assert.Equal(2, presentation.ToImages(OfficeImageExportFormat.Svg, options).Count);
         presentation.Slides[1].Hidden = true;
         options.SlideNumbers = null;
-        Assert.Equal(2, presentation.ExportImages(OfficeImageExportFormat.Svg, options).Count);
+        Assert.Equal(2, presentation.ToImages(OfficeImageExportFormat.Svg, options).Count);
         options.IncludeHiddenSlides = true;
         results.Clear();
-        Assert.Throws<OfficeImageExportBatchLimitException>(() => presentation.ExportImages(
+        Assert.Throws<OfficeImageExportBatchLimitException>(() => presentation.ToImages(
             OfficeImageExportFormat.Svg, results.Add, options));
         Assert.Empty(results);
     }

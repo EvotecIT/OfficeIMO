@@ -91,7 +91,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(8.45D, nested.RenderedFontSize, 6);
         Assert.True(nested.BaselineOffset < single.BaselineOffset);
 
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Contains("Raised", SvgPaintedText.Read(svg), StringComparison.Ordinal);
         Assert.Contains("Lowered", SvgPaintedText.Read(svg), StringComparison.Ordinal);
     }
@@ -183,7 +183,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(OfficeTextBaseline.Superscript, drawingSuper.Baseline);
         Assert.Equal(OfficeTextDecorationStyle.Double, drawingSuper.UnderlineStyle);
 
-        byte[] svgBytes = document.ExportImage(OfficeImageExportFormat.Svg).Bytes;
+        byte[] svgBytes = document.ToImage(OfficeImageExportFormat.Svg).Bytes;
         OfficeDrawing svgDrawing = HtmlSvgPaintAssertions.Read(svgBytes);
         HtmlSvgPaintAssertions.WavyStrokes(svgDrawing, OfficeColor.FromRgb(0x33, 0x66, 0x99), 2);
         HtmlSvgPaintAssertions.DoubleStroke(svgDrawing, OfficeColor.FromRgb(0x33, 0x66, 0x99));
@@ -195,7 +195,7 @@ public class HtmlTextFormattingConversionTests {
                      OfficeImageExportFormat.Tiff,
                      OfficeImageExportFormat.Webp
                  }) {
-            OfficeImageExportResult image = document.ExportImage(format);
+            OfficeImageExportResult image = document.ToImage(format);
             Assert.Equal(format, image.Format);
             Assert.True(image.Bytes.Length > 32);
         }
@@ -906,7 +906,7 @@ public class HtmlTextFormattingConversionTests {
                      OfficeImageExportFormat.Tiff,
                      OfficeImageExportFormat.Webp
                  }) {
-            OfficeImageExportResult image = Assert.Single(pdf.ExportImages(format));
+            OfficeImageExportResult image = Assert.Single(pdf.ToImages(format));
             Assert.Equal(format, image.Format);
             Assert.True(image.Bytes.Length > 32);
         }
@@ -927,13 +927,13 @@ public class HtmlTextFormattingConversionTests {
         };
 
         foreach (OfficeImageExportFormat format in formats) {
-            OfficeImageExportResult direct = Assert.Single(document.ExportImages(format));
+            OfficeImageExportResult direct = Assert.Single(document.ToImages(format));
             Assert.True(direct.Bytes.Length > 32);
         }
 
         using PdfDocument pdf = document.ToPdf();
         foreach (OfficeImageExportFormat format in formats) {
-            OfficeImageExportResult flattened = Assert.Single(pdf.ExportImages(format));
+            OfficeImageExportResult flattened = Assert.Single(pdf.ToImages(format));
             Assert.True(flattened.Bytes.Length > 32);
         }
     }

@@ -98,10 +98,10 @@ public sealed class VisioRichTextRenderingTests {
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new VisioImageExportOptions { TextShapingProvider = provider, Supersampling = 1 };
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('A', 'B'));
-        page.ExportImage(OfficeImageExportFormat.Png, options);
+        page.ToImage(OfficeImageExportFormat.Png, options);
         Assert.Contains(provider.Requests, request => request.Text.Contains("AA"));
         Assert.Contains(provider.Requests, request => request.Text.Contains("BB"));
-        var export = page.ExportImage(OfficeImageExportFormat.Svg);
+        var export = page.ToImage(OfficeImageExportFormat.Svg);
         Assert.Contains(export.Diagnostics, diagnostic => diagnostic.Message.Contains(ManagedTextShapingTestAssets.FamilyName));
     }
 
@@ -114,7 +114,7 @@ public sealed class VisioRichTextRenderingTests {
         foreach (VisioPage page in document.Pages) {
             page.ToSvg();
             page.ToImage(new VisioImageExportOptions { Supersampling = 1 });
-            page.ExportImage(OfficeImageExportFormat.Svg);
+            page.ToImage(OfficeImageExportFormat.Svg);
         }
         Assert.Equal(before, document.ToLegacyXmlResult().Value);
     }
@@ -172,7 +172,7 @@ public sealed class VisioRichTextRenderingTests {
         .Where(node => string.Equals((string?)node.Attribute("fill"), color, StringComparison.OrdinalIgnoreCase)).Select(node => node.Value));
 
     private static void AssertRasterColors(VisioPage page, bool red, bool green) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(new VisioImageExportOptions { Supersampling = 1 }), out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes, out var raster));
         byte[] rgba = raster!.GetPixels();
         bool foundRed = false, foundGreen = false;
         for (int offset = 0; offset < rgba.Length; offset += 4) {

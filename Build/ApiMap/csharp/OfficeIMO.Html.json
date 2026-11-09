@@ -232,7 +232,7 @@
       "kind": "type",
       "action": "move",
       "new": "OfficeIMO.Html.Pdf.HtmlImageExportExtensions (package OfficeIMO.Html.Pdf)",
-      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ExportImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf.",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ToImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf.",
       "category": "packages",
       "applied": true
     },
@@ -241,7 +241,7 @@
       "kind": "type",
       "action": "move",
       "new": "OfficeIMO.Html.Pdf.HtmlRenderResultImageExtensions (package OfficeIMO.Html.Pdf)",
-      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ExportImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf.",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ToImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf.",
       "category": "packages",
       "applied": true
     },
@@ -250,7 +250,7 @@
       "kind": "type",
       "action": "move",
       "new": "OfficeIMO.Html.Pdf.HtmlRenderResultArchiveExtensions (package OfficeIMO.Html.Pdf)",
-      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ExportImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf.",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ToImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf.",
       "category": "packages",
       "applied": true
     },

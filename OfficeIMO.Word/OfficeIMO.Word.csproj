@@ -11,7 +11,6 @@
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
 
-        <PackageId>OfficeIMO.Word</PackageId>
         <PackageTags>doc;docx;docm;dot;dotx;word;office;openxml;document;conversion;netstandard;netstandard2.0;net8.0;net10.0;net472</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -28,7 +27,6 @@
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <PropertyGroup

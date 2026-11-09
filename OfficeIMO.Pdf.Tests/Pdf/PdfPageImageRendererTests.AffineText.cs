@@ -208,7 +208,7 @@ public partial class PdfPageImageRendererTests {
 
     private static void AssertAffineOutlineRaster(string scenario, byte[] pdf, PdfReadPage page, OfficeDrawing expected) {
         OfficeRasterImage reference = OfficeDrawingRasterRenderer.Render(expected, 2D, OfficeColor.White);
-        OfficeImageExportResult exported = page.ExportImage(OfficeImageExportFormat.Png,
+        OfficeImageExportResult exported = page.ToImage(OfficeImageExportFormat.Png,
             new PdfImageExportOptions { TargetDpi = 144D, BackgroundColor = OfficeColor.White });
         Assert.True(OfficePngReader.TryDecode(exported.Bytes, out OfficeRasterImage? decoded));
         OfficeRasterImage actual = decoded!;
@@ -224,7 +224,7 @@ public partial class PdfPageImageRendererTests {
     }
 
     private static void AssertAffineOutlineSvgRaster(string scenario, PdfReadPage page, OfficeDrawing expected) {
-        OfficeImageExportResult svg = page.ExportImage(OfficeImageExportFormat.Svg, new PdfImageExportOptions());
+        OfficeImageExportResult svg = page.ToImage(OfficeImageExportFormat.Svg, new PdfImageExportOptions());
         Assert.True(OfficeSvgDrawingReader.TryRead(svg.Bytes, out OfficeDrawing? reopened, out int unsupported));
         Assert.Equal(0, unsupported);
         OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(reopened!, 2D, OfficeColor.White);

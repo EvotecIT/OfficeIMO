@@ -23,7 +23,7 @@ public sealed class HtmlImageFontCoverageTests {
 
         Assert.Contains(pdf.Output.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced
             && warning.Message.Contains("U+072B", StringComparison.Ordinal));
-        Assert.NotEmpty(document.ToImage(options));
+        Assert.NotEmpty(document.ToImage(options).Bytes);
         Assert.Equal(html, document.SourceHtml);
     }
 
@@ -50,8 +50,8 @@ public sealed class HtmlImageFontCoverageTests {
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs((text + " ").Select(character => (int)character).ToArray()));
 
-        byte[] synchronous = pdfRoute ? (document.ToPdf(options)).ToBytes() : document.ToImage(options);
-        byte[] asynchronous = pdfRoute ? (await document.ToPdfAsync(options)).Value.ToBytes() : (await document.ToImageAsync(options)).Value;
+        byte[] synchronous = pdfRoute ? (document.ToPdf(options)).ToBytes() : document.ToImage(options).Bytes;
+        byte[] asynchronous = pdfRoute ? (await document.ToPdfAsync(options)).Value.ToBytes() : (await document.ToImageAsync(options)).Bytes;
 
         Assert.NotEmpty(synchronous);
         Assert.NotEmpty(asynchronous);
@@ -64,7 +64,7 @@ public sealed class HtmlImageFontCoverageTests {
             PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
             pdf.ThrowIfLoss();
             Assert.Equal(expectedText, PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText().Trim());
-            OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+            OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(
                 pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
             Assert.Equal(replay.Bytes, synchronous);
         }
@@ -95,8 +95,8 @@ public sealed class HtmlImageFontCoverageTests {
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, fontData);
 
         PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
-        OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult pdfPng = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+        OfficeImageExportResult png = document.ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult pdfPng = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(
             pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
 
         Assert.Equal("en-GB", pdf.Value.Options.Language);
@@ -127,8 +127,8 @@ public sealed class HtmlImageFontCoverageTests {
             .AddFallbackFamily("Spacing Fallback");
 
         PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
-        OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+        OfficeImageExportResult png = document.ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(
             pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
 
         PdfCore.PdfReadDocument reopened = PdfCore.PdfReadDocument.Open(pdf.ToBytes());
@@ -152,7 +152,7 @@ public sealed class HtmlImageFontCoverageTests {
         options.Fonts.Add("Primary", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
 
         HtmlConversionException pdf = Assert.Throws<HtmlConversionException>(() => (document.ToPdf(options)).ToBytes());
-        HtmlConversionException png = Assert.Throws<HtmlConversionException>(() => document.ToImage(options));
+        HtmlConversionException png = Assert.Throws<HtmlConversionException>(() => document.ToImage(options).Bytes);
 
         foreach (HtmlConversionException failure in new[] { pdf, png }) {
             Assert.Contains(failure.Diagnostics, diagnostic => diagnostic.Code == "unsupported-text-glyph"

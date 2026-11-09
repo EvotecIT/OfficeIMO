@@ -8,14 +8,12 @@
 
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Reader.Core</PackageId>
     <PackageTags>reader;ingestion;rag;document;contracts;routing;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
     <DefineConstants>$(DefineConstants);OFFICEIMO_READER_CORE</DefineConstants>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>

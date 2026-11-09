@@ -497,11 +497,11 @@ public class PdfPermissionPolicyTests {
         Assert.Equal(4, explicitDuplicateOptions.RequireValue().Inspect().PageCount);
 
         PdfOperationResult<PdfDocument>[] selectorResults = {
-            PdfDocument.Load(source).Pages.DeleteResult(PdfPageSelector.Parse("last"), options),
-            PdfDocument.Load(source).Pages.ReorderResult(PdfPageSelector.Parse("last..1"), options),
-            PdfDocument.Load(source).Pages.DuplicateResult(PdfPageSelector.Parse("1"), options),
-            PdfDocument.Load(source).Pages.MoveResult(1, PdfPageSelector.Parse("last"), options),
-            PdfDocument.Load(source).Pages.RotateResult(270, PdfPageSelector.Parse("2"), options)
+            PdfDocument.Load(source).Pages.DeleteResult(OfficePageSelector.Parse("last"), options),
+            PdfDocument.Load(source).Pages.ReorderResult(OfficePageSelector.Parse("last..1"), options),
+            PdfDocument.Load(source).Pages.DuplicateResult(OfficePageSelector.Parse("1"), options),
+            PdfDocument.Load(source).Pages.MoveResult(1, OfficePageSelector.Parse("last"), options),
+            PdfDocument.Load(source).Pages.RotateResult(270, OfficePageSelector.Parse("2"), options)
         };
 
         Assert.All(selectorResults, result => Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics)));

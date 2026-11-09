@@ -11,27 +11,27 @@ Removes selected pages from a live PDF or writes edited file copies.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Remove-OfficePdfPage -Page <PdfPageSelector> [-Document <PdfDocument>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePdfPage -Page <OfficePageSelector> [-Document <PdfDocument>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Remove-OfficePdfPage [-Path] <string[]> -Page <PdfPageSelector> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePdfPage [-Path] <string[]> -Page <OfficePageSelector> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PathDirectory
 ```powershell
-Remove-OfficePdfPage [-Path] <string[]> -Page <PdfPageSelector> -OutputDirectory <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePdfPage [-Path] <string[]> -Page <OfficePageSelector> -OutputDirectory <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Remove-OfficePdfPage -Page <PdfPageSelector> -LiteralPath <string[]> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePdfPage -Page <OfficePageSelector> -LiteralPath <string[]> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPathDirectory
 ```powershell
-Remove-OfficePdfPage -Page <PdfPageSelector> -LiteralPath <string[]> -OutputDirectory <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePdfPage -Page <OfficePageSelector> -LiteralPath <string[]> -OutputDirectory <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -153,7 +153,7 @@ Accept wildcard characters: False
 Native selector, one-based page or range expression, including last, odd and even.
 
 ```yaml
-Type: PdfPageSelector
+Type: OfficePageSelector
 Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:

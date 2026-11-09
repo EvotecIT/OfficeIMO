@@ -11,7 +11,7 @@ public sealed class HtmlPositionedBaselineTests {
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, Margins = HtmlRenderMargins.All(0), DefaultFontFamily = "Pinned" };
         options.Fonts.Add("Pinned", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf")));
         var document = HtmlConversionDocument.Parse("<p style='margin:16px;font:20px/32px Pinned'>A<sub>2</sub>B<sup>3</sup>C</p>");
-        string svg = System.Text.Encoding.UTF8.GetString(document.ExportImages(OfficeImageExportFormat.Svg, options)[0].Bytes);
+        string svg = System.Text.Encoding.UTF8.GetString(document.ToImages(OfficeImageExportFormat.Svg, options)[0].Bytes);
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
         HtmlRenderText[] text = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
         Assert.Equal(new[] { "A", "2", "B", "3", "C" }, text.Select(item => item.Text).ToArray());
@@ -45,7 +45,7 @@ public sealed class HtmlPositionedBaselineTests {
     public void TopLevelInlineContentDoesNotReportAChangeOfPageGeometry() {
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5), global::OfficeIMO.OfficeLength.Inches(4)), Margins = HtmlRenderMargins.All(0) };
         var result = HtmlConversionDocument.Parse("<span>First inline line</span><br><svg width='100' height='30'><text x='0' y='20'>SVG label</text></svg>")
-            .ExportImages(OfficeImageExportFormat.Png, options);
+            .ToImages(OfficeImageExportFormat.Png, options);
         Assert.Single(result);
         Assert.DoesNotContain(result[0].Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
     }

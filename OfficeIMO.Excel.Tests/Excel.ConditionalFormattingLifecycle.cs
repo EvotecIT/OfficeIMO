@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(OfficeFeatureSupportLevel.Editable, feature.SupportLevel);
                 Assert.Equal(3, feature.Count);
 
-                OfficeImageExportResult rendered = sheet.Range("B1:B3").ExportImage(OfficeImageExportFormat.Png);
+                OfficeImageExportResult rendered = sheet.Range("B1:B3").ToImage(OfficeImageExportFormat.Png);
                 OfficeImageExportDiagnostic approximation = Assert.Single(rendered.Diagnostics, item =>
                     item.Code == ExcelImageExportDiagnosticCodes.ConditionalExtensionApproximation);
                 Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, approximation.Severity);

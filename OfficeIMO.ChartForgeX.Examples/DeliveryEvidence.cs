@@ -16,23 +16,23 @@ internal static class DeliveryEvidence {
 
     public static void RenderSavedDocuments(string output) {
         using (var document = WordDocument.Load(Path.Combine(output, "service-review.docx"))) {
-            SaveImages(output, "word-layout", document.ExportImages(OfficeImageExportFormat.Png));
-            SaveImages(output, "word-layout", document.ExportImages(OfficeImageExportFormat.Svg));
+            SaveImages(output, "word-layout", document.ToImages(OfficeImageExportFormat.Png));
+            SaveImages(output, "word-layout", document.ToImages(OfficeImageExportFormat.Svg));
         }
         using (var document = ExcelDocument.Load(Path.Combine(output, "service-review.xlsx")))
-            SaveImages(output, "excel-layout", document.ExportImages(OfficeImageExportFormat.Png,
+            SaveImages(output, "excel-layout", document.ToImages(OfficeImageExportFormat.Png,
                 new ExcelImageExportOptions { ShowGridlines = false }));
         using (var document = PowerPointDocument.Load(Path.Combine(output, "service-review.pptx")))
-            SaveImages(output, "powerpoint-layout", document.ExportImages(OfficeImageExportFormat.Png));
+            SaveImages(output, "powerpoint-layout", document.ToImages(OfficeImageExportFormat.Png));
         using var pdf = PdfDocument.Load(Path.Combine(output, "service-review.pdf"));
         SavePdfImages(output, pdf);
         var visio = VisioDocument.Load(Path.Combine(output, "service-delivery.vsdx"));
-        SaveImages(output, "visio-layout", visio.ExportImages(OfficeImageExportFormat.Png));
-        SaveImages(output, "visio-layout", visio.ExportImages(OfficeImageExportFormat.Svg));
+        SaveImages(output, "visio-layout", visio.ToImages(OfficeImageExportFormat.Png));
+        SaveImages(output, "visio-layout", visio.ToImages(OfficeImageExportFormat.Svg));
     }
 
     private static void SavePdfImages(string output, PdfDocument document) {
-        IReadOnlyList<OfficeImageExportResult> images = document.ExportImages(null, out var report);
+        IReadOnlyList<OfficeImageExportResult> images = document.ToImages(null, out var report);
         if (images.Count == 0) throw new InvalidOperationException("The saved PDF did not render an image.");
         var pages = new List<object>();
         for (int index = 0; index < images.Count; index++) {

@@ -24,10 +24,10 @@ internal sealed class PdfWorkflowSettings {
         _ = Selector();
     }
 
-    internal PdfPageSelector? Selector() {
+    internal OfficePageSelector? Selector() {
         if (Pages is null) return null;
         if (string.IsNullOrWhiteSpace(Pages) || Pages.Length > 4096) throw new AgentUsageException("pages must contain 1 through 4096 characters.");
-        try { return PdfPageSelector.Parse(Pages); }
+        try { return OfficePageSelector.Parse(Pages); }
         catch (Exception error) when (error is ArgumentException or FormatException or OverflowException) {
             throw new AgentUsageException("Invalid PDF page selection.", error);
         }

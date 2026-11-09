@@ -70,7 +70,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
 
                 foreach (PowerPointSlide slide in presentation.Slides
                              .Where(slide => slide.Charts.Any())) {
-                    OfficeImageExportResult image = slide.ExportImage(
+                    OfficeImageExportResult image = slide.ToImage(
                         OfficeImageExportFormat.Png);
                     Assert.DoesNotContain(image.Diagnostics, diagnostic =>
                         diagnostic.Severity ==

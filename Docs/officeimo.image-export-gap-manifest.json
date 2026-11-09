@@ -9,7 +9,10 @@
     "OfficeIMO.Html",
     "OfficeIMO.OneNote",
     "OfficeIMO.Visio",
-    "OfficeIMO.Pdf"
+    "OfficeIMO.Pdf",
+    "OfficeIMO.Xps",
+    "OfficeIMO.Publisher",
+    "OfficeIMO.DjVu"
   ],
   "workstreams": [
     {

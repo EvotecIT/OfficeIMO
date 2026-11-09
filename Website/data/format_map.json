@@ -287,6 +287,10 @@
       "family": "other"
     },
     {
+      "name": "Project",
+      "family": "other"
+    },
+    {
       "name": "Publisher",
       "family": "other"
     },
@@ -877,6 +881,18 @@
       ]
     },
     {
+      "id": "djvu-jpeg",
+      "source": "DjVu",
+      "target": "JPEG",
+      "package": "OfficeIMO.DjVu",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "DjVuDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "djvu-pdf",
       "source": "DjVu",
       "target": "PDF",
@@ -888,6 +904,54 @@
         "dotnet",
         "cli",
         "studio"
+      ]
+    },
+    {
+      "id": "djvu-png",
+      "source": "DjVu",
+      "target": "PNG",
+      "package": "OfficeIMO.DjVu",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "DjVuDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "djvu-svg",
+      "source": "DjVu",
+      "target": "SVG",
+      "package": "OfficeIMO.DjVu",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "DjVuDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "djvu-tiff",
+      "source": "DjVu",
+      "target": "TIFF",
+      "package": "OfficeIMO.DjVu",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "DjVuDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "djvu-webp",
+      "source": "DjVu",
+      "target": "WebP",
+      "package": "OfficeIMO.DjVu",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "DjVuDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
       ]
     },
     {
@@ -953,7 +1017,7 @@
       "package": "OfficeIMO.Word.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "WordDocument.Load(stream).ExportImages(format, options)",
+      "api": "WordDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1016,7 +1080,7 @@
       "package": "OfficeIMO.Word.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "WordDocument.Load(stream).ExportImages(format, options)",
+      "api": "WordDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1046,7 +1110,7 @@
       "package": "OfficeIMO.Word.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "WordDocument.Load(stream).ExportImages(format, options)",
+      "api": "WordDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1061,7 +1125,7 @@
       "package": "OfficeIMO.Word.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "WordDocument.Load(stream).ExportImages(format, options)",
+      "api": "WordDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1076,7 +1140,7 @@
       "package": "OfficeIMO.Word.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "WordDocument.Load(stream).ExportImages(format, options)",
+      "api": "WordDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1136,7 +1200,7 @@
       "package": "OfficeIMO.Email.Image",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "EmailDocument.Load(stream).ExportImages(format, options)",
+      "api": "EmailDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1250,7 +1314,7 @@
       "package": "OfficeIMO.Email.Image",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "EmailDocument.Load(stream).ExportImages(format, options)",
+      "api": "EmailDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1262,7 +1326,7 @@
       "package": "OfficeIMO.Email.Image",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "EmailDocument.Load(stream).ExportImages(format, options)",
+      "api": "EmailDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1274,7 +1338,7 @@
       "package": "OfficeIMO.Email.Image",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "EmailDocument.Load(stream).ExportImages(format, options)",
+      "api": "EmailDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1331,7 +1395,7 @@
       "package": "OfficeIMO.Email.Image",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "EmailDocument.Load(stream).ExportImages(format, options)",
+      "api": "EmailDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1343,7 +1407,7 @@
       "package": "OfficeIMO.Epub.Image",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "api": "EpubDocument.Load(stream, readOptions).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1367,7 +1431,7 @@
       "package": "OfficeIMO.Epub.Image",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "api": "EpubDocument.Load(stream, readOptions).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1379,7 +1443,7 @@
       "package": "OfficeIMO.Epub.Image",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "api": "EpubDocument.Load(stream, readOptions).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1391,7 +1455,7 @@
       "package": "OfficeIMO.Epub.Image",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "api": "EpubDocument.Load(stream, readOptions).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1403,7 +1467,7 @@
       "package": "OfficeIMO.Epub.Image",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "api": "EpubDocument.Load(stream, readOptions).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1514,10 +1578,10 @@
       "id": "html-jpeg",
       "source": "HTML",
       "target": "JPEG",
-      "package": "OfficeIMO.Html",
+      "package": "OfficeIMO.Html.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
+      "api": "HtmlConversionDocument.Parse(html).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1572,10 +1636,10 @@
       "id": "html-png",
       "source": "HTML",
       "target": "PNG",
-      "package": "OfficeIMO.Html",
+      "package": "OfficeIMO.Html.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
+      "api": "HtmlConversionDocument.Parse(html).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1611,10 +1675,10 @@
       "id": "html-svg",
       "source": "HTML",
       "target": "SVG",
-      "package": "OfficeIMO.Html",
+      "package": "OfficeIMO.Html.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
+      "api": "HtmlConversionDocument.Parse(html).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1623,10 +1687,10 @@
       "id": "html-tiff",
       "source": "HTML",
       "target": "TIFF",
-      "package": "OfficeIMO.Html",
+      "package": "OfficeIMO.Html.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
+      "api": "HtmlConversionDocument.Parse(html).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1635,10 +1699,10 @@
       "id": "html-webp",
       "source": "HTML",
       "target": "WebP",
-      "package": "OfficeIMO.Html",
+      "package": "OfficeIMO.Html.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
+      "api": "HtmlConversionDocument.Parse(html).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1859,6 +1923,18 @@
       "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.rtf"
     },
     {
+      "id": "mhtml-jpeg",
+      "source": "MHTML",
+      "target": "JPEG",
+      "package": "OfficeIMO.Mhtml.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "mhtml-pdf",
       "source": "MHTML",
       "target": "PDF",
@@ -1866,6 +1942,54 @@
       "support": "Targeted",
       "fidelity": "FixedLayout",
       "api": "MhtmlDocument.Load(stream, options).SaveAsPdf(output, pdfOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "mhtml-png",
+      "source": "MHTML",
+      "target": "PNG",
+      "package": "OfficeIMO.Mhtml.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "mhtml-svg",
+      "source": "MHTML",
+      "target": "SVG",
+      "package": "OfficeIMO.Mhtml.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "mhtml-tiff",
+      "source": "MHTML",
+      "target": "TIFF",
+      "package": "OfficeIMO.Mhtml.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "mhtml-webp",
+      "source": "MHTML",
+      "target": "WebP",
+      "package": "OfficeIMO.Mhtml.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
       "surfaces": [
         "dotnet"
       ]
@@ -2166,6 +2290,18 @@
       "example": "Convert-OfficeDocument -Path ./in.numbers -OutputPath ./out.xlsx"
     },
     {
+      "id": "odg-jpeg",
+      "source": "ODG/FODG",
+      "target": "JPEG",
+      "package": "OfficeIMO.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "odg-pdf",
       "source": "ODG/FODG",
       "target": "PDF",
@@ -2180,13 +2316,61 @@
       ]
     },
     {
+      "id": "odg-png",
+      "source": "ODG/FODG",
+      "target": "PNG",
+      "package": "OfficeIMO.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odg-svg",
+      "source": "ODG/FODG",
+      "target": "SVG",
+      "package": "OfficeIMO.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odg-tiff",
+      "source": "ODG/FODG",
+      "target": "TIFF",
+      "package": "OfficeIMO.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odg-webp",
+      "source": "ODG/FODG",
+      "target": "WebP",
+      "package": "OfficeIMO.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "odp-jpeg",
       "source": "ODP",
       "target": "JPEG",
       "package": "OfficeIMO.PowerPoint.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdpPresentation.Load(stream).ExportImages(format, options)",
+      "api": "OdpPresentation.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2210,7 +2394,7 @@
       "package": "OfficeIMO.PowerPoint.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdpPresentation.Load(stream).ExportImages(format, options)",
+      "api": "OdpPresentation.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2237,7 +2421,7 @@
       "package": "OfficeIMO.PowerPoint.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdpPresentation.Load(stream).ExportImages(format, options)",
+      "api": "OdpPresentation.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2249,7 +2433,7 @@
       "package": "OfficeIMO.PowerPoint.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdpPresentation.Load(stream).ExportImages(format, options)",
+      "api": "OdpPresentation.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2261,7 +2445,7 @@
       "package": "OfficeIMO.PowerPoint.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdpPresentation.Load(stream).ExportImages(format, options)",
+      "api": "OdpPresentation.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2273,7 +2457,7 @@
       "package": "OfficeIMO.Excel.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdsDocument.Load(stream).ExportImages(format, options)",
+      "api": "OdsDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2297,7 +2481,7 @@
       "package": "OfficeIMO.Excel.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdsDocument.Load(stream).ExportImages(format, options)",
+      "api": "OdsDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2309,7 +2493,7 @@
       "package": "OfficeIMO.Excel.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdsDocument.Load(stream).ExportImages(format, options)",
+      "api": "OdsDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2321,7 +2505,7 @@
       "package": "OfficeIMO.Excel.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdsDocument.Load(stream).ExportImages(format, options)",
+      "api": "OdsDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2333,7 +2517,7 @@
       "package": "OfficeIMO.Excel.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdsDocument.Load(stream).ExportImages(format, options)",
+      "api": "OdsDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2375,7 +2559,7 @@
       "package": "OfficeIMO.Word.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdtDocument.Load(stream).ExportImages(format, options)",
+      "api": "OdtDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2399,7 +2583,7 @@
       "package": "OfficeIMO.Word.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdtDocument.Load(stream).ExportImages(format, options)",
+      "api": "OdtDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2411,7 +2595,7 @@
       "package": "OfficeIMO.Word.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdtDocument.Load(stream).ExportImages(format, options)",
+      "api": "OdtDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2423,7 +2607,7 @@
       "package": "OfficeIMO.Word.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdtDocument.Load(stream).ExportImages(format, options)",
+      "api": "OdtDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2435,7 +2619,7 @@
       "package": "OfficeIMO.Word.OpenDocument",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdtDocument.Load(stream).ExportImages(format, options)",
+      "api": "OdtDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2498,7 +2682,7 @@
       "package": "OfficeIMO.OneNote",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OneNoteSection.Load(stream).ExportImages(format, options)",
+      "api": "OneNoteSection.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2540,7 +2724,7 @@
       "package": "OfficeIMO.OneNote",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OneNoteSection.Load(stream).ExportImages(format, options)",
+      "api": "OneNoteSection.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2552,7 +2736,7 @@
       "package": "OfficeIMO.OneNote",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OneNoteSection.Load(stream).ExportImages(format, options)",
+      "api": "OneNoteSection.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2564,7 +2748,7 @@
       "package": "OfficeIMO.OneNote",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OneNoteSection.Load(stream).ExportImages(format, options)",
+      "api": "OneNoteSection.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2576,7 +2760,7 @@
       "package": "OfficeIMO.OneNote",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OneNoteSection.Load(stream).ExportImages(format, options)",
+      "api": "OneNoteSection.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2655,7 +2839,7 @@
       "package": "OfficeIMO.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = format }, out report)",
+      "api": "PdfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format }, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2718,7 +2902,7 @@
       "package": "OfficeIMO.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }, out report)",
+      "api": "PdfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }, out report)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -2767,7 +2951,7 @@
       "package": "OfficeIMO.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = format }, out report)",
+      "api": "PdfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format }, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2782,7 +2966,7 @@
       "package": "OfficeIMO.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = format }, out report)",
+      "api": "PdfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format }, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2797,7 +2981,7 @@
       "package": "OfficeIMO.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = format }, out report)",
+      "api": "PdfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format }, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2869,7 +3053,7 @@
       "package": "OfficeIMO.PowerPoint",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "PowerPointDocument.Load(stream).ExportImages(format, options)",
+      "api": "PowerPointDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2917,7 +3101,7 @@
       "package": "OfficeIMO.PowerPoint",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "PowerPointDocument.Load(stream).ExportImages(format, options)",
+      "api": "PowerPointDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2932,7 +3116,7 @@
       "package": "OfficeIMO.PowerPoint",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "PowerPointDocument.Load(stream).ExportImages(format, options)",
+      "api": "PowerPointDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2947,7 +3131,7 @@
       "package": "OfficeIMO.PowerPoint",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "PowerPointDocument.Load(stream).ExportImages(format, options)",
+      "api": "PowerPointDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2962,13 +3146,85 @@
       "package": "OfficeIMO.PowerPoint",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "PowerPointDocument.Load(stream).ExportImages(format, options)",
+      "api": "PowerPointDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
       ],
       "cmdlet": "Export-OfficeDocumentImage",
       "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Webp"
+    },
+    {
+      "id": "project-jpeg",
+      "source": "Project",
+      "target": "JPEG",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "project.CreateView(schedule, viewOptions).ToImages(new ProjectImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "project-png",
+      "source": "Project",
+      "target": "PNG",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "project.CreateView(schedule, viewOptions).ToImages(new ProjectImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "project-svg",
+      "source": "Project",
+      "target": "SVG",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "project.CreateView(schedule, viewOptions).ToImages(new ProjectImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "project-tiff",
+      "source": "Project",
+      "target": "TIFF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "project.CreateView(schedule, viewOptions).ToImages(new ProjectImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "project-webp",
+      "source": "Project",
+      "target": "WebP",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "project.CreateView(schedule, viewOptions).ToImages(new ProjectImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "publisher-jpeg",
+      "source": "Publisher",
+      "target": "JPEG",
+      "package": "OfficeIMO.Publisher",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
     },
     {
       "id": "publisher-pdf",
@@ -2987,6 +3243,54 @@
       ],
       "cmdlet": "Convert-OfficeDocument",
       "example": "Convert-OfficeDocument -Path ./in.pub -OutputPath ./out.pdf"
+    },
+    {
+      "id": "publisher-png",
+      "source": "Publisher",
+      "target": "PNG",
+      "package": "OfficeIMO.Publisher",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "publisher-svg",
+      "source": "Publisher",
+      "target": "SVG",
+      "package": "OfficeIMO.Publisher",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "publisher-tiff",
+      "source": "Publisher",
+      "target": "TIFF",
+      "package": "OfficeIMO.Publisher",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "publisher-webp",
+      "source": "Publisher",
+      "target": "WebP",
+      "package": "OfficeIMO.Publisher",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
     },
     {
       "id": "reader-visio-pdf",
@@ -3031,6 +3335,18 @@
       "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.html"
     },
     {
+      "id": "rtf-jpeg",
+      "source": "RTF",
+      "target": "JPEG",
+      "package": "OfficeIMO.Rtf.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "rtf-markdown",
       "source": "RTF",
       "target": "Markdown",
@@ -3061,6 +3377,54 @@
       ],
       "cmdlet": "Convert-OfficeDocument",
       "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.pdf"
+    },
+    {
+      "id": "rtf-png",
+      "source": "RTF",
+      "target": "PNG",
+      "package": "OfficeIMO.Rtf.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "rtf-svg",
+      "source": "RTF",
+      "target": "SVG",
+      "package": "OfficeIMO.Rtf.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "rtf-tiff",
+      "source": "RTF",
+      "target": "TIFF",
+      "package": "OfficeIMO.Rtf.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "rtf-webp",
+      "source": "RTF",
+      "target": "WebP",
+      "package": "OfficeIMO.Rtf.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
     },
     {
       "id": "spreadsheet-xml-xlsx",
@@ -3155,7 +3519,7 @@
       "package": "OfficeIMO.Visio",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "VisioDocument.Load(stream).ExportImages(format, options)",
+      "api": "VisioDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3184,7 +3548,7 @@
       "package": "OfficeIMO.Visio",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "VisioDocument.Load(stream).ExportImages(format, options)",
+      "api": "VisioDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3199,7 +3563,7 @@
       "package": "OfficeIMO.Visio",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "VisioDocument.Load(stream).ExportImages(format, options)",
+      "api": "VisioDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3214,7 +3578,7 @@
       "package": "OfficeIMO.Visio",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "VisioDocument.Load(stream).ExportImages(format, options)",
+      "api": "VisioDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3229,7 +3593,7 @@
       "package": "OfficeIMO.Visio",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "VisioDocument.Load(stream).ExportImages(format, options)",
+      "api": "VisioDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3322,7 +3686,7 @@
       "package": "OfficeIMO.Excel",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "ExcelDocument.Load(stream).ExportImages(format, options)",
+      "api": "ExcelDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3370,7 +3734,7 @@
       "package": "OfficeIMO.Excel",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "ExcelDocument.Load(stream).ExportImages(format, options)",
+      "api": "ExcelDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3385,7 +3749,7 @@
       "package": "OfficeIMO.Excel",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "ExcelDocument.Load(stream).ExportImages(format, options)",
+      "api": "ExcelDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3400,7 +3764,7 @@
       "package": "OfficeIMO.Excel",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "ExcelDocument.Load(stream).ExportImages(format, options)",
+      "api": "ExcelDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3415,13 +3779,25 @@
       "package": "OfficeIMO.Excel",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "ExcelDocument.Load(stream).ExportImages(format, options)",
+      "api": "ExcelDocument.Load(stream).ToImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
       ],
       "cmdlet": "Export-OfficeDocumentImage",
       "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Webp"
+    },
+    {
+      "id": "xps-jpeg",
+      "source": "XPS/OpenXPS",
+      "target": "JPEG",
+      "package": "OfficeIMO.Xps",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
     },
     {
       "id": "xps-pdf",
@@ -3435,6 +3811,54 @@
         "dotnet",
         "cli",
         "studio"
+      ]
+    },
+    {
+      "id": "xps-png",
+      "source": "XPS/OpenXPS",
+      "target": "PNG",
+      "package": "OfficeIMO.Xps",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xps-svg",
+      "source": "XPS/OpenXPS",
+      "target": "SVG",
+      "package": "OfficeIMO.Xps",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xps-tiff",
+      "source": "XPS/OpenXPS",
+      "target": "TIFF",
+      "package": "OfficeIMO.Xps",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xps-webp",
+      "source": "XPS/OpenXPS",
+      "target": "WebP",
+      "package": "OfficeIMO.Xps",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
       ]
     }
   ]

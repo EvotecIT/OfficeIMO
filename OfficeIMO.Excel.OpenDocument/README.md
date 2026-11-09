@@ -38,6 +38,25 @@ Formula and address conversion uses typed Excel A1/OpenFormula syntax. Quoted wo
 
 `ExcelOpenDocumentConversionOptions` bounds rows, columns, converted cells, and merge or validation-range materialization in both directions. Content omitted by those limits or disabled style options is returned as a `Skipped` mapping rather than silently disappearing. Set `LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss` when a workflow must reject any approximation, skipped feature, or unsupported mapping.
 
+## Page images
+
+The adapter renders ODS through its existing visual owner, retaining source conversion diagnostics. `ToImages`/`ToImagesAsync` return rich encoded results; `SaveAsImages`/`SaveAsImagesAsync` save them with shared limits, cancellation and file-conflict policy.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.OpenDocument;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.OpenDocument;
+
+using var source = OdsDocument.Load("input.ods");
+var options = new ExcelImageExportOptions { Format = OfficeImageExportFormat.Png, TargetDpi = 144 };
+IReadOnlyList<OfficeImageExportResult> images = source.ToImages(options);
+OfficeConversionReport saved = await source.SaveAsImagesAsync("pages", options);
+```
+
+See the [shared image options, selection and diagnostics](../Docs/officeimo.image-export.md).
+
 ## Dependency footprint
 
 - **External:** None.

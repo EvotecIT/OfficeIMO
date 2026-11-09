@@ -170,6 +170,7 @@ public static partial class ParallelRowMappingExtensions {
         DbDataReader reader,
         ParallelRowMappingOptions? options,
         CancellationToken cancellationToken) {
+        using var linkedCancellation = CreateMappingCancellationToken(reader, cancellationToken, out cancellationToken);
         options ??= new ParallelRowMappingOptions();
         int degreeOfParallelism = options.GetDegreeOfParallelism();
         if (degreeOfParallelism == 1) {
@@ -201,14 +202,16 @@ public static partial class ParallelRowMappingExtensions {
                          options.GetBatchSize(batchSource.PreferredParallelBatchSize),
                          degreeOfParallelism,
                          static batchReader => batchReader.RowsAs<T>(),
-                         () => EnumerateBatches(
+                         () => RowSnapshotSchema.ReaderHasOnlyIndependentFieldTypes(reader)
+                             ? EnumerateBatches(
                              reader,
                              genericBatchSize,
                              degreeOfParallelism,
                              values => plan.MapValues(values, culture, dateTimeFormats, typeConverter, errorValuePolicy),
                              typeConverter is null ? plan.CaptureReaderValues : (source, values) => plan.CaptureReaderValues(source, values, preserveConverterInput: true),
                              cancellationToken,
-                             typeConverter is null ? plan.CreateSnapshotColumnsFactory(reader, culture, dateTimeFormats, errorValuePolicy) : null),
+                             typeConverter is null ? plan.CreateSnapshotColumnsFactory(reader, culture, dateTimeFormats, errorValuePolicy) : null)
+                             : EnumerateSequential(reader.RowsAs<T>(), cancellationToken),
                          cancellationToken)) {
                 yield return row;
             }
@@ -239,6 +242,7 @@ public static partial class ParallelRowMappingExtensions {
         Action<RowMapper<T>> configure,
         ParallelRowMappingOptions? options,
         CancellationToken cancellationToken) where T : new() {
+        using var linkedCancellation = CreateMappingCancellationToken(reader, cancellationToken, out cancellationToken);
         options ??= new ParallelRowMappingOptions();
         int degreeOfParallelism = options.GetDegreeOfParallelism();
         if (degreeOfParallelism == 1) {
@@ -272,13 +276,17 @@ public static partial class ParallelRowMappingExtensions {
                          degreeOfParallelism,
                          batchReader => EnumerateExplicitBatch(batchReader, plan, culture, dateTimeFormats,
                              typeConverter, errorValuePolicy),
-                         () => EnumerateBatches(
+                         () => RowSnapshotSchema.ReaderHasOnlyIndependentFieldTypes(reader)
+                             ? EnumerateBatches(
                              reader,
                              genericBatchSize,
                              degreeOfParallelism,
                              values => plan.MapValues(values, culture, dateTimeFormats, typeConverter, errorValuePolicy),
                              captureValues: plan.CaptureReaderValues,
-                             cancellationToken),
+                             cancellationToken)
+                             : EnumerateSequential(
+                                 EnumerateExplicitBatch(reader, plan, culture, dateTimeFormats, typeConverter, errorValuePolicy),
+                                 cancellationToken),
                          cancellationToken)) {
                 yield return row;
             }
@@ -286,7 +294,9 @@ public static partial class ParallelRowMappingExtensions {
         }
 
         if (!RowSnapshotSchema.ReaderHasOnlyIndependentFieldTypes(reader)) {
-            foreach (T row in EnumerateSequential(reader.RowsAs(configure), cancellationToken)) {
+            foreach (T row in EnumerateSequential(
+                         EnumerateExplicitBatch(reader, plan, culture, dateTimeFormats, typeConverter, errorValuePolicy),
+                         cancellationToken)) {
                 yield return row;
             }
             yield break;
@@ -308,6 +318,7 @@ public static partial class ParallelRowMappingExtensions {
         Func<IDataRecord, T> factory,
         ParallelRowMappingOptions? options,
         CancellationToken cancellationToken) {
+        using var linkedCancellation = CreateMappingCancellationToken(reader, cancellationToken, out cancellationToken);
         options ??= new ParallelRowMappingOptions();
         int degreeOfParallelism = options.GetDegreeOfParallelism();
         if (reader.FieldCount == 0) yield break;
@@ -421,6 +432,11 @@ public static partial class ParallelRowMappingExtensions {
         T[] rows;
         try {
             rows = task.GetAwaiter().GetResult();
+        } catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested &&
+                                                           exception.CancellationToken == stop.Token) {
+            stop.Cancel();
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
         } catch {
             stop.Cancel();
             throw;

@@ -61,6 +61,8 @@ public partial class CsvDataReader : IDataReaderTypedParallelBatchSource
 
     internal CancellationToken ProcessingCancellationToken => _processingCancellationToken;
 
+    CancellationToken IDataReaderParallelBatchSource.ParallelBatchCancellationToken => _processingCancellationToken;
+
     bool IDataReaderParallelBatchSource.TryReadParallelBatch(
         int preferredBatchSize,
         CancellationToken cancellationToken,

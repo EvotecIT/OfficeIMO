@@ -87,11 +87,8 @@ internal sealed class OneNoteWriteGraph {
     internal OneNoteExtendedGuid RootObjectSpaceId { get; }
     internal Guid AncestorId { get; }
     internal uint FileNameCrc { get; }
+    internal Guid? IdentitySeed { get; set; }
     internal IList<OneNoteWriteObjectSpace> ObjectSpaces { get; } = new List<OneNoteWriteObjectSpace>();
-}
-
-internal sealed class OneNoteWriteIdFactory {
-    internal OneNoteExtendedGuid New() => new OneNoteExtendedGuid(Guid.NewGuid(), 1, 17);
 }
 
 internal sealed class OneNoteTocWriteEntry {

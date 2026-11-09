@@ -85,12 +85,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(140, image.Width.ToPixels());
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo before));
             Assert.Equal(140, before.Width.ToPixels());
-            Assert.Equal(140, sheet.Range("A1:A2").ExportImage(OfficeImageExportFormat.Png).Width);
+            Assert.Equal(140, sheet.Range("A1:A2").ToImage(OfficeImageExportFormat.Png).Width);
             using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx })));
             Assert.Equal(140, reopened.Sheets[0].Images.Single().Width.ToPixels());
             Assert.True(reopened.Sheets[0].Charts.Single().TryGetSnapshot(out ExcelChartInfo after));
             Assert.Equal(140, after.Width.ToPixels());
-            Assert.Equal(140, reopened.Sheets[0].Range("A1:A2").ExportImage(OfficeImageExportFormat.Png).Width);
+            Assert.Equal(140, reopened.Sheets[0].Range("A1:A2").ToImage(OfficeImageExportFormat.Png).Width);
         }
 
         private static void SetMissingGridFont(ExcelDocument document) {

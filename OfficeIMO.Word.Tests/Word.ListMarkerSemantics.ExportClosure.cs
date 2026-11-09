@@ -393,8 +393,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Contains("*", text, StringComparison.Ordinal);
         Assert.Equal(pdfPage.GetTextSpans().Select(span => (span.Text, span.X, span.Y, span.Advance, span.FontSize)),
             snapshot.TextSpans.Select(span => (span.Text, span.X, span.Y, span.Advance, span.FontSize)));
-        Assert.Equal(pdfPage.ExportImage(OfficeImageExportFormat.Svg).Bytes,
-            document.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        Assert.Equal(pdfPage.ToImage(OfficeImageExportFormat.Svg).Bytes,
+            document.ToImage(OfficeImageExportFormat.Svg, options).Bytes);
     }
 
     [Fact]
@@ -461,7 +461,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Contains(snapshot.Diagnostics, diagnostic =>
             diagnostic.Code == "native-picture-bullet-text-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Contains(document.ExportImage(OfficeImageExportFormat.Svg).Diagnostics, diagnostic =>
+        Assert.Contains(document.ToImage(OfficeImageExportFormat.Svg).Diagnostics, diagnostic =>
             diagnostic.Code == "native-picture-bullet-text-fallback");
     }
 

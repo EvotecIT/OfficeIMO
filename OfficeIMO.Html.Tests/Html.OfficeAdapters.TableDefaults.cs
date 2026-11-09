@@ -106,7 +106,7 @@ public partial class HtmlOfficeAdapters {
 
         var html = new HtmlParser().ParseDocument(readOnly.ToHtml());
         Assert.Contains("background-color:#00000000", html.QuerySelector("td")!.GetAttribute("style"));
-        var png = readOnly.Slides[0].ExportImage(OfficeImageExportFormat.Png);
+        var png = readOnly.Slides[0].ToImage(OfficeImageExportFormat.Png);
         Assert.True(OfficePngReader.TryDecode(png.Bytes, out var pixels));
         Assert.Equal(OfficeColor.Yellow, pixels!.GetPixel(32, 32));
         Assert.Null(readOnly.OpenXmlDocument.PresentationPart!.TableStylesPart);
@@ -127,7 +127,7 @@ public partial class HtmlOfficeAdapters {
 
         var html = new HtmlParser().ParseDocument(document.ToHtml());
         Assert.Contains("border-top:4pt double", html.QuerySelectorAll("td")[1].GetAttribute("style"));
-        var svg = System.Xml.Linq.XElement.Parse(Encoding.UTF8.GetString(slide.ExportImage(OfficeImageExportFormat.Svg).Bytes));
+        var svg = System.Xml.Linq.XElement.Parse(Encoding.UTF8.GetString(slide.ToImage(OfficeImageExportFormat.Svg).Bytes));
         var strokes = svg.Descendants().Where(element => element.Name.LocalName == "line" &&
             double.TryParse(element.Attribute("stroke-width")?.Value, System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out double width) && Math.Abs(width - 4D / 3D) < .001D).ToArray();

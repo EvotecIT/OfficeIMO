@@ -22,9 +22,9 @@ internal static partial class DocumentFeatureShowcase {
         if (errors.Count > 0) {
             throw new InvalidOperationException(id + ": " + errors[0].Description);
         }
-        presentation.Slides[previewSlide].ExportImage(OfficeImageExportFormat.Png)
+        presentation.Slides[previewSlide].ToImage(OfficeImageExportFormat.Png)
             .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
-        presentation.Slides[previewSlide].ExportImage(OfficeImageExportFormat.Svg)
+        presentation.Slides[previewSlide].ToImage(OfficeImageExportFormat.Svg)
             .Save(Path.Combine(folder, "preview.svg"), OfficeImageExportFileConflictPolicy.Replace);
         presentation.SaveAsPdf(Path.Combine(folder, "slides.pdf"));
     }

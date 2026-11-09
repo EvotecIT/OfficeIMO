@@ -254,7 +254,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             imageOptions.PageIndex = 0;
             imageOptions.PageCount = null;
             var renderedPages = new List<(GoogleDocsParagraph Paragraph, GoogleDocsInlineImage Image)>();
-            document.ExportImages(
+            document.ToImages(
                 OfficeImageExportFormat.Png,
                 rendered => {
                 cancellationToken.ThrowIfCancellationRequested();

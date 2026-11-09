@@ -13,7 +13,7 @@ public static partial class ProjectReportWorkflow {
 
     private static void AddWordCharts(WordDocument document, ProjectView view, ProjectOfficeReportOptions options, CancellationToken token) {
         int index = 0;
-        ExportImages(view, OfficeImageExportFormat.Png, image => {
+        ToImages(view, OfficeImageExportFormat.Png, image => {
             token.ThrowIfCancellationRequested();
             var paragraph = document.AddParagraph();
             paragraph.PageBreakBefore = index++ > 0;
@@ -27,7 +27,7 @@ public static partial class ProjectReportWorkflow {
     }
 
     private static void AddPowerPointCharts(PowerPointDocument presentation, ProjectView view, ProjectOfficeReportOptions options, CancellationToken token) {
-        ExportImages(view, OfficeImageExportFormat.Png, image => {
+        ToImages(view, OfficeImageExportFormat.Png, image => {
             token.ThrowIfCancellationRequested();
             if (presentation.Slides.Count >= view.MaxPages) throw new InvalidOperationException("Report exceeds MaxPages.");
             var slide = presentation.AddSlide();

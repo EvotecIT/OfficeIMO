@@ -26,7 +26,7 @@ public class PdfIccColorRenderingTests {
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         OfficeColor fill = Assert.Single(drawing.Shapes).Shape.FillColor!.Value;
         Assert.InRange(fill.R, 245, 255);
@@ -44,7 +44,7 @@ public class PdfIccColorRenderingTests {
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         OfficeColor fill = Assert.Single(drawing.Shapes).Shape.FillColor!.Value;
         Assert.InRange(fill.R, 245, 255);
@@ -358,7 +358,7 @@ public class PdfIccColorRenderingTests {
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         OfficeColor fill = Assert.Single(drawing.Shapes).Shape.FillColor!.Value;
         Assert.True(fill.B > 240, "The swapped ICC matrix should map the red device channel to blue.");
@@ -377,7 +377,7 @@ public class PdfIccColorRenderingTests {
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         Assert.Equal(OfficeColor.FromRgb(204, 26, 51), Assert.Single(drawing.Shapes).Shape.FillColor);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
@@ -513,7 +513,7 @@ public class PdfIccColorRenderingTests {
             "1 scn",
             extraObjects: "7 0 obj\n<< /FunctionType 3 /Domain [0 1] >>\nendobj\n");
 
-        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ToImage(OfficeImageExportFormat.Png);
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
     }
@@ -1179,7 +1179,7 @@ public class PdfIccColorRenderingTests {
             imageColorSpace: "/DeviceRGB");
 
         PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
-        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ToImage(OfficeImageExportFormat.Png);
 
         Assert.False(image.IsImageFile);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
@@ -1223,7 +1223,7 @@ public class PdfIccColorRenderingTests {
                 "8 0 obj\n7 0 R\nendobj\n");
 
         PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
-        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ToImage(OfficeImageExportFormat.Png);
 
         Assert.False(image.IsImageFile);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
@@ -1326,7 +1326,7 @@ public class PdfIccColorRenderingTests {
             imageColorSpace: "/DeviceRGB");
 
         PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
-        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ToImage(OfficeImageExportFormat.Png);
 
         Assert.False(image.IsImageFile);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
@@ -1363,7 +1363,7 @@ public class PdfIccColorRenderingTests {
             width: 2);
 
         PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
-        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ToImage(OfficeImageExportFormat.Png);
 
         Assert.False(image.IsImageFile);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
@@ -2570,7 +2570,7 @@ public class PdfIccColorRenderingTests {
             extraObjects: functionObject);
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
     }
@@ -2588,7 +2588,7 @@ public class PdfIccColorRenderingTests {
             imageColorSpace: "[/CalGray << /WhitePoint [0.9505 1 1.089] >>]",
             bitsPerComponent: bitsPerComponent);
 
-        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ToImage(OfficeImageExportFormat.Png);
 
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
         Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? raster));
@@ -2648,7 +2648,7 @@ public class PdfIccColorRenderingTests {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = profile.Length - 1 }
         });
 
-        OfficeImageExportResult result = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = document.Pages[0].ToImage(OfficeImageExportFormat.Png);
 
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
     }
@@ -2663,7 +2663,7 @@ public class PdfIccColorRenderingTests {
 
         PdfReadPage page = document.Pages[0];
         IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics = page.GetRenderCapabilityDiagnostics();
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
@@ -2681,7 +2681,7 @@ public class PdfIccColorRenderingTests {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = profile.Length - 1 }
         });
 
-        OfficeImageExportResult result = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = document.Pages[0].ToImage(OfficeImageExportFormat.Png);
 
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
     }

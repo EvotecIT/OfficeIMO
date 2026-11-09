@@ -39,9 +39,9 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = (document.ToPdf(options)).ToBytes();
         var read = OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
         Assert.Contains(logical, read.ExtractText(), StringComparison.Ordinal);
-        var expected = OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(read, OfficeImageExportFormat.Png,
+        var expected = OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(read, OfficeImageExportFormat.Png,
             new OfficeIMO.Pdf.PdfImageExportOptions { Scale = 96D / 72D });
-        Assert.Equal(Assert.Single(expected).Bytes, retained.ExportImage().Bytes);
+        Assert.Equal(Assert.Single(expected).Bytes, retained.ToImage().Bytes);
     }
 
     private static bool IsArabicForm(char value) => value >= '\uFB50' && value <= '\uFDFF'

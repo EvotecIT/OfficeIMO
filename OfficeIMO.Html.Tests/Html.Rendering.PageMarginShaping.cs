@@ -69,8 +69,8 @@ public sealed partial class HtmlRenderingTests {
         pdf.ThrowIfLoss();
         byte[] saved = pdf.ToBytes();
         Assert.Equal(text, PdfCore.PdfReadDocument.Open(saved).ExtractText().Trim());
-        OfficeImageExportResult image = document.ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(pdf,
+        OfficeImageExportResult image = document.ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(pdf,
             OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
         Assert.Equal(replay.Bytes, image.Bytes);
         Assert.DoesNotContain(image.Diagnostics, item => item.LossKind != OfficeConversionLossKind.None);

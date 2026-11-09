@@ -7,7 +7,9 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         new Guid("7111497F-1B6B-4209-9491-C98B04CF4C5A"),
         1,
         17);
-    private readonly OneNoteWriteIdFactory _ids = new OneNoteWriteIdFactory();
+    private OneNoteWriteIdFactory _ids;
+    private readonly Guid? _identitySeed;
+    private readonly DateTime? _generatedTimestampUtc;
     private readonly long _maxPayloadBytes;
     private readonly bool _preserveUnknownData;
     private readonly int _maxPageRelationshipDepth;
@@ -20,7 +22,11 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         bool preserveUnknownData = true,
         int maxPageRelationshipDepth = OneNoteLoadOptions.DefaultMaxPageRelationshipDepth,
         int maxContentDepth = OneNoteSaveOptions.DefaultMaxContentDepth,
-        int maxInkPathValues = OneNoteLoadOptions.DefaultMaxInkPathValues) {
+        int maxInkPathValues = OneNoteLoadOptions.DefaultMaxInkPathValues,
+        Guid? identitySeed = null, DateTime? generatedTimestampUtc = null) {
+        _identitySeed = identitySeed;
+        _generatedTimestampUtc = generatedTimestampUtc;
+        _ids = new OneNoteWriteIdFactory(identitySeed);
         _maxPayloadBytes = maxPayloadBytes;
         _preserveUnknownData = preserveUnknownData;
         _maxPageRelationshipDepth = maxPageRelationshipDepth;
@@ -32,10 +38,14 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         OneNoteWriteModelValidator.ValidateSection(section, _maxPageRelationshipDepth, _maxContentDepth);
         OneNoteSectionPreservationState? preservation = _preserveUnknownData ? section.PreservationState : null;
         OneNoteMaterializedObjectSpace? sourceSectionSpace = preservation?.SectionSpace;
-        Guid fileId = fileIdOverride ?? (section.Id.HasValue && section.Id.Value != Guid.Empty ? section.Id.Value : Guid.NewGuid());
+        IEnumerable<Guid>? retainedIds = _identitySeed.HasValue ? OneNoteWriteIdentityInventory.ForSection(section) : null;
+        _ids.Reserve(retainedIds);
+        Guid fileId = GuidOrNew(fileIdOverride ?? (section.Id == Guid.Empty ? null : section.Id));
+        _ids = new OneNoteWriteIdFactory(_identitySeed, "section:" + fileId.ToString("N"));
+        _ids.Reserve(retainedIds);
         section.Id = fileId;
         OneNoteExtendedGuid sectionSpaceId = IdOrNew(sourceSectionSpace?.Revision.ObjectSpaceId);
-        var graph = new OneNoteWriteGraph(fileId, OneNoteFileKind.Section, sectionSpaceId, ancestorId ?? Guid.Empty, OneNoteCrc32.ComputeFileName(fileName));
+        var graph = new OneNoteWriteGraph(fileId, OneNoteFileKind.Section, sectionSpaceId, ancestorId ?? Guid.Empty, OneNoteCrc32.ComputeFileName(fileName)) { IdentitySeed = _identitySeed };
         var sectionSpace = new OneNoteWriteObjectSpace(sectionSpaceId, IdOrNew(sourceSectionSpace?.Revision.Id));
         var pageSeriesIds = new List<OneNoteExtendedGuid>();
         var pageSeries = new List<PageSeriesWriteAccumulator>();
@@ -43,13 +53,13 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         DateTime sectionCreationUtc = section.Pages
             .Where(page => page.CreatedUtc.HasValue)
             .Select(page => page.CreatedUtc!.Value.ToUniversalTime())
-            .DefaultIfEmpty(DateTime.UtcNow)
+            .DefaultIfEmpty(_generatedTimestampUtc ?? DateTime.UtcNow)
             .Min();
 
         foreach (OneNotePage page in section.Pages) {
             OneNoteMaterializedObjectSpace? sourcePageSpace = preservation?.GetPageSpace(page);
             OneNoteExtendedGuid pageSpaceId = IdOrNew(sourcePageSpace?.Revision.ObjectSpaceId ?? page.Id);
-            Guid pageManagementId = ReadGuidProperty(sourcePageSpace?.GetRoot(2), OneNoteSchema.NotebookManagementEntityGuid) ?? Guid.NewGuid();
+            Guid pageManagementId = GuidOrNew(ReadGuidProperty(sourcePageSpace?.GetRoot(2), OneNoteSchema.NotebookManagementEntityGuid));
             DateTime pageCreationUtc = page.CreatedUtc?.ToUniversalTime() ?? sectionCreationUtc;
             var conflictSpaceIds = new List<OneNoteExtendedGuid>();
             foreach (OneNotePage conflict in page.ConflictPages) {
@@ -91,7 +101,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 series = new PageSeriesWriteAccumulator(
                     emittedSeriesId,
                     sourceSeriesId,
-                    ReadGuidProperty(sourceSeries, OneNoteSchema.NotebookManagementEntityGuid) ?? Guid.NewGuid(),
+                    GuidOrNew(ReadGuidProperty(sourceSeries, OneNoteSchema.NotebookManagementEntityGuid)),
                     pageCreationUtc);
                 pageSeries.Add(series);
             }
@@ -111,7 +121,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         OneNoteRevisionStoreObject? sourceSectionRoot = sourceSectionSpace?.GetRoot(1);
         OneNoteExtendedGuid sectionRootId = IdOrNew(sourceSectionRoot?.Id);
         var sectionRootProperties = new List<OneNoteWriteProperty> {
-            Data(OneNoteSchema.NotebookManagementEntityGuid, (ReadGuidProperty(sourceSectionRoot, OneNoteSchema.NotebookManagementEntityGuid) ?? Guid.NewGuid()).ToByteArray()),
+            Data(OneNoteSchema.NotebookManagementEntityGuid, (GuidOrNew(ReadGuidProperty(sourceSectionRoot, OneNoteSchema.NotebookManagementEntityGuid))).ToByteArray()),
             Scalar(OneNoteSchema.TopologyCreationTimestamp, FileTime(sectionCreationUtc))
         };
         if (pageSeriesIds.Count > 0) sectionRootProperties.Add(ObjectReferences(OneNoteSchema.ElementChildNodes, pageSeriesIds));
@@ -142,16 +152,18 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         bool? historyEnabled,
         IEnumerable<OneNoteOpaqueObject>? preservedObjects = null,
         OneNoteExtendedGuid? preservedRootId = null) {
+        _ids = new OneNoteWriteIdFactory(_identitySeed, "toc:" + fileId.ToString("N"));
         OneNoteOpaqueObject[] preserved = _preserveUnknownData
             ? preservedObjects?.OrderBy(item => item.Ordinal).ToArray() ?? Array.Empty<OneNoteOpaqueObject>()
             : Array.Empty<OneNoteOpaqueObject>();
+        if (_identitySeed.HasValue) _ids.Reserve(OneNoteWriteIdentityInventory.ForToc(preserved, preservedRootId));
         OneNoteExtendedGuid spaceId = _ids.New();
-        var graph = new OneNoteWriteGraph(fileId, OneNoteFileKind.TableOfContents, spaceId, ancestorId, OneNoteCrc32.ComputeFileName(fileName));
+        var graph = new OneNoteWriteGraph(fileId, OneNoteFileKind.TableOfContents, spaceId, ancestorId, OneNoteCrc32.ComputeFileName(fileName)) { IdentitySeed = _identitySeed };
         var space = new OneNoteWriteObjectSpace(spaceId, _ids.New());
         var entryIds = new List<OneNoteExtendedGuid>();
         foreach (OneNoteTocWriteEntry entry in entries.OrderBy(item => item.Order)) {
             OneNoteOpaqueObject? retained = FindTableOfContentsEntry(preserved, entry.Id);
-            OneNoteExtendedGuid id = retained?.Id ?? _ids.New();
+            OneNoteExtendedGuid id = AnyIdOrNew(retained?.Id);
             var properties = new List<OneNoteWriteProperty> {
                 Data(OneNoteSchema.FileIdentityGuid, entry.Id.ToByteArray()),
                 Scalar(OneNoteSchema.NotebookElementOrderingId, entry.Order),
@@ -162,14 +174,14 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             entryIds.Add(id);
         }
         OneNoteOpaqueObject? retainedRoot = FindTableOfContentsRoot(preserved, preservedRootId);
-        OneNoteExtendedGuid rootId = retainedRoot?.Id ?? preservedRootId ?? _ids.New();
+        OneNoteExtendedGuid rootId = AnyIdOrNew(retainedRoot?.Id ?? preservedRootId);
         var rootProperties = new List<OneNoteWriteProperty>();
         if (entryIds.Count > 0) rootProperties.Add(ObjectReferences(OneNoteSchema.TocEntryIndex, entryIds));
         if (colorArgb.HasValue) rootProperties.Add(Scalar(OneNoteSchema.NotebookColor, colorArgb.Value));
         if (historyEnabled.HasValue) rootProperties.Add(Boolean(OneNoteSchema.EnableHistory, historyEnabled.Value));
         space.Objects.Add(new OneNoteWriteObject(rootId, OneNoteSchema.JcidPropertyContainer, rootProperties));
         space.Roots[1] = rootId;
-        if (preserved.Length > 0) OneNoteOpaquePreservationWriter.MergeSpace(space, preserved, _maxPayloadBytes);
+        if (preserved.Length > 0) OneNoteOpaquePreservationWriter.MergeSpace(space, preserved, _maxPayloadBytes, _ids);
         graph.ObjectSpaces.Add(space);
         return graph;
     }
@@ -279,7 +291,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         foreach (OneNotePage child in page.ConflictPages) {
             childIds.Add(BuildConflictPageSpaces(graph, child, sectionCreationUtc, preservation));
         }
-        Guid managementId = ReadGuidProperty(sourceSpace?.GetRoot(2), OneNoteSchema.NotebookManagementEntityGuid) ?? Guid.NewGuid();
+        Guid managementId = GuidOrNew(ReadGuidProperty(sourceSpace?.GetRoot(2), OneNoteSchema.NotebookManagementEntityGuid));
         DateTime creationUtc = page.CreatedUtc?.ToUniversalTime() ?? sectionCreationUtc;
         IReadOnlyList<OneNoteExtendedGuid> versionHistoryContextIds = BuildVersionHistorySpaces(
             graph,
@@ -312,8 +324,9 @@ internal sealed partial class OneNoteWriteGraphBuilder {
 
         var versionContextIds = new List<OneNoteExtendedGuid>();
         foreach (OneNotePage version in page.VersionHistory) {
-            OneNoteExtendedGuid versionContextId = version.RevisionContextId ?? _ids.New();
-            if (versionContextId.Equals(VersionHistoryContext)) versionContextId = _ids.New();
+            OneNoteExtendedGuid versionContextId = AnyIdOrNew(version.RevisionContextId);
+            OneNoteExtendedGuid? replacementContextId = _identitySeed.HasValue ? _ids.New() : null;
+            if (versionContextId.Equals(VersionHistoryContext)) versionContextId = replacementContextId ?? _ids.New();
             version.RevisionContextId = versionContextId;
             OneNoteMaterializedObjectSpace? sourceVersionSpace = preservation?.GetPageSpace(version);
             var conflictSpaceIds = new List<OneNoteExtendedGuid>();

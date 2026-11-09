@@ -58,8 +58,8 @@ public sealed partial class HtmlRenderingTests {
         var elements = tagged.StructureElements.ToDictionary(item => item.ObjectNumber);
         var root = Assert.Single(tagged.StructureElements, item => item.StructureType == "Document");
         AssertAtomicLineLogicalTokens(string.Concat(SourceOrderOwnedText(bytes, root, elements)), expected);
-        OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+        OfficeImageExportResult png = document.ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(
             pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
         Assert.Equal(replay.Bytes, png.Bytes);
         Assert.DoesNotContain(png.Diagnostics, item => item.LossKind != OfficeConversionLossKind.None);

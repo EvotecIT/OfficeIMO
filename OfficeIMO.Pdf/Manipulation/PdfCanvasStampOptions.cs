@@ -15,7 +15,7 @@ public sealed class PdfCanvasStampOptions : IPdfOperationCancellation {
     private PdfCreateOptions? _renderingOptions;
 
     /// <summary>Optional target-page selector. Null applies the canvas callback to every page.</summary>
-    public PdfPageSelector? TargetPages { get; set; }
+    public OfficePageSelector? TargetPages { get; set; }
 
     /// <summary>Places generated visual content before the existing page content streams.</summary>
     public bool BehindContent { get; set; }
@@ -47,7 +47,7 @@ public sealed class PdfCanvasStampOptions : IPdfOperationCancellation {
 
     /// <summary>Sets target pages from a rich page-selector expression.</summary>
     public PdfCanvasStampOptions UseTargetPages(string selector) {
-        TargetPages = PdfPageSelector.Parse(selector);
+        TargetPages = OfficePageSelector.Parse(selector);
         return this;
     }
 

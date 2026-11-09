@@ -45,7 +45,7 @@ public class PdfPageInterleaverTests {
     [Fact]
     public void Interleave_ReportsOnlySelectedPagesAsImported() {
         var selected = new PdfInterleaveSource(PdfProductionWorkflowTestSupport.CreatePdf("A one", "A two", "A three")) {
-            Pages = PdfPageSelector.Parse("2")
+            Pages = OfficePageSelector.Parse("2")
         };
 
         PdfInterleaveResult result = PdfPageInterleaver.Interleave(
@@ -63,7 +63,7 @@ public class PdfPageInterleaverTests {
             .PageBreak()
             .TextField("Excluded", value: "two")
             .ToBytes();
-        var selectedPrimary = new PdfInterleaveSource(primary) { Pages = PdfPageSelector.Parse("1") };
+        var selectedPrimary = new PdfInterleaveSource(primary) { Pages = OfficePageSelector.Parse("1") };
 
         PdfInterleaveResult result = PdfPageInterleaver.Interleave(
             new[] { selectedPrimary, new PdfInterleaveSource(PdfProductionWorkflowTestSupport.CreatePdf("Incoming")) });
@@ -77,7 +77,7 @@ public class PdfPageInterleaverTests {
     [Fact]
     public void Interleave_PrunesExcludedWidgetsFromAFieldSharedAcrossPages() {
         var selectedPrimary = new PdfInterleaveSource(BuildTwoPageSharedFieldPdf()) {
-            Pages = PdfPageSelector.Parse("1")
+            Pages = OfficePageSelector.Parse("1")
         };
 
         PdfInterleaveResult result = PdfPageInterleaver.Interleave(
@@ -184,7 +184,7 @@ public class PdfPageInterleaverTests {
             "<< /Type /Outlines /First 9 0 R /Last 9 0 R /Count 1 >>",
             "<< /Title (Excluded outline) /Parent 8 0 R /Dest [5 0 R /Fit] >>",
             "<< /Nums [1 << /S /D /St 1 >>] >>");
-        var selectedIncoming = new PdfInterleaveSource(incoming) { Pages = PdfPageSelector.Parse("1") };
+        var selectedIncoming = new PdfInterleaveSource(incoming) { Pages = OfficePageSelector.Parse("1") };
         var options = new PdfInterleaveOptions {
             MergeOptions = new PdfMergeOptions {
                 Policy = new PdfMergePolicy {
