@@ -24,7 +24,8 @@ namespace OfficeIMO.Excel {
             /// </summary>
             private bool IsCanonicalWorksheetXmlFullyValidated(CancellationToken ct) {
                 ct.ThrowIfCancellationRequested();
-                if (!_sheetDataSupportsFastValidation) {
+                // Prefixed envelopes retain XmlReader namespace and markup proof.
+                if (!_sheetDataSupportsFastValidation || _worksheetPrefixLength != 0) {
                     return false;
                 }
 #if NET8_0_OR_GREATER

@@ -6,21 +6,34 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Theory]
-    [InlineData("numeric", false)]
-    [InlineData("text-colon", false)]
-    [InlineData("prefixed-attribute", false)]
-    [InlineData("strict", false)]
-    [InlineData("malformed-metadata", true)]
-    [InlineData("malformed-tail", true)]
-    [InlineData("duplicate-row-attribute", true)]
-    [InlineData("unbound-prefix", true)]
-    [InlineData("normalized-prefix-alias", true)]
-    [InlineData("malformed-body", true)]
-    [InlineData("normalized-prefix-alias-canonical", true)]
-    [InlineData("namespace-alias-canonical-valid", false)]
-    [InlineData("canonical-invalid-xml-space", true)]
-    [InlineData("canonical-xml-space", false)]
-    public void OpenDataReader_PreservesIndexedBodyAndEnclosingXmlValidation(string scenario, bool invalid) {
+    [InlineData("numeric", false, false)]
+    [InlineData("text-colon", false, false)]
+    [InlineData("prefixed-attribute", false, false)]
+    [InlineData("strict", false, false)]
+    [InlineData("malformed-metadata", true, false)]
+    [InlineData("malformed-tail", true, false)]
+    [InlineData("duplicate-row-attribute", true, false)]
+    [InlineData("unbound-prefix", true, false)]
+    [InlineData("normalized-prefix-alias", true, false)]
+    [InlineData("malformed-body", true, false)]
+    [InlineData("normalized-prefix-alias-canonical", true, false)]
+    [InlineData("namespace-alias-canonical-valid", false, false)]
+    [InlineData("canonical-invalid-xml-space", true, false)]
+    [InlineData("canonical-xml-space", false, false)]
+    [InlineData("numeric", false, true)]
+    [InlineData("text-colon", false, true)]
+    [InlineData("strict", false, true)]
+    [InlineData("malformed-tail", true, true)]
+    [InlineData("duplicate-row-attribute", true, true)]
+    [InlineData("normalized-prefix-alias-canonical", true, true)]
+    [InlineData("canonical-invalid-xml-space", true, true)]
+    [InlineData("malformed-body", true, true)]
+    [InlineData("unbound-prefix", true, true)]
+    [InlineData("rebound-value", true, true)]
+    [InlineData("mixed-cell-qualification", true, true)]
+    [InlineData("unqualified-empty-cell", true, true)]
+    [InlineData("mixed-valid-cell", false, true)]
+    public void OpenDataReader_PreservesIndexedBodyAndEnclosingXmlValidation(string scenario, bool invalid, bool prefixed) {
         const string spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         string xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
             + "<worksheet xmlns=\"" + spreadsheetNamespace + "\" xmlns:a=\"urn:one\" xmlns:b=\"urn:two\">"
@@ -68,6 +81,14 @@ public partial class Excel {
             case "malformed-body":
                 xml = xml.Replace("<v>42</v>", "<v>42</missing>");
                 break;
+            case "mixed-cell-qualification":
+            case "unqualified-empty-cell":
+            case "mixed-valid-cell":
+                xml = xml.Replace(" spans=\"1:1\"", "");
+                break;
+            case "rebound-value":
+                xml = xml.Replace("<v>42</v>", "<v xmlns:q=\"urn:unexpected\">42</v>");
+                break;
         }
         if (scenario == "normalized-prefix-alias-canonical"
             || scenario == "namespace-alias-canonical-valid"
@@ -78,9 +99,33 @@ public partial class Excel {
                 "<sheetViews><sheetView workbookViewId=\"0\"/></sheetViews>");
         }
         if (scenario != "numeric") Assert.NotEqual(original, xml);
+        if (prefixed) {
+            xml = System.Text.RegularExpressions.Regex.Replace(xml,
+                @"(</?)(worksheet|sheetData|row|c|v|is|t|sheetViews|sheetView)(?=[\s/>])", "$1q:$2");
+            string prefixNamespace = scenario == "strict"
+                ? "http://purl.oclc.org/ooxml/spreadsheetml/main" : spreadsheetNamespace;
+            xml = xml.Replace("<q:worksheet ", "<q:worksheet xmlns:q=\"" + prefixNamespace + "\" ");
+            if (scenario == "mixed-cell-qualification") {
+                xml = xml.Replace("<q:c r=\"A2\">", "<c r=\"A2\">");
+            } else if (scenario == "unqualified-empty-cell") {
+                xml = xml.Replace(" xmlns=\"" + spreadsheetNamespace + "\"", "")
+                    .Replace("<q:c r=\"A2\"><q:v>42</q:v></q:c>", "<c r=\"A2\"/>");
+            } else if (scenario == "mixed-valid-cell") {
+                xml = xml.Replace("<q:c r=\"A2\"><q:v>42</q:v></q:c>", "<c r=\"A2\"><q:v>42</q:v></c>");
+            }
+        }
         string path = CreateCompactFastPathWorkbook();
         try {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
+            if (scenario == "rebound-value" || scenario == "unqualified-empty-cell") {
+                InvalidDataException error = Assert.Throws<InvalidDataException>(() => {
+                    using var reader = ExcelDocument.OpenReader(path);
+                    _ = reader.FieldCount;
+                });
+                string element = scenario == "rebound-value" ? "v" : "c";
+                Assert.Contains("element '" + element + "' must use a SpreadsheetML namespace", error.Message);
+                return;
+            }
             if (invalid) {
                 XmlException error = Assert.Throws<XmlException>(() => {
                     using var reader = ExcelDocument.OpenReader(path);
@@ -97,7 +142,7 @@ public partial class Excel {
                 }
                 if (scenario == "normalized-prefix-alias" || scenario == "normalized-prefix-alias-canonical") {
                     Assert.Equal(1, error.LineNumber);
-                    Assert.True(error.LinePosition > xml.IndexOf("<row r=\"2\"", StringComparison.Ordinal));
+                    Assert.True(error.LinePosition > xml.IndexOf(prefixed ? "<q:row r=\"2\"" : "<row r=\"2\"", StringComparison.Ordinal));
                 }
                 return;
             }

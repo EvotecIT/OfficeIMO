@@ -4,14 +4,11 @@ namespace OfficeIMO.Excel {
             private int _worksheetPrefixStart;
             private int _worksheetPrefixLength;
 
-            // Index only one consistent element prefix. XmlReader still validates the
-            // entire document and the resolved namespaces before any indexed row is exposed.
+            // Index only one consistent element prefix. Publication still requires
+            // complete character, XML structure and resolved namespace proof.
             private void SetWorksheetPrefix(Utf8Tag root) {
                 _worksheetPrefixStart = root.NameStart;
                 _worksheetPrefixLength = root.LocalNameStart - root.NameStart;
-                if (_worksheetPrefixLength != 0) {
-                    _sheetDataSupportsFastValidation = false;
-                }
             }
 
             private bool IsIndexedTag(Utf8Tag tag) =>

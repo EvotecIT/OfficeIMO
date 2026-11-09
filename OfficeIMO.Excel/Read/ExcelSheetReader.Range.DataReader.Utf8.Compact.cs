@@ -99,15 +99,19 @@ namespace OfficeIMO.Excel {
                 kind = Utf8CellKind.Number;
                 styleIndex = -1;
                 int cursor = position;
-                if (cursor + 2 >= _length
+                int nameLength = 1 + _worksheetPrefixLength;
+                if (cursor > _length - nameLength - 2
                     || _buffer![cursor] != (byte)'<'
-                    || _buffer[cursor + 1] != (byte)'c'
-                    || !IsTagNameTerminator(_buffer[cursor + 2])) {
+                    || _buffer[cursor + nameLength] != (byte)'c'
+                    || !IsTagNameTerminator(_buffer[cursor + nameLength + 1])
+                    || _worksheetPrefixLength != 0
+                        && !_buffer.AsSpan(cursor + 1, _worksheetPrefixLength).SequenceEqual(
+                            _buffer.AsSpan(_worksheetPrefixStart, _worksheetPrefixLength))) {
                     return false;
                 }
 
                 int start = cursor;
-                cursor += 2;
+                cursor += nameLength + 1;
                 int referenceStart = 0;
                 int referenceLength = 0;
                 int typeStart = 0;
@@ -215,7 +219,8 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                tag = new Utf8Tag(start, cursor, start + 1, start + 2, start + 1, isEnd: false, isEmpty);
+                tag = new Utf8Tag(start, cursor, start + 1, start + nameLength + 1,
+                    start + nameLength, isEnd: false, isEmpty);
                 nextColumn = columnIndex + 1;
                 position = cursor + 1;
                 return true;
@@ -405,6 +410,9 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                // A literal unqualified cell may still be indexed in a prefixed
+                // worksheet, but its namespace and matching close need full XML proof.
+                if (_worksheetPrefixLength != 0) _sheetDataSupportsFastValidation = false;
                 columnIndex = parsedColumn;
                 tag = new Utf8Tag(start, cursor, start + 1, start + 2, start + 1, isEnd: false, isEmpty);
                 nextColumn = parsedColumn + 1;

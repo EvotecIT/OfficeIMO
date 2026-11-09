@@ -1,8 +1,8 @@
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource {
-            // Qualified compact tags only accelerate the existing byte index.
-            // SetWorksheetPrefix still requires complete XML and namespace validation.
+            // Qualified compact tags prove exact body syntax. Character and
+            // inherited namespace proof remain mandatory before publication.
             private bool MatchesPrefixedCompactTag(int start, ReadOnlySpan<byte> tag) {
                 int leadingLength = tag[1] == (byte)'/' ? 2 : 1;
                 int prefixLength = _worksheetPrefixLength;
