@@ -59,6 +59,46 @@ namespace OfficeIMO.Tests {
             Assert.Throws<OperationCanceledException>(() => reader.Read());
         }
 
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        public void LegacyXls_IndexedReaderRejectsCellRecordsCrossingRows(int targetRow) {
+            byte[] xls = CreateDenseIndexedWorkbook(("Data", 1));
+            AssertUsesIndexedDiscovery(xls, "Data");
+            byte[] workbookStream = ReadCompoundStream(xls, "Workbook");
+            bool inWorksheet = false;
+            int cellOffset = -1;
+            int cellLength = 0;
+            for (int offset = 0; offset + 4 <= workbookStream.Length;) {
+                ushort type = ReadUInt16(workbookStream, offset);
+                int length = ReadUInt16(workbookStream, offset + 2);
+                int payloadOffset = offset + 4;
+                Assert.True(length <= workbookStream.Length - payloadOffset);
+                if (type == 0x0809 && length >= 4) {
+                    inWorksheet = ReadUInt16(workbookStream, payloadOffset + 2) == 0x0010;
+                }
+                if (inWorksheet
+                    && (type == 0x00fd || type == 0x027e || type == 0x0203)
+                    && length >= 10
+                    && ReadUInt16(workbookStream, payloadOffset) == targetRow) {
+                    cellOffset = offset;
+                    cellLength = length;
+                    break;
+                }
+                offset = payloadOffset + length;
+            }
+            Assert.True(cellOffset >= 0, "The fixture cell record was not found.");
+            WriteUInt16(workbookStream, cellOffset + 2, checked((ushort)(cellLength + 1)));
+            byte[] mutated = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            Assert.Throws<InvalidDataException>(() => {
+                using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(mutated);
+                while (reader.Read()) {
+                    _ = reader.GetInt32(0);
+                }
+            });
+        }
+
         private static byte[] CreateDenseIndexedWorkbook(
             params (string Name, int FirstValue)[] sheets) {
             using ExcelDocument document = ExcelDocument.Create();

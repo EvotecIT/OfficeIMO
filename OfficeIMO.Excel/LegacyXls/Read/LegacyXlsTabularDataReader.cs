@@ -291,9 +291,16 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             _position = rowStart;
             while (_position < rowEnd) {
                 int recordOffset = _position;
-                ushort type = (ushort)(bytes[recordOffset] | bytes[recordOffset + 1] << 8);
-                int length = bytes[recordOffset + 2] | bytes[recordOffset + 3] << 8;
+                if (rowEnd - recordOffset < sizeof(uint)) {
+                    throw new InvalidDataException("An XLS row ends inside a BIFF record header.");
+                }
+                uint header = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(recordOffset, sizeof(uint)));
+                ushort type = (ushort)header;
+                int length = (int)(header >> 16);
                 int payloadOffset = recordOffset + 4;
+                if (length > rowEnd - payloadOffset) {
+                    throw new InvalidDataException("A BIFF record extends beyond its indexed XLS row boundary.");
+                }
                 _position = payloadOffset + length;
                 if (checkCancellation) {
                     CheckCancellation();
@@ -327,6 +334,9 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     length,
                     ref pendingFormulaOrdinal,
                     ref pendingFormulaStyle);
+            }
+            if (_position > rowEnd) {
+                throw new InvalidDataException("A BIFF record extends beyond its indexed XLS row boundary.");
             }
             if (pendingFormulaOrdinal >= 0) {
                 throw MissingFormulaString();
