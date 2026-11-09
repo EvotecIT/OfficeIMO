@@ -242,15 +242,6 @@ public sealed partial class PdfCreateOptions {
         }
     }
 
-    internal void MarkEmbeddedFallbackFontFamilySlotUsed(PdfStandardFont font) {
-        (_usedEmbeddedFallbackFontSlots ??= new HashSet<PdfStandardFont>()).Add(PdfStandardFontMapper.GetFontFamily(font));
-    }
-
-    internal bool IsEmbeddedFallbackFontFamilySlotUsed(PdfStandardFont font) {
-        return _usedEmbeddedFallbackFontSlots != null &&
-               _usedEmbeddedFallbackFontSlots.Contains(PdfStandardFontMapper.GetFontFamily(font));
-    }
-
     /// <summary>Resolves an inherited body family without replacing explicit presentation slots or their resources.</summary>
     internal bool TryUseInheritedOfficeFontFamily(string? familyName, bool embedSystemFont, bool requireEmbeddedFont,
         bool replaceBodyResources = false) {

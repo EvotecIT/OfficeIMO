@@ -12,8 +12,10 @@ public sealed partial class PdfCreateOptions {
 
     private void MergeResolvedFallbackFontMappingsFrom(PdfCreateOptions nested) {
         MergeResolvedNamedFallbackFontMappingsFrom(nested);
-        if (nested._usedEmbeddedFallbackFontSlots == null || nested._fallbackOwnedFontFamilies == null) return;
-        foreach (PdfStandardFont family in nested._usedEmbeddedFallbackFontSlots.OrderBy(value => value)) {
+        if (nested._fallbackOwnedFontFamilies == null) return;
+        HashSet<PdfStandardFont>? usedSlots = nested.CloneUsedEmbeddedFallbackFontSlots();
+        if (usedSlots == null) return;
+        foreach (PdfStandardFont family in usedSlots.OrderBy(value => value)) {
             if (!nested._fallbackOwnedFontFamilies.Contains(family)) continue;
             if (HasCallerOwnedEmbeddedFontFamily(family))
                 throw new InvalidOperationException("Nested fallback fonts cannot replace a caller-owned font family.");
@@ -63,7 +65,7 @@ public sealed partial class PdfCreateOptions {
                 ClearReportedEmbeddedFontProgramFailure(font);
             }
             _fallbackOwnedFontFamilies.Remove(family);
-            _usedEmbeddedFallbackFontSlots?.Remove(family);
+            RemoveUsedEmbeddedFallbackFontSlot(family);
         }
     }
 }

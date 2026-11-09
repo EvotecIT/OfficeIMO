@@ -27,7 +27,7 @@ public sealed partial class PdfCreateOptions {
         view._diagnosticsReport = null;
         view._suppressDiagnostics = true;
         view._fallbackOwnedFontFamilies = _fallbackOwnedFontFamilies == null ? null : new HashSet<PdfStandardFont>(_fallbackOwnedFontFamilies);
-        view._usedEmbeddedFallbackFontSlots = _usedEmbeddedFallbackFontSlots == null ? null : new HashSet<PdfStandardFont>(_usedEmbeddedFallbackFontSlots);
+        view._usedEmbeddedFallbackFontSlots = CloneUsedEmbeddedFallbackFontSlots();
         view._automaticFallbackOwnedNamedFamilyKeys = _automaticFallbackOwnedNamedFamilyKeys == null ? null : new HashSet<string>(_automaticFallbackOwnedNamedFamilyKeys, StringComparer.Ordinal);
         view._renderingProfileOwnedNamedFamilyNames = _renderingProfileOwnedNamedFamilyNames == null ? null : new HashSet<string>(_renderingProfileOwnedNamedFamilyNames, StringComparer.OrdinalIgnoreCase);
         return view;

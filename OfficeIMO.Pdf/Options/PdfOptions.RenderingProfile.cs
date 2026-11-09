@@ -916,7 +916,7 @@ public sealed partial class PdfCreateOptions {
         _embeddedFontPrograms?.Clear();
         _embeddedOpenTypeCffFontPrograms?.Clear();
         _embeddedFontProgramFailures?.Clear();
-        _usedEmbeddedFallbackFontSlots?.Clear();
+        ClearUsedEmbeddedFallbackFontSlots();
     }
 
     private static Dictionary<string, PdfEmbeddedFontFallbackCandidate[]>?
