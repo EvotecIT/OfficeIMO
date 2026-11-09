@@ -1,6 +1,7 @@
 using System.Data;
 using System.Text;
 using System.Xml;
+using OfficeIMO.Data;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;
@@ -87,6 +88,33 @@ public partial class Excel {
         } finally {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void OpenReader_ParallelPrefixedRangePreservesTextAfterSchemaReplay() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            string xml = PrefixedWorksheetXml("x").Replace("<x:is/>",
+                "<x:is><x:t xml:space=\"preserve\">A&amp;B / München / 🌍\r\nline\rend&#xD;</x:t></x:is>");
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
+                A1Range = "A1:C3", InferSchema = true, SchemaSampleRows = 1
+            });
+            var rows = reader.RowsAsParallel<PrefixedParallelTextRow>(new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2, BatchSize = 2
+            }).ToArray();
+
+            Assert.Equal(new[] { 42, 43 }, rows.Select(row => row.Value));
+            Assert.Equal(new[] { " spaced\r\n🌍 & <text> ", "A&B / München / 🌍\nline\nend\r" },
+                rows.Select(row => row.Text));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    public sealed class PrefixedParallelTextRow {
+        public int Value { get; set; }
+        public string? Text { get; set; }
     }
 
     private static string PrefixedWorksheetXml(string prefix) {

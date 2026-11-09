@@ -179,6 +179,7 @@ namespace OfficeIMO.Excel {
                         }
 
                         ct.ThrowIfCancellationRequested();
+                        candidate._mappingRowsQualified = true;
                         source = candidate;
                         return true;
                     } catch {

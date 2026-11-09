@@ -222,7 +222,7 @@ namespace OfficeIMO.Excel {
             }
 
             _sampledCurrentRow = null;
-            bool hasCurrentRow = _inner.Read();
+            bool hasCurrentRow = !_mappingReplayOnly && _inner.Read();
             SetUtf8TextCursor(hasCurrentRow);
             return hasCurrentRow;
         }
@@ -241,7 +241,7 @@ namespace OfficeIMO.Excel {
             }
 
             _sampledCurrentRow = null;
-            bool hasCurrentRow = await _inner.ReadAsync(cancellationToken).ConfigureAwait(false);
+            bool hasCurrentRow = !_mappingReplayOnly && await _inner.ReadAsync(cancellationToken).ConfigureAwait(false);
             SetUtf8TextCursor(hasCurrentRow);
             return hasCurrentRow;
         }
