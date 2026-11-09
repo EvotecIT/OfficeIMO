@@ -170,6 +170,7 @@ public static partial class ParallelRowMappingExtensions {
         DbDataReader reader,
         ParallelRowMappingOptions? options,
         CancellationToken cancellationToken) {
+        using var linkedCancellation = CreateMappingCancellationToken(reader, cancellationToken, out cancellationToken);
         options ??= new ParallelRowMappingOptions();
         int degreeOfParallelism = options.GetDegreeOfParallelism();
         if (degreeOfParallelism == 1) {
@@ -239,6 +240,7 @@ public static partial class ParallelRowMappingExtensions {
         Action<RowMapper<T>> configure,
         ParallelRowMappingOptions? options,
         CancellationToken cancellationToken) where T : new() {
+        using var linkedCancellation = CreateMappingCancellationToken(reader, cancellationToken, out cancellationToken);
         options ??= new ParallelRowMappingOptions();
         int degreeOfParallelism = options.GetDegreeOfParallelism();
         if (degreeOfParallelism == 1) {
@@ -310,6 +312,7 @@ public static partial class ParallelRowMappingExtensions {
         Func<IDataRecord, T> factory,
         ParallelRowMappingOptions? options,
         CancellationToken cancellationToken) {
+        using var linkedCancellation = CreateMappingCancellationToken(reader, cancellationToken, out cancellationToken);
         options ??= new ParallelRowMappingOptions();
         int degreeOfParallelism = options.GetDegreeOfParallelism();
         if (reader.FieldCount == 0) yield break;
@@ -423,6 +426,11 @@ public static partial class ParallelRowMappingExtensions {
         T[] rows;
         try {
             rows = task.GetAwaiter().GetResult();
+        } catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested &&
+                                                           exception.CancellationToken == stop.Token) {
+            stop.Cancel();
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
         } catch {
             stop.Cancel();
             throw;

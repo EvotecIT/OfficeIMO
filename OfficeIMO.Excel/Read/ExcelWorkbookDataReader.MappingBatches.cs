@@ -8,6 +8,7 @@ public sealed partial class ExcelWorkbookDataReader : IDataReaderParallelBatchSo
     private bool _isOwnedMappingBatch;
     private int _mappingBatchRowCount;
 
+    CancellationToken IDataReaderParallelBatchSource.ParallelBatchCancellationToken => _cancellationToken;
     bool IDataReaderParallelBatchSource.CanReadParallelBatches => false;
     bool IDataReaderTypedParallelBatchSource.CanReadTypedParallelBatches =>
         !_closed && !_isOwnedMappingBatch && _typeConverter is null &&
