@@ -7,7 +7,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<byte> charsets, IReadOnlyList<TextContextRange> contexts,
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphs, LegacyDocStyleSheet stylesheet,
             IReadOnlyDictionary<ushort, int> styleFonts, IReadOnlyDictionary<ushort, ushort> styleLanguages,
-            int defaultFont, ushort defaultLanguage, out bool unsupported) {
+            int defaultFont, ushort defaultLanguage, out bool unsupported,
+            System.Threading.CancellationToken cancellationToken = default) {
             unsupported = false;
             var characters = new LegacyDocTextCharacter[text.Length];
             bool inspectContexts = charsets.Count != 0 || contexts.Count != 0 || styleFonts.Count != 0 || styleLanguages.Count != 0;
@@ -18,10 +19,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int characterIndex = 0;
             int paragraphIndex = 0;
             for (int i = 0; i < text.Length; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 byte value = text[i];
                 int offset = textStart + i;
-                char decoded = LegacyDocPieceTable.DecodeWindows1252(value);
+                char decoded = value switch {
+                    0x1E => LegacyDocSpecialCharacters.NoBreakHyphen,
+                    0x1F => LegacyDocSpecialCharacters.SoftHyphen,
+                    _ => LegacyDocPieceTable.DecodeWindows1252(value)
+                };
                 if (!inspectContexts || value < 0x20 || value == 0x7F || (!mayUseSymbol && value < 0x80)) {
+                    if (value >= 0x80) unsupported |= char.IsControl(decoded) || decoded == '\uFFFD';
                     characters[i] = new LegacyDocTextCharacter(decoded, offset, i);
                     continue;
                 }
@@ -46,6 +53,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         // EASTEUROPE_CHARSET explicitly selects Windows-1250, even when the
                         // document's default language is Western or the font is inherited.
                         decoded = OfficeLegacySingleByteEncoding.DecodeByte(value, 1250);
+                    } else if (charset == 186) {
+                        // BALTIC_CHARSET explicitly selects Windows-1257 for this text run.
+                        decoded = OfficeLegacySingleByteEncoding.DecodeByte(value, 1257);
                     } else if (charset > 1 || (context.FontIndex.HasValue && font >= charsets.Count)) {
                         unsupported = true;
                     } else {
@@ -59,6 +69,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         }
                     }
                 }
+                // A qualified font can replace the initial Western fallback with valid text.
+                // Report omitted controls or replacements only after the final decoding.
+                if (value >= 0x80) unsupported |= char.IsControl(decoded) || decoded == '\uFFFD';
                 characters[i] = new LegacyDocTextCharacter(decoded, offset, i);
             }
 

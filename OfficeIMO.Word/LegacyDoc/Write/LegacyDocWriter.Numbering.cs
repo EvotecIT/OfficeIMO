@@ -166,6 +166,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     && child is not LevelSuffix && child is not IsLegalNumberingStyle && child is not ParagraphStyleIdInLevel)
                     throw new NotSupportedException($"Native DOC saving does not support list level property '{child.LocalName}'.");
             }
+            if (level.NumberingSymbolRunProperties?.GetFirstChild<Highlight>() != null)
+                throw new NotSupportedException("Native DOC saving does not support highlight in numbering symbol properties.");
             string marker = level.LevelText?.Val?.Value ?? "%" + (index + 1) + ".";
             var rawText = new StringBuilder(marker.Length);
             var placeholders = new List<byte>();

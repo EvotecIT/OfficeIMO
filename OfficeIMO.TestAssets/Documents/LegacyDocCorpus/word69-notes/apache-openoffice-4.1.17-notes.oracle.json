@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "fixture": {
+    "collection": "legacy-doc-word-com",
+    "root": "LegacyDocCorpus",
+    "file": "word69-notes/apache-openoffice-4.1.17-notes.doc",
+    "sha256": "16CB066D00C23C7A5C4D02E5CC5CB126E0B692DAFFADA842FFC105BEEBA92822",
+    "bytes": 7168,
+    "gitBlob": "4db72d15ee2288b7398059e9bb0cefdf6afa511e",
+    "wIdent": "0xA5DC",
+    "nFib": 101,
+    "simple": true,
+    "encrypted": false
+  },
+  "rights": "Original neutral fixture text supplied for this repository under its license. No externally copyrighted paper content is included.",
+  "oracle": {
+    "producerAndReader": "Apache OpenOffice Writer4.1.17,4117m2(Build:9818),source49c05bc6fdae1bd506103a6cb9d3feadc397fce1",
+    "basis": "Actualexportedlegacybytes plus independent AOO legacy readback; sourceWord/freshUNOsemantics are not substituted for actuallegacytext",
+    "sourceSemanticPreservation": "WriteraddedTAB beforeeachrawnoteparagraph; sourceconversionlossless=false",
+    "canonicalization": "Remove exactlyoneleadingautomaticU+0002 fromeachbinarynote; preserve everyTAB and bothCRparagraphmarks. Paragrapharraystrings omit only their explicitly separate terminalCR delimiters.",
+    "rangeConvention": "AOO note API omits firstautomaticU+0002 and firstTAB from paragraph1, but returns paragraph2 leadingTAB. AOOraw/canonicalAPItext are identical. Both views and UTF16 span coordinates are recorded.",
+    "formatBoundary": "All8selectedbold/italic spans confirmedfromAOOlegacyreadback. Firstautomaticmarker/firstTAB characterformat not exposedbyAOO, so noformatclaim ismade for them. Paragraphformatrecords donot implyuniformcharacterformat.",
+    "coordinates": "AllrecordedcharactersareASCII. BinaryCP and AOOAPIUTF16coordinates agree numerically for4bodyanchors; this is not a general encodingmapping."
+  },
+  "bodyRawText": "Native notes control.\rFirst footnote anchor F1\u0002 ends here.\rFirst endnote anchor E1\u0002 ends here.\rSecond footnote anchor F2\u0002 ends here.\rSecond endnote anchor E2\u0002 ends here.\rControl body ends.\r\r",
+  "bodyRawUtf8Sha256": "E209D605E5089E4725D695A737A9E015B60A8F381DF8562F2603890A538D51D1",
+  "bodyAnchorOrder": [
+    "F1",
+    "E1",
+    "F2",
+    "E2"
+  ],
+  "storyLengths": {
+    "body": 190,
+    "footnote": 149,
+    "headerFooter": 0,
+    "macro": 0,
+    "annotation": 0,
+    "endnote": 149,
+    "textbox": 0,
+    "headerTextbox": 0
+  },
+  "footnoteSettings": {
+    "PageStyleName": "",
+    "BeginNotice": "",
+    "CharStyleName": "Footnote Symbol",
+    "FootnoteCounting": 2,
+    "StartAt": 0,
+    "Suffix": "",
+    "EndNotice": "",
+    "ParaStyleName": "",
+    "NumberingType": 4,
+    "Prefix": "",
+    "PositionEndOfDoc": false,
+    "AnchorCharStyleName": "Footnote anchor"
+  },
+  "endnoteSettings": {
+    "PageStyleName": "Endnote",
+    "StartAt": 0,
+    "Suffix": "",
+    "ParaStyleName": "",
+    "NumberingType": 4,
+    "Prefix": "",
+    "CharStyleName": "Endnote Symbol",
+    "AnchorCharStyleName": "Endnote anchor"
+  },
+  "notes": [
+    {
+      "key": "F1",
+      "kind": "footnote",
+      "automatic": true,
+      "bodyAnchorCp": 46,
+      "autoDescriptor": 1,
+      "noteStoryCpStart": 0,
+      "noteStoryCpEnd": 74,
+      "binaryRawParagraphs": [
+        "\u0002\tF1 first paragraph has bold text.",
+        "\tF1 second paragraph has italic text."
+      ],
+      "binaryCanonicalParagraphs": [
+        "\tF1 first paragraph has bold text.",
+        "\tF1 second paragraph has italic text."
+      ],
+      "binaryCanonicalParagraphUtf8Sha256": [
+        "B1B127BDC6EC693B5F13B8E5849C6D55F99AD58CE3B33DBD1F82C831F34F0CCA",
+        "51A8BAAE5F098E6C4F591E043B8A7FA48FEE278EE8DA6765DA56C8B60A050659"
+      ],
+      "aooApiRawParagraphs": [
+        "F1 first paragraph has bold text.",
+        "\tF1 second paragraph has italic text."
+      ],
+      "aooApiParagraphUtf8Sha256": [
+        "64A0ED776FC19F36DC59DD90DAE183A03B22FAECC0DC8045D71F8195D192B5D9",
+        "51A8BAAE5F098E6C4F591E043B8A7FA48FEE278EE8DA6765DA56C8B60A050659"
+      ],
+      "paragraphFormatting": [
+        {
+          "styleName": "Footnote",
+          "adjust": 0,
+          "leftMarginHundredthsMm": 499,
+          "rightMarginHundredthsMm": 0,
+          "firstLineIndentHundredthsMm": -499,
+          "topMarginHundredthsMm": 0,
+          "bottomMarginHundredthsMm": 0,
+          "lineSpacing": {
+            "Mode": 0,
+            "Height": 100
+          }
+        },
+        {
+          "styleName": "Footnote",
+          "adjust": 0,
+          "leftMarginHundredthsMm": 499,
+          "rightMarginHundredthsMm": 0,
+          "firstLineIndentHundredthsMm": -499,
+          "topMarginHundredthsMm": 0,
+          "bottomMarginHundredthsMm": 0,
+          "lineSpacing": {
+            "Mode": 0,
+            "Height": 100
+          }
+        }
+      ],
+      "selectedFormatting": [
+        {
+          "paragraphIndex": 0,
+          "text": "bold",
+          "startInBinaryCanonicalParagraphUtf16": 24,
+          "startInAooApiParagraphUtf16": 23,
+          "lengthUtf16": 4,
+          "effectivePortions": [
+            {
+              "text": "bold",
+              "font": "Times New Roman",
+              "sizePoints": 10.0,
+              "weight": 150.0,
+              "posture": "NONE"
+            }
+          ],
+          "coverageConfirmed": true
+        },
+        {
+          "paragraphIndex": 1,
+          "text": "italic",
+          "startInBinaryCanonicalParagraphUtf16": 25,
+          "startInAooApiParagraphUtf16": 25,
+          "lengthUtf16": 6,
+          "effectivePortions": [
+            {
+              "text": "italic",
+              "font": "Times New Roman",
+              "sizePoints": 10.0,
+              "weight": 100.0,
+              "posture": "ITALIC"
+            }
+          ],
+          "coverageConfirmed": true
+        }
+      ]
+    },
+    {
+      "key": "F2",
+      "kind": "footnote",
+      "automatic": true,
+      "bodyAnchorCp": 120,
+      "autoDescriptor": 2,
+      "noteStoryCpStart": 74,
+      "noteStoryCpEnd": 148,
+      "binaryRawParagraphs": [
+        "\u0002\tF2 first paragraph has bold text.",
+        "\tF2 second paragraph has italic text."
+      ],
+      "binaryCanonicalParagraphs": [
+        "\tF2 first paragraph has bold text.",
+        "\tF2 second paragraph has italic text."
+      ],
+      "binaryCanonicalParagraphUtf8Sha256": [
+        "102869649CE060B23236391DB7DA79396136BD5E064EC789394C623CD997107C",
+        "0F40C2AB447FC83B33FAE8016412369B50750E5F13A9EBAA7628CFBAAECA7DEE"
+      ],
+      "aooApiRawParagraphs": [
+        "F2 first paragraph has bold text.",
+        "\tF2 second paragraph has italic text."
+      ],
+      "aooApiParagraphUtf8Sha256": [
+        "361B4010284E5D1C8F096FA4A33776DAAEC3B8623C7C6875FF4F1BD3178EC503",
+        "0F40C2AB447FC83B33FAE8016412369B50750E5F13A9EBAA7628CFBAAECA7DEE"
+      ],
+      "paragraphFormatting": [
+        {
+          "styleName": "Footnote",
+          "adjust": 0,
+          "leftMarginHundredthsMm": 499,
+          "rightMarginHundredthsMm": 0,
+          "firstLineIndentHundredthsMm": -499,
+          "topMarginHundredthsMm": 0,
+          "bottomMarginHundredthsMm": 0,
+          "lineSpacing": {
+            "Mode": 0,
+            "Height": 100
+          }
+        },
+        {
+          "styleName": "Footnote",
+          "adjust": 0,
+          "leftMarginHundredthsMm": 499,
+          "rightMarginHundredthsMm": 0,
+          "firstLineIndentHundredthsMm": -499,
+          "topMarginHundredthsMm": 0,
+          "bottomMarginHundredthsMm": 0,
+          "lineSpacing": {
+            "Mode": 0,
+            "Height": 100
+          }
+        }
+      ],
+      "selectedFormatting": [
+        {
+          "paragraphIndex": 0,
+          "text": "bold",
+          "startInBinaryCanonicalParagraphUtf16": 24,
+          "startInAooApiParagraphUtf16": 23,
+          "lengthUtf16": 4,
+          "effectivePortions": [
+            {
+              "text": "bold",
+              "font": "Times New Roman",
+              "sizePoints": 10.0,
+              "weight": 150.0,
+              "posture": "NONE"
+            }
+          ],
+          "coverageConfirmed": true
+        },
+        {
+          "paragraphIndex": 1,
+          "text": "italic",
+          "startInBinaryCanonicalParagraphUtf16": 25,
+          "startInAooApiParagraphUtf16": 25,
+          "lengthUtf16": 6,
+          "effectivePortions": [
+            {
+              "text": "italic",
+              "font": "Times New Roman",
+              "sizePoints": 10.0,
+              "weight": 100.0,
+              "posture": "ITALIC"
+            }
+          ],
+          "coverageConfirmed": true
+        }
+      ]
+    },
+    {
+      "key": "E1",
+      "kind": "endnote",
+      "automatic": true,
+      "bodyAnchorCp": 82,
+      "autoDescriptor": 1,
+      "noteStoryCpStart": 0,
+      "noteStoryCpEnd": 74,
+      "binaryRawParagraphs": [
+        "\u0002\tE1 first paragraph has bold text.",
+        "\tE1 second paragraph has italic text."
+      ],
+      "binaryCanonicalParagraphs": [
+        "\tE1 first paragraph has bold text.",
+        "\tE1 second paragraph has italic text."
+      ],
+      "binaryCanonicalParagraphUtf8Sha256": [
+        "48AF1D0189DB1876B87B9C861DAC30C4ADFF80A8D59864B8DF71F37207F0A389",
+        "F707E4F730927BF417EBFA9175E2675D9DDF3C34AE1FEDBD477D6CB5D0FC8C76"
+      ],
+      "aooApiRawParagraphs": [
+        "E1 first paragraph has bold text.",
+        "\tE1 second paragraph has italic text."
+      ],
+      "aooApiParagraphUtf8Sha256": [
+        "2B74F1D444FB4438D6CAA92C33BDA15EAECD78829BC47C165B4791F02D22B504",
+        "F707E4F730927BF417EBFA9175E2675D9DDF3C34AE1FEDBD477D6CB5D0FC8C76"
+      ],
+      "paragraphFormatting": [
+        {
+          "styleName": "Endnote",
+          "adjust": 0,
+          "leftMarginHundredthsMm": 499,
+          "rightMarginHundredthsMm": 0,
+          "firstLineIndentHundredthsMm": -499,
+          "topMarginHundredthsMm": 0,
+          "bottomMarginHundredthsMm": 0,
+          "lineSpacing": {
+            "Mode": 0,
+            "Height": 100
+          }
+        },
+        {
+          "styleName": "Endnote",
+          "adjust": 0,
+          "leftMarginHundredthsMm": 499,
+          "rightMarginHundredthsMm": 0,
+          "firstLineIndentHundredthsMm": -499,
+          "topMarginHundredthsMm": 0,
+          "bottomMarginHundredthsMm": 0,
+          "lineSpacing": {
+            "Mode": 0,
+            "Height": 100
+          }
+        }
+      ],
+      "selectedFormatting": [
+        {
+          "paragraphIndex": 0,
+          "text": "bold",
+          "startInBinaryCanonicalParagraphUtf16": 24,
+          "startInAooApiParagraphUtf16": 23,
+          "lengthUtf16": 4,
+          "effectivePortions": [
+            {
+              "text": "bold",
+              "font": "Times New Roman",
+              "sizePoints": 10.0,
+              "weight": 150.0,
+              "posture": "NONE"
+            }
+          ],
+          "coverageConfirmed": true
+        },
+        {
+          "paragraphIndex": 1,
+          "text": "italic",
+          "startInBinaryCanonicalParagraphUtf16": 25,
+          "startInAooApiParagraphUtf16": 25,
+          "lengthUtf16": 6,
+          "effectivePortions": [
+            {
+              "text": "italic",
+              "font": "Times New Roman",
+              "sizePoints": 10.0,
+              "weight": 100.0,
+              "posture": "ITALIC"
+            }
+          ],
+          "coverageConfirmed": true
+        }
+      ]
+    },
+    {
+      "key": "E2",
+      "kind": "endnote",
+      "automatic": true,
+      "bodyAnchorCp": 157,
+      "autoDescriptor": 2,
+      "noteStoryCpStart": 74,
+      "noteStoryCpEnd": 148,
+      "binaryRawParagraphs": [
+        "\u0002\tE2 first paragraph has bold text.",
+        "\tE2 second paragraph has italic text."
+      ],
+      "binaryCanonicalParagraphs": [
+        "\tE2 first paragraph has bold text.",
+        "\tE2 second paragraph has italic text."
+      ],
+      "binaryCanonicalParagraphUtf8Sha256": [
+        "71B9B6DFA8090DFAF39B895DAC51129F52B4368E450DC74C1FD4C653C38B0A11",
+        "43ABBBB36EC46E3A3A118C80487E628B911C1645C624CDD4964211FF2EF32518"
+      ],
+      "aooApiRawParagraphs": [
+        "E2 first paragraph has bold text.",
+        "\tE2 second paragraph has italic text."
+      ],
+      "aooApiParagraphUtf8Sha256": [
+        "F5F9B8E6AA019F0F2734A74F8BF51C099D03F8A9B2D56D6F6148EC551723F965",
+        "43ABBBB36EC46E3A3A118C80487E628B911C1645C624CDD4964211FF2EF32518"
+      ],
+      "paragraphFormatting": [
+        {
+          "styleName": "Endnote",
+          "adjust": 0,
+          "leftMarginHundredthsMm": 499,
+          "rightMarginHundredthsMm": 0,
+          "firstLineIndentHundredthsMm": -499,
+          "topMarginHundredthsMm": 0,
+          "bottomMarginHundredthsMm": 0,
+          "lineSpacing": {
+            "Mode": 0,
+            "Height": 100
+          }
+        },
+        {
+          "styleName": "Endnote",
+          "adjust": 0,
+          "leftMarginHundredthsMm": 499,
+          "rightMarginHundredthsMm": 0,
+          "firstLineIndentHundredthsMm": -499,
+          "topMarginHundredthsMm": 0,
+          "bottomMarginHundredthsMm": 0,
+          "lineSpacing": {
+            "Mode": 0,
+            "Height": 100
+          }
+        }
+      ],
+      "selectedFormatting": [
+        {
+          "paragraphIndex": 0,
+          "text": "bold",
+          "startInBinaryCanonicalParagraphUtf16": 24,
+          "startInAooApiParagraphUtf16": 23,
+          "lengthUtf16": 4,
+          "effectivePortions": [
+            {
+              "text": "bold",
+              "font": "Times New Roman",
+              "sizePoints": 10.0,
+              "weight": 150.0,
+              "posture": "NONE"
+            }
+          ],
+          "coverageConfirmed": true
+        },
+        {
+          "paragraphIndex": 1,
+          "text": "italic",
+          "startInBinaryCanonicalParagraphUtf16": 25,
+          "startInAooApiParagraphUtf16": 25,
+          "lengthUtf16": 6,
+          "effectivePortions": [
+            {
+              "text": "italic",
+              "font": "Times New Roman",
+              "sizePoints": 10.0,
+              "weight": 100.0,
+              "posture": "ITALIC"
+            }
+          ],
+          "coverageConfirmed": true
+        }
+      ]
+    }
+  ],
+  "nativeExitLimitation": "Exportcall returned and independentlegacyreadback completed; hashesmatchbefore/afterreadback. Clientexit0, serverSIGSEGVduringVCLImage/Bitmap/sidebarTheme staticfinalization afterclose/terminate; zeroownedprocesssurvivors. No cleanserverexit claim.",
+  "scope": "Automaticfootnotes/endnotes with4anchors,2paragraphseach and8selectedformatspans foractualFIB101input. No claimforcustomlabels/advancedsettings/FIB104endnotes."
+}

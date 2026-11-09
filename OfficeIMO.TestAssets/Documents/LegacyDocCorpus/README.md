@@ -7,6 +7,14 @@ The corpus includes Microsoft Word COM fixtures and an unchanged OpenOffice
 Word 6 fixture distributed by Apache POI. Its pinned source, license and profile
 are recorded in [Bug60936.provenance.md](apache-poi-word69/Bug60936.provenance.md).
 
+The [automatic-note fixture](word69-notes/apache-openoffice-4.1.17-notes.doc)
+is independently produced by Apache OpenOffice Writer 4.1.17 in the Word 6
+format. Its [provenance and reproduction details](word69-notes/apache-openoffice-4.1.17-notes.provenance.json)
+and [actual-input oracle](word69-notes/apache-openoffice-4.1.17-notes.oracle.json)
+record both note kinds, anchors, paragraph boundaries, literal tabs and selected
+formatting. The oracle distinguishes the exported binary content from the
+producer's text API conventions.
+
 For each `sample.doc`, keep an approved `sample.import-report.md` generated from
 `LegacyDocImportReport.ToMarkdown()`. The corpus test compares the current import
 report against the approved baseline so parser, projection, diagnostics, and

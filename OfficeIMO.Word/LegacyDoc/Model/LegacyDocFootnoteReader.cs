@@ -41,7 +41,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
             out string? warning,
-            LegacyDocFieldMetadataReader? fieldMetadata = null) {
+            LegacyDocFieldMetadataReader? fieldMetadata = null,
+            System.Threading.CancellationToken cancellationToken = default) {
             warning = null;
             if (fib.CcpFtn == 0) {
                 return Array.Empty<LegacyDocFootnote>();
@@ -65,6 +66,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int footnoteCount = referencePositions.Length;
             var footnotes = new List<LegacyDocFootnote>(footnoteCount);
             for (int index = 0; index < footnoteCount; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int startCharacter = textPositions[index];
                 int endCharacter = textPositions[index + 1];
                 if (endCharacter <= startCharacter) {
@@ -78,7 +80,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     formattingRanges,
                     paragraphFormattingRanges,
                     bookmarkProjection,
-                    picturesByCharacterPosition, fieldMetadata);
+                    picturesByCharacterPosition, fieldMetadata, cancellationToken: cancellationToken);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -98,7 +100,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
             out string? warning,
-            LegacyDocFieldMetadataReader? fieldMetadata = null) {
+            LegacyDocFieldMetadataReader? fieldMetadata = null,
+            System.Threading.CancellationToken cancellationToken = default) {
             warning = null;
             if (fib.CcpEdn == 0) {
                 return Array.Empty<LegacyDocEndnote>();
@@ -122,6 +125,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int endnoteCount = referencePositions.Length;
             var endnotes = new List<LegacyDocEndnote>(endnoteCount);
             for (int index = 0; index < endnoteCount; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int startCharacter = textPositions[index];
                 int endCharacter = textPositions[index + 1];
                 if (endCharacter <= startCharacter) {
@@ -135,7 +139,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     formattingRanges,
                     paragraphFormattingRanges,
                     bookmarkProjection,
-                    picturesByCharacterPosition, fieldMetadata);
+                    picturesByCharacterPosition, fieldMetadata, cancellationToken: cancellationToken);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -256,7 +260,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
-            LegacyDocFieldMetadataReader? fieldMetadata = null) {
+            LegacyDocFieldMetadataReader? fieldMetadata = null,
+            bool orderedFormattingRanges = false,
+            bool preserveExplicitEmptyParagraphs = false,
+            System.Threading.CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (endCharacter <= startCharacter) {
                 return Array.Empty<LegacyDocNoteParagraph>();
             }
@@ -283,6 +291,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool preserveEmptyParagraph = false;
 
             for (int index = 0; index < storyCharacters.Length; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 LegacyDocTextCharacter character = storyCharacters[index];
 
                 if (LegacyDocPictureReader.TryCreatePictureRun(
@@ -468,7 +477,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat = paragraphFormat.WithParagraphMarkFormat(paragraphMarkFormat);
                     }
 
-                    preserveEmptyParagraph = laterContent[index + 1];
+                    preserveEmptyParagraph = preserveExplicitEmptyParagraphs || laterContent[index + 1];
                     AddCurrentParagraph(paragraphFormat, character.CharacterPosition, isFinalParagraph: false);
                     isFirstParagraph = false;
                     atParagraphStart = true;
@@ -491,6 +500,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             AddCurrentParagraph(LegacyDocParagraphFormat.Default, endCharacter, isFinalParagraph: true);
             return paragraphs;
+
+            LegacyDocCharacterFormat GetFormatForFileOffset(IReadOnlyList<LegacyDocCharacterFormatRange> ranges, int offset) =>
+                LegacyDocDocument.GetFormatForFileOffset(ranges, offset, orderedFormattingRanges);
+
+            LegacyDocParagraphFormat GetParagraphFormatForFileOffset(IReadOnlyList<LegacyDocParagraphFormatRange> ranges, int offset) =>
+                LegacyDocDocument.GetParagraphFormatForFileOffset(ranges, offset, orderedFormattingRanges);
 
             void AppendRunCharacter(char value, LegacyDocCharacterFormat format, int characterPosition, LegacyDocHyperlinkTarget hyperlinkTarget) {
                 if (!hasCurrentRun
@@ -657,26 +672,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 runText.Clear();
                 runCharacterPositions.Clear();
             }
-        }
-
-        private static LegacyDocCharacterFormat GetFormatForFileOffset(IReadOnlyList<LegacyDocCharacterFormatRange> ranges, int fileOffset) {
-            for (int i = 0; i < ranges.Count; i++) {
-                if (ranges[i].Contains(fileOffset)) {
-                    return ranges[i].Format;
-                }
-            }
-
-            return LegacyDocCharacterFormat.Default;
-        }
-
-        private static LegacyDocParagraphFormat GetParagraphFormatForFileOffset(IReadOnlyList<LegacyDocParagraphFormatRange> ranges, int fileOffset) {
-            for (int i = 0; i < ranges.Count; i++) {
-                if (ranges[i].Contains(fileOffset)) {
-                    return ranges[i].Format;
-                }
-            }
-
-            return LegacyDocParagraphFormat.Default;
         }
 
         private static bool[] GetLaterNoteParagraphContent(IReadOnlyList<LegacyDocTextCharacter> characters) {

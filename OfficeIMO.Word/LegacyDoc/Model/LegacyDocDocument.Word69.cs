@@ -4,9 +4,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     internal sealed partial class LegacyDocDocument {
         internal bool IsWord69 { get; private set; }
 
-        private void LoadWord69(OfficeCompoundFile compoundFile, byte[] bytes, LegacyDocImportOptions options) {
+        private void LoadWord69(OfficeCompoundFile compoundFile, byte[] bytes, LegacyDocImportOptions options,
+            System.Threading.CancellationToken cancellationToken = default) {
             IsWord69 = true;
-            if (!LegacyWord69Reader.TryRead(bytes, options, out var imported, out string? errorCode, out string? error)) {
+            if (!LegacyWord69Reader.TryRead(bytes, options, out var imported, out string? errorCode, out string? error, cancellationToken)) {
                 AddError(errorCode!, error!);
                 return;
             }
@@ -20,12 +21,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Sections = model.Sections;
             SectionFormat = Sections.Count == 0 ? LegacyDocSectionFormat.Default : Sections[0].Format;
             HeaderFooterStories = model.HeaderFooterStories;
+            Footnotes = model.Footnotes;
+            Endnotes = model.Endnotes;
             DifferentOddAndEvenPages = model.DifferentOddAndEvenPages;
             var bookmarks = new LegacyDocBookmarkProjectionTracker(Array.Empty<LegacyDocBookmark>());
             Text = BuildFormattedParagraphs(model.Body, model.Characters, model.Paragraphs,
                 Sections, bookmarks, new Dictionary<int, LegacyDocPicture>(),
                 options.ReportUnsupportedContent, orderedFormattingRanges: true, fieldMetadata: model.FieldMetadata);
             AddFieldMetadataDiagnostics(model.FieldMetadata, options.ReportUnsupportedContent);
+            cancellationToken.ThrowIfCancellationRequested();
 
             foreach (var finding in model.Findings) {
                 AddUnsupportedFeature(finding, options.ReportUnsupportedContent);

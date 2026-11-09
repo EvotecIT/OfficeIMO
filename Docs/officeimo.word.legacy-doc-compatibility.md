@@ -8,9 +8,32 @@ Native DOC uses the legacy behavior for a manual page break at the end of a para
 
 ## Import Word 6 and Word 95 documents
 
-Load an unencrypted, non-fast-saved Word 6 or Word 95 document with `WordDocument.Load`. The supported File Information Block versions are 101 and 104. Windows-1252 text and text whose active font selects Windows-1250 through `EASTEUROPE_CHARSET` (238) are decoded through the same source model, including inherited fonts and running stories. Czech language identifier `0x0405` also selects Windows-1250 when the active font leaves its charset unresolved (0 or 1). The unchanged OpenOffice-produced `Bug60936.doc` fixture qualifies this Central European text recovery; its unrelated unsupported formatting and bookmarks still require an explicit loss policy. Other font code pages and non-Western language fallbacks remain outside this profile. Import projects body paragraphs, paragraph styles and their inheritance, character formatting, simple tables, tracked text revisions, and the default tab stop into editable Word content. Edit-protected files are rejected.
+Load an unencrypted, non-fast-saved Word 6 or Word 95 document with `WordDocument.Load`. The supported File Information Block versions are 101 and 104. Edit-protected files are rejected.
+
+Text recovery supports Windows-1252 and active fonts that select Windows-1250 through `EASTEUROPE_CHARSET` (238) or Windows-1257 through `BALTIC_CHARSET` (186), including inherited fonts and running stories. Czech language identifier `0x0405` also selects Windows-1250 when the active font leaves its charset unresolved (0 or 1). Symbol fonts, other font code pages and unqualified language fallbacks remain outside this profile. The unchanged OpenOffice-produced `Bug60936.doc` fixture qualifies the Central European text recovery; its unrelated unsupported formatting and bookmarks still require an explicit loss policy.
+
+Import projects body paragraphs, paragraph styles and their inheritance, character formatting, simple tables, tracked text revisions, and the default tab stop into editable Word content.
 
 Section layout retains supported section starts, paper dimensions, orientation, margins, gutter, header/footer distances, columns, vertical alignment and page-number settings. Default, first-page and even-page headers and footers retain supported paragraphs, tables and fields. Running stories use the source document's formatting and font-code-page checks. Explicit paragraph tabs, spacing, and supported single, double, dotted and dashed paragraph/table borders remain editable. Paragraph border clears, border shadows, thick borders and range-based tab changes are reported as unsupported formatting.
+
+Automatic footnotes and endnotes retain their body references, multiple paragraphs, literal spaces and tabs, and supported paragraph and run formatting through the existing `FootNotes`, `EndNotes` and `Inspect()` APIs. Common document note settings retain supported numbering formats, starting values, restart rules and placement. Cached note fields use the same supported instruction and lock grammar as other stories. Custom note marks, additional note-reference markers, note tables and unprojected separator stories retain explicit loss diagnostics; unsupported numbering or placement reports `doc-word69-note-settings`.
+
+Use a note's `TextParagraphs` for visible text grouped by top-level paragraph, including blank paragraphs, tabs and cached field results. Its `Paragraphs` collection exposes live run handles for editing, so several entries can belong to the same paragraph. Both properties return `null` when the referenced ordinary note body cannot be resolved.
+
+Legacy nonbreaking (`0x1E`) and discretionary (`0x1F`) hyphens retain U+2011 and
+U+00AD in body and note text, including their original source positions.
+Automatic hyphenation and line layout have separate contracts.
+
+The Core decoder retains every Windows-1257 table value, including the private-use
+round-trip values U+F8FC/U+F8FD for bytes `0xA1`/`0xA5`. After resolving the active
+code page, the Word visible-text profile reports decoded C1 controls
+(U+0080–U+009F) or U+FFFD as `doc-word69-text-codepage-unsupported`; strict saving
+blocks the reported loss. This covers undefined Windows-1250/1252/1257 slots
+that decode to those values, including the Western fallback when font metadata
+is absent. Font charset 0 or 1 with an unqualified language fallback retains its
+loss report. Decoded code points alone do not qualify their font appearance.
+
+The [independent Word 6 note fixture](../OfficeIMO.TestAssets/Documents/LegacyDocCorpus/word69-notes/apache-openoffice-4.1.17-notes.oracle.json) qualifies both note kinds, anchors, multiple paragraphs, literal tabs and selected formatting in the actual binary input. Independent Word 95 qualification covers automatic footnotes. Word 95 endnotes have binary-grammar regression coverage; qualification against an independently produced original remains [open](ROADMAP.md#legacy-word-note-qualification).
 
 Supported page-count, date/time, document-property, `FILENAME` and `STYLEREF` fields retain their editable representation. Filename and style references retain the source instruction, switches and cached text. Cached result runs retain their formatting and revision marks in DOCX. A style reference without a matching projected source style is reported explicitly. Unsupported or localized field instructions retain cached text under an explicit loss policy. Import does not evaluate fields.
 
@@ -23,7 +46,7 @@ Declared field tables retain supported field locks in body and header/footer sto
     using WordDocument document = WordDocument.Load("archive.doc");
     document.Save("editable.docx");
 
-Save to a separate DOCX path. Word 6/95 sources have no associated save path and binary DOC output is unavailable for those documents. Review `LegacyDocUnsupportedFeatures` before conversion. Strict DOCX saving blocks when the reader reports lost content, including pictures, embedded objects, footnotes/endnotes, comments, text boxes, legacy numbering, unsupported formatting, or text that uses another font code page. Set `WordSaveOptions.AllowLoss` to `true` only when those reported losses are acceptable.
+Save to a separate DOCX path. Word 6/95 sources have no associated save path and binary DOC output is unavailable for those documents. Review `LegacyDocUnsupportedFeatures` before conversion. Strict DOCX saving blocks when the reader reports lost content, including pictures, embedded objects, unqualified note content or settings, comments, text boxes, legacy numbering, unsupported formatting, or text that uses another font code page. Set `WordSaveOptions.AllowLoss` to `true` only when those reported losses are acceptable.
 
 ## Normal API
 
@@ -127,6 +150,8 @@ Table layout retains each format's default. A DOC table without an AutoFit flag 
 The writer also covers supported inline pictures and inset source crops. `OptimizeImages` can downsample or recompress their projected media before a native DOC save. Default fonts and Normal style formatting are materialized in the native stylesheet, including multiple, exact and at-least line spacing. Exact line spacing accepts 1–31,680 twips; exact zero is unrepresentable in DOC and is rejected before writing output. Paragraph boundaries are retained even when adjacent paragraphs have identical formatting.
 
 Paragraph and style pagination flags retain explicit false values as well as true values. This includes page-break-before, keep-with-next, keep-lines-together, widow/orphan control, contextual spacing, line-number suppression, hyphenation suppression, and mirrored indentation. Direct outline levels retain values 0–9, including body text (9); built-in Heading styles retain their required heading levels. These are file-format preservation contracts; fixed-layout export has separate rendering limits.
+
+Direct run and paragraph-mark highlighting retain their formatting. Word's style and numbering-symbol properties do not permit highlight. Prohibited highlight detected in a Word 97–2003 paragraph style reports `doc-stylesheet-invalid` and the `doc-style-highlight-unsupported` omission. Source list-marker highlight reports `doc-numbering-marker-format-unsupported`. The importer retains other supported formatting. Saving these imports as DOCX requires an explicit loss policy. Native DOC saving rejects highlight in style or numbering-symbol properties before changing the destination.
 
 Page setup retains section gutter widths and right-edge gutter settings. Document options retain the default tab interval, mirrored margins and top gutters alongside revision tracking and odd/even header selection.
 

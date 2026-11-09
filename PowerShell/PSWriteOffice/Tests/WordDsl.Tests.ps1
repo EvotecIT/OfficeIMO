@@ -1376,28 +1376,71 @@ Describe 'Word DSL surface' {
         }
     }
 
-    It 'adds and reads footnotes and endnotes in the DSL' {
+    It 'adds and reads formatted footnotes and endnotes through the existing Word sources' {
         $path = Join-Path $TestDrive 'DslNotes.docx'
 
         New-OfficeWord -Path $path {
             WordParagraph {
-                WordText 'Availability is calculated from successful health probes'
                 WordFootnote -Text 'Probe data excludes planned maintenance windows.'
+                WordText 'Availability is calculated from successful health probes'
             }
 
             WordParagraph {
                 WordText 'The appendix keeps the full scoring details'
                 WordEndnote -Text 'Scoring uses freshness, severity, and service ownership weights.'
+                WordText ' after the note reference'
             }
         } | Out-Null
 
-        $footnotes = @(Get-OfficeWordFootnote -Path $path)
-        $endnotes = @(Get-OfficeWordEndnote -Path $path)
+        $document = Open-OfficeWord -LiteralPath $path
+        try {
+            $initialTexts = @(
+                'Probe data excludes planned maintenance windows.',
+                'Scoring uses freshness, severity, and service ownership weights.'
+            )
+            $notes = @($document.FootNotes[0], $document.EndNotes[0])
+            for ($index = 0; $index -lt $notes.Count; $index++) {
+                $initialText = $initialTexts[$index]
+                $textRun = @($notes[$index].Paragraphs | Where-Object Text -eq $initialText)[0]
+                $textRun.SetText("`t" + $initialText) | Out-Null
+                $emphasis = $textRun.AddText(' emphasis')
+                $emphasis.Bold = $true
+                $tail = $emphasis.AddText(' tail')
+                $empty = $tail.AddParagraph('')
+                $empty.AddParagraph(" `t ") | Out-Null
+            }
+            Save-OfficeWord -Document $document -Path $path
 
-        $footnotes.Count | Should -Be 1
-        $endnotes.Count | Should -Be 1
-        $footnotes[0].Text | Should -Match 'Probe data excludes planned maintenance windows'
-        $endnotes[0].Text | Should -Match 'Scoring uses freshness'
+            $sources = @(
+                @{ Path = $path },
+                @{ LiteralPath = $path },
+                @{ Document = $document },
+                @{ Section = $document.Sections[0] }
+            )
+            foreach ($source in $sources) {
+                $footnotes = @(Get-OfficeWordFootnote @source)
+                $endnotes = @(Get-OfficeWordEndnote @source)
+                $footnotes.Count | Should -Be 1
+                $endnotes.Count | Should -Be 1
+                $actualNotes = @($footnotes[0], $endnotes[0])
+                for ($index = 0; $index -lt $actualNotes.Count; $index++) {
+                    $expectedParagraphs = @(
+                        ("`t" + $initialTexts[$index] + ' emphasis tail'),
+                        '',
+                        " `t "
+                    )
+                    $actualNotes[$index].Paragraphs.Count | Should -Be 3
+                    for ($paragraphIndex = 0; $paragraphIndex -lt $expectedParagraphs.Count; $paragraphIndex++) {
+                        $actualNotes[$index].Paragraphs[$paragraphIndex] | Should -BeExactly $expectedParagraphs[$paragraphIndex]
+                    }
+                    $actualNotes[$index].Text | Should -BeExactly ($expectedParagraphs -join [Environment]::NewLine)
+                }
+                $footnotes[0].ParentText | Should -BeExactly 'Availability is calculated from successful health probes'
+                $endnotes[0].ParentText | Should -BeExactly 'The appendix keeps the full scoring details after the note reference'
+            }
+        } finally {
+            Close-OfficeWord -Document $document
+        }
 
         $entries = @(Get-ZipEntriesLocal -Path $path)
         $entries | Should -Contain 'word/footnotes.xml'

@@ -50,11 +50,17 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.StartsWith("word-footnote-", noteLink.Location.BlockAnchor, StringComparison.Ordinal);
         Assert.Contains(result.Blocks, block => block.Kind == "footnote" && block.Text.Contains("Footnote detail", StringComparison.Ordinal));
         Assert.Contains(result.Blocks, block => block.Kind == "endnote" && block.Text.Contains("Endnote detail", StringComparison.Ordinal));
+        Assert.NotNull(result.Markdown);
+        Assert.Contains("Footnote detail", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains("Endnote detail", result.Markdown, StringComparison.Ordinal);
         Assert.Contains("officeimo.word.inspection-snapshot", result.CapabilitiesUsed);
 
         stream.Position = 0;
         OfficeDocumentReadResult withoutNotes = OfficeIMO.Reader.Tests.ReaderTestReaders.Word(includeFootnotes: false).ReadDocument(stream, "policy.docx");
         Assert.DoesNotContain(withoutNotes.Blocks, block => block.Kind == "footnote" || block.Kind == "endnote");
+        Assert.NotNull(withoutNotes.Markdown);
+        Assert.DoesNotContain("Footnote detail", withoutNotes.Markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("Endnote detail", withoutNotes.Markdown, StringComparison.Ordinal);
     }
 
     [Fact]

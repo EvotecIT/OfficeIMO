@@ -10,7 +10,8 @@ $workloads = @{}
 New-BenchmarkSuite 'officeimo-migration' {
     Set-BenchmarkPolicy -Warmup 2 -Iteration 5 -Order Rotated -OutlierMode None -MemoryCleanup BeforeIteration
     Add-BenchmarkMetadata Contract 'Matched deterministic inputs supported by baseline and candidate. LoadInspect includes full public load and inspection/read materialization. ConvertSave includes load plus ordinary owner conversion/save. Complete ordered semantics, diagnostics and saved artifact/schema validation occur outside the measured operation. DBX SearchContent separately measures eager content search. Synthetic scale inputs are not independent-producer compatibility evidence.'
-    Add-BenchmarkMetadata Scales 'Word69 shared-FKP runs and OfficeXml mapped-property paragraphs: 100/1000/10000; Biff4 finding-heavy rows and XF declarations: 1000/4000/16000; IWork09 shared-image drawables and Dbx indexed messages: 6/64/512.'
+    Add-BenchmarkMetadata Scales 'Word69 shared-FKP runs and OfficeXml mapped-property paragraphs: 100/1000/10000; opt-in Word69Notes/Word95Notes: 10/100/1000 total alternating footnotes/endnotes; Biff4 finding-heavy rows and XF declarations: 1000/4000/16000; IWork09 shared-image drawables and Dbx indexed messages: 6/64/512.'
+    Add-BenchmarkMetadata NoteComparison 'Word69Notes and Word95Notes require complete note recovery. Compare them only against a qualified note-preserving feature baseline; an older reader that omits notes is not an equivalent-work performance baseline. The original Word69 control remains unchanged.'
     Add-BenchmarkMetadata Diagnostics 'Every supported result is fully validated. BIFF4 retains all per-cell finding locations followed by one global number-format finding; known loss is explicitly accepted for XLSX conversion. Legacy iWork09 explicitly permits the existing content-limited diagnostic under partial editable policy while validating every selected image; the other common workloads require their exact declared diagnostic contract.'
     Add-BenchmarkMetadata Measurement 'PowerForge operation elapsed time and managed allocation include the invocation boundary. Input generation, expected values and result validation are outside timing. Retained managed observations and sampled process maxima are separate opt-in cohorts; sampled maxima are observed lower bounds and include the host/observer.'
     Add-BenchmarkMetadata Placement 'One applied affinity domain per cohort. An omitted affinity mask inherits placement and does not qualify per-domain behavior. Use identical masks, policy and isolated fresh processes for all revisions.'
@@ -27,6 +28,7 @@ New-BenchmarkSuite 'officeimo-migration' {
             foreach ($size in $scales) {
                 $index = @('Small', 'Medium', 'Large').IndexOf($size)
                 $units = switch ($family) {
+                    { $_ -in 'Word69Notes', 'Word95Notes' } { @(10, 100, 1000)[$index] }
                     Biff4 { @(1000, 4000, 16000)[$index] }
                     { $_ -in 'IWork09', 'Dbx' } { @(6, 64, 512)[$index] }
                     default { @(100, 1000, 10000)[$index] }

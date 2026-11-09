@@ -734,8 +734,11 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(styleRunProperties.GetFirstChild<NoProof>());
             Assert.NotNull(styleRunProperties.GetFirstChild<Caps>());
             Assert.Equal(UnderlineValues.Single, styleRunProperties.GetFirstChild<Underline>()?.Val?.Value);
-            Assert.Equal(HighlightColorValues.Yellow, styleRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
             Assert.Equal(VerticalPositionValues.Superscript, styleRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
+
+            using var saved = new MemoryStream(result.Document.ToBytes(WordFileFormat.Docx), writable: false);
+            using WordprocessingDocument reopened = WordprocessingDocument.Open(saved, isEditable: false);
+            Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(reopened));
         }
 
         [Fact]
@@ -1221,23 +1224,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomStyleLevelUnderlineHighlightAndCharacterSpacing() {
-            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithCustomStyleLevelUnderlineAndHighlight();
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomStyleLevelUnderlineAndCharacterSpacing() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithCustomStyleLevelUnderlineAndCharacterSpacing();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
             result.EnsureNoImportErrors();
             WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
-            Assert.Equal("style underline highlight", paragraph.Text);
-            Assert.Equal("LegacyDocUnderlineHighlight", paragraph.StyleId);
+            Assert.Equal("style underline spacing", paragraph.Text);
+            Assert.Equal("LegacyDocUnderlineSpacing", paragraph.StyleId);
 
             Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
-            Style style = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == "LegacyDocUnderlineHighlight");
+            Style style = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == "LegacyDocUnderlineSpacing");
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(style.StyleRunProperties);
             Underline underline = Assert.IsType<Underline>(runProperties.GetFirstChild<Underline>());
             Assert.Equal(UnderlineValues.Single, underline.Val!.Value);
-            Highlight highlight = Assert.IsType<Highlight>(runProperties.GetFirstChild<Highlight>());
-            Assert.Equal(HighlightColorValues.Yellow, highlight.Val!.Value);
             Spacing spacing = Assert.IsType<Spacing>(runProperties.GetFirstChild<Spacing>());
             Assert.Equal(80, spacing.Val!.Value);
         }
@@ -1289,8 +1290,6 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(runProperties.GetFirstChild<NoProof>());
             Underline underline = Assert.IsType<Underline>(runProperties.GetFirstChild<Underline>());
             Assert.Equal(UnderlineValues.Single, underline.Val!.Value);
-            Highlight highlight = Assert.IsType<Highlight>(runProperties.GetFirstChild<Highlight>());
-            Assert.Equal(HighlightColorValues.Yellow, highlight.Val!.Value);
             Color color = Assert.IsType<Color>(runProperties.GetFirstChild<Color>());
             Assert.Equal("336699", color.Val!.Value);
             FontSize fontSize = Assert.IsType<FontSize>(runProperties.GetFirstChild<FontSize>());
@@ -7021,22 +7020,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleUnderlineHighlightAndCharacterSpacingAndReloadsThroughLegacyReader() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleUnderlineAndCharacterSpacingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-            const string styleId = "NativeDocUnderlineHighlightStyle";
-            const string projectedStyleId = "LegacyDocNativeDOCUnderlineHighlightStyle";
+            const string styleId = "NativeDocUnderlineSpacingStyle";
+            const string projectedStyleId = "LegacyDocNativeDOCUnderlineSpacingStyle";
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
-                    style.Append(new StyleName { Val = "Native DOC Underline Highlight Style" });
+                    style.Append(new StyleName { Val = "Native DOC Underline Spacing Style" });
                     style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
                     style.Append(new StyleRunProperties(
-                        new Underline { Val = UnderlineValues.Single },
-                        new Highlight { Val = HighlightColorValues.Yellow },
-                        new Spacing { Val = 80 }));
+                        new Spacing { Val = 80 },
+                        new Underline { Val = UnderlineValues.Single }));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
-                    document.AddParagraph("Styled underline highlight").SetStyleId(styleId);
+                    document.AddParagraph("Styled underline spacing").SetStyleId(styleId);
 
                     document.Save(docPath);
                 }
@@ -7046,9 +7044,6 @@ namespace OfficeIMO.Tests {
                     ContainsBytePattern(tableStream, 0x3E, 0x2A, 0x01),
                     "Expected the native DOC stylesheet stream to contain sprmCKul for custom paragraph style underline.");
                 Assert.True(
-                    ContainsBytePattern(tableStream, 0x0C, 0x2A, 0x07),
-                    "Expected the native DOC stylesheet stream to contain sprmCHighlight for custom paragraph style highlight.");
-                Assert.True(
                     ContainsBytePattern(tableStream, 0x40, 0x88, 0x50, 0x00),
                     "Expected the native DOC stylesheet stream to contain sprmCDxaSpace for custom paragraph style character spacing.");
 
@@ -7056,14 +7051,13 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
-                Assert.Equal("Styled underline highlight", paragraph.Text);
+                Assert.Equal("Styled underline spacing", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
 
                 Styles styles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
                 Style customStyle = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == projectedStyleId);
                 StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.StyleRunProperties);
                 Assert.Equal(UnderlineValues.Single, runProperties.GetFirstChild<Underline>()!.Val!.Value);
-                Assert.Equal(HighlightColorValues.Yellow, runProperties.GetFirstChild<Highlight>()!.Val!.Value);
                 Assert.Equal(80, runProperties.GetFirstChild<Spacing>()!.Val!.Value);
             } finally {
                 DeleteIfExists(docPath);
@@ -7081,10 +7075,12 @@ namespace OfficeIMO.Tests {
                     var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
                     style.Append(new StyleName { Val = "Native DOC Language Style" });
                     style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
-                    style.Append(new StyleRunProperties(new Languages {
-                        Val = "pl-PL",
-                        EastAsia = "ja-JP"
-                    }));
+                    style.Append(new StyleRunProperties(
+                        new RunFonts { Ascii = "Arial", HighAnsi = "Arial", EastAsia = "Arial", ComplexScript = "Arial" },
+                        new Spacing { Val = 40 },
+                        new FontSize { Val = "26" },
+                        new FontSizeComplexScript { Val = "26" },
+                        new Languages { Val = "pl-PL", EastAsia = "ja-JP" }));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
                     document.AddParagraph("Styled language paragraph").SetStyleId(styleId);
 
@@ -7112,6 +7108,18 @@ namespace OfficeIMO.Tests {
                 Languages languages = Assert.IsType<Languages>(runProperties.GetFirstChild<Languages>());
                 Assert.Equal("pl-PL", languages.Val?.Value);
                 Assert.Equal("ja-JP", languages.EastAsia?.Value);
+                RunFonts fonts = Assert.IsType<RunFonts>(runProperties.GetFirstChild<RunFonts>());
+                Assert.Equal("Arial", fonts.Ascii?.Value);
+                Assert.Equal("Arial", fonts.HighAnsi?.Value);
+                Assert.Equal("Arial", fonts.EastAsia?.Value);
+                Assert.Equal("Arial", fonts.ComplexScript?.Value);
+                Assert.Equal(40, runProperties.GetFirstChild<Spacing>()?.Val?.Value);
+                Assert.Equal("26", runProperties.GetFirstChild<FontSize>()?.Val?.Value);
+                Assert.Equal("26", runProperties.GetFirstChild<FontSizeComplexScript>()?.Val?.Value);
+
+                using var saved = new MemoryStream(reloaded.ToBytes(WordFileFormat.Docx), writable: false);
+                using WordprocessingDocument reopened = WordprocessingDocument.Open(saved, isEditable: false);
+                Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(reopened));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -14222,8 +14230,8 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateUnicodeDocWithCustomStyleLevelUnderlineAndHighlight() {
-                const string text = "style underline highlight\r";
+            internal static byte[] CreateUnicodeDocWithCustomStyleLevelUnderlineAndCharacterSpacing() {
+                const string text = "style underline spacing\r";
                 const int textOffset = 0x200;
                 const int papxFkpOffset = 0x400;
                 byte[] styleSheet = CreateStyleSheet(
@@ -14231,11 +14239,10 @@ namespace OfficeIMO.Tests {
                     CreateParagraphStyleRecord(
                         0x0FFF,
                         0,
-                        "Underline Highlight",
+                        "Underline Spacing",
                         Array.Empty<byte>(),
                         CreateStyleCharacterFormatting(
                             CreateCharacterSprm(0x2A3E, 1),
-                            CreateCharacterSprm(0x2A0C, 7),
                             CreateCharacterSprm(0x8840, 0x50, 0x00))));
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 1);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
@@ -14249,7 +14256,7 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateUnicodeDocWithStyleRunFormattingAndDirectExplicitOffRunFormatting() {
+            internal static byte[] CreateUnicodeDocWithStyleRunFormattingAndDirectExplicitOffRunFormatting(bool includeProhibitedStyleHighlight = false) {
                 const string text = "direct off\r";
                 const int textOffset = 0x200;
                 const int chpxFkpOffset = 0x400;
@@ -14274,7 +14281,7 @@ namespace OfficeIMO.Tests {
                             CreateCharacterSprm(0x0875, 1),
                             CreateCharacterSprm(0x083B, 1),
                             CreateCharacterSprm(0x2A3E, 1),
-                            CreateCharacterSprm(0x2A0C, 7),
+                            includeProhibitedStyleHighlight ? CreateCharacterSprm(0x2A0C, 7) : Array.Empty<byte>(),
                             CreateCharacterSprm(0x2A48, 1))));
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndexAndDirectCharacterFormatting(
                     text,
@@ -14370,7 +14377,6 @@ namespace OfficeIMO.Tests {
                             CreateCharacterSprm(0x083C, 1),
                             CreateCharacterSprm(0x0875, 1),
                             CreateCharacterSprm(0x2A3E, 1),
-                            CreateCharacterSprm(0x2A0C, 7),
                             CreateCharacterSprm(0x6870, 0x33, 0x66, 0x99, 0x00),
                             CreateCharacterSprm(0x4A43, 0x20, 0x00))));
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithBuiltInStyleLevelFormatting(text, textOffset, papxFkpOffset, styleSheet.Length);

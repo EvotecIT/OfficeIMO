@@ -176,7 +176,7 @@ namespace OfficeIMO.Word {
         }
 
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme,
-            byte[] templateBytes, bool themeApplied, bool applyStyleRegistrations) {
+            byte[] templateBytes, bool themeApplied, bool applyStyleRegistrations, bool applyDefaultTheme = true) {
             var packageStream = new MemoryStream(templateBytes.Length + 4096);
             packageStream.Write(templateBytes, 0, templateBytes.Length);
             packageStream.Position = 0;
@@ -209,7 +209,7 @@ namespace OfficeIMO.Word {
             try {
                 if (themeApplied) word._creationTheme = OfficeTheme.Default;
                 else if (theme != null) word.ApplyCreationTheme(theme);
-                else word.ApplyDefaultCreationTheme();
+                else if (applyDefaultTheme) word.ApplyDefaultCreationTheme();
                 return word;
             } catch {
                 word.Dispose();
@@ -619,7 +619,12 @@ namespace OfficeIMO.Word {
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
                     if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
-                return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions()), sourceBytes, resolved);
+                WordDocument document = WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions(), cancellationToken), sourceBytes, resolved);
+                if (cancellationToken.IsCancellationRequested) {
+                    document.Dispose();
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                return document;
             }
 
             MemoryStream memoryStream = CreateLegacyValidationPackageStream(
@@ -683,7 +688,7 @@ namespace OfficeIMO.Word {
             bufferedStream.Write(sourceBytes, 0, sourceBytes.Length);
             bufferedStream.Position = 0;
             WordDocument document = resolved.Password == null
-                ? LoadFromStream(bufferedStream, resolved, captureSourcePackageSecurity: true, detectXml: false)
+                ? LoadFromStream(bufferedStream, resolved, captureSourcePackageSecurity: true, detectXml: false, cancellationToken: cancellationToken)
                 : Load(bufferedStream, resolved);
             if (document.SourceFormat == WordFileFormat.Docx) {
                 document.OriginalStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)!;
@@ -704,8 +709,9 @@ namespace OfficeIMO.Word {
                 : LoadFromStream(stream, options, captureSourcePackageSecurity: true);
 
         private static WordDocument LoadFromStream(Stream stream, WordLoadOptions? options,
-            bool captureSourcePackageSecurity, bool detectXml = true) {
+            bool captureSourcePackageSecurity, bool detectXml = true, CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(stream);
+            cancellationToken.ThrowIfCancellationRequested();
             if (!stream.CanRead) {
                 throw new ArgumentException("Stream must be readable.", nameof(stream));
             }
@@ -717,14 +723,22 @@ namespace OfficeIMO.Word {
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
             var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
             byte[] sourceBytes = ReadSourceBytes(stream, resolved);
+            cancellationToken.ThrowIfCancellationRequested();
             if (detectXml && TryLoadWordXml(sourceBytes, null, resolved) is { } xmlDocument)
                 return xmlDocument.RememberXmlStream(stream);
             ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
                     if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
-                WordDocument document = LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions());
-                return captureSourcePackageSecurity ? WithSourcePackageInspection(document, sourceBytes, resolved) : document;
+                WordDocument document = LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions(), cancellationToken);
+                if (captureSourcePackageSecurity) {
+                    document = WithSourcePackageInspection(document, sourceBytes, resolved);
+                }
+                if (cancellationToken.IsCancellationRequested) {
+                    document.Dispose();
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                return document;
             }
 
             MemoryStream packageStream = CreateLegacyValidationPackageStream(
