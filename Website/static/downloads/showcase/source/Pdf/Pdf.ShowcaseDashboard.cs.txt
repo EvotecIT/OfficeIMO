@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using System.Globalization;
-using System.IO;
 
 namespace OfficeIMO.Examples.Pdf {
     internal static class ShowcaseDashboardPdf {

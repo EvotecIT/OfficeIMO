@@ -1,4 +1,3 @@
-using System.IO;
 using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.Examples.Showcase.Workflows;
