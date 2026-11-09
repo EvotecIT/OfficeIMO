@@ -589,6 +589,7 @@ TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split arc
 ### Legacy Word note qualification
 
 - [ ] Qualify Word 95 (`nFib=104`) endnotes with an independently produced original containing an endnote story, beyond the [current qualified note profile](officeimo.word.legacy-doc-compatibility.md#import-word-6-and-word-95-documents). Record provenance and rights, complete anchors and paragraph content, supported formatting and note settings, editable DOCX save/reopen and native Word readback.
+- [ ] Bring small note-free binary DOC save within the 10% P95 budget on the second Windows CPU domain. The [integrated comparison](benchmarks/word69-notes-2026-11-09.md) measured 12.95 ms against a 10.37 ms limit. Isolate the early projection cost and verify the fix with balanced runs that preserve the same editable DOCX output.
 
 ### OpenDocument qualification and depth
 
