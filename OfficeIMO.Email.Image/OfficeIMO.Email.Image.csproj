@@ -7,7 +7,6 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Email.Image</PackageId>
     <PackageTags>email;html;rtf;image;png;jpeg;tiff;svg;webp;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

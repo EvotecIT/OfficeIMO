@@ -9,7 +9,6 @@
     <IsPublishable>true</IsPublishable>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Reader.IWork</PackageId>
     <PackageTags>reader;iwork;pages;numbers;keynote;ingestion;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

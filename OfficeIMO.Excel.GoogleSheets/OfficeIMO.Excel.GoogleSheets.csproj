@@ -9,7 +9,6 @@
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
-        <PackageId>OfficeIMO.Excel.GoogleSheets</PackageId>
         <PackageTags>google;sheets;officeimo;excel;xlsx;net472;net8.0;net10.0</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>

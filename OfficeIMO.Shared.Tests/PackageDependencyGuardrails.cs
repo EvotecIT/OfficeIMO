@@ -329,7 +329,7 @@ public sealed class PackageDependencyGuardrailTests {
         var document = XDocument.Load(projectPath);
         var ns = document.Root?.Name.Namespace ?? XNamespace.None;
 
-        Assert.Equal("OfficeIMO.Html.Rtf", (string?)document.Descendants(ns + "PackageId").Single());
+        Assert.Equal("OfficeIMO.Html.Rtf", ResolvePackageId(projectPath));
         Assert.Equal("OfficeIMO.Html.Rtf", typeof(OfficeIMO.Html.HtmlRtfExportOptions).Assembly.GetName().Name);
 
         var exportedTypeNames = typeof(OfficeIMO.Html.HtmlRtfExportOptions)
@@ -421,11 +421,8 @@ public sealed class PackageDependencyGuardrailTests {
     [Fact]
     public void CoreFoundation_UsesTheConsolidatedPackageIdentity() {
         string projectPath = GetRepositoryPath("OfficeIMO.Core/OfficeIMO.Core.csproj");
-        var document = XDocument.Load(projectPath);
-        XNamespace ns = document.Root?.Name.Namespace ?? XNamespace.None;
-        string? packageId = document.Descendants(ns + "PackageId").Select(static element => element.Value).SingleOrDefault();
 
-        Assert.Equal("OfficeIMO.Core", packageId);
+        Assert.Equal("OfficeIMO.Core", ResolvePackageId(projectPath));
     }
 
     [Fact]
@@ -1123,6 +1120,18 @@ public sealed class PackageDependencyGuardrailTests {
             .ToArray();
 
         Assert.Equal(expected, actual, StringComparer.OrdinalIgnoreCase);
+    }
+
+    // MSBuild defaults PackageId to the project name when the project does not set one.
+    private static string ResolvePackageId(string projectPath) {
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+        string? packageId = document.Descendants(ns + "PackageId").Select(_ => _.Value).SingleOrDefault();
+        if (!string.IsNullOrWhiteSpace(packageId)) {
+            return packageId!;
+        }
+
+        return Path.GetFileNameWithoutExtension(projectPath);
     }
 
     private static string[] GetPackageReferences(string projectPath) {

@@ -159,9 +159,15 @@ public sealed class ReleasePackagingGuardrails {
     private static PackageProject? ReadPackageProject(string projectPath) {
         XDocument document = XDocument.Load(projectPath);
         XNamespace ns = document.Root?.Name.Namespace ?? XNamespace.None;
+        string projectName = Path.GetFileNameWithoutExtension(projectPath);
+        // MSBuild defaults PackageId to the project name when the project does not set one.
         string? packageId = document.Descendants(ns + "PackageId").Select(static element => element.Value).FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(packageId)) {
+            packageId = projectName;
+        }
+
         string? version = document.Descendants(ns + "VersionPrefix").Select(static element => element.Value).FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(version)) {
+        if (string.IsNullOrWhiteSpace(version)) {
             return null;
         }
 
@@ -175,8 +181,7 @@ public sealed class ReleasePackagingGuardrails {
             return null;
         }
 
-        string projectName = Path.GetFileNameWithoutExtension(projectPath);
-        return new PackageProject(projectName, packageId, version);
+        return new PackageProject(projectName, packageId!, version!);
     }
 
     private static string ReadCoordinatedReleaseVersion(string repositoryRoot) {

@@ -9,7 +9,6 @@
     <IsPublishable>true</IsPublishable>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Reader.Email</PackageId>
     <PackageTags>reader;email;mhtml;mht;eml;msg;oft;tnef;mbox;pst;ost;olm;emlx;oab;ics;vcard;outlook;ingestion;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

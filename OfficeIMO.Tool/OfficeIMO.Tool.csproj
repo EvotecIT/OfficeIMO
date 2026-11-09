@@ -7,7 +7,6 @@
     <InformationalVersion Condition="'$(PackageVersion)' != ''">$(PackageVersion)</InformationalVersion>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Tool</PackageId>
     <PackageTags>office;documents;html;pdf;reader;markup;provenance;c2pa;cli;dotnet-tool;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

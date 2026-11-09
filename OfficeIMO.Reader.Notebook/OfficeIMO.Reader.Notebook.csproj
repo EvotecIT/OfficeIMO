@@ -9,7 +9,6 @@
     <IsPublishable>true</IsPublishable>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Reader.Notebook</PackageId>
     <PackageTags>reader;jupyter;notebook;ipynb;ingestion;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

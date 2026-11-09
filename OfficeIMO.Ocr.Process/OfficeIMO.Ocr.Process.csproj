@@ -9,7 +9,6 @@
     <IsPublishable>true</IsPublishable>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Ocr.Process</PackageId>
     <PackageTags>ocr;process;provider;recognition;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

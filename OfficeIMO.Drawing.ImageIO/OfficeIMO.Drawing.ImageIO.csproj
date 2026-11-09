@@ -7,7 +7,6 @@
     <IsAotCompatible>true</IsAotCompatible>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Drawing.ImageIO</PackageId>
     <PackageTags>documents;drawing;image;heic;heif;imageio;macos;ios;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

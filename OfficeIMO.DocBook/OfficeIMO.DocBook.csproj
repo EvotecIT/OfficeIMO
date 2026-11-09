@@ -7,7 +7,6 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.DocBook</PackageId>
     <PackageTags>docbook;xml;article;book;parser;writer;validation;lossless;document-conversion</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
