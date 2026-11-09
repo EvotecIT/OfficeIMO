@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource {
             /// <summary>
-            /// Recognizes ordinary unprefixed cell tags with implicit columns. Exact
+            /// Recognizes ordinary cell tags with implicit columns and one consistent prefix. Exact
             /// attribute syntax proves their XML shape; unusual attributes and explicit
             /// coordinates retain the existing parser and coordinate validation.
             /// </summary>
@@ -21,7 +21,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 columnIndex = nextColumn;
-                tag = new Utf8Tag(start, position - 1, start + 1, start + 2, start + 1, isEnd: false, isEmpty);
+                tag = new Utf8Tag(start, position - 1, start + 1, start + 2 + _worksheetPrefixLength,
+                    start + 1 + _worksheetPrefixLength, isEnd: false, isEmpty);
                 nextColumn = columnIndex + 1;
                 return true;
             }
@@ -36,36 +37,40 @@ namespace OfficeIMO.Excel {
                 kind = Utf8CellKind.Number;
                 styleIndex = -1;
                 isEmpty = false;
+                byte[] buffer = _buffer!;
                 int start = position;
-                if (start > _length - 3
-                    || _buffer![start] != (byte)'<'
-                    || _buffer[start + 1] != (byte)'c') {
+                int prefixLength = _worksheetPrefixLength;
+                if (prefixLength == 0) {
+                    if (start > _length - 3
+                        || buffer[start] != (byte)'<'
+                        || buffer[start + 1] != (byte)'c') return false;
+                } else if (!MatchesPrefixedCompactTag(start, "<c"u8)) {
                     return false;
                 }
 
-                int cursor = start + 2;
+                int cursor = start + 2 + prefixLength;
                 bool sawType = false;
                 bool sawStyle = false;
-                while (cursor < _length && _buffer[cursor] == (byte)' ') {
+                while (cursor < _length && buffer[cursor] == (byte)' ') {
                     if (cursor > _length - 5
-                        || _buffer[cursor + 2] != (byte)'='
-                        || _buffer[cursor + 3] != (byte)'"') {
+                        || buffer[cursor + 2] != (byte)'='
+                        || buffer[cursor + 3] != (byte)'"') {
                         return false;
                     }
-                    byte attribute = _buffer[cursor + 1];
+                    byte attribute = buffer[cursor + 1];
                     cursor += 4;
                     int valueStart = cursor;
                     if (attribute == (byte)'s' && !sawStyle) {
-                        while (cursor < _length && _buffer[cursor] is >= (byte)'0' and <= (byte)'9') {
+                        while (cursor < _length && buffer[cursor] is >= (byte)'0' and <= (byte)'9') {
                             cursor++;
                         }
                         if (cursor == valueStart
-                            || !TryParseNonNegativeInt(_buffer, valueStart, cursor - valueStart, out styleIndex)) {
+                            || !TryParseNonNegativeInt(buffer, valueStart, cursor - valueStart, out styleIndex)) {
                             return false;
                         }
                         sawStyle = true;
                     } else if (attribute == (byte)'t' && !sawType) {
-                        int relativeEnd = _buffer.AsSpan(cursor, _length - cursor).IndexOf((byte)'"');
+                        int relativeEnd = buffer.AsSpan(cursor, _length - cursor).IndexOf((byte)'"');
                         if (relativeEnd < 0 || !TryParseCellKind(valueStart, relativeEnd, out kind)) {
                             return false;
                         }
@@ -74,14 +79,14 @@ namespace OfficeIMO.Excel {
                     } else {
                         return false;
                     }
-                    if (cursor >= _length || _buffer[cursor++] != (byte)'"') {
+                    if (cursor >= _length || buffer[cursor++] != (byte)'"') {
                         return false;
                     }
                 }
 
-                isEmpty = cursor < _length && _buffer[cursor] == (byte)'/';
+                isEmpty = cursor < _length && buffer[cursor] == (byte)'/';
                 if (isEmpty) cursor++;
-                if (cursor >= _length || _buffer[cursor] != (byte)'>') {
+                if (cursor >= _length || buffer[cursor] != (byte)'>') {
                     return false;
                 }
 

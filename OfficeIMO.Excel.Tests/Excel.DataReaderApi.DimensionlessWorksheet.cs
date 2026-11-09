@@ -134,7 +134,7 @@ public partial class Excel {
         var document = System.Xml.Linq.XDocument.Parse(xml);
         document.Root!.SetAttributeValue(System.Xml.Linq.XNamespace.Xmlns + "s", document.Root.Name.NamespaceName);
         document.Root.Attribute("xmlns")!.Remove();
-        return document.ToString();
+        return document.ToString(System.Xml.Linq.SaveOptions.DisableFormatting);
     }
 
 }

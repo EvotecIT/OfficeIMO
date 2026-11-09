@@ -1,6 +1,44 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfCreateOptions {
+    private readonly object _fallbackFontUsageLock = new();
+    private HashSet<PdfStandardFont>? _usedEmbeddedFallbackFontSlots;
+
+    /// <summary>Records font usage when immutable document content is written concurrently.</summary>
+    internal void MarkEmbeddedFallbackFontFamilySlotUsed(PdfStandardFont font) {
+        PdfStandardFont family = PdfStandardFontMapper.GetFontFamily(font);
+        lock (_fallbackFontUsageLock) {
+            (_usedEmbeddedFallbackFontSlots ??= new HashSet<PdfStandardFont>()).Add(family);
+        }
+    }
+
+    internal bool IsEmbeddedFallbackFontFamilySlotUsed(PdfStandardFont font) {
+        PdfStandardFont family = PdfStandardFontMapper.GetFontFamily(font);
+        lock (_fallbackFontUsageLock) {
+            return _usedEmbeddedFallbackFontSlots?.Contains(family) == true;
+        }
+    }
+
+    /// <summary>Copies usage under the writer lock; callers enumerate their own snapshot.</summary>
+    private HashSet<PdfStandardFont>? CloneUsedEmbeddedFallbackFontSlots() {
+        lock (_fallbackFontUsageLock) {
+            return _usedEmbeddedFallbackFontSlots == null
+                ? null : new HashSet<PdfStandardFont>(_usedEmbeddedFallbackFontSlots);
+        }
+    }
+
+    private void RemoveUsedEmbeddedFallbackFontSlot(PdfStandardFont family) {
+        lock (_fallbackFontUsageLock) {
+            _usedEmbeddedFallbackFontSlots?.Remove(family);
+        }
+    }
+
+    private void ClearUsedEmbeddedFallbackFontSlots() {
+        lock (_fallbackFontUsageLock) {
+            _usedEmbeddedFallbackFontSlots?.Clear();
+        }
+    }
+
     internal void MergeFontProgramUsageFrom(PdfCreateOptions nested) {
         if (ReferenceEquals(this, nested)) return;
         MergeResolvedFallbackFontMappingsFrom(nested);

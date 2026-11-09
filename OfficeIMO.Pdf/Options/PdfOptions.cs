@@ -118,7 +118,6 @@ public sealed partial class PdfCreateOptions {
     private System.Collections.Generic.Dictionary<PdfNamedFontFace, PdfTrueTypeFontProgram>? _namedFontPrograms;
     private System.Collections.Generic.Dictionary<PdfNamedFontFace, PdfOpenTypeCffFontProgram>? _namedOpenTypeCffFontPrograms;
     private System.Collections.Generic.HashSet<PdfNamedFontFace>? _namedFontProgramFailures;
-    private System.Collections.Generic.HashSet<PdfStandardFont>? _usedEmbeddedFallbackFontSlots;
     private System.Collections.Generic.HashSet<PdfStandardFont>? _embeddedFontProgramFailures;
     private System.Collections.Generic.HashSet<string>? _reportedEmbeddedFontProgramFailures;
     private System.Collections.Generic.HashSet<string>? _reportedTextShapingDiagnostics;
