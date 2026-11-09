@@ -5,20 +5,24 @@ internal sealed class PdfOutputDiagnosticScope : IDisposable {
     private static readonly AsyncLocal<PdfOutputDiagnosticScope?> Active = new();
     private readonly PdfOutputDiagnosticScope? _previous;
     private readonly HashSet<string> _keys = new(StringComparer.Ordinal);
+    private readonly bool _collects;
 
-    internal PdfOutputDiagnosticScope() {
+    // A scope that does not collect still isolates its conversion: nested work reports to no enclosing scope,
+    // and only a report the caller attached to the options receives diagnostics.
+    internal PdfOutputDiagnosticScope(bool collects = true) {
+        _collects = collects;
         _previous = Active.Value;
         Active.Value = this;
     }
 
     internal PdfConversionReport Report { get; } = new();
-    internal static PdfConversionReport? CurrentReport => Active.Value?.Report;
+    internal static PdfConversionReport? CurrentReport => Active.Value is { _collects: true } scope ? scope.Report : null;
 
     internal static bool Admit(string key, ref HashSet<string>? fallback) =>
         Active.Value is { } scope ? scope._keys.Add(key) : (fallback ??= new HashSet<string>()).Add(key);
 
     internal static void Capture(PdfConversionReport source, PdfConversionWarning warning) {
-        if (Active.Value is { } scope && !ReferenceEquals(source, scope.Report)) scope.Report.Add(warning);
+        if (Active.Value is { _collects: true } scope && !ReferenceEquals(source, scope.Report)) scope.Report.Add(warning);
     }
 
     public void Dispose() => Active.Value = _previous;

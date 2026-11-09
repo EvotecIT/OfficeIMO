@@ -21,9 +21,9 @@ internal sealed partial class ContentStreamBuilder {
         for (int start = 0; start < glyphs.Count;) {
             int end = start + 1;
             while (end < glyphs.Count && levels[end] == levels[start]) end++;
-            _showEnd = -1;
+            T._showEnd = -1;
             WriteLogicalGlyphs(glyphs, command, fontSize, textRise, start, end);
-            _showEnd = -1;
+            T._showEnd = -1;
             start = end;
         }
         return true;

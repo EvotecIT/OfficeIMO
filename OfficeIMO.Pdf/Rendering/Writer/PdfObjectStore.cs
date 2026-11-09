@@ -166,6 +166,7 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
     public void Clear() {
         ThrowIfDisposed();
         _entries.Clear();
+        VisualResources.Clear();
         _memoryBytes = 0L;
         _peakMemoryBytes = 0L;
         if (_spillStream != null) {
@@ -208,6 +209,7 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
         if (_disposed) return;
         _disposed = true;
         _entries.Clear();
+        VisualResources.Clear();
         _memoryBytes = 0L;
         _peakMemoryBytes = 0L;
         _copyBuffer = null;

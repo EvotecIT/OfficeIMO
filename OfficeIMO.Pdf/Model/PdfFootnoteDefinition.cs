@@ -4,9 +4,13 @@ namespace OfficeIMO.Pdf;
 /// <remarks>Reference the definition from a styled <see cref="PdfTextRun"/>. Pagination and continuation state belong to each serialization.
 /// A continued note requires the same usable page width; finish the note before changing page width or horizontal margins.</remarks>
 public sealed class PdfFootnoteDefinition {
+    // Set once any definition exists in the process; until then no block can hold a footnote reference.
+    internal static volatile bool AnyCreated;
+
     internal PdfFootnoteDefinition(PdfDocument owner, IReadOnlyList<IPdfBlock> blocks, PdfFootnoteOptions options,
         IReadOnlyList<IPdfBlock> separator, IReadOnlyList<IPdfBlock> continuationSeparator,
         IReadOnlyList<IPdfBlock> continuationNotice) {
+        AnyCreated = true;
         Owner = owner;
         Blocks = blocks;
         Placement = options.Placement;

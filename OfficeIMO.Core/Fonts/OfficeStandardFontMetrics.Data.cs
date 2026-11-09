@@ -204,11 +204,20 @@ internal static partial class OfficeStandardFontMetrics {
         // WinAnsiEncoding paints the space and hyphen glyphs for these characters.
         if (value == '\u00A0') value = ' ';
         else if (value == '\u00AD') value = '-';
-        int index = System.Array.BinarySearch(Characters, value);
+        int index = GetCharacterIndex(value);
         if (index < 0) return false;
         width = widths[index];
         return true;
     }
 
-    internal static int GetCharacterIndex(char value) => System.Array.BinarySearch(Characters, value);
+    // Text is overwhelmingly Latin-1, so those characters index directly and only the rest are searched.
+    private static readonly short[] Latin1Index = CreateLatin1Index();
+
+    private static short[] CreateLatin1Index() {
+        var index = new short[256];
+        for (int value = 0; value < index.Length; value++) index[value] = (short)System.Array.BinarySearch(Characters, (char)value);
+        return index;
+    }
+
+    internal static int GetCharacterIndex(char value) => value < 256 ? Latin1Index[value] : System.Array.BinarySearch(Characters, value);
 }

@@ -7,6 +7,10 @@ internal enum PdfCellBorderPriority { Table, Cell, Nil }
 /// </summary>
 public sealed class PdfCellBorder {
     private global::OfficeIMO.OfficeLength _width = global::OfficeIMO.OfficeLength.Points(0.5);
+    private global::OfficeIMO.OfficeColor? _color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8, 0.8, 0.8);
+    private OfficeIMO.Drawing.OfficeStrokeDashStyle _dashStyle;
+    private PdfCellBorderLineStyle _lineStyle;
+    private PdfCellBorderSide? _uniformSide;
     private PdfCellBorderSide? _topBorder;
     private PdfCellBorderSide? _rightBorder;
     private PdfCellBorderSide? _bottomBorder;
@@ -15,7 +19,7 @@ public sealed class PdfCellBorder {
     private PdfCellBorderSide? _diagonalDownBorder;
 
     /// <summary>Border color. Set to null or use a zero width to suppress the border.</summary>
-    public global::OfficeIMO.OfficeColor? Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8, 0.8, 0.8);
+    public global::OfficeIMO.OfficeColor? Color { get => _color; set { _color = value; _uniformSide = null; } }
 
     /// <summary>Border stroke width as a physical length.</summary>
     public global::OfficeIMO.OfficeLength Width {
@@ -26,14 +30,15 @@ public sealed class PdfCellBorder {
             }
 
             _width = value;
+            _uniformSide = null;
         }
     }
 
     /// <summary>Border stroke dash style used by sides without an explicit side override.</summary>
-    public OfficeIMO.Drawing.OfficeStrokeDashStyle DashStyle { get; set; }
+    public OfficeIMO.Drawing.OfficeStrokeDashStyle DashStyle { get => _dashStyle; set { _dashStyle = value; _uniformSide = null; } }
 
     /// <summary>Border line style used by sides without an explicit side override.</summary>
-    public PdfCellBorderLineStyle LineStyle { get; set; }
+    public PdfCellBorderLineStyle LineStyle { get => _lineStyle; set { _lineStyle = value; _uniformSide = null; } }
 
     /// <summary>Prepared document cells can retain all border paint inside their allocated box.</summary>
     internal bool PaintInsideFrame { get; set; }
@@ -76,6 +81,11 @@ public sealed class PdfCellBorder {
         get => _diagonalDownBorder?.Clone();
         set => _diagonalDownBorder = value?.Clone();
     }
+
+    // The side drawn where no side of its own is set: built once, not for every side of every painted cell.
+    // Readers never change it, and setting any property it copies discards it.
+    internal PdfCellBorderSide? UniformSide => !_color.HasValue || _width.ToPoints() <= 0 ? null
+        : _uniformSide ??= new PdfCellBorderSide { Color = _color.Value, Width = _width, DashStyle = _dashStyle, LineStyle = _lineStyle };
 
     internal PdfCellBorderSide? TopBorderSnapshot => _topBorder;
     internal PdfCellBorderSide? RightBorderSnapshot => _rightBorder;

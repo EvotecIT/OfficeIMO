@@ -16,6 +16,9 @@ internal static partial class PdfWriter {
             starts[index] = prefixes.Count;
             PdfTextRun run = runs[index];
             if (run.InlineElement != null) continue;
+            // Wrapping reads a continuation only after a run that ends mid-word.
+            string? previous = runs[index - 1].InlineElement == null ? runs[index - 1].Text : null;
+            if (!string.IsNullOrEmpty(previous) && previous![previous.Length - 1] is ' ' or '\n' or '\t' or '\r') continue;
             string text = (run.Text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
             int separator = text.IndexOfAny(TokenSplitChars);
             if (separator == 0) continue;

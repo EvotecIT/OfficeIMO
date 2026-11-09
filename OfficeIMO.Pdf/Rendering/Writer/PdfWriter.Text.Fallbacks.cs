@@ -24,7 +24,8 @@ internal static partial class PdfWriter {
             ?? new System.Collections.Generic.List<PdfTextRun>(runs);
         source = ApplyInheritedRunFontStyle(source, baseFont);
         int layoutControls = 0;
-        foreach (PdfTextRun run in source) {
+        for (int runIndex = 0; runIndex < source.Count; runIndex++) {
+            PdfTextRun run = source[runIndex];
             if (run.InlineElement != null) continue;
             string text = run.Text ?? string.Empty;
             for (int index = 0; index < text.Length; index++) {

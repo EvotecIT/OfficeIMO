@@ -341,7 +341,7 @@ internal static partial class PdfWriter {
             if (cell.TextRotation != 0) {
                 OfficeAlignment orientedAlign = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
                 global::OfficeIMO.OfficeColor? orientedColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
-                var orientedParagraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, cell.LinkUri, cell.LinkDestinationName), MapTableCellAlignment(orientedAlign), orientedColor);
+                var orientedParagraph = RichParagraphBlock.ForSnapshot(StripRunLinksWhenCellLinked(cell.Runs, cell.LinkUri, cell.LinkDestinationName), MapTableCellAlignment(orientedAlign), orientedColor);
                 string orientedRole = cellIsHeader ? "TH" : "TD";
                 int? orientedId = RegisterTextStructureElement(orientedRole, _canvasStructureParentElement, headerScope, cell.ColumnSpan, cell.RowSpan);
                 RenderOrientedTableCellContent(cell, style, rowIndex, columnIndex, contentFrame, cellX, cellTop, cellWidth, cellHeight,
@@ -405,7 +405,7 @@ internal static partial class PdfWriter {
 
             OfficeAlignment align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
             global::OfficeIMO.OfficeColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
-            var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
+            var paragraph = RichParagraphBlock.ForSnapshot(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
             TableCellContentFrame inkClip = GetTableCellInkClipFrame(style, rowIndex, columnIndex, cellX, cellTop, cellWidth, cellHeight);
             if (cell.Viewport == null)
                 ReportFullyClippedFrameLine("table-cell-content-clipped", "PdfTableCell[" + rowIndex + "," + columnIndex + "]",

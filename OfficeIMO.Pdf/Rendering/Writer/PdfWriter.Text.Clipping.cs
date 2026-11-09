@@ -8,20 +8,20 @@ internal static partial class PdfWriter {
         bool hasPriorAnnotations = annots.Count > 0;
         if (hasPriorAnnotations) annots.Add(new LinkAnnotation());
         int annotationStart = annots.Count;
-        if (clipToFrame) {
-            new ContentStreamBuilder(sb)
+        ContentStreamBuilder? clip = clipToFrame
+            ? new ContentStreamBuilder(sb)
                 .SaveState()
                 .Rectangle(clipX, clipY, clipWidth, clipHeight)
                 .ClipPath()
-                .EndPath();
-        }
+                .EndPath()
+            : null;
 
         WriteRichParagraph(sb, block, lines, lineHeights, opts, startY, fontSize, defaultLeading, annots, xOverride, widthOverride, firstLineXOverride, firstLineWidthOverride, structureType, markedContentId, structurePage, lineAlignments, lineXOffsets, lineWidths, suppressActualText, lineTopGaps, baselineFont,
             foregroundGraphicsState: foregroundGraphicsState, decorationGraphicsState: decorationGraphicsState, fontPage: fontPage, barClipFrame: barClipFrame, foregroundGroup: foregroundGroup, suppressInlineAccessibility: suppressInlineAccessibility);
         if (clipToFrame) ClipLinkAnnotations(annots, annotationStart, clipX, clipY, clipWidth, clipHeight);
         if (hasPriorAnnotations) annots.RemoveAt(annotationStart - 1);
 
-        if (clipToFrame) new ContentStreamBuilder(sb).RestoreState();
+        clip?.RestoreState();
     }
 
     private static void ClipLinkAnnotations(System.Collections.Generic.List<LinkAnnotation> annots, int annotationStart,

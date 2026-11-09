@@ -123,7 +123,8 @@ internal static partial class PdfWriter {
         OfficeAlignment align) {
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
             System.Collections.Generic.IReadOnlyList<PdfTextRun> line = lines[lineIndex];
-            double lineWidth = MeasurePageTextLineRuns(line, baseFont, defaultFontSize, options);
+            RichSeg[] segments = BuildPageTextSegments(line, baseFont, defaultFontSize, options);
+            double lineWidth = MeasurePageTextLineRuns(line, segments);
             double dx = lineBoxWidth.HasValue
                 ? align == OfficeAlignment.Center
                     ? Math.Max(0D, (lineBoxWidth.Value - lineWidth) / 2D)
@@ -132,7 +133,6 @@ internal static partial class PdfWriter {
                         : 0D
                 : 0D;
             double cursorX = x + dx;
-            RichSeg[] segments = BuildPageTextSegments(line, baseFont, defaultFontSize, options);
             for (int runIndex = 0; runIndex < line.Count; runIndex++) {
                 PdfTextRun run = line[runIndex];
                 string text = run.Text ?? string.Empty;

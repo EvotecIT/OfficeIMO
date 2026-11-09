@@ -56,6 +56,14 @@ public sealed partial class PdfCreateOptions {
         }
     }
 
+    /// <summary>
+    /// When <see langword="true"/> (the default), a word that overflows the end of a line is split at its last fitting
+    /// line-break opportunity, such as after a hyphen or solidus. Set <see langword="false"/> to move a word that fits a
+    /// fresh line there whole, as identifiers such as e-mail addresses, domains and paths usually should be; a word too
+    /// long for a line is still split.
+    /// </summary>
+    public bool SplitWordsAtLineEnd { get; set; } = true;
+
     private PdfTextWhitespaceMode _textWhitespaceMode;
     private bool _hasExplicitTextWhitespaceConfiguration;
 

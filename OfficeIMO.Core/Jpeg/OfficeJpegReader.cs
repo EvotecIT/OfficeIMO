@@ -114,7 +114,13 @@ internal static partial class OfficeJpegReader {
         out int height,
         OfficeJpegDecodeOptions options,
         CancellationToken cancellationToken,
-        long retainedManagedBytes) {
+        long retainedManagedBytes) => DecodeRgba32(new OfficeByteView(data), out width, out height,
+            options, cancellationToken, retainedManagedBytes);
+
+    /// <summary>Decodes one bounded image inside a multi-picture payload without copying encoded bytes.</summary>
+    internal static byte[] DecodeRgba32(
+        OfficeByteView data, out int width, out int height, OfficeJpegDecodeOptions options,
+        CancellationToken cancellationToken, long retainedManagedBytes) {
         return Decode(
             data,
             out width,
@@ -157,7 +163,7 @@ internal static partial class OfficeJpegReader {
     }
 
     private static byte[] Decode(
-        byte[] data,
+        OfficeByteView data,
         out int width,
         out int height,
         out int componentCount,
@@ -171,7 +177,7 @@ internal static partial class OfficeJpegReader {
         componentCount = 0;
         ArgumentOutOfRangeException.ThrowIfLessThan(retainedManagedBytes, 0L);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!IsJpeg(data)) throw new FormatException("Invalid JPEG signature.");
+        if (data.Length < 2 || data[0] != 0xFF || data[1] != 0xD8) throw new FormatException("Invalid JPEG signature.");
         OfficeRasterGuards.EnsurePayloadWithinLimits(data.Length, "JPEG payload exceeds size limits.");
 
         var quantTables = new int[4][];

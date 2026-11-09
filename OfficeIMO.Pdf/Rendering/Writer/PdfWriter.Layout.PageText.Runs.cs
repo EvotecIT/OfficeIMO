@@ -83,14 +83,13 @@ internal static partial class PdfWriter {
     private static double MeasurePageTextRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfCreateOptions opts) {
         double width = 0D;
         foreach (System.Collections.Generic.IReadOnlyList<PdfTextRun> line in BuildPageTextLineRuns(runs)) {
-            width = Math.Max(width, MeasurePageTextLineRuns(line, baseFont, fontSize, opts));
+            width = Math.Max(width, MeasurePageTextLineRuns(line, BuildPageTextSegments(line, baseFont, fontSize, opts)));
         }
 
         return width;
     }
 
-    private static double MeasurePageTextLineRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfCreateOptions opts) {
-        RichSeg[] segments = BuildPageTextSegments(runs, baseFont, fontSize, opts);
+    private static double MeasurePageTextLineRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, RichSeg[] segments) {
         double width = 0D;
         for (int index = 0; index < runs.Count; index++) {
             PdfTextRun run = runs[index];
@@ -175,8 +174,9 @@ internal static partial class PdfWriter {
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
             System.Collections.Generic.IReadOnlyList<PdfTextRun> line = lines[lineIndex];
             double dx = 0D;
+            RichSeg[] segments = BuildPageTextSegments(line, baseFont, fontSize, opts);
             if (lineBoxWidth.HasValue) {
-                double lineWidth = MeasurePageTextLineRuns(line, baseFont, fontSize, opts);
+                double lineWidth = MeasurePageTextLineRuns(line, segments);
                 if (align == OfficeAlignment.Center) {
                     dx = Math.Max(0D, (lineBoxWidth.Value - lineWidth) / 2D);
                 } else if (align == OfficeAlignment.Right) {
@@ -188,7 +188,6 @@ internal static partial class PdfWriter {
                 currentTextRise = 0D;
             }
             double cursorX = x + dx;
-            RichSeg[] segments = BuildPageTextSegments(line, baseFont, fontSize, opts);
             for (int runIndex = 0; runIndex < line.Count; runIndex++) {
                 PdfTextRun run = line[runIndex];
                 RichSeg segment = segments[runIndex];

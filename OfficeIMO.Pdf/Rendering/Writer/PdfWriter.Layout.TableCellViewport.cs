@@ -70,7 +70,6 @@ internal static partial class PdfWriter {
     private static TableCellContentFrame? GetTableCellDiagonalFrame(TableCellLayout cell, double left, double bottom, double width, double height) =>
         cell.Viewport == null ? null : GetTableCellContentFrame(cell, left, bottom + height, width, height);
 
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TableBlock, ViewportRowGroups> TableViewportRowGroups = new();
 
     private sealed class ViewportRowGroups {
         internal ViewportRowGroups(TableBlock table, int columns) {
@@ -93,7 +92,7 @@ internal static partial class PdfWriter {
     }
 
     private static int[] GetTableViewportRowGroups(TableBlock table, int columns) =>
-        TableViewportRowGroups.GetValue(table, key => new ViewportRowGroups(key, columns)).Ends;
+        (table.WriterViewportRowGroups as ViewportRowGroups ?? (ViewportRowGroups)(table.WriterViewportRowGroups = new ViewportRowGroups(table, columns))).Ends;
 
     private static bool TableRowHasViewport(TableBlock table, int row, int columns) => GetTableViewportRowGroups(table, columns)[row] >= row;
 

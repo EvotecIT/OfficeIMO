@@ -99,7 +99,13 @@ internal static partial class PdfWriter {
         int[]? kerning = options != null && IsKerningEnabled(featureSettings)
             ? GetStandardFontKerning(text, font, out kerningTotal) : null;
         return new PdfTextShowCommand(EncodeWinAnsiHex(text), advanceWidth1000: EstimateSimpleTextWidth(text, font, 1000) + (kerning == null ? 0 : kerningTotal),
-            wordSpaceCount: text.Count(character => character == ' '), simpleFontKerning: kerning);
+            wordSpaceCount: CountSpaces(text), simpleFontKerning: kerning);
+    }
+
+    private static int CountSpaces(string text) {
+        int count = 0;
+        foreach (char character in text) if (character == ' ') count++;
+        return count;
     }
 
     // Kerning is a default font feature; only an explicit kern=0 disables it.

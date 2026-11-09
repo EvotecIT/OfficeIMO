@@ -5,6 +5,9 @@ internal static partial class PdfWriter {
     // placement on the line preserves it when tables and columns slice lines,
     // including paragraphs whose fallback size differs from the cell size.
     private sealed class RichLine : List<RichSeg> {
+        public RichLine() { }
+        public RichLine(int capacity) : base(capacity) { }
+
         // Fragment plans survive ordinary row slicing, but never a segment-copy transformation.
         internal IReadOnlyList<RichLineFragment>? Fragments { get; set; }
         internal double FragmentTopGap { get; set; }

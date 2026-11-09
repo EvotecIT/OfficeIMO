@@ -530,6 +530,7 @@ internal static partial class PdfWriter {
             int headerFooterPageNumber = pageNumberInfo.PageNumber;
             int headerFooterTotalPages = pageNumberInfo.TotalPages;
             byte[] pageContentBytes = layout.ReadContentBytes(page.Content);
+            HashSet<string> pageResourceNames = CollectPdfResourceNames(pageContentBytes);
             var pageFontResources = new Dictionary<PdfStandardFont, string>();
             var pageNamedFontResources = new Dictionary<PdfNamedFontFace, string>();
             string EnsurePageFontResource(PdfStandardFont font, string preferredAlias) {
@@ -549,11 +550,11 @@ internal static partial class PdfWriter {
                 return alias;
             }
             bool LayoutUsesFontResource(string resourceName) {
-                string qualifiedName = "/" + resourceName;
-                if (UsesPdfResource(pageContentBytes, qualifiedName)) {
+                if (pageResourceNames.Contains(resourceName)) {
                     return true;
                 }
 
+                string qualifiedName = "/" + resourceName;
                 foreach (PageEffectGroup effect in page.EffectGroups) {
                     if (UsesPdfResource(layout.ReadContentBytes(effect.Content), qualifiedName)) {
                         return true;
@@ -839,10 +840,10 @@ internal static partial class PdfWriter {
                 !pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber) &&
                 IsAsciiContent(pageContentBytes)) {
                 contentBytes = pageContentBytes;
-                usedFontResources = FilterPdfResources(pageContentBytes, fontResources);
-                usedXObjectResources = FilterPdfResources(pageContentBytes, xobjects);
-                usedGraphicsStateResources = FilterPdfResources(pageContentBytes, graphicsStates);
-                usedShadingResources = FilterPdfResources(pageContentBytes, shadings);
+                usedFontResources = FilterPdfResources(pageResourceNames, fontResources);
+                usedXObjectResources = FilterPdfResources(pageResourceNames, xobjects);
+                usedGraphicsStateResources = FilterPdfResources(pageResourceNames, graphicsStates);
+                usedShadingResources = FilterPdfResources(pageResourceNames, shadings);
             } else {
                 string pageLayoutContent = layout.ReadContent(page.Content);
                 string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo, "/Type /Pagination");
@@ -1593,24 +1594,35 @@ internal static partial class PdfWriter {
 
     private static List<(string Name, int Id)> FilterPdfResources(
         byte[] content,
+        List<(string Name, int Id)> resources) =>
+        content.Length == 0 || resources.Count == 0
+            ? new List<(string Name, int Id)>()
+            : FilterPdfResources(CollectPdfResourceNames(content), resources);
+
+    private static List<(string Name, int Id)> FilterPdfResources(
+        HashSet<string> usedNames,
         List<(string Name, int Id)> resources) {
         var used = new List<(string Name, int Id)>();
-        if (content.Length == 0 || resources.Count == 0) return used;
-        var available = new HashSet<string>(resources.Select(resource => resource.Name.TrimStart('/')), StringComparer.Ordinal);
-        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < resources.Count; index++) {
+            if (usedNames.Contains(resources[index].Name.TrimStart('/'))) used.Add(resources[index]);
+        }
+        return used;
+    }
+
+    // Every resource name the content uses: a name runs from '/' to the next '/' or whitespace and counts when
+    // whitespace or the end follows it. Collected once so a page's resource checks do not each rescan it.
+    private static HashSet<string> CollectPdfResourceNames(byte[] content) {
+        var names = new HashSet<string>(StringComparer.Ordinal);
         for (int index = 0; index < content.Length; index++) {
             index = Array.IndexOf(content, (byte)'/', index);
             if (index < 0) break;
             int end = index + 1;
             while (end < content.Length && content[end] != (byte)'/' && !char.IsWhiteSpace((char)content[end])) end++;
-            string name = System.Text.Encoding.ASCII.GetString(content, index + 1, end - index - 1);
-            if ((end == content.Length || char.IsWhiteSpace((char)content[end])) && available.Contains(name)) usedNames.Add(name);
+            if (end == content.Length || char.IsWhiteSpace((char)content[end]))
+                names.Add(System.Text.Encoding.ASCII.GetString(content, index + 1, end - index - 1));
             index = end - 1;
         }
-        for (int index = 0; index < resources.Count; index++) {
-            if (usedNames.Contains(resources[index].Name.TrimStart('/'))) used.Add(resources[index]);
-        }
-        return used;
+        return names;
     }
 
     // True when every byte is ASCII (< 0x80). Only then does the stored content (Latin1-encoded) round-trip

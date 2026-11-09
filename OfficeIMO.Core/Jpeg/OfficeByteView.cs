@@ -15,6 +15,7 @@ internal readonly struct OfficeByteView {
     }
 
     public int Length { get; }
+    public long LongLength => Length;
 
     public byte this[int index] {
         get {

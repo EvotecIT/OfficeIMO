@@ -12,19 +12,29 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder SaveState() {
-        _textStates.Push((_textScale, _textLeading, _textWordSpacing, _textCharacterSpacing, _syntheticOblique, _syntheticBold, _paintFillColor));
+        TextState? text = _text;
+        var state = text == null
+            ? (1D, 0D, 0D, 0D, false, false, _paintFillColor)
+            : (text._textScale, text._textLeading, text._textWordSpacing, text._textCharacterSpacing, text._syntheticOblique, text._syntheticBold, _paintFillColor);
+        if (_savedStates++ == 0) _outerSavedState = state;
+        else (_textStates ??= new(2)).Push(state);
         InvalidateTextStateCache();
         AppendGraphicsSave(_sb);
         return this;
     }
 
     public ContentStreamBuilder RestoreState() {
-        if (_textStates.Count != 0) {
-            var state = _textStates.Pop();
-            _textScale = state.Scale; _textLeading = state.Leading; _textWordSpacing = state.WordSpacing;
-            _textCharacterSpacing = state.CharacterSpacing;
-            _syntheticOblique = state.SyntheticOblique;
-            _syntheticBold = state.SyntheticBold;
+        if (_savedStates > 0) {
+            var state = --_savedStates == 0 ? _outerSavedState : _textStates!.Pop();
+            // A builder that has not written text keeps its default text state until something sets it.
+            if (_text != null || state.Scale != 1D || state.Leading != 0D || state.WordSpacing != 0D || state.CharacterSpacing != 0D ||
+                state.SyntheticOblique || state.SyntheticBold) {
+                TextState text = T;
+                text._textScale = state.Scale; text._textLeading = state.Leading; text._textWordSpacing = state.WordSpacing;
+                text._textCharacterSpacing = state.CharacterSpacing;
+                text._syntheticOblique = state.SyntheticOblique;
+                text._syntheticBold = state.SyntheticBold;
+            }
             _paintFillColor = state.PaintFillColor;
         }
         InvalidateTextStateCache();
@@ -53,22 +63,22 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder FillColor(global::OfficeIMO.OfficeColor color) {
-        if (SyncTextState() && _fillColor.HasValue && _fillColor.Value.Equals(color)) return this;
+        if (SyncTextState() && T._fillColor.HasValue && T._fillColor.Value.Equals(color)) return this;
         _paintFillColor = color;
         _sb.Append(F(color.ToNormalizedRgb().R)).Append(' ').Append(F(color.ToNormalizedRgb().G)).Append(' ').Append(F(color.ToNormalizedRgb().B)).Append(" rg\n");
-        if (_syntheticBold) StrokeColor(color);
-        if (_inText) {
-            _fillColor = color;
+        if (_text?._syntheticBold == true) StrokeColor(color);
+        if (_text?._inText == true) {
+            T._fillColor = color;
             OwnWrite();
         }
         return this;
     }
 
     public ContentStreamBuilder FillGray(double gray) {
-        _fillColor = null;
+        if (_text != null) _text._fillColor = null;
         _paintFillColor = OfficeColor.FromNormalizedRgb(gray, gray, gray);
         _sb.Append(F(gray)).Append(" g\n");
-        if (_syntheticBold) StrokeColor(_paintFillColor);
+        if (_text?._syntheticBold == true) StrokeColor(_paintFillColor);
         return this;
     }
 
@@ -248,62 +258,62 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder BeginText() {
-        _textObjectStart = _sb.Length;
-        _textEntryFillColor = _paintFillColor;
+        T._textObjectStart = _sb.Length;
+        T._textEntryFillColor = _paintFillColor;
         ResetTrackedTextMatrix();
         InvalidateTextStateCache();
-        _showEnd = -1;
+        T._showEnd = -1;
         _sb.Append("BT\n");
-        _inText = true;
-        _ownedLength = _sb.Length;
+        T._inText = true;
+        T._ownedLength = _sb.Length;
         return this;
     }
 
     public ContentStreamBuilder EndText() {
-        _inText = false;
-        _showEnd = -1;
+        T._inText = false;
+        T._showEnd = -1;
         InvalidateTextStateCache();
         _sb.Append("ET\n");
-        if (_syntheticWeightScope) {
+        if (T._syntheticWeightScope) {
             _sb.Append("Q\n");
-            _paintFillColor = _textEntryFillColor;
-            _syntheticWeightScope = false;
+            _paintFillColor = T._textEntryFillColor;
+            T._syntheticWeightScope = false;
         }
-        _syntheticBold = false;
+        T._syntheticBold = false;
         return this;
     }
 
     public ContentStreamBuilder Font(string resourceName, double size, bool syntheticOblique = false, bool preserveLogicalPrecision = false, bool syntheticBold = false) {
         Guard.NotNullOrWhiteSpace(resourceName, nameof(resourceName));
-        if (SyncTextState() && _syntheticOblique == syntheticOblique && _syntheticBold == syntheticBold && _fontSize == size &&
-            _fontPrecise == preserveLogicalPrecision && string.Equals(_fontResource, resourceName, StringComparison.Ordinal)) return this;
+        if (SyncTextState() && T._syntheticOblique == syntheticOblique && T._syntheticBold == syntheticBold && T._fontSize == size &&
+            T._fontPrecise == preserveLogicalPrecision && string.Equals(T._fontResource, resourceName, StringComparison.Ordinal)) return this;
         ApplySyntheticWeight(size, syntheticBold);
         _sb.Append('/').Append(resourceName).Append(' ');
         if (preserveLogicalPrecision) _sb.Append(PdfNumberFormatter.Precise(size));
         else _sb.Append(F(size));
         _sb.Append(" Tf\n");
-        if (_inText) {
-            _fontResource = resourceName;
-            _fontSize = size;
-            _fontPrecise = preserveLogicalPrecision;
+        if (T._inText) {
+            T._fontResource = resourceName;
+            T._fontSize = size;
+            T._fontPrecise = preserveLogicalPrecision;
             OwnWrite();
         }
-        if (_syntheticOblique != syntheticOblique) {
-            double previousShear = _syntheticOblique ? SyntheticObliqueShear : 0D;
-            _syntheticOblique = syntheticOblique;
-            if (_hasTextMatrix) {
+        if (T._syntheticOblique != syntheticOblique) {
+            double previousShear = T._syntheticOblique ? SyntheticObliqueShear : 0D;
+            T._syntheticOblique = syntheticOblique;
+            if (T._hasTextMatrix) {
                 double nextShear = syntheticOblique ? SyntheticObliqueShear : 0D;
-                TextMatrixApplied(_textA, _textB,
-                    _textC + (nextShear - previousShear) * _textA,
-                    _textD + (nextShear - previousShear) * _textB,
-                    _textE, _textF);
+                TextMatrixApplied(T._textA, T._textB,
+                    T._textC + (nextShear - previousShear) * T._textA,
+                    T._textD + (nextShear - previousShear) * T._textB,
+                    T._textE, T._textF);
             }
         }
         return this;
     }
 
     public ContentStreamBuilder TextLeading(double leading) {
-        _textLeading = leading;
+        T._textLeading = leading;
         SyncTextState();
         _sb.Append(F(leading)).Append(" TL\n");
         OwnWrite();
@@ -315,7 +325,7 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder TextMatrix(double a, double b, double c, double d, double e, double f, bool precisePosition = false) {
-        double shear = _syntheticOblique ? SyntheticObliqueShear : 0D;
+        double shear = T._syntheticOblique ? SyntheticObliqueShear : 0D;
         return TextMatrixApplied(a, b, c + shear * a, d + shear * b, e, f, precisePosition);
     }
 
@@ -338,12 +348,12 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder MoveText(double x, double y) {
-        double shear = _syntheticOblique ? SyntheticObliqueShear : 0D;
-        double xAdvance = _textA * x + (_textC - shear * _textA) * y;
-        double yAdvance = _textB * x + (_textD - shear * _textB) * y;
-        if (_isolatedText || _syntheticOblique) return TextMatrixApplied(_textA, _textB, _textC, _textD, _lineE + xAdvance, _lineF + yAdvance);
-        _lineE += xAdvance; _lineF += yAdvance;
-        _textE = _lineE; _textF = _lineF;
+        double shear = T._syntheticOblique ? SyntheticObliqueShear : 0D;
+        double xAdvance = T._textA * x + (T._textC - shear * T._textA) * y;
+        double yAdvance = T._textB * x + (T._textD - shear * T._textB) * y;
+        if (T._isolatedText || T._syntheticOblique) return TextMatrixApplied(T._textA, T._textB, T._textC, T._textD, T._lineE + xAdvance, T._lineF + yAdvance);
+        T._lineE += xAdvance; T._lineF += yAdvance;
+        T._textE = T._lineE; T._textF = T._lineF;
         SyncTextState();
         _sb.Append(F(x)).Append(' ').Append(F(y)).Append(" Td\n");
         OwnWrite();
@@ -351,9 +361,9 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder NextTextLine() {
-        if (_isolatedText || _syntheticOblique) return MoveText(0, -_textLeading);
-        _lineE -= _textC * _textLeading; _lineF -= _textD * _textLeading;
-        _textE = _lineE; _textF = _lineF;
+        if (T._isolatedText || T._syntheticOblique) return MoveText(0, -T._textLeading);
+        T._lineE -= T._textC * T._textLeading; T._lineF -= T._textD * T._textLeading;
+        T._textE = T._lineE; T._textF = T._lineF;
         SyncTextState();
         _sb.Append("T*\n");
         OwnWrite();
@@ -361,11 +371,11 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder WordSpacing(double spacing) {
-        if (SyncTextState() && _wordSpacingKnown && _textWordSpacing == spacing) return this;
-        _textWordSpacing = spacing;
+        if (SyncTextState() && T._wordSpacingKnown && T._textWordSpacing == spacing) return this;
+        T._textWordSpacing = spacing;
         _sb.Append(F(spacing)).Append(" Tw\n");
-        if (_inText) {
-            _wordSpacingKnown = true;
+        if (T._inText) {
+            T._wordSpacingKnown = true;
             OwnWrite();
         }
         return this;
@@ -375,11 +385,11 @@ internal sealed partial class ContentStreamBuilder {
         if (double.IsNaN(spacing) || double.IsInfinity(spacing)) {
             throw new ArgumentOutOfRangeException(nameof(spacing), "PDF character spacing must be finite.");
         }
-        if (SyncTextState() && _characterSpacingKnown && _textCharacterSpacing == spacing) return this;
-        _textCharacterSpacing = spacing;
+        if (SyncTextState() && T._characterSpacingKnown && T._textCharacterSpacing == spacing) return this;
+        T._textCharacterSpacing = spacing;
         _sb.Append(F(spacing)).Append(" Tc\n");
-        if (_inText) {
-            _characterSpacingKnown = true;
+        if (T._inText) {
+            T._characterSpacingKnown = true;
             OwnWrite();
         }
         return this;
@@ -390,7 +400,7 @@ internal sealed partial class ContentStreamBuilder {
             throw new ArgumentOutOfRangeException(nameof(percentage), "PDF horizontal text scaling must be positive and finite.");
         }
 
-        _textScale = percentage / 100D;
+        T._textScale = percentage / 100D;
         SyncTextState();
         _sb.Append(F(percentage)).Append(" Tz\n");
         OwnWrite();
@@ -417,15 +427,15 @@ internal sealed partial class ContentStreamBuilder {
 
     /// <summary>Ends text-show coalescing so the next text matrix is written explicitly (tab stops, leaders).</summary>
     public ContentStreamBuilder BreakTextRun() {
-        _showEnd = -1;
+        if (_text != null) _text._showEnd = -1;
         return this;
     }
 
     public ContentStreamBuilder ShowHexText(string hexText) {
         Guard.NotNull(hexText, nameof(hexText));
         // The caller owns positioning for raw show strings.
-        _showEnd = -1;
-        _positionKnown = false;
+        T._showEnd = -1;
+        T._positionKnown = false;
         _sb.Append('<').Append(hexText).Append("> Tj\n");
         return this;
     }
@@ -441,9 +451,9 @@ internal sealed partial class ContentStreamBuilder {
             if (TryWriteScalarBidiGlyphs(scalarGlyphs, scalarText, command, fontSize, currentTextRise)) return this;
         }
         if (!suppressActualText && !command.IsScalarBidi && command.LogicalGlyphs is { } logicalGlyphs) {
-            if (command.IsolatedRightToLeft) _showEnd = -1;
+            if (command.IsolatedRightToLeft) T._showEnd = -1;
             WriteLogicalGlyphs(logicalGlyphs, command, fontSize, currentTextRise);
-            if (command.IsolatedRightToLeft) _showEnd = -1;
+            if (command.IsolatedRightToLeft) T._showEnd = -1;
             return this;
         }
 
@@ -462,7 +472,7 @@ internal sealed partial class ContentStreamBuilder {
                 for (int index = 0; index < command.GlyphCount; index++) {
                     ShowHexElement(hex.Substring(index * codeLength, codeLength));
                     double adjustment = command.SimpleFontKerning?[index] ?? 0D;
-                    adjustment += command.GetJustificationAdvance(index) * 1000D / fontSize / _textScale;
+                    adjustment += command.GetJustificationAdvance(index) * 1000D / fontSize / T._textScale;
                     if (adjustment != 0D) ShowNumberElement(-adjustment);
                 }
             } else if (command.SimpleFontKerning is { } kerning) {
@@ -490,10 +500,10 @@ internal sealed partial class ContentStreamBuilder {
             double trackingAdvance = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D)
                 * fontSize / command.UnitsPerEm * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0);
             AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D
-                + (command.NegativeTracking ? -trackingAdvance : trackingAdvance) + command.WordSpaceCount * _textWordSpacing + command.GlyphCount * _textCharacterSpacing
-                + command.TotalJustificationAdvance / _textScale);
+                + (command.NegativeTracking ? -trackingAdvance : trackingAdvance) + command.WordSpaceCount * T._textWordSpacing + command.GlyphCount * T._textCharacterSpacing
+                + command.TotalJustificationAdvance / T._textScale);
         } else {
-            _positionKnown = false;
+            T._positionKnown = false;
         }
         return this;
     }
@@ -521,7 +531,7 @@ internal sealed partial class ContentStreamBuilder {
             ShowGlyphElement(glyph.GlyphId);
             ShowNumberElement(glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000
                 - (trackingBoundaries?[index] == true ? tracking1000 : 0D)
-                - (command?.GetJustificationAdvance(index) ?? 0D) * 1000D / fontSize / _textScale);
+                - (command?.GetJustificationAdvance(index) ?? 0D) * 1000D / fontSize / T._textScale);
         }
 
         if (open) CloseShow();

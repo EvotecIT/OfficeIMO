@@ -8,6 +8,7 @@ internal sealed class PdfVisualResourceCache {
 
     internal bool TryGet(string key, out int objectId) => _objects.TryGetValue(key, out objectId);
     internal void Add(string key, int objectId) => _objects.Add(key, objectId);
+    internal void Clear() => _objects.Clear();
 
     internal static bool IsVisualDictionary(string body) =>
         body.StartsWith("<< /Type /ExtGState ", StringComparison.Ordinal) ||

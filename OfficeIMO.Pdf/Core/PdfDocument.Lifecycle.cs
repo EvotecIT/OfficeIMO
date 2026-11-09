@@ -37,6 +37,12 @@ public sealed partial class PdfDocument {
         }
         if (_source != null) return SerializeBytes(cancellationToken);
         if (TryPublishCompletedOutput(options, out byte[] completed)) return completed;
+        // A caller that accepts loss never reads the report, so its diagnostics are not collected; the scope still
+        // keeps them from flowing into an enclosing conversion.
+        if (options?.AllowLoss == true) {
+            using var quiet = new PdfOutputDiagnosticScope(collects: false);
+            return SerializeBytes(cancellationToken);
+        }
         using var scope = new PdfOutputDiagnosticScope();
         byte[] bytes = SerializeBytes(cancellationToken);
         OfficeConversionReport report = PdfConversionEvidence.CreateReport("Pdf", new[] { scope.Report });

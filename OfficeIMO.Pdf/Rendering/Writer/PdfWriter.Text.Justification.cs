@@ -34,8 +34,11 @@ internal static partial class PdfWriter {
         if (alignment != OfficeAlignment.Justify)
             return new RichLineJustification(segments, 0D, naturalWidth);
         bool hardBreak = segments.Any(segment => segment.EndsWithHardBreak);
-        RichLineJustificationPolicy policy = segments.Select(segment => segment.JustificationPolicy).FirstOrDefault(item => item.HasValue)
-            ?? new RichLineJustificationPolicy(style, isFinalParagraphLine, hardBreak);
+        RichLineJustificationPolicy? segmentPolicy = null;
+        foreach (RichSeg segment in segments) {
+            if (segment.JustificationPolicy.HasValue) { segmentPolicy = segment.JustificationPolicy; break; }
+        }
+        RichLineJustificationPolicy policy = segmentPolicy ?? new RichLineJustificationPolicy(style, isFinalParagraphLine, hardBreak);
         bool expands = alignment == OfficeAlignment.Justify && availableWidth > naturalWidth &&
             (policy.IsExplicitBreak ? policy.ExplicitBreaks : !policy.IsFinalParagraphLine || policy.LastLine);
         if (!expands) return new RichLineJustification(segments, 0D, naturalWidth);

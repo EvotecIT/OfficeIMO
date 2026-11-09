@@ -466,40 +466,48 @@ internal static partial class PdfWriter {
     }
 
     private sealed class TableCellLayoutCache {
-        public int ColumnCount = -1;
-        public System.Collections.Generic.List<TableCellLayout>[]? ByRow;
+        public readonly int ColumnCount;
+        public readonly System.Collections.Generic.List<TableCellLayout>[] ByRow;
         // The longest (clamped) row span in ByRow; 1 when no cell spans rows.
-        public int MaxRowSpan = 1;
+        public readonly int MaxRowSpan;
+
+        public TableCellLayoutCache(int columnCount, System.Collections.Generic.List<TableCellLayout>[] byRow, int maxRowSpan) {
+            ColumnCount = columnCount;
+            ByRow = byRow;
+            MaxRowSpan = maxRowSpan;
+        }
     }
 
     // The cell-layout-by-row split is a pure function of (table, columnCount). GetTableCellLayouts is
     // called O(passes x rows) times per table (autofit, flow metrics, rendering), and each call re-walked
     // rows 0..rowIndex rebuilding the layout structs. Memoize the whole split per table so it is computed
     // once; every caller only reads the returned lists (verified), so the cached instances are shareable.
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TableBlock, TableCellLayoutCache> _tableCellLayoutCache = new();
+    // The cache is immutable and published with one reference write, so concurrent renders never see a
+    // half-updated cache; each caller uses only the snapshot it read or built.
+    private static TableCellLayoutCache GetTableCellLayoutCache(TableBlock table, int columnCount) {
+        if (table.WriterCellLayouts is TableCellLayoutCache cached && cached.ColumnCount == columnCount) {
+            return cached;
+        }
+
+        System.Collections.Generic.List<TableCellLayout>[] byRow = GetTableCellLayoutsByRow(table, columnCount);
+        int maxRowSpan = 1;
+        foreach (var rowLayouts in byRow) {
+            foreach (var layout in rowLayouts) {
+                maxRowSpan = System.Math.Max(maxRowSpan, layout.RowSpan);
+            }
+        }
+
+        var cache = new TableCellLayoutCache(columnCount, byRow, maxRowSpan);
+        table.WriterCellLayouts = cache;
+        return cache;
+    }
 
     private static System.Collections.Generic.List<TableCellLayout> GetTableCellLayouts(TableBlock table, int rowIndex, int columnCount) {
         if (rowIndex < 0 || rowIndex >= table.Cells.Count) {
             return new System.Collections.Generic.List<TableCellLayout>();
         }
 
-        TableCellLayoutCache cache = _tableCellLayoutCache.GetValue(table, static _ => new TableCellLayoutCache());
-        System.Collections.Generic.List<TableCellLayout>[]? byRow = cache.ByRow;
-        if (byRow == null || cache.ColumnCount != columnCount) {
-            byRow = GetTableCellLayoutsByRow(table, columnCount);
-            int maxRowSpan = 1;
-            foreach (var rowLayouts in byRow) {
-                foreach (var layout in rowLayouts) {
-                    maxRowSpan = System.Math.Max(maxRowSpan, layout.RowSpan);
-                }
-            }
-
-            cache.ByRow = byRow;
-            cache.MaxRowSpan = maxRowSpan;
-            cache.ColumnCount = columnCount;
-        }
-
-        return byRow[rowIndex];
+        return GetTableCellLayoutCache(table, columnCount).ByRow[rowIndex];
     }
 
     // How many rows back a cell can start and still reach a given row: a row-span scan only has to look
@@ -509,8 +517,7 @@ internal static partial class PdfWriter {
             return 1;
         }
 
-        GetTableCellLayouts(table, 0, columnCount);
-        return _tableCellLayoutCache.GetValue(table, static _ => new TableCellLayoutCache()).MaxRowSpan;
+        return GetTableCellLayoutCache(table, columnCount).MaxRowSpan;
     }
 
     private static System.Collections.Generic.List<TableCellLayout>[] GetTableCellLayoutsByRow(TableBlock table, int columnCount) {
