@@ -285,7 +285,7 @@ public class CsvAutomaticMappingBenchmarks {
 public class CsvParallelScalingBenchmarks {
     private CsvTypedMaterializationFixture _fixture = null!;
 
-    [Params(8, 16)]
+    [Params(1, 4, 8, 16)]
     public int DegreeOfParallelism { get; set; }
 
     [GlobalSetup]

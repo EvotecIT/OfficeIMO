@@ -42,8 +42,8 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filte
 
 `CsvTypedSequentialBenchmarks` compares complete typed objects from OfficeIMO,
 Sep and the MIT RecordParser 2.3.0 package at 25,000 and 100,000 rows.
-`CsvParallelScalingBenchmarks` compares the same 100,000-row result with eight
-and sixteen workers. Each reader decodes quoted fields, preserves source order,
+`CsvParallelScalingBenchmarks` compares the same 100,000-row result with one,
+four, eight and sixteen workers. Each reader decodes quoted fields, preserves source order,
 and passes a property-by-property preflight, including UTC date kinds. The
 compiled RecordParser map is prepared outside timing; every read checks its
 expected header layout. The CsvHelper methods in this project use the 33.1.0 API.
