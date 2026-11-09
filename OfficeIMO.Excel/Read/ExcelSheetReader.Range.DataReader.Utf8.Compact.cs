@@ -232,8 +232,7 @@ namespace OfficeIMO.Excel {
                 while (position < _length) {
                     if (position <= _length - 6
                         && _buffer![position + 1] == (byte)'/'
-                        && MatchesUtf8(position, "</row>"u8)) {
-                        position += 6;
+                        && TryConsumeCompactRowEnd(ref position)) {
                         UpdateUsedBounds(rowIndex, previousColumn);
                         return true;
                     }
@@ -420,6 +419,10 @@ namespace OfficeIMO.Excel {
                 out bool hasCachedValue,
                 out int valueStart,
                 out int valueLength) {
+                if (_worksheetPrefixLength != 0) {
+                    return TryIndexPrefixedCompactValueCell(
+                        ref position, cellIndex, kind, out hasCachedValue, out valueStart, out valueLength);
+                }
                 hasCachedValue = false;
                 valueStart = -1;
                 valueLength = -1;

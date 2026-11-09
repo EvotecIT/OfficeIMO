@@ -52,8 +52,7 @@ namespace OfficeIMO.Excel {
                     }
                     _cellKinds![cellIndex] = tag.EncodedKind;
                 }
-                if (!MatchesUtf8(position, "</row>"u8)) return false;
-                position += 6;
+                if (!TryConsumeCompactRowEnd(ref position)) return false;
                 if (_minimumCellColumn > 1) _minimumCellColumn = 1;
                 UpdateUsedBounds(rowIndex, _fieldCount);
                 return true;

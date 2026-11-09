@@ -60,14 +60,13 @@ namespace OfficeIMO.Excel {
                 while (position < _length) {
                     if (position <= _length - 6
                         && _buffer![position + 1] == (byte)'/'
-                        && MatchesUtf8(position, "</row>"u8)) {
+                        && TryConsumeCompactRowEnd(ref position)) {
                         // Every indexed cell owns its metadata. Only absent trailing
                         // cells need missing sentinels when a complete row is proven.
                         int indexedFieldCount = columnIndex - 1;
                         if (indexedFieldCount < _fieldCount) {
                             InitializeMetadataRow(rowOffset, indexedFieldCount);
                         }
-                        position += 6;
                         UpdateUsedBounds(rowIndex, columnIndex - 1);
                         // The first row commonly holds headers. All slots must have
                         // qualified tags before a later complete row can reuse them.
