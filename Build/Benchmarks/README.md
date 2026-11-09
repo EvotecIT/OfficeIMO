@@ -64,7 +64,9 @@ both source fingerprints and byte counts; per-sample evidence identifies the
 actual profile and input hash. Affected text spans include source space spans.
 
 PowerForge owns timing, managed allocations, rotated ordering, and raw JSON/CSV
-samples. Every measured result is validated outside timing. Poppler independently
+samples. Serialization retention metrics are reported only when the operation
+captures a writer report; byte generation and read/render operations leave them
+unavailable. Every measured result is validated outside timing. Poppler independently
 checks all saved PDF pages, replacement absence, and retained neighboring word
 geometry. Rendering requires zero capability diagnostics. PNG checks decode the
 image and verify dimensions and visible content. SVG checks validate logical
@@ -93,7 +95,7 @@ superseded output. This suite adds no ordinary correctness timing thresholds.
 ## PDF structured reading and file destinations
 
 The separate opt-in evidence suite selects one family explicitly and leaves the
-eight-operation runtime matrix unchanged:
+runtime matrix unchanged:
 
 ```powershell
 ./Build/Benchmarks/Run-PdfRuntimeEvidenceBenchmarks.ps1 -Family StructuredRead

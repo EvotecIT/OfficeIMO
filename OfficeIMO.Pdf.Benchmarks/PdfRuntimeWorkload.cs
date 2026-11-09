@@ -57,12 +57,12 @@ public sealed partial class PdfRuntimeWorkload {
     public int VerifiedPages { get; private set; }
     /// <summary>Source text spans reported affected by a region mutation, including spaces.</summary>
     public int AffectedTextSpans => _edit?.AffectedCount ?? 0;
-    /// <summary>Writer-reported page payload retention, zero for other operations.</summary>
-    public long PeakRetainedPageContentBytes => _serialization?.PeakRetainedPageContentBytes ?? 0L;
-    /// <summary>Writer-reported completed object retention, zero for other operations.</summary>
-    public long PeakRetainedObjectBytes => _serialization?.PeakRetainedObjectBytes ?? 0L;
-    /// <summary>Writer-reported largest serialized object, zero for other operations.</summary>
-    public long LargestSerializedObjectBytes => _serialization?.LargestSerializedObjectBytes ?? 0L;
+    /// <summary>Writer-reported page payload retention; unavailable when no serialization report was captured.</summary>
+    public long? PeakRetainedPageContentBytes => _serialization?.PeakRetainedPageContentBytes;
+    /// <summary>Writer-reported completed object retention; unavailable when no serialization report was captured.</summary>
+    public long? PeakRetainedObjectBytes => _serialization?.PeakRetainedObjectBytes;
+    /// <summary>Writer-reported largest serialized object; unavailable when no serialization report was captured.</summary>
+    public long? LargestSerializedObjectBytes => _serialization?.LargestSerializedObjectBytes;
     /// <summary>Whether this operation produced saved PDF bytes.</summary>
     public bool HasPdfOutput => _output is not null;
     /// <summary>Whether Poppler has qualified the prepared source and its geometry.</summary>
