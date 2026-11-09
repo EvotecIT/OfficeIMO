@@ -12,6 +12,14 @@
     <OfficeIMOTrimmingPolyfillsFile>$(OfficeIMOSharedSourceDir)\Compatibility\TrimmingAttributes.cs</OfficeIMOTrimmingPolyfillsFile>
   </PropertyGroup>
 
+  <!-- Embed symbols so consumers get source line numbers in stack traces without extra files.
+       This must be set before the SDK targets derive symbol outputs from DebugType; setting it
+       in Directory.Build.targets leaves pack expecting a separate .pdb. Projects may still
+       override DebugType in their own project file. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(EnableTrimmingPolyfills)' == 'true'">
     <Compile Include="$(OfficeIMOTrimmingPolyfillsFile)"
              Link="Shared\Compatibility\TrimmingAttributes.cs"

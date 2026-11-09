@@ -14,7 +14,6 @@
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>0.1.0: introduces a reusable WPF/WebView2 MarkdownView host for OfficeIMO.MarkdownRenderer with host-driven preset, theming, clipboard, and external-link hooks.</PackageReleaseNotes>
-    <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <IsPublishable>True</IsPublishable>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>

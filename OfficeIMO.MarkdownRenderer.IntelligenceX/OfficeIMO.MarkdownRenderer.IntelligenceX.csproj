@@ -17,7 +17,6 @@
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>0.1.0: first-party IntelligenceX plugin pack for OfficeIMO.MarkdownRenderer with IX visual aliases and transcript preset helpers.</PackageReleaseNotes>
-    <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <IsPublishable>True</IsPublishable>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
