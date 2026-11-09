@@ -264,9 +264,18 @@
       "workingDirectory": "."
     },
     {
-      "task": "dotnet-build",
+      "task": "exec",
       "id": "build-api-net8-0-optional",
-      "projects": [
+      "timeoutSeconds": 3600,
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Build-ApiAssemblies.ps1",
+        "-Framework",
+        "net8.0",
+        "-SkipMissing",
         "../OfficeIMO.Word/OfficeIMO.Word.csproj",
         "../OfficeIMO.Excel/OfficeIMO.Excel.csproj",
         "../OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
@@ -295,14 +304,20 @@
         "../OfficeIMO.GoogleWorkspace.Auth.GoogleApis/OfficeIMO.GoogleWorkspace.Auth.GoogleApis.csproj",
         "../OfficeIMO.GoogleWorkspace.Sync/OfficeIMO.GoogleWorkspace.Sync.csproj"
       ],
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
+      "workingDirectory": "."
     },
     {
-      "task": "dotnet-build",
+      "task": "exec",
       "id": "build-api-net8-0",
-      "projects": [
+      "timeoutSeconds": 3600,
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Build-ApiAssemblies.ps1",
+        "-Framework",
+        "net8.0",
         "../OfficeIMO.Adf/OfficeIMO.Adf.csproj",
         "../OfficeIMO.AsciiDoc/OfficeIMO.AsciiDoc.csproj",
         "../OfficeIMO.AsciiDoc.Markdown/OfficeIMO.AsciiDoc.Markdown.csproj",
@@ -398,24 +413,39 @@
         "../OfficeIMO.Publisher.Pdf/OfficeIMO.Publisher.Pdf.csproj",
         "../OfficeIMO.Reader.Publisher/OfficeIMO.Reader.Publisher.csproj"
       ],
-      "configuration": "Release",
-      "framework": "net8.0"
+      "workingDirectory": "."
     },
     {
-      "task": "dotnet-build",
+      "task": "exec",
       "id": "build-api-net10-0",
-      "project": "../OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj",
-      "configuration": "Release",
-      "framework": "net10.0"
+      "timeoutSeconds": 3600,
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Build-ApiAssemblies.ps1",
+        "-Framework",
+        "net10.0",
+        "../OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj"
+      ],
+      "workingDirectory": "."
     },
     {
-      "task": "dotnet-build",
+      "task": "exec",
       "id": "build-api-netstandard2-0",
-      "projects": [
+      "timeoutSeconds": 3600,
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Build-ApiAssemblies.ps1",
+        "-Framework",
+        "netstandard2.0",
         "../OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj"
       ],
-      "configuration": "Release",
-      "framework": "netstandard2.0"
+      "workingDirectory": "."
     },
     {
       "task": "release-hub",
