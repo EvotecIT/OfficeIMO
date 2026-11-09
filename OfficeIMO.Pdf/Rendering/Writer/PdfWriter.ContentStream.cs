@@ -13,17 +13,19 @@ internal sealed partial class ContentStreamBuilder {
 
     public ContentStreamBuilder SaveState() {
         TextState? text = _text;
-        (_textStates ??= new(2)).Push(text == null
+        var state = text == null
             ? (1D, 0D, 0D, 0D, false, false, _paintFillColor)
-            : (text._textScale, text._textLeading, text._textWordSpacing, text._textCharacterSpacing, text._syntheticOblique, text._syntheticBold, _paintFillColor));
+            : (text._textScale, text._textLeading, text._textWordSpacing, text._textCharacterSpacing, text._syntheticOblique, text._syntheticBold, _paintFillColor);
+        if (_savedStates++ == 0) _outerSavedState = state;
+        else (_textStates ??= new(2)).Push(state);
         InvalidateTextStateCache();
         AppendGraphicsSave(_sb);
         return this;
     }
 
     public ContentStreamBuilder RestoreState() {
-        if (_textStates is { Count: > 0 }) {
-            var state = _textStates.Pop();
+        if (_savedStates > 0) {
+            var state = --_savedStates == 0 ? _outerSavedState : _textStates!.Pop();
             // A builder that has not written text keeps its default text state until something sets it.
             if (_text != null || state.Scale != 1D || state.Leading != 0D || state.WordSpacing != 0D || state.CharacterSpacing != 0D ||
                 state.SyntheticOblique || state.SyntheticBold) {

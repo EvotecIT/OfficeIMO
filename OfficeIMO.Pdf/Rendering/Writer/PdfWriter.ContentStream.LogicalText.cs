@@ -4,6 +4,9 @@ internal sealed partial class ContentStreamBuilder {
     // Shared with drawing ink measurement so clip bounds enclose the painted text matrix.
     internal const double SyntheticObliqueShear = 1D / 3D;
     // Most builders wrap a stream for an operator or two and never save state, so the stack is made on first use.
+    // The outermost saved state is held inline, since most builders save once; deeper saves use the stack.
+    private int _savedStates;
+    private (double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique, bool SyntheticBold, OfficeColor PaintFillColor) _outerSavedState;
     private Stack<(double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique, bool SyntheticBold, OfficeColor PaintFillColor)>? _textStates;
 
 
