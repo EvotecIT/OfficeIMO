@@ -1,8 +1,4 @@
-using System;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using Xunit;

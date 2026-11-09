@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared native drawing text measurement used by SVG, raster and PDF adapters.</summary>

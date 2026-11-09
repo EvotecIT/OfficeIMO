@@ -1,6 +1,4 @@
 using C = DocumentFormat.OpenXml.Drawing.Charts;
-using System;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;

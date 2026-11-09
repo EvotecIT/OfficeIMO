@@ -1,8 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Visio {
     // Save orchestrator for VisioDocument.

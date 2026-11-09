@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpegXrDecoder {

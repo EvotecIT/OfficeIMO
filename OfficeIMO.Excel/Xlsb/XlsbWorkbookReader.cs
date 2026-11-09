@@ -5,7 +5,6 @@ using OfficeIMO.Excel.Xlsb.Package;
 using OfficeIMO.Excel.Xlsb.Read;
 using OfficeIMO.Excel.Xlsb.Styles;
 using System.IO.Compression;
-using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb {
     /// <summary>Reads workbook metadata and worksheet values from BIFF12 package parts.</summary>

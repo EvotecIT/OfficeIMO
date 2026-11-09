@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Security {
     // Adapted from Bouncy Castle C# AesLightEngine (release-2.7.0).
     // See THIRD-PARTY-NOTICES.md for source and license details.

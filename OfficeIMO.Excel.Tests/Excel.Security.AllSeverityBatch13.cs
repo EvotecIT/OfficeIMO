@@ -2,7 +2,6 @@ using OfficeIMO.Excel;
 using OfficeIMO.Drawing;
 using OfficeIMO.Data;
 using System.Data;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

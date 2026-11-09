@@ -10,7 +10,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile><PackageIcon>OfficeIMO.png</PackageIcon>
     <IsPublishable>true</IsPublishable><GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <LangVersion>latest</LangVersion><ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj" />

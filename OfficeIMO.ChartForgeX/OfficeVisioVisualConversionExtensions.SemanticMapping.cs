@@ -1,4 +1,3 @@
-using System;
 using global::ChartForgeX.Primitives;
 using global::ChartForgeX.Topology;
 using global::ChartForgeX.VisualArtifacts;

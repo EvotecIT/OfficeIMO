@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
         internal static PowerPointSlide FinalizeDesignerAccessibility(PowerPointSlide slide, string? requestedTitle = null,

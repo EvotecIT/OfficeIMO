@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Word.Rtf;
 
 /// <summary>Thin RTF workflow routes over the reusable OfficeIMO.Word engines.</summary>

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         /// <summary>

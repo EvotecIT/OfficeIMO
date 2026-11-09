@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.OpenDocument;
-using System.Threading;
 
 namespace OfficeIMO.Excel.OpenDocument;
 

@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {

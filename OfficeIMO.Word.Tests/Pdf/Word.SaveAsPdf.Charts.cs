@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;

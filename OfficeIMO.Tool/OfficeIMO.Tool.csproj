@@ -20,7 +20,7 @@
     <IsPackable>true</IsPackable>
     <IsPublishable>true</IsPublishable>
     <LangVersion>Latest</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
+
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(AotValidation)' == 'true'">

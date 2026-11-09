@@ -1,7 +1,5 @@
 using System.Globalization;
-using System.IO;
 using System.Text;
-using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 

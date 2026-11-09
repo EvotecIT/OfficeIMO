@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-using System.IO;
 using OfficeIMO.Word;
 using Xunit;
 

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Process-wide fallback for optional system raster codecs. Explicit request codecs take precedence.</summary>

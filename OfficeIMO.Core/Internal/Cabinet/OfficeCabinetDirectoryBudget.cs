@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Core.Internal.Cabinet;
 
 /// <summary>Bounds directory parsing across standalone and embedded cabinets without decoding payloads.</summary>

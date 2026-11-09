@@ -1,6 +1,5 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using System.Threading;
 
 namespace OfficeIMO.Html;
 

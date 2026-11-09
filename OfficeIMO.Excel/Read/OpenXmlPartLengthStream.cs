@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Checks the ZIP-declared decompressed length as a package part is consumed.

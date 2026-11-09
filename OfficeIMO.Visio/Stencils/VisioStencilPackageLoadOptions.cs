@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
     /// Options for creating an OfficeIMO-native stencil catalog from a Visio package.

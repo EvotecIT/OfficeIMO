@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared DrawingML-compatible bounds for chart appearances.</summary>

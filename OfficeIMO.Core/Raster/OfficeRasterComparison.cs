@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Pixel comparison evidence for equal-size rasters in premultiplied RGBA space.</summary>

@@ -4,7 +4,6 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Reader.All;
 using OfficeIMO.Reader.Publisher;
 using System.Security.Cryptography;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;

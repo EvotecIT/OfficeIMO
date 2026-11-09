@@ -2,7 +2,6 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;

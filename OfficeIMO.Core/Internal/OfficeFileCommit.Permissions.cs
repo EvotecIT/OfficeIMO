@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeFileCommit {
         /// <summary>Writes complete bytes with an explicit destination permission policy.</summary>

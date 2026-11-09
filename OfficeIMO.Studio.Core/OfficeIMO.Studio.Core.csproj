@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
-    <ImplicitUsings>enable</ImplicitUsings>
+
     <LangVersion>Latest</LangVersion>
     <Description>UI-independent document sessions, editing, storage and recovery for OfficeIMO Studio hosts.</Description>
   </PropertyGroup>

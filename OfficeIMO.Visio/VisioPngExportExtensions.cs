@@ -1,6 +1,4 @@
 using OfficeIMO.Drawing;
-using System;
-using System.Threading;
 
 namespace OfficeIMO.Visio {
     /// <summary>Adapts the native semantic-preview PNG options to the shared image renderer.</summary>

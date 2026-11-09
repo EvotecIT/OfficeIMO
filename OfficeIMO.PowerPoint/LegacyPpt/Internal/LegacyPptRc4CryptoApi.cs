@@ -1,6 +1,5 @@
 using OfficeIMO.Core.Internal;
 using System.Security.Cryptography;
-using System.Threading;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Reads and writes record-scoped RC4 CryptoAPI encryption for binary PowerPoint packages.</summary>

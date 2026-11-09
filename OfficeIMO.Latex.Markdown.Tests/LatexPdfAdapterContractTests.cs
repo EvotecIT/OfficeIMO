@@ -1,7 +1,3 @@
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Latex.Markdown.Tests;
 
 public sealed class LatexPdfAdapterContractTests {

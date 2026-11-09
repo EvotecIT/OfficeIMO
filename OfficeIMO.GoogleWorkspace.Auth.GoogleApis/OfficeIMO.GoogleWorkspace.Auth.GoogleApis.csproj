@@ -30,12 +30,4 @@
     <None Include="..\Assets\OfficeIMO.png" Pack="True" PackagePath="\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" />
-    <Using Include="System.Threading" />
-    <Using Include="System.Threading.Tasks" />
-  </ItemGroup>
-
 </Project>

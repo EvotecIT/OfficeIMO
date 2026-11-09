@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Ocr;
 
 namespace OfficeIMO.Pdf.Ocr;

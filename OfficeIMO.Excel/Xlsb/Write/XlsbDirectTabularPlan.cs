@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>

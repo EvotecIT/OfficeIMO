@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Lossless T.6 Group 4 encoding of opaque black/white RGBA pixels, with bounded row and output storage.</summary>

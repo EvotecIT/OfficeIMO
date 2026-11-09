@@ -1,7 +1,6 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls.Read;
 using OfficeIMO.Excel.LegacyXls.Write;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests {

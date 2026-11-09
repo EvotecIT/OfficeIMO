@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading;
 
 namespace OfficeIMO.DocBook.Tests;
 

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing {
     public static partial class OfficeRasterImageEncoder {
         /// <summary>Encodes pixels and applies supported primary-image metadata, reporting supplied profile families omitted by the output container.</summary>

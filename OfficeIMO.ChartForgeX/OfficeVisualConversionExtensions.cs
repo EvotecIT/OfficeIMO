@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Text;
 using global::ChartForgeX.Primitives;
 using global::ChartForgeX.Raster;

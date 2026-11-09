@@ -2,7 +2,6 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Zip;
 using System.IO.Compression;
 using System.Security.Cryptography;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;

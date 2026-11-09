@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Chooses a proven full-rewrite, append-only, or blocked path for existing-document mutations.</summary>

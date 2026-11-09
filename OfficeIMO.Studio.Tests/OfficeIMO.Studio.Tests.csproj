@@ -6,7 +6,7 @@
     <OutputType>Exe</OutputType>
     <GenerateProgramFile>false</GenerateProgramFile>
     <StartupObject>OfficeIMO.Studio.Tests.StudioProcessProbe</StartupObject>
-    <ImplicitUsings>enable</ImplicitUsings>
+
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 

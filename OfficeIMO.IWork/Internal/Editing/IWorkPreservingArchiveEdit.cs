@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Patches same-length payloads while retaining complete native ArchiveInfo/MessageInfo envelopes and siblings.</summary>

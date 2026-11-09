@@ -1,8 +1,5 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Markdown;
 

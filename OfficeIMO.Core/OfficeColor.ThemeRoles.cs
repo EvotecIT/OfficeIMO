@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>Semantic palette roles; only roles with native theme slots follow later edits in Office.</summary>

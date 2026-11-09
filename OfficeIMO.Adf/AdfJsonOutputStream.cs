@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace OfficeIMO.Adf;
 
 /// <summary>Stops a JSON writer before its UTF-8 output grows beyond the operation budget.</summary>

@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// ShapeSheet protection cells that control how a shape or connector can be edited in Visio.

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Summarizes deterministic visual-quality proof details for a generated showcase diagram.

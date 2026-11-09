@@ -3,7 +3,6 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Tests.Pdf;
-using System.Threading;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 

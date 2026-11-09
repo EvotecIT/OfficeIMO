@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.Provenance;
 
 /// <summary>Immutable, provider-specific detector evidence. Scores retain their named scale and are not AI-authorship probabilities.</summary>

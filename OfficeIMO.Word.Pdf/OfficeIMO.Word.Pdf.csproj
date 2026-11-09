@@ -34,18 +34,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
-  </ItemGroup>
-  <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="System.Text" />
-    <Using Include="System.Collections.Generic" />
     <Using Include="System.Collections" />
     <Using Include="OfficeIMO.Drawing" />
     <Using Include="OfficeIMO.OpenXml.Internal" />

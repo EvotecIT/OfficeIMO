@@ -1,5 +1,4 @@
 using PdfCore = OfficeIMO.Pdf;
-using System.Threading;
 
 namespace OfficeIMO.Html.Pdf;
 

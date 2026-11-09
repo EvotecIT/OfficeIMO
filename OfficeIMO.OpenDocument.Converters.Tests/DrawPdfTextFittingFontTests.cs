@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.OpenDocument.Odg.Pdf;

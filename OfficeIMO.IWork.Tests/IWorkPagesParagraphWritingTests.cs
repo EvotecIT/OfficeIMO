@@ -1,4 +1,3 @@
-using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.IWork;

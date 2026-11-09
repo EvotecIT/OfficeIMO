@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Independent numeric scale and label format for a chart value axis.</summary>

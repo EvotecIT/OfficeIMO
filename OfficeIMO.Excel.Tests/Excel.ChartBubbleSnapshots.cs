@@ -1,6 +1,4 @@
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;

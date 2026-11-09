@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing {
     public sealed partial class OfficeRasterFrames {
         /// <summary>Resizes every frame through shared fit planning, retaining timing and playback count.</summary>

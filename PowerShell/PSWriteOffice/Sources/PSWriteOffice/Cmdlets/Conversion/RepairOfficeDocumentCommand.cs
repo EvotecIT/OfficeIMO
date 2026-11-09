@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System;
-using System.IO;
 using System.Management.Automation;
 using System.Security;
 using OfficeIMO;

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
     /// Describes a native connection point discovered from a stencil master.

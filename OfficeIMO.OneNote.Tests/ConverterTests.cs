@@ -7,7 +7,6 @@ using OfficeIMO.OneNote.Pdf;
 using OfficeIMO.Pdf;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 
 namespace OfficeIMO.OneNote.Tests;
 

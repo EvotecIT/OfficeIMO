@@ -15,8 +15,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Zip\OfficeIMO.Reader.Zip.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="System" /><Using Include="System.IO" /><Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" /><Using Include="System.Text" /><Using Include="System.Threading" />
+<Using Include="System.Text" />
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'"><Reference Include="System.IO.Compression" /></ItemGroup>

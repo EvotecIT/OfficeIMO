@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Examples.Excel;
 
 internal static class ReportStatusColors {

@@ -1,5 +1,4 @@
 using OfficeIMO.Pdf;
-using System.IO;
 
 namespace OfficeIMO.Examples.Pdf {
     internal static class ReadPdf {

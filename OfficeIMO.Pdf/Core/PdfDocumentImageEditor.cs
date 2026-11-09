@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Finds and edits image placements on existing PDF pages.</summary>

@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;

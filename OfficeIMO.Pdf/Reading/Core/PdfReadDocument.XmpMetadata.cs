@@ -1,6 +1,5 @@
 using System.Xml;
 using System.Xml.Linq;
-using System.Threading;
 using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;

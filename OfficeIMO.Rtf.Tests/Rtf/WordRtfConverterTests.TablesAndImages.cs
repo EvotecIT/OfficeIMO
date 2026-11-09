@@ -2,7 +2,6 @@ using OfficeIMO.Rtf;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Rtf;
-using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Wordprocessing;

@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;

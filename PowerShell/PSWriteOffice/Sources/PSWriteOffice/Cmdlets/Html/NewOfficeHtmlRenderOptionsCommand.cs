@@ -1,6 +1,5 @@
 using OfficeIMO;
 using PSWriteOffice.Foundation;
-using System;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;

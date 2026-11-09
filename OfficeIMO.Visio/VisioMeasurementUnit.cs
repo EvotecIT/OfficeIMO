@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Supported measurement units for Visio pages.

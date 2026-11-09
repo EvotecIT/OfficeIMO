@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Ocr;
 
 /// <summary>One caller-configured recognition variant. All variants receive the same raster and coordinate frame.</summary>

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private static double GetContainmentAwareTextSimilarity(

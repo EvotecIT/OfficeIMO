@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Security {
     /// <summary>Tracks aggregate certificate decoding and read work for one signature-inspection or validation pass.</summary>
     internal sealed class OfficePackageCertificateByteBudget {

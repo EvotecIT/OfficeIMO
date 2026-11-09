@@ -2,7 +2,6 @@ using OfficeIMO.Excel;
 using OfficeIMO.IWork;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.IWork.Tests;
 

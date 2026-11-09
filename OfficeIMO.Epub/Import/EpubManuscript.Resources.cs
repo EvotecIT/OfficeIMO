@@ -1,7 +1,5 @@
 using AngleSharp.Html.Dom;
 using OfficeIMO.Html;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Epub;
 

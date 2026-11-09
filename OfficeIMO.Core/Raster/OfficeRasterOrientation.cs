@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared exact pixel permutation for EXIF orientations and bounded WebP metadata reading.</summary>

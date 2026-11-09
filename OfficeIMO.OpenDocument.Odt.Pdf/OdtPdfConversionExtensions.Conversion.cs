@@ -1,8 +1,4 @@
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using PdfWord = OfficeIMO.Pdf.Word;
 using OfficeIMO.Word.OpenDocument;

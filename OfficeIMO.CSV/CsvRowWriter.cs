@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Data;
 using System.Text;
-using System.Threading;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.CSV;

@@ -2,13 +2,9 @@ using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
 using OfficeIMO.Word;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
     /// High-level builder for dependency-free organization charts with hierarchy,

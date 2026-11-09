@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.Ocr;
 
 /// <summary>Immutable, measurable checks for deciding whether OCR evidence needs attention.</summary>

@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfColorSpaceFunctionResolver {

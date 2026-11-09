@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Encodes multi-resolution Windows icons using independently compressed PNG entries.</summary>

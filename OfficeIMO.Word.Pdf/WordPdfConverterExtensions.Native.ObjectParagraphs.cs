@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {

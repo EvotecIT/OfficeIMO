@@ -1,7 +1,6 @@
 using OfficeIMO.Core.Internal;
 using System.Data.Common;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
 

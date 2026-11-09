@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO {
     /// <summary>Controls whether a class of active or externally linked package content is accepted.</summary>
     public enum OfficePackageContentPolicy {

@@ -1,5 +1,4 @@
 using System.Xml;
-using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio;

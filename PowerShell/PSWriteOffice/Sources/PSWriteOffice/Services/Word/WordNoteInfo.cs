@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace PSWriteOffice.Services.Word;
 
 /// <summary>Describes a Word footnote or endnote in a document-safe snapshot.</summary>

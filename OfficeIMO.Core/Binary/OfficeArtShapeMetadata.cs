@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Decodes user-facing name and description metadata from OfficeArt properties.</summary>

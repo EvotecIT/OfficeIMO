@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
     /// Page helpers for placing OfficeIMO-native stencil shapes.

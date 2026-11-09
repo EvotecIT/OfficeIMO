@@ -2,8 +2,6 @@ using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.GoogleSlides;
-using System;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

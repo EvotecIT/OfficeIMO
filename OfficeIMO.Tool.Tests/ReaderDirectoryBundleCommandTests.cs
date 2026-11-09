@@ -1,6 +1,4 @@
 using System.IO.Compression;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.IWork;
 using OfficeIMO.Tool.Commands.Reader;

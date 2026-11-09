@@ -25,9 +25,6 @@
     <None Update="Fixtures/*.docbook" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="System"/>
-    <Using Include="System.IO"/>
-    <Using Include="System.Linq"/>
     <Using Include="System.Text"/>
     <Using Include="System.Xml.Linq"/>
     <Using Include="OfficeIMO.DocBook"/>

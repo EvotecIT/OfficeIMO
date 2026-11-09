@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Spreadsheet;

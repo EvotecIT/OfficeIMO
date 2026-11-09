@@ -1,9 +1,5 @@
-using System;
 using OfficeIMO.Drawing;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using S = DocumentFormat.OpenXml.Spreadsheet;

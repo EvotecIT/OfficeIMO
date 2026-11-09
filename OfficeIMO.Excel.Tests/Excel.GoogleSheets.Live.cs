@@ -2,7 +2,6 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.GoogleSheets;
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

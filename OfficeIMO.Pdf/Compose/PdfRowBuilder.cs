@@ -1,6 +1,5 @@
 namespace OfficeIMO.Pdf;
 
-using System;
 /// <summary>Builds a horizontal row with explicit column sizing.</summary>
 public sealed class PdfRowBuilder {
     private readonly PdfDocument _doc;

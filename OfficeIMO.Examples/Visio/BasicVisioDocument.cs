@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO.Visio;
 using OfficeIMO.Drawing;
 using Color = OfficeIMO.OfficeColor;

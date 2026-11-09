@@ -1,9 +1,6 @@
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using PdfCore = OfficeIMO.Pdf;
-using System;
-using System.IO;
-using System.Linq;
 using UglyToad.PdfPig.Content;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;

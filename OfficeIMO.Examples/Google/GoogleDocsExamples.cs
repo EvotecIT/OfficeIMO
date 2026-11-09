@@ -1,7 +1,6 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.Word;
 using OfficeIMO.Word.GoogleDocs;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Examples.Google {
     internal static class GoogleDocsExamples {

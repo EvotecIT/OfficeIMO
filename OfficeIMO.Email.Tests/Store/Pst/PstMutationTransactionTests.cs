@@ -2,7 +2,6 @@ using OfficeIMO.Email;
 using System.Collections;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace OfficeIMO.Email.Store.Tests;
 

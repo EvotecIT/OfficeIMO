@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Epub;
 using OfficeIMO.Epub.Image;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Html.Tests;

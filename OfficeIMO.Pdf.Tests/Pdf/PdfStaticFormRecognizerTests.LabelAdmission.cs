@@ -1,4 +1,3 @@
-using System.Linq;
 using OfficeIMO.Pdf;
 using Xunit;
 

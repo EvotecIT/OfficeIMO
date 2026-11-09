@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>

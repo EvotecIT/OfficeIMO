@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Options for text auto-fit behavior.

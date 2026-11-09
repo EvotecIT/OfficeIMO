@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Validates bounded classic-TIFF structure used by images and embedded Exif metadata.</summary>

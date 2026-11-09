@@ -1,7 +1,5 @@
 using OfficeIMO.Word;
 using Color = OfficeIMO.OfficeColor;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
 

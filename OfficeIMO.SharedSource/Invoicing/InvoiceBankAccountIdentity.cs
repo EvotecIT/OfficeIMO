@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Internal.Invoicing;
 
 /// <summary>IBAN identity checks shared by native invoice mapping and PDF invoice inspection.</summary>

@@ -1,7 +1,5 @@
 namespace OfficeIMO.Epub;
 
-using System.Threading;
-
 internal static partial class EpubReader {
     private const string IdpfFontObfuscationAlgorithm = "http://www.idpf.org/2008/embedding";
     private const string AdobeFontObfuscationAlgorithm = "http://ns.adobe.com/pdf/enc#RC";

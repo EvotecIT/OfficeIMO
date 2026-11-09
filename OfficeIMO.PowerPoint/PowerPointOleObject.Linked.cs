@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using P = DocumentFormat.OpenXml.Presentation;
 

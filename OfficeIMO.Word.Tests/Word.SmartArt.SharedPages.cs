@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
 using OfficeIMO.Drawing;

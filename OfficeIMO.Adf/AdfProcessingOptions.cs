@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Adf;
 
 /// <summary>Resource limits for ADF parsing, writing, validation and projections.</summary>

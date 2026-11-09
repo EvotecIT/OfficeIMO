@@ -1,7 +1,5 @@
 #pragma warning disable RS0026 // A required format in the first position keeps every existing call unambiguous.
 using System.IO.Compression;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel;

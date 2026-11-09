@@ -4,7 +4,6 @@ using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser.Tokens;
 using AngleSharp.Text;
 using OfficeIMO.Html.Dom;
-using System.Threading;
 
 namespace OfficeIMO.Html;
 

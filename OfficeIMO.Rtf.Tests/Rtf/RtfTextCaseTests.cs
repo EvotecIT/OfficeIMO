@@ -1,4 +1,3 @@
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Rtf;
 using Xunit;

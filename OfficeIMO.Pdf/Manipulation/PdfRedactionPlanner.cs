@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builds redaction impact previews without modifying the PDF.</summary>

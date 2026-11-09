@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word

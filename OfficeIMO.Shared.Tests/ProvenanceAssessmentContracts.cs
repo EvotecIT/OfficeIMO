@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading;
 using System.Runtime.InteropServices;
 using OfficeIMO.Html;
 using OfficeIMO.Provenance;

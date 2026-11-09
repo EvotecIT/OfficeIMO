@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio;
 
 /// <summary>Keeps native layer row identities separate from ordinal layer membership.</summary>

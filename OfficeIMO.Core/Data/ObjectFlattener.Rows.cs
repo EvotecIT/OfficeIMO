@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
 
 namespace OfficeIMO.Data {
     // Provides the shared runtime-row projection used by Office table renderers.

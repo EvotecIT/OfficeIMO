@@ -1,7 +1,5 @@
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-using System.Threading;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Core.Internal;
 using A = DocumentFormat.OpenXml.Drawing;

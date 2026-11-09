@@ -3,7 +3,6 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
 using OfficeIMO.Html;
-using System.Threading;
 using Xunit;
 using Rich = DocumentFormat.OpenXml.Office2019.Excel.RichData;
 

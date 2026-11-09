@@ -1,8 +1,5 @@
 namespace OfficeIMO.Epub;
 
-using System.Threading;
-using System.Threading.Tasks;
-
 /// <summary>
 /// Represents extracted EPUB content.
 /// </summary>

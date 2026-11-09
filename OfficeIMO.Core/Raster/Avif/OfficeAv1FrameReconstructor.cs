@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>One-shot Main-8/Main10 reconstruction into owned padded planes through the selected pipeline stage.</summary>

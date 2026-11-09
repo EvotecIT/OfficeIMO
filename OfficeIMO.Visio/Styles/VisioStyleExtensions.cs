@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Convenience helpers for applying reusable Visio styles.

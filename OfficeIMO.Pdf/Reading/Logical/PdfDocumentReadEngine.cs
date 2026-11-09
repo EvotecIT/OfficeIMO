@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Single owner for parser-backed semantic reconstruction.</summary>

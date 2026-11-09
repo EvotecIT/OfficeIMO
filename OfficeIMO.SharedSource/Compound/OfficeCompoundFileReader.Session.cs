@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-
 namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeCompoundFileReader {
         /// <summary>Indexes one immutable seekable compound source once. Views share the source cursor;

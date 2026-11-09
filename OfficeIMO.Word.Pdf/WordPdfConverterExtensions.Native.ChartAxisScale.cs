@@ -1,4 +1,3 @@
-using System.Linq;
 using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Word.Pdf {

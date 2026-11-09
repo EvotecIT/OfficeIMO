@@ -1,7 +1,5 @@
-using System;
 using System.Collections;
 using System.Globalization;
-using System.Linq;
 using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.Drawing;

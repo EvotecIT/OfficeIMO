@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork;
 
 public sealed partial class IWorkPagesDocument : IDisposable {

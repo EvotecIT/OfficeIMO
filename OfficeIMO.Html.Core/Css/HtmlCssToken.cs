@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Html.Css;
 
 /// <summary>CSS Syntax token categories, with comments retained as source trivia.</summary>

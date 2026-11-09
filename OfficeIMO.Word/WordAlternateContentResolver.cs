@@ -1,6 +1,4 @@
 using DocumentFormat.OpenXml;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace OfficeIMO.Word;
 

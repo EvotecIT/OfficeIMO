@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Threading;
 using OfficeIMO.OneNote.Pdf;
 using OfficeIMO.Pdf;
 

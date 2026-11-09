@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeWebpCodec {

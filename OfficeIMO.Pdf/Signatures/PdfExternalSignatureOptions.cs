@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Options for preparing a dependency-free external PDF signature placeholder.</summary>

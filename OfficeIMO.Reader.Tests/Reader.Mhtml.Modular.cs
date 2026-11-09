@@ -1,7 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Html;
-using System.Linq;
 using System.Text;
 using Xunit;
 

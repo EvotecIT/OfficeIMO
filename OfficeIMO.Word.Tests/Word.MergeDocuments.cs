@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Collections.Generic;
 using System.Reflection;
 using DocumentFormat.OpenXml.Vml.Office;
 using DocumentFormat.OpenXml.Wordprocessing;

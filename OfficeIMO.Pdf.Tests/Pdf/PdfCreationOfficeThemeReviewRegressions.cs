@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Pdf;
 using UglyToad.PdfPig.Content;
 using Xunit;

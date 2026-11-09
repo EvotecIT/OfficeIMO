@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using Xunit;
 

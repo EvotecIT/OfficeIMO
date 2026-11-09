@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Legacy;

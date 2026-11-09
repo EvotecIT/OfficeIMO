@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO;
 
 /// <summary>Shared options for projecting typed rows into an editable native table.</summary>

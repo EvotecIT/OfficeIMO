@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml;
-using System.Collections.Generic;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 

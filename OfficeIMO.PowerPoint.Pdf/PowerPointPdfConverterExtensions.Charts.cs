@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 using PptCore = OfficeIMO.PowerPoint;

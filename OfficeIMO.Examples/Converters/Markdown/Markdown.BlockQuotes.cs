@@ -1,4 +1,3 @@
-using System.IO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 

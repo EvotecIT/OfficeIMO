@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Converts authored positive density to the unsigned TIFF/Exif rational representation.</summary>

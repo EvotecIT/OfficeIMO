@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Core.Internal {
     /// <summary>Creates and identifies output-limit failures without conflating other invalid-data errors.</summary>
     internal static class OfficeOutputLimit {

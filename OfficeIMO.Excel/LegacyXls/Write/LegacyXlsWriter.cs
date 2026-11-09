@@ -8,7 +8,6 @@ using OfficeIMO.Core.Internal;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {

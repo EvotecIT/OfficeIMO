@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Applies the lifecycle and associated-destination rules shared by Office document packages.

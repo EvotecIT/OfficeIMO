@@ -3,7 +3,6 @@ using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Package;
 using System.Data.Common;
 using System.IO.Compression;
-using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     /// <summary>

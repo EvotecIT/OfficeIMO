@@ -1,6 +1,5 @@
 using OfficeIMO.Ocr;
 using OfficeIMO.Ocr.Tesseract;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

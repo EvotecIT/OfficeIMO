@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Plans a bounded vector halo shared by raster, SVG and PDF shape writers.</summary>

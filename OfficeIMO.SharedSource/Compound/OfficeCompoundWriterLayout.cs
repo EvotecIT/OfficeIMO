@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Builds deterministic CFB directory entries from slash-separated stream paths.

@@ -1,6 +1,4 @@
-using System;
 using System.Globalization;
-using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;

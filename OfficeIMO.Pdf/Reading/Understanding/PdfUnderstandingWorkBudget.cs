@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Shared cancellation-aware work budget for semantic reconstruction.</summary>

@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word;
-using System.IO;
 using Xunit;
 
 namespace OfficeIMO.Tests {

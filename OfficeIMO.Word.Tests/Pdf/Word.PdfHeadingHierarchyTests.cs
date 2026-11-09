@@ -2,8 +2,6 @@ using OfficeIMO.Pdf.Word;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
-using System.IO;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests;

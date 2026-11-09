@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;

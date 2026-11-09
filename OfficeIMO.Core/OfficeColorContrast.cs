@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>WCAG-compatible relative luminance and contrast calculations for shared OfficeIMO colors.</summary>

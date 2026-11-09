@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
     /// Describes preview/icon image metadata discovered for a stencil master.

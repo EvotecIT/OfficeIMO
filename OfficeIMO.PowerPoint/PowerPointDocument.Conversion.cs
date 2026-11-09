@@ -2,8 +2,6 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.PowerPoint;
 

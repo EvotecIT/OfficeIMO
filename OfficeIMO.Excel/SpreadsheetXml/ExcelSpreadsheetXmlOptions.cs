@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel;
 
 /// <summary>Resource limits for the explicit XML Spreadsheet 2003 data interchange profile.</summary>

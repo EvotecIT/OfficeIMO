@@ -501,80 +501,80 @@
     {
       "id": "source-officeimo-examples-powerpoint-designbriefrecommendationspowerpoint-cs",
       "path": "/downloads/showcase/source/PowerPoint/DesignBriefRecommendationsPowerPoint.cs.txt",
-      "bytes": 6257,
-      "sha256": "65780d866397705b3970f7f4b65a4dc2435f24c5f376d6754e8fe66a11cd0dc0",
+      "bytes": 6071,
+      "sha256": "34d9bfc3fca9c17c40b046c44db0c5a41812d5c2d44f9cfb2e2e217bd53b46a8",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
     {
       "id": "source-officeimo-examples-pdf-pdf-showcasedashboard-cs",
       "path": "/downloads/showcase/source/Pdf/Pdf.ShowcaseDashboard.cs.txt",
-      "bytes": 13631,
-      "sha256": "393e959ba28b7f0c0af774dd60a40a4743acc9c736ed981896509503df014d2e",
+      "bytes": 13424,
+      "sha256": "f7b89927467c62d98bd675a1a39467ffd4bdde4dd1747ce88e0bdced5c310fd7",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
     {
       "id": "source-officeimo-examples-converters-html-htmlmanagedrenderergallery-cs",
       "path": "/downloads/showcase/source/Converters/Html/HtmlManagedRendererGallery.cs.txt",
-      "bytes": 19974,
-      "sha256": "9dd115814b9d3915d76c312acdb261404874a4e23e7253abfbc03c5d1b494df7",
+      "bytes": 19641,
+      "sha256": "0ca234b448468e55954a90934c1dd23cfacd729de0846c073644f27c862daabb",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
     {
       "id": "source-officeimo-examples-converters-html-htmlinvoiceshowcase-cs",
       "path": "/downloads/showcase/source/Converters/Html/HtmlInvoiceShowcase.cs.txt",
-      "bytes": 7155,
-      "sha256": "a900d0bcd7390aa49925e183eff3d9ad63f86e5fb102a2983ed38bef10815849",
+      "bytes": 7041,
+      "sha256": "411072c89759012b60b8f5301d8eef5f0423394ba462b95c67efd51cc719b5f9",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
     {
       "id": "source-officeimo-examples-showcase-realworldworkflowshowcase-cs",
       "path": "/downloads/showcase/source/Showcase/RealWorldWorkflowShowcase.cs.txt",
-      "bytes": 18445,
-      "sha256": "0abc36c924de0ecba96ff8b76f3dbd418c6b449d57b5e0adffe0b0f1eb435d8f",
+      "bytes": 18100,
+      "sha256": "58e49fd578b5c2df335e7fb0764416f45f2a310845e7fc741557ce21fa5c0ce6",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
     {
       "id": "source-officeimo-examples-excel-reportworkflow-cs",
       "path": "/downloads/showcase/source/Excel/ReportWorkflow.cs.txt",
-      "bytes": 8658,
-      "sha256": "8295bd6909147a5497a7ee6eea8c761690135e94bbf9efe2b1daf32bd680a64e",
+      "bytes": 8515,
+      "sha256": "d675d019486d388f07b589e0afbde4d6af9c4cff030c77cff4421c3a38aeac44",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
     {
       "id": "source-officeimo-examples-visio-premiumvisioshowcase-cs",
       "path": "/downloads/showcase/source/Visio/PremiumVisioShowcase.cs.txt",
-      "bytes": 2708,
-      "sha256": "d007ae6c3c9e4a3e35f5507d2126ed64062d311a84356cc1af64d7de964a7c38",
+      "bytes": 2572,
+      "sha256": "58ffcaee271c697de16501b842bbbe5a4657cea1f706c206d0352c3627ec8ed2",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
     {
       "id": "source-officeimo-tool-commands-reader-readercommand-cs",
       "path": "/downloads/showcase/source/OfficeIMO.Tool/Commands/Reader/ReaderCommand.cs.txt",
-      "bytes": 8929,
-      "sha256": "5a4a1b967c2dee715c4fe35e112c7276c3cfefd72efb01215cc200b07d21d6aa",
+      "bytes": 8741,
+      "sha256": "7d9821b66dc2b574b37db57c384b65eddbba8a79b72d874ae3df4f953ce89dbe",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
     {
       "id": "source-officeimo-examples-onenote-offlineonenoteexample-cs",
       "path": "/downloads/showcase/source/OneNote/OfflineOneNoteExample.cs.txt",
-      "bytes": 3366,
-      "sha256": "f6d38f0625b240e5134fea6c2e3a78b50738a7f4d4991c7a115018919cbfdb43",
+      "bytes": 3304,
+      "sha256": "7a73d095841cc833e2496c8154c08445c25b9d6e353335d606509c16fa8418dc",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
     {
       "id": "source-officeimo-examples-converters-html-htmlfeatureshowcase-cs",
       "path": "/downloads/showcase/source/Converters/Html/HtmlFeatureShowcase.cs.txt",
-      "bytes": 3906,
-      "sha256": "8510458d3be440df1b879bfe2f5db51e7ff30ebdb9cfccad4879e4e6624293c6",
+      "bytes": 3847,
+      "sha256": "bc7807be5046cc4165c0c4a7676f1a1362558092167e622be76b5f7cebf15e3d",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -709,8 +709,8 @@
     {
       "id": "source-officeimo-examples-word-mailmerge-mailmerge-workflows-cs",
       "path": "/downloads/showcase/source/Word/MailMerge/MailMerge.Workflows.cs.txt",
-      "bytes": 24429,
-      "sha256": "26d28c8d78d360d3841fda056dc74c4c604e000105757b80a29278bb862f07a2",
+      "bytes": 23929,
+      "sha256": "caabd60b46ee18bf204f9a63aedd1fe083465fef9f87d675e04958a3ab5cdf1f",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -789,8 +789,8 @@
     {
       "id": "source-officeimo-examples-word-reviewreports-reviewreports-workflow-cs",
       "path": "/downloads/showcase/source/Word/ReviewReports/ReviewReports.Workflow.cs.txt",
-      "bytes": 2074,
-      "sha256": "e68178848cbd828d45dc02ef2a17bf0870d2b33f86eec6827e8c5c819425dccd",
+      "bytes": 2007,
+      "sha256": "112bb85b18c692cf85377991482e03f4d9404e4c97111193633ea0ee0f640cac",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -845,8 +845,8 @@
     {
       "id": "source-officeimo-examples-word-comparedocuments-comparedocuments-reports-cs",
       "path": "/downloads/showcase/source/Word/CompareDocuments/CompareDocuments.Reports.cs.txt",
-      "bytes": 8533,
-      "sha256": "5288edd27ae0e2bd302993c70965ca0498d5f882f9072791ffda038bffbca55c",
+      "bytes": 8334,
+      "sha256": "38ba702a6cc60b99a5fef7bff26d3782b73b20df15a207785ea1bd595fface1b",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -869,8 +869,8 @@
     {
       "id": "source-officeimo-examples-showcase-documentfeatureshowcase-excel-cs",
       "path": "/downloads/showcase/source/Showcase/DocumentFeatureShowcase.Excel.cs.txt",
-      "bytes": 8422,
-      "sha256": "d30b02b901c43f40a758b31ce5e77e164a6a2237f438d695ed26310516cfcfda",
+      "bytes": 8282,
+      "sha256": "f192d3096add16af08638cb89f9a366235d07733024cfbf3dbfe70f68bfde350",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -973,8 +973,8 @@
     {
       "id": "source-officeimo-examples-showcase-documentfeatureshowcase-powerpoint-cs",
       "path": "/downloads/showcase/source/Showcase/DocumentFeatureShowcase.PowerPoint.cs.txt",
-      "bytes": 8724,
-      "sha256": "9b2cb0bca8dad3b635e410eff19c1c2f91aaf824c18958defd1cb331f8d8211d",
+      "bytes": 8611,
+      "sha256": "f76d9f6f2db18360ce3620ec3e3d23bc2eaec020b0f5803508c74ecffedc5242",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -1077,8 +1077,8 @@
     {
       "id": "source-officeimo-examples-powerpoint-themeandlayoutpowerpoint-cs",
       "path": "/downloads/showcase/source/PowerPoint/ThemeAndLayoutPowerPoint.cs.txt",
-      "bytes": 8741,
-      "sha256": "1b41d9a2b5ddc35b5f3a4ee878e52c7381e98a671e3d90fa309d726e307ee3e9",
+      "bytes": 8593,
+      "sha256": "c301139dea5ea9504b02c51f20d0f00318173353c2024f37f5ca2f89ced363fb",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -1101,8 +1101,8 @@
     {
       "id": "source-officeimo-examples-pdf-pdf-showcasestatement-cs",
       "path": "/downloads/showcase/source/Pdf/Pdf.ShowcaseStatement.cs.txt",
-      "bytes": 11670,
-      "sha256": "50433bdb981f7b7a5724e380c254d208812b71a8246878204b014220f74143f7",
+      "bytes": 11453,
+      "sha256": "cf8ec0cdf4666c63c49e8918a75cafec2ca1a9ea4bb68dbb9714702de807f79c",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -1125,8 +1125,8 @@
     {
       "id": "source-officeimo-examples-pdf-pdf-rowcolumns-cs",
       "path": "/downloads/showcase/source/Pdf/Pdf.RowColumns.cs.txt",
-      "bytes": 6740,
-      "sha256": "422a2f047de8c30903d240812417b492f654f9133059474f9ecb2b21955a443f",
+      "bytes": 6628,
+      "sha256": "9ccf2b3c35eb0a991954cf4ada7b987e26833bd6dca939876676b66b17dd544f",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -1149,8 +1149,8 @@
     {
       "id": "source-officeimo-examples-pdf-pdf-drawinggallery-cs",
       "path": "/downloads/showcase/source/Pdf/Pdf.DrawingGallery.cs.txt",
-      "bytes": 4951,
-      "sha256": "cf30ef071dc8bca80cd75e12cd5986be08dd1c330c56428cac1de062fd5f604f",
+      "bytes": 4840,
+      "sha256": "838993fbcdf19affadb593303a7071ebd5316f9781b4359ba566f3d4cd9624a9",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -1173,8 +1173,8 @@
     {
       "id": "source-officeimo-examples-pdf-pdf-tablestylegallery-cs",
       "path": "/downloads/showcase/source/Pdf/Pdf.TableStyleGallery.cs.txt",
-      "bytes": 2641,
-      "sha256": "a82689d4fbbafb2bc7e6956be62a09ce373f1a168cd92b854fd67a9a8ceff387",
+      "bytes": 2542,
+      "sha256": "a0df6fd0ffd0095b61b20cf5be6294015b0911cfc08f7858148f45bf6de05073",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -1221,8 +1221,8 @@
     {
       "id": "source-officeimo-examples-pdf-pdf-showcasemanipulation-cs",
       "path": "/downloads/showcase/source/Pdf/Pdf.ShowcaseManipulation.cs.txt",
-      "bytes": 6261,
-      "sha256": "a8bb84cc513d06970ba2dbe8a951b9de54ba5f7ba2649e56da1979c3d35dd687",
+      "bytes": 6139,
+      "sha256": "85f8d59e9b4addd07e3d8457897f1c0ceecc3a3ce2dde4d95f6e0789330b04bb",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -1253,8 +1253,8 @@
     {
       "id": "source-officeimo-examples-showcase-documentfeatureshowcase-cs",
       "path": "/downloads/showcase/source/Showcase/DocumentFeatureShowcase.cs.txt",
-      "bytes": 3293,
-      "sha256": "c2716152ff52fce5d4536b058b2603baa07612604780194f4387a8529bd05d5b",
+      "bytes": 3230,
+      "sha256": "03d10d68f3796862728b0a0735c64fafed0a5f5945e570a034435831e94710f1",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -1285,8 +1285,8 @@
     {
       "id": "word-project-charter-source",
       "path": "/downloads/showcase/workflows/word-project-charter/ProjectCharter.cs.txt",
-      "bytes": 4165,
-      "sha256": "32abb1075247624f6c3906341f88efc6a469b219e917b129070f9b2da1096773",
+      "bytes": 4077,
+      "sha256": "11ce27fe41258f293f4c78d523676b948d83576e613bf86753c58219c6aedd21",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1317,8 +1317,8 @@
     {
       "id": "word-meeting-minutes-source",
       "path": "/downloads/showcase/workflows/word-meeting-minutes/MeetingMinutes.cs.txt",
-      "bytes": 4060,
-      "sha256": "1a0926402631819b7c23b418e9c498d43a9c9a1c477b06b80d3374364f240fee",
+      "bytes": 3975,
+      "sha256": "73f3f39847adf39fe444cb5c4160a97c50a42cce13d038dc2878d691076d2f6a",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1349,8 +1349,8 @@
     {
       "id": "word-onboarding-checklist-source",
       "path": "/downloads/showcase/workflows/word-onboarding-checklist/OnboardingChecklist.cs.txt",
-      "bytes": 4240,
-      "sha256": "8cfe7c4483b8fc1bb3a719fc8ae73610cf5857c1c618fecbc0c9db1bc697cdb0",
+      "bytes": 4147,
+      "sha256": "429fef791ce547f74ff33dadc5784c5162dc2f505519f24528b1f0934ab3c4e6",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1381,8 +1381,8 @@
     {
       "id": "word-policy-brief-source",
       "path": "/downloads/showcase/workflows/word-policy-brief/PolicyBrief.cs.txt",
-      "bytes": 4645,
-      "sha256": "157ddf497dd0016151bb46f71d33b6541cb1029cc160c977de0256874d3ea2d8",
+      "bytes": 4552,
+      "sha256": "41a25037e747e05dddc4b5254ebd030c4d7e3a4e04dfa05ae2e09086c1410978",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1413,8 +1413,8 @@
     {
       "id": "word-decision-record-source",
       "path": "/downloads/showcase/workflows/word-decision-record/WordDecisionRecord.cs.txt",
-      "bytes": 4169,
-      "sha256": "1c4bbc717d7a30acdc224ec2a802bfbb9cb716e8a0e6da4ac5a5c1861347f3f1",
+      "bytes": 4085,
+      "sha256": "f0a5adfebbea9272af5322b2494994a6a427eb1bdc2582a444f64bea658c4101",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1437,8 +1437,8 @@
     {
       "id": "excel-budget-scenarios-source",
       "path": "/downloads/showcase/workflows/excel-budget-scenarios/BudgetScenarios.cs.txt",
-      "bytes": 2827,
-      "sha256": "7a8268a40f26becd64e84c991882e6bbd7db8823f78f6bbc2c00671146c28fea",
+      "bytes": 2761,
+      "sha256": "a4924c37b05e3f6b1c957c90c6ce4808578be9b07f0b829bdabe7b1f400ac8bc",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1461,8 +1461,8 @@
     {
       "id": "excel-named-range-pricing-source",
       "path": "/downloads/showcase/workflows/excel-named-range-pricing/NamedRangePricing.cs.txt",
-      "bytes": 2590,
-      "sha256": "3f6a8f6790f91b752d85aaf5f89e763accb683e4b6c1da0b832d410223d8c3e1",
+      "bytes": 2525,
+      "sha256": "2b3f40fea3ff2bdde8340d6bc8fdab1f8f280a4709da916d659ef39e4d6ffc1b",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1485,8 +1485,8 @@
     {
       "id": "excel-project-workbook-source",
       "path": "/downloads/showcase/workflows/excel-project-workbook/ProjectWorkbook.cs.txt",
-      "bytes": 2874,
-      "sha256": "c8210f6e3400adb090c3865f84f4b84eebcf247ee7f77d699f629165b58bfd66",
+      "bytes": 2807,
+      "sha256": "f93e4f381ad35e06e7223bf2ad98652e1714ba2e2f3a09a697bd62d288bed8c3",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1509,8 +1509,8 @@
     {
       "id": "excel-expense-register-source",
       "path": "/downloads/showcase/workflows/excel-expense-register/ExpenseRegister.cs.txt",
-      "bytes": 2862,
-      "sha256": "67b55968d9cfc207920bf04864177ecc2af4561b3abdc8ed60292a88bae9c177",
+      "bytes": 2780,
+      "sha256": "86b94f584b9cf805f501b3303c463abfea9c687821da113e2193698527462036",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1533,8 +1533,8 @@
     {
       "id": "excel-object-export-source",
       "path": "/downloads/showcase/workflows/excel-object-export/ObjectExport.cs.txt",
-      "bytes": 4857,
-      "sha256": "546e955320ac3eb15e96093e9e6d0c389ca97ff405a05c5d8dcf0accccff556e",
+      "bytes": 4706,
+      "sha256": "4f55c7be649d9063e94dcdd9e12db5a30af6f05222382b702cbfaeae70df2156",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1573,8 +1573,8 @@
     {
       "id": "pdf-branded-invoice-source",
       "path": "/downloads/showcase/workflows/pdf-branded-invoice/BrandedInvoice.cs.txt",
-      "bytes": 5250,
-      "sha256": "fce45bd20e51b4c2ca6208f6d9d4e09a6c38aad1a9c2bff85f1c0f7cec35216c",
+      "bytes": 5151,
+      "sha256": "a87fe16a27a118c76176c2dfb3e20a97f576772a19b008a7a004ca57c76dde40",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1597,8 +1597,8 @@
     {
       "id": "pdf-dispatch-note-source",
       "path": "/downloads/showcase/workflows/pdf-dispatch-note/DispatchNote.cs.txt",
-      "bytes": 2324,
-      "sha256": "4bfb248bbf841c49d93aa35d9ba03f3ba0c9dac4a9ddcd86f579c3e3129e2d2d",
+      "bytes": 2271,
+      "sha256": "89d7ed2353bf81f35acbc4350abc202806918bd7313363bcfd67e2f949a3bf14",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1629,8 +1629,8 @@
     {
       "id": "pdf-workshop-pack-source",
       "path": "/downloads/showcase/workflows/pdf-workshop-pack/WorkshopPack.cs.txt",
-      "bytes": 2604,
-      "sha256": "ac76c3389403c7e7f9821067931f86eed566f6b9c6d9143f36d85244f0cc976e",
+      "bytes": 2543,
+      "sha256": "5e818d21e641efc9001ac445bc124a06839c8699e3060ae6fb4c853f78795702",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1653,8 +1653,8 @@
     {
       "id": "pdf-service-catalog-source",
       "path": "/downloads/showcase/workflows/pdf-service-catalog/ServiceCatalog.cs.txt",
-      "bytes": 3435,
-      "sha256": "c194e2361ff686d3988f2d4868c9740fb88c2c8d4ef05b84983c43a22f3bd884",
+      "bytes": 3367,
+      "sha256": "d437727d13c8b3b7d54fc218e3edb91dd6e32070f24fe449553ad6feeb13fcf8",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1677,8 +1677,8 @@
     {
       "id": "pdf-weekly-brief-source",
       "path": "/downloads/showcase/workflows/pdf-weekly-brief/WeeklyBrief.cs.txt",
-      "bytes": 2673,
-      "sha256": "a9709b31006df3ce885e795dde8931e1c73c2be1633ca327ddd215c2a8bbc726",
+      "bytes": 2610,
+      "sha256": "1d76cce88eb14b46a2fb0fade798677ff6dffdea9d4d37c2dfcdc6d5e7b9f5ea",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1717,8 +1717,8 @@
     {
       "id": "powerpoint-project-roadmap-source",
       "path": "/downloads/showcase/workflows/powerpoint-project-roadmap/ProjectRoadmap.cs.txt",
-      "bytes": 3582,
-      "sha256": "e0e720275aa7572506be75534d33076f5b8b6e77f3121780e4e43c8b920d1cc3",
+      "bytes": 3510,
+      "sha256": "b38c47aa7e3b6046200266daeca1929e50dba45621ef283886ebef3a1c4243ab",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1765,8 +1765,8 @@
     {
       "id": "powerpoint-training-quiz-source",
       "path": "/downloads/showcase/workflows/powerpoint-training-quiz/TrainingQuiz.cs.txt",
-      "bytes": 3477,
-      "sha256": "54eded157b2027ad85a0c29a50cccbba25bedb1d616707ffd7110c564727cd41",
+      "bytes": 3417,
+      "sha256": "bac99a26e5965460ced41978a3c8750f2b5da4fd5d7f149bbc86a5ea74f093fe",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1813,8 +1813,8 @@
     {
       "id": "powerpoint-service-overview-source",
       "path": "/downloads/showcase/workflows/powerpoint-service-overview/ServiceOverview.cs.txt",
-      "bytes": 3219,
-      "sha256": "6237162bc658ceb851e80435cb88dd3411a10b1239e631256268fae0e0d4a5eb",
+      "bytes": 3160,
+      "sha256": "b90d483bdd029344a5e03534801caa2ce4a39da8112144c6dda5a45b344f7165",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1845,8 +1845,8 @@
     {
       "id": "markdown-incident-runbook-source",
       "path": "/downloads/showcase/workflows/markdown-incident-runbook/IncidentRunbook.cs.txt",
-      "bytes": 1832,
-      "sha256": "fe9ab0c51d3ff68aa5ec9556076d3ad2a4dfac0bf1a472c9acafbe9354b00467",
+      "bytes": 1786,
+      "sha256": "523cd09c047f1f0f0059bd71bb38ba1fa281acf8818de7d62398ae8c0e51c018",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1877,8 +1877,8 @@
     {
       "id": "markdown-decision-record-source",
       "path": "/downloads/showcase/workflows/markdown-decision-record/MarkdownDecisionRecord.cs.txt",
-      "bytes": 1871,
-      "sha256": "ced5b8d735df8c0b075d13fa8a2fc5f1b898b9f3277d6ba12e07a6d95eeb55e1",
+      "bytes": 1824,
+      "sha256": "952c12aa218aa991fdd331ae9b44bc633ea80791aea0bd5867a708f8145b63cc",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1909,8 +1909,8 @@
     {
       "id": "markdown-api-handover-source",
       "path": "/downloads/showcase/workflows/markdown-api-handover/ApiHandover.cs.txt",
-      "bytes": 2980,
-      "sha256": "ed79b42c58362ab70fc6269c6f6a29b4c33cab55f454c68326d9254d250c4757",
+      "bytes": 2922,
+      "sha256": "43c7c35eab6f53b042f47dda37b5fd7f1e9e4fa997f316b7a706ae5d13fee5a7",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1949,8 +1949,8 @@
     {
       "id": "word-research-brief-source",
       "path": "/downloads/showcase/workflows/word-research-brief/ResearchBrief.cs.txt",
-      "bytes": 2656,
-      "sha256": "dff9e559f83bb2772bd1758e285ef1f72961a34e35f09c43a022d2d96b9e1b28",
+      "bytes": 2622,
+      "sha256": "92fa5c7d2562f3879582f0f31226d5d6b53d0ce6ebf5a8658871ada44fc9f928",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1989,8 +1989,8 @@
     {
       "id": "word-service-intake-source",
       "path": "/downloads/showcase/workflows/word-service-intake/ServiceIntake.cs.txt",
-      "bytes": 2706,
-      "sha256": "f6589e2def3c251bf08f52a9f29553287b2aa758485c240a262092f54c013fb5",
+      "bytes": 2659,
+      "sha256": "134e402634d899ce99357bdbd5c0e1c4e17688e814e0f4e3a5f72e75e58993e9",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2029,8 +2029,8 @@
     {
       "id": "word-mixed-orientation-report-source",
       "path": "/downloads/showcase/workflows/word-mixed-orientation-report/MixedOrientationReport.cs.txt",
-      "bytes": 3635,
-      "sha256": "6e159918bbffb33ca395b2a35feb9e65a35155f8e5f82748c9a65e75736c1c76",
+      "bytes": 3586,
+      "sha256": "54dab3ccfdaffec228938b2dede5715fd052bfb5defea422e1e7cbdb95e47ffd",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2053,8 +2053,8 @@
     {
       "id": "excel-inventory-reorder-source",
       "path": "/downloads/showcase/workflows/excel-inventory-reorder/InventoryReorder.cs.txt",
-      "bytes": 3059,
-      "sha256": "31a407a6693fd2ab1f6e4f0eec1fdda3350e47dd8c1758a6ebcf8192b59283e2",
+      "bytes": 3018,
+      "sha256": "a999e17ca4296609bf2c52a57f732c017a4f177718a1435b83dd67fe721c22e3",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2077,8 +2077,8 @@
     {
       "id": "excel-training-matrix-source",
       "path": "/downloads/showcase/workflows/excel-training-matrix/TrainingMatrix.cs.txt",
-      "bytes": 2641,
-      "sha256": "c6ae869311e26305bc8e7b5e82d99f3c9578974a42342dd8116131f288cd575c",
+      "bytes": 2605,
+      "sha256": "e501a4e521e6ebfd60b7b66c5a668a48dc6a9724cfc70503bb1ce7d60f6c28ab",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2101,8 +2101,8 @@
     {
       "id": "excel-operational-trends-source",
       "path": "/downloads/showcase/workflows/excel-operational-trends/OperationalTrends.cs.txt",
-      "bytes": 2136,
-      "sha256": "bcda183da00c4ddbab4d191f3ff1ae718b1f727311d60514d7e7ba1a821cc920",
+      "bytes": 2108,
+      "sha256": "f9d727e008b6c8b70467542e38eea8761ff64713270aa733083d5a181dbd032c",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2125,8 +2125,8 @@
     {
       "id": "pdf-equipment-inspection-source",
       "path": "/downloads/showcase/workflows/pdf-equipment-inspection/EquipmentInspection.cs.txt",
-      "bytes": 4142,
-      "sha256": "6d21252f3c85e8c712e6807744d1b73125a270baa4cca16b512c0f09bc0a5d10",
+      "bytes": 4088,
+      "sha256": "6d2d95c5eb1d6d6085c63648b88f8b4f53972e46b6ff8ae90e27068b1cee2283",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2149,8 +2149,8 @@
     {
       "id": "pdf-linked-resource-guide-source",
       "path": "/downloads/showcase/workflows/pdf-linked-resource-guide/LinkedResourceGuide.cs.txt",
-      "bytes": 2385,
-      "sha256": "05e0697a0755d65efcbb78e008104320309eef9929eadd311f730a76901950f3",
+      "bytes": 2348,
+      "sha256": "df579b886df686a9962ed9404c50ca549b64a1cdef0437527312fe6cff4c251c",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2181,8 +2181,8 @@
     {
       "id": "pdf-navigable-handbook-source",
       "path": "/downloads/showcase/workflows/pdf-navigable-handbook/NavigableHandbook.cs.txt",
-      "bytes": 2629,
-      "sha256": "f2383213e574efa946bdee3a0137412ac1a9969aee254d6ab4fe14269be97f1e",
+      "bytes": 2594,
+      "sha256": "ee0e8967d43d0a12433665e794610ffd629afb9f0f970dab24d1039894af4fcc",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2221,8 +2221,8 @@
     {
       "id": "powerpoint-results-briefing-source",
       "path": "/downloads/showcase/workflows/powerpoint-results-briefing/ResultsBriefing.cs.txt",
-      "bytes": 3523,
-      "sha256": "a9554165535f2bb60fa67a46ae3e7931e7fa126dae105645716b5582a0df85de",
+      "bytes": 3488,
+      "sha256": "a9d35a7b72906fed8ccf1f2d8f699e1180deab37ab4547cab3f541d30bc8c548",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2269,8 +2269,8 @@
     {
       "id": "powerpoint-branching-playbook-source",
       "path": "/downloads/showcase/workflows/powerpoint-branching-playbook/BranchingPlaybook.cs.txt",
-      "bytes": 3411,
-      "sha256": "7ef4a81207178238f364a34f023e0b34e654a9f10da8fdab30d56a39cea09156",
+      "bytes": 3377,
+      "sha256": "4719e8c168537ecc1427156ae0f2578856a20b1f2ae8fca9aeca58828930d218",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2301,8 +2301,8 @@
     {
       "id": "markdown-migration-guide-source",
       "path": "/downloads/showcase/workflows/markdown-migration-guide/MigrationGuide.cs.txt",
-      "bytes": 1808,
-      "sha256": "8b9935af36a7c27f4d2cef8026a38c3c360e24ed7f48959aeb13fe1fba8d90ae",
+      "bytes": 1780,
+      "sha256": "eaa122046276773d7a7377937526d72cdda891039264f4fc455af36d957c9595",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2333,8 +2333,8 @@
     {
       "id": "markdown-data-dictionary-source",
       "path": "/downloads/showcase/workflows/markdown-data-dictionary/DataDictionary.cs.txt",
-      "bytes": 2245,
-      "sha256": "8ecc3f47401e942cf90edba29b231f5de0c81d9e628585db7ab5457d4188a3d8",
+      "bytes": 2210,
+      "sha256": "0a210de8ec5ae37f38d2b915104cd711f81b7557d41cc918deec4b1e4e335393",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2365,8 +2365,8 @@
     {
       "id": "html-course-certificate-source",
       "path": "/downloads/showcase/workflows/html-course-certificate/CourseCertificate.cs.txt",
-      "bytes": 2346,
-      "sha256": "4993adcf74d3a5d66db7aea68e2cf901fc40f929bb17aab64434df1ebfd426a4",
+      "bytes": 2308,
+      "sha256": "62171f8d120f7f705cc1dc05e7c73136dc2f634e5b1a80a01222ff4b73b4b11f",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2397,8 +2397,8 @@
     {
       "id": "html-service-level-report-source",
       "path": "/downloads/showcase/workflows/html-service-level-report/ServiceLevelReport.cs.txt",
-      "bytes": 3838,
-      "sha256": "65d9d00cb6373527fa3306b0d8fb3e3958f9ce7a908bcc378cd629bcf2823436",
+      "bytes": 3789,
+      "sha256": "39e36692dc060f46af7745d2dea4bbbd2a2868ff7470944d0ab048dade6661cd",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2429,8 +2429,8 @@
     {
       "id": "opendocument-service-proposal-source",
       "path": "/downloads/showcase/workflows/opendocument-service-proposal/OpenProposal.cs.txt",
-      "bytes": 2717,
-      "sha256": "cfabcbbc9653a03df0127642fc26bbc32e7c4101d83e449c2d4d30025eb88dc5",
+      "bytes": 2677,
+      "sha256": "f1c221ef6bb21549e74dc244ce7660653b8f716cc5e9d0da2bcfb8a29ef5e7ed",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2469,8 +2469,8 @@
     {
       "id": "opendocument-workshop-agenda-source",
       "path": "/downloads/showcase/workflows/opendocument-workshop-agenda/OpenWorkshopAgenda.cs.txt",
-      "bytes": 2814,
-      "sha256": "61b8e74ed923e9695ddf92ca1cabab525bcdf356aa4679619128940867601a61",
+      "bytes": 2770,
+      "sha256": "5ed1236c69f0eb82faa140e144c0ed29235e81bb646b25fe35cf6512b7bd559e",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2501,8 +2501,8 @@
     {
       "id": "rtf-support-bulletin-source",
       "path": "/downloads/showcase/workflows/rtf-support-bulletin/SupportBulletin.cs.txt",
-      "bytes": 2738,
-      "sha256": "3111c5870b70558d7e6e8c04bff94df88ec710c831c549c5c3238c81e2093100",
+      "bytes": 2692,
+      "sha256": "c05802a12a638e7b9afa329b20e416cd2b486ba2e24764fa3b05f1df22ff52e6",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2533,8 +2533,8 @@
     {
       "id": "visio-approval-swimlane-source",
       "path": "/downloads/showcase/workflows/visio-approval-swimlane/ApprovalSwimlane.cs.txt",
-      "bytes": 1492,
-      "sha256": "3048ec00b0587a6066e696f8ffe726dbd230a1abe0fd8ab55a4933d2fb178dcc",
+      "bytes": 1467,
+      "sha256": "c7dd69d92ee24092db1870bdf99388173219f9dd513e2ccac8733abe975b9eb0",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2565,8 +2565,8 @@
     {
       "id": "visio-team-organisation-source",
       "path": "/downloads/showcase/workflows/visio-team-organisation/TeamOrganisation.cs.txt",
-      "bytes": 1629,
-      "sha256": "c1728beccaad8e340c889e770b0237566df206f75f14c38b13e6370c26413780",
+      "bytes": 1602,
+      "sha256": "2b853f98f23acc20a633e9fcc153d3510e2dbaa6e34db6b38e612e084419e076",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2621,8 +2621,8 @@
     {
       "id": "project-delivery-gantt-source",
       "path": "/downloads/showcase/workflows/project-delivery-gantt/ProjectDeliveryGantt.cs.txt",
-      "bytes": 3650,
-      "sha256": "90783c35adea1cf8e66cdbdca71bd728311e23af244ad4d90d8cee3d00cfc43b",
+      "bytes": 3590,
+      "sha256": "a10498d1e5bd2eb3c593041182544fff82e02143f17da022a91b90c08061c7d8",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2669,8 +2669,8 @@
     {
       "id": "project-dependency-network-source",
       "path": "/downloads/showcase/workflows/project-dependency-network/ProjectDependencyNetwork.cs.txt",
-      "bytes": 3063,
-      "sha256": "8b5356c42554546a851cbec69ba0d2c9bc0ca0bd2519c8d9a2b3bd16d79dccc4",
+      "bytes": 3015,
+      "sha256": "0f66b62c1a06a3c0998681d623ac99446c90ef18fdbae298064e7d4a014d2956",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2733,8 +2733,8 @@
     {
       "id": "project-milestone-timeline-source",
       "path": "/downloads/showcase/workflows/project-milestone-timeline/ProjectMilestoneTimeline.cs.txt",
-      "bytes": 2887,
-      "sha256": "fc67266a66aee14af3c430c7c53e94c0060ce2ded6e814a996995b9eb0a9d9f3",
+      "bytes": 2840,
+      "sha256": "619bcfc76f7b8256c229a43e54c131448c03e6abfd3a0f6471bc5c8d964ab88e",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2765,8 +2765,8 @@
     {
       "id": "word-business-case-source",
       "path": "/downloads/showcase/workflows/word-business-case/BusinessCase.cs.txt",
-      "bytes": 4481,
-      "sha256": "77a96e5be24e72cbb51faf07e6b2fb607422b3d1573e604a943168065d1fba1b",
+      "bytes": 4419,
+      "sha256": "f562d59319d1639151bb50f3e40f992faf3315ef6498bbce2e983d1770679077",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2797,8 +2797,8 @@
     {
       "id": "word-renewal-proposal-source",
       "path": "/downloads/showcase/workflows/word-renewal-proposal/RenewalProposal.cs.txt",
-      "bytes": 4427,
-      "sha256": "1c10bc8a23fccfac8a36cfd82c7bcb21f852b350407813edda0bae58e22f389b",
+      "bytes": 4365,
+      "sha256": "a22f84f192886aff8a19c60fe0f973aded7e583efe6fc94eccbc4b897acefa9c",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2829,8 +2829,8 @@
     {
       "id": "word-post-incident-review-source",
       "path": "/downloads/showcase/workflows/word-post-incident-review/PostIncidentReview.cs.txt",
-      "bytes": 4577,
-      "sha256": "8b3bb8a3b0476c7fdf8fa0d9ce04e8a2f167c97e9efb982890f6f017334b219b",
+      "bytes": 4514,
+      "sha256": "2fcdc602f38b4e662175a5e192ace2f13e29777764a71a8d81a9e36917ce3b8f",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2861,8 +2861,8 @@
     {
       "id": "word-statement-of-work-source",
       "path": "/downloads/showcase/workflows/word-statement-of-work/StatementOfWork.cs.txt",
-      "bytes": 4476,
-      "sha256": "28841382ceee93120bf4384b00f59d6ae70e662760aa0d34a06c63a28720fae3",
+      "bytes": 4414,
+      "sha256": "aaffc84b65ae5eb313979dccef4c6d52ef9172542966954b2d9b935add0c2526",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2885,8 +2885,8 @@
     {
       "id": "excel-cash-flow-forecast-source",
       "path": "/downloads/showcase/workflows/excel-cash-flow-forecast/CashFlowForecast.cs.txt",
-      "bytes": 3895,
-      "sha256": "a10e056b5b9c4c497e8d11ed09123aee40f2400e2be1b5bc1c3b4e2bb2c15398",
+      "bytes": 3843,
+      "sha256": "2c090d113ee158111a83ac5649c7a5e08d79f53886caeb01911a646d4a3c0014",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2909,8 +2909,8 @@
     {
       "id": "excel-asset-depreciation-source",
       "path": "/downloads/showcase/workflows/excel-asset-depreciation/AssetDepreciation.cs.txt",
-      "bytes": 4214,
-      "sha256": "6c2296411e1b7faa87cdf323208d78823fb86239f57b69acef6a2017c5ca59f3",
+      "bytes": 4160,
+      "sha256": "f10ae8580528b35bdcdcc9a9903b328f2e3910ebf5b9be26e0421d8e63dab8bb",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2933,8 +2933,8 @@
     {
       "id": "excel-vendor-comparison-source",
       "path": "/downloads/showcase/workflows/excel-vendor-comparison/VendorComparison.cs.txt",
-      "bytes": 3797,
-      "sha256": "cbafc74185e82a758e67406f418bfaea57a0b89697f0fe3805daaa741432e75f",
+      "bytes": 3748,
+      "sha256": "24adb73e5ec7fd4f670d60f8bbc5649e42d5526a02553e21f5b7de68b2e85884",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2957,8 +2957,8 @@
     {
       "id": "excel-workforce-rota-source",
       "path": "/downloads/showcase/workflows/excel-workforce-rota/WorkforceRota.cs.txt",
-      "bytes": 4663,
-      "sha256": "1c3a5c1d5c8503f01d5385e2f75424a73540c5ce8f4f77e160446b208fc05a78",
+      "bytes": 4602,
+      "sha256": "13a882cc9873530455e9952d996915a9f76a624d69d53e15d325ad481cdd8bc2",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2981,8 +2981,8 @@
     {
       "id": "pdf-travel-itinerary-source",
       "path": "/downloads/showcase/workflows/pdf-travel-itinerary/TravelItinerary.cs.txt",
-      "bytes": 2285,
-      "sha256": "9558fe4c4540e2f5f920d21d4d8a177f58e86174c4086c4effad6887eb8a98e0",
+      "bytes": 2255,
+      "sha256": "346c119da44e3945cb0e22ca172ad11ee5bbc9848a96f96c8d192f8ca7370ce8",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3013,8 +3013,8 @@
     {
       "id": "pdf-event-badges-source",
       "path": "/downloads/showcase/workflows/pdf-event-badges/EventBadges.cs.txt",
-      "bytes": 3540,
-      "sha256": "db8a0586a59b53719b5d75f9f391ae39e3244fd44ac14d0d18e7557fb2f6c6ba",
+      "bytes": 3487,
+      "sha256": "c872133164a964cb8d1582211a99373a91c3d4757884bc16803491eaa416a706",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3037,8 +3037,8 @@
     {
       "id": "pdf-maintenance-job-card-source",
       "path": "/downloads/showcase/workflows/pdf-maintenance-job-card/MaintenanceJobCard.cs.txt",
-      "bytes": 2949,
-      "sha256": "aba388d7df61d0ad149b31609af77cea20ccb47c729e76e31515fd392c990251",
+      "bytes": 2923,
+      "sha256": "6096c49229caa365324ba8d52aa49b4ce6461a8d418e1113ab217b6d78b7cd56",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3061,8 +3061,8 @@
     {
       "id": "pdf-risk-assessment-source",
       "path": "/downloads/showcase/workflows/pdf-risk-assessment/RiskAssessment.cs.txt",
-      "bytes": 3119,
-      "sha256": "39837fbdb2f67b20977d9551eaf4544e0072cc72a9e122af3a7441f31c030260",
+      "bytes": 3080,
+      "sha256": "defb1d457623aeff9289a45e66485aa9fc981be313835d8ada1ae4a9d7e7c284",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3101,8 +3101,8 @@
     {
       "id": "powerpoint-board-decision-source",
       "path": "/downloads/showcase/workflows/powerpoint-board-decision/BoardDecision.cs.txt",
-      "bytes": 3066,
-      "sha256": "4f4a1fcf30208ca9c7de62de384a3d6a4056646640d9e796a48387bd52c2052f",
+      "bytes": 3033,
+      "sha256": "9ef7ec28e1ae44621b7c9d80a4b5bbd14f7cdfc3120fe050725c496b0f4a42d8",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3141,8 +3141,8 @@
     {
       "id": "powerpoint-sales-pipeline-source",
       "path": "/downloads/showcase/workflows/powerpoint-sales-pipeline/SalesPipelineBrief.cs.txt",
-      "bytes": 2903,
-      "sha256": "81b3e76474c2924759b8ed7f13428defe48d72149f26bf896ae7671d6c7d6879",
+      "bytes": 2870,
+      "sha256": "e76c75b821bd0813d15b8e2e188b3412005383be7a637e57387dda477f531b71",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3181,8 +3181,8 @@
     {
       "id": "powerpoint-retrospective-source",
       "path": "/downloads/showcase/workflows/powerpoint-retrospective/Retrospective.cs.txt",
-      "bytes": 2982,
-      "sha256": "067a4938f748896e3742dd64b4470f60ebe1d3faaa57e496daea688ec7a99e6f",
+      "bytes": 2949,
+      "sha256": "9ea1efecad6c187ecf6cd862f99b9392b72fa7e8e2c5fefb9874539b1ad72670",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3213,8 +3213,8 @@
     {
       "id": "visio-triage-flow-source",
       "path": "/downloads/showcase/workflows/visio-triage-flow/TriageFlow.cs.txt",
-      "bytes": 1138,
-      "sha256": "315bec24d53513658e8030ce1d73d14b0f24fd9709a7ea4121f8cb73a5a31e33",
+      "bytes": 1116,
+      "sha256": "b242644ec4bb602f848f33dfc2273e688543c07e8f30474aed955649c01d19b5",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3245,8 +3245,8 @@
     {
       "id": "visio-onboarding-journey-source",
       "path": "/downloads/showcase/workflows/visio-onboarding-journey/OnboardingJourney.cs.txt",
-      "bytes": 1533,
-      "sha256": "2d83d2ebff422f05ebe2c518ca88732e479d91c7a4060b6b6fa893a63bc37c45",
+      "bytes": 1508,
+      "sha256": "63bd9a395b9874317e2d81702a1495dd0e8f63e9a36dc72b88352939b0e6a6d7",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3277,8 +3277,8 @@
     {
       "id": "markdown-release-checklist-source",
       "path": "/downloads/showcase/workflows/markdown-release-checklist/ReleaseChecklist.cs.txt",
-      "bytes": 1947,
-      "sha256": "5b47f08b8889ee916772563e3ea945094dd7d36518fa6e42c791be00f54aea4b",
+      "bytes": 1915,
+      "sha256": "077b5e137c8b8f55334c16ac9a1fc24163c6b67adaf73e6bc8bb20d42945cc00",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3309,8 +3309,8 @@
     {
       "id": "opendocument-client-letter-source",
       "path": "/downloads/showcase/workflows/opendocument-client-letter/ClientLetter.cs.txt",
-      "bytes": 2371,
-      "sha256": "d1fd8f805231a35f60616a625303cbac24eb0000e4b1ae15659973cf784603f7",
+      "bytes": 2339,
+      "sha256": "4365e1dbe8e2d0d8b156078b8e8e2a0c7beeab90d6c5a588d084e2e0e0af79eb",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3341,8 +3341,8 @@
     {
       "id": "rtf-desk-reference-source",
       "path": "/downloads/showcase/workflows/rtf-desk-reference/DeskReference.cs.txt",
-      "bytes": 2735,
-      "sha256": "0a13de5d9d42b9d8d725f17aee121df211695ee736b777ac821dc0e70ed387d8",
+      "bytes": 2696,
+      "sha256": "0e2a691163cd7daa509920412f9d6c88ea21ccafb467552a63e1b784b0f90436",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },

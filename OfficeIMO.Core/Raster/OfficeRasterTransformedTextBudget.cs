@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 // Shared by nested canvases and image decoders. Remember the operation's limit so

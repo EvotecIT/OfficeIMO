@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared CSS face ordering for registered and installed font candidates.</summary>

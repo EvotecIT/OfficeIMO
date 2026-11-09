@@ -1,9 +1,6 @@
 using OfficeIMO.Pdf.Word;
 using OfficeIMO.Pdf.Excel;
 using OfficeIMO.Pdf.PowerPoint;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;

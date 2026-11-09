@@ -1,5 +1,4 @@
 using OfficeIMO.Drawing;
-using System;
 using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.Word;

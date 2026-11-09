@@ -1,7 +1,5 @@
-using System.Collections.Generic;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
-using System.Linq;
 using OfficeIMO;
 using PSWriteOffice.Foundation;
 using OfficeIMO.Excel;

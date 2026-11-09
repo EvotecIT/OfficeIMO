@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;

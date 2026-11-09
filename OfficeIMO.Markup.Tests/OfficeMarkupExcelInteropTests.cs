@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 #endif
 using System.Reflection;
-using System.Threading;
 using OfficeIMO.Markup;
 using OfficeIMO.Markup.Excel;
 using Xunit;

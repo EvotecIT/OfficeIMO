@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;

@@ -1,7 +1,6 @@
 using OfficeIMO.Epub;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using OfficeReferenceSequence = DocumentFormat.OpenXml.Office.Excel.ReferenceSequence;
 

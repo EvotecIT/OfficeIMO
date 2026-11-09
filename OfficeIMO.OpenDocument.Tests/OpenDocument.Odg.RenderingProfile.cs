@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument.Testing;

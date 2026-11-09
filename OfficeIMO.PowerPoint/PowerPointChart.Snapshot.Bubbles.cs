@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.OpenXml.Internal;
 using C = DocumentFormat.OpenXml.Drawing.Charts;

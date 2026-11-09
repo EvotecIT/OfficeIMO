@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;

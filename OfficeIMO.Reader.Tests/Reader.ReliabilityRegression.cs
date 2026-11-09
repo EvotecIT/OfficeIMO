@@ -6,7 +6,6 @@ using OfficeIMO.Reader.Word;
 using OfficeIMO.Word;
 using System.Globalization;
 using System.Text;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

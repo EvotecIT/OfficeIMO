@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>First-party evaluator for TrueType gvar outlines and HVAR advance widths.</summary>

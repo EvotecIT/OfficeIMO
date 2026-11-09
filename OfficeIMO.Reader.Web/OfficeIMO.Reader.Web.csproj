@@ -32,18 +32,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
     <Using Include="System.Globalization" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
     <Using Include="System.Net" />
     <Using Include="System.Net.Http" />
     <Using Include="System.Net.Http.Headers" />
     <Using Include="System.Net.Sockets" />
     <Using Include="System.Text" />
-    <Using Include="System.Threading" />
-    <Using Include="System.Threading.Tasks" />
     <Using Include="OfficeIMO.Reader" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Internal {
     /// <summary>Cross-target enum enumeration that remains statically analyzable for NativeAOT.</summary>
     internal static class EnumCompat {

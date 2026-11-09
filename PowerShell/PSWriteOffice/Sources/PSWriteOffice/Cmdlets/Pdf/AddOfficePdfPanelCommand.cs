@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using PSWriteOffice.Foundation;
 using System.Management.Automation;
 using OfficeIMO.Pdf;

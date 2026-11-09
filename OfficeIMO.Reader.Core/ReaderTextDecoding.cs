@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Reader;
 
 /// <summary>Applies explicit decoding policy after detecting the Unicode BOM without buffering the document.</summary>

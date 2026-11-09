@@ -3,8 +3,6 @@ using AngleSharp.Html.Dom;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Html;
 using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {

@@ -3,7 +3,6 @@ using OfficeIMO.Excel.GoogleSheets;
 using OfficeIMO.GoogleWorkspace;
 using System.Net;
 using System.Net.Http;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

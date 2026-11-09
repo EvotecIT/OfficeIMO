@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Security;
 
 /// <summary>Identifies one operation in a protected-content capability row.</summary>

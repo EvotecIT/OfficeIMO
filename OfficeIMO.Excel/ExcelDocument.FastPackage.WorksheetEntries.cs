@@ -5,7 +5,6 @@ using OfficeIMO.Excel.Utilities;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
-using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {

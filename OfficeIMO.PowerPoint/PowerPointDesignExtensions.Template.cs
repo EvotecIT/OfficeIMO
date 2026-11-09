@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
         internal static PowerPointSlide AddDesignerSlide(PowerPointDocument presentation,

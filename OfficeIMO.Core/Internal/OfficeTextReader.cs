@@ -1,8 +1,4 @@
-using System;
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Decodes bounded text artifacts while preserving caller-owned stream state.</summary>

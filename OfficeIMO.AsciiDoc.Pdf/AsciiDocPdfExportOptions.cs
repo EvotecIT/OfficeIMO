@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.AsciiDoc.Markdown;
 using OfficeIMO.Markdown.Pdf;
 

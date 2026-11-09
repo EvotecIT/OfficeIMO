@@ -1,5 +1,4 @@
 using OfficeIMO.Email;
-using System.Threading;
 
 namespace OfficeIMO.Email.Store.Tests;
 

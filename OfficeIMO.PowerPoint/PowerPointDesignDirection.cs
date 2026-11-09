@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Named creative direction used to generate distinct deck personalities from one brand accent.

@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Reader;
 
 public static partial class OfficeDocumentReadResultExtensions {

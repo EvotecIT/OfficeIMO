@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Model;
-using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Projection {
     internal static partial class LegacyXlsWorkbookProjector {

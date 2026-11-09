@@ -1,8 +1,6 @@
 namespace OfficeIMO.Word.Rtf;
 
 using OfficeIMO.Drawing;
-using System.Collections.Generic;
-using System.Linq;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 public static partial class WordRtfConverterExtensions {

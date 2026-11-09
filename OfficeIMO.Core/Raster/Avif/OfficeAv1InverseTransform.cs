@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Integer Main-8/Main-10 inverse transforms; output samples are signed residuals in paint order.</summary>

@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Adf;
 
 /// <summary>Caller-defined node and mark support for a named destination product and version.</summary>

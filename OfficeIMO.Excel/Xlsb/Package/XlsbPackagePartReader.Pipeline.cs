@@ -1,7 +1,5 @@
 #if NET8_0_OR_GREATER
 using System.Buffers;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel.Xlsb.Package {
     internal sealed partial class XlsbPackagePartReader {

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared conservative rectangular exclusion for native text-flow adapters.</summary>

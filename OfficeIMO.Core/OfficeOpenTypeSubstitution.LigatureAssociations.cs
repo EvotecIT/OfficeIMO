@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Drawing;
 
 internal sealed partial class OfficeOpenTypeSubstitution {

@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using DocumentFormat.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
 

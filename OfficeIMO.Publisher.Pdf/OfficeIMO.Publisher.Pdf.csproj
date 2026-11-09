@@ -22,9 +22,6 @@
     <ProjectReference Include="../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
     <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
     <None Include="README.md" Pack="true" PackagePath="/" />
-    <Using Include="System" />
-    <Using Include="System.IO" />
-    <Using Include="System.Threading" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />

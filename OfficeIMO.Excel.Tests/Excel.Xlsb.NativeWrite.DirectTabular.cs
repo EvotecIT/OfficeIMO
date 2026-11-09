@@ -2,8 +2,6 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Write;
 using System.Data;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

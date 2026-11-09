@@ -1,7 +1,4 @@
-using System;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;

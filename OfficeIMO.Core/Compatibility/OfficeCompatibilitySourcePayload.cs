@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO;
 
 /// <summary>Original Office source retained alongside a visual or editable compatibility fallback.</summary>

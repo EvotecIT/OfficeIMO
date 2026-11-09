@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using W = DocumentFormat.OpenXml.Wordprocessing;

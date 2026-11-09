@@ -1,7 +1,5 @@
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
-using System;
-using System.IO;
 using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {

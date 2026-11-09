@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
+
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <VersionPrefix>3.6.0</VersionPrefix>
     <Description>Provider-neutral document AI operations with bounded evidence, source citations and validated extraction.</Description>

@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
+using Lock = DocumentFormat.OpenXml.Wordprocessing.Lock;
 
 namespace OfficeIMO.Tests {
     public partial class Word {

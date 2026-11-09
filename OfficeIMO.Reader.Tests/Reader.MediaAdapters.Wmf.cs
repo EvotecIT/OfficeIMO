@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Image;
 using Xunit;

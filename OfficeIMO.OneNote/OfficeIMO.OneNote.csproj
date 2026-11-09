@@ -37,15 +37,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
-    <Using Include="System.Threading" />
-    <Using Include="System.Threading.Tasks" />
-  </ItemGroup>
-
-  <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.OneNote.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote.Markdown" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.OneNote" />

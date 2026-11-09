@@ -1,6 +1,4 @@
 using System.IO.Compression;
-using System.Threading;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Write;
 using OfficeIMO.Excel.Xlsb.Write;

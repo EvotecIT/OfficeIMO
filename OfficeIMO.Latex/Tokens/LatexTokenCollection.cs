@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Threading;
 
 namespace OfficeIMO.Latex;
 

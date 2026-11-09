@@ -1,7 +1,4 @@
-using System;
 using OfficeIMO.Drawing;
-using System.Collections.Generic;
-using System.Linq;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {

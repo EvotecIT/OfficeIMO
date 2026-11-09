@@ -5,7 +5,6 @@ using OfficeIMO.Excel.Xlsb.Biff12;
 using System.Data;
 using System.IO.Compression;
 using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;

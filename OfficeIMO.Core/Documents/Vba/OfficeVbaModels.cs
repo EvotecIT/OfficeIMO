@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO;
 
 /// <summary>The identity and persistence role of a VBA source module.</summary>

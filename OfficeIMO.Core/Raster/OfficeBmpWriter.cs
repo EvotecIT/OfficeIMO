@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Writes Windows V4 bitmap images with explicit straight-alpha bit masks.</summary>

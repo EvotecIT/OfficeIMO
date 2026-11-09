@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Retains a complete horizontal monochrome result with its exact font program.</summary>

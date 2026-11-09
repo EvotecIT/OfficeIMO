@@ -1,5 +1,4 @@
 using OfficeIMO.Drawing;
-using System;
 
 namespace OfficeIMO.Word {
     /// <summary>

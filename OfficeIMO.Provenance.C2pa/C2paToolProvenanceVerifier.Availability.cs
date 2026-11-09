@@ -1,6 +1,4 @@
 using System.ComponentModel;
-using System.IO;
-using System.Threading;
 
 namespace OfficeIMO.Provenance.C2pa;
 

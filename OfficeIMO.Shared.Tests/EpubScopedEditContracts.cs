@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Epub;
 using System.Xml.Linq;
 using Xunit;

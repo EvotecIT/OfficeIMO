@@ -1,4 +1,3 @@
-using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.OpenXml.Internal;

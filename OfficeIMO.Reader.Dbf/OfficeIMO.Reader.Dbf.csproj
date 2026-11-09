@@ -8,7 +8,7 @@
     <IsPublishable>true</IsPublishable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
+
     <Authors>Przemyslaw Klys</Authors>
     <Company>Evotec</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

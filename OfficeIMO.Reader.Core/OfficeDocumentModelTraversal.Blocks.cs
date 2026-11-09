@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Reader;
 
 internal static partial class OfficeDocumentModelTraversal {

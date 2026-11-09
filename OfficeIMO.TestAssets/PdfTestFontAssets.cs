@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.TestAssets;
 
 internal static class PdfTestFontAssets {

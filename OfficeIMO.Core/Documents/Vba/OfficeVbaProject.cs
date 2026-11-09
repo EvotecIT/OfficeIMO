@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Core.Internal;
 using DirectoryModel = OfficeIMO.Core.Internal.OfficeVbaDirectoryCodec.DirectoryModel;
 

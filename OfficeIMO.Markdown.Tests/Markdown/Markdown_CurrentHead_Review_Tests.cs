@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Reflection;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Markdown;

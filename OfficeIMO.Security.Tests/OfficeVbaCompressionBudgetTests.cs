@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Security.Tests {

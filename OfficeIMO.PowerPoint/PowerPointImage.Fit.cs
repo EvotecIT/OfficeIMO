@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointImage {
         /// <summary>Fills the current shape bounds using the image's stored pixel size.</summary>

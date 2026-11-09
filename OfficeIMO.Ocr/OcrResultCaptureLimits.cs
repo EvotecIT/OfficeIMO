@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Ocr;
 
 /// <summary>Bounds provider-owned collections copied during a recognition invocation.</summary>

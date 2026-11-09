@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
 using OfficeIMO.Core;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 

@@ -2,8 +2,6 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Markdown;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;

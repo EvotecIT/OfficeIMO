@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using ChartForgeX.Topology;
 using ChartForgeX.VisualArtifacts;
 using Xunit;

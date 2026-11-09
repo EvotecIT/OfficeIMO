@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Normative AV1 8-bit and 10-bit quantization facts, independent of reference-code runtime packages.</summary>

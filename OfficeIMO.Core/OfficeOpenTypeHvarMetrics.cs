@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared HVAR advance-width evaluator for TrueType and CFF2 variable fonts.</summary>

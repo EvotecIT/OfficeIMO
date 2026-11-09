@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {

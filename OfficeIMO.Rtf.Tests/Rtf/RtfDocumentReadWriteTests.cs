@@ -1,7 +1,6 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Diagnostics;
 using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;

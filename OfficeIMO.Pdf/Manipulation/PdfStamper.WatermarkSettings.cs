@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Globalization;
 
 namespace OfficeIMO.Pdf;

@@ -1,8 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Tool.Commands.Reader;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tool.Tests;

@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.IWork;
 
 namespace OfficeIMO.PowerPoint.IWork;

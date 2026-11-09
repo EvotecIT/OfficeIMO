@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Word;
 
 internal static partial class WordDocumentTraversal {

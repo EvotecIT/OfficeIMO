@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 internal sealed record OfficeConversionSupportAssessment(

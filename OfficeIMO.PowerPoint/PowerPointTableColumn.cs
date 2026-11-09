@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Describes a column binding for table creation.

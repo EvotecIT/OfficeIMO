@@ -1,6 +1,5 @@
 namespace OfficeIMO.Markdown;
 
-using System;
 using System.Text;
 
 /// <summary>

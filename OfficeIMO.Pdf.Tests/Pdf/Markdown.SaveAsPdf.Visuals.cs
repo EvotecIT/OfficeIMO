@@ -2,7 +2,6 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using PdfCore = OfficeIMO.Pdf;
-using System;
 using System.Reflection;
 using System.Text;
 using Xunit;

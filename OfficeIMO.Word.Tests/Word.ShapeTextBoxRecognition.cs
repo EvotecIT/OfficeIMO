@@ -1,4 +1,3 @@
-using System.IO;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -8,7 +7,6 @@ using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Xunit;
 using Color = OfficeIMO.OfficeColor;
 using Path = System.IO.Path;
-using System.Linq;
 using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Tests {

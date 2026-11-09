@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
     /// Built-in OfficeIMO-native stencil catalogs.

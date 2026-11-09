@@ -1,5 +1,3 @@
-using System.Linq;
-using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;

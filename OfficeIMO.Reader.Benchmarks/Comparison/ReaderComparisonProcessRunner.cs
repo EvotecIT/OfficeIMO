@@ -1,8 +1,6 @@
 using OfficeIMO.Ocr.Process;
 using System.Diagnostics;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader.Benchmarks.Comparison;
 

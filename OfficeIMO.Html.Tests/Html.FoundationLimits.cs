@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-using System.Threading;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Dom;
 using OfficeIMO.Html.Providers;

@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Threading;
 using OfficeIMO.Rtf.Diagnostics;
 using OfficeIMO.Rtf.Syntax;
 using Xunit;

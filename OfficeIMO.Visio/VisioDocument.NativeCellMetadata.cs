@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.IO.Packaging;
-using System.Linq;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio;

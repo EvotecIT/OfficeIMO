@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace OfficeIMO.Reader.Html;
 
 internal static partial class HtmlReaderAdapter {

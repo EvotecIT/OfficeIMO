@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Html.Css;
 
 /// <summary>Tokenizes CSS without a parser provider, resource loading or property validation.</summary>

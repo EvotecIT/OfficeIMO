@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Dom;
 using Xunit;

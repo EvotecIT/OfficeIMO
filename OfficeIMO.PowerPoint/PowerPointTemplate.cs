@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Optional adapter for inspecting a PowerPoint template and creating an editable presentation from it.

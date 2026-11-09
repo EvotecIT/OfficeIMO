@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Read {
     /// <summary>Bounded random-access view over a BIFF workbook stream.</summary>

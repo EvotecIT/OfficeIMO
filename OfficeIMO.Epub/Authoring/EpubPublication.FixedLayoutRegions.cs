@@ -1,6 +1,5 @@
 using OfficeIMO.Html;
 using System.Globalization;
-using System.Threading;
 
 namespace OfficeIMO.Epub;
 

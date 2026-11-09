@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Sampling algorithm used when resizing dependency-free raster images.</summary>

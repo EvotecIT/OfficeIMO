@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Xml;
 using OfficeIMO.Drawing;
 using Color = OfficeIMO.OfficeColor;

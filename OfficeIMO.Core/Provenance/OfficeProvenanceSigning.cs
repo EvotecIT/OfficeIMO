@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Provenance;
 
 /// <summary>Identifies a standards-defined C2PA action emitted during signing.</summary>

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Dependency-free Unicode presentation-ligature helpers for text renderers.</summary>

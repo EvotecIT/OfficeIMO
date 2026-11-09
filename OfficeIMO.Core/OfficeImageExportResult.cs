@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;

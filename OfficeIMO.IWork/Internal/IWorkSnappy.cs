@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkSnappy {

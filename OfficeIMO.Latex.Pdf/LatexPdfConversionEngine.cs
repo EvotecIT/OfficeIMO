@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using OfficeIMO.Latex;
 using OfficeIMO.Latex.Markdown;
 using OfficeIMO.Markdown.Pdf;

@@ -1,7 +1,5 @@
 #if NET8_0_OR_GREATER
-using System;
 using System.Buffers;
-using System.Threading;
 
 namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeDeflateStreamValidator {

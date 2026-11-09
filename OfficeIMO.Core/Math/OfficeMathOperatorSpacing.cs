@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shares the bounded MathML operator attribute grammar between import, layout and adapter diagnostics.</summary>

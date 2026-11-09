@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Html;
-using System.IO;
 using System.Text;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 

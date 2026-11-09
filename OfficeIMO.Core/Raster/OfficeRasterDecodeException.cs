@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>A required optional system codec is unavailable; the decode evidence identifies the missing component.</summary>

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;

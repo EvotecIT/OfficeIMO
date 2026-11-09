@@ -1,6 +1,5 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
-using System.IO;
 
 namespace OfficeIMO.Word.GoogleDocs {
     public sealed partial class GoogleDocsExporter : IGoogleDocsExporter {

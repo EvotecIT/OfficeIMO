@@ -1,4 +1,3 @@
-using System;
 using Color = OfficeIMO.OfficeColor;
 namespace OfficeIMO.Visio {
     public partial class VisioPage {

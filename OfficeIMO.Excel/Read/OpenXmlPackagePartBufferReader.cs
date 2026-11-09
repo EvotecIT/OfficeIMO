@@ -1,7 +1,5 @@
 using System.IO.Compression;
 using System.Buffers;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     /// <summary>

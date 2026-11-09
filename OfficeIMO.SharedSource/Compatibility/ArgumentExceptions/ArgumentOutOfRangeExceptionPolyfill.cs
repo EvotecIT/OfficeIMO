@@ -1,7 +1,6 @@
 // Vendored from Polyfill (https://github.com/SimonCropp/Polyfill), MIT License, Copyright (c) Simon Cropp.
 // Only the generic overloads are vendored; the INumberBase<T> variants are unnecessary because the file compiles only below net8.0.
 #if !NET8_0_OR_GREATER
-using System;
 using System.Runtime.CompilerServices;
 
 namespace Polyfills {

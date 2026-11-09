@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Latex;
 
 /// <summary>Dependency-free TeX-aware tokenizer that never expands commands.</summary>

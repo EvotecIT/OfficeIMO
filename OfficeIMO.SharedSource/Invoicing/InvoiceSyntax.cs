@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-
 namespace OfficeIMO.Internal.Invoicing;
 
 /// <summary>Supported XML syntax families, independently of the declared invoice profile.</summary>

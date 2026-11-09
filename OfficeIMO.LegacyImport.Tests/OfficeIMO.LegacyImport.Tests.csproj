@@ -25,12 +25,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Excel\OfficeIMO.Reader.Excel.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
     <Using Include="System.Text" />
-    <Using Include="System.Threading" />
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>

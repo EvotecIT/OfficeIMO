@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Text;
-using System.Threading;
 
 namespace OfficeIMO.Pdf;
 

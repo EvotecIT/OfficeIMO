@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing.Binary;
 
 // Native consumers own decoding, resource budgets and fidelity reports. This

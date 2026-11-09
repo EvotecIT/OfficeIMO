@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Physical bounds of one or more Visio shapes in page coordinates.

@@ -3,10 +3,7 @@ using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word.Html;
-using System;
-using System.IO;
 using System.Text;
-using System.Linq;
 
 namespace OfficeIMO.Examples.Word {
     internal static class ReadmeConversionExample {

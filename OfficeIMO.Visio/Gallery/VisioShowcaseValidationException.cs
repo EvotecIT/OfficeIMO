@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Exception thrown when a Visio showcase proof bundle fails artifact validation.

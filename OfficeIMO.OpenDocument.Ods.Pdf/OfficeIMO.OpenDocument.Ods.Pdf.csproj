@@ -25,12 +25,6 @@
     <ProjectReference Include="..\OfficeIMO.Excel.OpenDocument\OfficeIMO.Excel.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.IO" />
-    <Using Include="System.Threading" />
-    <Using Include="System.Threading.Tasks" />
-  </ItemGroup>
   <ItemGroup><ProjectReference Include="..\OfficeIMO.Pdf.Excel\OfficeIMO.Pdf.Excel.csproj" /></ItemGroup>
   <ItemGroup><Using Include="OfficeIMO.Excel.Pdf" /></ItemGroup>
   <ItemGroup><Using Include="OfficeIMO.Pdf.Excel" /></ItemGroup>

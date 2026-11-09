@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// PowerPoint chart families available as first-party render snapshots.

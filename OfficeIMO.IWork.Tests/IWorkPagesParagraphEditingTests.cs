@@ -1,4 +1,3 @@
-using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.IWork.Internal;
 using OfficeIMO.Word;

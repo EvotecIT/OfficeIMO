@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using OfficeIMO.Html;
 using OfficeIMO.Tests.Pdf;
 using Xunit;

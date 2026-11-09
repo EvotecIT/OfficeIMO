@@ -1,4 +1,3 @@
-using System.Linq;
 using Xunit;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;

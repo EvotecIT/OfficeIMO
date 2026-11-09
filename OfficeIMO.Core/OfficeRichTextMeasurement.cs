@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 // The old font-only callback remains the default. Drawing adapters additionally

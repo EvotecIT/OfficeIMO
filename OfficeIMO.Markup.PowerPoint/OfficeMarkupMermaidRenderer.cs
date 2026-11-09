@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Markup.PowerPoint;

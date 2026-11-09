@@ -26,12 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" />
-  </ItemGroup>
-
-  <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.DjVu.Pdf" />

@@ -1,5 +1,4 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
-using System.Threading;
 
 namespace OfficeIMO.Excel.Legacy;
 

@@ -31,11 +31,7 @@
     <None Include="README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.IO" />
     <Using Include="System.Text" />
-    <Using Include="System.Threading" />
-    <Using Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.OneNote.Tests" />

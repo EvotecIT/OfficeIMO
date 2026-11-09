@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Bounded T.4/T.6 decoding shared by document and raster readers.</summary>

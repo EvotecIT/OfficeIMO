@@ -23,9 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" />
     <Using Include="System.Security.Cryptography" />
     <Using Include="System.Security.Cryptography.X509Certificates" />
     <Using Include="System.Text" />

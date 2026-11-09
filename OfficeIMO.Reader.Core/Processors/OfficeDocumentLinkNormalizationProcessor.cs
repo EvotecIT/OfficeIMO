@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Reader;
 
 /// <summary>Normalizes scalar link and destination values without resolving or fetching targets.</summary>

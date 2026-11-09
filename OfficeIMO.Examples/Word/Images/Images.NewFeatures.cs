@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Color = OfficeIMO.OfficeColor;

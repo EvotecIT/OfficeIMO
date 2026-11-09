@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using System.Threading;
 using X15 = DocumentFormat.OpenXml.Office2013.Excel;
 
 namespace OfficeIMO.Excel {

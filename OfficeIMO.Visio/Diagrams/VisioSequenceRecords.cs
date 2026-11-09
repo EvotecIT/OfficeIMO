@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
     /// Simple data record used to import sequence diagram participants into <see cref="VisioSequenceDiagramBuilder"/>.

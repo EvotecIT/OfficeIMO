@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Ocr;
 
 /// <summary>Describes an optional OCR provider without creating its runtime engine.</summary>

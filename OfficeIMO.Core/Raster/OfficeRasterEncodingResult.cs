@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing {
     /// <summary>Encoded raster bytes together with completed metadata projection evidence.</summary>
     /// <remarks>Pixel encoding failures and cancellation throw instead of producing a partial result.</remarks>

@@ -3,7 +3,6 @@ using OfficeIMO.Drawing.Binary;
 using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using System.Threading;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>

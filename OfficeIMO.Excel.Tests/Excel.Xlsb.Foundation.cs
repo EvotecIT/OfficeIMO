@@ -5,7 +5,6 @@ using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Write;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.IO.Compression;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

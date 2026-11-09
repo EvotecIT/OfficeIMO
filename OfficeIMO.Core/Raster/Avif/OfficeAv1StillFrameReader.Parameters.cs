@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeAv1StillFrameReader {

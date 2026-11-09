@@ -29,12 +29,7 @@
     <None Include="README.md" Pack="True" PackagePath="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
     <Using Include="System.Globalization" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
     <Using Include="System.Text" />
-    <Using Include="System.Threading" />
   </ItemGroup>
 </Project>

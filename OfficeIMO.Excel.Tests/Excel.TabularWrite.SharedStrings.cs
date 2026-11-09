@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

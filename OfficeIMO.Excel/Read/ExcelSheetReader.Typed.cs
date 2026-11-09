@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Strongly-typed convenience readers for <see cref="ExcelSheetReader"/>.

@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Editing helpers for adding semantic callouts and annotation leader lines.

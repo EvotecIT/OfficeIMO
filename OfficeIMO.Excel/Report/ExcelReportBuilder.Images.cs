@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelReportBuilder {
         /// <summary>Adds an image through the worksheet and returns its attached image.</summary>

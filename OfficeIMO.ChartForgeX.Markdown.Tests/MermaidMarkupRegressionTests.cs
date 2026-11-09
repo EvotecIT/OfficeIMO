@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using global::ChartForgeX.Diagnostics;
 using global::ChartForgeX.Markup;
 using OfficeIMO.ChartForgeX.Markdown;

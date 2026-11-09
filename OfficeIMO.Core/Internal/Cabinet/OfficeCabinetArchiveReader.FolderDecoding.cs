@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Core.Internal.Cabinet {
     internal static partial class OfficeCabinetArchiveReader {
         private sealed partial class Reader {

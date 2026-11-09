@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Creates and identifies invalid-data failures caused specifically by a configured PDF output limit.</summary>

@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using Xunit;

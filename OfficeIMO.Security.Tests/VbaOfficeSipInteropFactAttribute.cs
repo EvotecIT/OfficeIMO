@@ -1,5 +1,4 @@
 using Xunit;
-using System.IO;
 
 namespace OfficeIMO.Security.Tests;
 

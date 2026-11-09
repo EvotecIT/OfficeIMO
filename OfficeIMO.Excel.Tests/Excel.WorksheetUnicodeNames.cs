@@ -1,6 +1,4 @@
-using System;
 using System.Data;
-using System.IO;
 using OfficeIMO.Excel;
 using Xunit;
 

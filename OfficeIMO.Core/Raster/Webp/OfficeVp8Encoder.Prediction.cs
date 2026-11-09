@@ -1,7 +1,6 @@
 // Adapted from CodeGlyphX commit 3c9103da07623e15804450ec0bca284bfcbf4a2c.
 // Copyright (c) Przemyslaw Klys. Licensed under Apache-2.0; see Licenses/CodeGlyphX-LICENSE.txt.
 // OfficeIMO adaptation adds bounded output, cancellation, and shared prediction/reconstruction.
-using System;
 
 namespace OfficeIMO.Drawing;
 

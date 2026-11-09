@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfOptionalContentUsageSummary {

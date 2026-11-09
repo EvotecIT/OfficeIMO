@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Inspection policy for a production PDF; these profiles do not certify standards conformance.</summary>

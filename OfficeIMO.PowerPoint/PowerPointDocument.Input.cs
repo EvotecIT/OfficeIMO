@@ -2,11 +2,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using Microsoft.Win32.SafeHandles;
-using System;
-using System.IO;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {

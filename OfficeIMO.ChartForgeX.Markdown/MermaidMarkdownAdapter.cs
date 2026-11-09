@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Text;
 using global::ChartForgeX.Diagnostics;
 using global::ChartForgeX.Markup;

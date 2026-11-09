@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO.Drawing;
 using Xunit;
 

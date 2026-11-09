@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Optional font-program contract supplying static OpenType math design metrics.</summary>

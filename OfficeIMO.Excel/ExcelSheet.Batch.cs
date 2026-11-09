@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         // Batch ownership is thread-affine because ReaderWriterLockSlim write ownership is

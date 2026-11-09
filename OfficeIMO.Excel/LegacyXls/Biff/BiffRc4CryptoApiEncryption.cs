@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using System.Security.Cryptography;

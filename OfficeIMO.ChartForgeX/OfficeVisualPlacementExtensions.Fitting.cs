@@ -1,4 +1,3 @@
-using System;
 using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;

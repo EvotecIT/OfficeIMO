@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Isolates preserved page streams before adding content in the page's default graphics state.</summary>

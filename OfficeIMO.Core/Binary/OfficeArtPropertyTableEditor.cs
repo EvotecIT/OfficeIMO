@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Edits bounded FOPT rows while retaining unrelated operations, complex payloads and trailing bytes.</summary>

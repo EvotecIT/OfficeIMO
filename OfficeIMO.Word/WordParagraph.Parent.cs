@@ -1,7 +1,5 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System;
-using System.Linq;
 using V = DocumentFormat.OpenXml.Vml;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 

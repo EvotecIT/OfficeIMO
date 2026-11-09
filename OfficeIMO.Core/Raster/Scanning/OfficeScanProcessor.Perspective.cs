@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Separately owned perspective-corrected image and its exact coordinate mapping.</summary>

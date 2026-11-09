@@ -3,7 +3,6 @@ using OfficeIMO.Epub;
 using OfficeIMO.Epub.Image;
 using OfficeIMO.Html;
 using System.Xml.Linq;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

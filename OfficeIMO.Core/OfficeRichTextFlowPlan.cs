@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Retains native region choices independently of the shortened text replayed by a renderer.</summary>

@@ -34,9 +34,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" />
     <Using Include="OfficeIMO.AsciiDoc" />
     <Using Include="OfficeIMO.Markdown" />
   </ItemGroup>

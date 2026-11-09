@@ -1,5 +1,3 @@
-using System.IO;
-using System.Collections.Generic;
 using OfficeIMO.Word;
 using Xunit;
 

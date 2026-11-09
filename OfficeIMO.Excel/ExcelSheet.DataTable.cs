@@ -3,8 +3,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
 using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     internal interface IExcelSheetTabularRowSource {

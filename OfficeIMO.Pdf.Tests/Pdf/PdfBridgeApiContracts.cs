@@ -3,7 +3,6 @@ using OfficeIMO.Pdf.Excel;
 using OfficeIMO.Pdf.PowerPoint;
 using OfficeIMO.Reader;
 using System.Reflection;
-using System.Threading.Tasks;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.PowerPoint.Pdf;

@@ -3,8 +3,6 @@ using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown.Pdf;
 using PdfCore = OfficeIMO.Pdf;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Reflection;
 using Xunit;
 

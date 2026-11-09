@@ -1,5 +1,4 @@
 using OfficeIMO.Word;
-using System;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class WordTextBox {

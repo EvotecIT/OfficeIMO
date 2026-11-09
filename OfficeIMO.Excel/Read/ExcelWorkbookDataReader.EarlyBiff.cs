@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Threading;
 using OfficeIMO.Excel.Legacy;
 
 namespace OfficeIMO.Excel {

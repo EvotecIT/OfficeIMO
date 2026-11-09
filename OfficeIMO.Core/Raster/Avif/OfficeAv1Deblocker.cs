@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Retains only the Main-8/Main10 intra metadata needed for the normative frame deblocking pass.</summary>

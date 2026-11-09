@@ -5,8 +5,6 @@ using System.Buffers.Binary;
 using System.Data.Common;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using static OfficeIMO.Excel.LegacyXls.Read.LegacyXlsTabularWorkbook;
 
 namespace OfficeIMO.Excel.LegacyXls.Read {

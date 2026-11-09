@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Tracks generated flattening work and validates reused appearance streams.</summary>

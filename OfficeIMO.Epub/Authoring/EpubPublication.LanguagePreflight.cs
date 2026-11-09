@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {

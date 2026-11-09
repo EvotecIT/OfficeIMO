@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.AsciiDoc;
 using Xunit;
 

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using DocumentFormat.OpenXml;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using W = DocumentFormat.OpenXml.Wordprocessing;

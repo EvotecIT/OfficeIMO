@@ -1,5 +1,4 @@
 using AngleSharp.Html.Parser;
-using System.Threading;
 using OfficeIMO.Html;
 using OfficeIMO.Provenance;
 using Xunit;

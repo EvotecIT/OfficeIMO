@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Markdown;
 using PSWriteOffice.Foundation;

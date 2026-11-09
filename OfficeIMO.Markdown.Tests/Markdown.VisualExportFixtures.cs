@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using Xunit;

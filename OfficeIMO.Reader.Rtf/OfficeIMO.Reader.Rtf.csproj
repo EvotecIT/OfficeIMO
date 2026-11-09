@@ -33,14 +33,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
     <Using Include="System.Globalization" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
     <Using Include="System.Security.Cryptography" />
     <Using Include="System.Text" />
-    <Using Include="System.Threading" />
     <Using Include="OfficeIMO.Rtf" />
   </ItemGroup>
   <ItemGroup>

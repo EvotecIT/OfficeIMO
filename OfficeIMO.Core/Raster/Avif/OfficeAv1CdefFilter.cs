@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Main-8/Main10 directional deringing arithmetic from AV1 7.15.2–3.</summary>

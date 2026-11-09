@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using System.Collections.Concurrent;
-using System.Threading.Tasks;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;

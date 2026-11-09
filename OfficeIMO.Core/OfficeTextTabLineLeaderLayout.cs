@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 // Geometry is planned once alongside the measured tab advance. Renderers consume

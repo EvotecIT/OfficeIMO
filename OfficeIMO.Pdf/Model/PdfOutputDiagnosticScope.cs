@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Captures native-output diagnostics across root and nested page options for one serialization.</summary>

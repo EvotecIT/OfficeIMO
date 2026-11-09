@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Core.Internal;
 
 /// <summary>Runtime checks for package behavior that depends on the CLR rather than the compiled target.</summary>

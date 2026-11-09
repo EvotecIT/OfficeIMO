@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-
 namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeCompoundFileReader {
         /// <summary>Reads metadata streams while copying selected payload streams to caller-owned destinations.</summary>

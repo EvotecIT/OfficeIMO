@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>Table colors and geometry shared by authoring formats.</summary>

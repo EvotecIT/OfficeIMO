@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Latex.Markdown;
 
 // Indexes belong to one current source snapshot. Block and recursive inline projection

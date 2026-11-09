@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Represents a column inside an Excel table.

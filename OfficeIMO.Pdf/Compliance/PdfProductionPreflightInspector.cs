@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builds bounded, page-linked production evidence from one exact PDF snapshot.</summary>

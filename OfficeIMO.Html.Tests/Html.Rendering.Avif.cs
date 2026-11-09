@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;

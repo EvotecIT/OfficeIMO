@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml.Presentation;
-using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {

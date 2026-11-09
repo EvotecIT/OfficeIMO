@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO.OneNote;
 
 namespace PSWriteOffice.Cmdlets.OneNote;

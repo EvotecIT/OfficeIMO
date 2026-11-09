@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Internal {
     /// <summary>Separates local filesystem identities from opaque storage-provider locations.</summary>
     internal static class OfficeStorageIdentity {

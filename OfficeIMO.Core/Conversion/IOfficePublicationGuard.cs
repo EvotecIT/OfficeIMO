@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO;
 
 /// <summary>Checks application ownership of a final workflow publication candidate.</summary>

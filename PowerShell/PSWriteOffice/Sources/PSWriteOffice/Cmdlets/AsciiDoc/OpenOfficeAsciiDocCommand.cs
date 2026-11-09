@@ -1,6 +1,5 @@
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
-using System.IO;
 using System.Management.Automation;
 using OfficeIMO.AsciiDoc;
 

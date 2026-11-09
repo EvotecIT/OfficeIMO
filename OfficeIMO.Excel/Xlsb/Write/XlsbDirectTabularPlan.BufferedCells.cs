@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel.Xlsb.Write {
     internal sealed partial class XlsbDirectTabularPlan {
         private static bool TryCreateBuffered(

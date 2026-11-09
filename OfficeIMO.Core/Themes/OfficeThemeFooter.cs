@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>Page footer text and the optional rule above it.</summary>

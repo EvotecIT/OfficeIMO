@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Latex;
 
 internal sealed partial class LatexStructuralParser {

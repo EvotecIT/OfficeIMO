@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO;
 using OfficeIMO.PowerPoint;

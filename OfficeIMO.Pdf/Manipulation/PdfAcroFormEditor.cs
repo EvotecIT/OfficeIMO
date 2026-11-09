@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Creates and transactionally edits AcroForm fields in existing PDFs.</summary>

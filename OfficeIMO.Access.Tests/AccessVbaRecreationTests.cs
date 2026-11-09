@@ -1,5 +1,4 @@
 using OfficeIMO.Access;
-using System.Collections.Generic;
 
 namespace OfficeIMO.Access.Tests {
     public sealed class AccessVbaRecreationTests {

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Word.Pdf {
     internal sealed class TableLayout {
         internal TableLayout(List<IReadOnlyList<WordTableCell>> rows, float[] columnWidths, int[] rowStartColumns, int[] rowTrailingColumns) {

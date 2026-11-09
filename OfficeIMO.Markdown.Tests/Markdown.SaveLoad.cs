@@ -1,8 +1,4 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using Xunit;

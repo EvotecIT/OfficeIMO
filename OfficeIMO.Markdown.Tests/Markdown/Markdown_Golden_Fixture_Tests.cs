@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Markdown;

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Chm;
 
 /// <summary>A contents or keyword-index item, including book headings and multi-target keywords.</summary>

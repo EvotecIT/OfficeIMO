@@ -5,7 +5,7 @@
     <IsPackable>false</IsPackable>
     <IsPublishable>false</IsPublishable>
     <Description>Opt-in independent DjVu raster comparison; reference executables remain outside product dependencies.</Description>
-    <ImplicitUsings>enable</ImplicitUsings>
+
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="..\OfficeIMO.DjVu\OfficeIMO.DjVu.csproj" /></ItemGroup>
 </Project>

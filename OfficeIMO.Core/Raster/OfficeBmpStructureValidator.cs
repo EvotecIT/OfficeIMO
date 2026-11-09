@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Validates complete BMP storage for lossless metadata operations without requiring a managed pixel decoder.</summary>

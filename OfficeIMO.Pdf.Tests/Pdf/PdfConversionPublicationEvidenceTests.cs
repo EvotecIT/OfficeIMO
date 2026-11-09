@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Diagnostics;
 using OfficeIMO.Pdf;
 using Xunit;

@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Collections.Generic;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Office2010.PowerPoint;
 using DocumentFormat.OpenXml.Packaging;

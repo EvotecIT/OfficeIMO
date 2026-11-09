@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>Shared resource limits for one local document workflow.</summary>

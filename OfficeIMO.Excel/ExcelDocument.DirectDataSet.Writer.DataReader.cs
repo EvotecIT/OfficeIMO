@@ -1,6 +1,5 @@
 using System.Data;
 using System.IO.Compression;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {

@@ -1,8 +1,5 @@
 using static OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader;
-using System;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;

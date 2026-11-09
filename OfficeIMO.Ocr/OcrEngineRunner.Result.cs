@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Ocr;
 
 public static partial class OcrEngineRunner {

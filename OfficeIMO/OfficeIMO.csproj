@@ -4,7 +4,7 @@
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <Description>Document conversion and resumable batches over the OfficeIMO format libraries.</Description>
     <VersionPrefix>3.6.0</VersionPrefix>
-    <ImplicitUsings>enable</ImplicitUsings>
+
     <LangVersion>Latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

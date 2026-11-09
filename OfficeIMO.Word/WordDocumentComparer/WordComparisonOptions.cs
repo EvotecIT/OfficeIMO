@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Controls optional normalization and feature families used by <see cref="WordDocumentComparer.CompareStructure(string, string, WordComparisonOptions?)"/>.

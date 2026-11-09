@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint;
-using System.Threading;
 
 namespace OfficeIMO.PowerPoint.OpenDocument;
 

@@ -1,8 +1,5 @@
 namespace OfficeIMO.Markdown;
 
-using System;
-using System.Collections.Generic;
-
 /// <summary>
 /// Helpers for shaping adjacent <c>Label: value</c> markdown lines into stable paragraph boundaries.
 /// </summary>

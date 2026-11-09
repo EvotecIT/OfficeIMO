@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {

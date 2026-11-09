@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing {
     /// <summary>Built-in managed routes for an image container, subject to the documented subset and resource limits.</summary>
     /// <remarks>Capabilities describe available routes, not a guarantee that every variant or payload in a format decodes.

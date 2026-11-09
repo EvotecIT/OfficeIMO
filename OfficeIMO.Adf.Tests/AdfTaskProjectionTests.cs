@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Adf;
 using OfficeIMO.Markdown;
 using Xunit;

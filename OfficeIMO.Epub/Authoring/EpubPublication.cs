@@ -1,7 +1,5 @@
 using OfficeIMO.Core.Internal;
 using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Epub;
 

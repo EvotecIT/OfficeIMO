@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Excel {
     internal static partial class ExcelConditionalVisualEvaluator {
         private static bool IsTextRule(ExcelConditionalFormattingInfo rule) =>

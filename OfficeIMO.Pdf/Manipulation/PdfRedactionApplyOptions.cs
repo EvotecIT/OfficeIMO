@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Additional document-level residue removed by an explicit redaction policy.</summary>

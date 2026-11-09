@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>Built-in accessibility policy profiles.</summary>
     public enum PowerPointAccessibilityPolicyProfile {

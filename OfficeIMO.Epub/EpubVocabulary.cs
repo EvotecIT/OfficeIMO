@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Epub;
 
 /// <summary>Shared package vocabulary expansion for extraction and authoring.</summary>

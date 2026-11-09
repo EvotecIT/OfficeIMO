@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 
 namespace OfficeIMO.Visio {
     /// <summary>Typed snapshot of generated data-graphic shapes for one target.</summary>

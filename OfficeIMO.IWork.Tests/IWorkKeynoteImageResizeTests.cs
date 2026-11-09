@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.IWork.Tests;

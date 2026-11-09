@@ -1,9 +1,6 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
-using System;
-using System.IO;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;

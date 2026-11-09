@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using global::ChartForgeX.Topology;
 using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.Visio;

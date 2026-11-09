@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using System.IO;
 using System.Text;
 using System.Xml;
 using System.Globalization;

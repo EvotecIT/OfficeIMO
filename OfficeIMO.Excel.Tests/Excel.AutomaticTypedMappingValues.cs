@@ -1,8 +1,6 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.IO.Compression;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Data;
 using Xunit;
 

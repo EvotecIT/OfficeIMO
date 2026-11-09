@@ -1,6 +1,5 @@
 using OfficeIMO.Epub;
 using OfficeIMO.Reader;
-using System.Linq;
 
 namespace OfficeIMO.Reader.Epub;
 

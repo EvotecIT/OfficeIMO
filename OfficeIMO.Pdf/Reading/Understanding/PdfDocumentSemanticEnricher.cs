@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Document-wide evidence fusion for the canonical semantic page analyses.</summary>

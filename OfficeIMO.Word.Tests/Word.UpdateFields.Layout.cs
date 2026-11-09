@@ -1,8 +1,4 @@
 using OfficeIMO.Word.Pdf;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;

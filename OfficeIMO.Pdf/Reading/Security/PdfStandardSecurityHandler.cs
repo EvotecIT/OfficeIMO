@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Security;

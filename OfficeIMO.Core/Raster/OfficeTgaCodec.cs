@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Bounded indexed, truecolor, and grayscale TGA decoding, including RLE, and 32-bit TGA writing.</summary>

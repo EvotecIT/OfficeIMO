@@ -1,5 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>

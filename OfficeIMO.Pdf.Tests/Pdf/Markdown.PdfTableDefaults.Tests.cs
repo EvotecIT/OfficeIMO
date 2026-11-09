@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using PdfCore = OfficeIMO.Pdf;

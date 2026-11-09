@@ -1,6 +1,4 @@
 using OfficeIMO.Drawing;
-using System.Collections.Generic;
-using System.Linq;
 namespace OfficeIMO.OneNote.Html;
 
 /// <summary>Visual-preserving HTML entry points backed by the native OneNote Drawing canvas.</summary>

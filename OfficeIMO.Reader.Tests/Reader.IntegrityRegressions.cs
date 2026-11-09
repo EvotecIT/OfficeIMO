@@ -5,8 +5,6 @@ using OfficeIMO.Reader.Yaml;
 using OfficeIMO.Reader.Zip;
 using System.IO.Compression;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;

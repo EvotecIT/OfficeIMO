@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;

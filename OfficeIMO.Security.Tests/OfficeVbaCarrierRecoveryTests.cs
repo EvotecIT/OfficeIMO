@@ -1,4 +1,3 @@
-using System.IO;
 using System.IO.Packaging;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;

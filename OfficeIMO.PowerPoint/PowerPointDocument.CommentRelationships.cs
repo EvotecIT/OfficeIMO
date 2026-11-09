@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using P = DocumentFormat.OpenXml.Presentation;
 using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;

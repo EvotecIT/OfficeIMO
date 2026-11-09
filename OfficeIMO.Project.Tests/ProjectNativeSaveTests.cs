@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Project.Tests;

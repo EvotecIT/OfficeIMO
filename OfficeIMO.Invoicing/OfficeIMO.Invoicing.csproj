@@ -22,10 +22,6 @@
     <Using Include="OfficeIMO.Internal.Invoicing" />
     <None Include="README.md" Pack="true" PackagePath="/" />
     <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
-    <Using Include="System" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
-    <Using Include="System.Collections.Generic" />
     <InternalsVisibleTo Include="OfficeIMO.Invoicing.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Invoicing.Validation" />
     <InternalsVisibleTo Include="OfficeIMO.Invoicing.KSeF" />

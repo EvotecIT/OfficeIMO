@@ -1,4 +1,3 @@
-using System;
 using global::ChartForgeX.Primitives;
 using global::ChartForgeX.Rendering;
 using global::ChartForgeX.Themes;

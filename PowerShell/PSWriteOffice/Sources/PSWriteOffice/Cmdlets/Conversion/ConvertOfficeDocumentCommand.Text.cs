@@ -1,11 +1,6 @@
-using System;
 using System.Collections.Concurrent;
-using System.IO;
-using System.Linq;
 using System.Management.Automation;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;

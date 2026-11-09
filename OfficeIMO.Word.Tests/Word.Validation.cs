@@ -1,7 +1,4 @@
-﻿using System;
-using System.Globalization;
-using System.IO;
-using System.Linq;
+﻿using System.Globalization;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.IO.Packaging;
 using System.Xml.Linq;

@@ -3,8 +3,6 @@ using OfficeIMO.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Model;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {

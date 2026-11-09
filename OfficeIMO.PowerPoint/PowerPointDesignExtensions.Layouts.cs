@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     The designer slide kinds expressed as layout-system content. Every semantic slide is turned into a

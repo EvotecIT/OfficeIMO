@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;

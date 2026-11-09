@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Keeps package creation forward-only while satisfying .NET Framework's

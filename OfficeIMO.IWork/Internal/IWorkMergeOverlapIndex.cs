@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Identifies every intersecting rectangle without enumerating overlap pairs or dense table cells.</summary>

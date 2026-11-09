@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Archives;
 
 /// <summary>Finite limits for verified, in-memory ZIP member reads.</summary>

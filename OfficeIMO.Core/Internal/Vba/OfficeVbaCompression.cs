@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Core.Internal {
 
     /// <summary>Bounded MS-OVBA source compression shared by editing and signature binding.</summary>
