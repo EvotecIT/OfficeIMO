@@ -12,7 +12,9 @@ public sealed partial class ExcelWorkbookDataReader : IDataReaderParallelBatchSo
     bool IDataReaderParallelBatchSource.CanReadParallelBatches => false;
     bool IDataReaderTypedParallelBatchSource.CanReadTypedParallelBatches =>
         !_closed && !_isOwnedMappingBatch && _typeConverter is null &&
-        CurrentReader is ExcelSchemaInferenceDataReader { CanCaptureMappingBatch: true };
+        (CurrentReader is ExcelSchemaInferenceDataReader schema
+            ? schema.CanCaptureMappingBatch
+            : ExcelSheetReader.CanCaptureMappingBatch(CurrentReader));
     int IDataReaderParallelBatchSource.PreferredParallelBatchSize => 128;
     int IDataReaderParallelBatchInfo.ParallelBatchRowCount => _mappingBatchRowCount;
 
@@ -21,10 +23,14 @@ public sealed partial class ExcelWorkbookDataReader : IDataReaderParallelBatchSo
         batchReader = null;
         _cancellationToken.ThrowIfCancellationRequested();
         cancellationToken.ThrowIfCancellationRequested();
-        if (_closed || _isOwnedMappingBatch || _typeConverter is not null ||
-            CurrentReader is not ExcelSchemaInferenceDataReader source ||
-            !source.TryCaptureMappingBatch(preferredBatchSize, cancellationToken, out var batch, out int count))
-            return false;
+        if (_closed || _isOwnedMappingBatch || _typeConverter is not null) return false;
+        DbDataReader source = CurrentReader;
+        DbDataReader? batch;
+        int count;
+        bool captured = source is ExcelSchemaInferenceDataReader schema
+            ? schema.TryCaptureMappingBatch(preferredBatchSize, cancellationToken, out batch, out count)
+            : ExcelSheetReader.TryCaptureMappingBatch(source, preferredBatchSize, cancellationToken, out batch, out count);
+        if (!captured) return false;
         if (batch is null) return true;
         try {
             batchReader = new ExcelWorkbookDataReader(new[] { _sheets[_resultIndex] },

@@ -202,14 +202,16 @@ public static partial class ParallelRowMappingExtensions {
                          options.GetBatchSize(batchSource.PreferredParallelBatchSize),
                          degreeOfParallelism,
                          static batchReader => batchReader.RowsAs<T>(),
-                         () => EnumerateBatches(
+                         () => RowSnapshotSchema.ReaderHasOnlyIndependentFieldTypes(reader)
+                             ? EnumerateBatches(
                              reader,
                              genericBatchSize,
                              degreeOfParallelism,
                              values => plan.MapValues(values, culture, dateTimeFormats, typeConverter, errorValuePolicy),
                              typeConverter is null ? plan.CaptureReaderValues : (source, values) => plan.CaptureReaderValues(source, values, preserveConverterInput: true),
                              cancellationToken,
-                             typeConverter is null ? plan.CreateSnapshotColumnsFactory(reader, culture, dateTimeFormats, errorValuePolicy) : null),
+                             typeConverter is null ? plan.CreateSnapshotColumnsFactory(reader, culture, dateTimeFormats, errorValuePolicy) : null)
+                             : EnumerateSequential(reader.RowsAs<T>(), cancellationToken),
                          cancellationToken)) {
                 yield return row;
             }
@@ -274,13 +276,17 @@ public static partial class ParallelRowMappingExtensions {
                          degreeOfParallelism,
                          batchReader => EnumerateExplicitBatch(batchReader, plan, culture, dateTimeFormats,
                              typeConverter, errorValuePolicy),
-                         () => EnumerateBatches(
+                         () => RowSnapshotSchema.ReaderHasOnlyIndependentFieldTypes(reader)
+                             ? EnumerateBatches(
                              reader,
                              genericBatchSize,
                              degreeOfParallelism,
                              values => plan.MapValues(values, culture, dateTimeFormats, typeConverter, errorValuePolicy),
                              captureValues: plan.CaptureReaderValues,
-                             cancellationToken),
+                             cancellationToken)
+                             : EnumerateSequential(
+                                 EnumerateExplicitBatch(reader, plan, culture, dateTimeFormats, typeConverter, errorValuePolicy),
+                                 cancellationToken),
                          cancellationToken)) {
                 yield return row;
             }

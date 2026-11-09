@@ -390,13 +390,20 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         } finally { File.Delete(path); }
     }
 
-    [Fact]
-    public void InvalidDateSerialKeepsGenericConstructionAndFailureOrder() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InvalidDateSerialKeepsGenericConstructionAndFailureOrder(bool parallel) {
         string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\" s=\"1\"><v>3000000</v></c></row>", new[] { "Date" }, 2);
         try {
             using var reader = ExcelDocument.OpenReader(path);
             DateConstructorProbeRow.Calls = 0;
-            Assert.Throws<ArgumentException>(() => reader.RowsAs<DateConstructorProbeRow>().ToArray());
+            Assert.Throws<ArgumentException>(() => {
+                if (parallel) reader.RowsAsParallel<DateConstructorProbeRow>(new ParallelRowMappingOptions {
+                    MaxDegreeOfParallelism = 2, BatchSize = 1
+                }).ToArray();
+                else reader.RowsAs<DateConstructorProbeRow>().ToArray();
+            });
             Assert.Equal(1, DateConstructorProbeRow.Calls);
             Assert.False(reader.IsClosed);
         } finally { File.Delete(path); }
@@ -457,6 +464,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
     [InlineData(false, 2, false)]
     [InlineData(true, 1, false)]
     [InlineData(true, 2, false)]
+    [InlineData(false, 2, true)]
     [InlineData(true, 2, true)]
     [InlineData(true, 3, true)]
     public void MappingCancellationStopsBeforeTheNextNativeRow(bool inferSchema, int mapping, bool cancelWhileMapping) {
