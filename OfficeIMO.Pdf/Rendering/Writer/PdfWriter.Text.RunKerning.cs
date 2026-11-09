@@ -23,8 +23,8 @@ internal static partial class PdfWriter {
             _work += amount;
         }
 
-        public double MeasureBoundary(IReadOnlyList<RichSeg> line, RichSeg right) {
-            if (line.Count == 0 || !Compatible(line[line.Count - 1], right)) return 0D;
+        public double MeasureBoundary(IReadOnlyList<RichSeg> line, RichSeg? right) {
+            if (right == null || line.Count == 0 || !Compatible(line[line.Count - 1], right)) return 0D;
             int start = line.Count - 1;
             while (start > 0 && Compatible(line[start - 1], line[start])) start--;
             SpendWork(line.Count - start);

@@ -115,8 +115,8 @@ internal static partial class PdfWriter {
                 pendingLeadingIsTab, pendingLeadingIsExpandable, includeLeading && pendingLeadingIsOrdinarySpace,
                 pendingLeadingTabAlignment, probe, continuation);
         }
-        double MinimumCandidateWidth(RichSeg probe, IReadOnlyList<RichSeg>? continuation, double naturalWidth) =>
-            compressWordSpaces ? MeasureWordCompressionMinimumWidth(CompressionCandidate(probe, continuation), naturalWidth) : naturalWidth;
+        double MinimumCandidateWidth(RichSeg? probe, IReadOnlyList<RichSeg>? continuation, double naturalWidth) =>
+            compressWordSpaces ? MeasureWordCompressionMinimumWidth(CompressionCandidate(probe!, continuation), naturalWidth) : naturalWidth;
 
         void RegisterLineHeight(double runFontSize) {
             currentLineHeight = Math.Max(currentLineHeight, RunLineHeight(runFontSize) + (currentFrame?.Gap ?? 0));
@@ -791,10 +791,13 @@ internal static partial class PdfWriter {
                 }
                 double tokenW = MeasureRichText(token, fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
                 var continuation = nextWs < 0 && runIndex + 1 < effectiveRuns.Count ? wordContinuations[runIndex + 1] : default;
-                RichSeg tokenProbe = CreateRunKerningProbe(token, run, baseFont, fontSize, options);
+                // Only kerning and word-space compression read the probe; boundaries need kern on both sides.
+                RichSeg? tokenProbe = compressWordSpaces || continuation.HasKerning ||
+                    run.FeatureSettings.TryGetValue("kern", out int tokenKern) && tokenKern > 0
+                        ? CreateRunKerningProbe(token, run, baseFont, fontSize, options) : null;
                 double wordWidth = tokenW + continuation.Width;
                 if (!oversizedWordContinuation && continuation.HasKerning)
-                    wordWidth += runKerning.MeasureWordAdjustment(tokenProbe, continuation.Parts);
+                    wordWidth += runKerning.MeasureWordAdjustment(tokenProbe!, continuation.Parts);
                 double wordFontSize = Math.Max(runFontSize, continuation.FontSize);
                 double minimumWordWidth = wordWidth;
                 if (rowComposition != null) {
@@ -823,7 +826,7 @@ internal static partial class PdfWriter {
                     ? runKerning.MeasureBoundary(lines[lines.Count - 1], tokenProbe) : 0D;
                 var trialLine = lines[lines.Count - 1];
                 var completeWordCandidate = compressWordSpaces && token.Length > 0
-                    ? CompressionCandidate(tokenProbe, continuation.Parts) : null;
+                    ? CompressionCandidate(tokenProbe!, continuation.Parts) : null;
                 double completeWordNaturalWidth = lineWidth + candidateLeading + wordWidth + candidateBoundary;
                 bool completeWordFits = completeWordCandidate != null &&
                     MeasureWordCompressionMinimumWidth(completeWordCandidate, completeWordNaturalWidth) <= CurrentMaxWidth() + RichTextWidthTolerance;
