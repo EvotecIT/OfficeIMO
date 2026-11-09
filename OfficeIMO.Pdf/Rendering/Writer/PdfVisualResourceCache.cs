@@ -11,6 +11,7 @@ internal sealed class PdfVisualResourceCache {
     private const int StreamCandidates = 8;
     private readonly Dictionary<string, int> _objects = new(StringComparer.Ordinal);
     private readonly Dictionary<string, List<KeyValuePair<byte[], int>>> _streams = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, KeyValuePair<byte[], int>> _overflowStreams = new(StringComparer.Ordinal);
 
     internal bool TryGet(string key, out int objectId) => _objects.TryGetValue(key, out objectId);
     internal void Add(string key, int objectId) => _objects.Add(key, objectId);
@@ -23,18 +24,26 @@ internal sealed class PdfVisualResourceCache {
                     return true;
                 }
             }
+            if (candidates.Count == StreamCandidates &&
+                _overflowStreams.TryGetValue(Hash(dictionary, data), out KeyValuePair<byte[], int> hashed) &&
+                hashed.Key.SequenceEqual(data)) {
+                objectId = hashed.Value;
+                return true;
+            }
         }
         objectId = 0;
         return false;
     }
 
-    // A bounded candidate list keeps many same-length streams from turning every lookup into a scan.
+    // A bounded candidate list keeps many same-length streams from turning every lookup into a scan;
+    // streams past it are keyed by content hash instead.
     internal void AddStream(string dictionary, byte[] data, int objectId) {
         if (!_streams.TryGetValue(dictionary, out List<KeyValuePair<byte[], int>>? candidates)) {
             candidates = new List<KeyValuePair<byte[], int>>(1);
             _streams.Add(dictionary, candidates);
         }
         if (candidates.Count < StreamCandidates) candidates.Add(new KeyValuePair<byte[], int>(data, objectId));
+        else _overflowStreams[Hash(dictionary, data)] = new KeyValuePair<byte[], int>(data, objectId);
     }
 
     internal static bool IsVisualDictionary(string body) =>
