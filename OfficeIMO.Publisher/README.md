@@ -948,6 +948,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Read | 0 | 1 | 0 | 0 | 0 | 0 |
 | Edit | 0 | 1 | 0 | 0 | 0 | 0 |
 | Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
+| Export | 0 | 5 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Publisher` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

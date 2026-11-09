@@ -138,10 +138,10 @@ internal static class WorkflowShowcase {
                     var errors = presentation.ValidateDocument();
                     if (errors.Count > 0) throw new InvalidOperationException(errors[0].Description);
                     presentation.SaveAsPdf(preview);
-                    presentation.Slides[0].ExportImage(OfficeImageExportFormat.Png)
+                    presentation.Slides[0].ToImage(OfficeImageExportFormat.Png)
                         .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
                     for (int index = 1; index < presentation.Slides.Count; index++) {
-                        presentation.Slides[index].ExportImage(OfficeImageExportFormat.Png)
+                        presentation.Slides[index].ToImage(OfficeImageExportFormat.Png)
                             .Save(Path.Combine(folder, $"slide-{index + 1}.png"), OfficeImageExportFileConflictPolicy.Replace);
                     }
                 }
@@ -167,9 +167,9 @@ internal static class WorkflowShowcase {
                 var diagram = VisioDocument.Load(Path.Combine(folder, "example.vsdx"));
                 var issues = diagram.Validate();
                 if (issues.Count > 0) throw new InvalidOperationException(issues[0]);
-                diagram.ExportImage(OfficeImageExportFormat.Png)
+                diagram.ToImage(OfficeImageExportFormat.Png)
                     .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
-                diagram.ExportImage(OfficeImageExportFormat.Svg)
+                diagram.ToImage(OfficeImageExportFormat.Svg)
                     .Save(Path.Combine(folder, "preview.svg"), OfficeImageExportFileConflictPolicy.Replace);
                 break;
         }

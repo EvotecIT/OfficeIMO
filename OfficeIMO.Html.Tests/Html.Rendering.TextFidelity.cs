@@ -47,7 +47,7 @@ public sealed partial class HtmlRenderingTests {
         IReadOnlyList<OfficeDrawingText> textElements = drawing.Elements.OfType<OfficeDrawingText>().ToList();
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
         string svg = document.ToSvg(options);
-        byte[] png = document.ToImage(options);
+        byte[] png = document.ToImage(options).Bytes;
         XDocument svgDocument = XDocument.Parse(svg);
 
         Assert.NotEmpty(textElements);
@@ -80,7 +80,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false
         })).ToBytes();
         var savedPage = OfficeIMO.Pdf.PdfReadDocument.Open(savedPdf).Pages[0];
-        OfficeImageExportResult savedSvg = savedPage.ExportImage(OfficeImageExportFormat.Svg,
+        OfficeImageExportResult savedSvg = savedPage.ToImage(OfficeImageExportFormat.Svg,
             new OfficeIMO.Pdf.PdfImageExportOptions {
                 Scale = options.Scale * HtmlRenderOptions.CssPixelsPerInch / 72D,
                 BackgroundColor = options.BackgroundColor
@@ -146,7 +146,7 @@ public sealed partial class HtmlRenderingTests {
             .First(item => item.Text == text.Text && Math.Abs(item.X - text.X) < 0.000001D && Math.Abs(item.Y - text.Y) < 0.000001D);
         Assert.Equal(text.Width, drawingText.Width, 6);
         Assert.Equal(advance, Assert.IsType<double>(drawingText.TextAdvanceWidth), 6);
-        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToImage(options));
+        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToImage(options).Bytes);
         Assert.StartsWith("<svg", HtmlConversionDocument.Parse(html).ToSvg(options), StringComparison.Ordinal);
     }
 

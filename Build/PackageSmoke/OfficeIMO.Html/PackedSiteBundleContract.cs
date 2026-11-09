@@ -33,7 +33,7 @@ internal static class PackedSiteBundleContract {
             if (!image.Bytes.SequenceEqual(png) || image.Width != 24D || image.Height != 24D
                 || !page.Visuals.OfType<HtmlRenderText>().Any(text => text.Text == "Packed site" && text.Color == OfficeColor.FromRgb(0x12, 0x34, 0x56)))
                 throw new InvalidOperationException("Packed site-bundle rendering lost archive image bytes or stylesheet text color.");
-            if (!OfficeSvgDrawingReader.TryRead(result.ExportImage().Bytes, out OfficeDrawing? drawing, out _)
+            if (!OfficeSvgDrawingReader.TryRead(result.ToImage().Bytes, out OfficeDrawing? drawing, out _)
                 || !HasImagePaint(drawing!, page, image))
                 throw new InvalidOperationException("Packed site-bundle SVG lost visible archive-image paint.");
         }

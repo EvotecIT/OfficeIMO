@@ -4,10 +4,14 @@ internal sealed class OneNoteNotebookSerializationPlan {
     private const string TocFileName = "Open Notebook.onetoc2";
     private const string RecycleBinDirectoryName = "OneNote_RecycleBin";
     private readonly OneNoteSaveOptions _options;
+    private readonly OneNoteWriteIdFactory _ids;
     private readonly List<OneNoteCabinetEntry> _entries = new List<OneNoteCabinetEntry>();
     private long _expandedBytes;
 
-    private OneNoteNotebookSerializationPlan(OneNoteSaveOptions options) { _options = options; }
+    private OneNoteNotebookSerializationPlan(OneNoteSaveOptions options) {
+        _options = options;
+        _ids = new OneNoteWriteIdFactory(options.IdentitySeed, "notebook");
+    }
 
     internal IReadOnlyList<OneNoteCabinetEntry> Entries => _entries.AsReadOnly();
 
@@ -16,7 +20,8 @@ internal sealed class OneNoteNotebookSerializationPlan {
         OneNoteWriterValidation.ValidateNotebookOptions(options);
         OneNoteWriteModelValidator.ValidateNotebook(notebook, options, validateSectionContent: true);
         var plan = new OneNoteNotebookSerializationPlan(options);
-        Guid rootId = EnsureIdentity(notebook.Id);
+        if (options.IdentitySeed.HasValue) plan._ids.Reserve(OneNoteWriteIdentityInventory.ForNotebook(notebook));
+        Guid rootId = plan.EnsureIdentity(notebook.Id);
         notebook.Id = rootId;
         notebook.TableOfContentsRootObjectId = plan.BuildScope(
             string.Empty,
@@ -36,10 +41,12 @@ internal sealed class OneNoteNotebookSerializationPlan {
         ArgumentNullException.ThrowIfNull(notebook);
         OneNoteWriterValidation.ValidateNotebookOptions(options);
         OneNoteWriteModelValidator.ValidateNotebook(notebook, options, validateSectionContent: false);
-        Guid rootId = EnsureIdentity(notebook.Id);
+        var plan = new OneNoteNotebookSerializationPlan(options);
+        if (options.IdentitySeed.HasValue) plan._ids.Reserve(OneNoteWriteIdentityInventory.ForNotebook(notebook));
+        Guid rootId = plan.EnsureIdentity(notebook.Id);
         notebook.Id = rootId;
-        IReadOnlyList<OneNoteTocWriteEntry> entries = CreateTocEntries(notebook.Sections, notebook.SectionGroups);
-        OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(options.MaxOutputBytes, options.PreserveUnknownData).BuildTableOfContents(
+        IReadOnlyList<OneNoteTocWriteEntry> entries = plan.CreateTocEntries(notebook.Sections, notebook.SectionGroups);
+        OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(options.MaxOutputBytes, options.PreserveUnknownData, identitySeed: options.IdentitySeed, generatedTimestampUtc: options.GeneratedTimestampUtc).BuildTableOfContents(
             rootId,
             Guid.Empty,
             TocFileName,
@@ -80,7 +87,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
                     _options.PreserveUnknownData,
                     _options.MaxPageRelationshipDepth,
                     _options.MaxContentDepth,
-                    _options.MaxInkPathValues).BuildSection(section, tocId, fileName, sectionId);
+                    _options.MaxInkPathValues, _options.IdentitySeed, _options.GeneratedTimestampUtc).BuildSection(section, tocId, fileName, sectionId);
                 AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false, section.StorageFormat, entryLimit, section));
                 tocEntries.Add(new OneNoteTocWriteEntry(sectionId, fileName, order++, section.ColorArgb));
             } else {
@@ -104,7 +111,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
             }
         }
         long tocLimit = RemainingOutputBytes();
-        OneNoteWriteGraph tocGraph = new OneNoteWriteGraphBuilder(tocLimit, _options.PreserveUnknownData).BuildTableOfContents(
+        OneNoteWriteGraph tocGraph = new OneNoteWriteGraphBuilder(tocLimit, _options.PreserveUnknownData, identitySeed: _options.IdentitySeed, generatedTimestampUtc: _options.GeneratedTimestampUtc).BuildTableOfContents(
             tocId,
             ancestorId,
             TocFileName,
@@ -168,7 +175,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
         return data;
     }
 
-    private static IReadOnlyList<OneNoteTocWriteEntry> CreateTocEntries(IList<OneNoteSection> sections, IList<OneNoteSectionGroup> groups) {
+    private IReadOnlyList<OneNoteTocWriteEntry> CreateTocEntries(IList<OneNoteSection> sections, IList<OneNoteSectionGroup> groups) {
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { TocFileName };
         var result = new List<OneNoteTocWriteEntry>();
         uint order = 0;
@@ -232,7 +239,10 @@ internal sealed class OneNoteNotebookSerializationPlan {
 
     private static string Combine(string prefix, string name) => string.IsNullOrEmpty(prefix) ? name : prefix + "/" + name;
 
-    private static Guid EnsureIdentity(Guid? identity) =>
-        identity.HasValue && identity.Value != Guid.Empty ? identity.Value : Guid.NewGuid();
+    private Guid EnsureIdentity(Guid? identity) {
+        if (!_options.IdentitySeed.HasValue && identity.HasValue && identity.Value != Guid.Empty) return identity.Value;
+        Guid generated = _ids.NewGuid();
+        return identity.HasValue && identity.Value != Guid.Empty ? identity.Value : generated;
+    }
 
 }

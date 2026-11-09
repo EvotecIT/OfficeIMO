@@ -58,8 +58,8 @@ public sealed class EpubRegionInkInspectionTests {
         Assert.Empty(selected.Regions[0].TextInkDiagnostics);
         Assert.True(selected.Regions[1].HasTextInkOverflow);
         Assert.DoesNotContain(selected.Regions[1].TextInkDiagnostics, d => d.Code == HtmlRenderDiagnosticCodes.TextInkNotInspected);
-        Assert.Equal(plain.Rendering.Pages[0].CreateDrawing().ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Png).Bytes,
-            selected.Rendering.Pages[0].CreateDrawing().ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Png).Bytes);
+        Assert.Equal(plain.Rendering.Pages[0].CreateDrawing().ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Png).Bytes,
+            selected.Rendering.Pages[0].CreateDrawing().ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Png).Bytes);
     }
 
     private static EpubPublication Book(int glyphHeight, string regionStyle, string childStyle) {

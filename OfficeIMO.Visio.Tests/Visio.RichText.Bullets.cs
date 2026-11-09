@@ -48,7 +48,7 @@ public sealed partial class VisioRichTextBulletTests {
             Assert.Equal("Arial", (string?)text[0].Attribute("font-family"));
             Assert.InRange(Number(text[1], "x") - Number(text[0], "x"), 23.99, 24.01);
 
-            var image = VisualBaselineTestSupport.DecodePng(page.ToImage(new VisioImageExportOptions { Supersampling = 1 }), "Bullet PNG could not be decoded.");
+            var image = VisualBaselineTestSupport.DecodePng(page.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes, "Bullet PNG could not be decoded.");
             int bodyX = (int)Math.Ceiling(Number(text[1], "x"));
             int markerPixels = 0, bodyPixels = 0;
             for (int y = 0; y < image.Height; y++) {
@@ -90,15 +90,15 @@ public sealed partial class VisioRichTextBulletTests {
         var document = Synthetic(connector, "<Bullet>1</Bullet><BulletStr>*</BulletStr>");
         var page = document.Pages[0];
         var copy = document.DuplicatePage(page, "Copy");
-        byte[] old = page.ToImage(new VisioImageExportOptions { Supersampling = 1 });
+        byte[] old = page.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes;
         var section = (connector ? page.Connectors[0].GetShapeSheetSections() : page.Shapes[0].GetShapeSheetSections()).Single(s => s.Name is "Para" or "Paragraph");
         section.Rows.Single(r => r.Index == 9).SetCell("BulletStr", "++");
         if (connector) page.Connectors[0].SetShapeSheetSection(section);
         else page.Shapes[0].SetShapeSheetSection(section);
         Assert.Equal("++", Label(page).Descendants(Svg + "text").First().Value);
         Assert.Contains("*", copy.ToSvg());
-        Assert.False(old.SequenceEqual(page.ToImage(new VisioImageExportOptions { Supersampling = 1 })));
-        Assert.Equal(old, copy.ToImage(new VisioImageExportOptions { Supersampling = 1 }));
+        Assert.False(old.SequenceEqual(page.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes));
+        Assert.Equal(old, copy.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes);
     }
 
     [Fact]
@@ -130,9 +130,9 @@ public sealed partial class VisioRichTextBulletTests {
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new VisioImageExportOptions { TextShapingProvider = provider, Supersampling = 1 };
         options.Fonts.Add("Missing Bullet Font", ManagedTextShapingTestAssets.CreateFont('+'));
-        _ = page.ExportImage(OfficeImageExportFormat.Png, options);
+        _ = page.ToImage(OfficeImageExportFormat.Png, options);
         Assert.Contains(provider.Requests, r => r.Text.Contains("++"));
-        Assert.Contains(page.ExportImage(OfficeImageExportFormat.Svg).Diagnostics, d => d.Message.Contains("Missing Bullet Font"));
+        Assert.Contains(page.ToImage(OfficeImageExportFormat.Svg).Diagnostics, d => d.Message.Contains("Missing Bullet Font"));
     }
 
     [Theory]

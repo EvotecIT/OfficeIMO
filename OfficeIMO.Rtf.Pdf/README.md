@@ -105,6 +105,29 @@ PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `R
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
+## Page images
+
+RTF images use this package's PDF layout and the PDF image renderer. Source conversion findings remain attached to every result and save report.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+using OfficeIMO.Rtf;
+using OfficeIMO.Rtf.Pdf;
+
+RtfDocument source = RtfDocument.Load("input.rtf");
+var options = new PdfImageExportOptions {
+    Format = OfficeImageExportFormat.Png,
+    PageSelector = OfficePageSelector.Parse("last,1"),
+    TargetDpi = 144
+};
+IReadOnlyList<OfficeImageExportResult> pages = await source.ToImagesAsync(options);
+OfficeConversionReport saved = await source.SaveAsImagesAsync("pages", options);
+```
+
+Use `FailOnLoss` to reject conversion or rendering loss before publishing an affected image. Shared fonts and shaping options are applied before PDF layout. [Image options and diagnostics](../Docs/officeimo.image-export.md) describe the common contract.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 
@@ -113,6 +136,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Convert | 1 | 1 | 0 | 0 | 0 | 0 |
+| Export | 0 | 5 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Rtf.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

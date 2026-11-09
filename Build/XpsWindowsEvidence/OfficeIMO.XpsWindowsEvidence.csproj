@@ -5,7 +5,6 @@
     <UseWPF>true</UseWPF>
     <IsPackable>false</IsPackable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../OfficeIMO.Core/OfficeIMO.Core.csproj" />

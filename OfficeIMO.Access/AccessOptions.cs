@@ -31,9 +31,18 @@ namespace OfficeIMO.Access {
         public AccessFileFormat Format { get; set; } = AccessFileFormat.Accdb;
         /// <summary>Optional explicit generation. New models target Jet4 for MDB and Ace12 for ACCDB.</summary>
         public AccessFormatProfile? Profile { get; set; }
+        /// <summary>
+        /// Creation timestamp written to a new database header and system catalog. Null captures the local time once
+        /// when the model is created. Supply the same explicit value for reproducible native creation.
+        /// </summary>
+        public DateTime? CreatedAt { get; set; }
         /// <summary>Optional inert AppTitle property for a newly created database. No startup action is authored.</summary>
         public string? DatabaseTitle { get; set; }
         internal void Validate() {
+            if (CreatedAt.HasValue) {
+                try { _ = CreatedAt.Value.ToOADate(); }
+                catch (OverflowException exception) { throw new ArgumentOutOfRangeException(nameof(CreatedAt), exception.Message); }
+            }
             if (DatabaseTitle != null && (DatabaseTitle.Length > 255 || DatabaseTitle.IndexOf('\0') >= 0)) throw new ArgumentException("DatabaseTitle must contain at most 255 non-null characters.", nameof(DatabaseTitle));
             if (!Enum.IsDefined(typeof(AccessFileFormat), Format)) throw new ArgumentOutOfRangeException(nameof(Format));
             if (Profile.HasValue && Profile.Value != (Format == AccessFileFormat.Mdb ? AccessFormatProfile.Jet4 : AccessFormatProfile.Ace12))

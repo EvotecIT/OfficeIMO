@@ -64,8 +64,8 @@ public sealed partial class HtmlRenderingTests {
             PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
             pdf.ThrowIfLoss();
             Assert.Equal("abc", PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText().Trim());
-            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+            OfficeImageExportResult png = document.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(
                 pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
             Assert.Equal(replay.Bytes, png.Bytes);
         }

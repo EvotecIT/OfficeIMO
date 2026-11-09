@@ -16,7 +16,7 @@ public sealed class DrawingSvgTransformedImageTests {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='80' height='40'>" + content + "</svg>";
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out var drawing, out int unsupported));
         Assert.Equal(0, unsupported);
-        Assert.True(OfficeRasterImageDecoder.TryDecode(drawing!.ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(drawing!.ToImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         Assert.Equal(OfficeColor.Red, raster!.GetPixel(15, 10));
         if (pattern) Assert.Equal(OfficeColor.Red, raster.GetPixel(55, 10));
     }

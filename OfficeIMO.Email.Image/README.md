@@ -29,7 +29,7 @@ Keeping this capability separate prevents MIME-only applications from acquiring 
 
 Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Email`, `OfficeIMO.Email.Html`, and `OfficeIMO.Html`.
 
-`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ExportImages` consumer overloads to process each image with its sequence metadata and diagnostics.
+`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ToImages` consumer overloads to process each image with its sequence metadata and diagnostics.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

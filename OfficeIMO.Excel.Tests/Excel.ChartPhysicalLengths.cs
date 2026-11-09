@@ -28,7 +28,7 @@ public sealed class ExcelChartPhysicalLengthTests {
         Assert.Equal("00000000", series.MarkerOutlineColorArgb);
         Assert.All(series.PointColorArgb!, color => Assert.Equal("00000000", color));
         var svg = System.Xml.Linq.XDocument.Parse(System.Text.Encoding.UTF8.GetString(retained.ToImage(
-            new ExcelImageExportOptions { Format = OfficeIMO.Drawing.OfficeImageExportFormat.Svg })));
+            new ExcelImageExportOptions { Format = OfficeIMO.Drawing.OfficeImageExportFormat.Svg }).Bytes));
         var markers = svg.Descendants().Where(element => element.Name.LocalName is "ellipse" or "circle");
         Assert.All(markers, marker => {
             Assert.True(marker.Attribute("fill")?.Value == "none" || marker.Attribute("fill-opacity")?.Value == "0");

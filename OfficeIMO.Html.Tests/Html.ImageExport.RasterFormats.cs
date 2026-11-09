@@ -20,8 +20,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        OfficeImageExportResult result = document.ExportImage(format, options);
-        OfficeImageExportResult asyncResult = await document.ExportImageAsync(format, options);
+        OfficeImageExportResult result = document.ToImage(format, options);
+        OfficeImageExportResult asyncResult = await document.ToImageAsync(format, options);
 
         Assert.Equal(format, result.Format);
         Assert.Equal(format, asyncResult.Format);
@@ -58,11 +58,11 @@ public sealed partial class HtmlRenderingTests {
         imageOptions1.PageIndex = 0;
         imageOptions1.Format = OfficeImageExportFormat.Jpeg;
         imageOptions1.RasterEncoding.Jpeg.Quality = 71;
-        OfficeImageExportResult jpeg = document.ExportImage(OfficeImageExportFormat.Jpeg, imageOptions1, pageIndex: imageOptions1.PageIndex);
+        OfficeImageExportResult jpeg = document.ToImage(OfficeImageExportFormat.Jpeg, imageOptions1, pageIndex: imageOptions1.PageIndex);
         var imageOptions2 = new HtmlRenderOptions();
         imageOptions2.Mode = HtmlRenderMode.Paged;
         imageOptions2.Format = OfficeImageExportFormat.Tiff;
-        IReadOnlyList<OfficeImageExportResult> tiffPages = document.ExportImages(OfficeImageExportFormat.Tiff, imageOptions2);
+        IReadOnlyList<OfficeImageExportResult> tiffPages = document.ToImages(OfficeImageExportFormat.Tiff, imageOptions2);
 
         Assert.Equal("image/jpeg", OfficeImageReader.Identify(jpeg.Bytes).MimeType);
         Assert.NotEmpty(tiffPages);
@@ -76,9 +76,9 @@ public sealed partial class HtmlRenderingTests {
         using var tiff = new MemoryStream();
         using var webp = new MemoryStream();
 
-        OfficeImageExportResult jpegResult = document.ExportImage(OfficeImageExportFormat.Jpeg).Save(jpeg);
-        OfficeImageExportResult tiffResult = await (await document.ExportImageAsync(OfficeImageExportFormat.Tiff)).SaveAsync(tiff);
-        OfficeImageExportResult webpResult = document.ExportImage(OfficeImageExportFormat.Webp).Save(webp);
+        OfficeImageExportResult jpegResult = document.ToImage(OfficeImageExportFormat.Jpeg).Save(jpeg);
+        OfficeImageExportResult tiffResult = await (await document.ToImageAsync(OfficeImageExportFormat.Tiff)).SaveAsync(tiff);
+        OfficeImageExportResult webpResult = document.ToImage(OfficeImageExportFormat.Webp).Save(webp);
 
         Assert.True(jpeg.CanWrite);
         Assert.True(tiff.CanWrite);
@@ -126,7 +126,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions { Scale = double.MaxValue };
 
         Assert.Throws<InvalidOperationException>(() =>
-            document.ExportImage(OfficeImageExportFormat.Svg, options));
+            document.ToImage(OfficeImageExportFormat.Svg, options));
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(
-            () => document.ExportImage(OfficeImageExportFormat.Png, options));
+            () => document.ToImage(OfficeImageExportFormat.Png, options));
 
         Assert.Contains(
             exception.Diagnostics,

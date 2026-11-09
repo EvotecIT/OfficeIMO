@@ -8,7 +8,6 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Adf</PackageId>
     <PackageTags>atlassian;adf;confluence;markdown;html;officeimo;net472;net8.0;net10.0</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -18,7 +17,6 @@
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
     <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
   </PropertyGroup>
 

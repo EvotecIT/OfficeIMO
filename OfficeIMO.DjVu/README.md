@@ -32,3 +32,15 @@ Indirect documents require a caller-supplied `DjVuLoadOptions.ComponentResolver`
 Rendering defaults to native DPI, applies display rotation, and returns an RGBA raster. `Region` selects an unrotated native rectangle before scaling and rotation. Read and render options bound input, expansion, page pixels, codec memory, symbols, and output; cancellation is observed during parsing and decoding. `ThrowIfLoss()` rejects reported rendering qualifications.
 
 See the [support and independent evidence contract](SUPPORT.md), [Reader adapter](../OfficeIMO.Reader.DjVu/README.md), and [searchable PDF adapter](../OfficeIMO.DjVu.Pdf/README.md).
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Export | 0 | 5 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.DjVu` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

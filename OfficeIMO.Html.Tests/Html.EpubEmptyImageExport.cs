@@ -18,10 +18,10 @@ public sealed class EpubEmptyImageExportContracts {
         var options = new EpubImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true } };
         int accepted = 0;
         if (asynchronous)
-            await Assert.ThrowsAsync<InvalidOperationException>(() => document.ExportImagesAsync(OfficeImageExportFormat.Png,
+            await Assert.ThrowsAsync<InvalidOperationException>(() => document.ToImagesAsync(OfficeImageExportFormat.Png,
                 (_, _) => { accepted++; return Task.CompletedTask; }, options));
         else
-            Assert.Throws<InvalidOperationException>(() => document.ExportImages(OfficeImageExportFormat.Png, _ => accepted++, options));
+            Assert.Throws<InvalidOperationException>(() => document.ToImages(OfficeImageExportFormat.Png, _ => accepted++, options));
         Assert.Equal(0, accepted);
     }
 }

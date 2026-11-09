@@ -103,7 +103,7 @@ internal sealed partial class BrowserPdfToolService {
 
     private static PdfDocument Open(SelectedDocument file, string? password = null) => BrowserPdfPolicy.Open(file, password);
 
-    private static PdfPageSelector Selector(PdfToolRequest request) => PdfPageSelector.Parse(request.PageSelection);
+    private static OfficePageSelector Selector(PdfToolRequest request) => OfficePageSelector.Parse(request.PageSelection);
 
     private static string OutputName(SelectedDocument file, string suffix, string extension = ".pdf") =>
         Path.GetFileNameWithoutExtension(file.Name) + "." + suffix + extension;

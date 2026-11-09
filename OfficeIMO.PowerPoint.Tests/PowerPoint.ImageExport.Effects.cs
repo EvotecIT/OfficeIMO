@@ -22,13 +22,13 @@ namespace OfficeIMO.Tests {
             shape.OutlineColor = OfficeColor.Parse("0284C7");
             shape.SetShadow(OfficeColor.Parse("000000"), distance: OfficeIMO.OfficeLength.Points(16), angleDegrees: 45, transparencyPercent: 0);
 
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { Scale = 1D });
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { Scale = 1D });
             OfficeRasterImage svgImage = ReadSvgOutput(svg);
             Assert.Equal(OfficeColor.FromRgb(0, 0, 0), svgImage.GetPixel(83, 53));
             Assert.True(ContainsVisibleNonWhitePixel(svgImage, 93, 35, 8, 14), "Expected the shadow halo in SVG output.");
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 1D });
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 1D });
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             // The sample lies inside the opaque shadow, beyond the foreground shape
             // and the blur transition. Test the halo separately outside its hard bounds.
@@ -50,12 +50,12 @@ namespace OfficeIMO.Tests {
             shape.OutlineColor = OfficeColor.Parse("0284C7");
             shape.SetGlow(OfficeColor.Parse("FF00FF"), radius: OfficeIMO.OfficeLength.Points(6), transparencyPercent: 25);
 
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { Scale = 1D });
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { Scale = 1D });
             OfficeRasterImage svgImage = ReadSvgOutput(svg);
             Assert.True(ContainsMagentaGlowPixel(svgImage, 24, 16, 64, 44), "Expected the glow in SVG output.");
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 1D });
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 1D });
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.True(ContainsMagentaGlowPixel(image!, 24, 16, 64, 44));
             AssertNoUnexpectedDiagnostics(png.Diagnostics);

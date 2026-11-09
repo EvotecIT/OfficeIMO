@@ -22,7 +22,7 @@ internal static class OperationalTrends {
         sheet.AddTable("A4:D10", hasHeader: true, name: "WeeklyWorkload", style: ExcelTableStyle.TableStyleMedium2);
         sheet.AddChart(OfficeChartType.Line, "A4:C10", new OfficeIMO.Excel.ExcelChartOptions { Row = 13, Column = 1, Width = OfficeLength.Pixels(620), Height = OfficeLength.Pixels(300), Title = "Received and resolved requests" });
         document.Calculate();
-        sheet.Range("A1:D30").ExportImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
+        sheet.Range("A1:D30").ToImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();
     }
 }

@@ -191,7 +191,7 @@ internal static class PowerPointBaselineRunner {
         if (string.Equals(operation, "OpenImageExport", StringComparison.OrdinalIgnoreCase)) {
             using var input = new MemoryStream(source, writable: false);
             using PowerPointDocument presentation = PowerPointDocument.Load(input);
-            IReadOnlyList<OfficeImageExportResult> images = presentation.ExportImages(
+            IReadOnlyList<OfficeImageExportResult> images = presentation.ToImages(
                 OfficeImageExportFormat.Png);
             return PowerPointOperationResult.ImageSet(images,
                 presentation.Slides.Sum(slide => slide.Shapes.Count));

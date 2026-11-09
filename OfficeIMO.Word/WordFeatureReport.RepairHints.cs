@@ -37,7 +37,7 @@ namespace OfficeIMO.Word {
                 case "SmartArt":
                     hints.Add(new WordPreflightRepairHint(capability, finding.Name,
                         "Accept the dependency-free SmartArt fallback, flatten the diagram to an image, or route exact layout through Word-compatible software.",
-                        "ExportImages(...)"));
+                        "ToImages(...)"));
                     break;
                 case "ActiveX controls":
                     hints.Add(new WordPreflightRepairHint(capability, finding.Name,

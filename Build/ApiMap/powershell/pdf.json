@@ -5381,7 +5381,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -5483,7 +5483,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -5583,7 +5583,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -5683,7 +5683,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -5777,7 +5777,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -5859,7 +5859,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -5961,7 +5961,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -6061,7 +6061,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -6161,7 +6161,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -6255,7 +6255,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -6332,7 +6332,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -6429,7 +6429,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -6524,7 +6524,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -6619,7 +6619,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -6709,7 +6709,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -6837,7 +6837,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -6985,7 +6985,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -7131,7 +7131,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -7277,7 +7277,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -7417,7 +7417,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
@@ -8071,7 +8071,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": true,
               "pipeline": "none",
               "notes": "Native selector; binding accepts a range expression or one-based integer, including last, odd, even and exclusions."
@@ -8124,7 +8124,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": true,
               "pipeline": "none",
               "notes": "Native selector; binding accepts a range expression or one-based integer, including last, odd, even and exclusions."
@@ -8180,7 +8180,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": true,
               "pipeline": "none",
               "notes": "Native selector; binding accepts a range expression or one-based integer, including last, odd, even and exclusions."
@@ -8236,7 +8236,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": true,
               "pipeline": "none",
               "notes": "Native selector; binding accepts a range expression or one-based integer, including last, odd, even and exclusions."
@@ -8281,7 +8281,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": true,
               "pipeline": "none",
               "notes": "Native selector; binding accepts a range expression or one-based integer, including last, odd, even and exclusions."
@@ -17093,7 +17093,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Replaces -Pages.",
@@ -17191,7 +17191,7 @@
             },
             {
               "name": "Page",
-              "type": "PdfPageSelector",
+              "type": "OfficePageSelector",
               "mandatory": false,
               "pipeline": "none",
               "note": "Preserves the native print selection grammar, including last, odd, even and exclusions."
@@ -19797,7 +19797,7 @@
         "FilePath": "Path",
         "PageRange": "Page"
       },
-      "reason": "Page selection is -Page, using native PdfPageSelector expressions and one-based positions."
+      "reason": "Page selection is -Page, using native OfficePageSelector expressions and one-based positions."
     },
     {
       "old": "Save-OfficePdf",

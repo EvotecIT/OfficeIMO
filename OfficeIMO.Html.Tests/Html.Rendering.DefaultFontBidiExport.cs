@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderResult raw = HtmlRenderEngine.Execute(source, HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options));
         raw.Document.ThrowIfLoss();
-        Assert.Equal(raw.ExportImages()[0].Bytes, reopened.Pages[0].ExportImage(OfficeImageExportFormat.Png,
+        Assert.Equal(raw.ToImages()[0].Bytes, reopened.Pages[0].ToImage(OfficeImageExportFormat.Png,
             new PdfCore.PdfImageExportOptions { Scale = 96D / 72D, BackgroundColor = OfficeColor.White }).Bytes);
     }
     [Fact]

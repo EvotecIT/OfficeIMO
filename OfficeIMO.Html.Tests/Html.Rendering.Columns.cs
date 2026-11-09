@@ -163,8 +163,8 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,

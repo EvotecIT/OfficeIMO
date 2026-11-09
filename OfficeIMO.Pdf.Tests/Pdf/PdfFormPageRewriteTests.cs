@@ -106,7 +106,7 @@ public sealed class PdfFormPageRewriteTests {
             "merge" => PdfDocument.Merge(combine, target, selected).ToBytes(),
             "insert" => target.Pages.Insert(2, selected).ToBytes(),
             _ => PdfPageInterleaver.Interleave(new[] {
-                new PdfInterleaveSource(source) { Pages = PdfPageSelector.Parse("1") },
+                new PdfInterleaveSource(source) { Pages = OfficePageSelector.Parse("1") },
                 new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(OfficeLength.Points(300), OfficeLength.Points(400)))).ToBytes())
             }).ToBytes()
         };
@@ -173,7 +173,7 @@ public sealed class PdfFormPageRewriteTests {
     [InlineData("/Parent 8 0 R ")]
     public void PartialSelectionFollowsKidsWhenChildParentIsMissingOrWrong(string firstChildParent) {
         PdfDocument partial = PdfDocument.Load(PdfPageInterleaver.Interleave(new[] {
-            new PdfInterleaveSource(CreateHierarchicalForm(firstChildParent)) { Pages = PdfPageSelector.Parse("1") },
+            new PdfInterleaveSource(CreateHierarchicalForm(firstChildParent)) { Pages = OfficePageSelector.Parse("1") },
             new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(OfficeLength.Points(300), OfficeLength.Points(400)))).ToBytes())
         }).ToBytes());
         Assert.Equal(new[] { "Parent.First", "Parent.Second" }, partial.Inspect().FormFieldNames.OrderBy(name => name, StringComparer.Ordinal).ToArray());
@@ -186,7 +186,7 @@ public sealed class PdfFormPageRewriteTests {
     public void PartialSelectionRefusesDirectFieldRoots() {
         byte[] source = CreateHierarchicalForm(fields: "<< /T (Parent) /FT /Tx /Kids [7 0 R 8 0 R 9 0 R] >>");
         var error = Assert.Throws<NotSupportedException>(() => PdfPageInterleaver.Interleave(new[] {
-            new PdfInterleaveSource(source) { Pages = PdfPageSelector.Parse("1") },
+            new PdfInterleaveSource(source) { Pages = OfficePageSelector.Parse("1") },
             new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(OfficeLength.Points(300), OfficeLength.Points(400)))).ToBytes())
         }));
         Assert.Contains("indirect AcroForm field roots", error.Message, StringComparison.Ordinal);

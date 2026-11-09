@@ -12,7 +12,7 @@ internal static class OneNoteSectionWriter {
             effective.PreserveUnknownData,
             effective.MaxPageRelationshipDepth,
             effective.MaxContentDepth,
-            effective.MaxInkPathValues).BuildSection(section);
+            effective.MaxInkPathValues, effective.IdentitySeed, effective.GeneratedTimestampUtc).BuildSection(section);
         byte[] data = OneNoteGraphSerializer.Write(graph, effective, section.StorageFormat);
         if (effective.ValidateRoundTrip) {
             using (var stream = new MemoryStream(data, false)) {

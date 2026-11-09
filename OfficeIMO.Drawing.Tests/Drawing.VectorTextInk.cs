@@ -210,7 +210,7 @@ public sealed class DrawingVectorTextInkTests {
         if (width == 45D && style == OfficeFontStyle.Italic) {
             var ellipsis = new OfficeDrawing(120, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A', '.'));
             ellipsis.AddText("...", 10, 15, width, 60, new OfficeFontInfo("Ink", 25, style), alignment: alignment);
-            Assert.Equal(ellipsis.ExportImage(OfficeImageExportFormat.Png).Bytes, drawing.ExportImage(OfficeImageExportFormat.Png).Bytes);
+            Assert.Equal(ellipsis.ToImage(OfficeImageExportFormat.Png).Bytes, drawing.ToImage(OfficeImageExportFormat.Png).Bytes);
         }
     }
 

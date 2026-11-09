@@ -10,6 +10,12 @@ dotnet add package OfficeIMO
 
 Targets `netstandard2.0`, `net8.0` and `net10.0`, plus `net472` on Windows, so .NET Framework applications get the same conversion routes. To keep a dependency small, reference the individual [format packages](https://github.com/EvotecIT/OfficeIMO#packages) instead.
 
+## Render page images
+
+Use a loaded document's `ToImage` for one surface or `ToImages` for a batch. Both return `OfficeImageExportResult` with encoded `Bytes`, dimensions and diagnostics. `SaveAsImage` and `SaveAsImages` persist output and return conversion reports. The owning format's options inherit shared density, fonts, selection, limits and cancellation policies. [Image rendering](../Docs/officeimo.image-export.md) lists adapter packages and examples.
+
+The package capability catalog describes available library routes; `OfficeConverter.Routes` lists the routes executable by `OfficeConverter` and registered adapters. Its single-file `Convert` operation does not turn an image route into a page directory or ZIP. Use the owning `SaveAsImages` API for page files.
+
 ## Create documents and save them as PDF
 
 ```csharp

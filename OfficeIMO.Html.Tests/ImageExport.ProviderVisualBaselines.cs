@@ -61,7 +61,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
         };
         options.Fonts.Add(PortableFontFamily, PortableRegularFont.Value);
         options.Fonts.Add(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold);
-        return document.ToImage(options);
+        return document.ToImage(options).Bytes;
     }
 
     private static byte[] RenderPowerPoint() {
@@ -100,7 +100,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
         var options = new PowerPointImageExportOptions();
         options.Fonts.Add(PortableFontFamily, PortableRegularFont.Value);
         options.Fonts.Add(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold);
-        return slide.ToImage(options);
+        return slide.ToImage(options).Bytes;
     }
 
     private static byte[] CreateVisualBadge() {
@@ -128,7 +128,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
             MaximumOutputHeight = 360
         };
         AddPortableFonts(options.Fonts);
-        return document.ExportImage(OfficeImageExportFormat.Png, options).Bytes;
+        return document.ToImage(OfficeImageExportFormat.Png, options).Bytes;
     }
 
     private static byte[] RenderOneNote() {
@@ -157,7 +157,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
         imageOptions1.MaximumOutputWidth = 360;
         imageOptions1.MaximumOutputHeight = 360;
         imageOptions1.Format = OfficeImageExportFormat.Png;
-        return page.ToImage(imageOptions1);
+        return page.ToImage(imageOptions1).Bytes;
     }
 
     private static byte[] RenderEmail() {
@@ -176,7 +176,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
             DefaultFontFamily = PortableFontFamily
         };
         AddPortableFonts(options.Fonts);
-        return email.ExportImage(OfficeImageExportFormat.Png, options).Bytes;
+        return email.ToImage(OfficeImageExportFormat.Png, options).Bytes;
     }
 
     private static byte[] RenderEpub() {
@@ -189,7 +189,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
             MaximumOutputHeight = 360
         };
         AddPortableFonts(options.Fonts);
-        return Assert.Single(book.ExportImages(OfficeImageExportFormat.Png, options)).Bytes;
+        return Assert.Single(book.ToImages(OfficeImageExportFormat.Png, options)).Bytes;
     }
 
     private static byte[] CreateEpub() {

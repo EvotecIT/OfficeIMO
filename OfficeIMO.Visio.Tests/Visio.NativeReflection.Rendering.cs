@@ -56,13 +56,13 @@ public sealed class VisioNativeReflectionRenderingTests {
         Assert.Contains(scene.Report.Diagnostics, item => item.Code == "VISIO_SHAPE_CACHED_REFLECTION" && item.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Throws<OfficeConversionException>(() => scene.Report.ThrowIfLoss());
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Svg, OfficeImageExportFormat.Png }) {
-            var result = document.ExportImage(format, new VisioImageExportOptions { RenderText = false, RenderStencilArtwork = false });
+            var result = document.ToImage(format, new VisioImageExportOptions { RenderText = false, RenderStencilArtwork = false });
             Assert.Contains(result.Diagnostics, item => item.Code == "VISIO_SHAPE_CACHED_REFLECTION");
         }
         flip.Value = "NaN"; document = Load(xml);
         Assert.Contains(document.ToDrawings().Report.Diagnostics, item => item.Code == "VISIO_SHAPE_TRANSFORM_INVALID" && item.LossKind == OfficeConversionLossKind.Omission);
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Svg, OfficeImageExportFormat.Png }) {
-            var result = document.ExportImage(format, new VisioImageExportOptions { RenderText = false, RenderStencilArtwork = false });
+            var result = document.ToImage(format, new VisioImageExportOptions { RenderText = false, RenderStencilArtwork = false });
             Assert.Contains(result.Diagnostics, item => item.Code == "VISIO_SHAPE_TRANSFORM_INVALID" && item.LossKind == OfficeConversionLossKind.Omission);
         }
     }
@@ -72,7 +72,7 @@ public sealed class VisioNativeReflectionRenderingTests {
         VisioDocument document = Load(Create(true, false)); VisioPage page = document.Pages[0];
         var native = VisualBaselineTestSupport.DecodePng(page.ToImage(new VisioImageExportOptions {
             TargetDpi = 72, Supersampling = 1, RenderText = false, RenderStencilArtwork = false
-        }), "Native reflected PNG");
+        }).Bytes, "Native reflected PNG");
         var drawing = VisualBaselineTestSupport.DecodePng(OfficeDrawingRasterRenderer.ToPng(page.ToDrawing().Value,
             background: OfficeColor.White), "Drawing reflected PNG");
         foreach (OfficeRasterImage image in new[] { native, drawing }) {

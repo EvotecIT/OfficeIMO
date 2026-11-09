@@ -12,7 +12,6 @@
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
 
-        <PackageId>OfficeIMO.PowerPoint</PackageId>
         <PackageTags>ppt;pptx;pptm;pot;potx;pps;ppsx;powerpoint;presentation;office;openxml;conversion;netstandard;netstandard2.0;net8.0;net10.0;net472</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -28,7 +27,6 @@
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">

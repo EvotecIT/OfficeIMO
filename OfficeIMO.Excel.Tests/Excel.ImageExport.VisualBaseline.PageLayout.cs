@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
             using ExcelBaselineFixture fixture = CreatePageLayoutBaselineWorkbook();
             ExcelImageExportOptions options = CreatePageLayoutBaselineOptions();
 
-            IReadOnlyList<OfficeImageExportResult> pngResults = fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options);
-            IReadOnlyList<OfficeImageExportResult> svgResults = fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options);
+            IReadOnlyList<OfficeImageExportResult> pngResults = fixture.Sheet.ToImages(OfficeImageExportFormat.Png, options);
+            IReadOnlyList<OfficeImageExportResult> svgResults = fixture.Sheet.ToImages(OfficeImageExportFormat.Svg, options);
 
             Assert.Equal(2, pngResults.Count);
             Assert.Equal(2, svgResults.Count);
@@ -61,8 +61,8 @@ namespace OfficeIMO.Tests {
             if (UpdateBaselines) {
                 using ExcelBaselineFixture fixture = CreatePageLayoutBaselineWorkbook();
                 ExcelImageExportOptions options = CreatePageLayoutBaselineOptions();
-                AssertRasterBaseline(PageLayoutBaselineName + ".png", fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options)[1].Bytes);
-                AssertTextBaseline(PageLayoutBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1].Bytes));
+                AssertRasterBaseline(PageLayoutBaselineName + ".png", fixture.Sheet.ToImages(OfficeImageExportFormat.Png, options)[1].Bytes);
+                AssertTextBaseline(PageLayoutBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(fixture.Sheet.ToImages(OfficeImageExportFormat.Svg, options)[1].Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved page-layout PNG baseline: " + pngPath);

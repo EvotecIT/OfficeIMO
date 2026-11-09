@@ -13,6 +13,11 @@ public class OfficeImageExportOptions {
     /// <summary>Image encoding used by options-based exports.</summary>
     public OfficeImageExportFormat Format { get; set; } = OfficeImageExportFormat.Png;
 
+    /// <summary>One-based batch source surfaces in caller order, including repeated surfaces. Null uses the format-specific selection.
+    /// For documents these are pages, for presentations slides, for workbooks worksheets, and for EPUB publications chapters.
+    /// For batches, a supplied selector overrides format-specific index, range and name filters; layout and hidden-content policies still apply.</summary>
+    public OfficePageSelector? PageSelector { get; set; }
+
     /// <summary>Controls an existing file at the requested output path.</summary>
     public OfficeImageExportFileConflictPolicy FileConflictPolicy { get; set; } = OfficeImageExportFileConflictPolicy.FailIfExists;
 
@@ -159,6 +164,7 @@ public class OfficeImageExportOptions {
     protected internal T CopyImageExportOptionsTo<T>(T target) where T : OfficeImageExportOptions {
         ArgumentNullException.ThrowIfNull(target);
         target.Format = Format;
+        target.PageSelector = PageSelector;
         target.FileConflictPolicy = FileConflictPolicy;
         target.FailOnLoss = FailOnLoss;
         target.Scale = Scale;
@@ -195,6 +201,16 @@ public class OfficeImageExportOptions {
         effective.Policy = Policy?.Clone()!;
         effective.ValidateImageExportOptions();
         return effective;
+    }
+
+    /// <summary>Maps shared settings to the logical coordinate system owned by a fixed-surface renderer.</summary>
+    internal OfficeImageExportOptions SnapshotForUnits(double logicalUnitsPerInch) =>
+        CopyImageExportOptionsTo(new SurfaceOptions(logicalUnitsPerInch)).CreateEffectiveImageExportOptions<OfficeImageExportOptions>();
+
+    private sealed class SurfaceOptions : OfficeImageExportOptions {
+        private readonly double _units;
+        internal SurfaceOptions(double units) { _units = units; }
+        public override double LogicalUnitsPerInch => _units;
     }
 
     /// <summary>Validates the shared image-export settings.</summary>

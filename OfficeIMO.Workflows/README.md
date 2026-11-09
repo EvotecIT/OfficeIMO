@@ -1808,11 +1808,11 @@ using OfficeIMO.Drawing;
 
 var imageOptions = new ProjectImageExportOptions { Format = OfficeImageExportFormat.Png }
     .UseQuality(OfficeImageExportQuality.Screen);
-var images = view.ExportImages(OfficeImageExportFormat.Png, imageOptions);
+var images = view.ToImages(OfficeImageExportFormat.Png, imageOptions);
 OfficeConversionReport saved = view.SaveAsImages("project-pages", imageOptions);
 ```
 
-The presets are `Preview` (96 DPI), `Screen` (192 DPI), and `Print` (300 DPI). `ExportImages` returns encoded bytes, pixel dimensions, density, and diagnostics; its consumer overload streams results under shared batch limits. Supply `ProjectImageExportOptions` to select fonts, explicit density, pixel limits, or a rendering deadline. Oversized Project images fail by default; choose `RasterOverflowBehavior.ReduceScale` only when reduced detail is acceptable. Use SVG for zoomable vector text and geometry. Enlarging an existing PNG beyond its pixel dimensions still magnifies its pixels.
+The presets are `Preview` (96 DPI), `Screen` (192 DPI), and `Print` (300 DPI). `ToImages` returns encoded bytes, pixel dimensions, density, and diagnostics; its consumer overload streams results under shared batch limits. Supply `ProjectImageExportOptions` to select fonts, explicit density, pixel limits, or a rendering deadline. Oversized Project images fail by default; choose `RasterOverflowBehavior.ReduceScale` only when reduced detail is acceptable. Use SVG for zoomable vector text and geometry. Enlarging an existing PNG beyond its pixel dimensions still magnifies its pixels.
 
 For consistent typography, register both regular and bold TrueType faces in the rendering profile used for measurement and output. A regular face alone requires synthesized bold text; font substitution can change line wrapping. `ProjectOfficeReportOptions` selects chart images, data tables, and chart image quality for Word and PowerPoint. Set `IncludeCharts = false` for editable-table reports. A Table view always retains its primary editable content, including when only charts are selected.
 
@@ -2021,8 +2021,8 @@ Compare selected rendered sequences and save the standalone report:
 
 ```csharp
 OfficeWorkflowResult review = await OfficeWorkflow.Compare("current.pdf", "revised.pdf")
-    .ComparePages(PdfPageSelector.Parse("120-124,last"),
-        PdfPageSelector.Parse("121-125,last"))
+    .ComparePages(OfficePageSelector.Parse("120-124,last"),
+        OfficePageSelector.Parse("121-125,last"))
     .To("review.html")
     .RunAsync(cancellationToken: cancellationToken);
 ```
@@ -2085,7 +2085,7 @@ OfficeWorkflowResult result = await OfficeWorkflow.ExtractPages("report.pdf", 5,
 
 The equivalent typed request uses `Operation = OfficeWorkflowOperation.ExtractPages` and `PageNumbers = [5, 1, 2, 5]`. Page numbers are one-based; order and intentional repeats are preserved, up to 100,000 selected pages. Extraction uses the PDF engine's page-preservation policy and supports only the `Faithful` profile. It creates a separate PDF and does not permit replacing the source.
 
-For document-relative pages, set `PageSelector = PdfPageSelector.Parse("last,1-2")`
+For document-relative pages, set `PageSelector = OfficePageSelector.Parse("last,1-2")`
 instead of `PageNumbers`. `MaximumExtractedPages` limits the resolved selection,
 including repeated pages, before extraction. The selector is resolved against
 the captured source, so the host does not need a separate pre-read.
@@ -2375,7 +2375,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 0 | 1 | 0 | 0 | 0 | 0 |
 | Convert | 0 | 4 | 0 | 0 | 0 | 0 |
-| Export | 1 | 0 | 0 | 0 | 0 | 0 |
+| Export | 1 | 5 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Workflows` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

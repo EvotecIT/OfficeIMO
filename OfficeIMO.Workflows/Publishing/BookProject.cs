@@ -210,7 +210,7 @@ public sealed partial class BookProject {
         EpubDocument source = _publication.Read(new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true, MaxChapters = _publication.Spine.Count }, cancellationToken);
         int extractedIndex = Enumerable.Range(0, source.Chapters.Count).Where(position => source.Chapters[position].SpineIndex == index + 1).DefaultIfEmpty(-1).First();
         if (extractedIndex < 0) throw new InvalidDataException("The selected chapter could not be extracted under the preview reading policy.");
-        return source.ExportImages(OfficeImageExportFormat.Png, new EpubImageExportOptions {
+        return source.ToImages(OfficeImageExportFormat.Png, new EpubImageExportOptions {
             ChapterIndex = extractedIndex, ChapterCount = 1, ViewportWidth = width, Mode = HtmlRenderMode.Continuous,
             MaximumOutputCount = 1
         }, cancellationToken);

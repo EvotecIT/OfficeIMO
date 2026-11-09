@@ -43,7 +43,7 @@ public static partial class ChmPdfConverterExtensions {
             retainedBytes += converted.ToBytes(cancellationToken).LongLength;
             ChmDocument.EnforceOutput(retainedBytes, configured);
             pdfs.Add(converted.Value);
-            diagnostics.AddRange(converted.Diagnostics.Select(item => new global::OfficeIMO.OfficeDiagnostic(item.Code, item.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning, item.Message, topic.Path, item.Format, item.LossKind)));
+                diagnostics.AddRange(converted.Diagnostics.Select(item => new global::OfficeIMO.OfficeDiagnostic(item.Code, item.Severity, item.Message, topic.Path, item.Format, item.LossKind)));
         }
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument value = pdfs[0];

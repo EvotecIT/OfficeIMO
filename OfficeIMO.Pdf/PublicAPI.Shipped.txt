@@ -473,7 +473,7 @@ OfficeIMO.Pdf.PdfBatesDocument.Name.get -> string?
 OfficeIMO.Pdf.PdfBatesDocument.PdfBatesDocument(byte[]! pdf, string? name = null) -> void
 OfficeIMO.Pdf.PdfBatesDocument.ReadOptions.get -> OfficeIMO.Pdf.PdfLoadOptions?
 OfficeIMO.Pdf.PdfBatesDocument.ReadOptions.set -> void
-OfficeIMO.Pdf.PdfBatesDocument.TargetPages.get -> OfficeIMO.Pdf.PdfPageSelector?
+OfficeIMO.Pdf.PdfBatesDocument.TargetPages.get -> OfficeIMO.OfficePageSelector?
 OfficeIMO.Pdf.PdfBatesDocument.TargetPages.set -> void
 OfficeIMO.Pdf.PdfBatesDocumentResult
 OfficeIMO.Pdf.PdfBatesDocumentResult.Assignments.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfBatesAssignment!>!
@@ -507,7 +507,7 @@ OfficeIMO.Pdf.PdfBatesNumberingOptions.StartNumber.get -> long
 OfficeIMO.Pdf.PdfBatesNumberingOptions.StartNumber.set -> void
 OfficeIMO.Pdf.PdfBatesNumberingOptions.Suffix.get -> string!
 OfficeIMO.Pdf.PdfBatesNumberingOptions.Suffix.set -> void
-OfficeIMO.Pdf.PdfBatesNumberingOptions.TargetPages.get -> OfficeIMO.Pdf.PdfPageSelector?
+OfficeIMO.Pdf.PdfBatesNumberingOptions.TargetPages.get -> OfficeIMO.OfficePageSelector?
 OfficeIMO.Pdf.PdfBatesNumberingOptions.TargetPages.set -> void
 OfficeIMO.Pdf.PdfBatesNumberingOptions.VerticalMargin.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfBatesNumberingOptions.VerticalMargin.set -> void
@@ -600,7 +600,7 @@ OfficeIMO.Pdf.PdfCanvasStampOptions.Opacity.set -> void
 OfficeIMO.Pdf.PdfCanvasStampOptions.PdfCanvasStampOptions() -> void
 OfficeIMO.Pdf.PdfCanvasStampOptions.RenderingOptions.get -> OfficeIMO.Pdf.PdfCreateOptions?
 OfficeIMO.Pdf.PdfCanvasStampOptions.RenderingOptions.set -> void
-OfficeIMO.Pdf.PdfCanvasStampOptions.TargetPages.get -> OfficeIMO.Pdf.PdfPageSelector?
+OfficeIMO.Pdf.PdfCanvasStampOptions.TargetPages.get -> OfficeIMO.OfficePageSelector?
 OfficeIMO.Pdf.PdfCanvasStampOptions.TargetPages.set -> void
 OfficeIMO.Pdf.PdfCanvasStampOptions.UseRenderingOptions(OfficeIMO.Pdf.PdfCreateOptions! options) -> OfficeIMO.Pdf.PdfCanvasStampOptions!
 OfficeIMO.Pdf.PdfCanvasStampOptions.UseTargetPages(string! selector) -> OfficeIMO.Pdf.PdfCanvasStampOptions!
@@ -1929,13 +1929,13 @@ OfficeIMO.Pdf.PdfDocumentImageEditor
 OfficeIMO.Pdf.PdfDocumentImageEditor.Add(OfficeIMO.Pdf.PdfPageRegion! target, byte[]! imageBytes, OfficeIMO.Pdf.PdfImageEditOptions? options = null, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> OfficeIMO.Pdf.PdfImageEditResult!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Extract(OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfExtractedImage!>!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Extract(OfficeIMO.Pdf.PdfPageSelection! selection, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfExtractedImage!>!
-OfficeIMO.Pdf.PdfDocumentImageEditor.Extract(OfficeIMO.Pdf.PdfPageSelector! selector, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfExtractedImage!>!
+OfficeIMO.Pdf.PdfDocumentImageEditor.Extract(OfficeIMO.OfficePageSelector! selector, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfExtractedImage!>!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Extract(string! pageRanges, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfExtractedImage!>!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Find(OfficeIMO.Pdf.PdfPageRegion! region, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfImagePlacement!>!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Move(OfficeIMO.Pdf.PdfImagePlacement! placement, double deltaX, double deltaY, OfficeIMO.Pdf.PdfImageEditOptions? options = null, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> OfficeIMO.Pdf.PdfImageEditResult!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Placements(OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfImagePlacement!>!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Placements(OfficeIMO.Pdf.PdfPageSelection! selection, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfImagePlacement!>!
-OfficeIMO.Pdf.PdfDocumentImageEditor.Placements(OfficeIMO.Pdf.PdfPageSelector! selector, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfImagePlacement!>!
+OfficeIMO.Pdf.PdfDocumentImageEditor.Placements(OfficeIMO.OfficePageSelector! selector, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfImagePlacement!>!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Placements(string! pageRanges, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfImagePlacement!>!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Remove(OfficeIMO.Pdf.PdfImagePlacement! placement, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> OfficeIMO.Pdf.PdfImageEditResult!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Replace(OfficeIMO.Pdf.PdfImagePlacement! placement, byte[]! imageBytes, OfficeIMO.Pdf.PdfImageEditOptions? options = null, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> OfficeIMO.Pdf.PdfImageEditResult!
@@ -2159,8 +2159,8 @@ OfficeIMO.Pdf.PdfDocumentPages.Delete(OfficeIMO.Pdf.PdfPageRange pageRange) -> O
 OfficeIMO.Pdf.PdfDocumentPages.Delete(OfficeIMO.Pdf.PdfPageRange pageRange, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Delete(OfficeIMO.Pdf.PdfPageSelection! selection) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Delete(OfficeIMO.Pdf.PdfPageSelection! selection, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Delete(OfficeIMO.Pdf.PdfPageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Delete(OfficeIMO.Pdf.PdfPageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Delete(OfficeIMO.OfficePageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Delete(OfficeIMO.OfficePageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Delete(System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Delete(params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Delete(string! pageRanges) -> OfficeIMO.Pdf.PdfDocument!
@@ -2170,8 +2170,8 @@ OfficeIMO.Pdf.PdfDocumentPages.Duplicate(OfficeIMO.Pdf.PdfPageRange pageRange) -
 OfficeIMO.Pdf.PdfDocumentPages.Duplicate(OfficeIMO.Pdf.PdfPageRange pageRange, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Duplicate(OfficeIMO.Pdf.PdfPageSelection! selection) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Duplicate(OfficeIMO.Pdf.PdfPageSelection! selection, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Duplicate(OfficeIMO.Pdf.PdfPageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Duplicate(OfficeIMO.Pdf.PdfPageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Duplicate(OfficeIMO.OfficePageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Duplicate(OfficeIMO.OfficePageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Duplicate(System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Duplicate(params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Duplicate(string! pageRanges) -> OfficeIMO.Pdf.PdfDocument!
@@ -2180,8 +2180,8 @@ OfficeIMO.Pdf.PdfDocumentPages.Extract(OfficeIMO.Pdf.PdfPageRange pageRange) -> 
 OfficeIMO.Pdf.PdfDocumentPages.Extract(OfficeIMO.Pdf.PdfPageRange pageRange, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Extract(OfficeIMO.Pdf.PdfPageSelection! selection) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Extract(OfficeIMO.Pdf.PdfPageSelection! selection, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Extract(OfficeIMO.Pdf.PdfPageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Extract(OfficeIMO.Pdf.PdfPageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Extract(OfficeIMO.OfficePageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Extract(OfficeIMO.OfficePageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Extract(System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Extract(params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Extract(string! pageRanges) -> OfficeIMO.Pdf.PdfDocument!
@@ -2201,8 +2201,8 @@ OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, OfficeIMO.Pdf.Pd
 OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, OfficeIMO.Pdf.PdfPageRange pageRange, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, OfficeIMO.Pdf.PdfPageSelection! selection) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, OfficeIMO.Pdf.PdfPageSelection! selection, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, OfficeIMO.Pdf.PdfPageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, OfficeIMO.Pdf.PdfPageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, OfficeIMO.OfficePageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, OfficeIMO.OfficePageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, string! pageRanges) -> OfficeIMO.Pdf.PdfDocument!
@@ -2218,8 +2218,8 @@ OfficeIMO.Pdf.PdfDocumentPages.Prepend(string! sourcePath, OfficeIMO.Pdf.PdfPage
 OfficeIMO.Pdf.PdfDocumentPages.Prepend(string! sourcePath, OfficeIMO.Pdf.PdfPageSelection! sourceSelection, OfficeIMO.Pdf.PdfPageImportOptions? importOptions = null) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Reorder(OfficeIMO.Pdf.PdfPageSelection! selection) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Reorder(OfficeIMO.Pdf.PdfPageSelection! selection, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Reorder(OfficeIMO.Pdf.PdfPageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Reorder(OfficeIMO.Pdf.PdfPageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Reorder(OfficeIMO.OfficePageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Reorder(OfficeIMO.OfficePageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Reorder(System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Reorder(params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Reorder(string! pageRanges) -> OfficeIMO.Pdf.PdfDocument!
@@ -2233,16 +2233,16 @@ OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, OfficeIMO.Pdf.PdfPage
 OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, OfficeIMO.Pdf.PdfPageRange pageRange, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, OfficeIMO.Pdf.PdfPageSelection! selection) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, OfficeIMO.Pdf.PdfPageSelection! selection, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, OfficeIMO.Pdf.PdfPageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, OfficeIMO.Pdf.PdfPageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, OfficeIMO.OfficePageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, OfficeIMO.OfficePageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, string! pageRanges) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, string! pageRanges, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.RotateBy(int rotationDegrees, OfficeIMO.Pdf.PdfPageSelection! selection) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.RotateBy(int rotationDegrees, OfficeIMO.Pdf.PdfPageSelection! selection, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.RotateBy(int rotationDegrees, OfficeIMO.Pdf.PdfPageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.RotateBy(int rotationDegrees, OfficeIMO.Pdf.PdfPageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.RotateBy(int rotationDegrees, OfficeIMO.OfficePageSelector! selector) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.RotateBy(int rotationDegrees, OfficeIMO.OfficePageSelector! selector, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.RotateBy(int rotationDegrees, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.RotateBy(int rotationDegrees, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.RotateBy(int rotationDegrees, string! selector) -> OfficeIMO.Pdf.PdfDocument!
@@ -2523,7 +2523,7 @@ OfficeIMO.Pdf.PdfDocumentRenderer.PrintPage(int pageNumber, OfficeIMO.Pdf.PdfPag
 OfficeIMO.Pdf.PdfDocumentResources
 OfficeIMO.Pdf.PdfDocumentResources.Fonts(OfficeIMO.Pdf.PdfFontInspectionOptions? inspectionOptions = null, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) -> OfficeIMO.Pdf.PdfFontInventory!
 OfficeIMO.Pdf.PdfDocumentResources.Fonts(OfficeIMO.Pdf.PdfPageSelection! selection, OfficeIMO.Pdf.PdfFontInspectionOptions? inspectionOptions = null, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) -> OfficeIMO.Pdf.PdfFontInventory!
-OfficeIMO.Pdf.PdfDocumentResources.Fonts(OfficeIMO.Pdf.PdfPageSelector! selector, OfficeIMO.Pdf.PdfFontInspectionOptions? inspectionOptions = null, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) -> OfficeIMO.Pdf.PdfFontInventory!
+OfficeIMO.Pdf.PdfDocumentResources.Fonts(OfficeIMO.OfficePageSelector! selector, OfficeIMO.Pdf.PdfFontInspectionOptions? inspectionOptions = null, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) -> OfficeIMO.Pdf.PdfFontInventory!
 OfficeIMO.Pdf.PdfDocumentResources.Fonts(string! pageRanges, OfficeIMO.Pdf.PdfFontInspectionOptions? inspectionOptions = null, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) -> OfficeIMO.Pdf.PdfFontInventory!
 OfficeIMO.Pdf.PdfDocumentResources.RawStructure(OfficeIMO.Pdf.PdfRawStructureOptions? structureOptions = null, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) -> OfficeIMO.Pdf.PdfRawDocumentView!
 OfficeIMO.Pdf.PdfDocumentRevisionInfo
@@ -3605,8 +3605,6 @@ OfficeIMO.Pdf.PdfImageExportOptions.MaxDiagnosticCharactersPerPage.get -> int
 OfficeIMO.Pdf.PdfImageExportOptions.MaxDiagnosticCharactersPerPage.set -> void
 OfficeIMO.Pdf.PdfImageExportOptions.MaxDiagnosticsPerPage.get -> int
 OfficeIMO.Pdf.PdfImageExportOptions.MaxDiagnosticsPerPage.set -> void
-OfficeIMO.Pdf.PdfImageExportOptions.PageSelector.get -> OfficeIMO.Pdf.PdfPageSelector?
-OfficeIMO.Pdf.PdfImageExportOptions.PageSelector.set -> void
 OfficeIMO.Pdf.PdfImageExportOptions.PdfImageExportOptions() -> void
 OfficeIMO.Pdf.PdfImageExportOptions.ThumbnailMaxDimension.get -> int?
 OfficeIMO.Pdf.PdfImageExportOptions.ThumbnailMaxDimension.set -> void
@@ -3867,7 +3865,7 @@ OfficeIMO.Pdf.PdfInterleaveResult.ToBytes() -> byte[]!
 OfficeIMO.Pdf.PdfInterleaveResult.ToDocument(OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfInterleaveSource
 OfficeIMO.Pdf.PdfInterleaveSource.Name.get -> string?
-OfficeIMO.Pdf.PdfInterleaveSource.Pages.get -> OfficeIMO.Pdf.PdfPageSelector?
+OfficeIMO.Pdf.PdfInterleaveSource.Pages.get -> OfficeIMO.OfficePageSelector?
 OfficeIMO.Pdf.PdfInterleaveSource.Pages.set -> void
 OfficeIMO.Pdf.PdfInterleaveSource.PdfInterleaveSource(byte[]! pdf, string? name = null) -> void
 OfficeIMO.Pdf.PdfInterleaveSource.ReadOptions.get -> OfficeIMO.Pdf.PdfLoadOptions?
@@ -5496,7 +5494,7 @@ OfficeIMO.Pdf.PdfPageOverlayOptions.SourcePageNumber.get -> int
 OfficeIMO.Pdf.PdfPageOverlayOptions.SourcePageNumber.set -> void
 OfficeIMO.Pdf.PdfPageOverlayOptions.SourceReadOptions.get -> OfficeIMO.Pdf.PdfLoadOptions?
 OfficeIMO.Pdf.PdfPageOverlayOptions.SourceReadOptions.set -> void
-OfficeIMO.Pdf.PdfPageOverlayOptions.TargetPages.get -> OfficeIMO.Pdf.PdfPageSelector?
+OfficeIMO.Pdf.PdfPageOverlayOptions.TargetPages.get -> OfficeIMO.OfficePageSelector?
 OfficeIMO.Pdf.PdfPageOverlayOptions.TargetPages.set -> void
 OfficeIMO.Pdf.PdfPageOverlayOptions.UseTargetPages(string! selector) -> OfficeIMO.Pdf.PdfPageOverlayOptions!
 OfficeIMO.Pdf.PdfPageOverlayOptions.VerticalAlignment.get -> OfficeIMO.Pdf.PdfVerticalAlign
@@ -5620,12 +5618,6 @@ OfficeIMO.Pdf.PdfPageSelection.Equals(OfficeIMO.Pdf.PdfPageSelection? other) -> 
 OfficeIMO.Pdf.PdfPageSelection.PageCount.get -> int
 OfficeIMO.Pdf.PdfPageSelection.Ranges.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfPageRange>!
 OfficeIMO.Pdf.PdfPageSelection.Resolve(int pageCount) -> System.Collections.Generic.IReadOnlyList<int>!
-OfficeIMO.Pdf.PdfPageSelector
-OfficeIMO.Pdf.PdfPageSelector.Equals(OfficeIMO.Pdf.PdfPageSelector? other) -> bool
-OfficeIMO.Pdf.PdfPageSelector.Expression.get -> string!
-OfficeIMO.Pdf.PdfPageSelector.Resolve(int pageCount) -> System.Collections.Generic.IReadOnlyList<int>!
-OfficeIMO.Pdf.PdfPageSelector.Resolve(int pageCount, int maximumPages) -> System.Collections.Generic.IReadOnlyList<int>!
-OfficeIMO.Pdf.PdfPageSelector.ResolveSelection(int pageCount) -> OfficeIMO.Pdf.PdfPageSelection!
 OfficeIMO.Pdf.PdfPageSize
 OfficeIMO.Pdf.PdfPageSize.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfPageSize.Landscape() -> OfficeIMO.Pdf.PdfPageSize
@@ -8485,7 +8477,7 @@ OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.Y.get -> double
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.Y.set -> void
 OfficeIMO.Pdf.PdfVisualComparer
 OfficeIMO.Pdf.PdfVisualComparisonOptions
-OfficeIMO.Pdf.PdfVisualComparisonOptions.ActualPages.get -> OfficeIMO.Pdf.PdfPageSelector?
+OfficeIMO.Pdf.PdfVisualComparisonOptions.ActualPages.get -> OfficeIMO.OfficePageSelector?
 OfficeIMO.Pdf.PdfVisualComparisonOptions.ActualPages.set -> void
 OfficeIMO.Pdf.PdfVisualComparisonOptions.Alignment.get -> OfficeIMO.Pdf.PdfVisualPageAlignment
 OfficeIMO.Pdf.PdfVisualComparisonOptions.Alignment.set -> void
@@ -8495,7 +8487,7 @@ OfficeIMO.Pdf.PdfVisualComparisonOptions.Background.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfVisualComparisonOptions.Background.set -> void
 OfficeIMO.Pdf.PdfVisualComparisonOptions.ChannelTolerance.get -> byte
 OfficeIMO.Pdf.PdfVisualComparisonOptions.ChannelTolerance.set -> void
-OfficeIMO.Pdf.PdfVisualComparisonOptions.ExpectedPages.get -> OfficeIMO.Pdf.PdfPageSelector?
+OfficeIMO.Pdf.PdfVisualComparisonOptions.ExpectedPages.get -> OfficeIMO.OfficePageSelector?
 OfficeIMO.Pdf.PdfVisualComparisonOptions.ExpectedPages.set -> void
 OfficeIMO.Pdf.PdfVisualComparisonOptions.IgnoredRegions.get -> System.Collections.Generic.IList<OfficeIMO.Pdf.PdfPixelRegion>!
 OfficeIMO.Pdf.PdfVisualComparisonOptions.MaxPages.get -> int
@@ -8570,7 +8562,7 @@ OfficeIMO.Pdf.PdfWatermarkOptions.Opacity.set -> void
 OfficeIMO.Pdf.PdfWatermarkOptions.PdfWatermarkOptions() -> void
 OfficeIMO.Pdf.PdfWatermarkOptions.RotationDegrees.get -> double
 OfficeIMO.Pdf.PdfWatermarkOptions.RotationDegrees.set -> void
-OfficeIMO.Pdf.PdfWatermarkOptions.TargetPages.get -> OfficeIMO.Pdf.PdfPageSelector?
+OfficeIMO.Pdf.PdfWatermarkOptions.TargetPages.get -> OfficeIMO.OfficePageSelector?
 OfficeIMO.Pdf.PdfWatermarkOptions.TargetPages.set -> void
 OfficeIMO.Pdf.PdfWatermarkOptions.Text.get -> string!
 OfficeIMO.Pdf.PdfWatermarkOptions.Text.set -> void
@@ -8659,9 +8651,6 @@ override OfficeIMO.Pdf.PdfPageRange.ToString() -> string!
 override OfficeIMO.Pdf.PdfPageSelection.Equals(object? obj) -> bool
 override OfficeIMO.Pdf.PdfPageSelection.GetHashCode() -> int
 override OfficeIMO.Pdf.PdfPageSelection.ToString() -> string!
-override OfficeIMO.Pdf.PdfPageSelector.Equals(object? obj) -> bool
-override OfficeIMO.Pdf.PdfPageSelector.GetHashCode() -> int
-override OfficeIMO.Pdf.PdfPageSelector.ToString() -> string!
 static OfficeIMO.Pdf.PdfAIdentification.PdfA4() -> OfficeIMO.Pdf.PdfAIdentification!
 static OfficeIMO.Pdf.PdfAIdentification.PdfA4E() -> OfficeIMO.Pdf.PdfAIdentification!
 static OfficeIMO.Pdf.PdfAIdentification.PdfA4F() -> OfficeIMO.Pdf.PdfAIdentification!
@@ -8738,9 +8727,9 @@ static OfficeIMO.Pdf.PdfImageConverterExtensions.ToPdfAsync(this System.Collecti
 static OfficeIMO.Pdf.PdfImageConverterExtensions.ToPdfAsync(this System.Collections.Generic.IEnumerable<string!>! imagePaths, OfficeIMO.Pdf.PdfImageImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<OfficeIMO.Pdf.PdfDocument!>!>!
 static OfficeIMO.Pdf.PdfImageDocumentSource.FromFile(string! path) -> OfficeIMO.Pdf.PdfImageDocumentSource!
 static OfficeIMO.Pdf.PdfImageDocumentSource.FromFile(string! path, long maximumEncodedImageBytes) -> OfficeIMO.Pdf.PdfImageDocumentSource!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Pdf.PdfImageExportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ExportImagesAsync(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!>!
+static OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
+static OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Pdf.PdfImageExportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
+static OfficeIMO.Pdf.PdfImageExportExtensions.ToImagesAsync(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!>!
 static OfficeIMO.Pdf.PdfImageExportExtensions.SaveAsImages(this OfficeIMO.Pdf.PdfDocument! document, string! folderPath, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
 static OfficeIMO.Pdf.PdfImageExportExtensions.SaveAsImagesAsync(this OfficeIMO.Pdf.PdfDocument! document, string! folderPath, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 static OfficeIMO.Pdf.PdfKeyValueRow.Rich(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! keyRuns, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! valueRuns) -> OfficeIMO.Pdf.PdfKeyValueRow!
@@ -8814,8 +8803,6 @@ static OfficeIMO.Pdf.PdfPageSelection.From(params int[]! pageNumbers) -> OfficeI
 static OfficeIMO.Pdf.PdfPageSelection.FromRanges(params OfficeIMO.Pdf.PdfPageRange[]! pageRanges) -> OfficeIMO.Pdf.PdfPageSelection!
 static OfficeIMO.Pdf.PdfPageSelection.Parse(string! pageRanges) -> OfficeIMO.Pdf.PdfPageSelection!
 static OfficeIMO.Pdf.PdfPageSelection.TryParse(string? pageRanges, out OfficeIMO.Pdf.PdfPageSelection? selection) -> bool
-static OfficeIMO.Pdf.PdfPageSelector.Parse(string! expression) -> OfficeIMO.Pdf.PdfPageSelector!
-static OfficeIMO.Pdf.PdfPageSelector.TryParse(string? expression, out OfficeIMO.Pdf.PdfPageSelector? selector) -> bool
 static OfficeIMO.Pdf.PdfPageSizes.A0.get -> OfficeIMO.Pdf.PdfPageSize
 static OfficeIMO.Pdf.PdfPageSizes.A1.get -> OfficeIMO.Pdf.PdfPageSize
 static OfficeIMO.Pdf.PdfPageSizes.A10.get -> OfficeIMO.Pdf.PdfPageSize
@@ -8928,3 +8915,5 @@ static OfficeIMO.Pdf.PdfXIdentification.PdfX4() -> OfficeIMO.Pdf.PdfXIdentificat
 static OfficeIMO.Pdf.PdfXProductionMetadata.CreateNow() -> OfficeIMO.Pdf.PdfXProductionMetadata!
 static readonly OfficeIMO.Pdf.PdfRowStyle.DefaultGap -> OfficeIMO.OfficeLength
 virtual OfficeIMO.Pdf.PdfTextHyphenationCallback.Invoke(string! token) -> System.Collections.Generic.IReadOnlyList<int>!
+OfficeIMO.Pdf.OfficePageSelectorPdfExtensions
+static OfficeIMO.Pdf.OfficePageSelectorPdfExtensions.ResolveSelection(this OfficeIMO.OfficePageSelector! selector, int pageCount) -> OfficeIMO.Pdf.PdfPageSelection!

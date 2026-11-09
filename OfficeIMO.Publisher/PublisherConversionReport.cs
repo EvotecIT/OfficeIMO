@@ -7,7 +7,7 @@ public sealed class PublisherConversionReport : OfficeConversionReport {
     internal PublisherConversionReport(PublisherReadReport source, IEnumerable<OfficeImageExportDiagnostic> images) {
         ReadReport = source;
         FidelityDiagnostics = Array.AsReadOnly(source.Diagnostics.Concat(images.Select(item =>
-            new global::OfficeIMO.OfficeDiagnostic(item.Code, item.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning, item.Message, item.Source, "OfficeIMO.Publisher.Svg", item.LossKind))).ToArray());
+            OfficeImageExportEvidence.ProjectDiagnostic("OfficeIMO.Publisher.Svg", item))).ToArray());
     }
     /// <summary>Immutable source decoding and reconstruction evidence carried into this operation.</summary>
     public PublisherReadReport ReadReport { get; }

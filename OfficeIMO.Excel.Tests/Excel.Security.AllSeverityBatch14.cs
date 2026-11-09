@@ -53,13 +53,13 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
             sheet.Cell(1, 1).SetValue("body");
             sheet.PageSetup.Header.Left.Text = "Path &[Path] &Z";
 
-            string defaultSvg = Encoding.UTF8.GetString(Assert.Single(sheet.ExportImages(
+            string defaultSvg = Encoding.UTF8.GetString(Assert.Single(sheet.ToImages(
                 OfficeImageExportFormat.Svg,
                 new ExcelImageExportOptions {
                     Range = "A1:AZ2",
                     SplitByManualPageBreaks = true
                 })).Bytes);
-            string optedInSvg = Encoding.UTF8.GetString(Assert.Single(sheet.ExportImages(
+            string optedInSvg = Encoding.UTF8.GetString(Assert.Single(sheet.ToImages(
                 OfficeImageExportFormat.Svg,
                 new ExcelImageExportOptions {
                     Range = "A1:AZ2",

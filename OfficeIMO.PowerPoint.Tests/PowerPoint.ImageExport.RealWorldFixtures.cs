@@ -61,8 +61,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.Slides[0];
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertFixtureDiagnostics(snapshot.Diagnostics);
             AssertFixtureDiagnostics(png.Diagnostics);

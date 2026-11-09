@@ -16,7 +16,7 @@ XpsDocument document = XpsDocument.Load("report.oxps");
 XpsPage page = document.Pages[0];
 string text = page.ExtractText();
 File.WriteAllText("page-1.svg", page.ToSvg().Svg);
-File.WriteAllBytes("page-1.png", page.ExportImage(OfficeImageExportFormat.Png).Bytes);
+File.WriteAllBytes("page-1.png", page.ToImage(OfficeImageExportFormat.Png).Bytes);
 ```
 
 Coordinates are XPS units: 96 units per inch. Pages follow the native document
@@ -191,3 +191,15 @@ signatures or decrypt protected packages.
 Targets: .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows.
 
 `Save(path)` associates the successfully written path; `Save()` uses that destination. `Save(stream)` leaves the stream open and keeps the associated path. `ToBytes()` returns native bytes without writing a destination. Loading from a path associates it; loading bytes or a stream leaves the document detached.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Export | 0 | 5 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Xps` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->
