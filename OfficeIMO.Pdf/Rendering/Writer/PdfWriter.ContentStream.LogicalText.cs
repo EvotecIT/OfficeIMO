@@ -287,13 +287,14 @@ internal sealed partial class ContentStreamBuilder {
         AdvanceTrackedText(totalAdvance1000 * fontSize / 1000D + (limit - startIndex) * _textCharacterSpacing);
     }
 
-    private int[] _codeBuffer = new int[16];
+    // Made on first use: most builders write an operator or two and never encode glyph codes.
+    private int[] _codeBuffer = Array.Empty<int>();
 
     // Codes for one cluster: glyph ids, or alias codes for characters sharing a nominal glyph.
     // An unresolved glyph makes the whole cluster depend on ActualText and its glyph ids.
     private int[] ResolveClusterCodes(IReadOnlyList<PdfGlyphInfo> glyphs, int start, int end, IPdfGlyphTextPinner? pinner, ref bool representable) {
         int count = end - start;
-        if (_codeBuffer.Length < count) _codeBuffer = new int[Math.Max(count, _codeBuffer.Length * 2)];
+        if (_codeBuffer.Length < count) _codeBuffer = new int[Math.Max(Math.Max(count, 16), _codeBuffer.Length * 2)];
         for (int index = 0; index < count; index++) {
             PdfGlyphInfo glyph = glyphs[start + index];
             int code = glyph.GlyphId;
