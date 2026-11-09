@@ -227,7 +227,6 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
         FileStream stream = PdfTemporaryFile.Create(".objects", FileOptions.RandomAccess, out string path);
         _spillPath = path;
         _spillStream = stream;
-        VisualResources.ReleaseStreamData();
         for (int index = 0; index < _entries.Count; index++) {
             Entry entry = _entries[index];
             if (entry.Segments != null) _entries[index] = AppendSegmentsToSpill(entry.Segments, entry.Length);

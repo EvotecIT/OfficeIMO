@@ -2,75 +2,13 @@ using System.Security.Cryptography;
 
 namespace OfficeIMO.Pdf;
 
-/// <summary>
-/// Document-scoped lookup of immutable visual resources. Streams the object store still holds in memory are
-/// matched by their dictionary (which carries /Length) and then byte for byte, keeping only references the
-/// store already holds; other streams are keyed by a content hash, so no payload is retained.
-/// </summary>
+/// <summary>Document-scoped content hashes for immutable visual resources; retains no stream payloads.</summary>
 internal sealed class PdfVisualResourceCache {
-    private const int StreamCandidates = 8;
     private readonly Dictionary<string, int> _objects = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, List<KeyValuePair<byte[], int>>> _streams = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _hashedStreamDictionaries = new(StringComparer.Ordinal);
-    private bool _hashAllStreams;
 
     internal bool TryGet(string key, out int objectId) => _objects.TryGetValue(key, out objectId);
     internal void Add(string key, int objectId) => _objects.Add(key, objectId);
-
-    internal bool TryGetStream(string dictionary, byte[] data, out int objectId) {
-        if (_streams.TryGetValue(dictionary, out List<KeyValuePair<byte[], int>>? candidates)) {
-            foreach (KeyValuePair<byte[], int> candidate in candidates) {
-                if (candidate.Key.Length == data.Length && candidate.Key.SequenceEqual(data)) {
-                    objectId = candidate.Value;
-                    return true;
-                }
-            }
-        }
-        if (_hashAllStreams || _hashedStreamDictionaries.Contains(dictionary)) {
-            return _objects.TryGetValue(Hash(dictionary, data), out objectId);
-        }
-        objectId = 0;
-        return false;
-    }
-
-    // A bounded candidate list keeps many same-length streams from turning every lookup into a scan.
-    internal void AddStream(string dictionary, byte[] data, int objectId) {
-        if (_hashAllStreams || _hashedStreamDictionaries.Contains(dictionary)) {
-            _objects.Add(Hash(dictionary, data), objectId);
-            return;
-        }
-        if (!_streams.TryGetValue(dictionary, out List<KeyValuePair<byte[], int>>? candidates)) {
-            candidates = new List<KeyValuePair<byte[], int>>(1);
-            _streams.Add(dictionary, candidates);
-        }
-        if (candidates.Count < StreamCandidates) {
-            candidates.Add(new KeyValuePair<byte[], int>(data, objectId));
-        } else {
-            HashCandidates(dictionary, candidates);
-            _streams.Remove(dictionary);
-            _hashedStreamDictionaries.Add(dictionary);
-            _objects.Add(Hash(dictionary, data), objectId);
-        }
-    }
-
-    // Spill storage releases payloads; keep their identities without retaining the byte arrays.
-    internal void ReleaseStreamData() {
-        if (_hashAllStreams) return;
-        foreach (var bucket in _streams) HashCandidates(bucket.Key, bucket.Value);
-        _streams.Clear();
-        _hashedStreamDictionaries.Clear();
-        _hashAllStreams = true;
-    }
-
-    private void HashCandidates(string dictionary, List<KeyValuePair<byte[], int>> candidates) {
-        foreach (var candidate in candidates) _objects.Add(Hash(dictionary, candidate.Key), candidate.Value);
-    }
-
-    internal void Clear() {
-        _objects.Clear();
-        _streams.Clear();
-        _hashedStreamDictionaries.Clear();
-    }
+    internal void Clear() => _objects.Clear();
 
     internal static bool IsVisualDictionary(string body) =>
         body.StartsWith("<< /Type /ExtGState ", StringComparison.Ordinal) ||

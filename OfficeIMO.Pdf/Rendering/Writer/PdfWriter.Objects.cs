@@ -75,9 +75,9 @@ internal static partial class PdfWriter {
                 content.Length.ToString(CultureInfo.InvariantCulture) + " " + dictionary.Substring(lengthIndex + lengthEntry.Length);
         }
         PdfVisualResourceCache? cache = (list as IPdfObjectStore)?.VisualResources;
-        bool shareable = cache != null && PdfVisualResourceCache.IsShareableStream(dictionary);
-        if (shareable && list is not PdfObjectStore { IsSpilled: false }) cache!.ReleaseStreamData();
-        if (shareable && cache!.TryGetStream(dictionary, content, out int sharedId)) return sharedId;
+        string? key = cache != null && PdfVisualResourceCache.IsShareableStream(dictionary)
+            ? PdfVisualResourceCache.Hash(dictionary, content) : null;
+        if (key != null && cache!.TryGet(key, out int sharedId)) return sharedId;
         int id = list.Count + 1;
         if (list is PdfObjectStore objectStore) {
             objectStore.AddSegments(PdfObjectBytes.CreateStreamObjectSegments(id, dictionary, content));
@@ -86,7 +86,7 @@ internal static partial class PdfWriter {
         } else {
             list.Add(PdfObjectBytes.WrapStreamObject(id, dictionary, content));
         }
-        if (shareable) cache!.AddStream(dictionary, content, id);
+        if (key != null) cache!.Add(key, id);
         return id;
     }
 
