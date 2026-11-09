@@ -29,6 +29,19 @@ public partial class Word {
         Assert.Equal(UnderlineValues.Single, style.StyleRunProperties.GetFirstChild<Underline>()?.Val?.Value);
         Assert.Null(style.StyleRunProperties.GetFirstChild<Highlight>());
         Assert.Empty(document.ValidateDocument());
+
+        using var output = new MemoryStream();
+        Assert.Throws<NotSupportedException>(() => document.Save(output));
+        Assert.Equal(0, output.Length);
+        document.Save(output, new WordSaveOptions { AllowLoss = true });
+        output.Position = 0;
+        using WordDocument reopened = WordDocument.Load(output);
+        Assert.Equal("direct off", Assert.Single(reopened.Paragraphs).Text);
+        Assert.Empty(reopened.ValidateDocument());
+
+        OfficeDiagnostic omission = Assert.Single(report.Diagnostics,
+            diagnostic => diagnostic.Code == "doc-style-highlight-unsupported");
+        Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
     }
 
     [Theory]

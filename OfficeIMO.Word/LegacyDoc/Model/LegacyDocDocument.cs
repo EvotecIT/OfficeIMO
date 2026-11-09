@@ -205,6 +205,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (styleSheetWarning != null) {
                 AddWarning("doc-stylesheet-invalid", styleSheetWarning);
             }
+            if (StyleSheet.ParagraphStyles.Any(style => style.CharacterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Highlight))) {
+                AddUnsupportedFeature(new LegacyDocUnsupportedFeature(LegacyDocUnsupportedFeatureKind.Formatting,
+                    "doc-style-highlight-unsupported",
+                    "Prohibited paragraph-style highlight was omitted. Other supported style formatting was retained.",
+                    detailCode: "ParagraphStyleHighlight"), reportDiagnostic: false);
+            }
 
             Numbering = LegacyDocNumberingReader.Read(tableStream, fib, fontFamilies, out string? numberingWarning);
             if (numberingWarning != null) {
