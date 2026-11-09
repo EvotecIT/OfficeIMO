@@ -29,6 +29,13 @@ public static partial class OfficeJpegCodec {
         OfficeJpegDecodeOptions options = default) {
         image = null;
         if (!IsJpeg(encodedBytes)) return false;
+        return TryDecode(new OfficeByteView(encodedBytes!), cancellationToken, retainedManagedBytes, out image, options);
+    }
+
+    internal static bool TryDecode(
+        OfficeByteView encodedBytes, CancellationToken cancellationToken, long retainedManagedBytes,
+        out OfficeRasterImage? image, OfficeJpegDecodeOptions options = default) {
+        image = null;
         try {
             byte[] pixels = OfficeJpegReader.DecodeRgba32(
                 encodedBytes!, out int width, out int height, options, cancellationToken, retainedManagedBytes);

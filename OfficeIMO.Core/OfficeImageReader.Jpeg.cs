@@ -123,12 +123,21 @@ public static partial class OfficeImageReader {
         byte[] data,
         CancellationToken cancellationToken,
         bool requireManagedFrame,
-        bool validateMetadata) => HasCompleteJpegPayload(data, 0, data.Length, cancellationToken,
-            requireManagedFrame, validateMetadata, allowMultiPicture: true);
+        bool validateMetadata) {
+        long remainingPixels = OfficeRasterGuards.MaximumPixels;
+        return HasCompleteJpegPayload(data, 0, data.Length, cancellationToken,
+            requireManagedFrame, validateMetadata, allowMultiPicture: true, decodeImages: false, ref remainingPixels);
+    }
+
+    private static bool HasCompleteJpegContent(byte[] data, CancellationToken cancellationToken) {
+        long remainingPixels = OfficeRasterGuards.MaximumPixels;
+        return HasCompleteJpegPayload(data, 0, data.Length, cancellationToken,
+            requireManagedFrame: false, validateMetadata: true, allowMultiPicture: true, decodeImages: true, ref remainingPixels);
+    }
 
     private static bool HasCompleteJpegPayload(
         byte[] data, int imageStart, int imageEnd, CancellationToken cancellationToken,
-        bool requireManagedFrame, bool validateMetadata, bool allowMultiPicture) {
+        bool requireManagedFrame, bool validateMetadata, bool allowMultiPicture, bool decodeImages, ref long remainingPixels) {
         cancellationToken.ThrowIfCancellationRequested();
         if (imageEnd - imageStart < 12 || data[imageStart] != 0xFF || data[imageStart + 1] != 0xD8) return false;
         bool hasFrame = false;
@@ -166,12 +175,14 @@ public static partial class OfficeImageReader {
             }
 
             if (marker == 0xD9) {
+                if (!hasFrame || !hasScan || validateMetadata && !HasValidJpegIccProfile(iccSegments, cancellationToken)) return false;
+                if (decodeImages && !OfficeJpegCodec.TryDecode(new OfficeByteView(data).Slice(imageStart, offset - imageStart),
+                    cancellationToken, data.LongLength - (offset - imageStart), out _)) return false;
                 bool complete = mpfStart == 0 || !allowMultiPicture
                     ? offset == imageEnd
                     : HasCompleteMultiPictureJpeg(data, mpfStart, mpfLength, offset, imageEnd,
-                        cancellationToken, requireManagedFrame, validateMetadata);
-                return hasFrame && hasScan && complete &&
-                       (!validateMetadata || HasValidJpegIccProfile(iccSegments, cancellationToken));
+                        cancellationToken, requireManagedFrame, validateMetadata, decodeImages, ref remainingPixels);
+                return complete;
             }
             if (marker == 0x01) continue;
             if (marker == 0x00 || marker == 0xD8 || (marker >= 0xD0 && marker <= 0xD7) || offset + 2 > imageEnd) {
@@ -184,9 +195,14 @@ public static partial class OfficeImageReader {
             int segmentDataLength = segmentLength - 2;
             if (IsStartOfFrame(marker)) {
                 if (hasFrame || requireManagedFrame && marker is not (0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC9 or 0xCA or 0xCB) ||
-                    !TryReadJpegFrameHeader(data, segmentStart, segmentDataLength, out _, out _) ||
+                    !TryReadJpegFrameHeader(data, segmentStart, segmentDataLength, out int width, out int height) ||
                     requireManagedFrame && !OfficeJpegReader.IsSupportedRgbaFrameHeader(
                         data, segmentStart, segmentDataLength, marker)) return false;
+                if (decodeImages) {
+                    long pixels = (long)width * height;
+                    if (pixels > remainingPixels) return false;
+                    remainingPixels -= pixels;
+                }
                 hasFrame = true;
             } else if (marker == 0xE0 && HasJpegSegmentPrefix(
                 data,

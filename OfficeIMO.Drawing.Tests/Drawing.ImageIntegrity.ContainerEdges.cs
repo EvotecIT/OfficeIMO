@@ -144,6 +144,15 @@ public partial class DrawingTests {
         Assert.False(OfficeImageReader.TryValidateContent(multiPicture.Concat(new byte[] { 1 }).ToArray(), "trailing-junk.jpg", out _));
         Assert.False(OfficeImageReader.TryValidateContent(malformedIndex, "overlapping-index.jpg", out _));
         Assert.False(OfficeImageReader.TryValidateContent(primary.Take(2).Concat(fakeMpf).Concat(primary.Skip(2)).Concat(secondary).ToArray(), "missing-index.jpg", out _));
+        byte[] undecodableSecondary = {
+            0xFF, 0xD8, 0xFF, 0xC0, 0, 11, 8, 0, 1, 0, 1, 1, 1, 0x11, 0,
+            0xFF, 0xDA, 0, 8, 1, 1, 0, 0, 63, 0, 1, 0xFF, 0xD9
+        };
+        Write32(70, undecodableSecondary.Length);
+        byte[] corruptImage = primary.Take(2).Concat(mpf.Take(8)).Concat(tiff)
+            .Concat(primary.Skip(2)).Concat(undecodableSecondary).ToArray();
+        Assert.False(OfficeJpegCodec.TryDecode(undecodableSecondary, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(corruptImage, "undecodable-secondary.jpg", out _));
     }
 
     [Fact]

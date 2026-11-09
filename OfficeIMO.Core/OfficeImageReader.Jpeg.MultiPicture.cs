@@ -7,7 +7,8 @@ public static partial class OfficeImageReader {
     // CIPA DC-007 MP Index offsets are relative to the TIFF endian field, except the first image (zero).
     private static bool HasCompleteMultiPictureJpeg(
         byte[] data, int tiffStart, int tiffLength, int primaryEnd, int fileEnd,
-        CancellationToken cancellationToken, bool requireManagedFrame, bool validateMetadata) {
+        CancellationToken cancellationToken, bool requireManagedFrame, bool validateMetadata,
+        bool decodeImages, ref long remainingPixels) {
         bool littleEndian = data[tiffStart] == (byte)'I';
         uint Read32(int offset) => littleEndian
             ? ReadUInt32LittleEndian(data, offset) : ReadUInt32BigEndian(data, offset);
@@ -64,7 +65,8 @@ public static partial class OfficeImageReader {
         foreach (var range in ranges) {
             // Reject overlaps, undeclared payloads and truncation without copying each secondary image.
             if (range.Key != next || !HasCompleteJpegPayload(data, range.Key, range.Key + range.Value,
-                cancellationToken, requireManagedFrame, validateMetadata, allowMultiPicture: false)) return false;
+                cancellationToken, requireManagedFrame, validateMetadata, allowMultiPicture: false,
+                decodeImages, ref remainingPixels)) return false;
             next += range.Value;
         }
         return next == fileEnd;

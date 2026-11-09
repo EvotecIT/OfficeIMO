@@ -217,12 +217,7 @@ public static partial class OfficeImageReader {
             case OfficeImageFormat.Png:
                 return OfficePngReader.TryValidateDecodedPayload(data, cancellationToken);
             case OfficeImageFormat.Jpeg:
-                return HasCompleteJpegPayload(
-                           data,
-                           cancellationToken,
-                           requireManagedFrame: false,
-                           validateMetadata: true) &&
-                       OfficeJpegCodec.TryDecode(data, cancellationToken, out _);
+                return HasCompleteJpegContent(data, cancellationToken);
             case OfficeImageFormat.Gif:
                 return data.Length >= 14 && data[data.Length - 1] == 0x3B && OfficeGifReader.TryValidateAllFrames(data, cancellationToken);
             case OfficeImageFormat.Bmp:
