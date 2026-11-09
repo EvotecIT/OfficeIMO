@@ -1,8 +1,4 @@
-using System;
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
@@ -39,7 +35,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Exports the requested document page as a supported raster format or SVG.
         /// </summary>
-        public static OfficeImageExportResult ExportImage(this WordDocument document,
+        public static OfficeImageExportResult ToImage(this WordDocument document,
             OfficeImageExportFormat format,
             WordImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
@@ -48,14 +44,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>Exports a page range or the complete document as PNG or SVG images.</summary>
-        public static IReadOnlyList<OfficeImageExportResult> ExportImages(this WordDocument document, OfficeImageExportFormat format,
+        public static IReadOnlyList<OfficeImageExportResult> ToImages(this WordDocument document, OfficeImageExportFormat format,
             WordImageExportOptions? options = null) {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);
             return WordPageImageExport.RenderPages(document, format, resolved);
         }
 
         /// <summary>Streams selected page images to a consumer without retaining earlier payloads.</summary>
-        public static void ExportImages(this WordDocument document,
+        public static void ToImages(this WordDocument document,
             OfficeImageExportFormat format,
             OfficeImageExportConsumer consumer,
             WordImageExportOptions? options = null,

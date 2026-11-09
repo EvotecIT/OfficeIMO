@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 
 namespace OfficeIMO.Core.Internal;
 

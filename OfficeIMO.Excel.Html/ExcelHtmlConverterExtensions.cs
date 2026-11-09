@@ -67,7 +67,7 @@ public static partial class ExcelHtmlConverterExtensions {
         Dictionary<string, ExcelSheet> sheetsByName = workbook.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
         var reportedTableSheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int svgIndex = 0;
-        foreach (OfficeImageExportResult result in workbook.ExportImages(OfficeImageExportFormat.Svg, visualOptions)) {
+        foreach (OfficeImageExportResult result in workbook.ToImages(OfficeImageExportFormat.Svg, visualOptions)) {
             AppendSvgResult(body, result, CreateSvgNamespacePrefix(result, ++svgIndex), diagnostics);
             string? resultName = result.Name;
             if (!string.IsNullOrWhiteSpace(resultName) && sheetsByName.TryGetValue(resultName!, out ExcelSheet? sheet)) {
@@ -87,7 +87,7 @@ public static partial class ExcelHtmlConverterExtensions {
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
         body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, sheet.Name))).Append("</h1>");
-        AppendSvgResult(body, sheet.ExportImage(OfficeImageExportFormat.Svg, ResolveWorkbookVisualOptions(options.VisualOptions).Clone()), "officeimo-sheet-svg-1-", diagnostics);
+        AppendSvgResult(body, sheet.ToImage(OfficeImageExportFormat.Svg, ResolveWorkbookVisualOptions(options.VisualOptions).Clone()), "officeimo-sheet-svg-1-", diagnostics);
         AppendVisualCommentInventory(body, sheet.GetComments());
         if (options.IncludePivotInventory) AppendPivotInventory(body, sheet.GetPivotTables(), diagnostics);
         body.Append("</main>");
@@ -560,7 +560,7 @@ public static partial class ExcelHtmlConverterExtensions {
     private static bool AppendChartSvg(StringBuilder body, ExcelChart chart, string label, IList<HtmlDiagnostic> diagnostics) {
         string svg;
         try {
-            svg = Encoding.UTF8.GetString(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+            svg = Encoding.UTF8.GetString(chart.ToImage(OfficeImageExportFormat.Svg).Bytes);
         } catch (Exception exception) when (exception is InvalidOperationException or NotSupportedException or ArgumentException) {
             diagnostics.Add(new HtmlDiagnostic(
                 "OfficeIMO.Excel.Html",

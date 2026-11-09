@@ -3,8 +3,6 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
 using OfficeIMO.Reader;
 using OfficeIMO.Tests.Pdf;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

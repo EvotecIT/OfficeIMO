@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Settings for dependency-free mathematical layout and drawing.</summary>

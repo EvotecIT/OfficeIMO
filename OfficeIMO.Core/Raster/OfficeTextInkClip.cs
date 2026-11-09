@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 // Rectangles and convex paths use half-planes; other paths retain their fill geometry.

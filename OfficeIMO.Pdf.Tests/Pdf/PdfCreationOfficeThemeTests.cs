@@ -1,9 +1,5 @@
-using System;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using UglyToad.PdfPig.Content;
 using Xunit;

@@ -1,5 +1,4 @@
 using System.Data;
-using System.IO;
 
 namespace OfficeIMO.Excel {
     internal sealed class DataTableTabularRowSource : IExcelSheetTabularRowSource {

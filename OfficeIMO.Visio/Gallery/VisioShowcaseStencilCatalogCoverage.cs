@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Describes which generated showcase diagrams exercise a stencil catalog.

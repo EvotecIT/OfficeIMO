@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {

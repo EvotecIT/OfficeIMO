@@ -1,5 +1,4 @@
 using OfficeIMO.Email;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Email.Tests;

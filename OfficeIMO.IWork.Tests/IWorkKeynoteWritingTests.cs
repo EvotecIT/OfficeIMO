@@ -1,6 +1,5 @@
 using System.Text;
 using System.IO.Compression;
-using System.Threading;
 using OfficeIMO.IWork;
 using OfficeIMO.IWork.Internal;
 using OfficeIMO.PowerPoint;

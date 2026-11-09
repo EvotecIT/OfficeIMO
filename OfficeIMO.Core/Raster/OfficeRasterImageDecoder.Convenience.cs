@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Drawing {
     public static partial class OfficeRasterImageDecoder {
         /// <summary>Decodes the requested static frame, throwing InvalidDataException for unsupported input, rejection, or limits.</summary>

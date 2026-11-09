@@ -1,5 +1,3 @@
-using System.Linq;
-
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeRadialGradient {

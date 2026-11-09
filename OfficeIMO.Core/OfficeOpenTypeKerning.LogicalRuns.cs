@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 internal sealed partial class OfficeOpenTypeKerning {

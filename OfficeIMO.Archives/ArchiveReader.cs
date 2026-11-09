@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-
 namespace OfficeIMO.Archives;
 
 /// <summary>Reads selected archive content without filesystem publication or executing its contents.</summary>

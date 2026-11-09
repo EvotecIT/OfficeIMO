@@ -1,5 +1,4 @@
 using OfficeIMO.PowerPoint;
-using System.IO;
 using Xunit;
 
 namespace OfficeIMO.Tests;

@@ -1,14 +1,23 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.OneNote;
 
 public static partial class OneNoteImageExportExtensions {
+    /// <summary>Renders a batch using the encoding and selection in the options.</summary>
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(this OneNoteSection document, OneNotePageBatchRenderingOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
+        return CreateOneNoteSectionImageBatchOperation(document, resolved).Export(cancellationToken);
+    }
+
+    /// <summary>Renders a batch asynchronously using the same options and evidence contract.</summary>
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this OneNoteSection document, OneNotePageBatchRenderingOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
+        return CreateOneNoteSectionImageBatchOperation(document, resolved).ExportAsync(cancellationToken);
+    }
+
     /// <summary>Saves selected images without retaining payloads and returns aggregate conversion evidence.</summary>
     public static OfficeConversionReport SaveAsImages(this OneNoteSection document, string folderPath,
         OneNotePageBatchRenderingOptions? options = null, CancellationToken cancellationToken = default) {
@@ -33,7 +42,7 @@ public static partial class OneNoteImageExportExtensions {
     }
 
     /// <summary>Asynchronously exports selected images through the shared bounded streaming bridge.</summary>
-    public static Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(this OneNoteSection document,
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this OneNoteSection document,
         OfficeImageExportFormat format, OneNotePageBatchRenderingOptions? options = null, CancellationToken cancellationToken = default) {
         OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
         resolved.Format = format;
@@ -41,7 +50,7 @@ public static partial class OneNoteImageExportExtensions {
     }
 
     /// <summary>Asynchronously delivers selected images with backpressure and cooperative cancellation.</summary>
-    public static Task ExportImagesAsync(this OneNoteSection document, OfficeImageExportFormat format,
+    public static Task ToImagesAsync(this OneNoteSection document, OfficeImageExportFormat format,
         OfficeImageExportAsyncConsumer consumer, OneNotePageBatchRenderingOptions? options = null, CancellationToken cancellationToken = default) {
         OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
         resolved.Format = format;
@@ -49,7 +58,7 @@ public static partial class OneNoteImageExportExtensions {
     }
 
     /// <summary>Streams selected images under the shared deadline, admission and aggregate resource limits.</summary>
-    public static void ExportImages(this OneNoteSection document, OfficeImageExportFormat format,
+    public static void ToImages(this OneNoteSection document, OfficeImageExportFormat format,
         OfficeImageExportConsumer consumer, OneNotePageBatchRenderingOptions? options = null, CancellationToken cancellationToken = default) {
         OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
         resolved.Format = format;

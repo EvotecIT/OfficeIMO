@@ -1,8 +1,6 @@
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using System;
-using System.Linq;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 

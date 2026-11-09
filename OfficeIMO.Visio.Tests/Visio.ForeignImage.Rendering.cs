@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -74,8 +71,8 @@ public partial class VisioForeignImageRenderingTests {
             XElement sourcePayload = XDocument.Load(new MemoryStream(original)).Descendants(Ns + "ForeignData").Single();
             XElement savedPayload = XDocument.Load(new MemoryStream(reopened.ToLegacyXmlResult().Value)).Descendants(Ns + "ForeignData").Single();
             Assert.Equal(sourcePayload.Value, savedPayload.Value);
-            Assert.Equal(page.ToImage(new VisioImageExportOptions { TargetDpi = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false }),
-                reopened.Pages[0].ToImage(new VisioImageExportOptions { TargetDpi = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false }));
+            Assert.Equal(page.ToImage(new VisioImageExportOptions { TargetDpi = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false }).Bytes,
+                reopened.Pages[0].ToImage(new VisioImageExportOptions { TargetDpi = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false }).Bytes);
         }
     }
 
@@ -104,7 +101,7 @@ public partial class VisioForeignImageRenderingTests {
         xml.Descendants(Ns + "ForeignData").Single().SetAttributeValue("ForeignType", "Object");
         var document = Load(xml);
         var codec = new RecordingCodec();
-        var result = document.ExportImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { RenderText = false, ImageCodec = codec });
+        var result = document.ToImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { RenderText = false, ImageCodec = codec });
         Assert.Equal(0, codec.Calls);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.Contains("data-officeimo-foreign-image", Encoding.UTF8.GetString(result.Bytes));
@@ -116,10 +113,10 @@ public partial class VisioForeignImageRenderingTests {
     public void UnsupportedPlacementFormulaUsesCacheWithDiagnosticAndInvalidValuesAreSkipped() {
         using var input = Fixture(); var xml = XDocument.Load(input);
         var width = xml.Descendants(Ns + "ImgWidth").Single(); width.SetAttributeValue("F", "Sheet.99!Width");
-        var result = Load(xml).ExportImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { RenderText = false });
+        var result = Load(xml).ToImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { RenderText = false });
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "VISIO_FOREIGN_CACHED_FORMULA");
         width.Value = "NaN";
-        result = Load(xml).ExportImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { RenderText = false });
+        result = Load(xml).ToImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { RenderText = false });
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "VISIO_FOREIGN_PLACEMENT" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.DoesNotContain("data-officeimo-foreign-image", Encoding.UTF8.GetString(result.Bytes));
     }
@@ -159,7 +156,7 @@ public partial class VisioForeignImageRenderingTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(VisioForeignImage.PrepareBitmap(original), out var source));
         var document = VisioDocument.LoadLegacyXml(path).Value;
         foreach (var candidate in new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())) }) {
-            var result = candidate.ExportImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { RenderText = false });
+            var result = candidate.ToImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { RenderText = false });
             Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "VISIO_BITMAP_SIZE_NORMALIZED");
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             var element = XDocument.Parse(Encoding.UTF8.GetString(result.Bytes)).Descendants().Single(e => e.Attribute("data-officeimo-foreign-image") != null);
@@ -184,7 +181,7 @@ public partial class VisioForeignImageRenderingTests {
     }
 
     private static OfficeRasterImage Render(VisioPage page) {
-        byte[] png = page.ToImage(new VisioImageExportOptions { TargetDpi = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false });
+        byte[] png = page.ToImage(new VisioImageExportOptions { TargetDpi = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false }).Bytes;
         Assert.True(OfficeRasterImageDecoder.TryDecode(png, out var raster)); return raster!;
     }
     private static VisioDocument Load(XDocument xml) => VisioDocument.LoadLegacyXml(new MemoryStream(Encoding.UTF8.GetBytes(xml.ToString()))).Value;

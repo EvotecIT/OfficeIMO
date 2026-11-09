@@ -4,7 +4,6 @@ using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.LegacyXls.Write;
 using System.Text;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

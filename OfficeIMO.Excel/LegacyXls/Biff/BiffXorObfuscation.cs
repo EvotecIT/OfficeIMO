@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {

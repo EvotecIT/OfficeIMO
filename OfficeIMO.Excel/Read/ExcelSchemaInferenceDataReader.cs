@@ -3,8 +3,6 @@ using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Data;
 
 namespace OfficeIMO.Excel {
@@ -204,6 +202,9 @@ namespace OfficeIMO.Excel {
         }
 
         public override bool IsDBNull(int ordinal) {
+            // Owned batches already qualify scalar payloads, including date conversion.
+            // Keep their live null checks in the inner reader without boxing values.
+            if (_usesOwnedMappingRows && !IsSampledRow) return _inner.IsDBNull(ordinal);
             object value = GetValue(ordinal);
             return value == null || ReferenceEquals(value, DBNull.Value);
         }
@@ -222,7 +223,7 @@ namespace OfficeIMO.Excel {
             }
 
             _sampledCurrentRow = null;
-            bool hasCurrentRow = _inner.Read();
+            bool hasCurrentRow = !_mappingReplayOnly && _inner.Read();
             SetUtf8TextCursor(hasCurrentRow);
             return hasCurrentRow;
         }
@@ -241,7 +242,7 @@ namespace OfficeIMO.Excel {
             }
 
             _sampledCurrentRow = null;
-            bool hasCurrentRow = await _inner.ReadAsync(cancellationToken).ConfigureAwait(false);
+            bool hasCurrentRow = !_mappingReplayOnly && await _inner.ReadAsync(cancellationToken).ConfigureAwait(false);
             SetUtf8TextCursor(hasCurrentRow);
             return hasCurrentRow;
         }

@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Epub;
 
 /// <summary>The package generation used for newly authored publications.</summary>

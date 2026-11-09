@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 public static partial class OfficeConversionCapabilityCatalog {

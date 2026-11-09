@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace OfficeIMO.Security;
 
 /// <summary>Collects decoded security content without allowing the buffer to grow past a caller-owned limit.</summary>

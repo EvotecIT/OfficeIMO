@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Word {
     /// <summary>Outcome for one MERGEFIELD occurrence processed by OfficeIMO.</summary>
     public enum WordMailMergeFieldStatus {

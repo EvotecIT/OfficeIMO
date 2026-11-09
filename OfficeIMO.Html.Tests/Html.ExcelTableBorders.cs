@@ -51,7 +51,7 @@ public class HtmlExcelTableBorders {
         sheet.Range("B1:B2").SetBorder(ExcelCellBorders.Right, ExcelBorderStyle.Medium, OfficeColor.Parse("CC1122"));
         sheet.Range("A2:B2").SetBorder(ExcelCellBorders.Bottom, ExcelBorderStyle.Thick, OfficeColor.Parse("2244CC"));
 
-        string svg = Encoding.UTF8.GetString(sheet.Range("A1:B2").ExportImage(OfficeImageExportFormat.Svg,
+        string svg = Encoding.UTF8.GetString(sheet.Range("A1:B2").ToImage(OfficeImageExportFormat.Svg,
             new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
         XElement image = XElement.Parse(svg);
         XElement right = Assert.Single(image.Descendants(), edge => (string?)edge.Attribute("stroke") == "#CC1122");
@@ -60,7 +60,7 @@ public class HtmlExcelTableBorders {
             - double.Parse(right.Attribute("y1")!.Value, CultureInfo.InvariantCulture) >= 39D);
         Assert.True(double.Parse(bottom.Attribute("x2")!.Value, CultureInfo.InvariantCulture)
             - double.Parse(bottom.Attribute("x1")!.Value, CultureInfo.InvariantCulture) >= 110D);
-        var png = sheet.Range("A1:B2").ExportImage(OfficeImageExportFormat.Png,
+        var png = sheet.Range("A1:B2").ToImage(OfficeImageExportFormat.Png,
             new ExcelImageExportOptions { ShowGridlines = false });
         Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? pixels));
         Assert.NotNull(pixels);
@@ -99,7 +99,7 @@ public class HtmlExcelTableBorders {
         sheet.SetRowHidden(2, hideLastRow);
         sheet.SetColumnHidden(2, hideLastColumn);
 
-        string svg = Encoding.UTF8.GetString(sheet.Range(range).ExportImage(OfficeImageExportFormat.Svg,
+        string svg = Encoding.UTF8.GetString(sheet.Range(range).ToImage(OfficeImageExportFormat.Svg,
             new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
         XElement image = XElement.Parse(svg);
         string[] strokes = image.Descendants().Select(edge => (string?)edge.Attribute("stroke"))
@@ -109,7 +109,7 @@ public class HtmlExcelTableBorders {
         Assert.Equal(expectBottom, strokes.Contains("#2244CC"));
         Assert.DoesNotContain("#11AA33", strokes);
         if (range == "A2:B2" || range == "B1:B2") {
-            var png = sheet.Range(range).ExportImage(OfficeImageExportFormat.Png,
+            var png = sheet.Range(range).ToImage(OfficeImageExportFormat.Png,
                 new ExcelImageExportOptions { ShowGridlines = false });
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? pixels));
             Assert.NotNull(pixels);

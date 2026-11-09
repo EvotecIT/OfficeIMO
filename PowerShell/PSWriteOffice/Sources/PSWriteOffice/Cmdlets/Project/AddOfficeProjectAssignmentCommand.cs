@@ -1,8 +1,5 @@
 using PSWriteOffice.Services.Project;
 using PSWriteOffice.Foundation;
-using System;
-using System.IO;
-using System.Linq;
 using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.Project;

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Archives {
     public sealed partial class ArchiveInspection {
         /// <summary>Plans a grouped read from immutable inventory without decoding, checking payload checksums,

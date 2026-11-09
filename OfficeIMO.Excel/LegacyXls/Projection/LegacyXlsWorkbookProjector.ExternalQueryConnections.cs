@@ -1,6 +1,5 @@
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
-using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Excel.LegacyXls.Projection {

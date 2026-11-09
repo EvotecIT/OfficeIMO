@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word.Pdf;
 using PdfCore = OfficeIMO.Pdf;
@@ -18,6 +17,7 @@ internal static class WordPageImageExport {
         WordImageExportOptions single = options.Clone();
         single.PageCount = 1;
         single.PageSelection = null;
+        single.PageSelector = null;
         return RenderPages(document, format, single, cancellationToken)[0];
     }
 
@@ -51,6 +51,7 @@ internal static class WordPageImageExport {
         WordImageExportOptions single = options.Clone();
         single.PageCount = 1;
         single.PageSelection = null;
+        single.PageSelector = null;
         return CreateSnapshots(document, single)[0];
     }
 
@@ -97,6 +98,7 @@ internal static class WordPageImageExport {
     }
 
     private static PdfCore.PdfPageSelection ResolveSelection(WordImageExportOptions options, int totalPages) {
+        if (options.PageSelector != null) return PdfCore.PdfPageSelection.From(options.PageSelector.Resolve(totalPages, options.MaximumOutputCount).ToArray());
         if (options.PageSelection != null) return options.PageSelection;
         if (options.PageIndex >= totalPages)
             throw new ArgumentOutOfRangeException(nameof(options.PageIndex), "Page index is outside the document.");

@@ -1,4 +1,3 @@
-using System.Linq;
 namespace OfficeIMO.Spreadsheet {
     internal static partial class SpreadsheetNumberFormatDisplay {
         private static DecimalPlaceInfo GetDecimalPlaceInfo(string formatCode) {

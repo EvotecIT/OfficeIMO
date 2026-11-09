@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Drawing {
     public sealed partial class OfficeTrueTypeFont {
         // Unembedded Adobe CJK faces need a substitute that covers their script rather

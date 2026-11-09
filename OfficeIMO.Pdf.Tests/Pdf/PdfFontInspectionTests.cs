@@ -410,8 +410,8 @@ public sealed class PdfFontInspectionTests {
     public void Fonts_PageSelector_UsesDocumentRelativeSelectionContract() {
         PdfDocument source = PdfDocument.Load(BuildFontPdf());
 
-        PdfFontInventory inventory = source.Resources.Fonts(PdfPageSelector.Parse("last"));
-        PdfOperationResult<PdfFontInventory> attempt = source.Reader.FontsResult(PdfPageSelector.Parse("1"));
+        PdfFontInventory inventory = source.Resources.Fonts(OfficePageSelector.Parse("last"));
+        PdfOperationResult<PdfFontInventory> attempt = source.Reader.FontsResult(OfficePageSelector.Parse("1"));
 
         Assert.Equal(1, inventory.FontCount);
         Assert.True(attempt.Succeeded);

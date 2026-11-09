@@ -1,21 +1,20 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.OpenDocument;
-using System.Threading;
 
 namespace OfficeIMO.Excel.OpenDocument;
 
 /// <summary>Thin ODS image-export bridge over the Excel visual renderer.</summary>
-public static class ExcelOpenDocumentImageExportExtensions {
+public static partial class ExcelOpenDocumentImageExportExtensions {
     /// <summary>Converts an ODS workbook to Excel semantics and exports selected worksheets.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(
         this OdsDocument source,
         OfficeImageExportFormat format,
         ExcelImageExportOptions? imageOptions = null,
         ExcelOpenDocumentConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
         var results = new List<OfficeImageExportResult>();
-        source.ExportImages(
+        source.ToImages(
             format,
             results.Add,
             imageOptions,
@@ -25,26 +24,30 @@ public static class ExcelOpenDocumentImageExportExtensions {
     }
 
     /// <summary>Streams selected ODS worksheet images without retaining earlier payloads.</summary>
-    public static void ExportImages(
+    public static void ToImages(
         this OdsDocument source,
         OfficeImageExportFormat format,
         OfficeImageExportConsumer consumer,
         ExcelImageExportOptions? imageOptions = null,
         ExcelOpenDocumentConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(consumer);
         ExcelImageExportOptions effective =
             imageOptions?.Clone() ?? new ExcelImageExportOptions();
-        OdfConversionResult<ExcelDocument> conversion =
-            source.ConvertToExcelWithEvidence(conversionOptions);
-        using (conversion.Value) {
-            conversion.Value.ExportImages(
-                format,
-                result => consumer(effective.EnsureAccepted(
-                    OdfImageExportDiagnostics.Attach(result, conversion.Report))),
-                effective,
-                cancellationToken);
-        }
+        OfficeImageExportExecutionScope.Run(effective, cancellationToken, token => {
+            OdfConversionResult<ExcelDocument> conversion =
+                source.ConvertToExcelWithEvidence(conversionOptions);
+            using (conversion.Value) {
+                conversion.Value.ToImages(
+                    format,
+                    result => consumer(effective.EnsureAccepted(
+                        OdfImageExportDiagnostics.Attach(result, conversion.Report))),
+                    effective,
+                    token);
+            }
+            return 0;
+        });
     }
 }

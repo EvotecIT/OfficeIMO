@@ -3,7 +3,6 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using System.Globalization;
-using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using Xunit;

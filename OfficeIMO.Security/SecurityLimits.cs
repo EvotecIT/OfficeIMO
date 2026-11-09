@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace OfficeIMO.Security;
 
 internal static class SecurityLimits {

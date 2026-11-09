@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared cmap platform and encoding classification.</summary>

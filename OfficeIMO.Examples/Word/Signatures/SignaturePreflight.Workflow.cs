@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO.Security;
 using OfficeIMO.Word;
 

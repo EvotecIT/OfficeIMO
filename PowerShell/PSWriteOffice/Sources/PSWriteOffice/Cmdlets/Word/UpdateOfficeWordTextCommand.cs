@@ -1,5 +1,4 @@
 using PSWriteOffice.Foundation;
-using System;
 using System.Management.Automation;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;

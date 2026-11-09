@@ -2,7 +2,6 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

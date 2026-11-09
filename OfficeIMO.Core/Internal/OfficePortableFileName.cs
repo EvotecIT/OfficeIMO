@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Core.Internal;
 
 /// <summary>Creates a bounded portable file-name stem from an untrusted display name.</summary>

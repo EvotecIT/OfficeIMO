@@ -1,4 +1,3 @@
-using System;
 using System.Management.Automation;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using OfficeIMO.Excel;

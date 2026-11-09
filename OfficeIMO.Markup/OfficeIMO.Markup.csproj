@@ -9,7 +9,6 @@
         <IsPackable>True</IsPackable>
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
-        <PackageId>OfficeIMO.Markup</PackageId>
         <PackageTags>officeimo;markup;markdown;docx;xlsx;pptx;powershell;csharp</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -17,13 +16,11 @@
         <RepositoryType>git</RepositoryType>
         <PackageIcon>OfficeIMO.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <IsPublishable>True</IsPublishable>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
         <EnableTrimmingPolyfills>false</EnableTrimmingPolyfills>
     </PropertyGroup>
 
@@ -44,10 +41,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="System" />
         <Using Include="System.Text" />
-        <Using Include="System.Collections.Generic" />
-        <Using Include="System.Linq" />
     </ItemGroup>
 
     <ItemGroup>

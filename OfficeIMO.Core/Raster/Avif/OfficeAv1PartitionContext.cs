@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Tile-local AV1 partition probabilities and completed-block neighbor dimensions.</summary>

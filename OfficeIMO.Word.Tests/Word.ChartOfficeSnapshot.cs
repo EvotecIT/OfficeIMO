@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
@@ -421,8 +417,8 @@ public sealed class WordChartOfficeSnapshotTests {
         string text = string.Concat(page.TextSpans.Select(span => span.Text));
         Assert.Contains("Shared projection", text, StringComparison.Ordinal);
         Assert.Contains(bubble ? "Measured" : "Ratio", text, StringComparison.Ordinal);
-        Assert.Equal(pdfPage.ExportImage(OfficeImageExportFormat.Svg).Bytes,
-            document.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        Assert.Equal(pdfPage.ToImage(OfficeImageExportFormat.Svg).Bytes,
+            document.ToImage(OfficeImageExportFormat.Svg, options).Bytes);
     }
     public static IEnumerable<object[]> SupportedKinds() => WordSharedChartCases.Kinds.Select(kind => new object[] { kind });
 

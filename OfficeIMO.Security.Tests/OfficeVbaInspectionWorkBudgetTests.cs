@@ -1,5 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System.Threading;
 
 namespace OfficeIMO.Security.Tests {
     public sealed class OfficeVbaInspectionWorkBudgetTests {

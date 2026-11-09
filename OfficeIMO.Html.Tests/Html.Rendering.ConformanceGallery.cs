@@ -22,7 +22,7 @@ public sealed partial class HtmlRenderingTests {
         };
         options.PreviewFormats.Clear();
         options.PreviewFormats.Add(OfficeImageExportFormat.Png);
-        IReadOnlyList<OfficeImageExportResult> baseline = document.ExportImages(OfficeImageExportFormat.Png, options.RenderOptions);
+        IReadOnlyList<OfficeImageExportResult> baseline = document.ToImages(OfficeImageExportFormat.Png, options.RenderOptions);
         Assert.Equal(2, baseline.Count);
         if (budget == "count") options.RenderOptions.MaximumOutputCount = 1;
         else if (budget == "pixels") options.RenderOptions.MaximumTotalRasterPixels = 80 * 60;

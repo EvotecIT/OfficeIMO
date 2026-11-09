@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;

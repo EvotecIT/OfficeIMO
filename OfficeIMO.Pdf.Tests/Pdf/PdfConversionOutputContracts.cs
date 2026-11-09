@@ -1,6 +1,4 @@
 using OfficeIMO.Pdf.PowerPoint;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;

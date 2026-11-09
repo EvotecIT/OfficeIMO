@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Coordinates page alignment, retained visual proof, and supported semantic changes.</summary>

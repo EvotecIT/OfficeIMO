@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.TestAssets;
@@ -185,7 +184,7 @@ public sealed class SvgExportQualityTests {
         drawing.Fonts.Add("FixtureFont", ManagedTextShapingTestAssets.CreateFont('A'));
         drawing.AddText("A", 2, 2, 90, 30, new OfficeFontInfo("FixtureFont", 14), wrapText: false);
 
-        OfficeImageExportResult result = drawing.ExportImage(OfficeImageExportFormat.Svg,
+        OfficeImageExportResult result = drawing.ToImage(OfficeImageExportFormat.Svg,
             new OfficeImageExportOptions { SvgTextAsPaths = asPaths });
         string markup = Encoding.UTF8.GetString(result.Bytes);
         var svg = XElement.Parse(markup);
@@ -211,7 +210,7 @@ public sealed class SvgExportQualityTests {
         drawing.AddText("AB", 2, 2, 90, 30, new OfficeFontInfo("Primary, Fallback", 14), wrapText: false);
         if (painted) drawing.MarkLastTextAsPaintedGlyphs();
         Assert.Equal(2, drawing.Fonts.PlanFallbackRuns("AB", "Primary, Fallback").Count);
-        string svg = Encoding.UTF8.GetString(drawing.ExportImage(OfficeImageExportFormat.Svg,
+        string svg = Encoding.UTF8.GetString(drawing.ToImage(OfficeImageExportFormat.Svg,
             new OfficeImageExportOptions { SvgTextAsPaths = !painted }).Bytes);
         Assert.Contains("<text", svg);
         Assert.DoesNotContain("<path", svg);
@@ -239,7 +238,7 @@ public sealed class SvgExportQualityTests {
         drawing.Fonts.Add("FixtureFont", ManagedTextShapingTestAssets.CreateFont('A'));
         drawing.AddText("A", 2, 2, 90, 30, new OfficeFontInfo("FixtureFont", 14), wrapText: true);
 
-        string markup = Encoding.UTF8.GetString(drawing.ExportImage(OfficeImageExportFormat.Svg,
+        string markup = Encoding.UTF8.GetString(drawing.ToImage(OfficeImageExportFormat.Svg,
             new OfficeImageExportOptions { SvgTextAsPaths = true }).Bytes);
         Assert.Contains("<text", markup);
         Assert.Contains("data:font", markup);
@@ -247,7 +246,7 @@ public sealed class SvgExportQualityTests {
 
     [Fact]
     public void CommonSvgResultDimensionsAgreeWithRoundedRootSurface() {
-        OfficeImageExportResult result = new OfficeDrawing(612, 792).ExportImage(OfficeImageExportFormat.Svg,
+        OfficeImageExportResult result = new OfficeDrawing(612, 792).ToImage(OfficeImageExportFormat.Svg,
             new OfficeImageExportOptions { Scale = 150D / 72D });
         var svg = XElement.Parse(Encoding.UTF8.GetString(result.Bytes));
         Assert.Equal(1275, result.Width);

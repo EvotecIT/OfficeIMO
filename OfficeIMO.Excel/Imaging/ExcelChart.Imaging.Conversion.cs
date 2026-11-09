@@ -1,35 +1,31 @@
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel;
 
 public sealed partial class ExcelChart {
     /// <summary>Renders the chart using the encoding in <see cref="OfficeImageExportOptions.Format"/>.</summary>
-    public byte[] ToImage(ExcelImageExportOptions? options = null,
+    public OfficeImageExportResult ToImage(ExcelImageExportOptions? options = null,
         CancellationToken cancellationToken = default) => ToImage(options, out _, cancellationToken);
 
     /// <summary>Renders the chart and returns its immutable fidelity report.</summary>
-    public byte[] ToImage(ExcelImageExportOptions? options,
+    public OfficeImageExportResult ToImage(ExcelImageExportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var timer = Stopwatch.StartNew();
         ExcelImageExportOptions resolved = NormalizeImageConversionOptions(options);
         OfficeImageExportResult result = CreateImageExportOperation(resolved, resolved.Format).Export(cancellationToken);
         report = OfficeImageExportEvidence.CreateReport("Excel", result, timer.Elapsed);
-        return result.Bytes;
+        return result;
     }
 
-    /// <summary>Renders the chart with cancellation and returns the bytes and fidelity report.</summary>
-    public async Task<OfficeConversionResult<byte[]>> ToImageAsync(ExcelImageExportOptions? options = null, CancellationToken cancellationToken = default) {
+    /// <summary>Renders the chart with cancellation and returns the encoded image and its diagnostics.</summary>
+    public async Task<OfficeImageExportResult> ToImageAsync(ExcelImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        var timer = Stopwatch.StartNew();
         ExcelImageExportOptions resolved = NormalizeImageConversionOptions(options);
         OfficeImageExportResult result = await CreateImageExportOperation(resolved, resolved.Format)
             .ExportAsync(cancellationToken).ConfigureAwait(false);
-        return new OfficeConversionResult<byte[]>(result.Bytes, OfficeImageExportEvidence.CreateReport("Excel", result, timer.Elapsed));
+        return result;
     }
 
     /// <summary>Writes the chart to a file and returns its fidelity report.</summary>

@@ -1,19 +1,16 @@
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
 public static partial class PdfImageExportExtensions {
     /// <summary>Renders the selected PDF pages using the encoding and resource limits in the options.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(this PdfDocument document,
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(this PdfDocument document,
         PdfImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-        document.ExportImages(options, out _, cancellationToken);
+        document.ToImages(options, out _, cancellationToken);
 
     /// <summary>Renders the selected pages and returns an immutable aggregate fidelity report.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(this PdfDocument document, PdfImageExportOptions? options,
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(this PdfDocument document, PdfImageExportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var timer = Stopwatch.StartNew();
@@ -26,7 +23,7 @@ public static partial class PdfImageExportExtensions {
     }
 
     /// <summary>Asynchronously renders selected pages with a cloned options snapshot and fidelity report.</summary>
-    public static async Task<OfficeConversionResult<IReadOnlyList<OfficeImageExportResult>>> ExportImagesAsync(this PdfDocument document,
+    public static async Task<OfficeConversionResult<IReadOnlyList<OfficeImageExportResult>>> ToImagesAsync(this PdfDocument document,
         PdfImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var timer = Stopwatch.StartNew();

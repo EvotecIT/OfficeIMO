@@ -6,8 +6,6 @@ using OfficeIMO.Reader.Zip;
 using OfficeIMO.Tests.Pdf;
 using System.IO.Compression;
 using Xunit;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Tests;
 

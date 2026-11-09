@@ -1,5 +1,4 @@
 using OfficeIMO.Pdf;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -13,7 +12,7 @@ public class PdfPageWorkflowCancellationTests {
         cancellation.Cancel();
         CancellationToken token = cancellation.Token;
         PdfPageSelection selection = PdfPageSelection.From(1);
-        PdfPageSelector selector = PdfPageSelector.Parse("1");
+        OfficePageSelector selector = OfficePageSelector.Parse("1");
         Action[] edits = {
             () => document.Pages.Delete(PdfPageSelection.From(1), token),
             () => document.Pages.Delete(selection, token),
@@ -51,7 +50,7 @@ public class PdfPageWorkflowCancellationTests {
         cancellation.Cancel();
         CancellationToken token = cancellation.Token;
         PdfPageSelection selection = PdfPageSelection.From(1);
-        PdfPageSelector selector = PdfPageSelector.Parse("last");
+        OfficePageSelector selector = OfficePageSelector.Parse("last");
         Action[] edits = {
             () => document.Pages.DeleteResult(selection, token),
             () => document.Pages.DeleteResult(selector, token),

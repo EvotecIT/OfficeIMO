@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Result of applying a stencil migration map.

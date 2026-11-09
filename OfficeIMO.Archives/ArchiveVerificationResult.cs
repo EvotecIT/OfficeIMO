@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Archives {
 
     /// <summary>The result of a complete member verification attempt.</summary>

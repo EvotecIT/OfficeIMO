@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenXml.Internal;
 

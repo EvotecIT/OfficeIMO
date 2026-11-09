@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing.ImageIO;
 
 /// <summary>Decodes raster samples using Apple's system ImageIO, CoreGraphics and CoreFoundation frameworks.</summary>

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointLayoutEngine {
         /// <summary>Draws one content block in <paramref name="box" />; list and text keep their measure.</summary>

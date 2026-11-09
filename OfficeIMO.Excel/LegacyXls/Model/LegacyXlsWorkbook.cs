@@ -3,7 +3,6 @@ using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Projection;
 using OfficeIMO.Core.Internal;
-using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>

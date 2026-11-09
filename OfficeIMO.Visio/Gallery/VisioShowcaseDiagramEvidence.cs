@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Describes which review artifacts exist for one generated showcase diagram.

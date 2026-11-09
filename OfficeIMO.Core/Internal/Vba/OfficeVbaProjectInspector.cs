@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Core.Internal {
     /// <summary>Reads reusable, non-executing metadata from an Office VBA compound project.</summary>
     internal static partial class OfficeVbaProjectInspector {

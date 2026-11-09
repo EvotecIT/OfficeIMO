@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.ContentSafety;

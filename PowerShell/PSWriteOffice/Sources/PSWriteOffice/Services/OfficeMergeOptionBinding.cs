@@ -1,8 +1,6 @@
-using System;
 using System.Collections;
 using System.Management.Automation;
 using System.Reflection;
-using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;

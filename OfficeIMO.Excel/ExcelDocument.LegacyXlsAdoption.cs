@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
-using System.Threading;
 
 namespace OfficeIMO.Excel;
 

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>The designed slide layouts (Build/Visual/powerpoint-layouts.json).</summary>
     public enum PowerPointLayout {

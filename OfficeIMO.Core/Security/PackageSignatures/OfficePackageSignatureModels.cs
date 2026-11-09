@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Security;
 
 /// <summary>Result state used by package-level signature inspection and validation.</summary>

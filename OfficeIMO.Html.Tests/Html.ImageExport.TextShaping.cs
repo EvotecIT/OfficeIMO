@@ -24,7 +24,7 @@ public sealed partial class HtmlRenderingTests {
             ManagedTextShapingTestAssets.CreateFont(text.Select(character => (int)character).ToArray()));
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
-        OfficeImageExportResult image = document.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult image = document.ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
@@ -183,7 +183,7 @@ public sealed partial class HtmlRenderingTests {
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFont('A'));
 
-        OfficeImageExportResult result = document.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult result = document.ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(OfficeImageExportFormat.Png, result.Format);
         Assert.Contains(provider.Requests, request =>

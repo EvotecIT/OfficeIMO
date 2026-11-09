@@ -1,6 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     /// <summary>Explicit security and materialization policy for caller-hosted query execution.</summary>

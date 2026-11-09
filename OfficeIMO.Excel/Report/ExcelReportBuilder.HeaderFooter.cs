@@ -1,6 +1,4 @@
 using OfficeIMO.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelReportBuilder {

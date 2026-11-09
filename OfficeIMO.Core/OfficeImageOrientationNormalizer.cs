@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>EXIF/TIFF image orientation values used by managed image normalization.</summary>

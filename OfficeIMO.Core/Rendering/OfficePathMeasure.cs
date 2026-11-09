@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Bounded arc-length queries and exact Bezier subdivision for one normalized open contour.</summary>

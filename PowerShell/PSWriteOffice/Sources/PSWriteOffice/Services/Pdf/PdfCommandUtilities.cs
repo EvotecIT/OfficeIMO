@@ -1,10 +1,6 @@
 using OfficeIMO.Core.Internal;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Management.Automation;
 using System.Security;
 using OfficeIMO.Pdf;

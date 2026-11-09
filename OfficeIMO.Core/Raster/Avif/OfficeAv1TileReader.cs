@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>One-shot Main-8 reduced-still tile traversal from restoration units through entropy termination.</summary>

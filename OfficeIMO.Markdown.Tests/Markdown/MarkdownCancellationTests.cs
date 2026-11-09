@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;

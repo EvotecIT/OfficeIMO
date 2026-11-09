@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeOlePropertySetReader {
         // Validate each property's own extent before decoding any values. A valid stream-wide

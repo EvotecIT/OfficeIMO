@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Reusable Shape Data schema for applying consistent Visio Prop rows to shapes and connectors.

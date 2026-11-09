@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Ocr;
 using OfficeIMO.Pdf;

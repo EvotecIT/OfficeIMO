@@ -1,6 +1,4 @@
 using System.Data.Common;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {

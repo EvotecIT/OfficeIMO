@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 

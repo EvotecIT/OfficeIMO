@@ -5,8 +5,6 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Mhtml;
 using OfficeIMO.Tests.Pdf;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -59,7 +57,7 @@ public sealed partial class HtmlRenderingTests {
         imageOptions1.Format = OfficeImageExportFormat.Png;
         OfficeImageExportResult result = HtmlConversionDocument
             .Parse("<h1>Bounded</h1><p>High requested scale, small final surface.</p>")
-            .ExportImage(OfficeImageExportFormat.Png, imageOptions1, pageIndex: imageOptions1.PageIndex);
+            .ToImage(OfficeImageExportFormat.Png, imageOptions1, pageIndex: imageOptions1.PageIndex);
 
         Assert.True(result.Width <= 360);
         Assert.True(result.Height <= 360);
@@ -74,7 +72,7 @@ public sealed partial class HtmlRenderingTests {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D))
         };
 
-        IReadOnlyList<OfficeImageExportResult> results = await document.ExportImagesAsync(
+        IReadOnlyList<OfficeImageExportResult> results = await document.ToImagesAsync(
             OfficeImageExportFormat.Svg,
             options);
 
@@ -519,7 +517,7 @@ public sealed partial class HtmlRenderingTests {
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            HtmlConversionDocument.Parse("<p>Image cancellation marker</p>").ExportImagesAsync(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
+            HtmlConversionDocument.Parse("<p>Image cancellation marker</p>").ToImagesAsync(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             OfficeIMO.Html.HtmlConversionDocument.Parse("<p>PDF cancellation marker</p>").ToPdfAsync(new HtmlPdfExportOptions(), cancellation.Token));
     }
@@ -818,7 +816,7 @@ public sealed partial class HtmlRenderingTests {
             "<p><span style='font-family:Aptos;font-size:18px;color:#336699;font-weight:700;font-style:italic;text-decoration-line:underline line-through;text-decoration-style:wavy;vertical-align:super'>Styled MHTML</span></p>");
 
         PdfCore.PdfDocument pdf = archive.ToPdf(null, out OfficeConversionReport pdfReport);
-        OfficeImageExportResult image = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(pdf, format));
+        OfficeImageExportResult image = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(pdf, format));
 
         Assert.Contains("Styled MHTML", PdfCore.PdfReadDocument.Open(pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText(), StringComparison.Ordinal);
         Assert.Equal(format, image.Format);
@@ -1046,7 +1044,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        IReadOnlyList<OfficeImageExportResult> images = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
+        IReadOnlyList<OfficeImageExportResult> images = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Svg, options);
 
         Assert.Equal(2, rendered.Pages.Count);
         Assert.Equal(2, images.Count);
@@ -1188,7 +1186,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(rendered.Pages, page =>
             Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "HeaderMarker"));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed);
-        IReadOnlyList<OfficeImageExportResult> images = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Png, renderOptions);
+        IReadOnlyList<OfficeImageExportResult> images = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Png, renderOptions);
         Assert.Equal(rendered.Pages.Count, images.Count);
         Assert.All(images, image => Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, image.Bytes.Take(8)));
 
@@ -1227,7 +1225,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
-        IReadOnlyList<OfficeImageExportResult> images = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Png, renderOptions);
+        IReadOnlyList<OfficeImageExportResult> images = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Png, renderOptions);
         Assert.Equal(rendered.Pages.Count, images.Count);
 
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
@@ -1316,7 +1314,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(), text => text.Text == "R3");
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSelectorPending);
 
-        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Svg, options);
         Assert.Contains("FirstPage", SvgPaintedText.Read(Encoding.UTF8.GetString(svgPages[0].Bytes)), StringComparison.Ordinal);
         Assert.Contains("L2", SvgPaintedText.Read(Encoding.UTF8.GetString(svgPages[1].Bytes)), StringComparison.Ordinal);
         Assert.Contains("R3", Encoding.UTF8.GetString(svgPages[2].Bytes), StringComparison.Ordinal);
@@ -1747,7 +1745,7 @@ public sealed partial class HtmlRenderingTests {
         foreach (string marker in markers) Assert.Contains(marker, visualText);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported);
 
-        string svg = Encoding.UTF8.GetString(Assert.Single(HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options)).Bytes);
+        string svg = Encoding.UTF8.GetString(Assert.Single(HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Svg, options)).Bytes);
         foreach (string marker in markers) Assert.Contains(marker, SvgPaintedText.Read(svg), StringComparison.Ordinal);
 
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
@@ -2125,8 +2123,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(10D)
         };
 
-        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult svg = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult svg = HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options);
 
         Assert.True(png.Bytes.Length > 8);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
@@ -2166,8 +2164,8 @@ public sealed partial class HtmlRenderingTests {
             return options;
         }
 
-        byte[] firstPng = HtmlConversionDocument.Parse(html).ToImage(ImageOptions());
-        byte[] secondPng = HtmlConversionDocument.Parse(html).ToImage(ImageOptions());
+        byte[] firstPng = HtmlConversionDocument.Parse(html).ToImage(ImageOptions()).Bytes;
+        byte[] secondPng = HtmlConversionDocument.Parse(html).ToImage(ImageOptions()).Bytes;
         string firstSvg = HtmlConversionDocument.Parse(html).ToSvg(ImageOptions());
         string secondSvg = HtmlConversionDocument.Parse(html).ToSvg(ImageOptions());
         byte[] firstPdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(PdfOptions())).ToBytes();
@@ -2200,8 +2198,8 @@ public sealed partial class HtmlRenderingTests {
             MaximumRasterPixels = 20_000_000L
         };
 
-        OfficeImageExportResult first = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult second = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult first = HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult second = HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(first.Bytes, second.Bytes);
         Assert.Equal(first.Width, second.Width);
@@ -3023,7 +3021,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(number.X < hebrew.Min(run => run.X));
         for (int index = 1; index < hebrew.Count; index++) Assert.True(hebrew[index].X < hebrew[index - 1].X);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
-        Assert.True(HtmlConversionDocument.Parse(html).ToImage().Length > 8);
+        Assert.True(HtmlConversionDocument.Parse(html).ToImage().Bytes.Length > 8);
         var svg = System.Xml.Linq.XDocument.Parse(HtmlConversionDocument.Parse(html).ToSvg());
         string svgLogicalText = string.Concat(svg.Descendants().Select(element =>
             element.Name.LocalName == "text" ? element.Value : (string?)element.Attribute("aria-label") ?? string.Empty));

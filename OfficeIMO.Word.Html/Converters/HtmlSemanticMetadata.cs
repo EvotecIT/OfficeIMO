@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using System;
 
 namespace OfficeIMO.Word.Html {
     internal static class HtmlSemanticMetadata {

@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using System.Text;
-using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;

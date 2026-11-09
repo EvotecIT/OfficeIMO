@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
@@ -16,13 +14,13 @@ namespace OfficeIMO.Tests {
             A.TableRow row = table.TableElement.Elements<A.TableRow>().Single();
             for (int index = 1; index <= 4096; index++) table.TableElement.Append(row.CloneNode(true));
 
-            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Svg);
             Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission &&
                 diagnostic.Message.Contains("4097 rows"));
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
-                slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
+                slide.ToImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
                     Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
                 }));
             Assert.Contains(exception.Diagnostics, diagnostic =>
@@ -40,7 +38,7 @@ namespace OfficeIMO.Tests {
             slide.GroupShapes(new PowerPointShape[] { first, second }, "Omitted group");
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
-                slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
+                slide.ToImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
                     MaxGroupShapeDepth = 0,
                     Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
                 }));
@@ -57,7 +55,7 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox textBox = slide.AddTextBox("Keep this text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(50));
             textBox.Paragraphs[0].Runs[0].Capitalization = PowerPointCapitalization.SmallCaps;
 
-            OfficeImageExportResult result = slide.ExportImage(
+            OfficeImageExportResult result = slide.ToImage(
                 OfficeImageExportFormat.Svg,
                 new PowerPointImageExportOptions {
                     IncludeSlideBackground = false,
@@ -83,7 +81,7 @@ namespace OfficeIMO.Tests {
                 OfficeImageFormat.Png);
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
-                slide.ExportImage(
+                slide.ToImage(
                     OfficeImageExportFormat.Svg,
                     new PowerPointImageExportOptions {
                         Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
@@ -108,7 +106,7 @@ namespace OfficeIMO.Tests {
                         new A.PathGradientFill { Path = A.PathShadeValues.Shape })));
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
-                slide.ExportImage(
+                slide.ToImage(
                     OfficeImageExportFormat.Svg,
                     new PowerPointImageExportOptions {
                         Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }

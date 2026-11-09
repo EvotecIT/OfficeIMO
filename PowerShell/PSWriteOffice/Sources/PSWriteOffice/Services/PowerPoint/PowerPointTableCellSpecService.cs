@@ -1,4 +1,3 @@
-using System.Linq;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Table;

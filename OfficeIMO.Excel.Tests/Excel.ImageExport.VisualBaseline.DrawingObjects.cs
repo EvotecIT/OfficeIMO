@@ -20,8 +20,8 @@ namespace OfficeIMO.Tests {
             ExcelRange range = fixture.Sheet.Range("A1:F8");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
@@ -47,8 +47,8 @@ namespace OfficeIMO.Tests {
                 using ExcelBaselineFixture fixture = CreateRotatedPresetDrawingObjectBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:F8");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(RotatedPresetDrawingObjectBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(RotatedPresetDrawingObjectBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(RotatedPresetDrawingObjectBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(RotatedPresetDrawingObjectBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved rotated preset drawing-object PNG baseline: " + pngPath);
@@ -74,8 +74,8 @@ namespace OfficeIMO.Tests {
             ExcelRange range = fixture.Sheet.Range("A1:F8");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
@@ -102,8 +102,8 @@ namespace OfficeIMO.Tests {
                 using ExcelBaselineFixture fixture = CreateRotatedShapeTextBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:F8");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(RotatedShapeTextBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(RotatedShapeTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(RotatedShapeTextBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(RotatedShapeTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved rotated shape-text PNG baseline: " + pngPath);
@@ -131,8 +131,8 @@ namespace OfficeIMO.Tests {
             ExcelRange range = fixture.Sheet.Range("A1:F8");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
@@ -158,8 +158,8 @@ namespace OfficeIMO.Tests {
                 using ExcelBaselineFixture fixture = CreateAlignedShapeTextBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:F8");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(AlignedShapeTextBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(AlignedShapeTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(AlignedShapeTextBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(AlignedShapeTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved aligned shape-text PNG baseline: " + pngPath);
@@ -187,8 +187,8 @@ namespace OfficeIMO.Tests {
             ExcelRange range = fixture.Sheet.Range("A1:F8");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
@@ -221,8 +221,8 @@ namespace OfficeIMO.Tests {
                 using ExcelBaselineFixture fixture = CreateVerticalShapeTextBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:F8");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(VerticalShapeTextBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(VerticalShapeTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(VerticalShapeTextBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(VerticalShapeTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved vertical shape-text PNG baseline: " + pngPath);

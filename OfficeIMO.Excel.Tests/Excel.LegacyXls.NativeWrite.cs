@@ -20,7 +20,6 @@ using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.LegacyXls.Write;
 using OfficeIMO.Core.Internal;
 using System.Globalization;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

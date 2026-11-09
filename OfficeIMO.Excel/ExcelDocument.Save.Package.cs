@@ -5,15 +5,9 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
 using System.IO.Packaging;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Xml;
-using System;
 using System.Diagnostics;
-using System.IO;
 using System.IO.Compression;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Owns Main-8/Main10 CDEF skip/index maps and an immutable snapshot of pre-CDEF samples.</summary>

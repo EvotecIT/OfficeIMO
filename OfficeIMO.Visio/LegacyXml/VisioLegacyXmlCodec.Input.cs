@@ -1,8 +1,4 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Xml.Linq;
-using System.Threading;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Visio;

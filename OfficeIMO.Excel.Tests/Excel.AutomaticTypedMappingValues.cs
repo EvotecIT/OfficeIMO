@@ -1,8 +1,6 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.IO.Compression;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Data;
 using Xunit;
 
@@ -183,6 +181,100 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
     }
 
     [Fact]
+    public void ParallelAutomaticRowsOwnBorrowedCellArraysAcrossBatchReuse() {
+        using var table = new System.Data.DataTable();
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("Bytes", typeof(byte[]));
+        table.Columns.Add("Characters", typeof(char[]));
+        for (int value = 1; value <= 4; value++)
+            table.Rows.Add(value, new[] { (byte)value }, new[] { (char)('a' + value - 1) });
+        byte[] bytes = new byte[1];
+        char[] characters = new char[1];
+        BorrowedArrayRow[] rows;
+        using (var reader = new BorrowedArrayDataReader(table.CreateDataReader(), bytes, characters)) {
+            rows = reader.RowsAsParallel<BorrowedArrayRow>(new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2, BatchSize = 1
+            }).ToArray();
+        }
+        bytes[0] = byte.MaxValue;
+        characters[0] = 'z';
+        Assert.Equal(4, rows.Length);
+        for (int index = 0; index < rows.Length; index++) {
+            Assert.Equal(index + 1, rows[index].Id);
+            Assert.Equal(new[] { (byte)(index + 1) }, rows[index].Bytes);
+            Assert.Equal(new[] { (char)('a' + index) }, rows[index].Characters);
+        }
+    }
+
+    public sealed class BorrowedArrayRow {
+        public int Id { get; set; }
+        public byte[] Bytes { get; set; } = Array.Empty<byte>();
+        public char[] Characters { get; set; } = Array.Empty<char>();
+    }
+
+    // The provider owns these two buffers until Read advances. Snapshot ownership
+    // is supplied by RowsAsParallel, not by this input adapter.
+    private sealed class BorrowedArrayDataReader : System.Data.Common.DbDataReader,
+        IDataReaderFastMappingValues, IDataReaderTypedMappingCompatibility {
+        private readonly System.Data.Common.DbDataReader _inner;
+        private readonly byte[] _bytes;
+        private readonly char[] _characters;
+        internal BorrowedArrayDataReader(System.Data.Common.DbDataReader inner, byte[] bytes, char[] characters) {
+            _inner = inner; _bytes = bytes; _characters = characters;
+        }
+        bool IDataReaderFastMappingValues.HasOnlyNonNullFastValues => false;
+        bool IDataReaderTypedMappingCompatibility.CanUseTypedGetter(int ordinal, Type targetType) => ordinal == 0 && targetType == typeof(int);
+        bool IDataReaderTypedMappingCompatibility.CanUseNonNullTypedGetter(int ordinal, Type targetType) => ordinal == 0 && targetType == typeof(int);
+        public override bool Read() {
+            if (!_inner.Read()) return false;
+            ((byte[])_inner.GetValue(1)).CopyTo(_bytes, 0);
+            ((char[])_inner.GetValue(2)).CopyTo(_characters, 0);
+            return true;
+        }
+        public override object GetValue(int ordinal) => ordinal == 1 ? _bytes : ordinal == 2 ? _characters : _inner.GetValue(ordinal);
+        public override int GetValues(object[] values) {
+            int count = Math.Min(values.Length, FieldCount);
+            for (int index = 0; index < count; index++) values[index] = GetValue(index);
+            return count;
+        }
+        public override object this[int ordinal] => GetValue(ordinal);
+        public override object this[string name] => GetValue(GetOrdinal(name));
+        public override int Depth => _inner.Depth;
+        public override int FieldCount => _inner.FieldCount;
+        public override bool HasRows => _inner.HasRows;
+        public override bool IsClosed => _inner.IsClosed;
+        public override int RecordsAffected => _inner.RecordsAffected;
+        public override bool NextResult() => _inner.NextResult();
+        public override void Close() => _inner.Close();
+        public override string GetName(int ordinal) => _inner.GetName(ordinal);
+        public override int GetOrdinal(string name) => _inner.GetOrdinal(name);
+        public override Type GetFieldType(int ordinal) => _inner.GetFieldType(ordinal);
+        public override string GetDataTypeName(int ordinal) => _inner.GetDataTypeName(ordinal);
+        public override bool IsDBNull(int ordinal) => _inner.IsDBNull(ordinal);
+        public override bool GetBoolean(int ordinal) => _inner.GetBoolean(ordinal);
+        public override byte GetByte(int ordinal) => _inner.GetByte(ordinal);
+        public override char GetChar(int ordinal) => _inner.GetChar(ordinal);
+        public override DateTime GetDateTime(int ordinal) => _inner.GetDateTime(ordinal);
+        public override decimal GetDecimal(int ordinal) => _inner.GetDecimal(ordinal);
+        public override double GetDouble(int ordinal) => _inner.GetDouble(ordinal);
+        public override float GetFloat(int ordinal) => _inner.GetFloat(ordinal);
+        public override Guid GetGuid(int ordinal) => _inner.GetGuid(ordinal);
+        public override short GetInt16(int ordinal) => _inner.GetInt16(ordinal);
+        public override int GetInt32(int ordinal) => _inner.GetInt32(ordinal);
+        public override long GetInt64(int ordinal) => _inner.GetInt64(ordinal);
+        public override string GetString(int ordinal) => _inner.GetString(ordinal);
+        public override long GetBytes(int ordinal, long fieldOffset, byte[]? buffer, int bufferOffset, int length) =>
+            _inner.GetBytes(ordinal, fieldOffset, buffer, bufferOffset, length);
+        public override long GetChars(int ordinal, long fieldOffset, char[]? buffer, int bufferOffset, int length) =>
+            _inner.GetChars(ordinal, fieldOffset, buffer, bufferOffset, length);
+        public override System.Collections.IEnumerator GetEnumerator() => new System.Data.Common.DbEnumerator(this, false);
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
+    }
+
+    [Fact]
     public void DateStyledNumericProjectionStillUsesWorkbookSerials() {
         string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\" s=\"1\"><v>45292.25</v></c></row>", new[] { "Value" }, 2);
         try {
@@ -296,13 +388,20 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         } finally { File.Delete(path); }
     }
 
-    [Fact]
-    public void InvalidDateSerialKeepsGenericConstructionAndFailureOrder() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InvalidDateSerialKeepsGenericConstructionAndFailureOrder(bool parallel) {
         string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\" s=\"1\"><v>3000000</v></c></row>", new[] { "Date" }, 2);
         try {
             using var reader = ExcelDocument.OpenReader(path);
             DateConstructorProbeRow.Calls = 0;
-            Assert.Throws<ArgumentException>(() => reader.RowsAs<DateConstructorProbeRow>().ToArray());
+            Assert.Throws<ArgumentException>(() => {
+                if (parallel) reader.RowsAsParallel<DateConstructorProbeRow>(new ParallelRowMappingOptions {
+                    MaxDegreeOfParallelism = 2, BatchSize = 1
+                }).ToArray();
+                else reader.RowsAs<DateConstructorProbeRow>().ToArray();
+            });
             Assert.Equal(1, DateConstructorProbeRow.Calls);
             Assert.False(reader.IsClosed);
         } finally { File.Delete(path); }
@@ -357,17 +456,51 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         } finally { File.Delete(path); }
     }
 
-    [Fact]
-    public void MappingCancellationStopsBeforeTheNextNativeRow() {
-        string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\"><v>1</v></c></row><row r=\"3\"><c r=\"A3\"><v>2</v></c></row>", new[] { "Id" }, 3);
+    [Theory]
+    [InlineData(false, 0, false)]
+    [InlineData(false, 1, false)]
+    [InlineData(false, 2, false)]
+    [InlineData(true, 1, false)]
+    [InlineData(true, 2, false)]
+    [InlineData(false, 2, true)]
+    [InlineData(true, 2, true)]
+    [InlineData(true, 3, true)]
+    public void MappingCancellationStopsBeforeTheNextNativeRow(bool inferSchema, int mapping, bool cancelWhileMapping) {
+        string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\"><v>1</v></c></row><row r=\"3\"><c r=\"A3\"><v>2</v></c></row>" +
+            "<row r=\"4\"><c r=\"A4\"><v>3</v></c></row><row r=\"5\"><c r=\"A5\"><v>4</v></c></row>", new[] { "Id" }, 5);
         try {
             using var cancellation = new CancellationTokenSource();
-            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { CancellationToken = cancellation.Token });
-            using IEnumerator<IdRow> rows = reader.RowsAs<IdRow>().GetEnumerator();
-            Assert.True(rows.MoveNext());
-            Assert.Equal(1, rows.Current.Id);
-            cancellation.Cancel();
-            OperationCanceledException error = Assert.Throws<OperationCanceledException>(() => rows.MoveNext());
+            using var secondBatch = new ManualResetEventSlim();
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
+                CancellationToken = cancellation.Token, InferSchema = inferSchema
+            });
+            int MapId(int value) {
+                if (cancelWhileMapping) {
+                    if (value == 3) secondBatch.Set();
+                    else if (value == 1) {
+                        if (!secondBatch.Wait(TimeSpan.FromSeconds(10)))
+                            throw new TimeoutException("The second mapping batch did not start.");
+                        cancellation.Cancel();
+                    }
+                }
+                return value;
+            }
+            var options = new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2, BatchSize = cancelWhileMapping ? 2 : 128
+            };
+            IEnumerable<IdRow> mapped = mapping == 0 ? reader.RowsAs<IdRow>() : mapping == 1
+                ? reader.RowsAsParallel<IdRow>(options) : mapping == 3
+                ? reader.RowsAsParallel(record => new IdRow { Id = MapId(record.GetInt32(0)) }, options)
+                : reader.RowsAsParallel<IdRow>(map => map.FromColumn<int>("Id", (row, value) => {
+                    row.Id = MapId(value); return row;
+                }), options);
+            using IEnumerator<IdRow> rows = mapped.GetEnumerator();
+            if (!cancelWhileMapping) {
+                Assert.True(rows.MoveNext());
+                Assert.Equal(1, rows.Current.Id);
+                cancellation.Cancel();
+            }
+            OperationCanceledException error = Assert.ThrowsAny<OperationCanceledException>(() => rows.MoveNext());
             Assert.Equal(cancellation.Token, error.CancellationToken);
             Assert.False(reader.IsClosed);
         } finally { File.Delete(path); }

@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Epub;
@@ -28,9 +27,9 @@ public sealed class EpubFallbackImageExportContracts {
         var options = new EpubImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true } };
         int accepted = 0;
         OfficeImageExportPolicyException error = asynchronous ?
-            await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() => read.ExportImagesAsync(OfficeImageExportFormat.Png,
+            await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() => read.ToImagesAsync(OfficeImageExportFormat.Png,
                 (_, _) => { accepted++; return Task.CompletedTask; }, options)) :
-            Assert.Throws<OfficeImageExportPolicyException>(() => read.ExportImages(OfficeImageExportFormat.Png, _ => accepted++, options));
+            Assert.Throws<OfficeImageExportPolicyException>(() => read.ToImages(OfficeImageExportFormat.Png, _ => accepted++, options));
         Assert.Equal(0, accepted);
         Assert.Contains(error.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission &&
             diagnostic.Code == (cycle ? "EPUB_IMAGE_EPUB_SPINE_FALLBACK_CYCLE" : "EPUB_IMAGE_EPUB_SPINE_FALLBACK_MISSING"));

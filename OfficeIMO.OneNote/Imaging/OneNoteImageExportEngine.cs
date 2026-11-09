@@ -1,5 +1,4 @@
 using OfficeIMO.Drawing;
-using System.Threading;
 
 namespace OfficeIMO.OneNote;
 
@@ -80,6 +79,10 @@ internal static class OneNoteImageExportEngine {
         IReadOnlyList<OneNotePageReference> pages,
         OneNotePageBatchRenderingOptions options) {
         options.ValidateBatch();
+        if (options.PageSelector != null) {
+            foreach (int number in options.PageSelector.Resolve(pages.Count, options.MaximumOutputCount)) yield return pages[number - 1];
+            yield break;
+        }
         int end = options.PageCount.HasValue
             ? (int)Math.Min((long)pages.Count, (long)options.PageIndex + options.PageCount.Value)
             : pages.Count;

@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Core.Internal;
 
 internal static partial class OfficeDeflateStreamValidator {

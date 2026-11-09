@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>One content slide rendered by the shared layout engine, including any required continuation slides.</summary>
     public sealed class PowerPointContentPlanSlide : PowerPointDeckPlanSlide {

@@ -16,13 +16,13 @@ public sealed partial class OneNoteRenderingTests {
         };
 
         OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            page.ExportImage(OfficeImageExportFormat.Png, options));
+            page.ToImage(OfficeImageExportFormat.Png, options));
 
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
         var imageOptions1 = new OneNotePageRenderingOptions();
         imageOptions1.Format = OfficeImageExportFormat.Png;
         Assert.Throws<OperationCanceledException>(() =>
-            page.ExportImage(OfficeImageExportFormat.Png, imageOptions1, cancellationToken: new System.Threading.CancellationToken(canceled: true)));
+            page.ToImage(OfficeImageExportFormat.Png, imageOptions1, cancellationToken: new System.Threading.CancellationToken(canceled: true)));
     }
 
     [Theory]
@@ -37,9 +37,9 @@ public sealed partial class OneNoteRenderingTests {
             MaximumRasterPixels = 2_000_000L
         };
 
-        OfficeImageExportResult firstPng = page.ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult secondPng = page.ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult svg = page.ExportImage(OfficeImageExportFormat.Svg, options);
+        OfficeImageExportResult firstPng = page.ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult secondPng = page.ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult svg = page.ToImage(OfficeImageExportFormat.Svg, options);
 
         Assert.Equal(firstPng.Bytes, secondPng.Bytes);
         Assert.True((long)firstPng.Width * firstPng.Height <= options.MaximumRasterPixels);
@@ -62,7 +62,7 @@ public sealed partial class OneNoteRenderingTests {
         };
 
         Assert.Throws<OfficeImageExportTimeoutException>(() =>
-            page.ExportImage(OfficeImageExportFormat.Svg, options));
+            page.ToImage(OfficeImageExportFormat.Svg, options));
     }
 
     [Fact]
@@ -91,27 +91,27 @@ public sealed partial class OneNoteRenderingTests {
         imageOptions2.Scale = 0.25D;
         imageOptions2.TargetDpi = null;
         imageOptions2.Format = OfficeImageExportFormat.Png;
-        OfficeImageExportResult png = page.ExportImage(OfficeImageExportFormat.Png, imageOptions2);
+        OfficeImageExportResult png = page.ToImage(OfficeImageExportFormat.Png, imageOptions2);
         var imageOptions3 = new OneNotePageRenderingOptions();
         imageOptions3.Scale = 0.25D;
         imageOptions3.TargetDpi = null;
         imageOptions3.Format = OfficeImageExportFormat.Jpeg;
-        OfficeImageExportResult jpeg = page.ExportImage(OfficeImageExportFormat.Jpeg, imageOptions3);
+        OfficeImageExportResult jpeg = page.ToImage(OfficeImageExportFormat.Jpeg, imageOptions3);
         var imageOptions4 = new OneNotePageRenderingOptions();
         imageOptions4.Scale = 0.25D;
         imageOptions4.TargetDpi = null;
         imageOptions4.Format = OfficeImageExportFormat.Tiff;
-        OfficeImageExportResult tiff = page.ExportImage(OfficeImageExportFormat.Tiff, imageOptions4);
+        OfficeImageExportResult tiff = page.ToImage(OfficeImageExportFormat.Tiff, imageOptions4);
         var imageOptions5 = new OneNotePageRenderingOptions();
         imageOptions5.Scale = 0.25D;
         imageOptions5.TargetDpi = null;
         imageOptions5.Format = OfficeImageExportFormat.Svg;
-        OfficeImageExportResult svg = page.ExportImage(OfficeImageExportFormat.Svg, imageOptions5);
+        OfficeImageExportResult svg = page.ToImage(OfficeImageExportFormat.Svg, imageOptions5);
         var imageOptions6 = new OneNotePageRenderingOptions();
         imageOptions6.Scale = 0.25D;
         imageOptions6.TargetDpi = null;
         imageOptions6.Format = OfficeImageExportFormat.Webp;
-        OfficeImageExportResult webp = page.ExportImage(OfficeImageExportFormat.Webp, imageOptions6);
+        OfficeImageExportResult webp = page.ToImage(OfficeImageExportFormat.Webp, imageOptions6);
 
         Assert.Equal(new byte[] { 137, 80, 78, 71 }, png.Bytes.Take(4));
         Assert.Equal(new byte[] { 0xFF, 0xD8 }, jpeg.Bytes.Take(2));
@@ -137,7 +137,7 @@ public sealed partial class OneNoteRenderingTests {
         imageOptions7.MaximumOutputHeight = 180;
         imageOptions7.IncludeAttachmentPlaceholders = true;
         imageOptions7.Format = OfficeImageExportFormat.Png;
-        OfficeImageExportResult png = page.ExportImage(OfficeImageExportFormat.Png, imageOptions7);
+        OfficeImageExportResult png = page.ToImage(OfficeImageExportFormat.Png, imageOptions7);
         var imageOptions8 = new OneNotePageRenderingOptions();
         imageOptions8.Scale = 2D;
         imageOptions8.TargetDpi = null;
@@ -145,7 +145,7 @@ public sealed partial class OneNoteRenderingTests {
         imageOptions8.MaximumOutputHeight = 180;
         imageOptions8.IncludeAttachmentPlaceholders = true;
         imageOptions8.Format = OfficeImageExportFormat.Svg;
-        OfficeImageExportResult svg = page.ExportImage(OfficeImageExportFormat.Svg, imageOptions8);
+        OfficeImageExportResult svg = page.ToImage(OfficeImageExportFormat.Svg, imageOptions8);
 
         Assert.Equal((png.Width, png.Height), (svg.Width, svg.Height));
         Assert.True(png.Width <= 180);
@@ -166,21 +166,21 @@ public sealed partial class OneNoteRenderingTests {
         imageOptions9.Scale = 0.2D;
         imageOptions9.TargetDpi = null;
         imageOptions9.Format = OfficeImageExportFormat.Png;
-        IReadOnlyList<OfficeImageExportResult> sectionResults = section.ExportImages(OfficeImageExportFormat.Png, imageOptions9);
+        IReadOnlyList<OfficeImageExportResult> sectionResults = section.ToImages(OfficeImageExportFormat.Png, imageOptions9);
         var imageOptions10 = new OneNotePageBatchRenderingOptions();
         imageOptions10.PageIndex = 1;
         imageOptions10.PageCount = int.MaxValue;
         imageOptions10.Scale = 0.2D;
         imageOptions10.TargetDpi = null;
         imageOptions10.Format = OfficeImageExportFormat.Png;
-        IReadOnlyList<OfficeImageExportResult> overflowSafeResults = section.ExportImages(OfficeImageExportFormat.Png, imageOptions10);
+        IReadOnlyList<OfficeImageExportResult> overflowSafeResults = section.ToImages(OfficeImageExportFormat.Png, imageOptions10);
         var imageOptions11 = new OneNotePageBatchRenderingOptions();
         imageOptions11.PageIndex = 0;
         imageOptions11.PageCount = null;
         imageOptions11.Scale = 0.2D;
         imageOptions11.TargetDpi = null;
         imageOptions11.Format = OfficeImageExportFormat.Svg;
-        IReadOnlyList<OfficeImageExportResult> notebookResults = notebook.ExportImages(OfficeImageExportFormat.Svg, imageOptions11);
+        IReadOnlyList<OfficeImageExportResult> notebookResults = notebook.ToImages(OfficeImageExportFormat.Svg, imageOptions11);
 
         Assert.Single(sectionResults);
         Assert.Single(overflowSafeResults);
@@ -196,7 +196,7 @@ public sealed partial class OneNoteRenderingTests {
         var section = new OneNoteSection { Name = "Empty" };
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            section.ExportImages(
+            section.ToImages(
                 OfficeImageExportFormat.Png,
                 new OneNotePageBatchRenderingOptions { PageIndex = -1 }));
     }
@@ -264,7 +264,7 @@ public sealed partial class OneNoteRenderingTests {
             TargetDpi = 144D
         };
 
-        OfficeImageExportResult result = page.ExportImage(
+        OfficeImageExportResult result = page.ToImage(
             OfficeImageExportFormat.Svg,
             options);
 
@@ -287,7 +287,7 @@ public sealed partial class OneNoteRenderingTests {
             MaximumRasterPixels = 2_500L
         };
 
-        OfficeImageExportResult result = page.ExportImage(
+        OfficeImageExportResult result = page.ToImage(
             OfficeImageExportFormat.Png,
             options);
 
@@ -377,7 +377,7 @@ public sealed partial class OneNoteRenderingTests {
         imageOptions12.Scale = 0.25D;
         imageOptions12.TargetDpi = null;
         imageOptions12.Format = OfficeImageExportFormat.Png;
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png, imageOptions12);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png, imageOptions12);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         Assert.True(OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? raster));
         Assert.NotNull(raster);
@@ -401,7 +401,7 @@ public sealed partial class OneNoteRenderingTests {
         imageOptions13.Scale = 0.25D;
         imageOptions13.TargetDpi = null;
         imageOptions13.Format = OfficeImageExportFormat.Svg;
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Svg, imageOptions13);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Svg, imageOptions13);
         string svg = Encoding.UTF8.GetString(result.Bytes);
 
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);

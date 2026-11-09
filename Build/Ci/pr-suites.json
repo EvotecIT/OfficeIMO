@@ -128,7 +128,9 @@
       "OfficeIMO.Studio.Native"
     ],
     "invoice-standards": [
-      "OfficeIMO.Invoicing.Tests"
+      "OfficeIMO.Invoicing.KSeF.Tests",
+      "OfficeIMO.Invoicing.Tests",
+      "OfficeIMO.Invoicing.Validation.Tests"
     ],
     "build-matrix": [
       "OfficeIMO.Examples",
@@ -233,6 +235,9 @@
     ],
     "dbf-contracts": [
       "OfficeIMO.Reader.Dbf.Tests"
+    ],
+    "odbc-contracts": [
+      "OfficeIMO.Odbc.Tests"
     ],
     "conversion-consistency": [
       "OfficeIMO.ConversionConsistency.Tool"

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Core.Internal.Cabinet;
 
 /// <summary>Computes the four-byte longitudinal parity checksum defined by MS-CAB.</summary>

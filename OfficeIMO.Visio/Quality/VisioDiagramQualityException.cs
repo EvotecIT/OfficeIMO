@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Exception thrown when a visual quality gate fails.

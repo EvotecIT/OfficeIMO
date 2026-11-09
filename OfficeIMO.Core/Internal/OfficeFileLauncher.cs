@@ -1,6 +1,4 @@
-using System;
 using System.Diagnostics;
-using System.IO;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Launches saved Office artifacts through the operating system's registered application.</summary>

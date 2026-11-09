@@ -13,8 +13,6 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word.Html {

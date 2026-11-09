@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>AV1 Q15 arithmetic symbol decoder bounded to one tile and a caller-supplied symbol budget.</summary>

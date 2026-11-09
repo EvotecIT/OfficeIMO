@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
@@ -41,8 +39,8 @@ namespace OfficeIMO.Tests {
             PowerPointAutoShape authored = Assert.IsType<PowerPointAutoShape>(
                 Assert.Single(reopened.Slides[0].Shapes));
             Assert.Null(authored.ShapeType);
-            OfficeImageExportResult svg = reopened.Slides[0].ExportImage(OfficeImageExportFormat.Svg);
-            OfficeImageExportResult png = reopened.Slides[0].ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = reopened.Slides[0].ToImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = reopened.Slides[0].ToImage(OfficeImageExportFormat.Png);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -341,7 +339,7 @@ namespace OfficeIMO.Tests {
                 .GetFirstChild<A.SchemeColor>());
             Assert.Equal(60000, scheme.GetFirstChild<A.Alpha>()!.Val!.Value);
             Assert.Equal(40, shape.OutlineTransparency);
-            OfficeImageExportResult svg = slide.ExportImage(
+            OfficeImageExportResult svg = slide.ToImage(
                 OfficeImageExportFormat.Svg);
             // The PDF-backed SVG may flatten strokes into paths. Preserve authoring style above,
             // then verify the effective theme stroke color and transparency in the exported pixels.

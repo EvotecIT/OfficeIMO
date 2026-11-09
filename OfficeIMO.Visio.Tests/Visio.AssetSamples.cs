@@ -1,8 +1,5 @@
-using System;
-using System.IO;
 using System.Globalization;
 using System.IO.Compression;
-using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;

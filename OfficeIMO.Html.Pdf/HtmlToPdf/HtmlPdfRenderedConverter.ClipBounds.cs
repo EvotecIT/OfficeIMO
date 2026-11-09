@@ -1,8 +1,5 @@
 using OfficeIMO.Html;
 using OfficeIMO.Drawing;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;

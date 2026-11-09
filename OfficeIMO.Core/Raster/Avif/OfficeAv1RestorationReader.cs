@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Tile-owned AV1 restoration unit syntax and reference taps, sections 5.11.57–58.</summary>

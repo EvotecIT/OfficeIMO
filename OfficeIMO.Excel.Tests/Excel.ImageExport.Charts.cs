@@ -253,7 +253,7 @@ namespace OfficeIMO.Tests {
             ExcelRange range = sheet.Range("A1:H10");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
             ExcelVisualChart visualChart = Assert.Single(range.CreateVisualSnapshot(options).Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
 
             Assert.DoesNotContain(png.Diagnostics, diagnostic =>
                 diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartKindApproximated &&
@@ -724,7 +724,7 @@ namespace OfficeIMO.Tests {
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(170), Title = "Combo Scatter" });
             ConvertSecondBarSeriesToScatter(document);
 
-            OfficeImageExportResult result = sheet.Range("A1:J10").ExportImage(
+            OfficeImageExportResult result = sheet.Range("A1:J10").ToImage(
                 OfficeImageExportFormat.Png,
                 new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -1013,8 +1013,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Style);
             Assert.Equal(OfficeColor.FromRgb(15, 118, 110), visualChart.Snapshot.Style!.LegendTextColor);
@@ -1076,8 +1076,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Style);
             Assert.Equal(OfficeColor.FromRgb(253, 230, 138), visualChart.Snapshot.Style!.DataLabelFillColor);
@@ -1134,8 +1134,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.Equal("DC7536", visualChart.Snapshot.Data.Series[0].SeriesColorArgb);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartSeriesStyleApproximation);
@@ -1180,8 +1180,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Style);
             Assert.Equal(OfficeColor.FromRgb(124, 58, 237), visualChart.Snapshot.Style!.MutedTextColor);
@@ -1250,8 +1250,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.Equal(9D, visualChart.Snapshot.Layout!.LegendFontSize, 3);
@@ -1282,7 +1282,7 @@ namespace OfficeIMO.Tests {
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Missing Font" });
             chart.SetTitleTextStyle(fontFamily: "OfficeIMO Missing Chart Font", color: OfficeColor.Parse("BE123C"));
 
-            OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
+            OfficeImageExportResult png = sheet.Range("A1:H9").ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 
             OfficeImageExportDiagnostic diagnostic = Assert.Single(
                 png.Diagnostics,
@@ -1335,7 +1335,7 @@ namespace OfficeIMO.Tests {
                 OfficeFontStyle.Bold | OfficeFontStyle.Italic);
 
             OfficeImageExportResult svg = sheet.Range("A1:H9")
-                .ExportImage(OfficeImageExportFormat.Svg, options);
+                .ToImage(OfficeImageExportFormat.Svg, options);
 
             Assert.DoesNotContain(
                 svg.Diagnostics,
@@ -1370,8 +1370,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.Equal("#,##0.0", visualChart.Snapshot.Layout!.VerticalAxisNumberFormat);
@@ -1404,8 +1404,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.Equal("#,##0.0", visualChart.Snapshot.Layout!.HorizontalAxisNumberFormat);
@@ -1433,7 +1433,7 @@ namespace OfficeIMO.Tests {
             ExcelRange range = sheet.Range("A1:H9");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(
                 new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png,
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png,
                 new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
@@ -1461,7 +1461,7 @@ namespace OfficeIMO.Tests {
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Axis Format Diagnostic" });
             chart.SetValueAxisNumberFormat("yyyy-mm-dd");
 
-            OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
+            OfficeImageExportResult png = sheet.Range("A1:H9").ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
@@ -1490,8 +1490,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.Equal("0.0", visualChart.Snapshot.Layout!.CategoryAxisNumberFormat);
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartCategoryAxisNumberFormatUnsupported);
@@ -1518,7 +1518,7 @@ namespace OfficeIMO.Tests {
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Category Axis Format Diagnostic" });
             chart.SetCategoryAxisNumberFormat("yyyy-mm-dd");
 
-            OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
+            OfficeImageExportResult png = sheet.Range("A1:H9").ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartCategoryAxisNumberFormatUnsupported);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
@@ -1547,8 +1547,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.False(visualChart.Snapshot.Layout!.ShowCategoryAxisLabels);
@@ -1580,8 +1580,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.False(visualChart.Snapshot.Layout!.ShowValueAxisLabels);
@@ -1616,7 +1616,7 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.False(visualChart.Snapshot.Layout!.ShowLegend);
@@ -1644,7 +1644,7 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.False(visualChart.Snapshot.Layout!.ShowCategoryAxis);
@@ -1691,8 +1691,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.Equal(OfficeChartAxisTickLabelPosition.High, visualChart.Snapshot.Layout!.VerticalAxisTickLabelPosition);
@@ -1737,8 +1737,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.Equal(OfficeChartAxisTickMark.Outside, visualChart.Snapshot.Layout!.VerticalAxisMajorTickMark);
@@ -1789,7 +1789,7 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.Equal(OfficeChartAxisTickMark.Outside, visualChart.Snapshot.Layout!.VerticalAxisMinorTickMark);
@@ -1842,8 +1842,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.Equal(OfficeChartAxisCrossingPosition.Maximum, visualChart.Snapshot.Layout!.VerticalAxisCrossingPosition);
@@ -1888,8 +1888,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.Equal(OfficeChartAxisCrossingPosition.Maximum, visualChart.Snapshot.Layout!.HorizontalAxisCrossingPosition);
@@ -1936,8 +1936,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.Equal(100D, visualChart.Snapshot.Layout!.VerticalAxisMinimum);
@@ -1976,7 +1976,7 @@ namespace OfficeIMO.Tests {
             chart.SetValueAxisScale(minimum: 0D, maximum: 100D, majorUnit: 4D);
             SetFirstChartValueAxisMinorTickMark(document, TickMarkValues.Outside);
 
-            OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(
+            OfficeImageExportResult png = sheet.Range("A1:H9").ToImage(
                 OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics,
@@ -2005,8 +2005,8 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.Equal(1000D, visualChart.Snapshot.Layout!.VerticalAxisDisplayUnitDivisor);
@@ -2050,8 +2050,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.True(visualChart.Snapshot.Layout!.ReverseCategoryAxis);
@@ -2150,7 +2150,7 @@ namespace OfficeIMO.Tests {
                 numberFormat: "0");
             chart.SetDataLabelTextStyle(color: OfficeColor.Parse("EA580C"));
 
-            OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
+            OfficeImageExportResult png = sheet.Range("A1:H9").ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartTextStyleApproximation);
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);

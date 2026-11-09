@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Defines a reusable visual system for high-level PowerPoint slide compositions.

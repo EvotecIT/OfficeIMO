@@ -1,7 +1,6 @@
 using OfficeIMO.Pdf;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using Xunit;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 

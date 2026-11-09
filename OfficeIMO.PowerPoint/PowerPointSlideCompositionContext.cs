@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Plan-owned callback context for building a custom designed slide without manually placing every shape.

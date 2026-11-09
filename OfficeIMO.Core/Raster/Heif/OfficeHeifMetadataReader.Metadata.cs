@@ -1,7 +1,6 @@
 // Adapted from the Evotec ImagePlayground HEIF metadata implementation.
 // Copyright (c) 2022 Evotec. MIT license; see Licenses/ImagePlayground-LICENSE.txt.
 // OfficeIMO adaptation provides bounded byte/stream APIs, cancellation and output preflight.
-using System;
 using System.Text;
 
 namespace OfficeIMO.Drawing;

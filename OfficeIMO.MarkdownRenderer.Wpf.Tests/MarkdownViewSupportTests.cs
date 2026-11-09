@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.MarkdownRenderer;
 using Xunit;
 

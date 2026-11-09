@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Rtf;
 using OfficeIMO.Word;

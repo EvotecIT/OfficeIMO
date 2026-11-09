@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared rendering-profile configuration for all image export option types.</summary>

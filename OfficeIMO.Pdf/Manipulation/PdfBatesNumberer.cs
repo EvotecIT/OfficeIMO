@@ -37,7 +37,7 @@ public sealed class PdfBatesDocument {
     public PdfLoadOptions? ReadOptions { get; set; }
 
     /// <summary>Optional document-specific page selection. Overrides <see cref="PdfBatesNumberingOptions.TargetPages"/>.</summary>
-    public PdfPageSelector? TargetPages { get; set; }
+    public OfficePageSelector? TargetPages { get; set; }
 
     internal byte[] GetBytes() => (byte[])_pdf.Clone();
 }
@@ -64,7 +64,7 @@ public sealed class PdfBatesNumberingOptions : IPdfOperationCancellation {
     public int MinimumDigits { get; set; } = 6;
 
     /// <summary>Default page selection applied when an input does not provide its own selector.</summary>
-    public PdfPageSelector? TargetPages { get; set; }
+    public OfficePageSelector? TargetPages { get; set; }
 
     /// <summary>Visual page position used for each number.</summary>
     public PdfBatesPosition Position { get; set; } = PdfBatesPosition.BottomRight;
@@ -222,7 +222,7 @@ public static class PdfBatesNumberer {
                     out generatedGrowth,
                     new PdfCanvasStampOptions {
                         CancellationToken = cancellationToken,
-                        TargetPages = PdfPageSelector.Parse(string.Join(",", selectedPages.Select(static page => page.ToString(CultureInfo.InvariantCulture))))
+                        TargetPages = OfficePageSelector.Parse(string.Join(",", selectedPages.Select(static page => page.ToString(CultureInfo.InvariantCulture))))
                     },
                     input.ReadOptions);
             PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(input.ReadOptions, source, output, generatedGrowth);

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeCompoundFileReader {
         internal sealed partial class ReadSession {

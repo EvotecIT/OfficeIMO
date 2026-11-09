@@ -4,9 +4,6 @@ using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using System;
-using System.IO;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {

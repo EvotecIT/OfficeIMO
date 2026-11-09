@@ -1,4 +1,3 @@
-using System;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
 using PSWriteOffice.Foundation;

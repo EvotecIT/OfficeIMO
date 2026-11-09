@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Archives {
     /// <summary>Detached declared cost of one grouped member read. Planning neither verifies content nor reserves budgets.</summary>
     public sealed class ArchiveReadPlan {

@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {

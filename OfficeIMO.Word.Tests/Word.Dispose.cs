@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using OfficeIMO.Word;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests {

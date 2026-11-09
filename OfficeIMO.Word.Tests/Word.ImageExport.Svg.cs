@@ -4,7 +4,6 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
-using System.Threading;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -26,12 +25,12 @@ namespace OfficeIMO.Tests {
             using MemoryStream package = new System.IO.MemoryStream(source.ToBytes());
             using WordDocument document = WordDocument.Load(package);
 
-            OfficeImageExportResult preview = Assert.Single(document.ExportImages(OfficeImageExportFormat.Png));
+            OfficeImageExportResult preview = Assert.Single(document.ToImages(OfficeImageExportFormat.Png));
             AssertColor(preview.Bytes, red: true);
             PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence();
             Assert.DoesNotContain(conversion.Warnings, warning => warning.LossKind == OfficeConversionLossKind.Omission);
             PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(conversion.Value.ToBytes()));
-            AssertColor(Assert.Single(pdf.ExportImages(OfficeImageExportFormat.Png)).Bytes, red: true);
+            AssertColor(Assert.Single(pdf.ToImages(OfficeImageExportFormat.Png)).Bytes, red: true);
         }
 
         [Theory]
@@ -42,11 +41,11 @@ namespace OfficeIMO.Tests {
             using WordDocument source = CreateDocument("body", extension: true, svg);
             using MemoryStream package = new System.IO.MemoryStream(source.ToBytes());
             using WordDocument document = WordDocument.Load(package);
-            AssertColor(Assert.Single(document.ExportImages(OfficeImageExportFormat.Png)).Bytes, red: false);
+            AssertColor(Assert.Single(document.ToImages(OfficeImageExportFormat.Png)).Bytes, red: false);
             PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence();
             Assert.DoesNotContain(conversion.Warnings, warning => warning.LossKind == OfficeConversionLossKind.Omission);
             PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(conversion.Value.ToBytes()));
-            AssertColor(Assert.Single(pdf.ExportImages(OfficeImageExportFormat.Png)).Bytes, red: false);
+            AssertColor(Assert.Single(pdf.ToImages(OfficeImageExportFormat.Png)).Bytes, red: false);
         }
 
         [Fact]

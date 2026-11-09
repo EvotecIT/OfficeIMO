@@ -90,7 +90,7 @@ namespace OfficeIMO.Examples.Excel
                 document.Calculate();
 #endregion
                 StyleLayout(sheet, totalRow);
-                OfficeImageExportResult preview = sheet.Range("A1:K22").ExportImage(OfficeImageExportFormat.Png);
+                OfficeImageExportResult preview = sheet.Range("A1:K22").ToImage(OfficeImageExportFormat.Png);
                 File.WriteAllBytes(previewPath, preview.Bytes);
                 ExcelFeatureReport report = document.InspectFeatures();
                 document.Save();

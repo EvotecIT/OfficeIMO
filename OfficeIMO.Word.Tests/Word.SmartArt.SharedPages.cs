@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
 using OfficeIMO.Drawing;
@@ -62,7 +60,7 @@ public sealed class WordSmartArtSharedPageTests {
         WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
         while (smartArt.NodeCount < 3) smartArt.AddNode("Node");
         string[] labels = SetNodeLabels(smartArt);
-        OfficeImageExportResult image = document.ExportImage(OfficeImageExportFormat.Svg,
+        OfficeImageExportResult image = document.ToImage(OfficeImageExportFormat.Svg,
             new WordImageExportOptions {
                 Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
             });
@@ -157,8 +155,8 @@ public sealed class WordSmartArtSharedPageTests {
             Assert.All(labels, label => Assert.Contains(label, text, StringComparison.Ordinal));
         });
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Png, OfficeImageExportFormat.Svg }) {
-            var expected = conversion.ExportImages(format, new PdfImageExportOptions { Scale = .5D });
-            var actual = reopened.ExportImages(format, new WordImageExportOptions { Scale = .5D });
+            var expected = conversion.ToImages(format, new PdfImageExportOptions { Scale = .5D });
+            var actual = reopened.ToImages(format, new WordImageExportOptions { Scale = .5D });
             Assert.Equal(expected.Count, actual.Count);
             for (int index = 0; index < expected.Count; index++) Assert.Equal(expected[index].Bytes, actual[index].Bytes);
         }
@@ -172,8 +170,8 @@ public sealed class WordSmartArtSharedPageTests {
 
     private static void AssertSharedSvgPages(WordDocument document, PdfDocumentConversionResult conversion,
         string[] labels, string warningCode) {
-        var expected = conversion.ExportImages(OfficeImageExportFormat.Svg, new PdfImageExportOptions { Scale = .5D });
-        var actual = document.ExportImages(OfficeImageExportFormat.Svg, new WordImageExportOptions { Scale = .5D });
+        var expected = conversion.ToImages(OfficeImageExportFormat.Svg, new PdfImageExportOptions { Scale = .5D });
+        var actual = document.ToImages(OfficeImageExportFormat.Svg, new WordImageExportOptions { Scale = .5D });
         Assert.Equal(expected.Count, actual.Count);
         for (int index = 0; index < expected.Count; index++) Assert.Equal(expected[index].Bytes, actual[index].Bytes);
         // SVG may paint glyph outlines or split runs at spaces. Its bytes must

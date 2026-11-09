@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace OfficeIMO.Excel {
     /// <summary>Prevents package recovery from replacing a part whose declared length is invalid.</summary>
     internal static class ExcelPackagePartLengthFailure {

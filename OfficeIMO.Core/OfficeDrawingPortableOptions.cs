@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Bounds the solid-paint, positioned Latin-text drawing interchange profile.</summary>

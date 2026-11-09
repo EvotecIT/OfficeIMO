@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml.Packaging;
 using System.Data.Common;
 using System.IO.Compression;
 using System.Text;
-using System.Threading;
 using System.Xml.Linq;
 using Xunit;
 

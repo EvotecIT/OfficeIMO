@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Provenance;
 
 internal static partial class OfficeC2paManifestStore {

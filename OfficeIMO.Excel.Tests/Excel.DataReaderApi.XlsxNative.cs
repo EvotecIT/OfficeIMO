@@ -1,6 +1,5 @@
 using System.Data.Common;
 using System.Text;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;

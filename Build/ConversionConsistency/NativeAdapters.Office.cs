@@ -25,21 +25,21 @@ internal static partial class NativeAdapters {
                 var imageOptions = Images<WordImageExportOptions>(suite, profile);
                 var pdfOptions = new WordPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(output => document.SaveAsPdf(output, pdfOptions, token),
-                    format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
+                    format => Collect(consumer => document.ToImages(format, consumer, imageOptions, token)), token);
             }
             case "xlsx": {
                 using var document = ExcelDocument.Load(source);
                 var imageOptions = Images<ExcelImageExportOptions>(suite, profile);
                 var pdfOptions = new ExcelPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(output => document.SaveAsPdf(output, pdfOptions, token),
-                    format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
+                    format => Collect(consumer => document.ToImages(format, consumer, imageOptions, token)), token);
             }
             case "pptx": {
                 using var document = PowerPointDocument.Load(source);
                 var imageOptions = Images<PowerPointImageExportOptions>(suite, profile);
                 var pdfOptions = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(output => document.SaveAsPdf(output, pdfOptions, token),
-                    format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
+                    format => Collect(consumer => document.ToImages(format, consumer, imageOptions, token)), token);
             }
             case "odt": {
                 var document = OdtDocument.Load(source);
@@ -47,7 +47,7 @@ internal static partial class NativeAdapters {
                 var pdfOptions = new WordPdfExportOptions().UseRenderingProfile(profile);
                 using (PdfDocument pdf = document.ToPdf(new OdtPdfExportOptions { PdfOptions = pdfOptions }, out OfficeConversionReport report, token))
                     return Capture(pdf, report,
-                        format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
+                        format => document.ToImages(format, imageOptions, cancellationToken: token), token);
             }
             case "ods": {
                 var document = OdsDocument.Load(source);
@@ -55,7 +55,7 @@ internal static partial class NativeAdapters {
                 var pdfOptions = new ExcelPdfExportOptions().UseRenderingProfile(profile);
                 using (PdfDocument pdf = document.ToPdf(new OdsPdfExportOptions { PdfOptions = pdfOptions }, out OfficeConversionReport report, token))
                     return Capture(pdf, report,
-                        format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
+                        format => document.ToImages(format, imageOptions, cancellationToken: token), token);
             }
             case "odp": {
                 var document = OdpPresentation.Load(source);
@@ -63,7 +63,7 @@ internal static partial class NativeAdapters {
                 var pdfOptions = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
                 using (PdfDocument pdf = document.ToPdf(new OdpPdfExportOptions { PdfOptions = pdfOptions }, out OfficeConversionReport report, token))
                     return Capture(pdf, report,
-                    format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
+                    format => document.ToImages(format, imageOptions, cancellationToken: token), token);
             }
             case "pdf": {
                 byte[] bytes = File.ReadAllBytes(source);
@@ -74,7 +74,7 @@ internal static partial class NativeAdapters {
                 var details = new List<string>();
                 NativeExport exported = Capture(bytes, format => {
                     imageOptions.Format = format;
-                    IReadOnlyList<OfficeImageExportResult> pages = document.ExportImages(imageOptions, out var report, token);
+                    IReadOnlyList<OfficeImageExportResult> pages = document.ToImages(imageOptions, out var report, token);
                     diagnostics.AddRange(report.Diagnostics.Select(item => item.Code));
                     details.AddRange(report.Diagnostics.Select(item => item.Code + ": " + item.Message + " [" + item.Location + "]"));
                     return pages.Select((page, index) => {

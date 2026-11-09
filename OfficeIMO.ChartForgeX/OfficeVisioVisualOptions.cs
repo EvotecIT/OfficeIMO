@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.ChartForgeX;
 
 /// <summary>Configures native editable Visio projection of a ChartForgeX visual artifact.</summary>

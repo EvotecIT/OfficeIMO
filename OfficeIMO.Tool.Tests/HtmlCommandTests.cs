@@ -1,7 +1,6 @@
 #if NET8_0_OR_GREATER
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using System.IO.Compression;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
@@ -45,7 +44,7 @@ public sealed class HtmlCommandTests {
             }.Concat(fontArguments).ToArray(), pdfInput, pdfOutput, pdfErrors);
             Assert.True(pdfExit == 0, pdfErrors.ToString());
             var pdf = OfficeIMO.Pdf.PdfReadDocument.Open(pdfOutput.ToArray());
-            var expected = OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(pdf, OfficeImageExportFormat.Png,
+            var expected = OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(pdf, OfficeImageExportFormat.Png,
                 new OfficeIMO.Pdf.PdfImageExportOptions { Scale = 96D / 72D });
             Assert.Equal(2, expected.Count);
             Assert.Contains(explicitUnicodeFont ? "First ł" : "First", pdf.ExtractText(), StringComparison.Ordinal);

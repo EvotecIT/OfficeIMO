@@ -3,7 +3,6 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Tests.Pdf;
-using System.Threading;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -495,7 +494,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderDrawing image = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderDrawing>(), item => item.Source == "img#svg-image");
-        string exportedSvg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string exportedSvg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
 
         Assert.Equal(200D, image.Width, 3);
         Assert.Equal(100D, image.Height, 3);
@@ -521,7 +520,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderDrawing vector = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(), visual => visual.Source == "img#vector");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string exportedSvg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string exportedSvg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -545,7 +544,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(60, 20));
         Assert.Equal(OfficeColor.Lime, svgRaster.GetPixel(40, 20));
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? pngRaster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? pngRaster));
         Assert.Equal(OfficeColor.Red, pngRaster!.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, pngRaster.GetPixel(60, 20));
         Assert.Equal(OfficeColor.Lime, pngRaster.GetPixel(40, 20));
@@ -575,7 +574,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] png = HtmlConversionDocument.Parse(html).ToImage(options);
+        byte[] png = HtmlConversionDocument.Parse(html).ToImage(options).Bytes;
         var pdfOptions = new HtmlPdfExportOptions(options);
         PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions);
         byte[] pdf = pdfResult.ToBytes();
@@ -767,7 +766,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         Assert.Single(visual.Drawing.Images);
         Assert.Equal(OfficeColor.Purple, RasterizeHtmlImageSvg(exportedSvg).GetPixel(50, 20));
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? png));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? png));
         Assert.Equal(OfficeColor.Purple, png!.GetPixel(50, 20));
     }
 
@@ -789,7 +788,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgRasterFallback);
 
         OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options));
+            HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Png, options));
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
         Assert.Equal(16, exception.Maximum);
     }
@@ -831,7 +830,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
-            HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options));
+            HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Png, options));
 
         Assert.Equal(timeout, exception.Timeout);
     }
@@ -856,7 +855,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(), item => item.Source == "img#paint-server");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string exportedSvg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string exportedSvg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -930,7 +929,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderImage image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -953,7 +952,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(20, 10));
         Assert.True(svgRaster.GetPixel(20, 30).A > 0);
         Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(45, 30));
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? pngRaster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? pngRaster));
         Assert.Equal(OfficeColor.Transparent, pngRaster!.GetPixel(20, 10));
         Assert.True(pngRaster.GetPixel(20, 30).A > 0);
         Assert.Equal(OfficeColor.Transparent, pngRaster.GetPixel(45, 30));
@@ -975,7 +974,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderImage image = Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options).Pages[0].Visuals.OfType<HtmlRenderImage>());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
 
         Assert.Equal(0D, image.X, 3);
         Assert.Equal(0D, image.Y, 3);
@@ -1185,7 +1184,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText before = Assert.Single(flattened.OfType<HtmlRenderText>(), text => text.Text == "Before");
         HtmlRenderText after = Assert.Single(flattened.OfType<HtmlRenderText>(), text => text.Text == "After");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -1211,7 +1210,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
         Assert.True(svgRaster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(image.Y + image.Height / 2D)).A > 0);
         Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(after.Y + after.Height / 2D)));
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? pngRaster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? pngRaster));
         Assert.True(pngRaster!.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(image.Y + image.Height / 2D)).A > 0);
         Assert.Equal(OfficeColor.Transparent, pngRaster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(after.Y + after.Height / 2D)));
         Assert.Contains("Before", pdfText, StringComparison.Ordinal);
@@ -1235,8 +1234,8 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Png, options);
-        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
+        IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Svg, options);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions(options);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
@@ -1278,8 +1277,8 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Png, options);
-        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
+        IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Svg, options);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions(options);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
@@ -1317,8 +1316,8 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Png, options);
-        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
+        IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Svg, options);
 
         Assert.Equal(3, rendered.Pages.Count);
         Assert.All(rendered.Pages, page => {
@@ -1350,7 +1349,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlDiagnostic replaced = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported);
         HtmlRenderPathClipGroup rounded = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderPathClipGroup>(), group => group.Source == "img#rounded-image:content-clip");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
 
         Assert.Equal("img#invalid-image", replaced.Source);
         Assert.Contains("object-fit=stretch", replaced.Detail, StringComparison.Ordinal);
@@ -1390,7 +1389,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderPathClipGroup group = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderPathClipGroup>(), item => item.Source == "div#rounded-background:background-image:clip");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,

@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         /// <summary>

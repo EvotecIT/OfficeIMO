@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
-using System.IO;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 
 namespace OfficeIMO.Word {

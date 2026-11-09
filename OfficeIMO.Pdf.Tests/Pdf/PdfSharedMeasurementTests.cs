@@ -1,5 +1,4 @@
 using OfficeIMO.Pdf;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;

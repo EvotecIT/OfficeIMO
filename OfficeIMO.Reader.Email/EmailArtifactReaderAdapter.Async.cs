@@ -1,5 +1,4 @@
 using OfficeIMO.Email;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader.Email;
 

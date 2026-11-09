@@ -2,7 +2,6 @@ using OfficeIMO.Email;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Email;
 using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

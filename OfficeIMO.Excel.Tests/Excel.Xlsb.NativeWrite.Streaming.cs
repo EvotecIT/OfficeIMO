@@ -1,6 +1,5 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb.Write;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests {

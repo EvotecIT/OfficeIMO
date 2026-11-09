@@ -3,8 +3,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using System.Globalization;
-using System.IO;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>

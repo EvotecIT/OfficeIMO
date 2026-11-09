@@ -1,5 +1,3 @@
-using System.Threading;
-
 internal sealed class ManagedHeapSampler : IDisposable {
     private readonly Thread _thread;
     private readonly ManualResetEventSlim _stop = new(false);

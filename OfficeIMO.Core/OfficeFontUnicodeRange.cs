@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Inclusive Unicode scalar range used to constrain a scoped font face.</summary>

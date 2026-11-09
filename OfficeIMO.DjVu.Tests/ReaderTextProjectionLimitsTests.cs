@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.DjVu;
 

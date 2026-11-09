@@ -1,20 +1,18 @@
 using OfficeIMO.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>
         /// Exports workbook sheets as supported raster formats or SVG images.
         /// </summary>
-        public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelImageExportOptions? options = null) {
+        public IReadOnlyList<OfficeImageExportResult> ToImages(OfficeImageExportFormat format, ExcelImageExportOptions? options = null) {
             var results = new List<OfficeImageExportResult>();
-            ExportImages(format, results.Add, options);
+            ToImages(format, results.Add, options);
             return results.AsReadOnly();
         }
 
         /// <summary>Streams workbook images to a consumer without retaining earlier payloads.</summary>
-        public void ExportImages(
+        public void ToImages(
             OfficeImageExportFormat format,
             OfficeImageExportConsumer consumer,
             ExcelImageExportOptions? options = null,
@@ -30,15 +28,17 @@ namespace OfficeIMO.Excel {
                     HashSet<string>? selected = resolved.SheetNames == null
                         ? null
                         : new HashSet<string>(resolved.SheetNames, StringComparer.OrdinalIgnoreCase);
-                    if (resolved.SheetNames != null) {
+                    if (resolved.PageSelector == null && resolved.SheetNames != null) {
                         ValidateRequestedSheetNames(resolved.SheetNames);
                     }
 
                     int expectedOutputCount = 0;
-                    foreach (ExcelSheet sheet in Sheets) {
+                    IEnumerable<ExcelSheet> sheets = resolved.PageSelector == null ? Sheets
+                        : resolved.PageSelector.Resolve(Sheets.Count, resolved.MaximumOutputCount).Select(number => Sheets[number - 1]);
+                    foreach (ExcelSheet sheet in sheets) {
                         operationCancellationToken.ThrowIfCancellationRequested();
-                        if (selected != null && !selected.Contains(sheet.Name)) continue;
-                        if (selected == null && sheet.Hidden && !resolved.IncludeHiddenSheets) continue;
+                        if (resolved.PageSelector == null && selected != null && !selected.Contains(sheet.Name)) continue;
+                        if ((resolved.PageSelector != null || selected == null) && sheet.Hidden && !resolved.IncludeHiddenSheets) continue;
 
                         ExcelImageExportOptions sheetOptions = resolved.Clone();
                         int outputCount = sheet.GetImageExportResultCount(sheetOptions, operationCancellationToken);

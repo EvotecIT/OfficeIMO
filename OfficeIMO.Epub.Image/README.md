@@ -26,7 +26,7 @@ var imageOptions1 = new EpubImageExportOptions();
 imageOptions1.Mode = HtmlRenderMode.Paged;
 imageOptions1.Format = OfficeImageExportFormat.Png;
 IReadOnlyList<OfficeImageExportResult> pages = await book
-    .ExportImagesAsync(OfficeImageExportFormat.Png, imageOptions1);
+    .ToImagesAsync(OfficeImageExportFormat.Png, imageOptions1);
 ```
 
 When raw HTML or resource bytes were not retained, export remains available through a diagnosed plain-text or missing-resource fallback.
@@ -157,7 +157,7 @@ degenerate vertical intervals; it does not establish pixel coverage, shadows/fil
 or pixel visibility within clipped contours or element rectangles. SVG spine inspection, native-reader presentation and accessible reading
 order require separate qualification. A clean report does not certify a publication.
 
-`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ExportImages` consumer overloads to process each image with its sequence metadata and diagnostics.
+`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ToImages` consumer overloads to process each image with its sequence metadata and diagnostics.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

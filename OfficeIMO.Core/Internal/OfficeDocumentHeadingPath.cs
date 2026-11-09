@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Core.Internal;
 
 internal static class OfficeDocumentHeadingPath {

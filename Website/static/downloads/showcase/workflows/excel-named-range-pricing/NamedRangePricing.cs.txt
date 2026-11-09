@@ -1,4 +1,3 @@
-using System.IO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 
@@ -41,7 +40,7 @@ internal static class NamedRangePricing {
         sheet.Range("A12:C12").Merge();
         sheet.Cell(12, 1).SetValue("Gross total, discount, and net total each have a named result.");
         document.Calculate();
-        sheet.Range("A1:C14").ExportImage(OfficeImageExportFormat.Png)
+        sheet.Range("A1:C14").ToImage(OfficeImageExportFormat.Png)
             .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();
     }

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Excel {
     /// <summary>Describes pivot views generated from worksheet values without an Office refresh.</summary>
     public sealed class ExcelPivotMaterializationResult {

@@ -1,6 +1,4 @@
-using System.IO;
 using System.Management.Automation;
-using System.Threading;
 using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -86,6 +84,6 @@ public sealed class SetOfficePdfPageCommand : PdfMutationCmdlet {
         if (BoxName.HasValue) return document.Pages.SetPageBox(BoxName.Value, BoxLeft!.Value.ToPoints(),
             BoxBottom!.Value.ToPoints(), BoxRight!.Value.ToPoints(), BoxTop!.Value.ToPoints(), Page?.Selection, cancellationToken);
         return Page != null ? document.Pages.Rotate(Rotation, Page.Selection, cancellationToken)
-            : document.Pages.Rotate(Rotation, PdfPageSelector.Parse("all"), cancellationToken);
+            : document.Pages.Rotate(Rotation, OfficePageSelector.Parse("all"), cancellationToken);
     }
 }

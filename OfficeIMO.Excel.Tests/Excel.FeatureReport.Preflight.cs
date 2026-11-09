@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using System.Reflection;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
@@ -885,7 +883,7 @@ namespace OfficeIMO.Tests
                 Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
                 using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
                 Assert.Contains("Visible", string.Concat(pdf.GetPages().Select(page => page.Text)));
-                Assert.Contains("Visible", System.Text.Encoding.UTF8.GetString(document["Shapes"].Range("A1:D5").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes));
+                Assert.Contains("Visible", System.Text.Encoding.UTF8.GetString(document["Shapes"].Range("A1:D5").ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes));
             }
         }
 

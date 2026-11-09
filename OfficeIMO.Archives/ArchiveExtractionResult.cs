@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Archives;
 
 /// <summary>The container format detected from package bytes.</summary>

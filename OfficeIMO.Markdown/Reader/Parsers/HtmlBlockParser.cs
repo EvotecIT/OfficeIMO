@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {

@@ -2,7 +2,6 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
@@ -30,11 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.IO" />
     <Using Include="System.IO.Compression" />
-    <Using Include="System.Linq" />
     <Using Include="OfficeIMO.Excel.IWork" />
     <Using Include="OfficeIMO.PowerPoint.IWork" />
     <Using Include="OfficeIMO.Word.IWork" />

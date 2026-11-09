@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// High-level diagram cleanup helpers that combine common layout, label, and page-fit passes.

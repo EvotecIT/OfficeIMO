@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using OfficeIMO.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 

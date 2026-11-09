@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Text.Json;
-using System.Threading;
 using OfficeIMO.Drawing;
 using Xunit;
 

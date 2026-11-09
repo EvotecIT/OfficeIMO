@@ -1,8 +1,4 @@
-using System;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using Xunit;
@@ -167,6 +163,6 @@ public sealed class XpsImageColorTests {
         var markup = page.GetMarkup(); markup.Descendants().Single(e => e.Name.LocalName == "ImageBrush").SetAttributeValue("ImageSource", value); page.ReplaceMarkup(markup);
     }
     private static OfficeRasterImage Raster(XpsPage page) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png, new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent }).Bytes, out var image)); return image!;
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png, new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent }).Bytes, out var image)); return image!;
     }
 }

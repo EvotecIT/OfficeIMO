@@ -4,7 +4,6 @@ using OfficeIMO.Word;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.IWork;
 using System.Text.Json;
-using System.Threading;
 
 namespace OfficeIMO.IWork.Tests;
 

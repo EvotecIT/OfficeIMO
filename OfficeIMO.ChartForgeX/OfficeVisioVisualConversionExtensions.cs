@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using global::ChartForgeX.Primitives;
 using global::ChartForgeX.VisualArtifacts;
 using global::ChartForgeX.Topology;

@@ -1,4 +1,3 @@
-using System.IO;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Showcase.Workflows;

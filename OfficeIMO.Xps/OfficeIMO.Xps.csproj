@@ -7,7 +7,6 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Xps</PackageId>
     <PackageTags>xps;oxps;openxps;document;drawing</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -15,13 +14,11 @@
     <RepositoryType>git</RepositoryType>
     <PackageIcon>OfficeIMO.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <IsPublishable>True</IsPublishable>
     <SignAssembly>False</SignAssembly>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,15 +33,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
     <Using Include="System.Globalization" />
-    <Using Include="System.IO" />
     <Using Include="System.IO.Compression" />
-    <Using Include="System.Linq" />
     <Using Include="System.Text" />
-    <Using Include="System.Threading" />
-    <Using Include="System.Threading.Tasks" />
     <Using Include="System.Xml" />
     <Using Include="System.Xml.Linq" />
   </ItemGroup>

@@ -1,5 +1,4 @@
 using OfficeIMO.Word;
-using System.Threading.Tasks;
 using VerifyTests;
 using VerifyXunit;
 using Xunit;

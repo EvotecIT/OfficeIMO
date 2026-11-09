@@ -1,6 +1,4 @@
-using System;
 using System.Diagnostics;
-using System.IO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Tests;

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     internal static class PowerPointDrawingValueValidator {
         internal const long MinimumDrawingCoordinate = -27273042329600L;

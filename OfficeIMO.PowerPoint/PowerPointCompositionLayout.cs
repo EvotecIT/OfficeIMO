@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Named composition layouts for raw designer slides.

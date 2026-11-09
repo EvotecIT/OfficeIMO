@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Lightweight description of how one deck plan resolves under one generated design alternative.

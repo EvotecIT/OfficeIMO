@@ -1,4 +1,3 @@
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
@@ -710,12 +709,12 @@ public sealed partial class WordListMarkerSemanticsTests {
             word.Page == nestedPosition.Page && word.Bottom >= nestedPosition.Top,
             $"before={word}, nested={nestedPosition}"));
 
-        IReadOnlyList<OfficeImageExportResult> images = document.ExportImages(OfficeImageExportFormat.Svg,
+        IReadOnlyList<OfficeImageExportResult> images = document.ToImages(OfficeImageExportFormat.Svg,
             new WordImageExportOptions { LayoutOptions = layout });
         PdfReadDocument sharedPdf = PdfReadDocument.Open(bytes);
         Assert.Equal(sharedPdf.Pages.Count, images.Count);
         for (int page = 0; page < images.Count; page++) {
-            Assert.Equal(sharedPdf.Pages[page].ExportImage(OfficeImageExportFormat.Svg).Bytes, images[page].Bytes);
+            Assert.Equal(sharedPdf.Pages[page].ToImage(OfficeImageExportFormat.Svg).Bytes, images[page].Bytes);
         }
     }
 

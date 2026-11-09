@@ -9,7 +9,6 @@
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
-        <PackageId>OfficeIMO.Markdown</PackageId>
         <PackageTags>markdown;gfm;builder;fluent;readme;docs;reporting</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -18,13 +17,11 @@
         <PackageIcon>OfficeIMO.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageReleaseNotes>0.6.0: adds semantic fenced-block AST support, fenced block extension APIs, improved quoted/container fence handling, and HTML parts/asset workflows aligned for downstream HTML-to-Markdown and host integrations.</PackageReleaseNotes>
-        <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <IsPublishable>True</IsPublishable>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
@@ -44,10 +41,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="System" />
         <Using Include="System.Text" />
-        <Using Include="System.Collections.Generic" />
-        <Using Include="System.Linq" />
         <Using Include="OfficeIMO.Drawing" />
     </ItemGroup>
 

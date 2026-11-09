@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Represents one value from an OLE property set stream.

@@ -27762,9 +27762,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -27921,9 +27921,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -28104,9 +28104,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -28299,9 +28299,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -28482,9 +28482,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -28665,9 +28665,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -28836,9 +28836,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -29093,9 +29093,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -29379,9 +29379,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -29579,9 +29579,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -29774,9 +29774,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -29957,9 +29957,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30214,9 +30214,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30402,9 +30402,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30597,9 +30597,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30744,9 +30744,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30915,9 +30915,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -31050,9 +31050,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -31295,9 +31295,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -31545,9 +31545,9 @@ They are rendered behind generated content and should usually use restrained opa
           <maml:description>
             <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -31891,9 +31891,9 @@ They are rendered behind generated content and should usually use restrained opa
         <maml:description>
           <maml:para>Native one-based page selector, including last, odd and even.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
         <dev:type>
-          <maml:name>PdfPageSelector</maml:name>
+          <maml:name>OfficePageSelector</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -83492,7 +83492,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Style</maml:name>
           <maml:description>
-            <maml:para>Native table style; Modern includes a repeating first-row header.</maml:para>
+            <maml:para>Native table style. Defaults to TableGrid; choose OfficeIMOModern explicitly for themed table presentation.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">WordTableStyle</command:parameterValue>
           <command:parameterValueGroup>
@@ -83751,7 +83751,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Style</maml:name>
         <maml:description>
-          <maml:para>Native table style; Modern includes a repeating first-row header.</maml:para>
+          <maml:para>Native table style. Defaults to TableGrid; choose OfficeIMOModern explicitly for themed table presentation.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">WordTableStyle</command:parameterValue>
         <command:parameterValueGroup>
@@ -140602,7 +140602,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Theme</maml:name>
           <maml:description>
-            <maml:para>Shared HTML theme: a built-in name, OfficeTheme or Office document template path. Defaults to Modern.</maml:para>
+            <maml:para>Optional shared HTML theme. Selecting one enables presentation styles unless NoDefaultStyles is set.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeThemeInput</command:parameterValue>
           <dev:type>
@@ -140765,7 +140765,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Theme</maml:name>
         <maml:description>
-          <maml:para>Shared HTML theme: a built-in name, OfficeTheme or Office document template path. Defaults to Modern.</maml:para>
+          <maml:para>Optional shared HTML theme. Selecting one enables presentation styles unless NoDefaultStyles is set.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficeThemeInput</command:parameterValue>
         <dev:type>
@@ -151106,11 +151106,11 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
       <command:verb>Open</command:verb>
       <command:noun>OfficeIWork</command:noun>
       <maml:description>
-        <maml:para>Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.</maml:para>
+        <maml:para>Reads a supported Apple Pages, Numbers, or Keynote package without launching iWork.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.</maml:para>
+      <maml:para>Reads supported iWork packages, including the qualified iWork '09 XML profile, into OfficeIMO's bounded source model.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Path">
@@ -151147,7 +151147,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Path to a modern Pages, Numbers, or Keynote package or directory bundle.</maml:para>
+            <maml:para>Path to a supported Pages, Numbers, or Keynote package or directory bundle, including the qualified iWork '09 XML profile.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -151247,7 +151247,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Path to a modern Pages, Numbers, or Keynote package or directory bundle.</maml:para>
+          <maml:para>Path to a supported Pages, Numbers, or Keynote package or directory bundle, including the qualified iWork '09 XML profile.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -163148,9 +163148,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Native selector, one-based page or range expression, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -163211,9 +163211,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Native selector, one-based page or range expression, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -163298,9 +163298,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Native selector, one-based page or range expression, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -163397,9 +163397,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Native selector, one-based page or range expression, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -163484,9 +163484,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Native selector, one-based page or range expression, including last, odd and even.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -163595,9 +163595,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <maml:description>
           <maml:para>Native selector, one-based page or range expression, including last, odd and even.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">PdfPageSelector</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">OfficePageSelector</command:parameterValue>
         <dev:type>
-          <maml:name>PdfPageSelector</maml:name>
+          <maml:name>OfficePageSelector</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -169023,9 +169023,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Page selection such as 1-3,last.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -169226,9 +169226,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Page selection such as 1-3,last.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PdfPageSelector</maml:name>
+            <maml:name>OfficePageSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -169417,9 +169417,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <maml:description>
           <maml:para>Page selection such as 1-3,last.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfPageSelector</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficePageSelector</command:parameterValue>
         <dev:type>
-          <maml:name>PdfPageSelector</maml:name>
+          <maml:name>OfficePageSelector</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>

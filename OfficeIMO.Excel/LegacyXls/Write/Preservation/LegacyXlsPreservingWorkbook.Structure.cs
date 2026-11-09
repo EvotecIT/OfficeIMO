@@ -3,7 +3,6 @@ using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.Utilities;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Text;
-using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Write;
 

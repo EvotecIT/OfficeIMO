@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Archives;
 
 /// <summary>Complete selected members from one atomic grouped read. Dispose closes its streams and releases its member collection.</summary>

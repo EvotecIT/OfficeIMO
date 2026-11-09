@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeFileCommit {
         /// <summary>Stages an asynchronous write and replaces an existing destination only if its content still matches the caller's snapshot.</summary>

@@ -2,7 +2,6 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text.RegularExpressions;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {

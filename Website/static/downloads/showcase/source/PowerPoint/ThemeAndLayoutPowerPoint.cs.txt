@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;

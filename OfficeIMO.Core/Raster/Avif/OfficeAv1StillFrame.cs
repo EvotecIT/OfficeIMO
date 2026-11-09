@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shown still-key-frame syntax retained for tile reconstruction, without allocating pixel planes.</summary>

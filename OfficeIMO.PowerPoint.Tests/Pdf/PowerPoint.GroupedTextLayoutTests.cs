@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
@@ -85,7 +82,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
         transform.Extents.Cy = (long)Math.Round(transform.ChildExtents.Cy!.Value * scaleY);
         var imageOptions = new PowerPointImageExportOptions();
         imageOptions.UseRenderingProfile(profile);
-        byte[] svg = slide.ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes;
+        byte[] svg = slide.ToImage(OfficeImageExportFormat.Svg, imageOptions).Bytes;
         var snapshot = slide.CreateVisualSnapshot(imageOptions);
         var text = Assert.Single(snapshot.TextSpans, span => span.Text == "INK");
         var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions().UseRenderingProfile(profile));

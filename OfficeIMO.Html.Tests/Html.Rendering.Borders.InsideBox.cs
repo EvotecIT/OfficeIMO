@@ -27,7 +27,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.White
         };
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? raster));
 
         OfficeColor separator = OfficeColor.FromRgb(0xDE, 0xE2, 0xE6);
         foreach (int y in new[] { 39, 79, 119 }) {
@@ -58,7 +58,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.White
         };
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? raster));
 
         for (int y = 34; y < 40; y++) {
             int painted = Enumerable.Range(8, 104).Count(x => raster!.GetPixel(x, y) != OfficeColor.White);
@@ -94,7 +94,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.White
         };
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? raster));
 
         Assert.Contains(Enumerable.Range(8, 64).SelectMany(x => Enumerable.Range(8, 44).Select(y => raster!.GetPixel(x, y))),
             pixel => pixel != OfficeColor.White);

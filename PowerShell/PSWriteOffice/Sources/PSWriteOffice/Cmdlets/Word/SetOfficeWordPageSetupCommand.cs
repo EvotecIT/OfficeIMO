@@ -1,7 +1,5 @@
 using OfficeIMO;
 using PSWriteOffice.Foundation;
-using System;
-using System.Collections.Generic;
 using System.Management.Automation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;

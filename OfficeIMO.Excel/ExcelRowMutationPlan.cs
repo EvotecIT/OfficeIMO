@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>Kind of structural row mutation represented by an <see cref="ExcelRowMutationPlan"/>.</summary>

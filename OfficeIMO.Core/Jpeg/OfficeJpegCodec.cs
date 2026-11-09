@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Dependency-free eight/twelve-bit DCT and two-through-sixteen-bit Huffman/arithmetic lossless JPEG decoder plus JPEG encoder.</summary>

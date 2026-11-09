@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.MarkdownRenderer;

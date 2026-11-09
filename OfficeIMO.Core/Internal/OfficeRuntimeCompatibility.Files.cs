@@ -1,7 +1,3 @@
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Internal {
     internal static partial class OfficeRuntimeCompatibility {
         internal static async Task<byte[]> ReadAllBytesAsync(string path, CancellationToken token) {

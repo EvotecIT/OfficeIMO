@@ -1,7 +1,6 @@
 using AngleSharp.Html.Parser;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

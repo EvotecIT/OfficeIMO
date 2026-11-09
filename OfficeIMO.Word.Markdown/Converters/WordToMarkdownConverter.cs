@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {

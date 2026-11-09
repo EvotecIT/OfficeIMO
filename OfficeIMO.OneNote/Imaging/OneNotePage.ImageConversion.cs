@@ -1,37 +1,33 @@
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.OneNote;
 
 public static partial class OneNoteImageExportExtensions {
     /// <summary>Renders the selected page using the encoding in <see cref="OfficeImageExportOptions.Format"/>.</summary>
-    public static byte[] ToImage(this OneNotePage document, OneNotePageRenderingOptions? options = null,
+    public static OfficeImageExportResult ToImage(this OneNotePage document, OneNotePageRenderingOptions? options = null,
         CancellationToken cancellationToken = default) => document.ToImage(options, out _, cancellationToken);
 
     /// <summary>Renders the selected page and returns its immutable fidelity report.</summary>
-    public static byte[] ToImage(this OneNotePage document, OneNotePageRenderingOptions? options,
+    public static OfficeImageExportResult ToImage(this OneNotePage document, OneNotePageRenderingOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var timer = Stopwatch.StartNew();
         OneNotePageRenderingOptions resolved = SnapshotOneNotePageImageOptions(options);
         OfficeImageExportResult result = CreateImageExportOperation(document, resolved).Export(cancellationToken);
         report = OfficeImageExportEvidence.CreateReport("OneNote", result, timer.Elapsed);
-        return result.Bytes;
+        return result;
     }
 
-    /// <summary>Renders the selected page with cancellation and returns the bytes and fidelity report.</summary>
-    public static async Task<OfficeConversionResult<byte[]>> ToImageAsync(this OneNotePage document,
+    /// <summary>Renders the selected page with cancellation and returns the encoded image and its diagnostics.</summary>
+    public static async Task<OfficeImageExportResult> ToImageAsync(this OneNotePage document,
         OneNotePageRenderingOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var timer = Stopwatch.StartNew();
         OneNotePageRenderingOptions resolved = SnapshotOneNotePageImageOptions(options);
         OfficeImageExportResult result = await CreateImageExportOperation(document, resolved)
             .ExportAsync(cancellationToken).ConfigureAwait(false);
-        return new OfficeConversionResult<byte[]>(result.Bytes, OfficeImageExportEvidence.CreateReport("OneNote", result, timer.Elapsed));
+        return result;
     }
 
     /// <summary>Writes the selected page to a file and returns its fidelity report.</summary>

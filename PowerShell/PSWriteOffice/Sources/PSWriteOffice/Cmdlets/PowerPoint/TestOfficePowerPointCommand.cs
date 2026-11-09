@@ -1,7 +1,5 @@
-using System;
 using System.Management.Automation;
 using System.Security;
-using System.Threading.Tasks;
 using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Foundation;

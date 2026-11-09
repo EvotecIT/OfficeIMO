@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Settings used to project reusable ink into an <see cref="OfficeDrawing"/>.</summary>

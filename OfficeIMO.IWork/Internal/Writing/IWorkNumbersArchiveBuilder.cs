@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Builds the Numbers document, sheet/sidebar, table and editable empty header/footer graph.</summary>

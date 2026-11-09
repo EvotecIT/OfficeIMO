@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Latex;
 using OfficeIMO.Latex.Markdown;
 using OfficeIMO.Reader;

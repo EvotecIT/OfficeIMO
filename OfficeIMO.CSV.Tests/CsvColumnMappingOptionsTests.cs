@@ -1,9 +1,6 @@
-using System;
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
 using OfficeIMO.CSV;
 using OfficeIMO.Data;
 using Xunit;

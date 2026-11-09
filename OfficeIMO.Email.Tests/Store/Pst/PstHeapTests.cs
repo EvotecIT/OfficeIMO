@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class PstHeapTests {

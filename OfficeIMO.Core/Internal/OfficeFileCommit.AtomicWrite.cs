@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeFileCommit {
         /// <summary>

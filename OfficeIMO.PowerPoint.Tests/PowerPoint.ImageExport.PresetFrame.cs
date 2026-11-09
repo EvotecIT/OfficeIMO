@@ -1,4 +1,3 @@
-using System;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
@@ -22,7 +21,7 @@ public partial class PowerPointImageExportTests {
         Shape raw = Assert.IsType<Shape>(shape.Element);
         raw.ShapeProperties!.RemoveAllChildren<A.Outline>();
         raw.ShapeProperties.Append(new A.Outline(new A.NoFill()));
-        OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png,
+        OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png,
             new PowerPointImageExportOptions { Scale = 1D });
         Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
         Assert.True(image!.GetPixel(flipH ? 90 : 30, 35).R < 20);
@@ -64,7 +63,7 @@ public partial class PowerPointImageExportTests {
             });
         raw.ShapeProperties.Append(new A.Outline(new A.NoFill()));
 
-        OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png,
+        OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png,
             new PowerPointImageExportOptions { Scale = 1D });
         Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
         OfficePoint first = gradientAngle == 0 ? new OfficePoint(10, 20) : new OfficePoint(40, 5);

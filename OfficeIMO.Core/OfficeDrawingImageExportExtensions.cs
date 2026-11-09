@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Applies shared image-export configuration to Drawing scenes.</summary>

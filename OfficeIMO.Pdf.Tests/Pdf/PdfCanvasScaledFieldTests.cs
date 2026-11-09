@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;

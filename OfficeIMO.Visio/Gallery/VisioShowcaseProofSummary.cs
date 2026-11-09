@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Summarizes structural proof details that are useful when reviewing a generated showcase diagram.

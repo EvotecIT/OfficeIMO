@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -10,14 +5,14 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Exports presentation slides as supported raster formats or SVG images.
         /// </summary>
-        public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, PowerPointImageExportOptions? options = null) {
+        public IReadOnlyList<OfficeImageExportResult> ToImages(OfficeImageExportFormat format, PowerPointImageExportOptions? options = null) {
             var results = new List<OfficeImageExportResult>();
-            ExportImages(format, results.Add, options);
+            ToImages(format, results.Add, options);
             return results.AsReadOnly();
         }
 
         /// <summary>Streams selected slide images to a consumer without retaining earlier payloads.</summary>
-        public void ExportImages(
+        public void ToImages(
             OfficeImageExportFormat format,
             OfficeImageExportConsumer consumer,
             PowerPointImageExportOptions? options = null,

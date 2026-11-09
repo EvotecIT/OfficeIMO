@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
 using DocumentFormat.OpenXml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 

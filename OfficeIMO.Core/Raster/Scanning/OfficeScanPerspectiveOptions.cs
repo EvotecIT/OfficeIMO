@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Four explicitly reviewed page corners for perspective correction, normalized to the source image edges.</summary>

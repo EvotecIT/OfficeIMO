@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Xlsb;
-using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>Excel package type used when creating a workbook without a destination extension.</summary>

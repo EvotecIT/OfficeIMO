@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>One semantic block consumed directly by the shared slide layout engine.</summary>
     public abstract class PowerPointLayoutBlock {

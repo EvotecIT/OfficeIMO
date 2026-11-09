@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>Executive-summary slide request.</summary>
     public sealed class PowerPointExecutiveSummaryPlanSlide : PowerPointDeckPlanSlide {

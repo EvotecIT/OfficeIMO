@@ -3,9 +3,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel.Utilities;
-using System.IO;
 using System.IO.Packaging;
-using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {

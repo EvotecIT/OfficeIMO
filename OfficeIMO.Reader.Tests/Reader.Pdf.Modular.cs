@@ -4,7 +4,6 @@ using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Tests.Pdf;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

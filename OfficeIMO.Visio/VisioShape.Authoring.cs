@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Drawing;
 using Color = OfficeIMO.OfficeColor;
 

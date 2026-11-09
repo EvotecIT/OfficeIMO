@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 
 namespace OfficeIMO.Drawing;
 
@@ -12,18 +9,28 @@ public sealed class OfficeImageExportReport : OfficeConversionReport {
     private readonly ReadOnlyCollection<OfficeImageExportDiagnostic> _diagnostics;
 
     /// <summary>Creates an aggregate report from result diagnostics.</summary>
-    public OfficeImageExportReport(IEnumerable<OfficeImageExportResult> results) {
+    public OfficeImageExportReport(IEnumerable<OfficeImageExportResult> results) : this(Snapshot(results)) { }
+
+    private static OfficeImageExportResult[] Snapshot(IEnumerable<OfficeImageExportResult> results) {
         ArgumentNullException.ThrowIfNull(results);
         OfficeImageExportResult[] snapshot = results.ToArray();
-        ResultCount = snapshot.Length;
-        _diagnostics = Array.AsReadOnly(snapshot.SelectMany(result => result.Diagnostics).ToArray());
+        if (snapshot.Any(result => result == null)) throw new ArgumentException("Results cannot contain null entries.", nameof(results));
+        return snapshot;
     }
 
-    internal OfficeImageExportReport(IEnumerable<OfficeImageExportDiagnostic> diagnostics, int resultCount) {
-        ArgumentNullException.ThrowIfNull(diagnostics);
-        ArgumentOutOfRangeException.ThrowIfNegative(resultCount);
+    private OfficeImageExportReport(OfficeImageExportResult[] results) : this(
+        results.SelectMany(result => result.Diagnostics.Select(diagnostic => OfficeImageExportEvidence.CaptureOrigin(diagnostic, result.Source))).ToArray(), results.Length,
+        results.Select(result => result.Source ?? "Image").Distinct().Count() == 1 ? results[0].Source ?? "Image" : "Image",
+        results.Select(result => result.Format).Distinct().Count() == 1 ? results[0].Format.ToString() : "Images",
+        results.Length == 1 ? results[0].SavedPath : null) { }
+
+    internal OfficeImageExportReport(IEnumerable<OfficeImageExportDiagnostic> diagnostics, int resultCount) : this(
+        (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray(), resultCount, "Image", "Images", null) { }
+
+    private OfficeImageExportReport(OfficeImageExportDiagnostic[] diagnostics, int resultCount, string source, string target, string? outputPath)
+        : base(source, target, outputPath, resultCount, diagnostics: diagnostics.Select(diagnostic => OfficeImageExportEvidence.ProjectDiagnostic(source, diagnostic))) {
         ResultCount = resultCount;
-        _diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+        _diagnostics = Array.AsReadOnly(diagnostics);
     }
 
     /// <summary>Number of exported results represented by the report.</summary>
@@ -31,17 +38,6 @@ public sealed class OfficeImageExportReport : OfficeConversionReport {
 
     /// <summary>All structured diagnostics in result order.</summary>
     public IReadOnlyList<OfficeImageExportDiagnostic> NativeDiagnostics => _diagnostics;
-
-    /// <summary>NativeDiagnostics projected onto the common typed conversion contract.</summary>
-    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
-    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics =>
-        Array.AsReadOnly(_diagnostics.Select(diagnostic => new global::OfficeIMO.OfficeDiagnostic(
-            diagnostic.Code,
-            diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
-            diagnostic.Message,
-            diagnostic.FidelityLocation ?? diagnostic.Source,
-            diagnostic.FidelitySource ?? "OfficeIMO.Drawing",
-            diagnostic.LossKind)).ToArray());
 
     /// <summary>True when at least one diagnostic represents fidelity loss.</summary>
     public override bool HasLoss => _diagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);

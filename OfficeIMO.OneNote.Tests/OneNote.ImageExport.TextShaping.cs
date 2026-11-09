@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.OneNote.Pdf;
 using OfficeIMO.TestAssets;
-using System.Threading;
 
 namespace OfficeIMO.OneNote.Tests;
 
@@ -22,7 +21,7 @@ public sealed class OneNoteImageExportTextShapingTests {
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFont('A'));
 
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(OfficeImageExportFormat.Png, result.Format);
         Assert.Contains(provider.Requests, request =>

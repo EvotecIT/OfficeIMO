@@ -4,8 +4,6 @@ using OpenXmlCellValues = DocumentFormat.OpenXml.Spreadsheet.CellValues;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
-using System;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {

@@ -7,7 +7,6 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Word.Rtf</PackageId>
     <PackageTags>rtf;word;docx;office;converter;mail-merge;document-workflow</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -15,13 +14,11 @@
     <RepositoryType>git</RepositoryType>
     <PackageIcon>OfficeIMO.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <IsPublishable>True</IsPublishable>
     <SignAssembly>False</SignAssembly>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -42,11 +39,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.IO" />
     <Using Include="System.Text" />
-    <Using Include="System.Threading" />
-    <Using Include="System.Threading.Tasks" />
     <Using Include="OfficeIMO.Rtf" />
     <Using Include="OfficeIMO.Word" />
   </ItemGroup>

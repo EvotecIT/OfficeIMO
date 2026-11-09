@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio {
     public partial class VisioPage {
         private const string DefaultDuplicateIdSuffix = "-copy";

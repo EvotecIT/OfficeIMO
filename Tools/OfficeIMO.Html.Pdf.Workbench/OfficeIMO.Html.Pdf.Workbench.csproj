@@ -4,8 +4,7 @@
     <Description>Local browser workbench for inspecting managed and Chromium HTML-to-PDF output and conversion evidence.</Description>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+
     <LangVersion>Latest</LangVersion>
     <IsPublishable>false</IsPublishable>
     <IsPackable>false</IsPackable>

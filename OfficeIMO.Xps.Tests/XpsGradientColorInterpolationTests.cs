@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -33,7 +31,7 @@ public sealed class XpsGradientColorInterpolationTests {
                 new XAttribute("ColorInterpolationMode", "ScRgbLinearInterpolation"), stops));
         }
         page.ReplaceMarkup(markup);
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         var svg = page.ToSvg();
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var imported, out int unsupported));
         Assert.Equal(0, unsupported);

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Orthonormal 8 × 8 JPEG DCT with a caller-owned, per-encode workspace.</summary>

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;

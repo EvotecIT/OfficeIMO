@@ -7,7 +7,7 @@ public sealed class OdfConversionReport : OfficeConversionReport {
     private readonly List<OdfConversionMapping> _mappings = new List<OdfConversionMapping>();
 
     /// <summary>Creates an empty conversion report.</summary>
-    public OdfConversionReport(string sourceFormat, string targetFormat) {
+    public OdfConversionReport(string sourceFormat, string targetFormat) : base(sourceFormat, targetFormat) {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceFormat);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetFormat);
         SourceFormat = sourceFormat;
@@ -25,7 +25,7 @@ public sealed class OdfConversionReport : OfficeConversionReport {
     private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
         _mappings.Select(mapping => new global::OfficeIMO.OfficeDiagnostic(
             "ODF_" + mapping.Status.ToString().ToUpperInvariant(),
-            global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+            mapping.Status == OdfConversionMappingStatus.Converted ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
             mapping.Message ?? $"{mapping.Count} '{mapping.Feature}' item(s) mapped as {mapping.Status}.",
             mapping.Feature,
             $"OfficeIMO.OpenDocument:{SourceFormat}->{TargetFormat}",

@@ -26,10 +26,10 @@ public partial class PdfPageImageRendererTests {
             item => item.Code == PdfRenderCapabilities.AnnotationAppearanceId));
         var options = new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { FailOnLoss = true } };
         if (expectedOmission) {
-            var failure = Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(OfficeImageExportFormat.Png, options));
+            var failure = Assert.Throws<OfficeImageExportPolicyException>(() => page.ToImage(OfficeImageExportFormat.Png, options));
             Assert.Contains(failure.Diagnostics, item => item.Code == PdfRenderCapabilities.AnnotationAppearanceId);
         } else {
-            Assert.NotEmpty(page.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
+            Assert.NotEmpty(page.ToImage(OfficeImageExportFormat.Png, options).Bytes);
         }
     }
 }

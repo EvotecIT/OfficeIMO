@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -128,7 +127,7 @@ public class PdfPageImageRendererBatchTests {
         OfficeImageExportTimeoutException rangeTimeout = Assert.Throws<OfficeImageExportTimeoutException>(() =>
             PdfPageImageRenderer.RenderPages(pdf, "2,1", options));
         OfficeImageExportTimeoutException selectorTimeout = Assert.Throws<OfficeImageExportTimeoutException>(() =>
-            PdfDocument.Load(pdf).Reader.RenderPages(PdfPageSelector.Parse("last..1"), options));
+            PdfDocument.Load(pdf).Reader.RenderPages(OfficePageSelector.Parse("last..1"), options));
 
         Assert.Equal(timeout, rangeTimeout.Timeout);
         Assert.Equal(timeout, selectorTimeout.Timeout);

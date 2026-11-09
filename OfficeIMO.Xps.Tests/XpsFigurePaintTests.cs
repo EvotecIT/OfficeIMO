@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using Xunit;
@@ -30,7 +29,7 @@ public sealed class XpsFigurePaintTests {
     }
 
     private static OfficeRasterImage Render(XpsDocument doc) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(doc.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var image)); return image!;
+        Assert.True(OfficeRasterImageDecoder.TryDecode(doc.Pages[0].ToImage(OfficeImageExportFormat.Png).Bytes, out var image)); return image!;
     }
 
     internal static XpsDocument Create(XpsFormat format, bool suppressed) {

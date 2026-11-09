@@ -1,6 +1,5 @@
 // Vendored from Polyfill (https://github.com/SimonCropp/Polyfill), MIT License, Copyright (c) Simon Cropp.
 #if !NET8_0_OR_GREATER
-using System;
 
 namespace Polyfills {
     internal static partial class Polyfill {

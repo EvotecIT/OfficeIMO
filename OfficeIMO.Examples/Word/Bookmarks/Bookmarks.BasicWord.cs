@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;

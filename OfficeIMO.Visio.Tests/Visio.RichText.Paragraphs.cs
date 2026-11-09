@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.TestAssets;
@@ -53,7 +52,7 @@ public sealed class VisioRichTextParagraphTests {
     public void ParagraphSectionChangesReachBothRenderersAndCopiesRemainIndependent(bool connector) {
         VisioDocument document = Synthetic(connector);
         VisioPage copy = document.DuplicatePage(document.Pages[0], "Paragraph copy");
-        byte[] originalRaster = copy.ToImage(new VisioImageExportOptions { Supersampling = 1 });
+        byte[] originalRaster = copy.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes;
         VisioShapeSheetSection section = Sections(document.Pages[0], connector).Single(section => section.Name is "Paragraph" or "Para");
         section.Rows.Single(row => row.Index == 9).SetCell("IndLeft", "0.75");
         if (connector) document.Pages[0].Connectors[0].SetShapeSheetSection(section);
@@ -61,8 +60,8 @@ public sealed class VisioRichTextParagraphTests {
         string copyId = connector ? copy.Connectors[0].Id : copy.Shapes[0].Id;
         Assert.NotEqual(Number(Label(copy, copyId).Descendants(Svg + "text").ElementAt(1), "x"),
             Number(Label(document.Pages[0], "1").Descendants(Svg + "text").ElementAt(1), "x"));
-        Assert.False(originalRaster.SequenceEqual(document.Pages[0].ToImage(new VisioImageExportOptions { Supersampling = 1 })));
-        Assert.Equal(originalRaster, copy.ToImage(new VisioImageExportOptions { Supersampling = 1 }));
+        Assert.False(originalRaster.SequenceEqual(document.Pages[0].ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes));
+        Assert.Equal(originalRaster, copy.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes);
     }
 
     [Theory]
@@ -84,7 +83,7 @@ public sealed class VisioRichTextParagraphTests {
         VisioDocument document = Producer();
         byte[] before = document.ToLegacyXmlResult().Value;
         VisioPage page = document.Pages.Single(page => page.NameU == "runtime");
-        _ = page.ToSvg(); _ = page.ToImage(new VisioImageExportOptions { Supersampling = 1 });
+        _ = page.ToSvg(); _ = page.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes;
         Assert.Equal(before, document.ToLegacyXmlResult().Value);
     }
 
@@ -113,7 +112,7 @@ public sealed class VisioRichTextParagraphTests {
         var provider = new CancelProvider(cancellation);
         var options = new VisioImageExportOptions { TextShapingProvider = provider, Supersampling = 1 };
         options.Fonts.Add("Arial", ManagedTextShapingTestAssets.CreateFont('F', 'I', 'R', 'S', 'T', 'E', 'C', 'O', 'N', 'D', 'L', 'A'));
-        Assert.Throws<OperationCanceledException>(() => Synthetic(false).Pages[0].ExportImage(
+        Assert.Throws<OperationCanceledException>(() => Synthetic(false).Pages[0].ToImage(
             OfficeImageExportFormat.Png, options, cancellation.Token));
         Assert.InRange(provider.Requests, 1, 2);
     }

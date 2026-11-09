@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave34RegressionTests {

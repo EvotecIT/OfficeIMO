@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Epub;
 
 internal static partial class EpubReader {

@@ -1,4 +1,3 @@
-using System;
 using System.Net;
 using System.Net.Http;
 #if NET8_0_OR_GREATER
@@ -6,8 +5,6 @@ using System.Runtime.Versioning;
 #elif NETSTANDARD2_0
 using System.Runtime.InteropServices;
 #endif
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Core.Internal;
 

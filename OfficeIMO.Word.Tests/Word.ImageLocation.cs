@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using HeaderFooterValues = DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues;
 using OfficeIMO.Word;

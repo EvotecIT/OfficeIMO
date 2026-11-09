@@ -17,7 +17,7 @@ public sealed class OfficeOutputWorkflowTests {
         string input = CreatePdf(scope.Path, "source.pdf", "Encoder effort");
         var encoding = new OfficeRasterEncodingOptions();
         encoding.Png.Effort = encoding.Webp.Effort = effort;
-        var expected = PdfReadDocument.Open(File.ReadAllBytes(input)).Pages[0].ExportImage(format,
+        var expected = PdfReadDocument.Open(File.ReadAllBytes(input)).Pages[0].ToImage(format,
             new PdfImageExportOptions { TargetDpi = 72, RasterEncoding = encoding.Clone() });
         var request = new PdfPageImageExportRequest {
             InputPath = input, OutputDirectory = Path.Combine(scope.Path, "pages"), Format = format,
@@ -1586,7 +1586,7 @@ public sealed class OfficeOutputWorkflowTests {
 
     private static byte[] CreatePng(string text) => PdfDocument.Create(compose =>
             compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(text))))))
-        .ExportImages(OfficeImageExportFormat.Png)
+        .ToImages(OfficeImageExportFormat.Png)
         .Single()
         .Bytes;
 

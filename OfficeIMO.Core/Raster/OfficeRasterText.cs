@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Text layout and raster effects shared by managed image-editing consumers.</summary>

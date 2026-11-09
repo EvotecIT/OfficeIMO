@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Managed Microsoft Project XML and modern MPP/MPT authoring and editing, explicit task scheduling, and assessed source-preserving save with typed and fluent APIs.</Description>
-    <PackageId>OfficeIMO.Project</PackageId>
     <VersionPrefix>3.6.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -17,7 +16,6 @@
     <IsPublishable>true</IsPublishable>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -27,11 +25,5 @@
     <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" Link="OfficeIMO.png" />
     <InternalsVisibleTo Include="OfficeIMO.Project.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Project.Verification" />
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" />
-    <Using Include="System.IO" />
-    <Using Include="System.Threading" />
-    <Using Include="System.Threading.Tasks" />
   </ItemGroup>
 </Project>

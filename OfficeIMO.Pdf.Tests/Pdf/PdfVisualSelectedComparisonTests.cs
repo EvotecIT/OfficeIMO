@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -9,7 +8,7 @@ public sealed class PdfVisualSelectedComparisonTests {
     public void IndependentlySelectedLongDocumentsRetainOriginalOrdinalPairsAndUnmatchedPages() {
         byte[] expected = Pages(150), actual = Pages(151);
         var report = PdfVisualComparer.Compare(expected, actual, options: new() {
-            ExpectedPages = PdfPageSelector.Parse("149,2,149"), ActualPages = PdfPageSelector.Parse("150,2"), MaxPages = 3
+            ExpectedPages = OfficePageSelector.Parse("149,2,149"), ActualPages = OfficePageSelector.Parse("150,2"), MaxPages = 3
         });
         Assert.Equal(150, report.ExpectedPageCount); Assert.Equal(151, report.ActualPageCount);
         Assert.Equal(new[] { 149, 2, 149 }, report.ExpectedPageNumbers); Assert.Equal(new[] { 150, 2 }, report.ActualPageNumbers);
@@ -30,12 +29,12 @@ public sealed class PdfVisualSelectedComparisonTests {
     [Fact]
     public void EqualSelectedPagesDoNotClaimWholeDocumentsWereCompared() {
         var report = PdfVisualComparer.Compare(Pages(120), Pages(121), options: new() {
-            ExpectedPages = PdfPageSelector.Parse("120"), ActualPages = PdfPageSelector.Parse("121"), MaxPages = 1
+            ExpectedPages = OfficePageSelector.Parse("120"), ActualPages = OfficePageSelector.Parse("121"), MaxPages = 1
         });
         Assert.True(report.IsMatch); Assert.Single(report.Pages); Assert.Empty(report.StructuralDifferences);
         Assert.Equal(121, Assert.Single(report.Pages).ActualPageNumber);
         var reverse = PdfVisualComparer.Compare(Pages(3), Pages(4), options: new() {
-            ExpectedPages = PdfPageSelector.Parse("1"), ActualPages = PdfPageSelector.Parse("2,last"), MaxPages = 2
+            ExpectedPages = OfficePageSelector.Parse("1"), ActualPages = OfficePageSelector.Parse("2,last"), MaxPages = 2
         });
         Assert.Equal(new[] { 4 }, reverse.UnmatchedActualPageNumbers);
     }
@@ -44,17 +43,17 @@ public sealed class PdfVisualSelectedComparisonTests {
     public void ScopeLimitsCancellationAndBoundedGalleryRemainEnforced() {
         byte[] bytes = Pages(4);
         Assert.Throws<InvalidOperationException>(() => PdfVisualComparer.Compare(bytes, bytes, options: new() {
-            ExpectedPages = PdfPageSelector.Parse("1,1,1"), ActualPages = PdfPageSelector.Parse("2"), MaxPages = 2
+            ExpectedPages = OfficePageSelector.Parse("1,1,1"), ActualPages = OfficePageSelector.Parse("2"), MaxPages = 2
         }));
         Assert.Throws<ArgumentException>(() => PdfVisualComparer.Compare(bytes, bytes, PdfPageSelection.From(1), new() {
-            ActualPages = PdfPageSelector.Parse("2")
+            ActualPages = OfficePageSelector.Parse("2")
         }));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfVisualComparer.Compare(bytes, bytes, options: new() {
-            ActualPages = PdfPageSelector.Parse("8")
+            ActualPages = OfficePageSelector.Parse("8")
         }));
         var cancelled = new CancellationToken(true);
         Assert.Throws<OperationCanceledException>(() => PdfVisualComparer.Compare(bytes, bytes, cancelled, options: new() {
-            ExpectedPages = PdfPageSelector.Parse("1"), ActualPages = PdfPageSelector.Parse("2")
+            ExpectedPages = OfficePageSelector.Parse("1"), ActualPages = OfficePageSelector.Parse("2")
         }));
         var report = PdfVisualComparer.Compare(bytes, bytes);
         Assert.Throws<InvalidOperationException>(() => report.ToHtmlGallery(null, 256));

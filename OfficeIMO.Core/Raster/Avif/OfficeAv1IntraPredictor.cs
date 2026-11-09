@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Sequential 8/10-bit prediction owner over explicitly available reconstructed edges.</summary>

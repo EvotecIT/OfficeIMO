@@ -1,7 +1,4 @@
-using System;
 using System.Data;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.VariantTypes;

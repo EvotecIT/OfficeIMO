@@ -2,7 +2,6 @@
 #if !NET8_0_OR_GREATER
 global using Polyfills;
 
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 

@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Globalization;
 
 namespace OfficeIMO.Pdf;
@@ -73,7 +72,7 @@ internal static partial class PdfStamper {
             }
         }
         foreach (var item in found.Values)
-            item.Settings.TargetPages = PdfPageSelector.Parse(string.Join(",", item.Pages.Select(page => page.ToString(CultureInfo.InvariantCulture))));
+            item.Settings.TargetPages = OfficePageSelector.Parse(string.Join(",", item.Pages.Select(page => page.ToString(CultureInfo.InvariantCulture))));
         return found.Values.Select(item => item.Settings).ToArray();
     }
 }

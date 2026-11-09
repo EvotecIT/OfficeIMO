@@ -2,7 +2,6 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
-using System.Linq;
 using System.Text;
 using Xunit;
 

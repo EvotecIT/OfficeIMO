@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>PDFDocEncoding conversion for PDF text strings without a Unicode byte-order marker.</summary>

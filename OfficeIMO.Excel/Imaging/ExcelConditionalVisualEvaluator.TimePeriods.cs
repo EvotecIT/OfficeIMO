@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Excel {
     internal static partial class ExcelConditionalVisualEvaluator {
         private static bool IsTimePeriodRule(ExcelConditionalFormattingInfo rule) =>

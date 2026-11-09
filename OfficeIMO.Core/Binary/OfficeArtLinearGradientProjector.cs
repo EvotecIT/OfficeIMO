@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Drawing.Binary;
 
 // The native OfficeArt scalar field belongs with the shared OfficeArt codec.

@@ -3,7 +3,6 @@ using OfficeIMO.Reader.OneNote;
 using OfficeIMO.OneNote;
 using System.Globalization;
 using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

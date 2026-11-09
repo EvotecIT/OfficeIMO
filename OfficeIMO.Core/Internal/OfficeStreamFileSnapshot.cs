@@ -1,8 +1,4 @@
-using System;
-using System.IO;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Stages a bounded provider stream for engines that require a seekable local input.</summary>

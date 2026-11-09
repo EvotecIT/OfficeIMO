@@ -1,8 +1,5 @@
-using System;
 using System.Globalization;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -111,7 +108,7 @@ public sealed class XpsColorTests {
     }
 
     private static OfficeRasterImage Raster(XpsPage page) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         return raster!;
     }
     private static string Relationships(byte[] package) {

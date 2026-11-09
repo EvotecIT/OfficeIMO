@@ -2,8 +2,6 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using System;
-using System.IO;
 using System.Text;
 using Xunit;
 using M = DocumentFormat.OpenXml.Math;

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Resolved raster dimensions after applying a hard decoded-pixel limit.</summary>

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>Identifies the Office document family participating in a conversion.</summary>

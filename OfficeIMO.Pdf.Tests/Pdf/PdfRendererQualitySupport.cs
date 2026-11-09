@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -16,7 +13,7 @@ internal static class PdfRendererQualitySupport {
 
     internal static OfficeImageExportResult Export(string pdfFileName, double dpi = Dpi) {
         PdfReadDocument document = PdfReadDocument.Open(File.ReadAllBytes(CorpusPath(pdfFileName)));
-        return document.Pages[0].ExportImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = dpi });
+        return document.Pages[0].ToImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = dpi });
     }
 
     internal static OfficeRasterImage Render(string pdfFileName, double dpi = Dpi) => Decode(Export(pdfFileName, dpi).Bytes);

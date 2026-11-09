@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
@@ -128,7 +124,7 @@ public sealed class PowerPointChartPointStylesTests {
         using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
         presentation.AddSlide().AddChart(kind, Data(kind, new[] { null, null, hatch }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(320) });
-        Assert.True(OfficePngReader.TryDecode(presentation.Slides.Single().ToImage(), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(presentation.Slides.Single().ToImage().Bytes, out OfficeRasterImage? raster));
         int hatchPixels = 0;
         for (int y = 0; y < raster!.Height; y++)
             for (int x = 0; x < raster.Width; x++)

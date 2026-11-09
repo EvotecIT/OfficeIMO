@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>MSB-first syntax cursor bounded to one OBU payload; entropy-coded tiles use a separate reader.</summary>

@@ -1,7 +1,5 @@
-using System;
 using System.Management.Automation;
 using System.Text;
-using System.Threading;
 using OfficeIMO.Epub;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;

@@ -1,13 +1,11 @@
 using OfficeIMO.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Visio;
 
 /// <summary>Format-neutral image export for Visio documents and pages.</summary>
 public static partial class VisioImageExportExtensions {
     /// <summary>Exports a Visio page to a supported raster format or SVG.</summary>
-    public static OfficeImageExportResult ExportImage(
+    public static OfficeImageExportResult ToImage(
         this VisioPage page,
         OfficeImageExportFormat format,
         VisioImageExportOptions? options = null,
@@ -15,7 +13,7 @@ public static partial class VisioImageExportExtensions {
         VisioImageExportEngine.Render(page, format, Normalize(options), cancellationToken: cancellationToken);
 
     /// <summary>Exports the selected document page to a supported raster format or SVG.</summary>
-    public static OfficeImageExportResult ExportImage(
+    public static OfficeImageExportResult ToImage(
         this VisioDocument document,
         OfficeImageExportFormat format,
         VisioImageExportOptions? options = null,
@@ -38,17 +36,17 @@ public static partial class VisioImageExportExtensions {
     }
 
     /// <summary>Exports a selected range of document pages to a supported raster format or SVG.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(
         this VisioDocument document,
         OfficeImageExportFormat format,
         VisioImageExportOptions? options = null) {
         var results = new List<OfficeImageExportResult>();
-        document.ExportImages(format, results.Add, options);
+        document.ToImages(format, results.Add, options);
         return results.AsReadOnly();
     }
 
     /// <summary>Streams selected document page images without retaining earlier payloads.</summary>
-    public static void ExportImages(
+    public static void ToImages(
         this VisioDocument document,
         OfficeImageExportFormat format,
         OfficeImageExportConsumer consumer,
@@ -58,13 +56,14 @@ public static partial class VisioImageExportExtensions {
         ArgumentNullException.ThrowIfNull(consumer);
         VisioImageExportOptions resolved = Normalize(options);
         if (document.Pages.Count == 0) throw new InvalidOperationException("The document does not contain any pages to export.");
-        if (resolved.PageIndex >= document.Pages.Count) {
+        if (resolved.PageSelector == null && resolved.PageIndex >= document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(options), "PageIndex is outside the document page collection.");
         }
 
         int available = document.Pages.Count - resolved.PageIndex;
         int count = resolved.PageCount.HasValue ? Math.Min(resolved.PageCount.Value, available) : available;
-        int[] pageIndexes = Enumerable.Range(resolved.PageIndex, count).ToArray();
+        int[] pageIndexes = resolved.PageSelector == null ? Enumerable.Range(resolved.PageIndex, count).ToArray()
+            : resolved.PageSelector.Resolve(document.Pages.Count, resolved.MaximumOutputCount).Select(number => number - 1).ToArray();
         var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
         OfficeImageExportBatchProcessor.ForEachOrdered(
             pageIndexes,

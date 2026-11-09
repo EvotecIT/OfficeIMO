@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Html;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;

@@ -1,8 +1,4 @@
 #if NET8_0_OR_GREATER
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
 using ChartForgeX.Core;

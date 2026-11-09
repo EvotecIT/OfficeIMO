@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Visio;
 
 /// <summary>Fidelity diagnostics for one legacy Visio XML import or export.</summary>

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>A caller-unit spacing resource. Lower numeric priorities are consumed first.</summary>

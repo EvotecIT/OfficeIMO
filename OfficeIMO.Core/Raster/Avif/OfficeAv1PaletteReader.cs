@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Tile-owned eight/ten-bit palette/filter-intra syntax and palette tokens through the transform-size boundary.</summary>

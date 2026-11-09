@@ -1,6 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Threading;
 using OfficeIMO.Reader;
 using Xunit;
 

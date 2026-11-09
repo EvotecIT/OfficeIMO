@@ -1,8 +1,6 @@
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using System.Collections.Generic;
 using Xunit;
 
 namespace OfficeIMO.Tests {

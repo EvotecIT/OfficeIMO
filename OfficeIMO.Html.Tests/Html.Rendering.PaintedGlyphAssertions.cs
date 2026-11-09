@@ -2,7 +2,6 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using System.Globalization;
 using System.Text;
-using System.Threading;
 using System.Xml.Linq;
 using Xunit;
 

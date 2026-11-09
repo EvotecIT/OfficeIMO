@@ -9,7 +9,6 @@ using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.LegacyXls.Projection;
 using System.Globalization;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests {

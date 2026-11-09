@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Publishes one completed read result while keeping callers' waits cancellable.</summary>

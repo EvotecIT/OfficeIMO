@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.OneNote;
 using Xunit;
@@ -137,7 +136,7 @@ public sealed class OneNoteTextFormattingTests {
         var section = new OneNoteSection { Name = "Typography" };
         section.Pages.Add(page);
 
-        OfficeImageExportResult result = Assert.Single(section.ExportImages(format));
+        OfficeImageExportResult result = Assert.Single(section.ToImages(format));
 
         Assert.Equal(format, result.Format);
         Assert.True(result.Bytes.Length > 32);

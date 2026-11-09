@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Core.Internal.Cabinet;
 
 /// <summary>Describes a malformed or unsupported Cabinet record without imposing a document-specific diagnostic prefix.</summary>

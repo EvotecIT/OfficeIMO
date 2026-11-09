@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Pdf;
 
 internal static class PdfTextSpanGeometry {

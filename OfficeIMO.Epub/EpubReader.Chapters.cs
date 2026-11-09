@@ -3,7 +3,6 @@ namespace OfficeIMO.Epub;
 #if NET8_0_OR_GREATER
 using System.Buffers;
 #endif
-using System.Threading;
 
 internal static partial class EpubReader {
     private static List<ChapterCandidate> BuildChapterCandidates(

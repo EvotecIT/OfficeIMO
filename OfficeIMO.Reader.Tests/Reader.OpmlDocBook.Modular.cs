@@ -3,7 +3,6 @@ using OfficeIMO.Opml;
 using OfficeIMO.Reader.All;
 using OfficeIMO.Reader.DocBook;
 using OfficeIMO.Reader.Opml;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;

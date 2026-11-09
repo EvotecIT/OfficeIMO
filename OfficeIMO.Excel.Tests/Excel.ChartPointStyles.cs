@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
@@ -32,7 +30,7 @@ public sealed class ExcelChartPointStylesTests {
         Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(hatch.Hatch, snapshot.Data.Series[0].PointStyles![0]!.Hatch);
         Assert.Contains("#7300A3", System.Text.Encoding.UTF8.GetString(
-            chart.ExportImage(OfficeImageExportFormat.Svg).Bytes), System.StringComparison.OrdinalIgnoreCase);
+            chart.ToImage(OfficeImageExportFormat.Svg).Bytes), System.StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -92,7 +90,7 @@ public sealed class ExcelChartPointStylesTests {
             .Single(point => point.Index?.Val?.Value == 0U);
         Assert.Equal(12701, savedPoint.ChartShapeProperties!.GetFirstChild<A.Outline>()!.Width!.Value);
 
-        string svg = System.Text.Encoding.UTF8.GetString(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        string svg = System.Text.Encoding.UTF8.GetString(chart.ToImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Contains("#7300A3", svg, System.StringComparison.OrdinalIgnoreCase);
         Assert.Contains("clipPath", svg, System.StringComparison.Ordinal);
         byte[] pdf = reopened.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

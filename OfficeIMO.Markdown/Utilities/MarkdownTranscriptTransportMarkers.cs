@@ -1,7 +1,5 @@
 namespace OfficeIMO.Markdown;
 
-using System;
-
 /// <summary>
 /// Explicit transcript transport-marker helpers for hosts ingesting or exporting IntelligenceX-style markdown.
 /// </summary>

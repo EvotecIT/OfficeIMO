@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
 

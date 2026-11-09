@@ -231,7 +231,7 @@ public sealed class HtmlRenderConsumerTests {
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlPdfExportOptions.ForImageExport(options))
                 .WithPageSet(HtmlRenderPageSet.Pages(1, 2)));
 
-        Assert.Equal("Page 3", Assert.Single(result.ExportImages()).Name);
+        Assert.Equal("Page 3", Assert.Single(result.ToImages()).Name);
 
         HtmlRenderArchiveResult first = result.ExportArchive();
         HtmlRenderArchiveResult second = result.ExportArchive();

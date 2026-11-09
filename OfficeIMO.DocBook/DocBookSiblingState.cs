@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.DocBook;
 
 /// <summary>Tracks bounded common-profile sibling constraints in one forward traversal.</summary>

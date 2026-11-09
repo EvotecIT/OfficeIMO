@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Controls bounded recovery of tables split across adjacent PDF pages.</summary>

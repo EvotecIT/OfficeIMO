@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Small allocation-free byte-array view used by the managed JPEG codec on all target frameworks.</summary>

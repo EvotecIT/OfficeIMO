@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
@@ -16,19 +14,19 @@ public partial class VisioForeignImageRenderingTests {
         var document = WithImage(Convert.FromBase64String(AnimatedWebp));
         var codec = new SuccessfulCodec(16);
         var options = new OfficeIMO.Visio.VisioImageExportOptions { RenderText = false, ImageCodec = codec };
-        var result = document.ExportImage(OfficeImageExportFormat.Svg, options);
+        var result = document.ToImage(OfficeImageExportFormat.Svg, options);
         Assert.Equal(1, codec.Calls);
         Assert.Contains(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected && d.LossKind == OfficeConversionLossKind.Omission);
         Assert.Contains(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec);
         options.Policy.RequireNoOmissions = true;
-        Assert.Throws<OfficeImageExportPolicyException>(() => document.ExportImage(OfficeImageExportFormat.Png, options));
+        Assert.Throws<OfficeImageExportPolicyException>(() => document.ToImage(OfficeImageExportFormat.Png, options));
     }
 
     [Fact]
     public void CallerCannotReplaceInspectedRasterDimensions() {
         var document = WithImage(Convert.FromBase64String(AnimatedWebp));
         var codec = new SuccessfulCodec(1);
-        var result = document.ExportImage(OfficeImageExportFormat.Svg, new OfficeIMO.Visio.VisioImageExportOptions { ImageCodec = codec, RenderText = false });
+        var result = document.ToImage(OfficeImageExportFormat.Svg, new OfficeIMO.Visio.VisioImageExportOptions { ImageCodec = codec, RenderText = false });
         Assert.Equal(1, codec.Calls);
         Assert.Contains(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback && d.LossKind == OfficeConversionLossKind.Omission);
     }
@@ -40,7 +38,7 @@ public partial class VisioForeignImageRenderingTests {
         Assert.True(OfficeImageReader.TryIdentifyByContent(gif, null, out var info));
         Assert.Equal(6000, info.Width);
         var codec = new SuccessfulCodec(16);
-        var result = WithImage(gif).ExportImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { ImageCodec = codec, RenderText = false });
+        var result = WithImage(gif).ToImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { ImageCodec = codec, RenderText = false });
         Assert.Equal(0, codec.Calls);
         Assert.Contains(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
     }
@@ -51,7 +49,7 @@ public partial class VisioForeignImageRenderingTests {
         byte[] wmf = { 1,0,9,0,0,3,17,0,0,0,0,0,5,0,0,0,0,0,5,0,0,0,1,2,0,0,0,0,3,0,0,0,0,0 };
         var document = WithImage(wmf, "Metafile");
         var codec = new SuccessfulCodec(16);
-        var result = document.ExportImage(OfficeImageExportFormat.Svg, new OfficeIMO.Visio.VisioImageExportOptions { ImageCodec = codec, RenderText = false });
+        var result = document.ToImage(OfficeImageExportFormat.Svg, new OfficeIMO.Visio.VisioImageExportOptions { ImageCodec = codec, RenderText = false });
         Assert.Equal(1, codec.Calls);
         Assert.Contains(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec);
         Assert.DoesNotContain(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);

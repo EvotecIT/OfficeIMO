@@ -1,7 +1,5 @@
 namespace OfficeIMO.Epub;
 
-using System.Threading;
-
 internal static partial class EpubReader {
     private static Dictionary<string, ZipArchiveEntry> BuildEntryIndex(
         ZipArchive archive,

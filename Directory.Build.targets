@@ -44,10 +44,9 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
-  <!-- Examples are executable documentation. Keep nullable enabled so annotated samples do not emit CS8632 noise. -->
+  <!-- Examples are executable documentation; their warnings do not block validation. -->
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Examples'">
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <!-- Older target frameworks need the compiler marker for records and init-only properties.
@@ -57,19 +56,10 @@
              Link="System.Runtime.CompilerServices/IsExternalInit.cs" />
   </ItemGroup>
 
-  <!-- Keep the upstream license with packages and legacy assemblies that contain
-       the vendored argument guards, including loose PowerShell module payloads. -->
-  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
-    <None Include="$(OfficeIMOSharedSourceDir)/Compatibility/ArgumentExceptions/LICENSE.txt"
-          Pack="true" PackagePath="Licenses/Polyfill-LICENSE.txt" />
-    <EmbeddedResource Include="$(OfficeIMOSharedSourceDir)/Compatibility/ArgumentExceptions/LICENSE.txt"
-                      LogicalName="OfficeIMO.ThirdParty.Polyfill.LICENSE.txt"
-                      Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' Or '$(TargetFrameworkIdentifier)' == '.NETStandard'" />
-  </ItemGroup>
-
-  <!-- Validate every newly produced public package across compatible frameworks. -->
+  <!-- Validate every newly produced public package across compatible frameworks.
+       PackageId is not defaulted yet at this point, so match on the project instead. -->
   <PropertyGroup Condition="
-      '$(PackageId)' != ''
+      '$(OutputType)' == 'Library'
       And '$(IsPackable)' != 'false'
       And '$(IsTestProject)' != 'true'
       And !$([System.String]::Copy('$(MSBuildProjectName)').Contains('.Benchmarks'))">
@@ -80,27 +70,27 @@
        Keep reviewed API changes in exact suppression records so additional public API regressions
        fail package validation. -->
   <PropertyGroup Condition="
-      '$(PackageId)' == 'OfficeIMO.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.ChartForgeX'
-      Or '$(PackageId)' == 'OfficeIMO.Reader.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.Word.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.Excel.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.PowerPoint.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.Rtf.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.Html.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.Html.Pdf.Browser'
-      Or '$(PackageId)' == 'OfficeIMO.Markdown.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.Mhtml.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.OneNote.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.AsciiDoc.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.Latex.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.OpenDocument.Odt.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.OpenDocument.Ods.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.OpenDocument.Odp.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.Visio.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.AsciiDoc'
-      Or '$(PackageId)' == 'OfficeIMO.Latex'
-      Or '$(PackageId)' == 'OfficeIMO.Rtf'">
+      '$(MSBuildProjectName)' == 'OfficeIMO.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.ChartForgeX'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Reader.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Word.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Excel.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.PowerPoint.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Rtf.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Html.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Html.Pdf.Browser'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Markdown.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Mhtml.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.OneNote.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.AsciiDoc.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Latex.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.OpenDocument.Odt.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.OpenDocument.Ods.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.OpenDocument.Odp.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Visio.Pdf'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.AsciiDoc'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Latex'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Rtf'">
     <PackageValidationBaselineVersion>3.3.0</PackageValidationBaselineVersion>
     <CompatibilitySuppressionFilePath>$(MSBuildProjectDirectory)/CompatibilitySuppressions.xml</CompatibilitySuppressionFilePath>
   </PropertyGroup>

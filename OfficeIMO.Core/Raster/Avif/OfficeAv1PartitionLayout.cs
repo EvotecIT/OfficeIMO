@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>AV1 partition symbols, in bitstream order.</summary>

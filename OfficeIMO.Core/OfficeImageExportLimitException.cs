@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Thrown when a raster export exceeds a configured allocation or encoder limit.</summary>

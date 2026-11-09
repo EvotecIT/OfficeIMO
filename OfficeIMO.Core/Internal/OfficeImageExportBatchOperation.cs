@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
@@ -40,9 +35,9 @@ internal sealed class OfficeImageExportBatchOperation<TOptions> where TOptions :
     }
 
     /// <summary>Exports all selected images and materializes their encoded payloads.</summary>
-    internal IReadOnlyList<OfficeImageExportResult> Export() {
+    internal IReadOnlyList<OfficeImageExportResult> Export(CancellationToken cancellationToken = default) {
         var results = new List<OfficeImageExportResult>();
-        ExportEach(results.Add);
+        ExportEach(results.Add, cancellationToken);
         FinalizeSequence(results);
         return results.AsReadOnly();
     }
@@ -238,6 +233,7 @@ internal sealed class OfficeImageExportBatchOperation<TOptions> where TOptions :
     internal async Task<OfficeImageExportBatchSaveResult> SaveFilesAsync(
         string folderPath,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         string fullFolder = PrepareFolder(folderPath);
         var files = new List<OfficeImageExportSavedFile>();
         var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

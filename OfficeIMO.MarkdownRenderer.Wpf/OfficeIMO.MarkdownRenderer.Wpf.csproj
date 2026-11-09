@@ -7,7 +7,6 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.MarkdownRenderer.Wpf</PackageId>
     <PackageTags>markdown;renderer;wpf;webview2;desktop</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -15,12 +14,10 @@
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>0.1.0: introduces a reusable WPF/WebView2 MarkdownView host for OfficeIMO.MarkdownRenderer with host-driven preset, theming, clipboard, and external-link hooks.</PackageReleaseNotes>
-    <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <IsPublishable>True</IsPublishable>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <EnableDefaultPageItems>false</EnableDefaultPageItems>
   </PropertyGroup>
@@ -59,10 +56,6 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="README.md" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="System" />
   </ItemGroup>
 
 </Project>

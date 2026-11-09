@@ -1,7 +1,5 @@
 using OfficeIMO.Core.Internal;
 using DocumentFormat.OpenXml;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {

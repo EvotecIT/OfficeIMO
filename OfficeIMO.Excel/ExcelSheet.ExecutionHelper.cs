@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>

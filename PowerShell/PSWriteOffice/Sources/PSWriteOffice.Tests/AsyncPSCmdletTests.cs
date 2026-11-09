@@ -1,7 +1,5 @@
-using System;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
-using System.Threading.Tasks;
 using PSWriteOffice;
 
 namespace PSWriteOffice.Tests;

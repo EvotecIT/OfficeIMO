@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Validated AV1 4x4-unit tile boundaries and coded block dimensions, including partial frame edges.</summary>

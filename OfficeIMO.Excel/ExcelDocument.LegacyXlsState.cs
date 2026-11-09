@@ -8,8 +8,6 @@ using OfficeIMO.Excel.LegacyXls.Write;
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {

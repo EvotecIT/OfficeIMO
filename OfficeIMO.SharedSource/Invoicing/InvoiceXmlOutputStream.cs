@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Internal.Invoicing;
 
 /// <summary>Bounds serialized XML before an escaping-heavy edit can allocate beyond the input contract.</summary>

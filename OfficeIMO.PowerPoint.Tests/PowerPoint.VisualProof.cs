@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
@@ -198,7 +195,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(presentationPath)) {
                     presentation.AddSlide().AddTitle("Native reference");
                     presentation.Save();
-                    snapshotPng = presentation.Slides[0].ToImage();
+                    snapshotPng = presentation.Slides[0].ToImage().Bytes;
                 }
                 PowerPointReferenceRenderResult result = PowerPointDesktopReferenceRenderer.TryRender(
                     presentationPath, output, enabled: true);

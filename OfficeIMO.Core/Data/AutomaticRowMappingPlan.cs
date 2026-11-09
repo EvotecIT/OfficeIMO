@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -320,6 +317,7 @@ internal sealed partial class AutomaticRowMappingPlan<
         internal string Name { get; }
         internal Type ValueType { get; }
         internal bool CanAssign => Property.SetMethod?.IsPublic == true;
+        internal bool SupportsTypedSnapshot => _assignReader is not null && CanAssign;
 
         internal T Assign(T instance, object? value) => _assign(instance, value);
 

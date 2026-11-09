@@ -1,8 +1,4 @@
 using OfficeIMO.Reader.Internal.Compound;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
 
 namespace OfficeIMO.Reader;
 

@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {

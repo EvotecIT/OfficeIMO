@@ -27,7 +27,7 @@ public sealed class WordChartIndependentProducerTests {
         Assert.NotNull(snapshot.Style.LegendBackgroundColor);
         Assert.NotNull(snapshot.Style.LegendBorderColor);
 
-        var rendered = document.ExportImage(OfficeImageExportFormat.Png,
+        var rendered = document.ToImage(OfficeImageExportFormat.Png,
             new WordImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true, RequireNoFailures = true } });
         Assert.NotEmpty(rendered.Bytes);
         string referencePath = Path.Combine(AppContext.BaseDirectory, "Documents", "Charts", "LibreOffice", "status-pie-docx-reference.png");
@@ -69,7 +69,7 @@ public sealed class WordChartIndependentProducerTests {
 
         OfficeChartRenderingResult drawing = OfficeChartDrawingRenderer.RenderWithQuality(snapshot);
         Assert.Contains(drawing.QualityReport.Issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.UnsupportedAppearance);
-        var exported = document.ExportImage(OfficeImageExportFormat.Png,
+        var exported = document.ToImage(OfficeImageExportFormat.Png,
             new WordImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true, RequireNoFailures = true } });
         Assert.Contains(exported.Diagnostics, item => item.Code == "chart-quality"
             && item.Message.Contains("UnsupportedAppearance", StringComparison.Ordinal));

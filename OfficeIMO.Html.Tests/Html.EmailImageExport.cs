@@ -1,8 +1,4 @@
-using System;
 using System.Globalization;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
@@ -27,7 +23,7 @@ public sealed class HtmlEmailImageExportTests {
         imageOptions1.MaximumOutputWidth = 360;
         imageOptions1.MaximumOutputHeight = 360;
         imageOptions1.Format = OfficeImageExportFormat.Png;
-        OfficeImageExportResult result = email.ExportImage(OfficeImageExportFormat.Png, imageOptions1, pageIndex: imageOptions1.PageIndex);
+        OfficeImageExportResult result = email.ToImage(OfficeImageExportFormat.Png, imageOptions1, pageIndex: imageOptions1.PageIndex);
 
         Assert.True(result.Width <= 360);
         Assert.True(result.Height <= 360);
@@ -38,7 +34,7 @@ public sealed class HtmlEmailImageExportTests {
         var email = new EmailDocument();
         email.Body.Rtf = "{\\rtf1\\ansi Rendered RTF body}";
 
-        OfficeImageExportResult result = Assert.Single(email.ExportImages(OfficeImageExportFormat.Png));
+        OfficeImageExportResult result = Assert.Single(email.ToImages(OfficeImageExportFormat.Png));
 
         Assert.Equal(0, result.SequenceIndex);
         Assert.Equal(1, result.SequenceCount);
@@ -57,7 +53,7 @@ public sealed class HtmlEmailImageExportTests {
             new EmailAddress("reader@example.com", "Reader")));
         email.Body.Text = "Hello,\nThis is a useful plain-text message.";
 
-        OfficeImageExportResult result = email.ExportImage(
+        OfficeImageExportResult result = email.ToImage(
             OfficeImageExportFormat.Svg);
 
         Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
@@ -80,7 +76,7 @@ public sealed class HtmlEmailImageExportTests {
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFont('A'));
 
-        OfficeImageExportResult result = email.ExportImage(
+        OfficeImageExportResult result = email.ToImage(
             OfficeImageExportFormat.Svg,
             options);
 
@@ -143,7 +139,7 @@ public sealed class HtmlEmailImageExportTests {
         var email = new EmailDocument { Subject = "Typography" };
         email.Body.Html = "<p><span style='font-family:Aptos;font-size:18px;color:#336699;font-weight:700;font-style:italic;text-decoration-line:underline line-through;text-decoration-style:wavy;vertical-align:super'>Styled</span></p>";
 
-        OfficeImageExportResult result = Assert.Single(email.ExportImages(format));
+        OfficeImageExportResult result = Assert.Single(email.ToImages(format));
 
         Assert.Equal(format, result.Format);
         Assert.True(result.Bytes.Length > 32);
@@ -167,7 +163,7 @@ public sealed class HtmlEmailImageExportTests {
             Length = PixelPng.Length
         });
 
-        OfficeImageExportResult result = await email.ExportImageAsync(
+        OfficeImageExportResult result = await email.ToImageAsync(
             OfficeImageExportFormat.Png);
 
         Assert.Equal(OfficeImageExportFormat.Png, result.Format);
@@ -191,7 +187,7 @@ public sealed class HtmlEmailImageExportTests {
             Length = PixelPng.Length
         });
 
-        OfficeImageExportResult result = email.ExportImage(
+        OfficeImageExportResult result = email.ToImage(
             OfficeImageExportFormat.Png);
 
         Assert.Equal(OfficeImageExportFormat.Png, result.Format);
@@ -222,10 +218,10 @@ public sealed class HtmlEmailImageExportTests {
         };
 
         OfficeImageExportResult result = asynchronous
-            ? await email.ExportImageAsync(
+            ? await email.ToImageAsync(
                 OfficeImageExportFormat.Png,
                 options)
-            : email.ExportImage(
+            : email.ToImage(
                 OfficeImageExportFormat.Png,
                 options);
 
@@ -247,7 +243,7 @@ public sealed class HtmlEmailImageExportTests {
         email.Attachments.Add(CreateInlineImage("second@example"));
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            email.ExportImage(
+            email.ToImage(
                 OfficeImageExportFormat.Png,
                 new EmailImageExportOptions { MaxInlineResourceCount = 1 }));
 
@@ -262,7 +258,7 @@ public sealed class HtmlEmailImageExportTests {
         email.Attachments.Add(CreateInlineImage("second@example"));
 
         EmailLimitExceededException exception = await Assert.ThrowsAsync<EmailLimitExceededException>(() =>
-            email.ExportImageAsync(
+            email.ToImageAsync(
                 OfficeImageExportFormat.Png,
                 new EmailImageExportOptions {
                     MaxTotalInlineResourceBytes = PixelPng.LongLength * 2L - 1L
@@ -278,7 +274,7 @@ public sealed class HtmlEmailImageExportTests {
         email.Attachments.Add(CreateInlineImage("first@example"));
         email.Attachments.Add(CreateInlineImage("second@example"));
 
-        OfficeImageExportResult result = email.ExportImage(
+        OfficeImageExportResult result = email.ToImage(
             OfficeImageExportFormat.Svg,
             new EmailImageExportOptions {
                 IncludeInlineResources = false,
@@ -298,7 +294,7 @@ public sealed class HtmlEmailImageExportTests {
         email.Attachments.Add(attachment);
 
         OfficeImageExportPolicyException exception = await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() =>
-            email.ExportImageAsync(
+            email.ToImageAsync(
                 OfficeImageExportFormat.Png,
                 new EmailImageExportOptions {
                     MaxTotalInlineResourceBytes = PixelPng.LongLength - 1L
@@ -331,7 +327,7 @@ public sealed class HtmlEmailImageExportTests {
         });
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            email.ExportImages(
+            email.ToImages(
                 OfficeImageExportFormat.Png,
                 _ => { },
                 cancellationToken: cancellation.Token));
@@ -347,7 +343,7 @@ public sealed class HtmlEmailImageExportTests {
 
         OfficeImageExportPolicyException exception =
             Assert.Throws<OfficeImageExportPolicyException>(() =>
-                email.ExportImage(
+                email.ToImage(
                     OfficeImageExportFormat.Png,
                     options));
 
@@ -374,7 +370,7 @@ public sealed class HtmlEmailImageExportTests {
             }
         };
 
-        await email.ExportImageAsync(OfficeImageExportFormat.Png, options);
+        await email.ToImageAsync(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(0, fallbackCalls);
     }
@@ -402,7 +398,7 @@ public sealed class HtmlEmailImageExportTests {
             }
         };
 
-        await email.ExportImageAsync(OfficeImageExportFormat.Png, options);
+        await email.ToImageAsync(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(0, fallbackCalls);
     }
@@ -425,7 +421,7 @@ public sealed class HtmlEmailImageExportTests {
             }
         };
 
-        await email.ExportImageAsync(OfficeImageExportFormat.Png, options);
+        await email.ToImageAsync(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(0, fallbackCalls);
     }

@@ -1,14 +1,23 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio;
 
 public static partial class VisioImageExportExtensions {
+    /// <summary>Renders a batch using the encoding and selection in the options.</summary>
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(this VisioDocument document, VisioImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        VisioImageExportOptions resolved = options?.Clone() ?? new VisioImageExportOptions();
+        return CreateVisioDocumentImageBatchOperation(document, resolved).Export(cancellationToken);
+    }
+
+    /// <summary>Renders a batch asynchronously using the same options and evidence contract.</summary>
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this VisioDocument document, VisioImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        VisioImageExportOptions resolved = options?.Clone() ?? new VisioImageExportOptions();
+        return CreateVisioDocumentImageBatchOperation(document, resolved).ExportAsync(cancellationToken);
+    }
+
     /// <summary>Saves selected images without retaining payloads and returns aggregate conversion evidence.</summary>
     public static OfficeConversionReport SaveAsImages(this VisioDocument document, string folderPath,
         VisioImageExportOptions? options = null, CancellationToken cancellationToken = default) {
@@ -33,7 +42,7 @@ public static partial class VisioImageExportExtensions {
     }
 
     /// <summary>Asynchronously exports selected images through the shared bounded streaming bridge.</summary>
-    public static Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(this VisioDocument document,
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this VisioDocument document,
         OfficeImageExportFormat format, VisioImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         VisioImageExportOptions resolved = options?.Clone() ?? new VisioImageExportOptions();
         resolved.Format = format;
@@ -41,7 +50,7 @@ public static partial class VisioImageExportExtensions {
     }
 
     /// <summary>Asynchronously delivers selected images with backpressure and cooperative cancellation.</summary>
-    public static Task ExportImagesAsync(this VisioDocument document, OfficeImageExportFormat format,
+    public static Task ToImagesAsync(this VisioDocument document, OfficeImageExportFormat format,
         OfficeImageExportAsyncConsumer consumer, VisioImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         VisioImageExportOptions resolved = options?.Clone() ?? new VisioImageExportOptions();
         resolved.Format = format;
@@ -57,7 +66,7 @@ public static partial class VisioImageExportExtensions {
         VisioDocument document, VisioImageExportOptions options) {
         ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportBatchOperation<VisioImageExportOptions>(options, options.Format, options.FileConflictPolicy,
-            (encoding, effective) => document.ExportImages(encoding, effective),
-            exportEach: (encoding, effective, consumer, token) => document.ExportImages(encoding, consumer, effective, token));
+            (encoding, effective) => document.ToImages(encoding, effective),
+            exportEach: (encoding, effective, consumer, token) => document.ToImages(encoding, consumer, effective, token));
     }
 }

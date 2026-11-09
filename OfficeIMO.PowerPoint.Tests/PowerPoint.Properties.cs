@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using Xunit;

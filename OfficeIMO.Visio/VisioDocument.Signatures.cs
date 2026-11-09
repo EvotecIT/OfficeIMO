@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Security;
 
 namespace OfficeIMO.Visio {

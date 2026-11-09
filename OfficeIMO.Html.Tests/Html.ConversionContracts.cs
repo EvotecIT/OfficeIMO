@@ -173,7 +173,7 @@ public partial class Html {
         Assert.Contains("Hello", oneNoteHtml.RequireValue(), StringComparison.Ordinal);
 
         OfficeIMO.Pdf.PdfDocumentConversionResult pdf = source.ConvertToPdfWithEvidence();
-        OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult image = source.ToImage(OfficeImageExportFormat.Png);
         Assert.NotEmpty(pdf.ToBytes());
         Assert.NotEmpty(image.Bytes);
 

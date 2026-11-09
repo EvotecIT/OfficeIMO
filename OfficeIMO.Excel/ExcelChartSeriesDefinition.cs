@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Defines a series mapping for building chart data from objects.

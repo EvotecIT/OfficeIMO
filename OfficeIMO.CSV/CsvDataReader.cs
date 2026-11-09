@@ -5,8 +5,6 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using CsvDataReaderTextRowSource = OfficeIMO.CSV.ICsvDataReaderTextRowSource;
 
 namespace OfficeIMO.CSV;
@@ -69,6 +67,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     internal CsvDataReader(CsvDataReader source)
     {
         _columns = source._columns;
+        _processingCancellationToken = source._processingCancellationToken;
         _culture = source._culture;
         _dateTimeFormats = source._dateTimeFormats;
         _mappingErrorValuePolicy = source._mappingErrorValuePolicy;

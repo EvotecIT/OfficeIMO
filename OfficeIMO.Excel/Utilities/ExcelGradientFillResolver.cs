@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Collections.Generic;
 
 namespace OfficeIMO.Excel.Utilities {
     internal readonly struct ExcelGradientFillStopInfo {

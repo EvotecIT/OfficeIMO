@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Controls where connector text is placed. Coordinates, offsets and dimensions use

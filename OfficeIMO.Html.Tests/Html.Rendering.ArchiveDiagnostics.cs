@@ -23,7 +23,7 @@ public sealed partial class HtmlRenderingTests {
             .WithAdditionalDiagnostics(new[] {
                 new HtmlDiagnostic("source", "source-info", "Source was inspected.", HtmlDiagnosticSeverity.Info, source)
             });
-        OfficeImageExportResult image = Assert.Single(retained.ExportImages());
+        OfficeImageExportResult image = Assert.Single(retained.ToImages());
         HtmlRenderArchiveResult archive = retained.ExportArchive();
         HtmlRenderArchivePage page = Assert.Single(archive.Manifest.Pages);
 

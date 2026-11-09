@@ -1,6 +1,4 @@
-using System.IO;
 using System.Management.Automation;
-using System.Threading;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
@@ -17,8 +15,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [OutputType(typeof(FileInfo), typeof(PdfDocument))]
 public sealed class RemoveOfficePdfPageCommand : PdfMutationCmdlet {
     /// <summary>Native selector, one-based page or range expression, including last, odd and even.</summary>
-    [Parameter(Mandatory = true), PdfPageSelectorTransformation, ValidateNotNull]
-    public PdfPageSelector Page { get; set; } = null!;
+    [Parameter(Mandatory = true), OfficePageSelectorTransformation, ValidateNotNull]
+    public OfficePageSelector Page { get; set; } = null!;
     /// <inheritdoc />
     protected override string Operation => "Remove PDF pages";
     /// <inheritdoc />

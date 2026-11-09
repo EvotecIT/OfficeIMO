@@ -12,7 +12,6 @@
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
 
-        <PackageId>OfficeIMO.Visio</PackageId>
         <PackageTags>
             vsdx;vsd;vss;vst;visio;office;openxml;stencils;diagram;image-export;png;jpeg;tiff;svg;webp;net472;netstandard2.0;net8.0;net10.0</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
@@ -22,14 +21,12 @@
         <Copyright>(c) 2011 - 2026 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
         <PackageIcon>OfficeIMO.png</PackageIcon>
         <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
-        <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryType>git</RepositoryType>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
@@ -61,12 +58,8 @@
   </ItemGroup>
 
     <ItemGroup>
-        <Using Include="System" />
         <Using Include="System.Text" />
-        <Using Include="System.Collections.Generic" />
         <Using Include="System.Collections" />
-        <Using Include="System.Linq" />
-        <Using Include="System.IO" />
     </ItemGroup>
 
     <ItemGroup>

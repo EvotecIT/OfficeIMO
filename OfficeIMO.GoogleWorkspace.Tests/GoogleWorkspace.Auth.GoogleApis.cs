@@ -2,8 +2,6 @@ using Google.Apis.Auth.OAuth2;
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Auth.GoogleApis;
 using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

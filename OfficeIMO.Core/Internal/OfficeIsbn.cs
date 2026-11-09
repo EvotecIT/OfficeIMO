@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.Core.Internal;
 
 /// <summary>Shared ISBN shape and checksum validation for document and publishing owners.</summary>

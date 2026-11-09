@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Saves captured physical entry payloads and explicitly supported same-length native mutations.</summary>

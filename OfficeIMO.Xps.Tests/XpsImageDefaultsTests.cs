@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -22,7 +19,7 @@ public sealed class XpsImageDefaultsTests {
             if (group.Key.Contains("oriented"))
                 Assert.Equal("0,0,16,8", (string?)page.GetMarkup().Descendants().Single(e => e.Name.LocalName == "ImageBrush").Attribute("Viewbox"));
             Assert.Empty(page.ToSvg().Diagnostics);
-            Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png,
+            Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png,
                 new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent }).Bytes, out var image));
             foreach (string row in group) {
                 string[] values = row.Split(',');

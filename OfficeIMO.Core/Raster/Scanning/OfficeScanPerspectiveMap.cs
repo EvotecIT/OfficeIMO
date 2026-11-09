@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Reversible projective mapping between original and corrected image pixel-edge coordinates.</summary>

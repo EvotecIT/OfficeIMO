@@ -4,7 +4,6 @@ using OfficeIMO.Excel.Xlsb.Package;
 using OfficeIMO.Excel.Xlsb.Read;
 using System.Data.Common;
 using System.IO.Compression;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;

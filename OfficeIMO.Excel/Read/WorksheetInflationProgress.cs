@@ -1,7 +1,5 @@
 #nullable enable
 
-using System.Threading;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Publishes initialized worksheet bytes and terminal producer state. XML readers

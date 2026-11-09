@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>One bounded still-item decode, preserving color/alpha ownership through final RGBA publication.</summary>

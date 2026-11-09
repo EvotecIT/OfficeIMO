@@ -7,8 +7,8 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions snapshot = options?.Clone() ?? new ExcelImageExportOptions();
             return new OfficeImageExportOperation<ExcelImageExportOptions>(snapshot, format,
                 snapshot.FileConflictPolicy,
-                (encoding, effective) => this.ExportImage(encoding, effective),
-                (encoding, effective, token) => this.ExportImage(encoding, effective, token));
+                (encoding, effective) => this.ToImage(encoding, effective),
+                (encoding, effective, token) => this.ToImage(encoding, effective, token));
         }
     }
     public sealed partial class ExcelRange {
@@ -17,8 +17,8 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions snapshot = options?.Clone() ?? new ExcelImageExportOptions();
             return new OfficeImageExportOperation<ExcelImageExportOptions>(snapshot, format,
                 snapshot.FileConflictPolicy,
-                (encoding, effective) => this.ExportImage(encoding, effective),
-                (encoding, effective, token) => this.ExportImage(encoding, effective, token));
+                (encoding, effective) => this.ToImage(encoding, effective),
+                (encoding, effective, token) => this.ToImage(encoding, effective, token));
         }
     }
     public partial class ExcelSheet {
@@ -27,8 +27,8 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions snapshot = options?.Clone() ?? new ExcelImageExportOptions();
             return new OfficeImageExportOperation<ExcelImageExportOptions>(snapshot, format,
                 snapshot.FileConflictPolicy,
-                (encoding, effective) => this.ExportImage(encoding, effective),
-                (encoding, effective, token) => this.ExportImage(encoding, effective, token));
+                (encoding, effective) => this.ToImage(encoding, effective),
+                (encoding, effective, token) => this.ToImage(encoding, effective, token));
         }
     }
     public partial class ExcelSheet {
@@ -36,9 +36,9 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions? options, OfficeImageExportFormat format) {
             ExcelImageExportOptions snapshot = options?.Clone() ?? new ExcelImageExportOptions();
             return new OfficeImageExportBatchOperation<ExcelImageExportOptions>(snapshot, format,
-                snapshot.FileConflictPolicy, this.ExportImages,
+                snapshot.FileConflictPolicy, this.ToImages,
                 exportEach: (encoding, effective, consumer, token) =>
-                    this.ExportImages(encoding, consumer, effective, token));
+                    this.ToImages(encoding, consumer, effective, token));
         }
     }
     public partial class ExcelDocument {
@@ -50,9 +50,9 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions? options, OfficeImageExportFormat format) {
             ExcelImageExportOptions snapshot = options?.Clone() ?? new ExcelImageExportOptions();
             return new OfficeImageExportBatchOperation<ExcelImageExportOptions>(snapshot, format,
-                snapshot.FileConflictPolicy, this.ExportImages,
+                snapshot.FileConflictPolicy, this.ToImages,
                 exportEach: (encoding, effective, consumer, token) =>
-                    this.ExportImages(encoding, consumer, effective, token));
+                    this.ToImages(encoding, consumer, effective, token));
         }
     }
 }

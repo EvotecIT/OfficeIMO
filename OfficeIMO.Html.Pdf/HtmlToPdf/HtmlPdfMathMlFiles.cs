@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Threading;
 using System.Security.Cryptography;
 using System.Text;
 using PdfCore = OfficeIMO.Pdf;

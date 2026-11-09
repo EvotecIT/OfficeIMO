@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;

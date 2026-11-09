@@ -5,10 +5,7 @@ using OfficeIMO.MarkdownRenderer.SamplePlugin;
 using OfficeIMO.Html;
 using Xunit;
 using MarkdownRendererShell = OfficeIMO.MarkdownRenderer.MarkdownRenderer;
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Tests;
 

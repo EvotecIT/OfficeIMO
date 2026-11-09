@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {

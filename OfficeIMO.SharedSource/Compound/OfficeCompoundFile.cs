@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 #if OFFICEIMO_READER_CORE
 namespace OfficeIMO.Reader.Internal.Compound {
 #else

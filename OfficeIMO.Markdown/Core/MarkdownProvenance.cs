@@ -1,4 +1,3 @@
-using System.IO;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
 

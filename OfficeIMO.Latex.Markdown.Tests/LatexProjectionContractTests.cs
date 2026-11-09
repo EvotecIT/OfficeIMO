@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Latex.Markdown.Tests;
 
 public sealed class LatexProjectionContractTests {

@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using Xunit;

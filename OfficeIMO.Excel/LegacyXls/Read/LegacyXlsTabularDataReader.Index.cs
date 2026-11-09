@@ -259,7 +259,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
 
             int pendingFormulaColumn = -1;
-            while (offset < rowEnd && TryReadDiscoveryRecord(ref offset, out RecordSlice record)) {
+            while (offset < rowEnd) {
+                if (rowEnd - offset < sizeof(uint)) return false;
+                if (!TryReadDiscoveryRecord(ref offset, out RecordSlice record)) break;
+                if (offset > rowEnd) return false;
                 if (pendingFormulaColumn >= 0) {
                     if (record.Type != (ushort)BiffRecordType.String) return false;
                     values[pendingFormulaColumn] = ReadFormulaStringValue(record, ref offset);
@@ -284,7 +287,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     pendingFormulaColumn = firstCellColumn;
                 }
             }
-            return pendingFormulaColumn < 0;
+            return offset <= rowEnd && pendingFormulaColumn < 0;
         }
 
         private static int FindFirstIndexedRow(int[] rowOffsets, int firstRow, int rowAfterLast) {

@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using System.Security.Cryptography;
-using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;

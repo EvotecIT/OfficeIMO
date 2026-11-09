@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Main-8/Main10 Wiener and self-guided restoration, with immutable stripe-aware sample sources.</summary>

@@ -2,7 +2,6 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls.Biff;
 using System.Text;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

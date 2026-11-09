@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>
     /// Controls legacy binary Excel import behavior.

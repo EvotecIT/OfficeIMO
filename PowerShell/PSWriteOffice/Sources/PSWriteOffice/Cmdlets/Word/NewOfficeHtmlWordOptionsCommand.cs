@@ -1,4 +1,3 @@
-using System;
 using System.Management.Automation;
 using OfficeIMO.Word.Html;
 using PSWriteOffice.Foundation;

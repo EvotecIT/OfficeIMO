@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
@@ -89,7 +88,7 @@ public sealed class VisioRichTextStyleInheritanceTests {
             XDocument native = XDocument.Load(new MemoryStream(candidate.ToLegacyXmlResult().Value));
             Assert.Equal("0", (string?)Assert.Single(native.Descendants(Legacy + "Page")
                 .Descendants(Legacy + "Shape")).Attribute("TextStyle"));
-            _ = candidate.Pages[0].ToImage(new VisioImageExportOptions { Supersampling = 1 });
+            _ = candidate.Pages[0].ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes;
             Assert.Equal(before, candidate.ToLegacyXmlResult().Value);
         }
     }
@@ -123,7 +122,7 @@ public sealed class VisioRichTextStyleInheritanceTests {
             Assert.Equal(OfficeTextAlignment.Right, Assert.Single(projection.Paragraphs).Alignment);
             XElement text = Assert.Single(LabelSvg(candidate, false).Descendants(Svg + "text"));
             Assert.Equal("24", (string?)text.Attribute("font-size"));
-            _ = candidate.Pages[0].ToImage(new VisioImageExportOptions { Supersampling = 1 });
+            _ = candidate.Pages[0].ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes;
             Assert.Equal(before, candidate.ToLegacyXmlResult().Value);
         }
     }

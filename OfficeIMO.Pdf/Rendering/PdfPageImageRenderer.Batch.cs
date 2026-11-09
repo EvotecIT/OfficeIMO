@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -70,7 +69,7 @@ internal static partial class PdfPageImageRenderer {
     /// <summary>Renders pages resolved by a document-relative selector.</summary>
     public static IReadOnlyList<PdfPageRenderResult> RenderPages(
         byte[] pdf,
-        PdfPageSelector selector,
+        OfficePageSelector selector,
         PdfPageRenderOptions? options = null,
         PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
@@ -100,14 +99,14 @@ internal static partial class PdfPageImageRenderer {
         Guard.NotNull(pageRanges, nameof(pageRanges));
         return RenderPagesCore(
             getDocument,
-            pageCount => PdfPageSelector.Parse(pageRanges).ResolveSelection(pageCount).ToPageNumbers(pageCount, nameof(pageRanges)),
+            pageCount => OfficePageSelector.Parse(pageRanges).ResolveSelection(pageCount).ToPageNumbers(pageCount, nameof(pageRanges)),
             options,
             cancellationToken);
     }
 
     internal static IReadOnlyList<PdfPageRenderResult> RenderPages(
         Func<CancellationToken, PdfReadDocument> getDocument,
-        PdfPageSelector selector,
+        OfficePageSelector selector,
         PdfPageRenderOptions? options,
         CancellationToken cancellationToken) {
         Guard.NotNull(getDocument, nameof(getDocument));

@@ -6,7 +6,6 @@
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Publisher</PackageId>
     <PackageTags>publisher;pub;publication;recovery;svg;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -17,7 +16,6 @@
     <IsPublishable>true</IsPublishable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Publisher.Tests" />
@@ -25,10 +23,5 @@
     <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
     <None Include="README.md" Pack="true" PackagePath="/" />
     <None Include="SUPPORT.md" Pack="true" PackagePath="/" />
-    <Using Include="System" />
-    <Using Include="System.IO" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" />
-    <Using Include="System.Threading" />
   </ItemGroup>
 </Project>

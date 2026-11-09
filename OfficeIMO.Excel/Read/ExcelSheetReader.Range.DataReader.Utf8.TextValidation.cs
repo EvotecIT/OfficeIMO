@@ -1,6 +1,5 @@
 #nullable enable
 
-using System.Threading;
 #if NET8_0_OR_GREATER
 using System.Buffers;
 using System.Text.Unicode;

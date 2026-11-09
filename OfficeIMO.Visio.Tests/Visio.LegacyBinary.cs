@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Reader.Visio;

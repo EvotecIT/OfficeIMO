@@ -1,6 +1,5 @@
 using OfficeIMO.Html;
 using OfficeIMO.Word.Html;
-using System.Linq;
 using System.Text.RegularExpressions;
 using Xunit;
 

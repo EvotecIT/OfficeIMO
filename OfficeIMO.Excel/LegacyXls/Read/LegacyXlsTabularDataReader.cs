@@ -5,8 +5,6 @@ using System.Buffers.Binary;
 using System.Data.Common;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using static OfficeIMO.Excel.LegacyXls.Read.LegacyXlsTabularWorkbook;
 
 namespace OfficeIMO.Excel.LegacyXls.Read {
@@ -78,17 +76,23 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int lastColumn = -1;
             Dictionary<int, string?>? headerValues = null;
             try {
-                bool indexed = bufferedRowOffsets != null
-                    && TryDiscoverIndexed(
-                        sheetOffset,
-                        sheetEndOffset,
-                        bufferedRowOffsets,
-                        out bufferedWorksheetEndOffset,
-                        out firstRow,
-                        out lastRow,
-                        out firstColumn,
-                        out lastColumn,
-                        out headerValues);
+                bool indexed;
+                try {
+                    indexed = bufferedRowOffsets != null
+                        && TryDiscoverIndexed(
+                            sheetOffset,
+                            sheetEndOffset,
+                            bufferedRowOffsets,
+                            out bufferedWorksheetEndOffset,
+                            out firstRow,
+                            out lastRow,
+                            out firstColumn,
+                            out lastColumn,
+                            out headerValues);
+                } catch (InvalidDataException) {
+                    // INDEX/DBCELL hints cannot replace validation of the actual record stream.
+                    indexed = false;
+                }
                 if (!indexed) {
                     Discover(
                         sheetOffset,
@@ -291,9 +295,16 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             _position = rowStart;
             while (_position < rowEnd) {
                 int recordOffset = _position;
-                ushort type = (ushort)(bytes[recordOffset] | bytes[recordOffset + 1] << 8);
-                int length = bytes[recordOffset + 2] | bytes[recordOffset + 3] << 8;
+                if (rowEnd - recordOffset < sizeof(uint)) {
+                    throw new InvalidDataException("An XLS row ends inside a BIFF record header.");
+                }
+                uint header = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(recordOffset, sizeof(uint)));
+                ushort type = (ushort)header;
+                int length = (int)(header >> 16);
                 int payloadOffset = recordOffset + 4;
+                if (length > rowEnd - payloadOffset) {
+                    throw new InvalidDataException("A BIFF record extends beyond its indexed XLS row boundary.");
+                }
                 _position = payloadOffset + length;
                 if (checkCancellation) {
                     CheckCancellation();
@@ -327,6 +338,9 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     length,
                     ref pendingFormulaOrdinal,
                     ref pendingFormulaStyle);
+            }
+            if (_position > rowEnd) {
+                throw new InvalidDataException("A BIFF record extends beyond its indexed XLS row boundary.");
             }
             if (pendingFormulaOrdinal >= 0) {
                 throw MissingFormulaString();

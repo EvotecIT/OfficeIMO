@@ -11,7 +11,6 @@
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
 
-        <PackageId>OfficeIMO.Word</PackageId>
         <PackageTags>doc;docx;docm;dot;dotx;word;office;openxml;document;conversion;netstandard;netstandard2.0;net8.0;net10.0;net472</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -20,7 +19,6 @@
         <Copyright>(c) 2011 - 2024 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
         <PackageIcon>OfficeIMO.png</PackageIcon>
         <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
-        <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <ApplicationIcon>OfficeIMO.ico</ApplicationIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -28,7 +26,6 @@
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <PropertyGroup
@@ -90,12 +87,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="System" />
         <Using Include="System.Text" />
-        <Using Include="System.Collections.Generic" />
         <Using Include="System.Collections" />
-        <Using Include="System.Linq" />
-        <Using Include="System.IO" />
         <Using Include="OfficeIMO.Drawing" />
         <Using Include="OfficeIMO.OpenXml.Internal" />
         <Using Include="DocumentFormat.OpenXml" />

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Unicode mathematical token presentation shared by format adapters.</summary>

@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
 

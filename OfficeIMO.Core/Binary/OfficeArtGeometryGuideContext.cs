@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing.Binary;
 
 // This context deliberately has no output-device DPI. Pixel-based SG operands

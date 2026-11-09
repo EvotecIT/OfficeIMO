@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using OfficeIMO.Pdf;
 using Xunit;
 using Pig = UglyToad.PdfPig.PdfDocument;

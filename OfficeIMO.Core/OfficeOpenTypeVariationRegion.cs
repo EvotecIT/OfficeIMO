@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared OpenType variation-region scalar semantics for metrics and CFF2 blends.</summary>

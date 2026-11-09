@@ -1,6 +1,4 @@
 using System.Data;
-using System.Threading;
-using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Pdf.Excel {

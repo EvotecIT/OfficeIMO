@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Organizes tagged pages through the catalog-rooted writer without rebuilding the catalog from a subset.</summary>

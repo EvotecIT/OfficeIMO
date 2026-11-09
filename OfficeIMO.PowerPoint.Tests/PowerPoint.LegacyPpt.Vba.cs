@@ -7,7 +7,6 @@ using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OpenMcdf;
-using System.Threading.Tasks;
 using Xunit;
 using CfbVersion = OpenMcdf.Version;
 

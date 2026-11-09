@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Reader;
 
 /// <summary>Schema identifiers for the independently versioned hierarchical chunking result.</summary>

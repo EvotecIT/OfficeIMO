@@ -1,9 +1,6 @@
-using System;
 #if NET8_0_OR_GREATER
 using System.Buffers;
 #endif
-using System.Collections.Generic;
-using System.Threading;
 
 namespace OfficeIMO.Drawing;
 

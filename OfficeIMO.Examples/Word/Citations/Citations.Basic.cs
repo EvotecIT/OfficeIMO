@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using DocumentFormat.OpenXml.Bibliography;
 using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;

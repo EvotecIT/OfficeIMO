@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing {
     public sealed partial class OfficeRasterCanvas {
         private bool IntersectsVisibleImageBounds((double Left, double Top, double Right, double Bottom) bounds, bool antialiasBoundary) {

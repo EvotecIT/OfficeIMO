@@ -1,5 +1,4 @@
 using OfficeIMO.Word.LegacyDoc.Model;
-using System.Threading;
 
 namespace OfficeIMO.Word.LegacyDoc.Write;
 

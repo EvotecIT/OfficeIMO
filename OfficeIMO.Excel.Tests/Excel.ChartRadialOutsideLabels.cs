@@ -1,4 +1,3 @@
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
@@ -43,7 +42,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
         Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(new[] { 1 }, snapshot.Layout!.DataLabelSeriesIndexes);
         Assert.True(snapshot.Layout.ShowDataLabelLeaderLines);
-        Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        Assert.NotEmpty(chart.ToImage(OfficeImageExportFormat.Svg).Bytes);
     }
 
     [Theory]
@@ -66,7 +65,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
         Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, snapshot.Layout!.DataLabelPosition);
         Assert.Equal(showLeaderLines, snapshot.Layout.ShowDataLabelLeaderLines);
-        Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Png).Bytes);
+        Assert.NotEmpty(chart.ToImage(OfficeImageExportFormat.Png).Bytes);
     }
 
     [Fact]
@@ -83,7 +82,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
         labels.AddChild(new C.ShowLeaderLines { Val = true }, true);
         labels.AddChild(new C.LeaderLines(), true);
 
-        var result = chart.ExportImage(OfficeImageExportFormat.Png);
+        var result = chart.ToImage(OfficeImageExportFormat.Png);
         Assert.NotEmpty(result.Bytes);
         Assert.DoesNotContain(result.Diagnostics, item =>
             item.Code == ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported);
@@ -91,12 +90,12 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
         labels.GetFirstChild<C.ShowLeaderLines>()!.Val = null;
         Assert.True(chart.TryGetSnapshot(out ExcelChartInfo inheritedSnapshot));
         Assert.True(inheritedSnapshot.Layout!.ShowDataLabelLeaderLines);
-        result = chart.ExportImage(OfficeImageExportFormat.Png);
+        result = chart.ToImage(OfficeImageExportFormat.Png);
         Assert.DoesNotContain(result.Diagnostics, item =>
             item.Code == ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported);
 
         labels.GetFirstChild<C.LeaderLines>()!.AddChild(new C.ChartShapeProperties(new A.Outline()), true);
-        result = chart.ExportImage(OfficeImageExportFormat.Png);
+        result = chart.ToImage(OfficeImageExportFormat.Png);
         Assert.Contains(result.Diagnostics, item =>
             item.Code == ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported);
     }

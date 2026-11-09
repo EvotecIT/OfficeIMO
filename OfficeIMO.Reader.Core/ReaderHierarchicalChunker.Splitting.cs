@@ -1,8 +1,6 @@
-using System;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 
 namespace OfficeIMO.Reader;
 

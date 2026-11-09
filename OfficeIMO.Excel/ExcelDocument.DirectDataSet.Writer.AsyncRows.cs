@@ -1,7 +1,5 @@
 using System.IO.Compression;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {

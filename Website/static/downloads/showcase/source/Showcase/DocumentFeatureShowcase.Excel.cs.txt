@@ -38,7 +38,7 @@ internal static partial class DocumentFeatureShowcase {
     }
 
     private static void SaveExcelExample(ExcelDocument document, ExcelSheet sheet, string folder, string range) {
-        sheet.Range(range).ExportImage(OfficeImageExportFormat.Png)
+        sheet.Range(range).ToImage(OfficeImageExportFormat.Png)
             .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();
         if (!document.DocumentIsValid) {

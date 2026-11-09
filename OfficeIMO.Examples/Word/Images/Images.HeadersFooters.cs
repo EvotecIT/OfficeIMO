@@ -1,7 +1,4 @@
-using System;
 using DocumentFormat.OpenXml.Drawing;
-using System;
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;

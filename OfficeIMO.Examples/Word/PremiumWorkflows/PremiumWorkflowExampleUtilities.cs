@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using System.Text;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Packaging;

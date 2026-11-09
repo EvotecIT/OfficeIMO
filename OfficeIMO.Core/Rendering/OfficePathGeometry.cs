@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Geometry queries over normalized paths, without replacing curves by control-point hulls.</summary>

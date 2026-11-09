@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Reader.Excel;
 using Xunit;

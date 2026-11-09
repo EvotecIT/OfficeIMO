@@ -10,7 +10,6 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.MarkdownRenderer.IntelligenceX</PackageId>
     <PackageTags>markdown;renderer;intelligencex;plugin;chat</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -18,12 +17,10 @@
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>0.1.0: first-party IntelligenceX plugin pack for OfficeIMO.MarkdownRenderer with IX visual aliases and transcript preset helpers.</PackageReleaseNotes>
-    <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <IsPublishable>True</IsPublishable>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,10 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
     <Using Include="System.Text" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" />
   </ItemGroup>
 
 </Project>

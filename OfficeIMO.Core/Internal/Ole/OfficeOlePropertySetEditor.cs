@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-
 namespace OfficeIMO.Core.Internal {
     /// <summary>Replaces selected string properties while retaining every other raw section and property value.</summary>
     internal static class OfficeOlePropertySetEditor {

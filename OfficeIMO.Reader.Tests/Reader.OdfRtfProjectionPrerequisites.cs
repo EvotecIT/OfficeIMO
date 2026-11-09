@@ -4,11 +4,7 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Rtf;
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -28,10 +26,10 @@ public sealed partial class PdfRendererFidelityTests {
             Limits = new PdfReadLimits { MaxFunctionShadingEvaluationWork = maximum }
         }).Pages[0];
         if (exceeds) {
-            PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() => page.ExportImage(OfficeImageExportFormat.Png));
+            PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() => page.ToImage(OfficeImageExportFormat.Png));
             Assert.Equal(PdfReadLimitKind.FunctionShadingEvaluationWork, error.Kind);
         } else {
-            OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
             AssertColor(PdfRendererQualitySupport.Decode(result.Bytes), 50, 50, 255, 64, 64, tolerance: 3);
         }
     }

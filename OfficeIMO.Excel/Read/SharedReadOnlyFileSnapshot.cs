@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Owns one open file identity and creates independent-position read views over it.

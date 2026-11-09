@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-using System;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {

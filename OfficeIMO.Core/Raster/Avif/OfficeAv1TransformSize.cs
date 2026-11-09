@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Normative AV1 transform dimensions and split order; values follow TX_SIZE numbering.</summary>

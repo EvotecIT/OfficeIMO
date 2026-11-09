@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -17,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<div style='width:40px;height:20px;background:red;transform:perspective(200px) rotateY(30deg)'></div>");
         var options = new HtmlRenderOptions { ViewportWidth = 64D, Margins = HtmlRenderMargins.All(0D) };
-        OfficeImageExportResult permissive = document.ExportImage(format, options);
+        OfficeImageExportResult permissive = document.ToImage(format, options);
         Assert.Contains(permissive.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         var pdf = document.ConvertToPdfWithEvidence(new HtmlPdfExportOptions(options));
@@ -30,10 +29,10 @@ public sealed partial class HtmlRenderingTests {
         imageOptions1.Format = format;
         Assert.Throws<OfficeImageExportPolicyException>(() => document.SaveAsImage(output, imageOptions1));
         Assert.Equal(0, output.Length);
-        await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() => document.ExportImageAsync(format, options));
+        await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() => document.ToImageAsync(format, options));
         options.Policy.FailOnLoss = false;
         options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
-        Assert.Throws<HtmlConversionException>(() => document.ExportImage(format, options));
+        Assert.Throws<HtmlConversionException>(() => document.ToImage(format, options));
     }
 
     [Theory]
@@ -48,7 +47,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(rendered.NativeDiagnostics.Where(d => d.Severity != HtmlDiagnosticSeverity.Info), diagnostic =>
             Assert.NotEqual(OfficeConversionLossKind.None, diagnostic.LossKind));
         options.Policy.FailOnLoss = true;
-        Assert.Throws<OfficeImageExportPolicyException>(() => document.ExportImage(OfficeImageExportFormat.Svg, options));
+        Assert.Throws<OfficeImageExportPolicyException>(() => document.ToImage(OfficeImageExportFormat.Svg, options));
     }
 
     [Fact]
@@ -57,7 +56,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions { ViewportWidth = 64D, Margins = HtmlRenderMargins.All(0D) };
         options.Policy.FailOnLoss = true;
         options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
-        OfficeImageExportResult result = document.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult result = document.ToImage(OfficeImageExportFormat.Png, options);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.EmptyTable);
         Assert.All(result.Diagnostics, diagnostic => Assert.Equal(OfficeConversionLossKind.None, diagnostic.LossKind));
     }
@@ -70,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions();
         options.Policy.RequireNoOmissions = true;
         OfficeImageExportPolicyException error = Assert.Throws<OfficeImageExportPolicyException>(() =>
-            document.ExportImage(OfficeImageExportFormat.Svg, options));
+            document.ToImage(OfficeImageExportFormat.Svg, options));
         Assert.Contains(error.Diagnostics, diagnostic => diagnostic.Code == code
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }

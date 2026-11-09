@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System;
 using System.Reflection;
-using System.Linq;
 using System.Xml.Linq;
 using MathParagraph = DocumentFormat.OpenXml.Math.Paragraph;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;

@@ -4,7 +4,6 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.Word;
 using System.IO.Compression;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

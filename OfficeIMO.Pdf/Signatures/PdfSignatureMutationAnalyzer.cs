@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Compares signature coverage, revision state, and structural permissions before and after a PDF mutation.</summary>

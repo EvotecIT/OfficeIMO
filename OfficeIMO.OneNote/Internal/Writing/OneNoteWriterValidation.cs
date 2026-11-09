@@ -2,6 +2,10 @@ namespace OfficeIMO.OneNote;
 
 internal static class OneNoteWriterValidation {
     internal static void ValidateSectionOptions(OneNoteSaveOptions options) {
+        if (options.GeneratedTimestampUtc.HasValue && options.GeneratedTimestampUtc.Value.Kind != DateTimeKind.Utc)
+            throw new ArgumentException("GeneratedTimestampUtc must have UTC kind.", nameof(options.GeneratedTimestampUtc));
+        if (options.IdentitySeed.HasValue && !options.GeneratedTimestampUtc.HasValue)
+            throw new ArgumentException("Reproducible identity generation requires an explicit GeneratedTimestampUtc.", nameof(options.GeneratedTimestampUtc));
         ArgumentNullException.ThrowIfNull(options);
         if (options.MaxOutputBytes < 1) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxOutputBytes), "MaxOutputBytes must be greater than zero.");

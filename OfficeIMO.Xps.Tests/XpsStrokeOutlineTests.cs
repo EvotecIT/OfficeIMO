@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -187,7 +184,7 @@ public sealed class XpsStrokeOutlineTests {
     }
 
     private static OfficeRasterImage Render(XpsDocument doc) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(doc.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(doc.Pages[0].ToImage(OfficeImageExportFormat.Png).Bytes, out var image));
         return image!;
     }
 

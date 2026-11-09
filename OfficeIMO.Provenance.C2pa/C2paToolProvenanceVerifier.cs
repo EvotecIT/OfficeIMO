@@ -1,12 +1,9 @@
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Provenance;
 
 namespace OfficeIMO.Provenance.C2pa;

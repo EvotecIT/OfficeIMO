@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
@@ -27,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPage page = Assert.Single(automatic.Document.Pages);
         Assert.Equal(400D, page.Width, 6);
         Assert.Equal(400D, page.Height, 6);
-        Assert.Equal(Assert.Single(reference.ExportImages()).Bytes, Assert.Single(automatic.ExportImages()).Bytes);
+        Assert.Equal(Assert.Single(reference.ToImages()).Bytes, Assert.Single(automatic.ToImages()).Bytes);
         Assert.Equal("BODY", automatic.Document.Text.Trim());
         automatic.ThrowIfLoss();
     }

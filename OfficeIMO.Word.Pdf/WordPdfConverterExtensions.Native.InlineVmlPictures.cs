@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using V = DocumentFormat.OpenXml.Vml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 

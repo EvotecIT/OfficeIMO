@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Text;
 
 namespace OfficeIMO;
@@ -429,7 +426,7 @@ public static partial class OfficeConversionCapabilityCatalog {
         Route("pdf-pptx", "PDF", "PPTX", OfficeConversionInputKind.File, new[] { ".pdf" }, ".pptx", "OfficeIMO.Pdf.PowerPoint", "PdfDocument.Load(stream).SaveAsPowerPoint(output, options)", "Reconstruct supported PDF content as native slide objects, or select explicit visual, hybrid, and tables-only projections with diagnostics.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport", browser: true),
         Route("pdf-html", "PDF", "HTML", OfficeConversionInputKind.File, new[] { ".pdf" }, ".html", "OfficeIMO.Html.Pdf", "PdfDocument.Load(stream).SaveAsHtml(output, options)", "Project PDF content into semantic or positioned-review HTML with explicit diagnostics.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport", browser: true),
         Route("pdf-markdown", "PDF", "Markdown", OfficeConversionInputKind.File, new[] { ".pdf" }, ".md", "OfficeIMO.Pdf", "PdfDocument.Load(stream).ExtractMarkdown(options)", "Reconstruct PDF logical content as Markdown with explicit fixed-layout loss diagnostics.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
-        Route("pdf-png", "PDF", "PNG", OfficeConversionInputKind.File, new[] { ".pdf" }, ".png", "OfficeIMO.Pdf", "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }, out report)", "Render every PDF page as a PNG image with a shared fidelity report; multi-page results are packaged as a ZIP.", OfficeConversionFidelityKind.FixedLayout, "IReadOnlyList<OfficeImageExportResult>", browser: true),
+        Route("pdf-png", "PDF", "PNG", OfficeConversionInputKind.File, new[] { ".pdf" }, ".png", "OfficeIMO.Pdf", "PdfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }, out report)", "Render PDF pages as individual image results with diagnostics; the browser packages multiple results as a ZIP.", OfficeConversionFidelityKind.FixedLayout, "IReadOnlyList<OfficeImageExportResult>", browser: true),
         Route("pdf-rtf", "PDF", "RTF", OfficeConversionInputKind.File, new[] { ".pdf" }, ".rtf", "OfficeIMO.Rtf.Pdf", "PdfDocument.Load(stream).ToRtf(options, out report)", "Import PDF logical content into semantic RTF with diagnostics.", OfficeConversionFidelityKind.Editable, "RtfDocument"),
         Route("pdf-odt", "PDF", "ODT", OfficeConversionInputKind.File, new[] { ".pdf" }, ".odt", "OfficeIMO.OpenDocument.Odt.Pdf", "PdfDocument.Load(stream).SaveAsOdt(output, options)", "Import PDF logical content into OpenDocument Text with diagnostics.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
         Route("pdf-ods", "PDF", "ODS", OfficeConversionInputKind.File, new[] { ".pdf" }, ".ods", "OfficeIMO.OpenDocument.Ods.Pdf", "PdfDocument.Load(stream).SaveAsOds(output, options)", "Import detected PDF tables into an OpenDocument spreadsheet with diagnostics.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
@@ -470,18 +467,25 @@ public static partial class OfficeConversionCapabilityCatalog {
         AddEmailRoutes(routes);
         AddBibliographyRoutes(routes);
         AddIWorkRoutes(routes);
-        AddImageRoutes(routes, "docx", "DOCX", OfficeConversionInputKind.File, new[] { ".docx" }, "OfficeIMO.Word.Pdf", "WordDocument.Load(stream).ExportImages(format, options)");
-        AddImageRoutes(routes, "xlsx", "XLSX", OfficeConversionInputKind.File, new[] { ".xlsx" }, "OfficeIMO.Excel", "ExcelDocument.Load(stream).ExportImages(format, options)");
-        AddImageRoutes(routes, "pptx", "PPTX", OfficeConversionInputKind.File, new[] { ".pptx" }, "OfficeIMO.PowerPoint", "PowerPointDocument.Load(stream).ExportImages(format, options)");
-        AddImageRoutes(routes, "html", "HTML", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, "OfficeIMO.Html", "HtmlConversionDocument.Parse(html).ExportImages(format, options)");
-        AddImageRoutes(routes, "onenote", "OneNote", OfficeConversionInputKind.File, new[] { ".one" }, "OfficeIMO.OneNote", "OneNoteSection.Load(stream).ExportImages(format, options)");
-        AddImageRoutes(routes, "visio", "Visio", OfficeConversionInputKind.File, new[] { ".vsdx" }, "OfficeIMO.Visio", "VisioDocument.Load(stream).ExportImages(format, options)");
-        AddImageRoutes(routes, "email", "Email", OfficeConversionInputKind.File, new[] { ".eml" }, "OfficeIMO.Email.Image", "EmailDocument.Load(stream).ExportImages(format, options)");
-        AddImageRoutes(routes, "epub", "EPUB", OfficeConversionInputKind.File, new[] { ".epub" }, "OfficeIMO.Epub.Image", "EpubDocument.Load(stream, readOptions).ExportImages(format, options)");
-        AddImageRoutes(routes, "odt", "ODT", OfficeConversionInputKind.File, new[] { ".odt" }, "OfficeIMO.Word.OpenDocument", "OdtDocument.Load(stream).ExportImages(format, options)");
-        AddImageRoutes(routes, "ods", "ODS", OfficeConversionInputKind.File, new[] { ".ods" }, "OfficeIMO.Excel.OpenDocument", "OdsDocument.Load(stream).ExportImages(format, options)");
-        AddImageRoutes(routes, "odp", "ODP", OfficeConversionInputKind.File, new[] { ".odp" }, "OfficeIMO.PowerPoint.OpenDocument", "OdpPresentation.Load(stream).ExportImages(format, options)");
-        AddImageRoutes(routes, "pdf", "PDF", OfficeConversionInputKind.File, new[] { ".pdf" }, "OfficeIMO.Pdf", "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = format }, out report)", "IReadOnlyList<OfficeImageExportResult>");
+        AddImageRoutes(routes, "docx", "DOCX", OfficeConversionInputKind.File, new[] { ".docx" }, "OfficeIMO.Word.Pdf", "WordDocument.Load(stream).ToImages(format, options)");
+        AddImageRoutes(routes, "xlsx", "XLSX", OfficeConversionInputKind.File, new[] { ".xlsx" }, "OfficeIMO.Excel", "ExcelDocument.Load(stream).ToImages(format, options)");
+        AddImageRoutes(routes, "pptx", "PPTX", OfficeConversionInputKind.File, new[] { ".pptx" }, "OfficeIMO.PowerPoint", "PowerPointDocument.Load(stream).ToImages(format, options)");
+        AddImageRoutes(routes, "html", "HTML", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, "OfficeIMO.Html.Pdf", "HtmlConversionDocument.Parse(html).ToImages(format, options)");
+        AddImageRoutes(routes, "onenote", "OneNote", OfficeConversionInputKind.File, new[] { ".one" }, "OfficeIMO.OneNote", "OneNoteSection.Load(stream).ToImages(format, options)");
+        AddImageRoutes(routes, "visio", "Visio", OfficeConversionInputKind.File, new[] { ".vsdx" }, "OfficeIMO.Visio", "VisioDocument.Load(stream).ToImages(format, options)");
+        AddImageRoutes(routes, "email", "Email", OfficeConversionInputKind.File, new[] { ".eml" }, "OfficeIMO.Email.Image", "EmailDocument.Load(stream).ToImages(format, options)");
+        AddImageRoutes(routes, "epub", "EPUB", OfficeConversionInputKind.File, new[] { ".epub" }, "OfficeIMO.Epub.Image", "EpubDocument.Load(stream, readOptions).ToImages(format, options)");
+        AddImageRoutes(routes, "odt", "ODT", OfficeConversionInputKind.File, new[] { ".odt" }, "OfficeIMO.Word.OpenDocument", "OdtDocument.Load(stream).ToImages(format, options)");
+        AddImageRoutes(routes, "ods", "ODS", OfficeConversionInputKind.File, new[] { ".ods" }, "OfficeIMO.Excel.OpenDocument", "OdsDocument.Load(stream).ToImages(format, options)");
+        AddImageRoutes(routes, "odp", "ODP", OfficeConversionInputKind.File, new[] { ".odp" }, "OfficeIMO.PowerPoint.OpenDocument", "OdpPresentation.Load(stream).ToImages(format, options)");
+        AddImageRoutes(routes, "rtf", "RTF", OfficeConversionInputKind.File, new[] { ".rtf" }, "OfficeIMO.Rtf.Pdf", "RtfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })");
+        AddImageRoutes(routes, "mhtml", "MHTML", OfficeConversionInputKind.File, new[] { ".mhtml", ".mht" }, "OfficeIMO.Mhtml.Pdf", "MhtmlDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format })");
+        AddImageRoutes(routes, "odg", "ODG/FODG", OfficeConversionInputKind.File, new[] { ".odg" }, "OfficeIMO.OpenDocument", "OdgDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })");
+        AddImageRoutes(routes, "xps", "XPS/OpenXPS", OfficeConversionInputKind.File, new[] { ".xps", ".oxps" }, "OfficeIMO.Xps", "XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })");
+        AddImageRoutes(routes, "publisher", "Publisher", OfficeConversionInputKind.File, new[] { ".pub" }, "OfficeIMO.Publisher", "PublisherDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })");
+        AddImageRoutes(routes, "djvu", "DjVu", OfficeConversionInputKind.File, new[] { ".djvu", ".djv" }, "OfficeIMO.DjVu", "DjVuDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })");
+        AddImageRoutes(routes, "project", "Project", OfficeConversionInputKind.ObjectModel, new[] { ".mpp", ".mpt", ".xml" }, "OfficeIMO.Workflows", "project.CreateView(schedule, viewOptions).ToImages(new ProjectImageExportOptions { Format = format })");
+        AddImageRoutes(routes, "pdf", "PDF", OfficeConversionInputKind.File, new[] { ".pdf" }, "OfficeIMO.Pdf", "PdfDocument.Load(stream).ToImages(new PdfImageExportOptions { Format = format }, out report)", "IReadOnlyList<OfficeImageExportResult>");
         return routes.ToArray();
     }
 

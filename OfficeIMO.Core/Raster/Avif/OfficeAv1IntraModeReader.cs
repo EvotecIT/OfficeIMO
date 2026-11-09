@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Tile-local Main-8 reduced-still luma/chroma modes, directional angles and chroma-from-luma alphas.</summary>

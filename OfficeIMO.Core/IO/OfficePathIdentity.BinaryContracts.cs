@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace OfficeIMO.Internal {
     internal static partial class OfficePathIdentity {
         // Published workflow assemblies call the three-argument signature.

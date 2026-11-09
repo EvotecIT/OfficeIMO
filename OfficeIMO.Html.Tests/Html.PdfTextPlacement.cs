@@ -1,6 +1,5 @@
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

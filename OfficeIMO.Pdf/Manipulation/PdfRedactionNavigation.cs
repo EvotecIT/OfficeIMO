@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>Proves the navigation and action subset retained by redaction, independently of raw marker spellings.</summary>

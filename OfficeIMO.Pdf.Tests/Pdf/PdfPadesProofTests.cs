@@ -1,10 +1,6 @@
 #if NET8_0_OR_GREATER
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using OfficeIMO.Security;
 using Org.BouncyCastle.Asn1;

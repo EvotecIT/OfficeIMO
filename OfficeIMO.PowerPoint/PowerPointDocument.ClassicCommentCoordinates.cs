@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
         // Classic p:pos uses eighth-points, matching binary PPT's 576 master units/inch.

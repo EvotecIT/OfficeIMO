@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO;
 
 /// <summary>A native owner's inert source callback. It is internal so consumers cannot replace native document discovery.</summary>

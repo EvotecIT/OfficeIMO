@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf.Ocr;
 
 internal static partial class PdfOcrLogicalDocumentBuilder {

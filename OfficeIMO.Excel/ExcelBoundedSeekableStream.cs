@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Excel {
     /// <summary>Bounds a seekable staging stream while retaining package-writer compatibility.</summary>
     internal sealed class ExcelBoundedSeekableStream : Stream {

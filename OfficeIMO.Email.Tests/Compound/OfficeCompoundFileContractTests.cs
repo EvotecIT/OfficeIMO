@@ -1,6 +1,5 @@
 using OfficeIMO.Core.Internal;
 using OpenMcdf;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Email.Tests;

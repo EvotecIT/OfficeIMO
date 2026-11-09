@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Reader;
 
 public static partial class OfficeDocumentOcrExecutionExtensions {

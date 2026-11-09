@@ -6,7 +6,6 @@ using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word.OpenDocument;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.LegacyImport.Tests;
 

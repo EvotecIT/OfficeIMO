@@ -5,8 +5,6 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using CsvDataReaderTextRowSource = OfficeIMO.CSV.ICsvDataReaderTextRowSource;
 
 namespace OfficeIMO.CSV;
@@ -60,6 +58,8 @@ public partial class CsvDataReader : IDataReaderTypedParallelBatchSource
 #endif
 
     internal CancellationToken ProcessingCancellationToken => _processingCancellationToken;
+
+    CancellationToken IDataReaderParallelBatchSource.ParallelBatchCancellationToken => _processingCancellationToken;
 
     bool IDataReaderParallelBatchSource.TryReadParallelBatch(
         int preferredBatchSize,

@@ -1,7 +1,5 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Xunit;
 

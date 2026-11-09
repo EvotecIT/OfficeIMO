@@ -1,4 +1,3 @@
-using System.IO;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {

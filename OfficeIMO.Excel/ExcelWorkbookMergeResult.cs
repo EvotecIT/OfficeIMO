@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Result of importing worksheets from one workbook into another.

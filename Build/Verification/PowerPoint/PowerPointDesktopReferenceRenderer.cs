@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using DocumentFormat.OpenXml.Packaging;
@@ -219,7 +215,7 @@ namespace OfficeIMO.Verification.PowerPoint {
                     && !smartArt.TryGetOfficeDiagramSnapshot(out _))) {
                 return true;
             }
-            OfficeImageExportResult rendered = slide.ExportImage(
+            OfficeImageExportResult rendered = slide.ToImage(
                 OfficeImageExportFormat.Png,
                 options);
             if (HasVisibleOmittedContent(presentation, slide, rendered.Diagnostics)) {

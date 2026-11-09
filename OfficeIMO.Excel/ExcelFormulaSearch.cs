@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 
 namespace OfficeIMO.Excel {
     /// <summary>Controls reference-aware formula search.</summary>

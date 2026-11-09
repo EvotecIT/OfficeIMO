@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
 using OfficeIMO.Core.Internal.Cabinet;
 
 namespace OfficeIMO.Archives {

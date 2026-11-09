@@ -1,5 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

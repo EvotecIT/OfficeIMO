@@ -1,5 +1,3 @@
-using System.Linq;
-using System.Collections.Generic;
 using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;

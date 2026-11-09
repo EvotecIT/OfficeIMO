@@ -1,8 +1,6 @@
 using OfficeIMO.Html;
 using OfficeIMO.Drawing;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 
 namespace OfficeIMO.OneNote.Html;
 

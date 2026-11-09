@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.ContentSafety;
 
 /// <summary>Classifies how content can remain machine-readable while being concealed from an ordinary human view.</summary>

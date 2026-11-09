@@ -2,8 +2,6 @@ using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
-using System;
-using System.IO;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Examples.Word {

@@ -1,7 +1,4 @@
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
@@ -15,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Exports this range as a supported raster format or SVG.
         /// </summary>
-        public OfficeImageExportResult ExportImage(
+        public OfficeImageExportResult ToImage(
             OfficeImageExportFormat format,
             ExcelImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {

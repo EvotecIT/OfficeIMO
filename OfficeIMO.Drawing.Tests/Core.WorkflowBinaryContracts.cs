@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Threading;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Internal;
 using OfficeIMO.Provenance;

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Core.Internal.Cabinet;
 
 /// <summary>Shared, finite processing budget for all CAB frames decoded by one operation.</summary>

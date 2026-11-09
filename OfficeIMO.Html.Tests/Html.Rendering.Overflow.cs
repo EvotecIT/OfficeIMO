@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderClipGroup viewport = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderClipGroup>(), group => group.Source == "html:viewport-overflow");
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -75,7 +75,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderClipGroup group = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderClipGroup>(), item => item.Source == "div#clip");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -201,7 +201,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderClipGroup clippedGroup = Assert.Single(EnumerateRenderVisuals(clipped.Pages[0].Visuals).OfType<HtmlRenderClipGroup>(), item => item.Source == "div#expanded");
         HtmlRenderClipGroup hiddenGroup = Assert.Single(EnumerateRenderVisuals(hidden.Pages[0].Visuals).OfType<HtmlRenderClipGroup>(), item => item.Source == "div#hidden");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(clipped.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(clipHtml).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(clipHtml).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -271,7 +271,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, new HtmlRenderOptions {
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 80D,

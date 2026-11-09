@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
 using DocumentFormat.OpenXml.Office2010.Drawing.Slicer;
 using DocumentFormat.OpenXml.Office2013.Drawing.TimeSlicer;
 using DocumentFormat.OpenXml.Packaging;

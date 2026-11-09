@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Optional decoration metrics in font design units, independent of rendering policy.</summary>

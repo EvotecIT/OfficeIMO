@@ -1,9 +1,5 @@
-using System;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using Xunit;
@@ -35,7 +31,7 @@ public sealed class XpsDocumentTests {
         Assert.Equal("#FF00FF00", (string?)reopened.Pages[0].GetMarkup().Elements().First().Attribute("Fill"));
         Assert.True(reopened.Pages[0].ToSvg().IsComplete);
         Assert.DoesNotContain("<text", reopened.Pages[0].ToSvg().Svg);
-        byte[] png = reopened.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes;
+        byte[] png = reopened.Pages[0].ToImage(OfficeImageExportFormat.Png).Bytes;
         Assert.Equal(320, OfficeImageReader.Identify(png).Width);
         byte[] pdf = reopened.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }); Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(pdf, 0, 8));
     }
@@ -109,7 +105,7 @@ public sealed class XpsDocumentTests {
         string image = doc.AddResource("Resources/test.png", OfficePngWriter.Encode(new OfficeRasterImage(4, 2, OfficeColor.SteelBlue)), "image/png");
         var page = doc.AddPage(80, 60).AddImage(image, 10, 20, 40, 20).Page;
         var loaded = XpsDocument.Load(doc.ToBytes());
-        Assert.True(OfficeRasterImageDecoder.TryDecode(loaded.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(loaded.Pages[0].ToImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         Assert.NotNull(raster);
         Assert.Equal(OfficeColor.SteelBlue, raster!.GetPixel(30, 30));
         Assert.NotEqual(OfficeColor.SteelBlue, raster.GetPixel(5, 5));
@@ -126,7 +122,7 @@ public sealed class XpsDocumentTests {
         markup.Add(new XElement(ns + "FixedPage.Resources", new XElement(ns + "ResourceDictionary", new XAttribute("Source", "/Resources/Dictionaries/brush.xaml"))),
             new XElement(ns + "Path", new XAttribute("Data", "M0,0H80V60H0Z"), new XAttribute("Fill", "{StaticResource image}")));
         page.ReplaceMarkup(markup);
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         Assert.Equal(OfficeColor.SteelBlue, raster!.GetPixel(30, 30));
     }
     [Fact]
@@ -153,7 +149,7 @@ public sealed class XpsDocumentTests {
             new XElement(ns + "LinearGradientBrush", new XAttribute("StartPoint", "0,0"), new XAttribute("EndPoint", "100,0"), new XAttribute("MappingMode", "Absolute"),
                 new XElement(ns + "LinearGradientBrush.GradientStops", new XElement(ns + "GradientStop", new XAttribute("Offset", "0"), new XAttribute("Color", "#FFFF0000")), new XElement(ns + "GradientStop", new XAttribute("Offset", "1"), new XAttribute("Color", "#FF0000FF")))))));
         page.ReplaceMarkup(xml);
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         Assert.True(raster!.GetPixel(10, 20).R > raster.GetPixel(90, 20).R);
         Assert.True(raster.GetPixel(10, 20).B < raster.GetPixel(90, 20).B);
     }

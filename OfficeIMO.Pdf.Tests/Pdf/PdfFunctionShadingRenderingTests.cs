@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -14,7 +13,7 @@ public sealed class PdfFunctionShadingRenderingTests {
         var expected = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(60, 40).AddShape(shape, 0, 0),
             scale: scale, background: OfficeColor.White);
         var page = PdfReadDocument.Open(Document(shape)).Pages[0];
-        var exported = page.ExportImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { Scale = scale });
+        var exported = page.ToImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { Scale = scale });
         Assert.True(OfficeRasterImageDecoder.TryDecode(exported.Bytes, out var actual));
         Assert.Equal(expected.Width, actual!.Width); Assert.Equal(expected.Height, actual.Height);
         foreach (var point in new[] { (7, 8), (16, 22), (29, 18), (46, 32), (55, 7) }) {
@@ -37,7 +36,7 @@ public sealed class PdfFunctionShadingRenderingTests {
         shape.FillRadialGradient = new OfficeRadialGradient(.25, .5, 0, .25, .5, .08, stops)
             .WithSpreadMode(OfficeGradientSpreadMode.Reflect);
         var page = PdfReadDocument.Open(Document(shape)).Pages[0];
-        var exported = page.ExportImage(OfficeImageExportFormat.Png);
+        var exported = page.ToImage(OfficeImageExportFormat.Png);
         Assert.DoesNotContain(exported.Diagnostics, d => d.Code == PdfRenderCapabilities.UnsupportedShadingId);
         Assert.True(OfficeRasterImageDecoder.TryDecode(exported.Bytes, out var actual));
         var expected = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(60, 40).AddShape(shape, 0, 0),
@@ -52,7 +51,7 @@ public sealed class PdfFunctionShadingRenderingTests {
     public void DefaultLimitsRenderLetterPageWithPeriodicColorAndAlphaAt96Dpi() {
         var shape = Shape(OfficeGradientSpreadMode.Reflect, 612, 792);
         var page = PdfReadDocument.Open(Document(shape)).Pages[0];
-        var exported = page.ExportImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { Scale = 4D / 3D });
+        var exported = page.ToImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { Scale = 4D / 3D });
         Assert.True(OfficeRasterImageDecoder.TryDecode(exported.Bytes, out var actual));
         Assert.Equal(816, actual!.Width); Assert.Equal(1056, actual.Height);
         var expected = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(612, 792).AddShape(shape, 0, 0),
@@ -70,7 +69,7 @@ public sealed class PdfFunctionShadingRenderingTests {
             scale: 1, background: OfficeColor.White);
         var page = PdfReadDocument.Open(Document(shape), new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxFunctionShadingPixels = 4800 } }).Pages[0];
-        var exported = page.ExportImage(OfficeImageExportFormat.Png, new PdfImageExportOptions {
+        var exported = page.ToImage(OfficeImageExportFormat.Png, new PdfImageExportOptions {
             Scale = 4, MaximumOutputWidth = 60,
             RasterOverflowBehavior = OfficeRasterOverflowBehavior.ReduceScale
         });
@@ -90,7 +89,7 @@ public sealed class PdfFunctionShadingRenderingTests {
             : new PdfReadLimits { MaxFunctionShadingEvaluationWork = 2 };
         var page = PdfReadDocument.Open(Document(Shape(OfficeGradientSpreadMode.Repeat)),
             new PdfLoadOptions { Limits = limits }).Pages[0];
-        var error = Assert.Throws<PdfReadLimitException>(() => page.ExportImage(OfficeImageExportFormat.Png));
+        var error = Assert.Throws<PdfReadLimitException>(() => page.ToImage(OfficeImageExportFormat.Png));
         Assert.Equal(pixels ? PdfReadLimitKind.FunctionShadingPixels : PdfReadLimitKind.FunctionShadingEvaluationWork, error.Kind);
         Assert.Equal(2, error.Limit);
     }

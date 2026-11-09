@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
@@ -51,7 +48,7 @@ public sealed class PowerPointNativeTextLayoutTests {
 
         var images = new PowerPointImageExportOptions();
         images.UseRenderingProfile(profile);
-        byte[] svg = slide.ExportImage(OfficeImageExportFormat.Svg, images).Bytes;
+        byte[] svg = slide.ToImage(OfficeImageExportFormat.Svg, images).Bytes;
         PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot(images);
         Assert.Contains(snapshot.TextSpans, span => span.Text == "ALPHA" && span.BaseFont == "NativeFixture"
             && span.FontSize == 13D && !span.IsItalic);

@@ -1,7 +1,5 @@
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Core.Internal;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Markup.PowerPoint;
 

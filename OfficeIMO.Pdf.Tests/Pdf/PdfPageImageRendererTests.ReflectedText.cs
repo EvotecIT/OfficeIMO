@@ -38,6 +38,6 @@ public partial class PdfPageImageRendererTests {
         byte[] pixels = OfficeDrawingRasterRenderer.Render(expected).GetPixels();
         Assert.Contains(pixels, channel => channel != 0);
         Assert.Equal(pixels, OfficeDrawingRasterRenderer.Render(actual).GetPixels());
-        Assert.Contains("A", System.Text.Encoding.UTF8.GetString(actual.ExportImage(OfficeImageExportFormat.Svg).Bytes));
+        Assert.Contains("A", System.Text.Encoding.UTF8.GetString(actual.ToImage(OfficeImageExportFormat.Svg).Bytes));
     }
 }

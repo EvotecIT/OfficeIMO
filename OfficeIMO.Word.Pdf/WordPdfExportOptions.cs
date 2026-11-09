@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Threading;
 using PdfCore = OfficeIMO.Pdf;
 using DrawingCore = OfficeIMO.Drawing;
 

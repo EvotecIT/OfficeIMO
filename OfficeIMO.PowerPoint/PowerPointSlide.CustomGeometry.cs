@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;

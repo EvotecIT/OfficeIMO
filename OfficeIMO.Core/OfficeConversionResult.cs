@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>A converted value and its report. Format-owned results derive from it and narrow <see cref="Report"/>.</summary>

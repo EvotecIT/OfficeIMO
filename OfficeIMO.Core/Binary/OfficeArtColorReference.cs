@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Represents the packed OfficeArtCOLORREF value defined by MS-ODRAW.</summary>

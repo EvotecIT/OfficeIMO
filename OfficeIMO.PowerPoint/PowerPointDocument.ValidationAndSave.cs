@@ -1,10 +1,6 @@
 using OfficeIMO.Core.Internal;
-using System;
-using System.IO;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;

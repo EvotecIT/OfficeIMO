@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
@@ -313,7 +309,7 @@ namespace OfficeIMO.Tests {
             authored.AddSlide().AddChart(kind, CreateData(kind, Colors), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(320) });
             using var bytes = new MemoryStream(authored.ToBytes());
             using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
-            AssertColorPixels(reopened.Slides.Single().ToImage(), Colors[0]!.Value, Colors[2]!.Value);
+            AssertColorPixels(reopened.Slides.Single().ToImage().Bytes, Colors[0]!.Value, Colors[2]!.Value);
             var options = new PowerPointPdfExportOptions();
             byte[] pdf = reopened.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             Assert.DoesNotContain(options.Warnings, warning => warning.Code == "unsupported-chart");

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Deck-level design facade for applying a consistent but variable visual direction to many slides.

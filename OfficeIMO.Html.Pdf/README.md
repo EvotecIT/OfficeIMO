@@ -61,7 +61,7 @@ Choose semantic HTML when readable headings, paragraphs, lists, and tables matte
 
 `PdfHtmlImageExportMode.PlaceholderOnly` retains readable image metadata but omits the source pixels and reports that omission. `EmbeddedDataUri` embeds supported image files within the configured byte and output-size limits and reports any fallback to a placeholder. Fully transparent and unplaced resources are suppressed, while images whose clips, soft masks, unresolved transparency masks, or unsupported blend modes could reveal hidden pixels are represented without the raw data URI and reported as typed omissions. Supported opacity and blend modes are mapped to CSS with diagnostics where browser compositing can differ from PDF compositing.
 
-PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlPdfExportOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage(options)` / `ExportImages(...)` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
+PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlPdfExportOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage(options)` / `ToImages(...)` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
 
 When the source is an opened `PdfDocument`, positioned review uses the shared PDF drawing renderer to retain supported vector artwork, clipping, paint order, images, and embedded fonts as an embedded SVG image. Text remains selectable. Browser font substitution can affect text whose fonts are unavailable, and renderer diagnostics appear in the conversion report.
 
@@ -92,6 +92,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Convert | 1 | 1 | 0 | 0 | 0 | 0 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Html.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

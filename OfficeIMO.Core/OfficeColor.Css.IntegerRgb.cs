@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 public readonly partial struct OfficeColor {

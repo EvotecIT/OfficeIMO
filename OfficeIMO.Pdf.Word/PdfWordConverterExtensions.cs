@@ -1,6 +1,4 @@
 using PdfCore = OfficeIMO.Pdf;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Pdf.Word {
     /// <summary>

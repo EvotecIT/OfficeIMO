@@ -1,4 +1,3 @@
-using System.IO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
@@ -20,11 +19,11 @@ namespace OfficeIMO.Tests {
             };
 
             OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-                slide.ExportImage(OfficeImageExportFormat.Png, options));
+                slide.ToImage(OfficeImageExportFormat.Png, options));
 
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
             Assert.Throws<OperationCanceledException>(() =>
-                slide.ToImage(cancellationToken: new System.Threading.CancellationToken(canceled: true)));
+                slide.ToImage(cancellationToken: new System.Threading.CancellationToken(canceled: true)).Bytes);
         }
 
         [Theory]
@@ -40,7 +39,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = OfficeColor.Parse("123456");
 
-            OfficeImageExportResult result = slide.ExportImage(format, new PowerPointImageExportOptions {
+            OfficeImageExportResult result = slide.ToImage(format, new PowerPointImageExportOptions {
                 IncludeSlideContent = false
             });
 
@@ -85,8 +84,8 @@ namespace OfficeIMO.Tests {
                 OfficeIMO.OfficeLength.Points(80),
                 OfficeIMO.OfficeLength.Points(45));
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
@@ -118,8 +117,8 @@ namespace OfficeIMO.Tests {
                 global::OfficeIMO.OfficeLength.Points(24),
                 global::OfficeIMO.OfficeLength.Points(18));
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
@@ -146,8 +145,8 @@ namespace OfficeIMO.Tests {
                 global::OfficeIMO.OfficeLength.Points(24),
                 global::OfficeIMO.OfficeLength.Points(18));
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
@@ -174,8 +173,8 @@ namespace OfficeIMO.Tests {
                 global::OfficeIMO.OfficeLength.Points(24),
                 global::OfficeIMO.OfficeLength.Points(18));
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
 
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
@@ -203,8 +202,8 @@ namespace OfficeIMO.Tests {
                 global::OfficeIMO.OfficeLength.Points(24),
                 global::OfficeIMO.OfficeLength.Points(18));
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);

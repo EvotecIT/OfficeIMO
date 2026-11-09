@@ -1,4 +1,3 @@
-using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;

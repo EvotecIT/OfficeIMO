@@ -3,7 +3,6 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Rtf;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;

@@ -1,5 +1,4 @@
 using OfficeIMO.Excel.LegacyXls.Write;
-using System.Threading;
 
 namespace OfficeIMO.Excel;
 

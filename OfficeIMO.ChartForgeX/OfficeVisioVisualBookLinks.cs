@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using OfficeIMO.Visio;
 
 namespace OfficeIMO.ChartForgeX;

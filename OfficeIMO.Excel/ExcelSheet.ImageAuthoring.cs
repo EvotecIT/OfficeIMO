@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>Embeds native image bytes at a one-based cell and returns the attached image.</summary>

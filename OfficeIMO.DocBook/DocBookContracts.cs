@@ -1,9 +1,5 @@
 using OfficeIMO.Core;
 using OfficeIMO.Core.Internal;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace OfficeIMO.DocBook;
 

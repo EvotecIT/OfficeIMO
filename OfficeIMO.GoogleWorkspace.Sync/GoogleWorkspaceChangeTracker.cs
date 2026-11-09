@@ -1,5 +1,4 @@
 using OfficeIMO.GoogleWorkspace.Drive;
-using System.IO;
 
 namespace OfficeIMO.GoogleWorkspace.Sync {
     /// <summary>Identifies the Drive change feed to which a change or outcome belongs.</summary>

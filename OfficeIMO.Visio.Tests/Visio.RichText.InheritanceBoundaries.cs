@@ -1,4 +1,3 @@
-using System.Threading;
 using System.IO.Compression;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -48,7 +47,7 @@ public sealed class VisioTextInheritanceBoundaryTests {
         VisioDocument document = Load("<StyleSheet ID='6' TextStyle='7'><StyleProp><EnableTextProps>0</EnableTextProps></StyleProp>"
             + "<Char IX='0'><Size>0.5</Size></Char></StyleSheet><StyleSheet ID='7'><Char IX='0'><Size>0.25</Size></Char></StyleSheet>");
         foreach (VisioDocument candidate in Candidates(document)) {
-            OfficeImageExportResult result = candidate.Pages[0].ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult result = candidate.Pages[0].ToImage(OfficeImageExportFormat.Svg);
             Assert.Contains(result.Diagnostics, d => d.Code == VisioNativeTextStyleResolver.DiagnosticCode && d.Message.Contains("excludes"));
             XElement svg = XElement.Parse(candidate.Pages[0].ToSvg());
             Assert.DoesNotContain(svg.Descendants(), e => (string?)e.Attribute("font-size") == "48");
@@ -71,9 +70,9 @@ public sealed class VisioTextInheritanceBoundaryTests {
             Assert.Equal(12, Assert.Single(projection.Runs).FontSize, 8);
             Assert.Single(diagnostics, d => d.Code == VisioNativeTextStyleResolver.DiagnosticCode);
             foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Svg, OfficeImageExportFormat.Png }) {
-                OfficeImageExportResult result = candidate.Pages[0].ExportImage(format, new VisioImageExportOptions { Supersampling = 1 });
+                OfficeImageExportResult result = candidate.Pages[0].ToImage(format, new VisioImageExportOptions { Supersampling = 1 });
                 Assert.Contains(result.Diagnostics, d => d.Code == VisioNativeTextStyleResolver.DiagnosticCode && d.LossKind == OfficeConversionLossKind.Approximation);
-                OfficeImageExportPolicyException error = Assert.Throws<OfficeImageExportPolicyException>(() => candidate.Pages[0].ExportImage(format,
+                OfficeImageExportPolicyException error = Assert.Throws<OfficeImageExportPolicyException>(() => candidate.Pages[0].ToImage(format,
                     new VisioImageExportOptions { Supersampling = 1, Policy = new OfficeImageExportPolicy { FailOnLoss = true } }));
                 Assert.Contains(error.Diagnostics, d => d.Code == VisioNativeTextStyleResolver.DiagnosticCode);
             }
@@ -146,8 +145,8 @@ public sealed class VisioTextInheritanceBoundaryTests {
             XElement painted = Assert.Single(XElement.Parse(page.ToSvg()).Descendants(), e => e.Name.LocalName == "text");
             double points = double.Parse((string)painted.Attribute("font-size")!, System.Globalization.CultureInfo.InvariantCulture) * 72 / 96;
             Assert.InRange(points, (character ? connector ? 9D : 10D : 18D) - .001, (character ? connector ? 9D : 10D : 18D) + .001);
-            _ = page.ToImage(new VisioImageExportOptions { Supersampling = 1 });
-            if (character) Assert.DoesNotContain(page.ExportImage(OfficeImageExportFormat.Svg).Diagnostics,
+            _ = page.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes;
+            if (character) Assert.DoesNotContain(page.ToImage(OfficeImageExportFormat.Svg).Diagnostics,
                 diagnostic => diagnostic.Message.Contains("Deleted cached font"));
             Assert.Equal(before, candidate.ToLegacyXmlResult().Value);
             using var archive = new ZipArchive(new MemoryStream(candidate.ToBytes()), ZipArchiveMode.Read);

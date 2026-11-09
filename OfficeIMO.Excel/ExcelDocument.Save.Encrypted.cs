@@ -4,7 +4,6 @@ using OfficeIMO.Excel.Xlsb.Write;
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.LegacyXls.Model;
-using System.Threading;
 
 namespace OfficeIMO.Excel;
 

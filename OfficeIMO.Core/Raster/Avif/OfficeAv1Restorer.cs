@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Retains restoration units and immutable deblocked/CDEF sources through complete-frame filtering.</summary>

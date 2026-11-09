@@ -8,7 +8,6 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Security</PackageId>
     <PackageTags>security;cms;smime;pkcs7;rfc3161;x509;xmldsig;bouncycastle;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -17,7 +16,6 @@
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <IsPublishable>True</IsPublishable>
-    <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <WarningsAsErrors>nullable</WarningsAsErrors>
@@ -45,9 +43,4 @@
     <None Include="README.md" Pack="True" PackagePath="\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Linq" />
-  </ItemGroup>
 </Project>

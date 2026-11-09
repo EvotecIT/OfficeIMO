@@ -1,6 +1,5 @@
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
-using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class LegacyBiffWorkbookParser {

@@ -1,4 +1,3 @@
-using System;
 namespace OfficeIMO.Spreadsheet {
     internal static partial class SpreadsheetNumberFormatDisplay {
         /// <summary>Resolves the supported red format color from the same value-selected section as numeric text.</summary>

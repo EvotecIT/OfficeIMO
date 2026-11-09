@@ -1,5 +1,4 @@
 using OfficeIMO.Pdf;
-using System.Threading;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.TestAssets;

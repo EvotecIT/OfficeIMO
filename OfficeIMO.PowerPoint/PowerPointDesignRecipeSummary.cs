@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Lightweight description of a design recipe that can be shown before creating deck alternatives.

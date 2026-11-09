@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Reader;
 
 /// <summary>Feeds the configured decoder and explicitly flushes incomplete sequences at end of input.</summary>

@@ -1,4 +1,3 @@
-using System.Threading;
 using OfficeIMO.Html.Css;
 using Xunit;
 

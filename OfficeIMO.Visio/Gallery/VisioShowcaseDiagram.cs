@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Groups one generated VSDX package with preview and structural proof artifacts for the same diagram.

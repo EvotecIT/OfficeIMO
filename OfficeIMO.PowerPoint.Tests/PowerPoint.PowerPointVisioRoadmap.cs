@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
@@ -103,7 +100,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(OfficeChartType.BarStacked100, snapshot.ChartKind);
                 Assert.Contains("semantic projection", report.Diagnostics.Single(), StringComparison.OrdinalIgnoreCase);
                 OfficeImageExportResult svg = presentation.Slides[0]
-                    .ExportImage(OfficeImageExportFormat.Svg);
+                    .ToImage(OfficeImageExportFormat.Svg);
                 Assert.NotEmpty(svg.Bytes);
                 Assert.Contains("Revenue", System.Text.Encoding.UTF8.GetString(svg.Bytes),
                     StringComparison.Ordinal);

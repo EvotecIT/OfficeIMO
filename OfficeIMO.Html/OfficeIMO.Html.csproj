@@ -8,7 +8,6 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Html</PackageId>
     <PackageTags>html;css;policy;converter;layout;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -17,11 +16,9 @@
     <PackageIcon>OfficeIMO.png</PackageIcon>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -74,14 +71,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
     <Using Include="System.Net" />
     <Using Include="System.Text" />
-    <Using Include="System.Threading" />
-    <Using Include="System.Threading.Tasks" />
     <Using Include="AngleSharp.Dom" />
     <Using Include="OfficeIMO.Drawing" />
   </ItemGroup>

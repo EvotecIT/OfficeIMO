@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Specifies how Visio may flip or rotate shapes during page layout.

@@ -1,8 +1,4 @@
-using System;
 using System.Runtime.CompilerServices;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Core.Internal;

@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// UTF-8 streaming range helpers for <see cref="ExcelSheetReader"/>.

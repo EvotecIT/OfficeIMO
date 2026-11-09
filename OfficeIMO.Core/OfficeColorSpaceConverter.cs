@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Dependency-free conversion from common device and calibrated color spaces to sRGB.</summary>

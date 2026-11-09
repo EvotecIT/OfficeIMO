@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing {
     public static partial class OfficeHeifMetadataReader {
         /// <summary>Replaces or clears selected existing HEIF EXIF and XMP profiles without decoding pixels.</summary>

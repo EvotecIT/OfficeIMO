@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Threading;
 using XCellValues = DocumentFormat.OpenXml.Spreadsheet.CellValues;
 
 namespace OfficeIMO.Excel {

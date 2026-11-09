@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Html.Css;
 
 /// <summary>Parses provider-independent CSS rules, declarations, and nested component values while retaining exact source.</summary>

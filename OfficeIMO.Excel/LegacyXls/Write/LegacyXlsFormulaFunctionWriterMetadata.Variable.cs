@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsFormulaFunctionWriterMetadata {
         private static readonly Dictionary<string, ushort> VariableFunctionIds = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase) {

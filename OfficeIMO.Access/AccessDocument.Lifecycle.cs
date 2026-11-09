@@ -6,6 +6,7 @@ namespace OfficeIMO.Access {
         public static AccessDocument Create(AccessCreateOptions? options = null) {
             options ??= new AccessCreateOptions(); options.Validate();
             AccessDocument document = new AccessDocument(options.Format, DocumentAccessMode.ReadWrite, null);
+            if (options.CreatedAt.HasValue) document.CreatedAt = options.CreatedAt.Value;
             Dictionary<string, object?> properties = new Dictionary<string, object?>();
             if (options.DatabaseTitle != null) properties.Add("AppTitle", options.DatabaseTitle);
             document.Properties = new System.Collections.ObjectModel.ReadOnlyDictionary<string, object?>(properties);

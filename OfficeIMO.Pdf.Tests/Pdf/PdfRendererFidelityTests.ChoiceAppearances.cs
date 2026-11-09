@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -73,7 +70,7 @@ public sealed partial class PdfRendererFidelityTests {
         var exportOptions = new PdfImageExportOptions { TargetDpi = 72D };
         exportOptions.Fonts.Add("Helvetica", System.IO.File.ReadAllBytes(System.IO.Path.Combine(
             RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf")));
-        var image = PdfRendererQualitySupport.Decode(document.Pages[0].ExportImage(
+        var image = PdfRendererQualitySupport.Decode(document.Pages[0].ToImage(
             OfficeIMO.Drawing.OfficeImageExportFormat.Png, exportOptions).Bytes);
         // Ascenders leave a clear pixel below the widget's inner clip rather than
         // intersecting its top edge. Check both unselected and selected first rows.

@@ -12,7 +12,6 @@
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
 
-        <PackageId>OfficeIMO.Excel</PackageId>
         <PackageTags>xls;xlsx;xlsb;xlsm;xlt;xltx;excel;spreadsheet;office;openxml;conversion;netstandard;netstandard2.0;net8.0;net10.0;net472</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -22,9 +21,7 @@
         <PackageIcon>OfficeIMO.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
-        <DebugType>portable</DebugType>
         <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     </PropertyGroup>
@@ -63,12 +60,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="System" />
         <Using Include="System.Text" />
-        <Using Include="System.Collections.Generic" />
         <Using Include="System.Collections" />
-        <Using Include="System.Linq" />
-        <Using Include="System.IO" />
         <Using Include="OfficeIMO.Drawing" />
         <Using Include="OfficeIMO.Data" />
         <Using Include="OfficeIMO.OpenXml.Internal" />

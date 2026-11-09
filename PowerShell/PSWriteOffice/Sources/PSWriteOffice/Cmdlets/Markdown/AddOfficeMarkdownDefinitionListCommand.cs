@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using System.Management.Automation;
 using OfficeIMO.Markdown;
 using PSWriteOffice.Services.Markdown;

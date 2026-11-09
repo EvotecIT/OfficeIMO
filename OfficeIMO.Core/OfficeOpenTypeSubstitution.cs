@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Bounded GSUB single, alternate, ligature, and extension lookup interpreter.</summary>

@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>Bounds one inert embedded-payload inventory and its selected reads. Native document input and parser limits apply separately.</summary>

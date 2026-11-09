@@ -1,8 +1,5 @@
 using System.Diagnostics;
 using System.IO.Compression;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Filters;
 using OfficeIMO.Security;

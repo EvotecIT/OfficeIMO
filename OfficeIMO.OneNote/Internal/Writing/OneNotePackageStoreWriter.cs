@@ -13,7 +13,7 @@ internal static class OneNotePackageStoreWriter {
 
     internal static byte[] Write(OneNoteWriteGraph graph, long maxOutputBytes = long.MaxValue) {
         if (maxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes), "MaxOutputBytes must be greater than zero.");
-        var ids = new OneNoteWriteIdFactory();
+        var ids = new OneNoteWriteIdFactory(graph.IdentitySeed, "package:" + graph.FileId.ToString("N"));
         OneNoteExtendedGuid storageIndexId = ids.New();
         OneNoteExtendedGuid storageManifestId = ids.New();
         var storageIndexChildren = new List<FssHttpWriteObject>();
@@ -46,7 +46,7 @@ internal static class OneNotePackageStoreWriter {
         // section and table-of-contents payloads; guidCellSchemaId distinguishes them.
         Buffer.BlockCopy(OneNoteFormatConstants.SectionFileType.ToByteArray(), 0, output, 0, 16);
         Buffer.BlockCopy(graph.FileId.ToByteArray(), 0, output, 16, 16);
-        Buffer.BlockCopy(Guid.NewGuid().ToByteArray(), 0, output, 32, 16);
+        Buffer.BlockCopy(ids.NewGuid().ToByteArray(), 0, output, 32, 16);
         Buffer.BlockCopy(OneNoteFormatConstants.PackageStoreFormat.ToByteArray(), 0, output, 48, 16);
         using (var stream = new MemoryStream(output, true)) {
             stream.Position = 68;

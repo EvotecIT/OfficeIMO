@@ -1,4 +1,3 @@
-using System;
 using System.Text;
 using global::CodeGlyphX;
 using global::CodeGlyphX.Rendering.Svg;

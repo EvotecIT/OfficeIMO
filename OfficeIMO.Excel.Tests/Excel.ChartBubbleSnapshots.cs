@@ -1,6 +1,4 @@
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
@@ -60,7 +58,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         Assert.False(series.ConnectLine);
         Assert.True(series.ShowMarkers);
 
-        OfficeImageExportResult image = chart.ExportImage(OfficeImageExportFormat.Svg);
+        OfficeImageExportResult image = chart.ToImage(OfficeImageExportFormat.Svg);
         Assert.True(image.EncodedLength > 0);
         Assert.DoesNotContain(image.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartKindApproximated);
     }

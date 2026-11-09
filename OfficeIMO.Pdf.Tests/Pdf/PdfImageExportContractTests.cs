@@ -1,8 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -17,7 +15,7 @@ public sealed class PdfImageExportContractTests {
     public void LoadedPdfPageUsesTheSharedFiveFormatContract(OfficeImageExportFormat format) {
         PdfReadDocument document = LoadTwoPageDocument();
 
-        OfficeImageExportResult result = document.Pages[0].ExportImage(format);
+        OfficeImageExportResult result = document.Pages[0].ToImage(format);
 
         Assert.Equal(format, result.Format);
         Assert.Equal(format.GetMimeType(), OfficeImageReader.Identify(result.Bytes).MimeType);
@@ -31,7 +29,7 @@ public sealed class PdfImageExportContractTests {
         PdfReadPage page = LoadTwoPageDocument().Pages[0];
         using var cancellation = new CancellationTokenSource();
 
-        OfficeImageExportResult result = page.ExportImage(
+        OfficeImageExportResult result = page.ToImage(
             OfficeImageExportFormat.Svg,
             new PdfImageExportOptions {
                 Scale = 4D,
@@ -51,7 +49,7 @@ public sealed class PdfImageExportContractTests {
         IReadOnlyList<OfficeImageExportResult> results = document
             .CreateImageExportOperation(new PdfImageExportOptions {
                 Scale = 10D, MaximumRasterPixels = 20_000L,
-                PageSelector = PdfPageSelector.Parse("2,1"), Format = OfficeImageExportFormat.Webp
+                PageSelector = OfficePageSelector.Parse("2,1"), Format = OfficeImageExportFormat.Webp
             }).Export();
 
         Assert.Equal(new[] { "Page 2", "Page 1" }, results.Select(result => result.Name));
@@ -83,7 +81,7 @@ public sealed class PdfImageExportContractTests {
 
         OfficeImageExportBatchLimitException exception =
             Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-                page.ExportImage(
+                page.ToImage(
                     OfficeImageExportFormat.Svg,
                     new PdfImageExportOptions { MaximumTotalEncodedBytes = 32L }));
 
@@ -95,7 +93,7 @@ public sealed class PdfImageExportContractTests {
     public void PdfSvgBatchReportsTheConfiguredAggregateByteBudget() {
         PdfReadDocument document = LoadTwoPageDocument();
         long onePageBytes = document.Pages[0]
-            .ExportImage(OfficeImageExportFormat.Svg)
+            .ToImage(OfficeImageExportFormat.Svg)
             .Bytes.LongLength;
         long maximumBytes = onePageBytes + 16L;
 
@@ -115,7 +113,7 @@ public sealed class PdfImageExportContractTests {
         PdfReadPage page = LoadTwoPageDocument().Pages[0];
 
         OfficeImageExportResult result = page
-            .ExportImage(OfficeImageExportFormat.Jpeg, new PdfImageExportOptions {
+            .ToImage(OfficeImageExportFormat.Jpeg, new PdfImageExportOptions {
                 TargetDpi = 288D, ThumbnailMaxDimension = 96,
                 RasterEncoding = new OfficeRasterEncodingOptions { Jpeg = new OfficeJpegEncodeOptions { Quality = 70 } }
             });
@@ -130,10 +128,10 @@ public sealed class PdfImageExportContractTests {
     [Fact]
     public void PdfRasterFitPreservesDensityRelativeToThePreFitScale() {
         PdfReadPage page = LoadTwoPageDocument().Pages[0];
-        OfficeImageExportResult baseline = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult baseline = page.ToImage(OfficeImageExportFormat.Png);
 
         OfficeImageExportResult fitted = page
-            .ExportImage(OfficeImageExportFormat.Png, new PdfImageExportOptions {
+            .ToImage(OfficeImageExportFormat.Png, new PdfImageExportOptions {
                 Scale = 2D, MaximumOutputWidth = baseline.Width, MaximumOutputHeight = baseline.Height
             });
 
@@ -148,7 +146,7 @@ public sealed class PdfImageExportContractTests {
         PdfReadPage page = LoadTwoPageDocument().Pages[0];
 
         OfficeImageExportResult result = page
-            .ExportImage(OfficeImageExportFormat.Svg, new PdfImageExportOptions { BackgroundColor = OfficeIMO.OfficeColor.Parse("#123456") });
+            .ToImage(OfficeImageExportFormat.Svg, new PdfImageExportOptions { BackgroundColor = OfficeIMO.OfficeColor.Parse("#123456") });
         string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
 
         Assert.Contains("fill=\"#123456\"", svg, StringComparison.Ordinal);
@@ -160,7 +158,7 @@ public sealed class PdfImageExportContractTests {
         var timeout = TimeSpan.FromTicks(1);
 
         OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
-            page.ExportImage(
+            page.ToImage(
                 OfficeImageExportFormat.Svg,
                 new PdfImageExportOptions { RenderTimeout = timeout }));
 
@@ -173,7 +171,7 @@ public sealed class PdfImageExportContractTests {
         var timeout = TimeSpan.FromTicks(1);
 
         OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
-            document.ExportImages(
+            document.ToImages(
                 OfficeImageExportFormat.Svg,
                 new PdfImageExportOptions { RenderTimeout = timeout }));
 
@@ -186,7 +184,7 @@ public sealed class PdfImageExportContractTests {
             .Paragraph(paragraph => paragraph.AddText("Fluent image export"))
             .ToBytes());
 
-        OfficeImageExportResult result = Assert.Single(document.Reader.ExportImages(
+        OfficeImageExportResult result = Assert.Single(document.Reader.ToImages(
             OfficeImageExportFormat.Svg));
 
         Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
@@ -199,8 +197,8 @@ public sealed class PdfImageExportContractTests {
         PdfDocument document = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.AddText("Authored page"));
 
-        OfficeImageExportResult direct = Assert.Single(document.ExportImages(OfficeImageExportFormat.Webp));
-        byte[] png = Assert.Single(document.ExportImages()).Bytes;
+        OfficeImageExportResult direct = Assert.Single(document.ToImages(OfficeImageExportFormat.Webp));
+        byte[] png = Assert.Single(document.ToImages()).Bytes;
 
         Assert.Equal(OfficeImageExportFormat.Webp, direct.Format);
         Assert.Equal("image/webp", OfficeImageReader.Identify(direct.Bytes).MimeType);
@@ -222,10 +220,10 @@ public sealed class PdfImageExportContractTests {
 
         Assert.False(materialized);
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            document.ExportImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
+            document.ToImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            document.Reader.ExportImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.ExportImagesAsync(options, cancellation.Token));
+            document.Reader.ToImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.ToImagesAsync(options, cancellation.Token));
         Assert.False(materialized);
     }
 
@@ -236,7 +234,7 @@ public sealed class PdfImageExportContractTests {
         PdfDocument document = CreateCancelingDeferredDocument(cancellation, () => materializedAfterCancellation = true);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            document.ExportImagesAsync(new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg }, cancellation.Token));
+            document.ToImagesAsync(new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg }, cancellation.Token));
 
         Assert.False(materializedAfterCancellation);
     }
@@ -262,7 +260,7 @@ public sealed class PdfImageExportContractTests {
         var timeout = TimeSpan.FromTicks(1);
 
         OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
-            document.ExportImages(
+            document.ToImages(
                 OfficeImageExportFormat.Svg,
                 new PdfImageExportOptions { RenderTimeout = timeout }));
 
@@ -302,7 +300,7 @@ public sealed class PdfImageExportContractTests {
         };
 
         OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(
-            () => document.Pages[0].ExportImage(OfficeImageExportFormat.Png, options));
+            () => document.Pages[0].ToImage(OfficeImageExportFormat.Png, options));
 
         Assert.Contains(
             exception.Diagnostics,
@@ -317,19 +315,19 @@ public sealed class PdfImageExportContractTests {
             .Paragraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak().Paragraph(paragraph => paragraph.AddText("Page two"));
         var options = new PdfImageExportOptions {
-            Format = OfficeImageExportFormat.Svg, PageSelector = PdfPageSelector.Parse("last,1"),
+            Format = OfficeImageExportFormat.Svg, PageSelector = OfficePageSelector.Parse("last,1"),
             MaximumOutputWidth = 160, MaximumOutputHeight = 160
         };
-        Task<OfficeIMO.OfficeConversionResult<IReadOnlyList<OfficeImageExportResult>>> pending = document.ExportImagesAsync(options);
+        Task<OfficeIMO.OfficeConversionResult<IReadOnlyList<OfficeImageExportResult>>> pending = document.ToImagesAsync(options);
         options.Format = OfficeImageExportFormat.Jpeg;
-        options.PageSelector = PdfPageSelector.Parse("1");
+        options.PageSelector = OfficePageSelector.Parse("1");
         var exported = await pending;
         Assert.Equal(2, exported.Value.Count);
         Assert.Equal(new[] { "Page 2", "Page 1" }, exported.Value.Select(result => result.Name));
         Assert.Equal(2, exported.Report.ItemsWritten);
         Assert.Equal("Svg", exported.Report.Target);
-        Assert.Equal(document.ExportImages(new PdfImageExportOptions {
-            Format = OfficeImageExportFormat.Svg, PageSelector = PdfPageSelector.Parse("2"),
+        Assert.Equal(document.ToImages(new PdfImageExportOptions {
+            Format = OfficeImageExportFormat.Svg, PageSelector = OfficePageSelector.Parse("2"),
             MaximumOutputWidth = 160, MaximumOutputHeight = 160
         }).Single().Bytes, exported.Value[0].Bytes);
         Assert.All(exported.Value, result => {

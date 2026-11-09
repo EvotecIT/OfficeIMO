@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Helpers for marking shapes with OfficeIMO semantic roles used by layout, routing, inspection, and quality analysis.

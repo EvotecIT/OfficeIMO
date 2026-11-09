@@ -1,7 +1,4 @@
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
@@ -161,7 +158,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("First paragraph\nAfter break\nSecond paragraph",
                     Assert.Single(snapshot.Nodes));
 
-                OfficeImageExportResult svg = imported.Slides[0].ExportImage(
+                OfficeImageExportResult svg = imported.Slides[0].ToImage(
                     OfficeImageExportFormat.Svg);
                 string svgText = Encoding.UTF8.GetString(svg.Bytes);
                 Assert.Contains("First paragraph", svgText,
@@ -284,7 +281,7 @@ namespace OfficeIMO.Tests {
                     imported.Slides[0].SmartArts);
                 Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
 
-                OfficeImageExportResult svg = imported.Slides[0].ExportImage(
+                OfficeImageExportResult svg = imported.Slides[0].ToImage(
                     OfficeImageExportFormat.Svg);
                 Assert.Contains(svg.Diagnostics, diagnostic =>
                     diagnostic.Message.Contains("semantic node data",

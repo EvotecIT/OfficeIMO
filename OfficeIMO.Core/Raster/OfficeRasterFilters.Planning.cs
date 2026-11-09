@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing {
     public static partial class OfficeRasterFilters {
         private const long FixedFilteringWorkingBytes = 64L * 1024L;

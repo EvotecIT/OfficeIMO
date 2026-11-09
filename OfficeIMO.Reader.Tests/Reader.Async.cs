@@ -1,7 +1,5 @@
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

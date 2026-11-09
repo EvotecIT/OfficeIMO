@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using OfficeIMO.Markdown;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;

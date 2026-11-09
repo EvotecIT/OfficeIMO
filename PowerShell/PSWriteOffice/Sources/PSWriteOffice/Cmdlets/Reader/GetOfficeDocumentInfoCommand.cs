@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Management.Automation;
 using System.Security;
-using System.Threading.Tasks;
 using OfficeIMO;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;

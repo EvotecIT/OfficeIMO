@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO;
 
 /// <summary>A preferred font family with an ordered, immutable fallback list.</summary>

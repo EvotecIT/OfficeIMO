@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
@@ -29,7 +25,7 @@ namespace OfficeIMO.Tests {
             slide = reopened.Slides[0];
             Assert.True(Assert.Single(slide.Tables).GetCell(0, 0).NoFill);
             Assert.Empty(reopened.ValidateDocument());
-            Assert.True(OfficePngReader.TryDecode(slide.ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+            Assert.True(OfficePngReader.TryDecode(slide.ToImage(OfficeImageExportFormat.Png).Bytes, out var image));
             Assert.Equal(OfficeColor.Yellow, image!.GetPixel(32, 32));
             Assert.Equal(OfficeColor.FromRgb(254, 215, 170), image.GetPixel(92, 32));
         }
@@ -52,8 +48,8 @@ namespace OfficeIMO.Tests {
             table.LastColumn = true;
             table.BandedRows = false;
             table.BandedColumns = false;
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
@@ -92,8 +88,8 @@ namespace OfficeIMO.Tests {
             table.BandedRows = false;
             table.BandedColumns = true;
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
@@ -124,8 +120,8 @@ namespace OfficeIMO.Tests {
             table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(36));
             table.GetCell(0, 0).Merge = (1, 2);
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);

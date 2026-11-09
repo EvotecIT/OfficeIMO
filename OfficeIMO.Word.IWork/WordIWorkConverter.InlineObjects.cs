@@ -1,5 +1,4 @@
 using OfficeIMO.IWork;
-using System.Threading;
 using OpenXmlTable = DocumentFormat.OpenXml.Wordprocessing.Table;
 
 namespace OfficeIMO.Word.IWork;

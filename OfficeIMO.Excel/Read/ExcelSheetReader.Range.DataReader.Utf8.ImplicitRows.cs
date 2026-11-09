@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource {

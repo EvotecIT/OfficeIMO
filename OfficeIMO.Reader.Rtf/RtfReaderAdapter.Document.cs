@@ -1,7 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Diagnostics;
-using System.Linq;
 
 namespace OfficeIMO.Reader.Rtf;
 

@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Markdown;
 
 public partial class MarkdownDocument {

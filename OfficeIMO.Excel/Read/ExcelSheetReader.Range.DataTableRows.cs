@@ -1,6 +1,4 @@
 using System.Data;
-using System.IO;
-using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {

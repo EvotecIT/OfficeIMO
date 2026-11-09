@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.IO.Compression;
-using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Filters;
 using Xunit;

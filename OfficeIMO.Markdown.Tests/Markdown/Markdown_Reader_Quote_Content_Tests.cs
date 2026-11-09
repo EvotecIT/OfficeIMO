@@ -1,4 +1,3 @@
-using System.Linq;
 using OfficeIMO.Markdown;
 using MarkdigMarkdown = Markdig.Markdown;
 using Xunit;

@@ -1,8 +1,5 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;

@@ -1,5 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System.Threading;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Restores streams carried by an RC4 CryptoAPI EncryptedSummary stream.</summary>

@@ -6,12 +6,8 @@ using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Drawing;
 using OfficeIMO.Core.Internal;
 using System.IO.Packaging;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Xml;
-using System;
 using System.Diagnostics;
-using System.IO;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {

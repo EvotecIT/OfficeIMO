@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using Xunit;

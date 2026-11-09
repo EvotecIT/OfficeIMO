@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>Stable diagnostic codes raised by the slide layout system.</summary>
     internal static class PowerPointLayoutDiagnosticCodes {

@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 using OfficeIMO.Data;
 
 // The 3.6 projections mirror ExcelSheet and differ by a required mapping argument.

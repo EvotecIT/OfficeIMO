@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Security;
 
 /// <summary>Content-encryption algorithms offered by the neutral CMS envelope service.</summary>

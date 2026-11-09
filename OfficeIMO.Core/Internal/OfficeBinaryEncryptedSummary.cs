@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
-using System.Threading;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Decodes the MS-OFFCRYPTO encrypted stream and storage descriptor container.</summary>

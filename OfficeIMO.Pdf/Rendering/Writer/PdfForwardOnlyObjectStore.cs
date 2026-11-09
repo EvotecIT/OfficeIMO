@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Globalization;
 using System.Security.Cryptography;
-using System.Threading;
 
 namespace OfficeIMO.Pdf;
 

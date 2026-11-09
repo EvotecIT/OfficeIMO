@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml.Office2013.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Collections.Generic;
 using System.Globalization;
 
 namespace OfficeIMO.Word {

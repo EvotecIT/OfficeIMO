@@ -4,7 +4,6 @@
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -17,11 +16,7 @@
     <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
     <Using Include="System.Text" />
-    <Using Include="System.Threading" />
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

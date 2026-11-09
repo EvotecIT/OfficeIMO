@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using OfficeIMO.Visio;
 
 namespace OfficeIMO.Examples.Visio {

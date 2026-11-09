@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointLayoutEngine {
         /// <summary>Uses the same measured content zone and column allocation as the semantic renderer.</summary>

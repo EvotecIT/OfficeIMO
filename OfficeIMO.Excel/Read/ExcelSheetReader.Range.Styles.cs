@@ -1,6 +1,3 @@
-using System.IO;
-using System.Threading;
-
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         internal uint?[,]? ReadCellStyleIndexes(string a1Range, CancellationToken ct = default) {

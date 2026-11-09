@@ -1,6 +1,4 @@
 #if NET8_0_OR_GREATER
-using System;
-using System.IO;
 using System.Text.Json;
 using OfficeIMO.TestAssets;
 using Xunit;

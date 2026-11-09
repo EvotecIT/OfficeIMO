@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;

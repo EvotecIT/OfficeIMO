@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -15,7 +13,7 @@ public sealed class XpsRadialGradientTests {
     [InlineData(XpsFormat.OpenXps, "-1,0.3,0.4,1,150,-20", true)]
     public void AffineRadialBrushMatchesItsAnalyticFieldAndSurvivesPdf(XpsFormat format, string matrix, bool alpha) {
         var doc = Create(format, matrix, alpha); var page = doc.Pages[0];
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var image));
         var numbers = matrix.Split(',').Select(x => double.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
         var inverse = new OfficeTransform(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]).Invert();
         foreach (var xy in new[] { (70, 60), (100, 80), (120, 90), (140, 60) }) {
@@ -48,7 +46,7 @@ public sealed class XpsRadialGradientTests {
     [InlineData("Reflect")]
     public void AffineRadialSpreadRepeatsTheNativeColorField(string spread) {
         var doc = Create(XpsFormat.OpenXps, "1,0.3,0.4,1,-30,-20", false, spread);
-        Assert.True(OfficeRasterImageDecoder.TryDecode(doc.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(doc.Pages[0].ToImage(OfficeImageExportFormat.Png).Bytes, out var image));
         var inverse = new OfficeTransform(1,.3,.4,1,-30,-20).Invert();
         foreach (var xy in new[] { (10, 10), (30, 45), (160, 120), (190, 150) }) {
             var point = inverse.TransformPoint(new OfficePoint(xy.Item1 + .5, xy.Item2 + .5));
@@ -69,7 +67,7 @@ public sealed class XpsRadialGradientTests {
         var xml = page.GetMarkup(); var ns = xml.Name.Namespace; var path = xml.Element(ns + "Path")!;
         path.SetAttributeValue("Data", "M30,50L170,100"); path.SetAttributeValue("StrokeThickness", "20");
         path.Element(ns + "Path.Fill")!.Name = ns + "Path.Stroke"; page.ReplaceMarkup(xml);
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var image));
         var inverse = new OfficeTransform(1,.3,.4,1,-30,-20).Invert();
         foreach (var xy in new[] { (60, 61), (100, 75), (140, 89) }) {
             var point = inverse.TransformPoint(new OfficePoint(xy.Item1 + .5, xy.Item2 + .5));
@@ -86,7 +84,7 @@ public sealed class XpsRadialGradientTests {
         var doc = Create(XpsFormat.Xps, "1,0,0,1,0,0", false, "Repeat"); var page = doc.Pages[0];
         var xml = page.GetMarkup(); var brush = xml.Descendants().Single(e => e.Name.LocalName == "RadialGradientBrush");
         brush.SetAttributeValue("RadiusX", ".001"); brush.SetAttributeValue("RadiusY", ".001"); page.ReplaceMarkup(xml);
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var image));
         double ratio = Math.Sqrt(.5 * .5 + .5 * .5) / .001;
         ratio -= Math.Floor(ratio);
         Assert.InRange(Math.Abs(image!.GetPixel(100, 80).B - 255 * ratio), 0, 2);

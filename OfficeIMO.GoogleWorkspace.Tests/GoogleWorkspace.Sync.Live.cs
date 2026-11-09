@@ -1,13 +1,8 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
 using OfficeIMO.GoogleWorkspace.Sync;
-using System;
-using System.Linq;
-using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {

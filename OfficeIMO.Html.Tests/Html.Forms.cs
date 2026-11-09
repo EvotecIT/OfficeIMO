@@ -3,9 +3,6 @@ using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System;
-using System.IO;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {

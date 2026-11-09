@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Aggregates structural proof metrics across every generated showcase diagram.

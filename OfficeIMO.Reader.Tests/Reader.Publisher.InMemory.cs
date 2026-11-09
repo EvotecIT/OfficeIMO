@@ -3,7 +3,6 @@ using OfficeIMO.Publisher;
 using OfficeIMO.Reader.Publisher;
 using OfficeIMO.Tests;
 using System.Globalization;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;

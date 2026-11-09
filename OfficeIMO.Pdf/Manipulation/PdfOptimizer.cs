@@ -1,6 +1,5 @@
 using OfficeIMO.Core.Internal;
 using System.Security.Cryptography;
-using System.Threading;
 
 namespace OfficeIMO.Pdf;
 

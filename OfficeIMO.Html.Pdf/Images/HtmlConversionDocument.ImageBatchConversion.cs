@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 using OfficeIMO.Html;
@@ -11,6 +6,20 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Html.Pdf;
 
 public static partial class HtmlImageExportExtensions {
+    /// <summary>Renders a batch using the encoding and selection in the options.</summary>
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(this HtmlConversionDocument document, HtmlRenderOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        return CreateHtmlConversionDocumentImageBatchOperation(document, resolved).Export(cancellationToken);
+    }
+
+    /// <summary>Renders a batch asynchronously using the same options and evidence contract.</summary>
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this HtmlConversionDocument document, HtmlRenderOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        return CreateHtmlConversionDocumentImageBatchOperation(document, resolved).ExportAsync(cancellationToken);
+    }
+
     /// <summary>Saves selected images without retaining payloads and returns aggregate conversion evidence.</summary>
     public static OfficeConversionReport SaveAsImages(this HtmlConversionDocument document, string folderPath,
         HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
@@ -38,8 +47,8 @@ public static partial class HtmlImageExportExtensions {
         HtmlConversionDocument document, HtmlRenderOptions options) {
         ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportBatchOperation<HtmlRenderOptions>(options, options.Format, options.FileConflictPolicy,
-            (encoding, effective) => document.ExportImages(encoding, effective),
-            exportEach: (encoding, effective, consumer, token) => document.ExportImages(encoding, consumer, effective, token),
-            exportEachAsync: (encoding, effective, consumer, token) => document.ExportImagesAsync(encoding, consumer, effective, token));
+            (encoding, effective) => document.ToImages(encoding, effective),
+            exportEach: (encoding, effective, consumer, token) => document.ToImages(encoding, consumer, effective, token),
+            exportEachAsync: (encoding, effective, consumer, token) => document.ToImagesAsync(encoding, consumer, effective, token));
     }
 }

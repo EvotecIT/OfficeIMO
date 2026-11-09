@@ -1,7 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Html;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html;
 

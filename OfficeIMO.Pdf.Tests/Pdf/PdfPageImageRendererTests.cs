@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -66,9 +63,9 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal(2, Assert.Single(document.AssessRenderCompatibility(options: null, renderOptions: generous).Pages).Diagnostics.Count);
 
         Assert.Equal(PdfReadLimitKind.RenderDiagnostics, Assert.Throws<PdfReadLimitException>(() =>
-            document.ExportImages(OfficeImageExportFormat.Svg,
+            document.ToImages(OfficeImageExportFormat.Svg,
                 new PdfImageExportOptions { MaxDiagnosticsPerPage = 1 })).Kind);
-        Assert.Single(document.ExportImages(OfficeImageExportFormat.Svg,
+        Assert.Single(document.ToImages(OfficeImageExportFormat.Svg,
             new PdfImageExportOptions { MaxDiagnosticsPerPage = 3 }));
     }
 
@@ -3340,10 +3337,10 @@ public partial class PdfPageImageRendererTests {
             "5 0 obj\n<< /FunctionType 2 /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj");
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
-        Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(
+        Assert.Throws<OfficeImageExportPolicyException>(() => page.ToImage(
             OfficeImageExportFormat.Png,
             new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { FailOnLoss = true } }));
     }
@@ -3638,10 +3635,10 @@ public partial class PdfPageImageRendererTests {
             "6 0 obj\n<< /N 3 /Length 0 >>\nstream\n\nendstream\nendobj");
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
-        Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(
+        Assert.Throws<OfficeImageExportPolicyException>(() => page.ToImage(
             OfficeImageExportFormat.Png,
             new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { FailOnLoss = true } }));
     }
@@ -3654,10 +3651,10 @@ public partial class PdfPageImageRendererTests {
             "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] /Function << /FunctionType 2 /C0 [1 0 0] /C1 [0 0 1] /N 1 >> >>\nendobj");
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
-        Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(
+        Assert.Throws<OfficeImageExportPolicyException>(() => page.ToImage(
             OfficeImageExportFormat.Png,
             new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { FailOnLoss = true } }));
     }

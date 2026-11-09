@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 namespace OfficeIMO.Excel.Legacy;
 
 internal sealed class LegacySpreadsheetModel {

@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 using OfficeIMO.Word;
-using System.Linq;
 
 using Xunit;
 

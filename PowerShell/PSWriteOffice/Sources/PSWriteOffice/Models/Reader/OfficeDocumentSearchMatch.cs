@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace PSWriteOffice.Models.Reader;
 
 /// <summary>PowerShell-friendly occurrence returned by a path-based document search.</summary>

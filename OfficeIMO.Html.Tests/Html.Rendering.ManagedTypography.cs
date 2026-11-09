@@ -49,9 +49,9 @@ public sealed partial class HtmlRenderingTests {
         pdf.ThrowIfLoss();
         PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes);
         Assert.Equal(text, Assert.Single(saved.Pages).ExtractText().Trim());
-        OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
-        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+        OfficeImageExportResult png = document.ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult svg = document.ToImage(OfficeImageExportFormat.Svg, options);
+        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(
             saved, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
         png.CreateReport().ThrowIfLoss();
         svg.CreateReport().ThrowIfLoss();

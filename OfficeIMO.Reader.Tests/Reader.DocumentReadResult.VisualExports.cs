@@ -1,6 +1,5 @@
 using OfficeIMO.Reader;
 using System.Text.Json;
-using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;

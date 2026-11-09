@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
@@ -50,7 +47,7 @@ public partial class PowerPointImageExportTests {
         Assert.Contains("Revenue", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
         Assert.Contains(snapshot.TextSpans, span => span.Text.Contains("Canonical", StringComparison.Ordinal)
             && span.Color == OfficeColor.FromRgb(20, 108, 148));
-        OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
         Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
         Assert.Equal((320, 180), (image!.Width, image.Height));
         Assert.Equal(OfficeColor.FromRgb(215, 38, 61), image.GetPixel(4, 170));
@@ -58,7 +55,7 @@ public partial class PowerPointImageExportTests {
     }
 
     private static void AssertNativeImageRoute(PowerPointDocument presentation, OfficeImageExportFormat format, double scale = 1D) {
-        OfficeImageExportResult actual = presentation.Slides[0].ExportImage(format, new PowerPointImageExportOptions { Scale = scale });
+        OfficeImageExportResult actual = presentation.Slides[0].ToImage(format, new PowerPointImageExportOptions { Scale = scale });
         PowerPointSlideVisualInfo snapshot = presentation.Slides[0].CreateVisualSnapshot();
         Assert.Equal(format, actual.Format);
         Assert.Equal(((int)Math.Ceiling(snapshot.Width * scale), (int)Math.Ceiling(snapshot.Height * scale)), (actual.Width, actual.Height));

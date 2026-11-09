@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-
 namespace OfficeIMO.Html.Dom;
 
 /// <summary>An owned HTML tree with explicit snapshot and mutation semantics. Mutable documents require a single owner.</summary>

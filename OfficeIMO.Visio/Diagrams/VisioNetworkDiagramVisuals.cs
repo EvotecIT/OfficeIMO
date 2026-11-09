@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Visio.Diagrams {
     internal static class VisioNetworkDiagramVisuals {
         internal const double BackgroundZoneCaptionHeaderClearance = 0.42D;

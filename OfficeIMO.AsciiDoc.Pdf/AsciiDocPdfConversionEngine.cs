@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using OfficeIMO.AsciiDoc;
 using OfficeIMO.AsciiDoc.Markdown;
 using OfficeIMO.Markdown.Pdf;

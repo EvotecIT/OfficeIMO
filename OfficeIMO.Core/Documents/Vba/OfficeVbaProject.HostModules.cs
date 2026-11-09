@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 public sealed partial class OfficeVbaProject {

@@ -1,4 +1,3 @@
-using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word;

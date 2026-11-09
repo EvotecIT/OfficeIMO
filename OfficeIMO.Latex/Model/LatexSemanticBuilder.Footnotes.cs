@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace OfficeIMO.Latex;
 
 internal static partial class LatexSemanticBuilder {

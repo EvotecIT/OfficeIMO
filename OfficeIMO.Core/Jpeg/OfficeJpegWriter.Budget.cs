@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpegWriter {

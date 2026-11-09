@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Visio.Diagrams;
 
 namespace OfficeIMO.Visio {

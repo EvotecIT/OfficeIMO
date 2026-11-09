@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Raised when aggregate batch output exceeds a configured safety budget.</summary>

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeMathRenderer {

@@ -1,7 +1,5 @@
 using System.ComponentModel;
-using System.IO;
 using System.Text.Json;
-using System.Threading;
 using OfficeIMO.Provenance;
 
 namespace OfficeIMO.Provenance.C2pa.Tests;

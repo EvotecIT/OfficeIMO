@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Data {
     public partial class ObjectFlattenerOptions {
         /// <summary>Resolves display prefixes without changing paths used to select or format values.</summary>

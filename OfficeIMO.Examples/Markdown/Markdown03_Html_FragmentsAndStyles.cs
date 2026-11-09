@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Examples.Markdown {

@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Linq;
-
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {

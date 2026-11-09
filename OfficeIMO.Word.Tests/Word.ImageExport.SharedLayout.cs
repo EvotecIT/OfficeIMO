@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -21,8 +17,8 @@ public sealed class WordSharedPageLayoutTests {
     [InlineData("native-word-report.docx", OfficeImageExportFormat.Svg)]
     public void NativeFixturesUseExactlyThePdfPageScenes(string fixture, OfficeImageExportFormat format) {
         using WordDocument document = WordDocument.Load(Path.Combine(AppContext.BaseDirectory, "WordLayoutFixtures", fixture));
-        var expected = document.ConvertToPdfWithEvidence().ExportImages(format, new PdfImageExportOptions { Scale = .25D });
-        var actual = document.ExportImages(format, new WordImageExportOptions { Scale = .25D });
+        var expected = document.ConvertToPdfWithEvidence().ToImages(format, new PdfImageExportOptions { Scale = .25D });
+        var actual = document.ToImages(format, new WordImageExportOptions { Scale = .25D });
         Assert.Equal(expected.Count, actual.Count);
         for (int index = 0; index < actual.Count; index++) Assert.Equal(expected[index].Bytes, actual[index].Bytes);
     }
@@ -34,8 +30,8 @@ public sealed class WordSharedPageLayoutTests {
     public void WordImagesMatchPdfPagesIncludingStylesTablesAndOverflow(OfficeImageExportFormat format) {
         using WordDocument document = CreateDocument();
         var imageOptions = new WordImageExportOptions { Scale = .5D };
-        var expected = document.ConvertToPdfWithEvidence().ExportImages(format, new PdfImageExportOptions { Scale = .5D });
-        var actual = document.ExportImages(format, imageOptions);
+        var expected = document.ConvertToPdfWithEvidence().ToImages(format, new PdfImageExportOptions { Scale = .5D });
+        var actual = document.ToImages(format, imageOptions);
         Assert.True(actual.Count > 1);
         Assert.Equal(expected.Count, actual.Count);
         for (int index = 0; index < actual.Count; index++) {
@@ -63,16 +59,16 @@ public sealed class WordSharedPageLayoutTests {
     public void WordImageSelectionStreamingAndWrappersUseTheSamePages() {
         using WordDocument document = CreateDocument();
         var options = new WordImageExportOptions { PageIndex = 1, PageCount = 1, Scale = .3D };
-        var page = Assert.Single(document.ExportImages(OfficeImageExportFormat.Png, options));
-        Assert.Equal(page.Bytes, document.ToImage(options));
-        var single = document.ExportImage(OfficeImageExportFormat.Png, options);
+        var page = Assert.Single(document.ToImages(OfficeImageExportFormat.Png, options));
+        Assert.Equal(page.Bytes, document.ToImage(options).Bytes);
+        var single = document.ToImage(OfficeImageExportFormat.Png, options);
         AssertWordIdentity(single, 2, 0, 1);
         AssertWordIdentity(page, 2, 0, 1);
         var delivered = new System.Collections.Generic.List<OfficeImageExportResult>();
-        document.ExportImages(OfficeImageExportFormat.Png, delivered.Add, options);
+        document.ToImages(OfficeImageExportFormat.Png, delivered.Add, options);
         Assert.Equal(page.Bytes, Assert.Single(delivered).Bytes);
         AssertWordIdentity(delivered[0], 2, 0, 1);
-        var selected = document.ExportImages(OfficeImageExportFormat.Svg, new WordImageExportOptions { PageIndex = 1, PageCount = 2 });
+        var selected = document.ToImages(OfficeImageExportFormat.Svg, new WordImageExportOptions { PageIndex = 1, PageCount = 2 });
         Assert.Equal(2, selected.Count);
         for (int index = 0; index < selected.Count; index++) AssertWordIdentity(selected[index], index + 2, index, 2);
         Assert.Equal(1, Assert.Single(document.CreateVisualSnapshots(options)).PageIndex);
@@ -80,21 +76,21 @@ public sealed class WordSharedPageLayoutTests {
         options.MaximumOutputCount = 3;
         WordImageExportOptions batchOptions = options.Clone();
         options.PageSelection = PdfPageSelection.From(2);
-        var ordered = document.ExportImages(OfficeImageExportFormat.Svg, batchOptions);
-        var expected = document.ConvertToPdfWithEvidence().ExportImages(OfficeImageExportFormat.Svg,
+        var ordered = document.ToImages(OfficeImageExportFormat.Svg, batchOptions);
+        var expected = document.ConvertToPdfWithEvidence().ToImages(OfficeImageExportFormat.Svg,
             new PdfImageExportOptions { Scale = .3D }, PdfPageSelection.From(3, 1, 3));
         Assert.Equal(expected.Select(image => image.Bytes), ordered.Select(image => image.Bytes), ByteArrayComparer.Instance);
         for (int index = 0; index < ordered.Count; index++)
             AssertWordIdentity(ordered[index], new[] { 3, 1, 3 }[index], index, 3);
         Assert.Equal(new[] { 2, 0, 2 }, document.CreateVisualSnapshots(batchOptions).Select(snapshot => snapshot.PageIndex));
-        AssertWordIdentity(document.ExportImage(OfficeImageExportFormat.Svg, batchOptions), 2, 0, 1);
+        AssertWordIdentity(document.ToImage(OfficeImageExportFormat.Svg, batchOptions), 2, 0, 1);
         Assert.Equal(1, document.CreateVisualSnapshot(batchOptions).PageIndex);
         batchOptions.MaximumOutputCount = 2;
         delivered.Clear();
-        Assert.Throws<OfficeImageExportBatchLimitException>(() => document.ExportImages(
+        Assert.Throws<OfficeImageExportBatchLimitException>(() => document.ToImages(
             OfficeImageExportFormat.Svg, delivered.Add, batchOptions));
         Assert.Empty(delivered);
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToImage(new WordImageExportOptions { PageIndex = 999 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToImage(new WordImageExportOptions { PageIndex = 999 }).Bytes);
     }
 
     [Fact]
@@ -105,8 +101,8 @@ public sealed class WordSharedPageLayoutTests {
         };
         WordImageExportOptions clone = options.Clone();
         options.LayoutOptions.PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(800));
-        var expected = document.ConvertToPdfWithEvidence(clone.LayoutOptions).ExportImages(OfficeImageExportFormat.Svg);
-        var actual = document.ExportImages(OfficeImageExportFormat.Svg, clone);
+        var expected = document.ConvertToPdfWithEvidence(clone.LayoutOptions).ToImages(OfficeImageExportFormat.Svg);
+        var actual = document.ToImages(OfficeImageExportFormat.Svg, clone);
         Assert.Equal(expected.Select(page => page.Bytes), actual.Select(page => page.Bytes), ByteArrayComparer.Instance);
         Assert.Equal(400D, document.CreateVisualSnapshot(clone).Width);
     }
@@ -122,20 +118,20 @@ public sealed class WordSharedPageLayoutTests {
         Assert.Contains(conversion.Warnings, warning => warning.Code == "native-body-chart-unsupported"
             && warning.LossKind == OfficeConversionLossKind.Omission);
         var options = new WordImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true } };
-        Assert.Throws<OfficeImageExportPolicyException>(() => document.ExportImage(OfficeImageExportFormat.Png, options));
-        Assert.Throws<OfficeImageExportPolicyException>(() => conversion.ExportImages(OfficeImageExportFormat.Png,
+        Assert.Throws<OfficeImageExportPolicyException>(() => document.ToImage(OfficeImageExportFormat.Png, options));
+        Assert.Throws<OfficeImageExportPolicyException>(() => conversion.ToImages(OfficeImageExportFormat.Png,
             new PdfImageExportOptions { Policy = options.Policy }));
     }
 
     [Fact]
     public void SharedLayoutRetainsCancellationTimeoutAndBatchBudgets() {
         using WordDocument document = CreateDocument();
-        Assert.Throws<OperationCanceledException>(() => document.ExportImage(OfficeImageExportFormat.Png, cancellationToken: new CancellationToken(true)));
-        Assert.Throws<OfficeImageExportTimeoutException>(() => document.ExportImage(OfficeImageExportFormat.Svg,
+        Assert.Throws<OperationCanceledException>(() => document.ToImage(OfficeImageExportFormat.Png, cancellationToken: new CancellationToken(true)));
+        Assert.Throws<OfficeImageExportTimeoutException>(() => document.ToImage(OfficeImageExportFormat.Svg,
             new WordImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) }));
-        Assert.Throws<OfficeImageExportBatchLimitException>(() => document.ExportImages(OfficeImageExportFormat.Png,
+        Assert.Throws<OfficeImageExportBatchLimitException>(() => document.ToImages(OfficeImageExportFormat.Png,
             new WordImageExportOptions { MaximumOutputCount = 1 }));
-        Assert.Throws<OfficeImageExportBatchLimitException>(() => document.ExportImage(OfficeImageExportFormat.Png,
+        Assert.Throws<OfficeImageExportBatchLimitException>(() => document.ToImage(OfficeImageExportFormat.Png,
             new WordImageExportOptions { MaximumTotalEncodedBytes = 8 }));
         Assert.Throws<OperationCanceledException>(() => document.CreateVisualSnapshots(null, new CancellationToken(true)));
     }

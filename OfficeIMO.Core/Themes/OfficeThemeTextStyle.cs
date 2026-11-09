@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO;
 
 /// <summary>Text colours, line spacing and heading treatment shared by document formats.</summary>

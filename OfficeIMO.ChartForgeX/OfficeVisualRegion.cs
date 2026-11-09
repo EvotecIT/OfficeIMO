@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.ChartForgeX;
 
 /// <summary>Describes one ChartForgeX artifact region in Office point coordinates.</summary>

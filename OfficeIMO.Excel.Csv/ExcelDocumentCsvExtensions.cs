@@ -1,8 +1,5 @@
 using System.Data;
-using System.Collections.Generic;
 using System.Data.Common;
-using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Tile-owned quantization snapshot and reusable Main-8/Main-10 residual transform scratch.</summary>

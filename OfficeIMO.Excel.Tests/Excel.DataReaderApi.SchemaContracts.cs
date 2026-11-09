@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.Common;
-using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;

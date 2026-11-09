@@ -1,4 +1,3 @@
-using System;
 using OfficeIMO.Excel;
 using Color = OfficeIMO.OfficeColor;
 

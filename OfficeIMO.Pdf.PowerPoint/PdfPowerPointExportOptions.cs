@@ -1,5 +1,4 @@
 using PptCore = OfficeIMO.PowerPoint;
-using System.Threading;
 
 namespace OfficeIMO.Pdf.PowerPoint;
 

@@ -2,7 +2,6 @@ using OfficeIMO.Epub;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
-using System.Threading;
 
 namespace OfficeIMO.Chm.Tests;
 

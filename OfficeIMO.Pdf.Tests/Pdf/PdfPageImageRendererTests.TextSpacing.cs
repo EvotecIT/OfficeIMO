@@ -1,7 +1,4 @@
-using System;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -71,7 +68,7 @@ public partial class PdfPageImageRendererTests {
         var provider = new OfficeIMO.TestAssets.ManagedTextShapingTestAssets.RecordingProvider();
         var options = new PdfImageExportOptions { TextShapingProvider = provider };
         options.Fonts.Add("Courier New", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('A', 'B'));
-        var error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ExportImage(OfficeImageExportFormat.Png, options));
+        var error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToImage(OfficeImageExportFormat.Png, options));
         Assert.Equal(PdfReadLimitKind.PositionedTextWorkCharacters, error.Kind);
         Assert.Equal(glyphCount * 2, error.Actual);
         if (glyphCount == 1) Assert.Empty(provider.Requests);
@@ -88,7 +85,7 @@ public partial class PdfPageImageRendererTests {
         });
         var options = new PdfImageExportOptions();
         options.Fonts.Add("Courier New", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B'));
-        var error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ExportImage(OfficeImageExportFormat.Png, options));
+        var error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToImage(OfficeImageExportFormat.Png, options));
         Assert.Equal(PdfReadLimitKind.PositionedTextCharacters, error.Kind);
         Assert.Equal(3, error.Actual);
     }
@@ -112,7 +109,7 @@ public partial class PdfPageImageRendererTests {
         var provider = new OfficeIMO.TestAssets.ManagedTextShapingTestAssets.RecordingProvider();
         var options = new PdfImageExportOptions { TextShapingProvider = provider };
         options.Fonts.Add("Courier New", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('A', 'B', 'C'));
-        var error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ExportImage(OfficeImageExportFormat.Png, options));
+        var error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToImage(OfficeImageExportFormat.Png, options));
         Assert.Equal(PdfReadLimitKind.PositionedTextWorkCharacters, error.Kind);
         Assert.Equal(2, error.Limit);
         Assert.Equal(3, error.Actual);
@@ -239,7 +236,7 @@ public partial class PdfPageImageRendererTests {
         var projected = PdfReadDocument.Open(pdf).Pages[0].ToDrawing(options.Fonts,
             options.TextShapingProvider, options.TextShapingLanguage);
         Assert.Equal(pixels, OfficeDrawingRasterRenderer.Render(projected).GetPixels());
-        var exported = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png, options);
+        var exported = PdfReadDocument.Open(pdf).Pages[0].ToImage(OfficeImageExportFormat.Png, options);
         Assert.True(OfficePngReader.TryDecode(exported.Bytes, out OfficeRasterImage? raster));
         Assert.Equal(pixels, raster!.GetPixels());
         var renderOptions = new PdfPageRenderOptions {
@@ -612,7 +609,7 @@ public partial class PdfPageImageRendererTests {
         Assert.Contains("87,0", document.Pages[0].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("73%", document.Pages[0].ExtractText(), StringComparison.Ordinal);
 
-        var exported = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        var exported = document.Pages[0].ToImage(OfficeImageExportFormat.Png);
         Assert.True(OfficePngReader.TryDecode(exported.Bytes, out OfficeRasterImage? image));
         Assert.NotNull(image);
         foreach (var bounds in new[] {

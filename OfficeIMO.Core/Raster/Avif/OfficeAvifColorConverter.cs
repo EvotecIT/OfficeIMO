@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Composes bounded Main-8/Main10 YUV420 or monochrome planes into owned straight-alpha RGBA.</summary>

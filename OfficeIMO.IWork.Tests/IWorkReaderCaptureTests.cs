@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Threading.Tasks;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.IWork;
 

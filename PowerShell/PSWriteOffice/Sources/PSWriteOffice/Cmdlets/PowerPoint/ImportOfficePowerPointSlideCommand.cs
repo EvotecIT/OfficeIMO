@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.PowerPoint;

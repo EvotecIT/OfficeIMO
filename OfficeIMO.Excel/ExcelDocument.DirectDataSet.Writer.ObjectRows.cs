@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Threading;
 using OfficeIMO.SharedSource.IO;
 
 namespace OfficeIMO.Excel {

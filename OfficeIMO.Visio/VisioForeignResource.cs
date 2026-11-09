@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Visio;
 
 // Immutable binary content follows shape trees; page/master stores also retain opaque XML resources.

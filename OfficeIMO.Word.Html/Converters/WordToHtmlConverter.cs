@@ -4,9 +4,6 @@ using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word.Html {
