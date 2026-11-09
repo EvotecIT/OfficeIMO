@@ -102,21 +102,48 @@ public partial class DrawingTests {
         Assert.False(OfficeImageReader.TryValidateContent(truncatedHeader, "truncated-jfif.jpg", out _));
     }
 
-    [Fact]
-    public void CompleteContentValidationAcceptsMultiPictureJpegTrailingImages() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CompleteContentValidationChecksIndexedMultiPictureJpegImages(bool littleEndian) {
         byte[] primary = OfficeJpegCodec.Encode(new OfficeRasterImage(2, 2, OfficeColor.White));
         byte[] secondary = OfficeJpegCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.Black));
-        byte[] mpfPayload = Encoding.ASCII.GetBytes("MPF\0MM\0*\0\0\0\b");
-        byte[] mpf = new byte[] { 0xFF, 0xE2, 0, (byte)(mpfPayload.Length + 2) }.Concat(mpfPayload).ToArray();
-        byte[] multiPicture = primary.Take(2).Concat(mpf).Concat(primary.Skip(2)).Concat(secondary).ToArray();
-        byte[] undeclared = primary.Concat(secondary).ToArray();
-        byte[] trailingJunk = primary.Take(2).Concat(mpf).Concat(primary.Skip(2)).Concat(new byte[] { 1, 2, 3 }).ToArray();
+        byte[] tiff = new byte[82];
+        void Write16(int offset, ushort value) {
+            if (littleEndian) WriteUInt16LittleEndian(tiff, offset, value);
+            else { tiff[offset] = (byte)(value >> 8); tiff[offset + 1] = (byte)value; }
+        }
+        void Write32(int offset, int value) {
+            if (littleEndian) WriteInt32LittleEndian(tiff, offset, value);
+            else WriteBigEndianInt32(tiff, offset, value);
+        }
+        tiff[0] = tiff[1] = (byte)(littleEndian ? 'I' : 'M');
+        Write16(2, 42); Write32(4, 8); Write16(8, 3);
+        Write16(10, 0xB000); Write16(12, 7); Write32(14, 4);
+        Encoding.ASCII.GetBytes("0100").CopyTo(tiff, 18);
+        Write16(22, 0xB001); Write16(24, 4); Write32(26, 1); Write32(30, 2);
+        Write16(34, 0xB002); Write16(36, 7); Write32(38, 32); Write32(42, 50);
+        const int segmentLength = 4 + 4 + 82;
+        int primaryLength = primary.Length + segmentLength;
+        Write32(50, 0x20030000); Write32(54, primaryLength);
+        Write32(70, secondary.Length); Write32(74, primaryLength - 10);
+        byte[] mpf = new byte[] { 0xFF, 0xE2, 0, segmentLength - 2 }
+            .Concat(Encoding.ASCII.GetBytes("MPF\0")).Concat(tiff).ToArray();
+        byte[] firstImage = primary.Take(2).Concat(mpf).Concat(primary.Skip(2)).ToArray();
+        byte[] multiPicture = firstImage.Concat(secondary).ToArray();
+        byte[] malformedIndex = (byte[])multiPicture.Clone();
+        // The index cannot point its secondary image into the primary.
+        Array.Clear(malformedIndex, 10 + 74, 4);
+        byte[] fakeMpf = new byte[] { 0xFF, 0xE2, 0, 6, (byte)'M', (byte)'P', (byte)'F', 0 };
 
-        Assert.True(OfficeImageReader.TryValidateContent(multiPicture, "ultra-hdr.jpg", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(multiPicture, "indexed-multi-picture.jpg", out _));
         Assert.True(OfficeRasterImageDecoder.TryDecode(multiPicture, null, out OfficeRasterImage? decoded, out _));
         Assert.Equal(2, decoded!.Width);
-        Assert.False(OfficeImageReader.TryValidateContent(undeclared, "undeclared.jpg", out _));
-        Assert.False(OfficeImageReader.TryValidateContent(trailingJunk, "trailing-junk.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(primary.Concat(secondary).ToArray(), "undeclared.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(firstImage.Concat(new byte[] { 0xFF, 0xD8 }).ToArray(), "truncated-secondary.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(multiPicture.Concat(new byte[] { 1 }).ToArray(), "trailing-junk.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformedIndex, "overlapping-index.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(primary.Take(2).Concat(fakeMpf).Concat(primary.Skip(2)).Concat(secondary).ToArray(), "missing-index.jpg", out _));
     }
 
     [Fact]

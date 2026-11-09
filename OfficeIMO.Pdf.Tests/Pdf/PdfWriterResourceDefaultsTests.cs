@@ -44,20 +44,30 @@ public class PdfWriterResourceDefaultsTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void IdenticalPageProgramsShareStorageWithoutLosingPageOccurrences(bool compress) {
-        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = compress })
-            .Paragraph(p => p.AddText("Repeated page"))
-            .PageBreak().Paragraph(p => p.AddText("Repeated page")).ToBytes();
+    [InlineData(false, 16777216)]
+    [InlineData(true, 16777216)]
+    [InlineData(false, 2048)]
+    [InlineData(false, 0)]
+    public void IdenticalPageProgramsShareStorageWithoutLosingPageOccurrences(bool compress, long memoryLimit) {
+        using var document = PdfDocument.Create(new PdfCreateOptions {
+            CompressContentStreams = compress, ObjectBufferMemoryLimitBytes = memoryLimit
+        });
+        for (int page = 0; page < 18; page++) {
+            if (page != 0) document.PageBreak();
+            document.Paragraph(p => p.AddText("Repeated page " + (page % 9)));
+        }
+        byte[] pdf = document.ToBytes();
         var (objects, _) = PdfSyntax.ParseObjects(pdf);
         PdfDictionary[] pages = objects.Values.Select(o => o.Value).OfType<PdfDictionary>()
             .Where(d => d.Get<PdfName>("Type")?.Name == "Page").ToArray();
-        Assert.Equal(2, pages.Length);
-        Assert.Equal(Assert.IsType<PdfReference>(pages[0].Items["Contents"]).ObjectNumber,
-            Assert.IsType<PdfReference>(pages[1].Items["Contents"]).ObjectNumber);
-        PdfReadDocument document = PdfReadDocument.Open(pdf);
-        Assert.All(document.Pages, page => Assert.Contains("Repeated page", page.ExtractText(), StringComparison.Ordinal));
+        Assert.Equal(18, pages.Length);
+        int[] contentIds = pages.Select(p => Assert.IsType<PdfReference>(p.Items["Contents"]).ObjectNumber).ToArray();
+        Assert.Equal(9, contentIds.Distinct().Count());
+        PdfReadDocument read = PdfReadDocument.Open(pdf);
+        for (int page = 0; page < pages.Length; page++) {
+            Assert.Equal(contentIds[page % 9], contentIds[page]);
+            Assert.Contains("Repeated page " + (page % 9), read.Pages[page].ExtractText(), StringComparison.Ordinal);
+        }
     }
 
     [Fact]
