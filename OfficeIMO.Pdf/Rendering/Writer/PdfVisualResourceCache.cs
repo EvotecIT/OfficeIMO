@@ -66,6 +66,12 @@ internal sealed class PdfVisualResourceCache {
         foreach (var candidate in candidates) _objects.Add(Hash(dictionary, candidate.Key), candidate.Value);
     }
 
+    internal void Clear() {
+        _objects.Clear();
+        _streams.Clear();
+        _hashedStreamDictionaries.Clear();
+    }
+
     internal static bool IsVisualDictionary(string body) =>
         body.StartsWith("<< /Type /ExtGState ", StringComparison.Ordinal) ||
         body.StartsWith("<< /ShadingType ", StringComparison.Ordinal) ||

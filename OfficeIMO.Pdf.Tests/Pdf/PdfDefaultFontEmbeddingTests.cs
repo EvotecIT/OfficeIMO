@@ -71,13 +71,17 @@ public class PdfDefaultFontEmbeddingTests {
     }
 
     [Fact]
-    public void StandardFontEuroSignSavesWithoutLoss() {
-        using PdfDocument document = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = false });
+    public void StandardFontEuroPreservesTextAndReportsUnqualifiedPaintBounds() {
+        var report = new PdfConversionReport();
+        using PdfDocument document = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = false }
+            .ReportDiagnosticsTo(report, "Euro bounds"));
         document.AddParagraph("Total €12");
         document.AddTable(new[] { new[] { "Cost" }, new[] { "€12" } });
 
-        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        using var pdf = PdfPigDocument.Open(document.ToBytes(options: new PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, Regex.Matches(pdf.GetPage(1).Text, "€12").Count);
+        Assert.Contains(report.Warnings, warning => warning.LossKind == OfficeIMO.OfficeConversionLossKind.Unassessed &&
+            warning.Code.EndsWith("paint-bounds-unmeasured", StringComparison.Ordinal));
     }
 
     [Fact]
