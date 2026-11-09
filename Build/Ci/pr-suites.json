@@ -128,7 +128,8 @@
       "OfficeIMO.Studio.Native"
     ],
     "invoice-standards": [
-      "OfficeIMO.Invoicing.Tests"
+      "OfficeIMO.Invoicing.Tests",
+      "OfficeIMO.Invoicing.Validation.Tests"
     ],
     "build-matrix": [
       "OfficeIMO.Examples",
@@ -294,6 +295,8 @@
       "OfficeIMO.GoogleWorkspace.Tests",
       "OfficeIMO.Html.Pdf.Browser.Tests",
       "OfficeIMO.IWork.Tests",
+      "OfficeIMO.Invoicing.KSeF.Tests",
+      "OfficeIMO.Odbc.Tests",
       "OfficeIMO.Latex.Markdown.Tests",
       "OfficeIMO.Latex.Tests",
       "OfficeIMO.MarkdownRenderer.Wpf.Tests",
