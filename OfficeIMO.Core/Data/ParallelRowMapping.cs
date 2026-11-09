@@ -286,7 +286,9 @@ public static partial class ParallelRowMappingExtensions {
         }
 
         if (!RowSnapshotSchema.ReaderHasOnlyIndependentFieldTypes(reader)) {
-            foreach (T row in EnumerateSequential(reader.RowsAs(configure), cancellationToken)) {
+            foreach (T row in EnumerateSequential(
+                         EnumerateExplicitBatch(reader, plan, culture, dateTimeFormats, typeConverter, errorValuePolicy),
+                         cancellationToken)) {
                 yield return row;
             }
             yield break;
