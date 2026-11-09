@@ -1,34 +1,32 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed partial class ContentStreamBuilder {
-    private bool _syntheticBold, _syntheticWeightScope;
-    private int _textObjectStart;
-    private OfficeColor _paintFillColor = OfficeColor.Black, _textEntryFillColor = OfficeColor.Black;
+    private OfficeColor _paintFillColor = OfficeColor.Black;
 
     internal static double SyntheticBoldStrokeWidth(double size) => size / 24D;
 
     private void ApplySyntheticWeight(double size, bool bold) {
         if (bold) {
-            if (!_inText) throw new InvalidOperationException("Synthetic font weight requires a text object.");
-            if (!_syntheticWeightScope) {
+            if (!T._inText) throw new InvalidOperationException("Synthetic font weight requires a text object.");
+            if (!T._syntheticWeightScope) {
                 // The need for synthesis may first appear halfway through a rich
                 // paragraph. Scope its entire text object, including already written
                 // runs, so stroke width, join and colour cannot leak into later paint.
-                _sb.Insert(_textObjectStart, "q\n");
-                if (_showStart >= _textObjectStart) _showStart += 2;
-                if (_showEnd >= _textObjectStart) _showEnd += 2;
-                if (_lastNumberStart >= _textObjectStart) _lastNumberStart += 2;
-                if (_ownedLength >= _textObjectStart) _ownedLength += 2;
-                _syntheticWeightScope = true;
+                _sb.Insert(T._textObjectStart, "q\n");
+                if (T._showStart >= T._textObjectStart) T._showStart += 2;
+                if (T._showEnd >= T._textObjectStart) T._showEnd += 2;
+                if (T._lastNumberStart >= T._textObjectStart) T._lastNumberStart += 2;
+                if (T._ownedLength >= T._textObjectStart) T._ownedLength += 2;
+                T._syntheticWeightScope = true;
             }
             TextRenderingMode(2);
             LineWidth(SyntheticBoldStrokeWidth(size));
             LineJoin(1);
             StrokeDash();
             StrokeColor(_paintFillColor);
-        } else if (_syntheticBold) {
+        } else if (T._syntheticBold) {
             TextRenderingMode(0);
         }
-        _syntheticBold = bold;
+        T._syntheticBold = bold;
     }
 }

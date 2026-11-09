@@ -1,69 +1,50 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed partial class ContentStreamBuilder {
-    private double _textA = 1, _textB, _textC, _textD = 1, _textE, _textF, _lineE, _lineF;
-    private double _textScale = 1, _textLeading, _textWordSpacing, _textCharacterSpacing;
     // Shared with drawing ink measurement so clip bounds enclose the painted text matrix.
     internal const double SyntheticObliqueShear = 1D / 3D;
-    private bool _syntheticOblique, _hasTextMatrix;
-    // The PDF line matrix no longer equals the tracked line origin: a repositioning was
-    // folded into a TJ adjustment, so later relative moves must restate the text matrix.
-    private bool _isolatedText;
     // Most builders wrap a stream for an operator or two and never save state, so the stack is made on first use.
     private Stack<(double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique, bool SyntheticBold, OfficeColor PaintFillColor)>? _textStates;
 
-    // Text-state cache, valid only inside the current text object while every byte appended
-    // since the builder's last write is marked-content syntax.
-    private bool _inText, _positionKnown, _wordSpacingKnown, _characterSpacingKnown;
-    private string? _fontResource;
-    private double _fontSize;
-    private bool _fontPrecise;
-    private global::OfficeIMO.OfficeColor? _fillColor;
-    private int _ownedLength = -1;
 
-    // The last text-show operator this builder wrote. While it is still the tail of the
-    // stream, following glyphs and same-baseline moves extend its TJ array.
-    private int _showStart = -1, _showEnd = -1, _showElements, _lastNumberStart;
-    private bool _showArray, _showEndsWithNumber;
-    private double _showFontSize, _lastNumber;
-    private bool _lastNumberPrecise;
 
     private void ResetTrackedTextMatrix() {
-        _textA = _textD = 1; _textB = _textC = _textE = _textF = _lineE = _lineF = 0;
-        _isolatedText = false;
-        _hasTextMatrix = false;
-        _positionKnown = false;
+        T._textA = T._textD = 1; T._textB = T._textC = T._textE = T._textF = T._lineE = T._lineF = 0;
+        T._isolatedText = false;
+        T._hasTextMatrix = false;
+        T._positionKnown = false;
     }
 
     private void TrackTextMatrix(double a, double b, double c, double d, double e, double f) {
-        _hasTextMatrix = true;
-        _positionKnown = true;
-        _textA = a; _textB = b; _textC = c; _textD = d;
-        _textE = _lineE = e; _textF = _lineF = f;
+        T._hasTextMatrix = true;
+        T._positionKnown = true;
+        T._textA = a; T._textB = b; T._textC = c; T._textD = d;
+        T._textE = T._lineE = e; T._textF = T._lineF = f;
     }
 
     private void AdvanceTrackedText(double advance) {
-        _textE += _textA * advance * _textScale;
-        _textF += _textB * advance * _textScale;
+        T._textE += T._textA * advance * T._textScale;
+        T._textF += T._textB * advance * T._textScale;
     }
 
     private void InvalidateTextStateCache() {
-        _fontResource = null;
-        _fillColor = null;
-        _wordSpacingKnown = _characterSpacingKnown = false;
+        if (_text is not { } text) return;
+        text._fontResource = null;
+        text._fillColor = null;
+        text._wordSpacingKnown = text._characterSpacingKnown = false;
     }
 
     // Checks what was appended to the shared stream since this builder's last write.
     // Marked-content operators leave text state unchanged; anything else drops the cache.
     private bool SyncTextState() {
-        if (!_inText) return false;
-        if (_ownedLength == _sb.Length) return true;
-        if (_ownedLength < 0 || _ownedLength > _sb.Length || !IsMarkedContentOnly(_ownedLength)) {
+        if (_text is not { _inText: true }) return false;
+        if (T._ownedLength == _sb.Length) return true;
+        if (T._ownedLength < 0 || T._ownedLength > _sb.Length || !IsMarkedContentOnly(T._ownedLength)) {
             InvalidateTextStateCache();
-            _ownedLength = _sb.Length;
+            T._ownedLength = _sb.Length;
             return false;
         }
-        _ownedLength = _sb.Length;
+        T._ownedLength = _sb.Length;
         return true;
     }
 
@@ -88,108 +69,107 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     private void OwnWrite() {
-        if (_inText) _ownedLength = _sb.Length;
+        if (_text is { _inText: true } text) text._ownedLength = _sb.Length;
     }
 
     private bool CanExtendShow(double fontSize) =>
-        _inText && _showEnd >= 0 && _showEnd == _sb.Length && _showFontSize == fontSize;
+        T._inText && T._showEnd >= 0 && T._showEnd == _sb.Length && T._showFontSize == fontSize;
 
     // Opens a TJ array, reopening the previous show operator when it is still the stream tail.
     private void OpenShow(double fontSize) {
         if (CanExtendShow(fontSize)) {
-            if (_showArray) {
+            if (T._showArray) {
                 _sb.Length -= 5; // "] TJ\n"
             } else {
                 _sb.Length -= 4; // " Tj\n"
                 RewriteShowStart("[", 0);
-                _showArray = true;
-                _showElements = 1;
-                _showEndsWithNumber = false;
+                T._showArray = true;
+                T._showElements = 1;
+                T._showEndsWithNumber = false;
             }
             return;
         }
 
-        _showStart = _sb.Length;
+        T._showStart = _sb.Length;
         _sb.Append('[');
-        _showArray = true;
-        _showElements = 0;
-        _showEndsWithNumber = false;
-        _showFontSize = fontSize;
+        T._showArray = true;
+        T._showElements = 0;
+        T._showEndsWithNumber = false;
+        T._showFontSize = fontSize;
     }
 
     private void ShowGlyphElement(int glyphId) {
-        if (_showElements > 0 && !_showEndsWithNumber) {
+        if (T._showElements > 0 && !T._showEndsWithNumber) {
             _sb.Length--; // Extend the previous hex string.
         } else {
             _sb.Append('<');
-            _showElements++;
+            T._showElements++;
         }
         PdfGlyphRun.AppendGlyphHex(_sb, glyphId);
         _sb.Append('>');
-        _showEndsWithNumber = false;
+        T._showEndsWithNumber = false;
     }
 
     private void ShowHexElement(string hex) {
         if (hex.Length == 0) return;
-        if (_showElements > 0 && !_showEndsWithNumber) {
+        if (T._showElements > 0 && !T._showEndsWithNumber) {
             _sb.Length--;
         } else {
             _sb.Append('<');
-            _showElements++;
+            T._showElements++;
         }
         _sb.Append(hex).Append('>');
-        _showEndsWithNumber = false;
+        T._showEndsWithNumber = false;
     }
 
     // Folded text-matrix moves keep five decimals so large font sizes stay within 0.001 pt.
     private void ShowNumberElement(double adjustment, bool precise = false) {
-        if (_showElements > 0 && _showEndsWithNumber) {
-            _sb.Length = _lastNumberStart;
-            adjustment += _lastNumber;
-            precise |= _lastNumberPrecise;
-            _showElements--;
-            _showEndsWithNumber = false;
+        if (T._showElements > 0 && T._showEndsWithNumber) {
+            _sb.Length = T._lastNumberStart;
+            adjustment += T._lastNumber;
+            precise |= T._lastNumberPrecise;
+            T._showElements--;
+            T._showEndsWithNumber = false;
         }
         if (Math.Abs(adjustment) < (precise ? 0.000005D : 0.0005D)) return;
-        if (_showElements > 0) _sb.Append(' ');
-        _lastNumberStart = _showElements > 0 ? _sb.Length - 1 : _sb.Length;
+        if (T._showElements > 0) _sb.Append(' ');
+        T._lastNumberStart = T._showElements > 0 ? _sb.Length - 1 : _sb.Length;
         if (precise) _sb.Append(adjustment.ToString("0.#####", System.Globalization.CultureInfo.InvariantCulture));
         else _sb.Append(F(adjustment));
-        _lastNumber = adjustment;
-        _lastNumberPrecise = precise;
-        _showEndsWithNumber = true;
-        _showElements++;
+        T._lastNumber = adjustment;
+        T._lastNumberPrecise = precise;
+        T._showEndsWithNumber = true;
+        T._showElements++;
     }
 
     private void CloseShow() {
-        if (_showElements == 0) {
-            _sb.Length = _showStart;
-            _showEnd = -1;
+        if (T._showElements == 0) {
+            _sb.Length = T._showStart;
+            T._showEnd = -1;
             return;
         }
-        if (_showElements == 1 && !_showEndsWithNumber && _sb[_showStart] == '[') {
+        if (T._showElements == 1 && !T._showEndsWithNumber && _sb[T._showStart] == '[') {
             RewriteShowStart(string.Empty, 1);
             _sb.Append(" Tj\n");
-            _showArray = false;
+            T._showArray = false;
         } else {
             _sb.Append("] TJ\n");
         }
-        _showEnd = _sb.Length;
+        T._showEnd = _sb.Length;
         OwnWrite();
     }
 
-    private char[] _showTail = Array.Empty<char>();
 
     // Replaces the open show's first skip characters with prefix. The show is the stream tail, so it is
     // copied out and re-appended: StringBuilder.Insert/Remove would move the rest of the (up to 8,000
     // character) last chunk of the page stream on every show.
     private void RewriteShowStart(string prefix, int skip) {
-        int start = _showStart + skip;
+        int start = T._showStart + skip;
         int count = _sb.Length - start;
-        if (_showTail.Length < count) _showTail = new char[Math.Max(count, _showTail.Length * 2)];
-        _sb.CopyTo(start, _showTail, 0, count);
-        _sb.Length = _showStart;
-        _sb.Append(prefix).Append(_showTail, 0, count);
+        if (T._showTail.Length < count) T._showTail = new char[Math.Max(count, T._showTail.Length * 2)];
+        _sb.CopyTo(start, T._showTail, 0, count);
+        _sb.Length = T._showStart;
+        _sb.Append(prefix).Append(T._showTail, 0, count);
     }
 
     private const double MaximumFoldedMove1000 = 1000D;
@@ -198,20 +178,20 @@ internal sealed partial class ContentStreamBuilder {
     // origin then differs from the PDF line matrix, so later relative moves use Tm.
     private bool TryFoldTextMatrix(double a, double b, double c, double d, double e, double f) {
         a = Serialized(a); b = Serialized(b); c = Serialized(c); d = Serialized(d); f = Serialized(f);
-        if (!_positionKnown || !CanExtendShow(_showFontSize) || _showFontSize <= 0D ||
-            a != _textA || b != _textB || c != _textC || d != _textD || b != 0D || Math.Abs(a) < 0.000001D ||
-            Math.Abs(f - _textF) > 0.0000005D || _textScale <= 0D) return false;
-        double adjustment = -(e - _textE) / a * 1000D / (_showFontSize * _textScale);
+        if (!T._positionKnown || !CanExtendShow(T._showFontSize) || T._showFontSize <= 0D ||
+            a != T._textA || b != T._textB || c != T._textC || d != T._textD || b != 0D || Math.Abs(a) < 0.000001D ||
+            Math.Abs(f - T._textF) > 0.0000005D || T._textScale <= 0D) return false;
+        double adjustment = -(e - T._textE) / a * 1000D / (T._showFontSize * T._textScale);
         // Larger moves (tab stops, columns, cells) stay explicit so readers keep separate runs.
         if (double.IsNaN(adjustment) || double.IsInfinity(adjustment) || Math.Abs(adjustment) > MaximumFoldedMove1000) return false;
         if (Math.Abs(adjustment) >= 0.000005D) {
-            OpenShow(_showFontSize);
+            OpenShow(T._showFontSize);
             ShowNumberElement(adjustment, precise: true);
             CloseShow();
         }
-        _textE = _lineE = e;
-        _textF = _lineF = f;
-        _isolatedText = true;
+        T._textE = T._lineE = e;
+        T._textF = T._lineF = f;
+        T._isolatedText = true;
         return true;
     }
 
@@ -264,7 +244,7 @@ internal sealed partial class ContentStreamBuilder {
                     open = true;
                 }
                 double trackingAdvance1000 = command.TrackingBoundaries != null && command.TrackingBoundaries[glyphIndex] ? tracking1000 : 0D;
-                trackingAdvance1000 += command.GetJustificationAdvance(glyphIndex) * 1000D / fontSize / _textScale;
+                trackingAdvance1000 += command.GetJustificationAdvance(glyphIndex) * 1000D / fontSize / T._textScale;
                 if (glyph.OffsetX1000 != 0) ShowNumberElement(-glyph.OffsetX1000);
                 ShowGlyphElement(codes[glyphIndex - clusterStart]);
                 ShowNumberElement(glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000 - trackingAdvance1000);
@@ -284,17 +264,15 @@ internal sealed partial class ContentStreamBuilder {
             _sb.Append(F(textRise)).Append(" Ts\n");
             OwnWrite();
         }
-        AdvanceTrackedText(totalAdvance1000 * fontSize / 1000D + (limit - startIndex) * _textCharacterSpacing);
+        AdvanceTrackedText(totalAdvance1000 * fontSize / 1000D + (limit - startIndex) * T._textCharacterSpacing);
     }
 
-    // Made on first use: most builders write an operator or two and never encode glyph codes.
-    private int[] _codeBuffer = Array.Empty<int>();
 
     // Codes for one cluster: glyph ids, or alias codes for characters sharing a nominal glyph.
     // An unresolved glyph makes the whole cluster depend on ActualText and its glyph ids.
     private int[] ResolveClusterCodes(IReadOnlyList<PdfGlyphInfo> glyphs, int start, int end, IPdfGlyphTextPinner? pinner, ref bool representable) {
         int count = end - start;
-        if (_codeBuffer.Length < count) _codeBuffer = new int[Math.Max(Math.Max(count, 16), _codeBuffer.Length * 2)];
+        if (T._codeBuffer.Length < count) T._codeBuffer = new int[Math.Max(Math.Max(count, 16), T._codeBuffer.Length * 2)];
         for (int index = 0; index < count; index++) {
             PdfGlyphInfo glyph = glyphs[start + index];
             int code = glyph.GlyphId;
@@ -302,11 +280,11 @@ internal sealed partial class ContentStreamBuilder {
                 representable = false;
                 code = glyph.GlyphId;
             }
-            _codeBuffer[index] = code;
+            T._codeBuffer[index] = code;
         }
         if (!representable) {
-            for (int index = 0; index < count; index++) _codeBuffer[index] = glyphs[start + index].GlyphId;
+            for (int index = 0; index < count; index++) T._codeBuffer[index] = glyphs[start + index].GlyphId;
         }
-        return _codeBuffer;
+        return T._codeBuffer;
     }
 }
