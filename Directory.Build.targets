@@ -26,6 +26,8 @@
        paths for source breakpoints. -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release' And '$(IsTestProject)' != 'true' And ('$(IsPackable)' != 'false' Or '$(MSBuildProjectName)' == 'OfficeIMO.Pdf.Benchmarks.Comparisons')">
     <DeterministicSourcePaths>true</DeterministicSourcePaths>
+    <!-- Embed symbols so consumers get source line numbers in stack traces without extra files. -->
+    <DebugType>embedded</DebugType>
     <PathMap>$([MSBuild]::ValueOrDefault('$(MSBuildThisFileDirectory)', '').Replace(',', ',,').Replace('=', '=='))=/_/</PathMap>
     <!-- One shared prefix keeps publisher command lines bounded across the project graph. -->
     <_OfficeIMOCompilerArtifactsPath Condition="'$(UseArtifactsOutput)' == 'true' And '$(UseArtifactsIntermediateOutput)' == 'true' And '$(ArtifactsPath)' != ''">$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(ArtifactsPath)', 'obj'))</_OfficeIMOCompilerArtifactsPath>

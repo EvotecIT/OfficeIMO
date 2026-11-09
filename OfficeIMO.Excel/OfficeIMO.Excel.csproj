@@ -22,7 +22,6 @@
         <PackageIcon>OfficeIMO.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
-        <DebugType>portable</DebugType>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>

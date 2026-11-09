@@ -17,7 +17,6 @@
         <RepositoryType>git</RepositoryType>
         <PackageIcon>OfficeIMO.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <IsPublishable>False</IsPublishable>
         <SignAssembly>False</SignAssembly>
