@@ -703,7 +703,7 @@ namespace OfficeIMO.Tests {
                 writable: false);
             PowerPointOleObject ole = slide.AddOleObject(storage, "Package");
 
-            OfficeImageExportResult rendered = slide.ExportImage(
+            OfficeImageExportResult rendered = slide.ToImage(
                 OfficeImageExportFormat.Png);
             Assert.Contains(rendered.Diagnostics, diagnostic =>
                 diagnostic.Code

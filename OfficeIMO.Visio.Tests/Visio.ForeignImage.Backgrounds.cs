@@ -23,8 +23,8 @@ public partial class VisioForeignImageRenderingTests {
             VisioDocument.Load(new MemoryStream(source.ToBytes())) }) {
             byte[] before = document.ToLegacyXmlResult().Value;
             var options = new VisioImageExportOptions { TargetDpi = 72, Supersampling = 1, RenderText = false, RenderStencilArtwork = false };
-            OfficeRasterImage reference = DecodeBackground(document.Pages[0].ToImage(options));
-            OfficeRasterImage native = DecodeBackground(document.Pages[1].ToImage(options));
+            OfficeRasterImage reference = DecodeBackground(document.Pages[0].ToImage(options).Bytes);
+            OfficeRasterImage native = DecodeBackground(document.Pages[1].ToImage(options).Bytes);
             OfficeRasterImage drawing = DecodeBackground(OfficeDrawingRasterRenderer.ToPng(document.Pages[1].ToDrawing().Value, background: OfficeColor.White));
             byte[] svgBytes = Encoding.UTF8.GetBytes(document.Pages[1].ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 72, RenderText = false }));
             Assert.True(VisioSvgPreviewRasterizer.TryRasterize(svgBytes, null, null, null, null, null, null, null, default, out OfficeRasterImage? svg));

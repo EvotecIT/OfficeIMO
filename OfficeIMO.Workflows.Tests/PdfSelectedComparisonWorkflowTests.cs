@@ -18,7 +18,7 @@ public sealed class PdfSelectedComparisonWorkflowTests {
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Compare, InputPath = expected, ComparisonPath = actual,
                 InputStream = Source(expected), ComparisonStream = Source(actual), OutputPath = output,
-                ComparisonExpectedPages = PdfPageSelector.Parse("1"), ComparisonActualPages = PdfPageSelector.Parse("1"),
+                ComparisonExpectedPages = OfficePageSelector.Parse("1"), ComparisonActualPages = OfficePageSelector.Parse("1"),
                 ConflictPolicy = OfficePublicationPolicy.Replace,
                 PublicationGuard = new Guard(() => PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(200)))).Save(changeActual ? actual : expected))
             });
@@ -41,7 +41,7 @@ public sealed class PdfSelectedComparisonWorkflowTests {
             PdfDocument.Create(document => { for (int i = 0; i < 110; i++) document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(180))); }).Save(expected);
             File.Copy(expected, actual);
             byte[] before = File.ReadAllBytes(expected);
-            var request = OfficeWorkflow.Compare(expected, actual).ComparePages(PdfPageSelector.Parse("110,2"), PdfPageSelector.Parse("2,110,1"))
+            var request = OfficeWorkflow.Compare(expected, actual).ComparePages(OfficePageSelector.Parse("110,2"), OfficePageSelector.Parse("2,110,1"))
                 .To(output).Build();
             var result = await new OfficeWorkflowRunner().RunAsync(request);
             Assert.True(result.Succeeded, result.Summary);

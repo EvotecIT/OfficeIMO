@@ -38,7 +38,7 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Source == "div#divider" && shape.Shape.FillColor == OfficeColor.White);
         Assert.Equal(width, background.Width, 3);
         Assert.Equal(height, background.Height, 3);
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? raster));
         Assert.Equal(OfficeColor.Red, raster!.GetPixel(pixelX, pixelY));
     }
 
@@ -52,7 +52,7 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Source == "div#minimum" && shape.Shape.FillColor == OfficeColor.White);
         Assert.Equal(10D, background.Width, 3);
         Assert.Equal(10D, background.Height, 3);
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? raster));
         Assert.Equal(OfficeColor.Red, raster!.GetPixel(5, 0));
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
     }
@@ -67,7 +67,7 @@ public sealed partial class HtmlRenderingTests {
             visual => visual.Source == "input#control");
         Assert.Equal(10D, field.Width, 3);
         Assert.Equal(10D, field.Height, 3);
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? raster));
         Assert.Equal(OfficeColor.Red, raster!.GetPixel(13, 8));
         Assert.Equal(OfficeColor.White, raster.GetPixel(13, 13));
     }
@@ -91,7 +91,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotNull(border.Shape.ClipPath);
         Assert.Equal(60D, border.Shape.ClipPath!.Width, 3);
         Assert.Equal(40D, border.Shape.ClipPath.Height, 3);
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? raster));
         Assert.NotEqual(OfficeColor.FromRgb(0x80, 0x80, 0x80), raster!.GetPixel(8, 8));
         Assert.Equal(OfficeColor.FromRgb(0x80, 0x80, 0x80), raster.GetPixel(30, 8));
     }

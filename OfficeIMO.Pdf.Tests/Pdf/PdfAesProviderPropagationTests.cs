@@ -41,7 +41,7 @@ public sealed class PdfAesProviderPropagationTests {
         var render = new PdfPageRenderOptions { ThumbnailMaxDimension = 80, ContinueOnError = false };
         Assert.Equal(second, document.Render.Pages("2", render)[0].Bytes);
         Assert.Equal(first, document.Render.Pages(PdfPageSelection.From(1), render)[0].Bytes);
-        Assert.Equal(second, document.Reader.RenderPages(PdfPageSelector.Parse("last"), render)[0].Bytes);
+        Assert.Equal(second, document.Reader.RenderPages(OfficePageSelector.Parse("last"), render)[0].Bytes);
         var concurrent = await Task.WhenAll(Enumerable.Range(0, 12).Select(index => Task.Run(() =>
             document.Render.DisplayPage(index % 2 + 1, display).Bytes)));
         for (int index = 0; index < concurrent.Length; index++) Assert.Equal(index % 2 == 0 ? first : second, concurrent[index]);

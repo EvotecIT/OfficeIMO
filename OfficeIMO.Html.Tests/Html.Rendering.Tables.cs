@@ -287,7 +287,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText caption = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "CaptionPdf");
         HtmlRenderText cell = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "CellPdf");
         HtmlRenderShape captionBackground = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "caption#caption" && shape.Shape.FillColor == OfficeColor.Red);
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -581,7 +581,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderShape shared = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "table#conflict:collapsed-border-v-1-0");
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -618,7 +618,7 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
         OfficeColor dark = OfficeColorTransforms.Shade(OfficeColor.Gray, 0.55D);
         OfficeColor light = OfficeColorTransforms.Tint(OfficeColor.Gray, 0.55D);
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch)),

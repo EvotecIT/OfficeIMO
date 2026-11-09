@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -21,7 +22,7 @@ internal sealed class OfficeImageExportSavedFile {
         Source = result.Source;
         SequenceIndex = result.SequenceIndex;
         SequenceCount = result.SequenceCount;
-        _diagnostics = Array.AsReadOnly(new List<OfficeImageExportDiagnostic>(result.Diagnostics).ToArray());
+        _diagnostics = Array.AsReadOnly(new List<OfficeImageExportDiagnostic>(result.Diagnostics.Select(diagnostic => OfficeImageExportEvidence.CaptureOrigin(diagnostic, result.Source))).ToArray());
     }
 
     private OfficeImageExportSavedFile(OfficeImageExportSavedFile source, int sequenceIndex, int sequenceCount) {

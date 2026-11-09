@@ -629,16 +629,18 @@ public partial class DrawingTests {
     [InlineData(OfficeConversionLossKind.None)]
     [InlineData(OfficeConversionLossKind.Approximation)]
     [InlineData(OfficeConversionLossKind.Omission)]
-    public void ExplicitImageExportErrorCannotSuppressFailureClassification(OfficeConversionLossKind suppliedKind) {
+    public void ExplicitImageExportErrorsPreserveLossAndStillFailFailurePolicy(OfficeConversionLossKind suppliedKind) {
         var diagnostic = new OfficeImageExportDiagnostic(
             OfficeImageExportDiagnosticSeverity.Error,
             "TEST_ERROR",
             "The image could not be produced.",
             lossKind: suppliedKind);
 
-        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Equal(suppliedKind, diagnostic.LossKind);
         OfficeImageExportReport report = new OfficeImageExportReport(new[] { diagnostic }, resultCount: 0);
-        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.Diagnostics).LossKind);
+        OfficeDiagnostic finding = Assert.Single(report.Diagnostics);
+        Assert.Equal(suppliedKind, finding.LossKind);
+        Assert.Equal(OfficeDiagnosticSeverity.Error, finding.Severity);
         Assert.True(report.HasFailures);
         Assert.Throws<OfficeImageExportPolicyException>(() => report.Require(
             new OfficeImageExportPolicy { RequireNoFailures = true }));

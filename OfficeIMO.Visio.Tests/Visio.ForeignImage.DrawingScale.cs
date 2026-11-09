@@ -17,7 +17,7 @@ public partial class VisioForeignImageRenderingTests {
         VisioDocument document = Load(xml);
         OfficeRasterImage expectedPixels = VisualBaselineTestSupport.DecodePng(document.Pages[0].ToImage(new VisioImageExportOptions {
             TargetDpi = 24, Supersampling = 1, RenderText = false
-        }), "Reference foreign PNG did not decode.");
+        }).Bytes, "Reference foreign PNG did not decode.");
         XElement expectedImage = XDocument.Parse(document.Pages[0].ToSvg(new VisioSvgSaveOptions {
             PixelsPerInch = 24, RenderText = false
         })).Descendants().Single(node => node.Name.LocalName == "image");
@@ -27,7 +27,7 @@ public partial class VisioForeignImageRenderingTests {
             VisioPage page = candidate.Pages[0];
             byte[] actualPixels = page.ToImage(new VisioImageExportOptions {
                 TargetDpi = 48, Supersampling = 1, RenderText = false
-            });
+            }).Bytes;
             OfficeRasterImage image = VisualBaselineTestSupport.DecodePng(actualPixels, "Scaled foreign PNG did not decode.");
             Assert.Equal(96, image.Width);
             Assert.Equal(96, image.Height);

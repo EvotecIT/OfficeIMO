@@ -44,9 +44,9 @@ public sealed partial class HtmlRenderingTests {
             ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile()
         };
 
-        OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult png = document.ToImage(OfficeImageExportFormat.Png, options);
         Assert.True(OfficeRasterImageDecoder.TryDecode(png.Bytes, out OfficeRasterImage? raster));
-        OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+        OfficeImageExportResult svg = document.ToImage(OfficeImageExportFormat.Svg, options);
         Assert.True(OfficeSvgDrawingReader.TryRead(svg.Bytes, out OfficeDrawing? svgDrawing, out int unsupported));
         Assert.Equal(0, unsupported);
         byte[] pdf = (document.ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
@@ -109,7 +109,7 @@ public sealed partial class HtmlRenderingTests {
             "<img width='400' height='240' src='data:image/svg+xml;base64," + Convert.ToBase64String(sourceBytes) + "'>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
         var options = new HtmlPdfExportOptions { ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile() };
-        OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult png = document.ToImage(OfficeImageExportFormat.Png, options);
         Assert.True(OfficeRasterImageDecoder.TryDecode(png.Bytes, out OfficeRasterImage? reference));
         Assert.Equal(400, reference!.Width);
         Assert.Equal(240, reference.Height);
@@ -120,7 +120,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions strict = options.Clone();
         strict.Policy.FailOnLoss = true;
         OfficeImageExportPolicyException strictFailure = Assert.Throws<OfficeImageExportPolicyException>(() =>
-            document.ExportImage(OfficeImageExportFormat.Png, strict));
+            document.ToImage(OfficeImageExportFormat.Png, strict));
         Assert.Contains(strictFailure.Diagnostics, diagnostic =>
             diagnostic.Code == "HtmlPdfDrawingEffectRasterized"
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
@@ -139,7 +139,7 @@ public sealed partial class HtmlRenderingTests {
             File.WriteAllText(Path.Combine(output, "diagnostics.json"), System.Text.Json.JsonSerializer.Serialize(png.Diagnostics));
         }
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Tiff, OfficeImageExportFormat.Webp }) {
-            OfficeImageExportResult encoded = document.ExportImage(format, options);
+            OfficeImageExportResult encoded = document.ToImage(format, options);
             Assert.Equal(png.Diagnostics.Select(diagnostic => (diagnostic.Code, diagnostic.LossKind)),
                 encoded.Diagnostics.Select(diagnostic => (diagnostic.Code, diagnostic.LossKind)));
             Assert.True(OfficeRasterImageDecoder.TryDecode(encoded.Bytes, out OfficeRasterImage? decoded));

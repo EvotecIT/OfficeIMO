@@ -7,11 +7,12 @@ namespace OfficeIMO.Html.Pdf;
 /// <summary>Exports HTML surfaces from the same paged layout and PDF scene as PDF conversion.</summary>
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders one selected surface to the requested image format with dimensions and diagnostics.</summary>
-    public static OfficeImageExportResult ExportImage(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
+    public static OfficeImageExportResult ToImage(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             HtmlPdfExportOptions.ForImageExport(options), MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         resolved.PageSelection = null;
+        resolved.PageSelector = null;
         return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
             HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(document, request, resolved, operationCancellationToken);
             OfficeImageExportResult? image = null;
@@ -22,14 +23,14 @@ public static partial class HtmlImageExportExtensions {
     }
 
     /// <summary>Renders all surfaces to the requested image format.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null) {
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null) {
         var results = new List<OfficeImageExportResult>();
-        document.ExportImages(format, results.Add, options);
+        document.ToImages(format, results.Add, options);
         return results.AsReadOnly();
     }
 
     /// <summary>Streams rendered surfaces without retaining earlier encoded payloads.</summary>
-    public static void ExportImages(
+    public static void ToImages(
         this HtmlConversionDocument document,
         OfficeImageExportFormat format,
         OfficeImageExportConsumer consumer,
@@ -49,11 +50,12 @@ public static partial class HtmlImageExportExtensions {
     }
 
     /// <summary>Asynchronously renders one selected surface to the requested image format.</summary>
-    public static async Task<OfficeImageExportResult> ExportImageAsync(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
+    public static async Task<OfficeImageExportResult> ToImageAsync(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             HtmlPdfExportOptions.ForImageExport(options), MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         resolved.PageSelection = null;
+        resolved.PageSelector = null;
         return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
             HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteCoreAsync(
                 document, request, resolved, operationCancellationToken).ConfigureAwait(false);
@@ -65,9 +67,9 @@ public static partial class HtmlImageExportExtensions {
     }
 
     /// <summary>Asynchronously renders all surfaces to the requested image format.</summary>
-    public static async Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
         var results = new List<OfficeImageExportResult>();
-        await document.ExportImagesAsync(
+        await document.ToImagesAsync(
             format,
             (result, _) => {
                 results.Add(result);
@@ -79,7 +81,7 @@ public static partial class HtmlImageExportExtensions {
     }
 
     /// <summary>Asynchronously streams rendered surfaces without retaining earlier encoded payloads.</summary>
-    public static async Task ExportImagesAsync(
+    public static async Task ToImagesAsync(
         this HtmlConversionDocument document,
         OfficeImageExportFormat format,
         OfficeImageExportAsyncConsumer consumer,

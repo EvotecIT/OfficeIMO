@@ -24,7 +24,7 @@ public sealed partial class VisioRichTextBulletTests {
             Assert.Equal(text[i].Attribute("font-size")!.Value, text[i + 1].Attribute("font-size")!.Value);
         }
         Assert.Equal("Raw\nMangle\nNat\n", shape.Text);
-        _ = page.ToImage(new VisioImageExportOptions { Supersampling = 1 });
+        _ = page.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes;
         Assert.Equal(before, document.ToLegacyXmlResult().Value);
     }
 }

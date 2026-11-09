@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests
             ExcelImageExportOptions options = CreateBaselineOptions();
             options.ShowCommentBodies = true;
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
 
             OfficeImageExportDiagnostic commentDiagnostic = Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation);
             Assert.Equal("Premium!D7", commentDiagnostic.Source);
@@ -56,8 +56,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:G7");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
 
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
@@ -78,8 +78,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:G7");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.Equal(4, png.Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation));
@@ -100,8 +100,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:E4");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
 
             Assert.Equal(3, png.Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.SparklineRenderingApproximation));
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
@@ -124,8 +124,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("B1:C3");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
@@ -145,8 +145,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:F6");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
@@ -162,8 +162,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:E5");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
@@ -180,8 +180,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:E9");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
@@ -197,8 +197,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:E9");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
@@ -217,8 +217,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:F6");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
@@ -239,8 +239,8 @@ namespace OfficeIMO.Tests
             ExcelImageExportOptions options = CreateBaselineOptions();
             options.ShowCommentBodies = true;
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation);
@@ -263,8 +263,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:B8");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
@@ -299,8 +299,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:D5");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.Equal(3, png.Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.CellTextRotationApproximation));
@@ -328,8 +328,8 @@ namespace OfficeIMO.Tests
             ExcelRange range = fixture.Sheet.Range("A1:D5");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.Equal(7, png.Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.FillPatternApproximation));
@@ -353,8 +353,8 @@ namespace OfficeIMO.Tests
                 ExcelRange range = fixture.Sheet.Range("A1:H8");
                 ExcelImageExportOptions options = CreateBaselineOptions();
                 options.ShowCommentBodies = true;
-                AssertRasterBaseline(BaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(BaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(BaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(BaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved Excel PNG baseline: " + pngPath);
@@ -400,8 +400,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateRichTextBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:B7");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(RichTextBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(RichTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(RichTextBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(RichTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved rich-text PNG baseline: " + pngPath);
@@ -438,8 +438,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateStackedTextBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:D5");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(StackedTextBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(StackedTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(StackedTextBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(StackedTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved stacked-text PNG baseline: " + pngPath);
@@ -476,8 +476,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreatePatternFillBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:D5");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(PatternFillBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(PatternFillBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(PatternFillBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(PatternFillBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved pattern-fill PNG baseline: " + pngPath);
@@ -509,8 +509,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateConditionalFormattingBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:G7");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(ConditionalBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(ConditionalBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(ConditionalBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(ConditionalBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved conditional-formatting PNG baseline: " + pngPath);
@@ -545,8 +545,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateExpandedIconSetBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:G7");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(ExpandedIconSetBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(ExpandedIconSetBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(ExpandedIconSetBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(ExpandedIconSetBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved expanded-icon-set PNG baseline: " + pngPath);
@@ -578,8 +578,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateDrawingObjectBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:F6");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(DrawingObjectBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(DrawingObjectBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(DrawingObjectBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(DrawingObjectBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved drawing-object PNG baseline: " + pngPath);
@@ -608,8 +608,8 @@ namespace OfficeIMO.Tests
                 ExcelRange range = fixture.Sheet.Range("A1:G7");
                 ExcelImageExportOptions options = CreateBaselineOptions();
                 options.ShowCommentBodies = true;
-                AssertRasterBaseline(CommentBodyBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(CommentBodyBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(CommentBodyBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(CommentBodyBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved comment-body PNG baseline: " + pngPath);
@@ -639,8 +639,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateSparklineBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:E4");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(SparklineBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(SparklineBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(SparklineBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(SparklineBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved sparkline PNG baseline: " + pngPath);
@@ -676,8 +676,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateImageClippingBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("B1:C3");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(ImageClippingBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(ImageClippingBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(ImageClippingBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(ImageClippingBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved clipped-image PNG baseline: " + pngPath);
@@ -705,8 +705,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateTwoCellImageBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:F6");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(TwoCellImageBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(TwoCellImageBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(TwoCellImageBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(TwoCellImageBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved two-cell image PNG baseline: " + pngPath);
@@ -733,8 +733,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateCroppedImageBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:E5");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(CroppedImageBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(CroppedImageBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(CroppedImageBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(CroppedImageBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved cropped-image PNG baseline: " + pngPath);
@@ -762,8 +762,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateRotatedImageBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:E9");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(RotatedImageBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(RotatedImageBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(RotatedImageBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(RotatedImageBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved rotated-image PNG baseline: " + pngPath);
@@ -791,8 +791,8 @@ namespace OfficeIMO.Tests
                 using ExcelBaselineFixture fixture = CreateTransformedImageBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:E9");
                 ExcelImageExportOptions options = CreateBaselineOptions();
-                AssertRasterBaseline(TransformedImageBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
-                AssertTextBaseline(TransformedImageBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+                AssertRasterBaseline(TransformedImageBaselineName + ".png", range.ToImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(TransformedImageBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved transformed-image PNG baseline: " + pngPath);

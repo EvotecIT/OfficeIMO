@@ -5,7 +5,7 @@ internal static class OneNoteOpaquePreservationWriter {
     internal static void MergeSpace(
         OneNoteWriteObjectSpace generated,
         IEnumerable<OneNoteOpaqueObject> preservedObjects,
-        long maxPayloadBytes) {
+        long maxPayloadBytes, OneNoteWriteIdFactory ids) {
         ArgumentNullException.ThrowIfNull(generated);
         ArgumentNullException.ThrowIfNull(preservedObjects);
         ArgumentOutOfRangeException.ThrowIfLessThan(maxPayloadBytes, 1);
@@ -17,7 +17,8 @@ internal static class OneNoteOpaquePreservationWriter {
         var emitted = new HashSet<OneNoteExtendedGuid>();
 
         foreach (OneNoteOpaqueObject source in preservedObjects.OrderBy(item => item.Ordinal)) {
-            OneNoteExtendedGuid id = source.Id ?? new OneNoteExtendedGuid(Guid.NewGuid(), 1, 17);
+            OneNoteExtendedGuid allocatedId = ids.New();
+            OneNoteExtendedGuid id = source.Id ?? allocatedId;
             source.Id = id;
             if (!emitted.Add(id)) continue;
             OneNoteWriteObject retained = ConvertObject(source, id, maxPayloadBytes);

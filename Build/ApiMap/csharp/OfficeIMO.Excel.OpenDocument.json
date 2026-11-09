@@ -4,7 +4,7 @@
   "changes": [
     {
       "old": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, ExcelWorkbookImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
-      "new": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, ExcelImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
+      "new": "ExcelOpenDocumentImageExportExtensions.ToImages(OdsDocument, OfficeImageExportFormat, ExcelImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
       "file": "OfficeIMO.Excel.OpenDocument/ExcelOpenDocumentImageExportExtensions.cs",
       "kind": "method",
       "action": "merge",
@@ -15,7 +15,7 @@
     },
     {
       "old": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, OfficeImageExportConsumer, ExcelWorkbookImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
-      "new": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, OfficeImageExportConsumer, ExcelImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
+      "new": "ExcelOpenDocumentImageExportExtensions.ToImages(OdsDocument, OfficeImageExportFormat, OfficeImageExportConsumer, ExcelImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
       "file": "OfficeIMO.Excel.OpenDocument/ExcelOpenDocumentImageExportExtensions.cs",
       "kind": "method",
       "action": "merge",

@@ -63,6 +63,20 @@ section.Save(options);
 
 `OneNoteSaveOptions.StorageFormat` applies to native `.one` and `.onetoc2` payloads. Use `OneNotePackageWriter` for the Cabinet-based `.onepkg` container. The same options also provide tighter output, package-entry, section-group-depth, related-page-depth, and content-depth limits when needed.
 
+## Reproducible native creation
+
+Generated OneNote files normally receive fresh identities. Snapshot tests can supply an explicit identity namespace and UTC fallback clock:
+
+```csharp
+var reproducible = new OneNoteSaveOptions {
+    IdentitySeed = Guid.Parse("10000000-0000-0000-0000-000000000001"),
+    GeneratedTimestampUtc = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+};
+byte[] bytes = section.ToBytes(reproducible);
+```
+
+The same logical model, seed, timestamp and physical encoding produce repeatable generated identifiers and metadata. A supplied seed requires an explicit UTC timestamp. Existing or caller-assigned identities and creation times remain authoritative. Use a distinct seed for each logical artifact whose identities should be independent. This applies to generated `.one` and `.onetoc2` payloads; native editing, opaque preservation and other container contracts retain their own support qualifications.
+
 ## Notebooks and packages
 
 ```csharp
@@ -185,7 +199,7 @@ imageOptions2.Format = OfficeImageExportFormat.Tiff;
 notebook.SaveAsImages("Notebook pages", imageOptions2);
 ```
 
-`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ExportImages` consumer overloads to process each image with its sequence metadata and diagnostics.
+`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ToImages` consumer overloads to process each image with its sequence metadata and diagnostics.
 
 The canvas includes positioned outlines, styled text, lists and tags, tables, images and printouts, ink, structured math, plus placeholders for attachments and recordings. Page and element RTL state flows into body, table, and inline-math alignment. `OneNotePageRenderingOptions` controls automatic page bounds, source-payload limits, the inherited `MaximumRasterPixels` output allocation ceiling, fonts, background color, ink/math settings, and feature inclusion. The page and batch options expose title, image, ink, math, and attachment-placeholder controls. The shared pre-allocation planner either reduces oversized PNG/JPEG/TIFF/WebP exports with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. Drawing directly decodes bounded PNG/APNG, JPEG, supported classic TIFF, uncompressed BMP, composited GIF, ordinary lossless VP8L WebP, and lossy VP8 WebP source pictures with optional raw or lossless-compressed alpha; set `ImageCodec` for animated WebP pixels and other unsupported variants or formats. Caller-codec use and visible decode fallbacks report the shared `IMAGE_SOURCE_*` diagnostic codes. Visual HTML can collect these warnings through `OneNoteVisualHtmlExportOptions.DiagnosticSink`. Section and notebook batch exports use `OneNotePageTraversal` so page selection and names follow native table-of-contents order.
 

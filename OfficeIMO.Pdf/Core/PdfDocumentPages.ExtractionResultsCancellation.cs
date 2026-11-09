@@ -11,7 +11,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Extracts pages with diagnostics while preserving cancellation as an exception.</summary>
-    internal PdfOperationResult<PdfDocument> ExtractResult(PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ExtractResult(OfficePageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return TryPageExtractionOperation("Extract pages", effective => Extract(ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), options, cancellationToken);
     }

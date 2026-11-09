@@ -18,13 +18,13 @@ public sealed class HtmlApiConsistencyTests {
         var options = new HtmlRenderOptions { MaximumTotalEncodedBytes = 8L };
 
         OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            document.ExportImage(OfficeImageExportFormat.Png, options));
+            document.ToImage(OfficeImageExportFormat.Png, options));
 
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
         var imageOptions1 = new HtmlRenderOptions();
         imageOptions1.Format = OfficeImageExportFormat.Png;
         Assert.Throws<OperationCanceledException>(() =>
-            document.ExportImage(OfficeImageExportFormat.Png, imageOptions1, cancellationToken: new CancellationToken(canceled: true)));
+            document.ToImage(OfficeImageExportFormat.Png, imageOptions1, cancellationToken: new CancellationToken(canceled: true)));
     }
 
     [Fact]
@@ -34,10 +34,10 @@ public sealed class HtmlApiConsistencyTests {
         var options = new HtmlPdfExportOptions();
 
         Assert.NotEmpty((document.ToPdf(options)).ToBytes());
-        Assert.NotEmpty(document.ToImage(options));
+        Assert.NotEmpty(document.ToImage(options).Bytes);
         Assert.StartsWith("<svg", document.ToSvg(options), StringComparison.Ordinal);
-        OfficeImageExportResult pngResult = document.ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult svgResult = document.ExportImage(OfficeImageExportFormat.Svg, options);
+        OfficeImageExportResult pngResult = document.ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult svgResult = document.ToImage(OfficeImageExportFormat.Svg, options);
         Assert.Equal(OfficeImageExportFormat.Png, pngResult.Format);
         Assert.Equal(OfficeImageExportFormat.Svg, svgResult.Format);
         Assert.NotEmpty(pngResult.Bytes);
@@ -57,10 +57,10 @@ public sealed class HtmlApiConsistencyTests {
         HtmlConversionDocument pngResultDocument = await HtmlConversionDocument.LoadAsync(pngResultSource);
         HtmlConversionDocument svgResultDocument = await HtmlConversionDocument.LoadAsync(svgResultSource);
         Assert.NotEmpty((await pdfDocument.ToPdfAsync(options)).Value.ToBytes());
-        Assert.NotEmpty((await pngDocument.ToImageAsync(options)).Value);
+        Assert.NotEmpty((await pngDocument.ToImageAsync(options)).Bytes);
         Assert.StartsWith("<svg", (await svgDocument.ToSvgAsync(options)).Value, StringComparison.Ordinal);
-        Assert.Equal(OfficeImageExportFormat.Png, (await pngResultDocument.ExportImageAsync(OfficeImageExportFormat.Png, options)).Format);
-        Assert.Equal(OfficeImageExportFormat.Svg, (await svgResultDocument.ExportImageAsync(OfficeImageExportFormat.Svg, options)).Format);
+        Assert.Equal(OfficeImageExportFormat.Png, (await pngResultDocument.ToImageAsync(OfficeImageExportFormat.Png, options)).Format);
+        Assert.Equal(OfficeImageExportFormat.Svg, (await svgResultDocument.ToImageAsync(OfficeImageExportFormat.Svg, options)).Format);
     }
 
     [Fact]
@@ -78,8 +78,8 @@ public sealed class HtmlApiConsistencyTests {
         Assert.Equal(HtmlRenderMode.Continuous, clone.Mode);
         Assert.Equal(HtmlRenderMode.Continuous, copied.Mode);
         Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options).Pages);
-        Assert.Single(HtmlConversionDocument.Parse(html).ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Png, options));
-        Assert.Single(HtmlConversionDocument.Parse(html).ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options));
+        Assert.Single(HtmlConversionDocument.Parse(html).ToImages(OfficeIMO.Drawing.OfficeImageExportFormat.Png, options));
+        Assert.Single(HtmlConversionDocument.Parse(html).ToImages(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options));
         Assert.True(OfficeIMO.Pdf.PdfInspector.Inspect((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes()).PageCount > 1);
     }
 

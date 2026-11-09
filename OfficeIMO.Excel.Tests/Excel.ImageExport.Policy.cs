@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
             });
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
-                sheet.Range("A1:A1").ExportImage(
+                sheet.Range("A1:A1").ToImage(
                     OfficeImageExportFormat.Svg,
                     new ExcelImageExportOptions {
                         ShowGridlines = false,
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             sheet.SetComment("A1", "Needs design review", "Reviewer");
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
-                sheet.Range("A1:B2").ExportImage(
+                sheet.Range("A1:B2").ToImage(
                     OfficeImageExportFormat.Svg,
                     new ExcelImageExportOptions {
                         ShowGridlines = false,
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue("Reviewed");
             sheet.SetComment("A1", "Needs design review", "Reviewer");
 
-            OfficeImageExportResult result = sheet.Range("A1:F8").ExportImage(
+            OfficeImageExportResult result = sheet.Range("A1:F8").ToImage(
                 OfficeImageExportFormat.Svg,
                 new ExcelImageExportOptions {
                     ShowGridlines = false,

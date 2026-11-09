@@ -180,7 +180,7 @@ public sealed class XpsBrushTests {
 
     private static OfficeRasterImage Raster(XpsPage page) {
         Assert.True(page.ToSvg().IsComplete);
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         return raster!;
     }
 }

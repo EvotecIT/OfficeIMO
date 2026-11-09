@@ -305,7 +305,7 @@ public partial class PdfDocumentVisualQualityTests {
         OfficeDrawing drawing = page.ToDrawing();
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilities =
             page.GetRenderCapabilityDiagnostics();
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         Assert.Contains(
             drawing.Elements.OfType<OfficeDrawingText>(),
@@ -331,7 +331,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         OfficeImageExportPolicyException exception =
             Assert.Throws<OfficeImageExportPolicyException>(
-                () => page.ExportImage(OfficeImageExportFormat.Png, strict));
+                () => page.ToImage(OfficeImageExportFormat.Png, strict));
         Assert.Contains(
             exception.Diagnostics,
             item => item.Code == PdfRenderCapabilities.SynthesizedAnnotationAppearanceId);
@@ -347,7 +347,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilities =
             page.GetRenderCapabilityDiagnostics();
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png);
 
         Assert.True(result.Bytes.Length > 100);
         Assert.Contains(

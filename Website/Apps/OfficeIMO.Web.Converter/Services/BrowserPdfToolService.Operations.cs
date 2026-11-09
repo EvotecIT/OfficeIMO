@@ -99,7 +99,7 @@ internal sealed partial class BrowserPdfToolService {
             for (int index = 0; index < outputDocuments; index++) {
                 int firstPage = checked(index * request.PagesPerDocument + 1);
                 int lastPage = Math.Min(sourcePages, checked(firstPage + request.PagesPerDocument - 1));
-                PdfPageSelector selector = PdfPageSelector.Parse(firstPage == lastPage ? firstPage.ToString(System.Globalization.CultureInfo.InvariantCulture) : $"{firstPage}-{lastPage}");
+                OfficePageSelector selector = OfficePageSelector.Parse(firstPage == lastPage ? firstPage.ToString(System.Globalization.CultureInfo.InvariantCulture) : $"{firstPage}-{lastPage}");
                 byte[] bytes = source.Pages.Extract(selector).ToBytes();
                 serializedBytes = checked(serializedBytes + bytes.LongLength);
                 if (serializedBytes > BrowserPdfPolicy.MaxSplitSerializedBytes) {
@@ -131,11 +131,11 @@ internal sealed partial class BrowserPdfToolService {
     private static PdfToolExecution TransformPages(
         PdfToolRequest request,
         string suffix,
-        Func<PdfDocument, PdfPageSelector, PdfToolRequest, PdfDocument> transform) {
+        Func<PdfDocument, OfficePageSelector, PdfToolRequest, PdfDocument> transform) {
         SelectedDocument file = request.Files[0];
         PdfDocument source = Open(file);
         int sourcePages = source.Inspect().PageCount;
-        PdfPageSelector selector = Selector(request);
+        OfficePageSelector selector = Selector(request);
         PdfDocument output = transform(source, selector, request);
         int outputPages = output.Inspect().PageCount;
         byte[] bytes = output.ToBytes();

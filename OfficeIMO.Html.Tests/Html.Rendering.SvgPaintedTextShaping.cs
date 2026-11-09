@@ -23,7 +23,7 @@ public sealed partial class HtmlRenderingTests {
         };
         options.Fonts.Add("Painted", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphOutlines('A', 0x0301));
 
-        OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult png = document.ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(expectedLoss, png.Diagnostics.Any(diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported
@@ -37,7 +37,7 @@ public sealed partial class HtmlRenderingTests {
         if (expectedLoss) {
             options.Policy.FailOnLoss = true;
             OfficeImageExportPolicyException failure = Assert.Throws<OfficeImageExportPolicyException>(() =>
-                document.ExportImage(OfficeImageExportFormat.Png, options));
+                document.ToImage(OfficeImageExportFormat.Png, options));
             Assert.Contains(failure.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported
                 && diagnostic.LossKind != OfficeConversionLossKind.None);

@@ -122,7 +122,7 @@ public sealed class VisioArcGeometryContractTests {
         byte[] png = page.ToImage(new VisioImageExportOptions {
             TargetDpi = Density, Supersampling = 1, RenderText = false, RenderConnectorLabels = false,
             RenderStencilArtwork = false, ResolveConnectorLabelOverlaps = false
-        });
+        }).Bytes;
         Assert.True(OfficeRasterImageDecoder.TryDecode(png, out OfficeRasterImage? image));
         Assert.NotNull(image);
         return image!;

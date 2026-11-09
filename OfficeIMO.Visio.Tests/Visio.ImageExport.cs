@@ -22,9 +22,9 @@ public class VisioImageExport {
         };
 
         OfficeImageExportBatchLimitException pageToPng = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            page.ToImage(options));
+            page.ToImage(options).Bytes);
         OfficeImageExportBatchLimitException documentToPng = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            document.ToImage(options));
+            document.ToImage(options).Bytes);
         using var output = new MemoryStream();
         OfficeImageExportBatchLimitException saveAsPng = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
             document.SaveAsImage(output, options));
@@ -47,13 +47,13 @@ public class VisioImageExport {
         };
 
         OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            page.ExportImage(OfficeImageExportFormat.Png, options));
+            page.ToImage(OfficeImageExportFormat.Png, options));
 
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
         var imageOptions1 = new VisioImageExportOptions();
         imageOptions1.Format = OfficeImageExportFormat.Png;
         Assert.Throws<OperationCanceledException>(() =>
-            page.ExportImage(OfficeImageExportFormat.Png, imageOptions1, cancellationToken: new System.Threading.CancellationToken(canceled: true)));
+            page.ToImage(OfficeImageExportFormat.Png, imageOptions1, cancellationToken: new System.Threading.CancellationToken(canceled: true)));
     }
 
     [Fact]
@@ -65,9 +65,9 @@ public class VisioImageExport {
         var options = new VisioImageExportOptions { MaximumTotalEncodedBytes = 8L };
 
         OfficeImageExportBatchLimitException pageException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            page.ExportImage(OfficeImageExportFormat.Svg, options));
+            page.ToImage(OfficeImageExportFormat.Svg, options));
         OfficeImageExportBatchLimitException documentException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            document.ExportImage(OfficeImageExportFormat.Svg, options));
+            document.ToImage(OfficeImageExportFormat.Svg, options));
 
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), pageException.LimitName);
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), documentException.LimitName);
@@ -656,7 +656,7 @@ public class VisioImageExport {
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             page.SaveAsImageAsync(output, options, cancellation.Token));
 
-        string svg = System.Text.Encoding.UTF8.GetString(page.ToImage(options));
+        string svg = System.Text.Encoding.UTF8.GetString(page.ToImage(options).Bytes);
         Assert.Contains("Reusable", svg, StringComparison.Ordinal);
     }
 
@@ -668,7 +668,7 @@ public class VisioImageExport {
         var options = new VisioImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
 
         Assert.Throws<OfficeImageExportTimeoutException>(() =>
-            page.ExportImage(OfficeImageExportFormat.Svg, options));
+            page.ToImage(OfficeImageExportFormat.Svg, options));
     }
 
     [Theory]
@@ -684,7 +684,7 @@ public class VisioImageExport {
         page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Format marker");
         var options = new VisioImageExportOptions { Scale = 0.5D, Supersampling = 1 };
 
-        OfficeImageExportResult result = page.ExportImage(format, options);
+        OfficeImageExportResult result = page.ToImage(format, options);
 
         Assert.Equal(format, result.Format);
         Assert.Equal(96, result.Width);
@@ -710,7 +710,7 @@ public class VisioImageExport {
         imageOptions2.MaximumOutputHeight = 240;
         imageOptions2.RenderConnectorLabels = false;
         imageOptions2.Format = OfficeImageExportFormat.Png;
-        OfficeImageExportResult png = page.ExportImage(OfficeImageExportFormat.Png, imageOptions2);
+        OfficeImageExportResult png = page.ToImage(OfficeImageExportFormat.Png, imageOptions2);
         var imageOptions3 = new VisioImageExportOptions();
         imageOptions3.Scale = 2D;
         imageOptions3.TargetDpi = null;
@@ -718,7 +718,7 @@ public class VisioImageExport {
         imageOptions3.MaximumOutputHeight = 240;
         imageOptions3.ResolveConnectorLabelOverlaps = false;
         imageOptions3.Format = OfficeImageExportFormat.Svg;
-        OfficeImageExportResult svg = page.ExportImage(OfficeImageExportFormat.Svg, imageOptions3);
+        OfficeImageExportResult svg = page.ToImage(OfficeImageExportFormat.Svg, imageOptions3);
 
         Assert.Equal((240, 120), (png.Width, png.Height));
         Assert.Equal((png.Width, png.Height), (svg.Width, svg.Height));
@@ -756,13 +756,13 @@ public class VisioImageExport {
         page.AddDiamond(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Choice");
         var options = new VisioImageExportOptions { Scale = 0.5D, Supersampling = 1 };
 
-        Assert.Equal("image/jpeg", OfficeImageReader.Identify(page.ToImage(new VisioImageExportOptions { Format = OfficeImageExportFormat.Jpeg, Scale = options.Scale, Supersampling = options.Supersampling })).MimeType);
-        Assert.Equal("image/tiff", OfficeImageReader.Identify(document.ToImage(new VisioImageExportOptions { Format = OfficeImageExportFormat.Tiff, Scale = options.Scale, Supersampling = options.Supersampling })).MimeType);
-        Assert.Equal("image/webp", OfficeImageReader.Identify(page.ToImage(new VisioImageExportOptions { Format = OfficeImageExportFormat.Webp, Scale = options.Scale, Supersampling = options.Supersampling })).MimeType);
+        Assert.Equal("image/jpeg", OfficeImageReader.Identify(page.ToImage(new VisioImageExportOptions { Format = OfficeImageExportFormat.Jpeg, Scale = options.Scale, Supersampling = options.Supersampling }).Bytes).MimeType);
+        Assert.Equal("image/tiff", OfficeImageReader.Identify(document.ToImage(new VisioImageExportOptions { Format = OfficeImageExportFormat.Tiff, Scale = options.Scale, Supersampling = options.Supersampling }).Bytes).MimeType);
+        Assert.Equal("image/webp", OfficeImageReader.Identify(page.ToImage(new VisioImageExportOptions { Format = OfficeImageExportFormat.Webp, Scale = options.Scale, Supersampling = options.Supersampling }).Bytes).MimeType);
         var imageOptions5 = new VisioImageExportOptions();
         imageOptions5.TargetDpi = 48D;
         imageOptions5.Format = OfficeImageExportFormat.Svg;
-        Assert.Equal(OfficeImageExportFormat.Svg, document.ExportImage(OfficeImageExportFormat.Svg, imageOptions5).Format);
+        Assert.Equal(OfficeImageExportFormat.Svg, document.ToImage(OfficeImageExportFormat.Svg, imageOptions5).Format);
     }
 
     [Fact]
@@ -777,7 +777,7 @@ public class VisioImageExport {
             MaximumRasterPixels = 10_000L
         };
 
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.True((long)result.Width * result.Height <= options.MaximumRasterPixels);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced);
@@ -792,7 +792,7 @@ public class VisioImageExport {
         options.RasterEncoding.Jpeg.Quality = 67;
         options.RasterEncoding.Jpeg.Progressive = true;
 
-        OfficeImageExportResult result = document.ExportImage(OfficeImageExportFormat.Jpeg, options);
+        OfficeImageExportResult result = document.ToImage(OfficeImageExportFormat.Jpeg, options);
 
         Assert.Equal("image/jpeg", OfficeImageReader.Identify(result.Bytes).MimeType);
         Assert.Contains((byte)0xC2, result.Bytes);
@@ -806,7 +806,7 @@ public class VisioImageExport {
         var options = new VisioImageExportOptions { Scale = double.MaxValue };
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            page.ExportImage(OfficeImageExportFormat.Svg, options));
+            page.ToImage(OfficeImageExportFormat.Svg, options));
     }
 
     [Fact]
@@ -827,8 +827,8 @@ public class VisioImageExport {
         };
         options.Fonts.Add("Scoped Visio", File.ReadAllBytes(fontPath));
 
-        OfficeImageExportResult png = page.ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult svg = page.ExportImage(OfficeImageExportFormat.Svg, options);
+        OfficeImageExportResult png = page.ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult svg = page.ToImage(OfficeImageExportFormat.Svg, options);
         string svgText = Encoding.UTF8.GetString(svg.Bytes);
 
         Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
@@ -851,7 +851,7 @@ public class VisioImageExport {
         };
 
         OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(
-            () => page.ExportImage(OfficeImageExportFormat.Png, options));
+            () => page.ToImage(OfficeImageExportFormat.Png, options));
 
         Assert.Contains(exception.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
     }
@@ -871,7 +871,7 @@ public class VisioImageExport {
             ImageCodec = codec
         };
 
-        OfficeImageExportResult result = page.ExportImage(format, options);
+        OfficeImageExportResult result = page.ToImage(format, options);
 
         Assert.Equal(1, codec.DecodeCalls);
         Assert.Contains(

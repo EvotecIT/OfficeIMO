@@ -179,7 +179,7 @@
       "kind": "method",
       "action": "merge",
       "new": "HtmlConversionDocument.SaveAsImage / SaveAsImageAsync",
-      "replacement": "Set HtmlRenderOptions.Format = OfficeImageExportFormat.Png and PageIndex explicitly; save returns OfficeConversionReport. Call ExportImage/ExportImageAsync(...).Save/SaveAsync(...) when the caller needs OfficeImageExportResult dimensions, MIME, bytes or saved-path metadata. Keep ExportImages consumers for streaming multiple pages.",
+      "replacement": "Set HtmlRenderOptions.Format = OfficeImageExportFormat.Png and PageIndex explicitly; save returns OfficeConversionReport. Call ToImage/ToImageAsync(...).Save/SaveAsync(...) when the caller needs OfficeImageExportResult dimensions, MIME, bytes or saved-path metadata. Keep ToImages consumers for streaming multiple pages.",
       "category": "conversion",
       "applied": true
     },
@@ -188,7 +188,7 @@
       "kind": "method",
       "action": "merge",
       "new": "HtmlConversionDocument.SaveAsImage / SaveAsImageAsync",
-      "replacement": "Set HtmlRenderOptions.Format = OfficeImageExportFormat.Svg and PageIndex explicitly; save returns OfficeConversionReport. Call ExportImage/ExportImageAsync(...).Save/SaveAsync(...) when the caller needs OfficeImageExportResult dimensions, MIME, bytes or saved-path metadata. Keep ExportImages consumers for streaming multiple pages.",
+      "replacement": "Set HtmlRenderOptions.Format = OfficeImageExportFormat.Svg and PageIndex explicitly; save returns OfficeConversionReport. Call ToImage/ToImageAsync(...).Save/SaveAsync(...) when the caller needs OfficeImageExportResult dimensions, MIME, bytes or saved-path metadata. Keep ToImages consumers for streaming multiple pages.",
       "category": "conversion",
       "applied": true
     },
@@ -197,7 +197,7 @@
       "kind": "method",
       "action": "merge",
       "new": "HtmlConversionDocument.SaveAsImage / SaveAsImageAsync",
-      "replacement": "Set HtmlRenderOptions.Format = OfficeImageExportFormat.Jpeg and PageIndex explicitly; save returns OfficeConversionReport. Call ExportImage/ExportImageAsync(...).Save/SaveAsync(...) when the caller needs OfficeImageExportResult dimensions, MIME, bytes or saved-path metadata. Keep ExportImages consumers for streaming multiple pages.",
+      "replacement": "Set HtmlRenderOptions.Format = OfficeImageExportFormat.Jpeg and PageIndex explicitly; save returns OfficeConversionReport. Call ToImage/ToImageAsync(...).Save/SaveAsync(...) when the caller needs OfficeImageExportResult dimensions, MIME, bytes or saved-path metadata. Keep ToImages consumers for streaming multiple pages.",
       "category": "conversion",
       "applied": true
     },
@@ -206,7 +206,7 @@
       "kind": "method",
       "action": "merge",
       "new": "HtmlConversionDocument.SaveAsImage / SaveAsImageAsync",
-      "replacement": "Set HtmlRenderOptions.Format = OfficeImageExportFormat.Tiff and PageIndex explicitly; save returns OfficeConversionReport. Call ExportImage/ExportImageAsync(...).Save/SaveAsync(...) when the caller needs OfficeImageExportResult dimensions, MIME, bytes or saved-path metadata. Keep ExportImages consumers for streaming multiple pages.",
+      "replacement": "Set HtmlRenderOptions.Format = OfficeImageExportFormat.Tiff and PageIndex explicitly; save returns OfficeConversionReport. Call ToImage/ToImageAsync(...).Save/SaveAsync(...) when the caller needs OfficeImageExportResult dimensions, MIME, bytes or saved-path metadata. Keep ToImages consumers for streaming multiple pages.",
       "category": "conversion",
       "applied": true
     },
@@ -215,7 +215,7 @@
       "kind": "method",
       "action": "merge",
       "new": "HtmlConversionDocument.SaveAsImage / SaveAsImageAsync",
-      "replacement": "Set HtmlRenderOptions.Format = OfficeImageExportFormat.Webp and PageIndex explicitly; save returns OfficeConversionReport. Call ExportImage/ExportImageAsync(...).Save/SaveAsync(...) when the caller needs OfficeImageExportResult dimensions, MIME, bytes or saved-path metadata. Keep ExportImages consumers for streaming multiple pages.",
+      "replacement": "Set HtmlRenderOptions.Format = OfficeImageExportFormat.Webp and PageIndex explicitly; save returns OfficeConversionReport. Call ToImage/ToImageAsync(...).Save/SaveAsync(...) when the caller needs OfficeImageExportResult dimensions, MIME, bytes or saved-path metadata. Keep ToImages consumers for streaming multiple pages.",
       "category": "conversion",
       "applied": true
     },
@@ -227,6 +227,14 @@
       "replacement": "SVG remains decoded UTF-8 text. Options.PageIndex selects the page; synchronous out-report and async Report retain image diagnostics. Set PageIndex = 0 when migrating an old omitted pageIndex that overrode options.PageIndex.",
       "category": "conversion",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.HtmlConversionDocument.ExportImage(...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Html.HtmlConversionDocument.ToImage(...) : OfficeImageExportResult",
+      "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
+      "category": "conversion"
     }
   ],
   "extraChanges": [

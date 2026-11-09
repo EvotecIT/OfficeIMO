@@ -17,7 +17,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = BackgroundClipOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         AssertBackgroundClipPixels(OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()));
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? png));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options).Bytes, out OfficeRasterImage? png));
         AssertBackgroundClipPixels(png!);
         Assert.Contains("<clipPath", HtmlConversionDocument.Parse(html).ToSvg(options), StringComparison.Ordinal);
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(options))).ToBytes();

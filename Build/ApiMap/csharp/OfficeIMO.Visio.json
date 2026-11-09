@@ -212,7 +212,7 @@
       "kind": "method",
       "action": "merge",
       "new": "VisioDocument/VisioPage.SaveAsImage / SaveAsImageAsync",
-      "replacement": "Select Format in VisioImageExportOptions. PNG fields map as for ToImage; SVG maps PixelsPerInch to Scale = PixelsPerInch / 96, IncludeXmlDeclaration to IncludeSvgXmlDeclaration, PageIndex unchanged, null background to Transparent, and copies Fonts, RenderText, LayerMode and stencil/connector settings. Saves return OfficeConversionReport. Preserve dimensions/DPI/bytes workflows with ExportImage(...).Save(...). Native semantic-preview PngOptions/SvgOptions remain distinct inputs.",
+      "replacement": "Select Format in VisioImageExportOptions. PNG fields map as for ToImage; SVG maps PixelsPerInch to Scale = PixelsPerInch / 96, IncludeXmlDeclaration to IncludeSvgXmlDeclaration, PageIndex unchanged, null background to Transparent, and copies Fonts, RenderText, LayerMode and stencil/connector settings. Saves return OfficeConversionReport. Preserve dimensions/DPI/bytes workflows with ToImage(...).Save(...). Native semantic-preview PngOptions/SvgOptions remain distinct inputs.",
       "category": "conversion",
       "applied": true
     },
@@ -224,6 +224,14 @@
       "replacement": "The decoded SVG text contract and specialized VisioSvgSaveOptions remain. ToSvgAsync returns OfficeConversionResult<string>. This is separate from encoded ToImage bytes and streaming page collections.",
       "category": "conversion",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.VisioPage.ExportImage(...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Visio.VisioPage.ToImage(...) : OfficeImageExportResult",
+      "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
+      "category": "conversion"
     }
   ],
   "extraChanges": [

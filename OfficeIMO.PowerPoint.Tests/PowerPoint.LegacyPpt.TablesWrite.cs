@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             var projected = Assert.Single(reopened.Slides[0].Tables);
             Assert.True(projected.GetCell(0, 0).NoFill);
             Assert.Equal(OfficeColor.Parse("FF0000"), projected.GetCell(0, 1).FillColor);
-            Assert.True(OfficePngReader.TryDecode(reopened.Slides[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+            Assert.True(OfficePngReader.TryDecode(reopened.Slides[0].ToImage(OfficeImageExportFormat.Png).Bytes, out var image));
             Assert.Equal(OfficeColor.Yellow, image!.GetPixel(32, 32));
             Assert.Equal(OfficeColor.Red, image.GetPixel(92, 32));
             Assert.Empty(reopened.ValidateDocument());

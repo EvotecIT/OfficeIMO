@@ -18,10 +18,10 @@ public sealed class VisioLayerRenderingTests {
 
         AssertLayerShapes(XDocument.Parse(page.ToSvg()), VisioLayerRenderMode.Visible);
         AssertLayerShapes(XDocument.Parse(document.ToSvg()), VisioLayerRenderMode.Visible);
-        AssertLayerShapes(ReadSvg(page.ExportImage(OfficeImageExportFormat.Svg)), VisioLayerRenderMode.Visible);
-        AssertLayerPixels(Decode(page.ToImage()), 96, VisioLayerRenderMode.Visible);
-        AssertLayerPixels(Decode(document.ToImage()), 96, VisioLayerRenderMode.Visible);
-        AssertLayerPixels(Decode(page.ExportImage(OfficeImageExportFormat.Png).Bytes), 96, VisioLayerRenderMode.Visible);
+        AssertLayerShapes(ReadSvg(page.ToImage(OfficeImageExportFormat.Svg)), VisioLayerRenderMode.Visible);
+        AssertLayerPixels(Decode(page.ToImage().Bytes), 96, VisioLayerRenderMode.Visible);
+        AssertLayerPixels(Decode(document.ToImage().Bytes), 96, VisioLayerRenderMode.Visible);
+        AssertLayerPixels(Decode(page.ToImage(OfficeImageExportFormat.Png).Bytes), 96, VisioLayerRenderMode.Visible);
     }
 
     [Theory]
@@ -42,9 +42,9 @@ public sealed class VisioLayerRenderingTests {
 
             byte[] png = page.ToImage(new VisioImageExportOptions {
                 LayerMode = mode, TargetDpi = PixelsPerInch, Supersampling = 1, RenderText = false
-            });
+            }).Bytes;
             AssertLayerPixels(Decode(png), PixelsPerInch, mode);
-            OfficeImageExportResult canonical = document.ExportImage(OfficeImageExportFormat.Png, new VisioImageExportOptions {
+            OfficeImageExportResult canonical = document.ToImage(OfficeImageExportFormat.Png, new VisioImageExportOptions {
                 LayerMode = mode, TargetDpi = PixelsPerInch, Supersampling = 1, RenderText = false
             });
             AssertLayerPixels(Decode(canonical.Bytes), PixelsPerInch, mode);
@@ -78,7 +78,7 @@ public sealed class VisioLayerRenderingTests {
             AssertShape(svg, "Unknown", true);
             OfficeRasterImage raster = Decode(page.ToImage(new VisioImageExportOptions {
                 LayerMode = mode, TargetDpi = PixelsPerInch, Supersampling = 1, RenderText = false
-            }));
+            }).Bytes);
             AssertPixel(raster, PixelsPerInch, page.Height.ToInches(), 0.7, 1.3, OfficeColor.White);
             AssertPixel(raster, PixelsPerInch, page.Height.ToInches(), 2, 1.3, OfficeColor.Blue);
             AssertPixel(raster, PixelsPerInch, page.Height.ToInches(), 3.3, 1.3, OfficeColor.Green);
@@ -111,7 +111,7 @@ public sealed class VisioLayerRenderingTests {
 
         foreach (VisioDocument candidate in NativeVersions(document)) {
             VisioPage current = candidate.Pages[0];
-            OfficeImageExportResult result = current.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult result = current.ToImage(OfficeImageExportFormat.Svg);
             XDocument svg = ReadSvg(result);
             AssertShape(svg, "Parent", false);
             AssertShape(svg, "Visible child", true);
@@ -122,7 +122,7 @@ public sealed class VisioLayerRenderingTests {
             Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("OfficeIMO Missing Visible Child Font"));
             OfficeRasterImage raster = Decode(current.ToImage(new VisioImageExportOptions {
                 TargetDpi = PixelsPerInch, Supersampling = 1, RenderText = false
-            }));
+            }).Bytes);
             AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 0.7, 1.3, OfficeColor.Blue);
             AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 2, 1.3, OfficeColor.Green);
             AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 3.3, 1.3, OfficeColor.White);
@@ -163,7 +163,7 @@ public sealed class VisioLayerRenderingTests {
             OfficeRasterImage raster = Decode(current.ToImage(new VisioImageExportOptions {
                 LayerMode = mode, TargetDpi = PixelsPerInch, Supersampling = 1,
                 RenderText = false, RenderConnectorLabels = false
-            }));
+            }).Bytes);
             AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 2.5, 2.5,
                 mode == VisioLayerRenderMode.Printable ? OfficeColor.White : OfficeColor.Red);
             AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 2.5, 0.8,
@@ -197,12 +197,12 @@ public sealed class VisioLayerRenderingTests {
 
         foreach (VisioLayerRenderMode mode in new[] { VisioLayerRenderMode.Visible, VisioLayerRenderMode.Printable }) {
             options.LayerMode = mode;
-            OfficeImageExportResult result = page.ExportImage(format, options);
+            OfficeImageExportResult result = page.ToImage(format, options);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         }
         options.LayerMode = VisioLayerRenderMode.All;
-        OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(format, options));
+        OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() => page.ToImage(format, options));
         Assert.Contains(exception.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         Assert.Contains(exception.Diagnostics, diagnostic => diagnostic.Message.Contains("OfficeIMO Missing Hidden Shape Font"));
         Assert.Contains(exception.Diagnostics, diagnostic => diagnostic.Message.Contains("OfficeIMO Missing Hidden Connector Font"));
@@ -239,7 +239,7 @@ public sealed class VisioLayerRenderingTests {
         Assert.NotEqual("true", (string?)visibleLabel.Attribute("data-officeimo-label-adjusted"));
         Assert.Equal(200, ReadNumber(visibleLabel, "x") + ReadNumber(visibleLabel, "width") / 2, 3);
         Assert.Equal(150, ReadNumber(visibleLabel, "y") + ReadNumber(visibleLabel, "height") / 2, 3);
-        OfficeRasterImage raster = Decode(page.ToImage(new VisioImageExportOptions { TargetDpi = 100, Supersampling = 1 }));
+        OfficeRasterImage raster = Decode(page.ToImage(new VisioImageExportOptions { TargetDpi = 100, Supersampling = 1 }).Bytes);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(200, 150));
 
         XDocument allSvg = XDocument.Parse(page.ToSvg(new VisioSvgSaveOptions { LayerMode = VisioLayerRenderMode.All, PixelsPerInch = 100 }));
@@ -253,19 +253,19 @@ public sealed class VisioLayerRenderingTests {
         var options = new VisioImageExportOptions { LayerMode = VisioLayerRenderMode.All, RenderText = false };
         VisioImageExportOptions snapshot = options.Clone();
         options.LayerMode = VisioLayerRenderMode.Visible;
-        AssertLayerShapes(ReadSvg(page.ExportImage(OfficeImageExportFormat.Svg, snapshot)), VisioLayerRenderMode.All);
+        AssertLayerShapes(ReadSvg(page.ToImage(OfficeImageExportFormat.Svg, snapshot)), VisioLayerRenderMode.All);
         var imageOptions1 = new VisioImageExportOptions();
         imageOptions1.LayerMode = VisioLayerRenderMode.Printable;
         imageOptions1.Format = OfficeImageExportFormat.Svg;
-        AssertLayerShapes(ReadSvg(page.ExportImage(OfficeImageExportFormat.Svg, imageOptions1)), VisioLayerRenderMode.Printable);
+        AssertLayerShapes(ReadSvg(page.ToImage(OfficeImageExportFormat.Svg, imageOptions1)), VisioLayerRenderMode.Printable);
         var imageOptions2 = new VisioImageExportOptions();
         imageOptions2.LayerMode = VisioLayerRenderMode.All;
         imageOptions2.Format = OfficeImageExportFormat.Svg;
-        AssertLayerShapes(ReadSvg(document.ExportImage(OfficeImageExportFormat.Svg, imageOptions2)), VisioLayerRenderMode.All);
+        AssertLayerShapes(ReadSvg(document.ToImage(OfficeImageExportFormat.Svg, imageOptions2)), VisioLayerRenderMode.All);
         var imageOptions3 = new VisioImageExportOptions();
         imageOptions3.LayerMode = VisioLayerRenderMode.Printable;
         imageOptions3.Format = OfficeImageExportFormat.Svg;
-        OfficeImageExportResult batchPage = Assert.Single(document.ExportImages(OfficeImageExportFormat.Svg, imageOptions3));
+        OfficeImageExportResult batchPage = Assert.Single(document.ToImages(OfficeImageExportFormat.Svg, imageOptions3));
         AssertLayerShapes(ReadSvg(batchPage), VisioLayerRenderMode.Printable);
     }
 
@@ -274,9 +274,9 @@ public sealed class VisioLayerRenderingTests {
         VisioPage page = VisioDocument.Create().AddPage("Invalid");
         const VisioLayerRenderMode invalid = (VisioLayerRenderMode)99;
         Assert.Throws<ArgumentOutOfRangeException>(() => page.ToSvg(new VisioSvgSaveOptions { LayerMode = invalid }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => page.ToImage(new VisioImageExportOptions { LayerMode = invalid }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => page.ExportImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { LayerMode = invalid }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => page.ExportImage(OfficeImageExportFormat.Png, new VisioImageExportOptions { LayerMode = invalid }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => page.ToImage(new VisioImageExportOptions { LayerMode = invalid }).Bytes);
+        Assert.Throws<ArgumentOutOfRangeException>(() => page.ToImage(OfficeImageExportFormat.Svg, new VisioImageExportOptions { LayerMode = invalid }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => page.ToImage(OfficeImageExportFormat.Png, new VisioImageExportOptions { LayerMode = invalid }));
     }
 
     private static VisioDocument CreateLayerDocument() {

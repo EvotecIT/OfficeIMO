@@ -25,8 +25,8 @@ namespace OfficeIMO.Tests {
             second.SetSpaceBefore(global::OfficeIMO.OfficeLength.Points(6));
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests {
             textBox.AddParagraph("PowerPoint next line");
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);

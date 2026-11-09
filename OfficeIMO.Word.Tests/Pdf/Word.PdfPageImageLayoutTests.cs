@@ -27,11 +27,11 @@ public sealed class PdfPageImageLayoutTests {
         byte[] bytes = conversion.ToBytes();
         var pdf = PdfDocument.Load(bytes);
         var options = new PdfImageExportOptions { Scale = .5 };
-        var images = conversion.ExportImages(format, options);
+        var images = conversion.ToImages(format, options);
         Assert.True(images.Count > 1);
         Assert.Equal(pdf.Inspect().PageCount, images.Count);
         options.Format = format;
-        var direct = pdf.ExportImages(options);
+        var direct = pdf.ToImages(options);
         for (int index = 0; index < images.Count; index++)
             Assert.Equal(direct[index].Bytes, images[index].Bytes);
         if (format == OfficeImageExportFormat.Svg) {

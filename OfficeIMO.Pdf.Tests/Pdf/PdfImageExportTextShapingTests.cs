@@ -26,7 +26,7 @@ public sealed class PdfImageExportTextShapingTests {
         options.Fonts.Add("Helvetica", fontData).AddFallbackFamily("Helvetica");
 
         OfficeImageExportResult result =
-            document.Pages[0].ExportImage(OfficeImageExportFormat.Png, options);
+            document.Pages[0].ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(OfficeImageExportFormat.Png, result.Format);
         Assert.NotEmpty(result.Bytes);

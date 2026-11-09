@@ -14,7 +14,7 @@ var imageOptions = new HtmlRenderOptions {
 };
 
 string svg = source.ToSvg(imageOptions);
-byte[] png = source.ToImage(imageOptions);
+byte[] png = source.ToImage(imageOptions).Bytes;
 using PdfDocument renderedPdf = source.ToPdf(new HtmlPdfExportOptions(imageOptions));
 using var pdfBytes = new MemoryStream(renderedPdf.ToBytes(), writable: false);
 using PdfDocument reopenedPdf = PdfDocument.Load(pdfBytes);
@@ -115,7 +115,7 @@ if (advancedRender.Pages.Count != 1
         $"The NativeAOT advanced packet lost its one-page CSS production contract: pages={advancedRender.Pages.Count}, "
         + $"marks={advancedRender.Pages[0].PrintProduction?.Marks}, bleed={advancedRender.Pages[0].PrintProduction?.Bleed}.");
 }
-MarkerImageContract.Verify(advancedRender, advancedSvg, advancedSource.ToImage(advancedOptions), markerPng);
+MarkerImageContract.Verify(advancedRender, advancedSvg, advancedSource.ToImage(advancedOptions).Bytes, markerPng);
 ParallelTablePaginationContract.Verify();
 
 if (OfficeProtectionCapabilityCatalog.Current.SchemaVersion != 2

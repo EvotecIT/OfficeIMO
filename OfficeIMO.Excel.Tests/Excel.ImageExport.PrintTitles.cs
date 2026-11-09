@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.SetPrintTitles(firstRow: null, lastRow: null, firstColumn: 1, lastColumn: 1);
             sheet.AddManualColumnPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -43,9 +43,9 @@ namespace OfficeIMO.Tests {
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             };
-            IReadOnlyList<OfficeImageExportResult> svgResults = sheet.ExportImages(OfficeImageExportFormat.Svg, options);
-            IReadOnlyList<OfficeImageExportResult> pngResults = sheet.ExportImages(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult bodyOnly = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> svgResults = sheet.ToImages(OfficeImageExportFormat.Svg, options);
+            IReadOnlyList<OfficeImageExportResult> pngResults = sheet.ToImages(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult bodyOnly = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "C3:D4",
                 ShowGridlines = false
             });

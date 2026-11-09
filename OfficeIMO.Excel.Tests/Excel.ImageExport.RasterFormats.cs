@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Shared raster export");
 
-            OfficeImageExportResult result = sheet.Range("A1:B2").ExportImage(format);
+            OfficeImageExportResult result = sheet.Range("A1:B2").ToImage(format);
 
             OfficeImageInfo info = OfficeImageReader.Identify(result.Bytes);
             Assert.Equal(format, result.Format);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Composed raster export");
 
-            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(format, new ExcelImageExportOptions {
+            OfficeImageExportResult result = Assert.Single(sheet.ToImages(format, new ExcelImageExportOptions {
                 SplitByManualPageBreaks = true
             }));
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue("Format-specific density");
             sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 
-            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
+            OfficeImageExportResult result = Assert.Single(sheet.ToImages(
                 OfficeImageExportFormat.Jpeg,
                 new ExcelImageExportOptions {
                     SplitByManualPageBreaks = true,
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue("Safety-limited page");
             sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 
-            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
+            OfficeImageExportResult result = Assert.Single(sheet.ToImages(
                 OfficeImageExportFormat.Png,
                 new ExcelImageExportOptions {
                     SplitByManualPageBreaks = true,

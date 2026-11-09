@@ -113,7 +113,7 @@ using var deck = PowerPointDocument.Load("Regions.pptx");
 OfficeConversionReport pdf = deck.SaveAsPdf("Regions.pdf");
 Console.WriteLine($"{pdf.ItemsWritten} slides, loss: {pdf.HasLoss}");
 
-File.WriteAllBytes("Regions-1.png", deck.Slides[0].ToImage());
+File.WriteAllBytes("Regions-1.png", deck.Slides[0].ToImage().Bytes);
 ```
 
 ## Validate package signatures from a stream

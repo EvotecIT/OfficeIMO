@@ -55,7 +55,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options) {
         HtmlRenderRequest request = HtmlRenderRequest.Create(profile, encoder, HtmlPdfExportOptions.ForImageExport(options));
         HtmlRenderResult result = HtmlRenderEngine.Execute(source, request);
-        IReadOnlyList<OfficeImageExportResult> images = result.ExportImages();
+        IReadOnlyList<OfficeImageExportResult> images = result.ToImages();
 
         Assert.True(result.Request.MatchesNamedProfile);
         Assert.Equal(result.Document.Pages.Count, images.Count);

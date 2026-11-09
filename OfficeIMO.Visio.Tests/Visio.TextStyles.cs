@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
                 });
 
             string svg = document.Pages[0].ToSvg();
-            OfficeImageExportResult png = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult png = document.Pages[0].ToImage(OfficeImageExportFormat.Png);
 
             Assert.Contains(">IPhone PRO<", svg, StringComparison.Ordinal);
             Assert.DoesNotContain("Iphone Pro", svg, StringComparison.Ordinal);
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
                     Baseline = OfficeTextBaseline.Superscript
                 });
 
-            OfficeImageExportResult result = Assert.Single(document.ExportImages(format));
+            OfficeImageExportResult result = Assert.Single(document.ToImages(format));
 
             Assert.Equal(format, result.Format);
             Assert.True(result.Bytes.Length > 32);

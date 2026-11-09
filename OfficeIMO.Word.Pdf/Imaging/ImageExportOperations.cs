@@ -12,17 +12,17 @@ namespace OfficeIMO.Word {
             WordImageExportOptions snapshot = options?.Clone() ?? new WordImageExportOptions();
             return new OfficeImageExportOperation<WordImageExportOptions>(snapshot, format,
                 snapshot.FileConflictPolicy,
-                (encoding, effective) => document.ExportImage(encoding, effective),
-                (encoding, effective, token) => document.ExportImage(encoding, effective, token));
+                (encoding, effective) => document.ToImage(encoding, effective),
+                (encoding, effective, token) => document.ToImage(encoding, effective, token));
         }
 
         private static OfficeImageExportBatchOperation<WordImageExportOptions> CreateImageExportBatchOperation(
             WordDocument document, WordImageExportOptions? options, OfficeImageExportFormat format) {
             WordImageExportOptions snapshot = options?.Clone() ?? new WordImageExportOptions();
             return new OfficeImageExportBatchOperation<WordImageExportOptions>(snapshot, format,
-                snapshot.FileConflictPolicy, document.ExportImages,
+                snapshot.FileConflictPolicy, document.ToImages,
                 exportEach: (encoding, effective, consumer, token) =>
-                    document.ExportImages(encoding, consumer, effective, token));
+                    document.ToImages(encoding, consumer, effective, token));
         }
     }
 }

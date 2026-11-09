@@ -70,14 +70,14 @@ public sealed class PdfConversionLossPropagationTests {
 
         OfficeImageExportResult image = Assert.Single(streamed
             ? operation.Export()
-            : conversion.ExportImages(OfficeImageExportFormat.Svg));
+            : conversion.ToImages(OfficeImageExportFormat.Svg));
         Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == "LateLoss" &&
             diagnostic.LossKind == OfficeConversionLossKind.Omission);
         var strict = new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg, FailOnLoss = true, Policy = new OfficeImageExportPolicy { RequireNoFailures = false } };
         int delivered = 0;
         var failure = Assert.Throws<OfficeIMO.OfficeConversionException>(() => {
             if (streamed) conversion.CreateImageExportOperation(strict).ExportEach(_ => delivered++);
-            else conversion.ExportImages(OfficeImageExportFormat.Svg, strict);
+            else conversion.ToImages(OfficeImageExportFormat.Svg, strict);
         });
         Assert.Equal(0, delivered);
         Assert.Contains(Assert.IsType<OfficeIMO.OfficeConversionReport>(failure.Report).Diagnostics, diagnostic => diagnostic.Code == "LateLoss");
@@ -97,7 +97,7 @@ public sealed class PdfConversionLossPropagationTests {
         var permissive = new PdfImageExportOptions {
             Policy = new OfficeImageExportPolicy { RequireNoFailures = false }
         };
-        OfficeImageExportResult image = Assert.Single(conversion.ExportImages(OfficeImageExportFormat.Svg, permissive));
+        OfficeImageExportResult image = Assert.Single(conversion.ToImages(OfficeImageExportFormat.Svg, permissive));
         OfficeImageExportDiagnostic projected = Assert.Single(image.Diagnostics,
             diagnostic => diagnostic.Code == "UnsupportedObject");
         Assert.Equal(lossKind, projected.LossKind);
@@ -121,7 +121,7 @@ public sealed class PdfConversionLossPropagationTests {
             .WithSourceConversionReport(new AggregateOnlyLossReport());
 
         OfficeImageExportPolicyException failure = Assert.Throws<OfficeImageExportPolicyException>(() =>
-            conversion.ExportImages(OfficeImageExportFormat.Svg));
+            conversion.ToImages(OfficeImageExportFormat.Svg));
 
         OfficeImageExportDiagnostic diagnostic = Assert.Single(failure.Diagnostics,
             item => item.Code == "source-conversion-diagnostic-contract-mismatch");

@@ -723,7 +723,7 @@ OfficeIMO.Drawing.OfficeDrawing.AddTilingPattern(OfficeIMO.Drawing.OfficeDrawing
 OfficeIMO.Drawing.OfficeDrawing.AddVerticalText(string! text, double x, double y, double width, double height, OfficeIMO.Drawing.OfficeFontInfo? font = null, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Drawing.OfficeDrawing!
 OfficeIMO.Drawing.OfficeDrawing.Clone() -> OfficeIMO.Drawing.OfficeDrawing!
 OfficeIMO.Drawing.OfficeDrawing.Elements.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeDrawingElement!>!
-OfficeIMO.Drawing.OfficeDrawing.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Drawing.OfficeImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
+OfficeIMO.Drawing.OfficeDrawing.ToImage(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Drawing.OfficeImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
 OfficeIMO.Drawing.OfficeDrawing.Fonts.get -> OfficeIMO.Drawing.OfficeFontFaceCollection!
 OfficeIMO.Drawing.OfficeDrawing.Height.get -> double
 OfficeIMO.Drawing.OfficeDrawing.ImagePatterns.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeDrawingImagePattern!>!
@@ -7692,3 +7692,15 @@ virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.HasLoss.get -> bool
 virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireNoLoss() -> TValue!
 virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireValue() -> TValue!
 virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.Succeeded.get -> bool
+OfficeIMO.OfficePageSelector
+OfficeIMO.OfficePageSelector.Equals(OfficeIMO.OfficePageSelector? other) -> bool
+OfficeIMO.OfficePageSelector.Expression.get -> string!
+OfficeIMO.OfficePageSelector.Resolve(int pageCount) -> System.Collections.Generic.IReadOnlyList<int>!
+OfficeIMO.OfficePageSelector.Resolve(int pageCount, int maximumPages) -> System.Collections.Generic.IReadOnlyList<int>!
+override OfficeIMO.OfficePageSelector.Equals(object? obj) -> bool
+override OfficeIMO.OfficePageSelector.GetHashCode() -> int
+override OfficeIMO.OfficePageSelector.ToString() -> string!
+static OfficeIMO.OfficePageSelector.Parse(string! expression) -> OfficeIMO.OfficePageSelector!
+static OfficeIMO.OfficePageSelector.TryParse(string? expression, out OfficeIMO.OfficePageSelector? selector) -> bool
+OfficeIMO.Drawing.OfficeImageExportOptions.PageSelector.get -> OfficeIMO.OfficePageSelector?
+OfficeIMO.Drawing.OfficeImageExportOptions.PageSelector.set -> void

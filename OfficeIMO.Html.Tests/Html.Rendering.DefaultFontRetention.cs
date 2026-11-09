@@ -123,8 +123,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument actual = HtmlRenderEngine.Render(source, options);
         HtmlRenderDocument reference = HtmlRenderEngine.Render(source, referenceOptions);
 
-        Assert.Equal(reference.Pages[0].CreateDrawing().ExportImage(OfficeImageExportFormat.Png).Bytes,
-            actual.Pages[0].CreateDrawing().ExportImage(OfficeImageExportFormat.Png).Bytes);
+        Assert.Equal(reference.Pages[0].CreateDrawing().ToImage(OfficeImageExportFormat.Png).Bytes,
+            actual.Pages[0].CreateDrawing().ToImage(OfficeImageExportFormat.Png).Bytes);
     }
 
     [Fact]

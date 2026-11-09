@@ -32,7 +32,7 @@ public sealed class SendOfficePdfPrinterCommand : AsyncPSCmdlet {
     /// <summary>Installed queue from Get-OfficePrinter.</summary>
     [Parameter(Mandatory = true)] public string PrinterName { get; set; } = string.Empty;
     /// <summary>Page selection such as 1-3,last.</summary>
-    [Parameter, PdfPageSelectorTransformation] public PdfPageSelector? Page { get; set; }
+    [Parameter, OfficePageSelectorTransformation] public OfficePageSelector? Page { get; set; }
     /// <summary>Source pages per sheet.</summary>
     [Parameter] [ValidateSet("1", "2", "4")] public int PagesPerSheet { get; set; } = 1;
     /// <summary>Copies submitted to the queue.</summary>

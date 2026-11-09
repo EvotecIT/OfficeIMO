@@ -394,6 +394,9 @@
         "../OfficeIMO.Word.Rtf/OfficeIMO.Word.Rtf.csproj",
         "../OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
         "../OfficeIMO.Archives/OfficeIMO.Archives.csproj",
+        "../OfficeIMO.Access/OfficeIMO.Access.csproj",
+        "../OfficeIMO.Xps/OfficeIMO.Xps.csproj",
+        "../OfficeIMO.DjVu/OfficeIMO.DjVu.csproj",
         "../OfficeIMO.Publisher/OfficeIMO.Publisher.csproj",
         "../OfficeIMO.Publisher.Pdf/OfficeIMO.Publisher.Pdf.csproj",
         "../OfficeIMO.Reader.Publisher/OfficeIMO.Reader.Publisher.csproj"
@@ -2751,6 +2754,39 @@
           "packageId": "OfficeIMO.Archives"
         },
         {
+          "id": "access",
+          "xml": "../OfficeIMO.Access/bin/Release/net8.0/OfficeIMO.Access.xml",
+          "assembly": "../OfficeIMO.Access/bin/Release/net8.0/OfficeIMO.Access.dll",
+          "out": "./_site/api/access",
+          "title": "OfficeIMO.Access API Reference",
+          "baseUrl": "/api/access",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Access"
+        },
+        {
+          "id": "xps",
+          "xml": "../OfficeIMO.Xps/bin/Release/net8.0/OfficeIMO.Xps.xml",
+          "assembly": "../OfficeIMO.Xps/bin/Release/net8.0/OfficeIMO.Xps.dll",
+          "out": "./_site/api/xps",
+          "title": "OfficeIMO.Xps API Reference",
+          "baseUrl": "/api/xps",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Xps"
+        },
+        {
+          "id": "djvu",
+          "xml": "../OfficeIMO.DjVu/bin/Release/net8.0/OfficeIMO.DjVu.xml",
+          "assembly": "../OfficeIMO.DjVu/bin/Release/net8.0/OfficeIMO.DjVu.dll",
+          "out": "./_site/api/djvu",
+          "title": "OfficeIMO.DjVu API Reference",
+          "baseUrl": "/api/djvu",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.DjVu"
+        },
+        {
           "id": "publisher",
           "xml": "../OfficeIMO.Publisher/bin/Release/net8.0/OfficeIMO.Publisher.xml",
           "assembly": "../OfficeIMO.Publisher/bin/Release/net8.0/OfficeIMO.Publisher.dll",
@@ -2947,7 +2983,13 @@
         "./_site/api/word-pdf/xrefmap.json",
         "./_site/api/word-rtf/xrefmap.json",
         "./_site/api/workflows/xrefmap.json",
-        "./_site/api/archives/xrefmap.json"
+        "./_site/api/archives/xrefmap.json",
+        "./_site/api/access/xrefmap.json",
+        "./_site/api/xps/xrefmap.json",
+        "./_site/api/djvu/xrefmap.json",
+        "./_site/api/publisher/xrefmap.json",
+        "./_site/api/publisher-pdf/xrefmap.json",
+        "./_site/api/reader-publisher/xrefmap.json"
       ],
       "preferLast": true,
       "maxReferences": 125000,

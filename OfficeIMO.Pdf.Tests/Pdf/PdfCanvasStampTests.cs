@@ -91,7 +91,7 @@ public class PdfCanvasStampTests {
                 canvas.Text("Layer " + callbackCount, global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D + (callbackCount * 30D)), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(24D));
             },
             new PdfCanvasStampOptions {
-                TargetPages = PdfPageSelector.Parse("1,1")
+                TargetPages = OfficePageSelector.Parse("1,1")
             }).ToBytes();
 
         string text = PdfReadDocument.Open(stamped).Pages[0].ExtractText();

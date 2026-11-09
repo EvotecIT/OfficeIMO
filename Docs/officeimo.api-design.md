@@ -2,20 +2,7 @@
 
 This document is the design contract for the unified OfficeIMO and PSWriteOffice public API: the rules every C# type and PowerShell command follows, the shared vocabulary between them, and what is removed. Package READMEs describe current behavior once it ships; remaining delivery work belongs in the [roadmap](ROADMAP.md#unified-public-api).
 
-Status: proposal for review. The redesign ships as OfficeIMO 3.6 and PSWriteOffice 3.6, released together from one pull request. Breaking changes are accepted throughout; nothing keeps a compatibility wrapper unless a section says so.
-
-## Why
-
-OfficeIMO's engines are broad and capable, but the public surface grew one feature at a time:
-
-- PSWriteOffice has 594 cmdlets, 383 command aliases and 1,720 distinct parameter names. The same idea is named differently from area to area: input as `-Path`, `-InputPath` or `-SourcePath`; output as `-Path` or `-OutputPath`; a sheet as `-Sheet` plus `-SheetIndex` on 87 cmdlets; sizes as `-HeightPixels`, `-SpacingBeforePoints`, `-WidthCm` or `-WidthCentimeters`.
-- 123 on/off parameters are typed `bool` or `bool?`, so scripts read `-KeepWithNext $true` instead of `-KeepWithNext`.
-- 113 cmdlets have no declared output, and no format views ship, so results print as walls of properties, including raw `Bytes`. `-OutputPath .\deck.png` silently becomes a folder.
-- The C# libraries expose about 7,000 public types. Word and Excel each have an object model and a separate `AsFluent()` API; Excel has a third, `SheetComposer`. There are three or four ways to convert to PDF. Word and PowerPoint carry the 9.5 MB PDF engine whether or not their users export PDF, while Excel does not.
-- PowerPoint geometry defaults to raw EMUs. Excel `AddTable` returns `void` while Word and PowerPoint return the table.
-- Ordinary output looks plain. Content slides are a small grey title and unstyled bullets; the designer deck looks designed only until an ordinary slide is added; charts use serif fonts. There is no cross-format theme.
-
-The goal is an API we can show on the first screen of the README and be proud of: small jobs take one line, large jobs stay fast, and the output looks good without styling every element by hand.
+The 3.6 cleanup establishes the shared lifecycle and conversion vocabulary. Package READMEs and support matrices describe the implemented contracts; [the roadmap](ROADMAP.md#unified-public-api) holds remaining work. This design document defines the conventions for additions and changes.
 
 ## Principles
 

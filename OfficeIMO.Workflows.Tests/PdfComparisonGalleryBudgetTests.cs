@@ -102,14 +102,14 @@ namespace OfficeIMO.Workflows.Tests {
             Assert.Equal(2, Directory.GetFiles(scope.Path).Length);
         }
 
-        private static (byte[] Expected, byte[] Actual, PdfPageSelector ExpectedPages, PdfPageSelector ActualPages,
+        private static (byte[] Expected, byte[] Actual, OfficePageSelector ExpectedPages, OfficePageSelector ActualPages,
             PdfVisualComparisonReport Report) CreateComparison(bool longerExpected) {
             byte[] onePage = CreatePages(1);
             byte[] hundredPages = CreatePages(100);
             byte[] expected = longerExpected ? hundredPages : onePage;
             byte[] actual = longerExpected ? onePage : hundredPages;
-            PdfPageSelector expectedPages = PdfPageSelector.Parse(longerExpected ? "1-100" : "1");
-            PdfPageSelector actualPages = PdfPageSelector.Parse(longerExpected ? "1" : "1-100");
+            OfficePageSelector expectedPages = OfficePageSelector.Parse(longerExpected ? "1-100" : "1");
+            OfficePageSelector actualPages = OfficePageSelector.Parse(longerExpected ? "1" : "1-100");
             PdfVisualComparisonReport report = PdfVisualComparer.Compare(expected, actual, options: new PdfVisualComparisonOptions {
                 ExpectedPages = expectedPages,
                 ActualPages = actualPages

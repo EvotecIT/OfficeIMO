@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             ExcelRichTextRun run = Assert.Single(sheet.Cell(1, 1).GetRichText());
             ExcelRange range = sheet.Range("A1:A1");
             ExcelVisualTextRun visualRun = Assert.Single(range.CreateVisualSnapshot().Cells.Single().RichTextRuns);
-            string svg = Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg,
+            string svg = Encoding.UTF8.GetString(range.ToImage(OfficeImageExportFormat.Svg,
                 new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
 
             Assert.True(sheet.Cell(1, 1).GetStyle().Bold);
@@ -44,8 +44,8 @@ namespace OfficeIMO.Tests {
                 .SetSuperscript();
 
             ExcelRange range = sheet.Range("A1:A1");
-            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
-            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult svgResult = range.ToImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult pngResult = range.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
             Assert.Contains("Styled plain cell", svg, StringComparison.Ordinal);
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
-            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult svgResult = range.ToImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
             Assert.Equal(3, snapshot.Cells[0].RichTextRuns.Count);
@@ -116,9 +116,9 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument loaded = ExcelDocument.Load(filePath);
                 ExcelRange range = loaded.Sheets[0].Range("A1:A1");
                 ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
-                OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg,
+                OfficeImageExportResult svgResult = range.ToImage(OfficeImageExportFormat.Svg,
                     new ExcelImageExportOptions { ShowGridlines = false });
-                OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png,
+                OfficeImageExportResult pngResult = range.ToImage(OfficeImageExportFormat.Png,
                     new ExcelImageExportOptions { ShowGridlines = false });
                 string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
                     Color = global::OfficeIMO.OfficeColor.Parse("0F766E")
                 });
 
-            OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult png = sheet.Range("A1:A1").ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
@@ -184,8 +184,8 @@ namespace OfficeIMO.Tests {
                     new ExcelRichTextRun("\ntext") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("0563C1") });
 
             ExcelRange range = sheet.Range("A1:A1");
-            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult pngResult = range.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult svgResult = range.ToImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
             Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
@@ -212,8 +212,8 @@ namespace OfficeIMO.Tests {
                     new ExcelRichTextRun(" text") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("0563C1"), FontSize = global::OfficeIMO.OfficeLength.Points(18D) });
 
             ExcelRange range = sheet.Range("A1:A1");
-            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult pngResult = range.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult svgResult = range.ToImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
             Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
@@ -239,8 +239,8 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
-            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult pngResult = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svgResult = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
             Assert.Contains(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "RichClip!A1");
@@ -269,8 +269,8 @@ namespace OfficeIMO.Tests {
             ExcelRange range = sheet.Range("A1:C1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
-            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
-            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svgResult = range.ToImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult pngResult = range.ToImage(OfficeImageExportFormat.Png, options);
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
             ExcelVisualCell first = snapshot.Cells.Single(cell => cell.Column == 1);
@@ -300,8 +300,8 @@ namespace OfficeIMO.Tests {
                 .SetRichText(new ExcelRichTextRun("Tilt") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(14D) }, new ExcelRichTextRun(" rich") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(13D) },new ExcelRichTextRun(" text") { Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB"), FontSize = global::OfficeIMO.OfficeLength.Points(13D) });
 
             ExcelRange range = sheet.Range("A1:A1");
-            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult pngResult = range.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult svgResult = range.ToImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
             Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
@@ -332,8 +332,8 @@ namespace OfficeIMO.Tests {
                 .SetRichText(new ExcelRichTextRun("S") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) }, new ExcelRichTextRun("V") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },new ExcelRichTextRun("G") { Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             ExcelRange range = sheet.Range("A1:A1");
-            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult pngResult = range.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult svgResult = range.ToImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
             Assert.True(OfficePngReader.TryDecode(pngResult.Bytes, out OfficeRasterImage? rendered));

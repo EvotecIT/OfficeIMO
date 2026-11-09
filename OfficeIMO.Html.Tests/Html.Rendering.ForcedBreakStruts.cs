@@ -79,7 +79,7 @@ public sealed partial class HtmlRenderingTests {
         XElement[] paintedFragments = XDocument.Parse(document.ToSvg(ForcedBreakOptions()))
             .Descendants().Where(node => node.Attribute("fill")?.Value == "#00FF00").ToArray();
         Assert.Equal(2, paintedFragments.Length);
-        Assert.True(OfficePngReader.TryDecode(document.ExportImage(OfficeImageExportFormat.Png,
+        Assert.True(OfficePngReader.TryDecode(document.ToImage(OfficeImageExportFormat.Png,
             ForcedBreakOptions()).Bytes, out OfficeRasterImage? image));
         HtmlRenderText before = Assert.Single(texts, text => text.Text == "BEFORE");
         int edgeX = (int)Math.Ceiling(before.X + before.TextAdvanceWidth!.Value);

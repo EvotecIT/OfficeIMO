@@ -132,7 +132,7 @@ public sealed partial class PdfRendererFidelityTests {
         // A 792pt page at 150 DPI is 1650.0000000000002 pixels in binary arithmetic, and exactly 1650 rows.
         byte[] pdf = BuildPdf("0 0 1 rg 0 0 612 792 re f", "<< >>", mediaBox: "0 0 612 792");
         OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0]
-            .ExportImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = 150D });
+            .ToImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = 150D });
         OfficeRasterImage image = PdfRendererQualitySupport.Decode(result.Bytes!);
         Assert.Equal((1275, 1650), (image.Width, image.Height));
         AssertColor(image, 1274, 1649, 0, 0, 255);
@@ -219,7 +219,7 @@ public sealed partial class PdfRendererFidelityTests {
 
     private static OfficeRasterImage Render(byte[] pdf) {
         OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0]
-            .ExportImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = 72D });
+            .ToImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = 72D });
         return PdfRendererQualitySupport.Decode(result.Bytes);
     }
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "moduleName": "PSWriteOffice",
-  "moduleVersion": "3.5.3",
+  "moduleVersion": "3.6.0",
   "commands": [
     {
       "name": "Add-OfficeAccessColumn",
@@ -3188,8 +3188,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/IWork/OpenOfficeIWorkCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/IWork/OpenOfficeIWorkCommand.cs#L19"
+      "sourceLine": 20,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/IWork/OpenOfficeIWorkCommand.cs#L20"
     },
     {
       "name": "Open-OfficeLatex",

@@ -154,7 +154,7 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
                 Width = global::OfficeIMO.OfficeLength.Points((double)Width), Height = global::OfficeIMO.OfficeLength.Points((double)Height), FontSize = global::OfficeIMO.OfficeLength.Points((double)FontSize),
                 RotationDegrees = (double)Rotation, Opacity = (double)Opacity / 100D,
                 Color = global::OfficeIMO.OfficeColor.FromRgb(color.R, color.G, color.B), BehindContent = BehindContent,
-                TargetPages = string.IsNullOrWhiteSpace(PageRange) ? null : PdfPageSelector.Parse(PageRange)
+                TargetPages = string.IsNullOrWhiteSpace(PageRange) ? null : OfficePageSelector.Parse(PageRange)
             };
             if (options.TargetPages is not null) {
                 var selected = options.TargetPages.Resolve(PageCount);

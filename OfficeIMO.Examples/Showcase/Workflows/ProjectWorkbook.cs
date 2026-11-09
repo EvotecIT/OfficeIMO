@@ -43,7 +43,7 @@ internal static class ProjectWorkbook {
         summary.Range("A11:D11").Merge();
         summary.Cell(11, 1).SetValue("Edit the Delivery sheet; Summary references the same values.");
         document.Calculate();
-        summary.Range("A1:D13").ExportImage(OfficeImageExportFormat.Png)
+        summary.Range("A1:D13").ToImage(OfficeImageExportFormat.Png)
             .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();
     }
