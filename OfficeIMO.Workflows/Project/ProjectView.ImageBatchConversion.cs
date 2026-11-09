@@ -33,8 +33,15 @@ public static partial class ProjectReportWorkflow {
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
+    /// <summary>Renders report pages asynchronously using the encoding in the shared options.</summary>
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this ProjectView document,
+        ProjectImageExportOptions? options = null, CancellationToken cancellationToken = default) {
+        ProjectImageExportOptions resolved = options?.Snapshot() ?? new ProjectImageExportOptions();
+        return CreateProjectViewImageBatchOperation(document, resolved).ExportAsync(cancellationToken);
+    }
+
     /// <summary>Asynchronously exports selected images through the shared bounded streaming bridge.</summary>
-    public static Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(this ProjectView document,
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this ProjectView document,
         OfficeImageExportFormat format, ProjectImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         ProjectImageExportOptions resolved = options?.Snapshot() ?? new ProjectImageExportOptions();
         resolved.Format = format;
@@ -42,7 +49,7 @@ public static partial class ProjectReportWorkflow {
     }
 
     /// <summary>Asynchronously delivers selected images with backpressure and cooperative cancellation.</summary>
-    public static Task ExportImagesAsync(this ProjectView document, OfficeImageExportFormat format,
+    public static Task ToImagesAsync(this ProjectView document, OfficeImageExportFormat format,
         OfficeImageExportAsyncConsumer consumer, ProjectImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         ProjectImageExportOptions resolved = options?.Snapshot() ?? new ProjectImageExportOptions();
         resolved.Format = format;
@@ -53,7 +60,7 @@ public static partial class ProjectReportWorkflow {
         ProjectView document, ProjectImageExportOptions options) {
         ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportBatchOperation<ProjectImageExportOptions>(options, options.Format, options.FileConflictPolicy,
-            (encoding, effective) => document.ExportImages(encoding, effective),
-            exportEach: (encoding, effective, consumer, token) => document.ExportImages(encoding, consumer, effective, token));
+            (encoding, effective) => document.ToImages(encoding, effective),
+            exportEach: (encoding, effective, consumer, token) => document.ToImages(encoding, consumer, effective, token));
     }
 }

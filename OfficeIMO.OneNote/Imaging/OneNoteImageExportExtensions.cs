@@ -6,7 +6,7 @@ namespace OfficeIMO.OneNote;
 /// <summary>OneNote page rendering and image-export entry points.</summary>
 public static partial class OneNoteImageExportExtensions {
     /// <summary>Exports a page using the shared five-format result contract.</summary>
-    public static OfficeImageExportResult ExportImage(
+    public static OfficeImageExportResult ToImage(
         this OneNotePage page,
         OfficeImageExportFormat format,
         OneNotePageRenderingOptions? options = null,
@@ -18,7 +18,7 @@ public static partial class OneNoteImageExportExtensions {
             cancellationToken: cancellationToken);
 
     /// <summary>Exports selected section pages using the shared five-format result contract.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(
         this OneNoteSection section,
         OfficeImageExportFormat format,
         OneNotePageBatchRenderingOptions? options = null) =>
@@ -28,7 +28,7 @@ public static partial class OneNoteImageExportExtensions {
             options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions());
 
     /// <summary>Exports selected notebook pages using the shared five-format result contract.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(
         this OneNoteNotebook notebook,
         OfficeImageExportFormat format,
         OneNotePageBatchRenderingOptions? options = null) =>

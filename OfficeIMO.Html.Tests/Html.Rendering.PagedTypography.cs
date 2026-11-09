@@ -76,8 +76,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("Zażółć", extracted, StringComparison.Ordinal);
         Assert.Contains("שלום", extracted, StringComparison.Ordinal);
         Assert.Contains("e\u0301", extracted, StringComparison.Ordinal);
-        IReadOnlyList<OfficeImageExportResult> png = document.ExportImages(OfficeImageExportFormat.Png, options);
-        IReadOnlyList<OfficeImageExportResult> svg = document.ExportImages(OfficeImageExportFormat.Svg, options);
+        IReadOnlyList<OfficeImageExportResult> png = document.ToImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svg = document.ToImages(OfficeImageExportFormat.Svg, options);
         Assert.Equal(rendered.Pages.Count, png.Count);
         Assert.Equal(rendered.Pages.Count, svg.Count);
         for (int page = 0; page < rendered.Pages.Count; page++) {

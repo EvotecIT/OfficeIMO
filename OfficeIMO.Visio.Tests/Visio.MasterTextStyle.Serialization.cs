@@ -232,7 +232,7 @@ public sealed class VisioMasterTextStyleSerializationTests {
         Assert.Equal((page.Height.ToInches() - centerY) * scale, Read("y") + Read("height") / 2, 3);
         OfficeRasterImage raster = VisualBaselineTestSupport.DecodePng(page.ToImage(new VisioImageExportOptions {
             TargetDpi = scale, Supersampling = 1, RenderStencilArtwork = false
-        }), "Default-frame PNG could not be decoded.");
+        }).Bytes, "Default-frame PNG could not be decoded.");
         int left = raster.Width, top = raster.Height, right = -1, bottom = -1;
         for (int y = 0; y < raster.Height; y++) {
             for (int x = 0; x < raster.Width; x++) {

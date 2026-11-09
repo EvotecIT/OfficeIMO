@@ -20,9 +20,9 @@ namespace OfficeIMO.Tests {
             };
 
             OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-                sheet.ExportImage(OfficeImageExportFormat.Png, options));
+                sheet.ToImage(OfficeImageExportFormat.Png, options));
             OfficeImageExportBatchLimitException batchException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-                sheet.ExportImages(
+                sheet.ToImages(
                     OfficeImageExportFormat.Png,
                     new ExcelImageExportOptions {
                         MaximumTotalEncodedBytes = 8L,
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), batchException.LimitName);
             Assert.Throws<OperationCanceledException>(() =>
-                sheet.ToImage(cancellationToken: new System.Threading.CancellationToken(canceled: true)));
+                sheet.ToImage(cancellationToken: new System.Threading.CancellationToken(canceled: true)).Bytes);
         }
 
         [Fact]
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             };
 
             OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-                sheet.ExportImages(OfficeImageExportFormat.Svg, options));
+                sheet.ToImages(OfficeImageExportFormat.Svg, options));
 
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
             Assert.Equal(options.MaximumTotalEncodedBytes, exception.Maximum);
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
             };
 
             OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-                sheet.ExportImage(OfficeImageExportFormat.Svg, options));
+                sheet.ToImage(OfficeImageExportFormat.Svg, options));
 
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
             Assert.Equal(options.MaximumTotalEncodedBytes, exception.Maximum);
@@ -96,11 +96,11 @@ namespace OfficeIMO.Tests {
                 Name = "Noise"
             });
 
-            OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult jpeg = sheet.ExportImage(OfficeImageExportFormat.Jpeg);
+            OfficeImageExportResult png = sheet.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult jpeg = sheet.ToImage(OfficeImageExportFormat.Jpeg);
             Assert.True(png.Bytes.LongLength > jpeg.Bytes.LongLength);
 
-            OfficeImageExportResult limited = sheet.ExportImage(
+            OfficeImageExportResult limited = sheet.ToImage(
                 OfficeImageExportFormat.Jpeg,
                 new ExcelImageExportOptions { MaximumTotalEncodedBytes = jpeg.Bytes.LongLength });
 
@@ -126,19 +126,19 @@ namespace OfficeIMO.Tests {
                 Range = "A1:T50",
                 ShowGridlines = false
             };
-            OfficeImageExportResult content = sheet.ExportImage(OfficeImageExportFormat.Png, contentOptions);
+            OfficeImageExportResult content = sheet.ToImage(OfficeImageExportFormat.Png, contentOptions);
 
             var pageOptions = new ExcelImageExportOptions {
                 Range = "A1:T50",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             };
-            OfficeImageExportResult page = Assert.Single(sheet.ExportImages(OfficeImageExportFormat.Png, pageOptions));
+            OfficeImageExportResult page = Assert.Single(sheet.ToImages(OfficeImageExportFormat.Png, pageOptions));
             Assert.True(content.Bytes.LongLength > page.Bytes.LongLength);
 
             pageOptions.MaximumTotalEncodedBytes = page.Bytes.LongLength;
             OfficeImageExportBatchLimitException failure = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-                sheet.ExportImages(OfficeImageExportFormat.Png, pageOptions));
+                sheet.ToImages(OfficeImageExportFormat.Png, pageOptions));
 
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), failure.LimitName);
             Assert.Equal(pageOptions.MaximumTotalEncodedBytes, failure.Maximum);
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Right.Text = "Draft";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:AZ4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Right.Text = "Draft";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(
                 OfficeImageExportFormat.Svg,
                 new ExcelImageExportOptions {
                     Range = "A1:AZ4",
@@ -210,7 +210,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Header.Center.Text = "&B" + visiblePrefix + "RICH-SECRET-TAIL";
             sheet.PageSetup.Footer.Right.Text = "&\"" + oversizedFont + ",Bold\"FONT-SECRET-TAIL";
 
-            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
+            OfficeImageExportResult result = Assert.Single(sheet.ToImages(
                 OfficeImageExportFormat.Svg,
                 new ExcelImageExportOptions {
                     Range = "A1:B2",
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Right.Text = "Page &[Page] of &N && draft";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -266,7 +266,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Right.Text = "&[File]";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:AZ4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Right.Text = "Printed &[Date] &T";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -321,7 +321,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Right.Text = "Printed &BConfidential";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -348,7 +348,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Header.Center.Text = "&KFF0000&14Red &A";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -371,7 +371,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Header.Center.Text = "&SStrike Header";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -393,7 +393,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Header.Center.Text = "&\"Aptos,Bold Italic\"Font Header";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -417,7 +417,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Header.Center.Text = "&\"OfficeIMO Missing Header Font,Bold\"Font Header";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -452,7 +452,7 @@ namespace OfficeIMO.Tests {
                 File.ReadAllBytes(fontPath));
 
             IReadOnlyList<OfficeImageExportResult> results =
-                sheet.ExportImages(OfficeImageExportFormat.Svg, options);
+                sheet.ToImages(OfficeImageExportFormat.Svg, options);
 
             Assert.DoesNotContain(
                 results[1].Diagnostics,
@@ -476,7 +476,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Header.Center.Text = "&\"AptosFont Header";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -499,7 +499,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Right.Text = "Printed &[Date] &T";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -534,7 +534,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.AddManualRowPageBreak(4, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P6",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -567,12 +567,12 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Center.Text = "Internal";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult composed = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult composed = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             })[1];
-            OfficeImageExportResult bodyOnly = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult bodyOnly = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A3:D4",
                 ShowGridlines = false
             });
@@ -599,7 +599,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Right.Text = "Internal";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(
+            OfficeImageExportResult result = sheet.ToImages(
                 OfficeImageExportFormat.Png,
                 new ExcelImageExportOptions {
                     Range = "A1:D4",
@@ -642,7 +642,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Center.Text = "Internal";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -663,7 +663,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -689,8 +689,8 @@ namespace OfficeIMO.Tests {
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             };
-            OfficeImageExportResult png = sheet.ExportImages(OfficeImageExportFormat.Png, options)[1];
-            OfficeImageExportResult svg = sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1];
+            OfficeImageExportResult png = sheet.ToImages(OfficeImageExportFormat.Png, options)[1];
+            OfficeImageExportResult svg = sheet.ToImages(OfficeImageExportFormat.Svg, options)[1];
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
@@ -716,7 +716,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Header.Center.SetImage(CreateHeaderFooterLogoPng(), "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -743,7 +743,7 @@ namespace OfficeIMO.Tests {
             });
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -768,8 +768,8 @@ namespace OfficeIMO.Tests {
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             };
-            OfficeImageExportResult png = sheet.ExportImages(OfficeImageExportFormat.Png, options)[1];
-            OfficeImageExportResult svg = sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1];
+            OfficeImageExportResult png = sheet.ToImages(OfficeImageExportFormat.Png, options)[1];
+            OfficeImageExportResult svg = sheet.ToImages(OfficeImageExportFormat.Svg, options)[1];
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
@@ -793,7 +793,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Header.Center.SetImage(new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -816,7 +816,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
             var codec = new HeaderImageCodec();
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,

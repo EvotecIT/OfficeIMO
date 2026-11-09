@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             int consumed = 0;
 
             OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-                document.ExportImages(
+                document.ToImages(
                     OfficeImageExportFormat.Png,
                     _ => consumed++,
                     new ExcelImageExportOptions { MaximumOutputCount = 1 }));
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 UsePrintArea = true,
                 ShowGridlines = false
             });
-            OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult png = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 UsePrintArea = true,
                 ShowGridlines = false
             });
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue("Name");
             sheet.Cell(2, 2).SetValue("Value");
 
-            OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 UsePrintArea = true
             });
 
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument loaded = ExcelDocument.Load(filePath);
             ExcelSheet loadedSheet = loaded.Sheets[0];
-            IReadOnlyList<OfficeImageExportResult> results = loadedSheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = loadedSheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 UsePrintArea = true,
                 ShowGridlines = false
             });
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument loaded = ExcelDocument.Load(filePath);
             ExcelSheet loadedSheet = loaded.Sheets[0];
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                loadedSheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+                loadedSheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                     UsePrintArea = true,
                     SplitByManualPageBreaks = true,
                     MaximumPageBreakImages = 1
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument loaded = ExcelDocument.Load(filePath);
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                loaded.Sheets[0].ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+                loaded.Sheets[0].ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                     UsePrintArea = true,
                     SplitByManualPageBreaks = true,
                     MaximumPageBreakImages = 2
@@ -211,12 +211,12 @@ namespace OfficeIMO.Tests {
             details.Cell(1, 1).SetValue("No print area");
             summary.PageSetup.PrintArea = "A1:A1";
             Assert.Equal("$A$1", summary.PageSetup.PrintArea);
-            OfficeImageExportResult directSummary = summary.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult directSummary = summary.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 UsePrintArea = true
             });
             Assert.Equal("Summary!A1:A1", directSummary.Source);
 
-            IReadOnlyList<OfficeImageExportResult> results = document.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = document.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 UsePrintArea = true
             });
 
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.AddManualColumnPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests {
             FillPageBreakGrid(sheet);
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -338,7 +338,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualColumnPageBreak(2, save: false);
             sheet.PageSetup.PageOrder = ExcelPageOrder.OverThenDown;
 
-            IReadOnlyList<OfficeImageExportResult> results = document.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = document.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 SheetNames = new[] { "Report" },
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -366,7 +366,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Footer.Right.Text = "Printed &BConfidential";
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -400,7 +400,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Scale = 50;
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -430,7 +430,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Scale = 75;
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -462,7 +462,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -492,7 +492,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -520,7 +520,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.FitToWidth = 0; sheet.PageSetup.FitToHeight = 1; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -546,7 +546,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -575,7 +575,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.Legal;
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            OfficeImageExportResult result = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -609,7 +609,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult result;
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.GetSheet("Report");
-                result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+                result = sheet.ToImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                     Range = "A1:D4",
                     SplitByManualPageBreaks = true,
                     ShowGridlines = false
@@ -634,7 +634,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -657,7 +657,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ToImages(
                 OfficeImageExportFormat.Svg,
                 new ExcelImageExportOptions {
                     Range = "A1:D4",

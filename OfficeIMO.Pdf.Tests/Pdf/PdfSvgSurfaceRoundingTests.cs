@@ -13,7 +13,7 @@ public sealed class PdfSvgSurfaceRoundingTests {
             .Paragraph(p => p.AddText("SVG surface rounding"))
             .ToBytes();
         var page = PdfReadDocument.Open(pdf).Pages[0];
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Svg,
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Svg,
             new PdfImageExportOptions { TargetDpi = 150 });
         var svg = XElement.Parse(Encoding.UTF8.GetString(result.Bytes));
         Assert.Equal(1275, result.Width); Assert.Equal(1650, result.Height);

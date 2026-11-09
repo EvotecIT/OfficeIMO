@@ -24,7 +24,7 @@ public partial class ExcelImageExportTests {
             ManagedTextShapingTestAssets.CreateFont('A'));
 
         OfficeImageExportResult result =
-            sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, options);
+            sheet.Range("A1:A1").ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(OfficeImageExportFormat.Png, result.Format);
         Assert.Contains(provider.Requests, request =>

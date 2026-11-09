@@ -112,7 +112,7 @@ public sealed class DrawingRasterOptionalCodecTests {
         var codec = invalidCodecDimensions ? new Codec { Size = 1 } : null;
         var drawing = new OfficeDrawing(16, 16).AddImage(bytes, "image/webp",
             new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 16)));
-        var result = drawing.ExportImage(OfficeImageExportFormat.Png,
+        var result = drawing.ToImage(OfficeImageExportFormat.Png,
             new OfficeImageExportOptions { ImageCodec = codec, BackgroundColor = OfficeColor.Transparent });
         Assert.True(OfficePngReader.TryDecode(result.Bytes, out var image));
         Assert.True(image!.GetPixel(image.Width / 2, image.Height / 2).A > 0);
@@ -123,7 +123,7 @@ public sealed class DrawingRasterOptionalCodecTests {
         var nearest = new OfficeDrawing(16, 16).AddImageWithInterpolation(bytes, "image/webp",
             new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 16)), interpolate: false);
         var svgCodec = invalidCodecDimensions ? new Codec { Size = 1 } : null;
-        var svgResult = nearest.ExportImage(OfficeImageExportFormat.Svg,
+        var svgResult = nearest.ToImage(OfficeImageExportFormat.Svg,
             new OfficeImageExportOptions { ImageCodec = svgCodec, BackgroundColor = OfficeColor.Transparent });
         Assert.Contains(svgResult.Diagnostics, x => x.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback
             && x.LossKind == OfficeConversionLossKind.Omission);
@@ -146,7 +146,7 @@ public sealed class DrawingRasterOptionalCodecTests {
         var drawing = new OfficeDrawing(16, 12).AddImage(bytes, "image/jpeg",
             new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 12)));
         var codec = supplyCallerCodec ? new IncorrectJpegCodec() : null;
-        var result = drawing.ExportImage(OfficeImageExportFormat.Png,
+        var result = drawing.ToImage(OfficeImageExportFormat.Png,
             new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent, ImageCodec = codec });
         Assert.True(OfficePngReader.TryDecode(result.Bytes, out var image));
         Assert.True(image!.GetPixel(8, 6).A > 0);
@@ -161,7 +161,7 @@ public sealed class DrawingRasterOptionalCodecTests {
         var drawing = new OfficeDrawing(16, 16).AddImageWithInterpolation(bytes, "image/webp",
             new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 16)), interpolate: false);
         foreach (var format in new[] { OfficeImageExportFormat.Png, OfficeImageExportFormat.Svg }) {
-            var result = drawing.ExportImage(format, new OfficeImageExportOptions { ImageCodec = new Codec() });
+            var result = drawing.ToImage(format, new OfficeImageExportOptions { ImageCodec = new Codec() });
             Assert.Contains(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec);
             Assert.DoesNotContain(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Contains(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected);

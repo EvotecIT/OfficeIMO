@@ -178,7 +178,7 @@ public sealed class VisioTextFramePlacementTests {
         XDocument svg = XDocument.Parse(page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = scale, RenderStencilArtwork = false }));
         OfficeRasterImage raster = VisualBaselineTestSupport.DecodePng(page.ToImage(new VisioImageExportOptions {
             TargetDpi = scale, Supersampling = 1, RenderStencilArtwork = false
-        }), "Text-frame PNG could not be decoded.");
+        }).Bytes, "Text-frame PNG could not be decoded.");
         Assert.Multiple(() => {
             XElement[] rectangles = svg.Descendants(Svg + "rect").Where(rect => rect.Attribute("data-officeimo-text-background") != null).ToArray();
             Assert.Equal(backgrounds, rectangles.Length);

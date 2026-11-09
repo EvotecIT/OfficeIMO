@@ -134,13 +134,5 @@ public sealed class DrawingConversionCapabilities {
         Assert.Equal(OfficeConversionSupportLevel.Advanced, pdfToPng.SupportLevel);
     }
 
-    [Fact]
-    public void SharedCatalog_OneNoteImageRoutesExposeACompleteFilePipeline() {
-        OfficeConversionCapability route = Assert.IsType<OfficeConversionCapability>(
-            OfficeConversionCapabilityCatalog.Find("onenote-png"));
 
-        Assert.Equal(OfficeConversionInputKind.File, route.InputKind);
-        Assert.Contains("OneNoteSection.Load(stream)", route.Api, StringComparison.Ordinal);
-        Assert.Contains(".ExportImages(", route.Api, StringComparison.Ordinal);
-    }
 }

@@ -1,6 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 
-namespace OfficeIMO.Pdf;
+namespace OfficeIMO;
 
 /// <summary>
 /// Represents a document-relative, caller-ordered page selection expression.
@@ -10,12 +12,12 @@ namespace OfficeIMO.Pdf;
 /// ranges (<c>1</c>, <c>1-3</c>, <c>5..2</c>), end-relative pages (<c>last</c>, <c>last-2</c>),
 /// <c>all</c>, <c>odd</c>, <c>even</c>, and exclusions prefixed with <c>!</c>.
 /// </remarks>
-public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
+public sealed class OfficePageSelector : IEquatable<OfficePageSelector> {
     private static readonly char[] TermSeparators = { ',', ';' };
     private readonly string _expression;
     private readonly SelectorTerm[] _terms;
 
-    private PdfPageSelector(string expression, SelectorTerm[] terms) {
+    private OfficePageSelector(string expression, SelectorTerm[] terms) {
         _expression = expression;
         _terms = terms;
     }
@@ -24,8 +26,8 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
     public string Expression => _expression;
 
     /// <summary>Parses a document-relative page selector.</summary>
-    public static PdfPageSelector Parse(string expression) {
-        Guard.NotNull(expression, nameof(expression));
+    public static OfficePageSelector Parse(string expression) {
+        ArgumentNullException.ThrowIfNull(expression);
         string normalized = expression.Trim();
         if (normalized.Length == 0) {
             throw new ArgumentException("Page selector expression cannot be empty.", nameof(expression));
@@ -50,11 +52,11 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
             terms[i] = ParseTerm(token, exclude, nameof(expression));
         }
 
-        return new PdfPageSelector(normalized, terms);
+        return new OfficePageSelector(normalized, terms);
     }
 
     /// <summary>Attempts to parse a document-relative page selector.</summary>
-    public static bool TryParse(string? expression, out PdfPageSelector? selector) {
+    public static bool TryParse(string? expression, out OfficePageSelector? selector) {
         selector = null;
         if (expression is null) {
             return false;
@@ -80,9 +82,9 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
         if (pageCount < 1) {
             throw new ArgumentOutOfRangeException(nameof(pageCount), "Document page count must be 1 or greater.");
         }
-        Guard.PositiveInteger(maximumPages, nameof(maximumPages));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPages);
 
-        var excludedRanges = new List<PdfPageRange>();
+        var excludedRanges = new List<ExcludedRange>();
         bool excludeOdd = false;
         bool excludeEven = false;
         bool hasIncludes = false;
@@ -99,7 +101,7 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
                 excludeEven = true;
             } else {
                 ResolvedTerm range = term.Resolve(pageCount);
-                excludedRanges.Add(new PdfPageRange(Math.Min(range.First, range.Last), Math.Max(range.First, range.Last)));
+                excludedRanges.Add(new ExcludedRange(Math.Min(range.First, range.Last), Math.Max(range.First, range.Last)));
             }
         }
 
@@ -127,14 +129,14 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
     }
 
     // Exclusions are retained as intervals and parity predicates, independent of the document page count.
-    private static void MergeExcludedRanges(List<PdfPageRange> ranges) {
+    private static void MergeExcludedRanges(List<ExcludedRange> ranges) {
         ranges.Sort(static (left, right) => left.FirstPage.CompareTo(right.FirstPage));
         int retained = 0;
         for (int i = 0; i < ranges.Count; i++) {
-            PdfPageRange next = ranges[i];
+            ExcludedRange next = ranges[i];
             if (retained > 0 && next.FirstPage <= (long)ranges[retained - 1].LastPage + 1) {
-                PdfPageRange previous = ranges[retained - 1];
-                ranges[retained - 1] = new PdfPageRange(previous.FirstPage, Math.Max(previous.LastPage, next.LastPage));
+                ExcludedRange previous = ranges[retained - 1];
+                ranges[retained - 1] = new ExcludedRange(previous.FirstPage, Math.Max(previous.LastPage, next.LastPage));
             } else {
                 ranges[retained++] = next;
             }
@@ -156,7 +158,7 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
         }
         long parity = page & 1;
         while (step > 0 ? page <= term.Last : page >= term.Last) {
-            if (excluded.TryGetRange(page, out PdfPageRange range)) {
+            if (excluded.TryGetRange(page, out ExcludedRange range)) {
                 // Jump over a whole covered run, then restore the inclusion's surviving parity.
                 page = step > 0 ? (long)range.LastPage + 1 : (long)range.FirstPage - 1;
                 if ((step == 2 || step == -2) && (page & 1) != parity) page += step > 0 ? 1 : -1;
@@ -169,19 +171,14 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
         }
     }
 
-    /// <summary>Resolves the selector to an absolute page selection.</summary>
-    public PdfPageSelection ResolveSelection(int pageCount) {
-        return PdfPageSelection.From(Resolve(pageCount).ToArray());
-    }
-
     /// <inheritdoc />
-    public bool Equals(PdfPageSelector? other) {
+    public bool Equals(OfficePageSelector? other) {
         return other is not null && string.Equals(_expression, other._expression, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <inheritdoc />
     public override bool Equals(object? obj) {
-        return obj is PdfPageSelector other && Equals(other);
+        return obj is OfficePageSelector other && Equals(other);
     }
 
     /// <inheritdoc />
@@ -341,10 +338,16 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
         public int Step { get; }
     }
 
-    private readonly struct ResolvedExclusions {
-        private readonly List<PdfPageRange> _ranges;
+    private readonly struct ExcludedRange {
+        internal ExcludedRange(int firstPage, int lastPage) { FirstPage = firstPage; LastPage = lastPage; }
+        internal int FirstPage { get; }
+        internal int LastPage { get; }
+    }
 
-        public ResolvedExclusions(List<PdfPageRange> ranges, bool excludeOdd, bool excludeEven) {
+    private readonly struct ResolvedExclusions {
+        private readonly List<ExcludedRange> _ranges;
+
+        public ResolvedExclusions(List<ExcludedRange> ranges, bool excludeOdd, bool excludeEven) {
             _ranges = ranges;
             ExcludeOdd = excludeOdd;
             ExcludeEven = excludeEven;
@@ -355,12 +358,12 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
 
         public bool IsParityExcluded(long page) => (page & 1) == 1 ? ExcludeOdd : ExcludeEven;
 
-        public bool TryGetRange(long page, out PdfPageRange range) {
+        public bool TryGetRange(long page, out ExcludedRange range) {
             int first = 0;
             int last = _ranges.Count - 1;
             while (first <= last) {
                 int middle = first + (last - first) / 2;
-                PdfPageRange candidate = _ranges[middle];
+                ExcludedRange candidate = _ranges[middle];
                 if (page < candidate.FirstPage) {
                     last = middle - 1;
                 } else if (page > candidate.LastPage) {

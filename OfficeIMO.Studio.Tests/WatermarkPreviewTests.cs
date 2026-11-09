@@ -70,7 +70,7 @@ public sealed class WatermarkPreviewTests {
                 document.Page(page => page.Content(content => content.AddParagraph("Second page")));
             }).ToBytes();
             await WithDocument(async workspace => {
-                var settings = new PdfWatermarkOptions { Text = "SECOND PAGE MARK", TargetPages = PdfPageSelector.Parse("2") };
+                var settings = new PdfWatermarkOptions { Text = "SECOND PAGE MARK", TargetPages = OfficePageSelector.Parse("2") };
                 await Assert.ThrowsAsync<ArgumentException>(() => workspace.PrepareWatermarkAsync(settings, 1, CancellationToken.None));
                 using var model = new Features.Editor.WatermarkPreviewViewModel(2, 1,
                     ((App)Application.Current!).Services.Localizer, workspace.PrepareWatermarkAsync,

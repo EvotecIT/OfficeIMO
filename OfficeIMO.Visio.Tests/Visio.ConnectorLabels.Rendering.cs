@@ -112,7 +112,7 @@ public sealed class VisioConnectorLabelRenderingTests {
             TargetDpi = pixelsPerInch,
             Supersampling = 1,
             ResolveConnectorLabelOverlaps = resolveOverlaps
-        }), "Connector label PNG could not be decoded.");
+        }).Bytes, "Connector label PNG could not be decoded.");
         int left = raster.Width, top = raster.Height, right = -1, bottom = -1;
         for (int y = 0; y < raster.Height; y++) {
             for (int x = 0; x < raster.Width; x++) {

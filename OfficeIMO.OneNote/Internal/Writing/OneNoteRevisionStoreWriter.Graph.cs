@@ -7,6 +7,7 @@ internal sealed class OneNoteDesktopWritePlan {
     private static readonly Guid FileDataHeader = new Guid("BDE316E7-2665-4511-A4C4-8D4D0B7A9EAC");
     private static readonly Guid FileDataFooter = new Guid("71FBA722-0F79-4A0B-BB13-899256426B24");
     private readonly OneNoteWriteGraph _graph;
+    private readonly OneNoteWriteIdFactory _ids;
     private readonly List<OneNoteDesktopFileNodeList> _lists = new List<OneNoteDesktopFileNodeList>();
     private readonly List<OneNoteDesktopDataChunk> _data = new List<OneNoteDesktopDataChunk>();
     private readonly OneNoteDesktopFileNodeList _root;
@@ -15,10 +16,12 @@ internal sealed class OneNoteDesktopWritePlan {
 
     private OneNoteDesktopWritePlan(OneNoteWriteGraph graph) {
         _graph = graph;
+        _ids = new OneNoteWriteIdFactory(graph.IdentitySeed, "desktop:" + graph.FileId.ToString("N"));
         _root = NewList();
     }
 
     internal OneNoteWriteGraph Graph => _graph;
+    internal Guid NewGuid() => _ids.NewGuid();
     internal IReadOnlyList<OneNoteDesktopFileNodeList> Lists => _lists;
     internal IReadOnlyList<OneNoteDesktopDataChunk> Data => _data;
     internal OneNoteDesktopFileNodeList Root => _root;
@@ -94,7 +97,7 @@ internal sealed class OneNoteDesktopWritePlan {
 
     private void AddSectionRevision(OneNoteWriteObjectSpace space, OneNoteDesktopFileNodeList revision) {
         OneNoteDesktopFileNodeList group = NewList();
-        OneNoteExtendedGuid groupId = new OneNoteExtendedGuid(Guid.NewGuid(), 1, 20);
+        OneNoteExtendedGuid groupId = new OneNoteExtendedGuid(_ids.NewGuid(), 1, 20);
         IReadOnlyDictionary<OneNoteExtendedGuid, uint> referenceCounts = CountReferences(space);
         revision.Nodes.Add(OneNoteDesktopFileNode.List(
             OneNoteFileNodeId.ObjectGroupListReference,
@@ -351,7 +354,7 @@ internal sealed class OneNoteDesktopWritePlan {
         stream.Write(data, 0, data.Length);
     }
 
-    private static OneNoteExtendedGuid NewExtendedGuid() => new OneNoteExtendedGuid(Guid.NewGuid(), 1, 20);
+    private OneNoteExtendedGuid NewExtendedGuid() => new OneNoteExtendedGuid(_ids.NewGuid(), 1, 20);
 
     private OneNoteDesktopDataChunk AddData(byte[] data) {
         var chunk = new OneNoteDesktopDataChunk(data);

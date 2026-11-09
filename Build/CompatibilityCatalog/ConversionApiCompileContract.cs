@@ -1,3 +1,4 @@
+using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Pdf.Word;
 using OfficeIMO.Pdf.Excel;
 using OfficeIMO.Pdf.PowerPoint;
@@ -220,17 +221,23 @@ internal static class ConversionApiCompileContract {
         // Every cataloged image source compiles against the same five-format owner
         // contract. Runtime tests enumerate PNG, SVG, JPEG, TIFF, and WebP.
         const OfficeImageExportFormat imageFormat = OfficeImageExportFormat.Png;
-        _ = word.ExportImages(imageFormat);
-        _ = excel.ExportImages(imageFormat);
-        _ = powerPoint.ExportImages(imageFormat);
-        _ = OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ExportImages(html, imageFormat);
-        _ = OfficeIMO.OneNote.OneNoteImageExportExtensions.ExportImages(oneNote, imageFormat);
-        _ = OfficeIMO.Visio.VisioImageExportExtensions.ExportImages(visio, imageFormat);
-        _ = OfficeIMO.Email.EmailImageExportExtensions.ExportImages(email, imageFormat);
-        _ = OfficeIMO.Epub.Image.EpubImageExportExtensions.ExportImages(epub, imageFormat);
-        _ = OfficeIMO.Word.OpenDocument.WordOpenDocumentImageExportExtensions.ExportImages(odt, imageFormat);
-        _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentImageExportExtensions.ExportImages(ods, imageFormat);
-        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentImageExportExtensions.ExportImages(odp, imageFormat);
-        _ = pdf.ExportImages(new PdfImageExportOptions { Format = imageFormat }, out _);
+        _ = word.ToImages(imageFormat);
+        _ = excel.ToImages(imageFormat);
+        _ = powerPoint.ToImages(imageFormat);
+        _ = OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ToImages(html, imageFormat);
+        _ = OfficeIMO.OneNote.OneNoteImageExportExtensions.ToImages(oneNote, imageFormat);
+        _ = OfficeIMO.Visio.VisioImageExportExtensions.ToImages(visio, imageFormat);
+        _ = OfficeIMO.Email.EmailImageExportExtensions.ToImages(email, imageFormat);
+        _ = OfficeIMO.Epub.Image.EpubImageExportExtensions.ToImages(epub, imageFormat);
+        _ = OfficeIMO.Word.OpenDocument.WordOpenDocumentImageExportExtensions.ToImages(odt, imageFormat);
+        _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentImageExportExtensions.ToImages(ods, imageFormat);
+        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentImageExportExtensions.ToImages(odp, imageFormat);
+        _ = pdf.ToImages(new PdfImageExportOptions { Format = imageFormat }, out _);
+        _ = rtf.ToImages(new PdfImageExportOptions { Format = imageFormat });
+        _ = mhtml.ToImages(new PdfImageExportOptions { Format = imageFormat });
+        _ = odg.ToImages(new OfficeImageExportOptions { Format = imageFormat });
+        _ = publisher.ToImages(new OfficeImageExportOptions { Format = imageFormat });
+        _ = DjVuDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = imageFormat });
+        _ = OfficeIMO.Xps.XpsDocumentImageConversionExtensions.ToImages(OfficeIMO.Xps.XpsDocument.Load(stream), new OfficeImageExportOptions { Format = imageFormat });
     }
 }

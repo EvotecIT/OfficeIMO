@@ -898,8 +898,8 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Png, options);
-        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
+        IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Svg, options);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions(options);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 

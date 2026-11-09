@@ -60,6 +60,8 @@ internal interface IDataReaderFastValueSource {
 }
 
 internal interface IDataReaderParallelBatchSource {
+    CancellationToken ParallelBatchCancellationToken { get; }
+
     bool CanReadParallelBatches { get; }
 
     int PreferredParallelBatchSize { get; }

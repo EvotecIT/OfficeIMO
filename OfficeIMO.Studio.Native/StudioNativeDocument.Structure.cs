@@ -177,7 +177,7 @@ internal sealed partial class StudioNativeDocument {
         };
         if (edit.Color is { } color) options.Color = global::OfficeIMO.OfficeColor.FromRgb(Channel(color.Red), Channel(color.Green), Channel(color.Blue));
         int[] pages = edit.Pages is { Count: > 0 } chosen ? RequirePages(chosen) : Enumerable.Range(1, _workspace.Pages.Count).ToArray();
-        if (edit.Pages is { Count: > 0 }) options.TargetPages = PdfPageSelector.Parse(RangeOf(pages)!);
+        if (edit.Pages is { Count: > 0 }) options.TargetPages = OfficePageSelector.Parse(RangeOf(pages)!);
         PdfWatermarkPreview prepared = await _workspace.PrepareWatermarkAsync(options, pages[0], cancellationToken).ConfigureAwait(false);
         await _workspace.ApplyWatermarkAsync(prepared, cancellationToken).ConfigureAwait(false);
 

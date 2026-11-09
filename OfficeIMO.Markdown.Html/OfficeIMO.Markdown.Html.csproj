@@ -10,7 +10,6 @@
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
-        <PackageId>OfficeIMO.Markdown.Html</PackageId>
         <PackageTags>html;markdown;converter;net472;net8.0;net10.0</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -22,7 +21,6 @@
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
     </PropertyGroup>
 
   <ItemGroup>

@@ -36,7 +36,7 @@ internal static class ProjectMilestoneTimeline {
             .Add("Arial", File.ReadAllBytes(Path.Combine(fonts, "Carlito-Bold.ttf")), OfficeFontStyle.Bold);
         var typography = new OfficeRenderingProfile("timeline-report", faces, OfficeManagedTextShapingProvider.Instance);
         var images = new ProjectImageExportOptions().UseRenderingProfile(typography).UseQuality(OfficeImageExportQuality.Print);
-        File.WriteAllBytes(Path.Combine(folder, "preview.png"), ProjectReportWorkflow.ExportImages(view, options: images).Single().Bytes);
+        File.WriteAllBytes(Path.Combine(folder, "preview.png"), ProjectReportWorkflow.ToImages(view, options: images).Single().Bytes);
         File.WriteAllText(Path.Combine(folder, "preview.svg"), ProjectReportWorkflow.ToSvg(view, typography).Single());
         File.WriteAllBytes(Path.Combine(folder, "preview.pdf"), ProjectReportWorkflow.ToPdf(view, typography: typography));
         using var slides = ProjectReportWorkflow.CreatePowerPoint(view, new ProjectOfficeReportOptions { Images = images });

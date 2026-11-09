@@ -33,7 +33,7 @@ public sealed class PdfDocumentResources {
 
     /// <summary>Inspects unique fonts declared by pages resolved by a document-relative selector.</summary>
     public PdfFontInventory Fonts(
-        PdfPageSelector selector,
+        OfficePageSelector selector,
         PdfFontInspectionOptions? inspectionOptions = null,
         PdfLoadOptions? loadOptions = null) {
         Guard.NotNull(selector, nameof(selector));

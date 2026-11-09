@@ -4862,7 +4862,7 @@
       "kind": "method",
       "action": "rename",
       "new": "WordDocument.ToPdf(WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
@@ -4885,7 +4885,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdf(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.Word.Pdf adapter.",
@@ -4909,7 +4909,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdf(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.Word.Pdf adapter.",
@@ -4945,7 +4945,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdfAsync(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
@@ -4967,7 +4967,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdfAsync(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
@@ -5037,27 +5037,27 @@
       "old": "OfficeIMO.Word.WordDocument.ToPng(WordImageExportOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : byte[] with options.Format",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : OfficeImageExportResult with options.Format",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
       "category": "conversion",
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.ToSvg(WordImageExportOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : byte[] with options.Format",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : OfficeImageExportResult with options.Format",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
       "category": "conversion",
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsPng(string path, WordImageExportOptions options = null)",
@@ -5070,7 +5070,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsSvg(string path, WordImageExportOptions options = null)",
@@ -5083,7 +5083,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsPng(Stream stream, WordImageExportOptions options = null)",
@@ -5096,7 +5096,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsSvg(Stream stream, WordImageExportOptions options = null)",
@@ -5109,7 +5109,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsPngAsync(string path, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -5122,7 +5122,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsSvgAsync(string path, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -5135,7 +5135,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsPngAsync(Stream stream, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -5148,7 +5148,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsSvgAsync(Stream stream, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -5161,46 +5161,46 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.ToJpeg(WordImageExportOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : byte[] with options.Format",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : OfficeImageExportResult with options.Format",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
       "category": "conversion",
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.ToTiff(WordImageExportOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : byte[] with options.Format",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : OfficeImageExportResult with options.Format",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
       "category": "conversion",
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.ToWebp(WordImageExportOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : byte[] with options.Format",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : OfficeImageExportResult with options.Format",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
       "category": "conversion",
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsJpeg(string path, WordImageExportOptions options = null)",
@@ -5213,7 +5213,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsTiff(string path, WordImageExportOptions options = null)",
@@ -5226,7 +5226,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsWebp(string path, WordImageExportOptions options = null)",
@@ -5239,7 +5239,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsJpeg(Stream stream, WordImageExportOptions options = null)",
@@ -5252,7 +5252,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsTiff(Stream stream, WordImageExportOptions options = null)",
@@ -5265,7 +5265,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsWebp(Stream stream, WordImageExportOptions options = null)",
@@ -5278,7 +5278,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsJpegAsync(string path, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -5291,7 +5291,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsTiffAsync(string path, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -5304,7 +5304,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsWebpAsync(string path, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -5317,7 +5317,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsJpegAsync(Stream stream, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -5330,7 +5330,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsTiffAsync(Stream stream, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -5343,7 +5343,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.SaveAsWebpAsync(Stream stream, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -5356,7 +5356,7 @@
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format.",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.ToImage()",
@@ -5373,7 +5373,7 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims.",
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims.",
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format."
     },
     {
@@ -5391,7 +5391,7 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims.",
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims.",
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format."
     },
     {
@@ -5409,7 +5409,7 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims.",
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims.",
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format."
     },
     {
@@ -5427,7 +5427,7 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns encoded bytes using options.Format, with an out-report overload and OfficeConversionResult<byte[]> for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims.",
+      "note": "Word page image conversions are implemented in OfficeIMO.Word.Pdf. ToImage returns OfficeImageExportResult with encoded Bytes and diagnostics using options.Format, with an out-report overload and OfficeImageExportResult for async. SaveAsImage/SaveAsImages return OfficeConversionReport. Both Word image builders and all format-named twins are removed without shims.",
       "notes": "The approved package decision places Word page images in Word.Pdf. Encoding belongs to WordImageExportOptions.Format."
     },
     {
@@ -7519,6 +7519,14 @@
       "category": "authoring",
       "phase": "B",
       "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ExportImage(...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(...) : OfficeImageExportResult",
+      "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
+      "category": "conversion"
     }
   ],
   "packageMoves": [

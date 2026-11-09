@@ -11,102 +11,102 @@ Stamps text, images, native canvas content or a PDF page onto existing PDFs.
 ## SYNTAX
 ### TextDocument (Default)
 ```powershell
-Add-OfficePdfStamp -Text <string> [-Size <OfficeLength>] [-Color <OfficeColor>] [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-PassThru] [-Document <PdfDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -Text <string> [-Size <OfficeLength>] [-Color <OfficeColor>] [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-PassThru] [-Document <PdfDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-Add-OfficePdfStamp [-Path] <string[]> -OutputPath <string> -Text <string> [-Size <OfficeLength>] [-Color <OfficeColor>] [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp [-Path] <string[]> -OutputPath <string> -Text <string> [-Size <OfficeLength>] [-Color <OfficeColor>] [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### TextDirectory
 ```powershell
-Add-OfficePdfStamp [-Path] <string[]> -Text <string> -OutputDirectory <string> [-Size <OfficeLength>] [-Color <OfficeColor>] [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp [-Path] <string[]> -Text <string> -OutputDirectory <string> [-Size <OfficeLength>] [-Color <OfficeColor>] [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Image
 ```powershell
-Add-OfficePdfStamp [-Path] <string[]> -OutputPath <string> -ImagePath <string> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp [-Path] <string[]> -OutputPath <string> -ImagePath <string> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### ImageDirectory
 ```powershell
-Add-OfficePdfStamp [-Path] <string[]> -OutputDirectory <string> -ImagePath <string> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp [-Path] <string[]> -OutputDirectory <string> -ImagePath <string> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Content
 ```powershell
-Add-OfficePdfStamp [-Path] <string[]> -OutputPath <string> -Content <scriptblock> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-ConfigureRendering <scriptblock>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp [-Path] <string[]> -OutputPath <string> -Content <scriptblock> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-ConfigureRendering <scriptblock>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### ContentDirectory
 ```powershell
-Add-OfficePdfStamp [-Path] <string[]> -OutputDirectory <string> -Content <scriptblock> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-ConfigureRendering <scriptblock>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp [-Path] <string[]> -OutputDirectory <string> -Content <scriptblock> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-ConfigureRendering <scriptblock>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Page
 ```powershell
-Add-OfficePdfStamp [-Path] <string[]> -OutputPath <string> -OverlayPath <string> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-OverlayPage <int>] [-Fit <PdfPageOverlayFit>] [-HorizontalAlignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-OverlayPassword <securestring>] [-IgnoreOverlayPermissionRestrictions] [-OverlayLoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp [-Path] <string[]> -OutputPath <string> -OverlayPath <string> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-OverlayPage <int>] [-Fit <PdfPageOverlayFit>] [-HorizontalAlignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-OverlayPassword <securestring>] [-IgnoreOverlayPermissionRestrictions] [-OverlayLoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PageDirectory
 ```powershell
-Add-OfficePdfStamp [-Path] <string[]> -OutputDirectory <string> -OverlayPath <string> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-OverlayPage <int>] [-Fit <PdfPageOverlayFit>] [-HorizontalAlignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-OverlayPassword <securestring>] [-IgnoreOverlayPermissionRestrictions] [-OverlayLoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp [-Path] <string[]> -OutputDirectory <string> -OverlayPath <string> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-OverlayPage <int>] [-Fit <PdfPageOverlayFit>] [-HorizontalAlignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-OverlayPassword <securestring>] [-IgnoreOverlayPermissionRestrictions] [-OverlayLoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### TextLiteralPath
 ```powershell
-Add-OfficePdfStamp -OutputPath <string> -Text <string> -LiteralPath <string[]> [-Size <OfficeLength>] [-Color <OfficeColor>] [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -OutputPath <string> -Text <string> -LiteralPath <string[]> [-Size <OfficeLength>] [-Color <OfficeColor>] [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### ImageLiteralPath
 ```powershell
-Add-OfficePdfStamp -OutputPath <string> -LiteralPath <string[]> -ImagePath <string> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -OutputPath <string> -LiteralPath <string[]> -ImagePath <string> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### ContentLiteralPath
 ```powershell
-Add-OfficePdfStamp -OutputPath <string> -LiteralPath <string[]> -Content <scriptblock> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-ConfigureRendering <scriptblock>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -OutputPath <string> -LiteralPath <string[]> -Content <scriptblock> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-ConfigureRendering <scriptblock>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PageLiteralPath
 ```powershell
-Add-OfficePdfStamp -OutputPath <string> -LiteralPath <string[]> -OverlayPath <string> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-OverlayPage <int>] [-Fit <PdfPageOverlayFit>] [-HorizontalAlignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-OverlayPassword <securestring>] [-IgnoreOverlayPermissionRestrictions] [-OverlayLoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -OutputPath <string> -LiteralPath <string[]> -OverlayPath <string> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-OverlayPage <int>] [-Fit <PdfPageOverlayFit>] [-HorizontalAlignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-OverlayPassword <securestring>] [-IgnoreOverlayPermissionRestrictions] [-OverlayLoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### TextLiteralPathDirectory
 ```powershell
-Add-OfficePdfStamp -Text <string> -OutputDirectory <string> -LiteralPath <string[]> [-Size <OfficeLength>] [-Color <OfficeColor>] [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -Text <string> -OutputDirectory <string> -LiteralPath <string[]> [-Size <OfficeLength>] [-Color <OfficeColor>] [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### ImageLiteralPathDirectory
 ```powershell
-Add-OfficePdfStamp -OutputDirectory <string> -LiteralPath <string[]> -ImagePath <string> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -OutputDirectory <string> -LiteralPath <string[]> -ImagePath <string> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### ImageDocument
 ```powershell
-Add-OfficePdfStamp -ImagePath <string> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-PassThru] [-Document <PdfDocument>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -ImagePath <string> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-PassThru] [-Document <PdfDocument>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### ContentLiteralPathDirectory
 ```powershell
-Add-OfficePdfStamp -OutputDirectory <string> -LiteralPath <string[]> -Content <scriptblock> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-ConfigureRendering <scriptblock>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -OutputDirectory <string> -LiteralPath <string[]> -Content <scriptblock> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-ConfigureRendering <scriptblock>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### ContentDocument
 ```powershell
-Add-OfficePdfStamp [-Content] <scriptblock> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-PassThru] [-Document <PdfDocument>] [-ConfigureRendering <scriptblock>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp [-Content] <scriptblock> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-PassThru] [-Document <PdfDocument>] [-ConfigureRendering <scriptblock>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PageLiteralPathDirectory
 ```powershell
-Add-OfficePdfStamp -OutputDirectory <string> -LiteralPath <string[]> -OverlayPath <string> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-OverlayPage <int>] [-Fit <PdfPageOverlayFit>] [-HorizontalAlignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-OverlayPassword <securestring>] [-IgnoreOverlayPermissionRestrictions] [-OverlayLoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -OutputDirectory <string> -LiteralPath <string[]> -OverlayPath <string> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-OverlayPage <int>] [-Fit <PdfPageOverlayFit>] [-HorizontalAlignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-OverlayPassword <securestring>] [-IgnoreOverlayPermissionRestrictions] [-OverlayLoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PageDocument
 ```powershell
-Add-OfficePdfStamp -OverlayPath <string> [-Page <PdfPageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-PassThru] [-Document <PdfDocument>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-OverlayPage <int>] [-Fit <PdfPageOverlayFit>] [-HorizontalAlignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-OverlayPassword <securestring>] [-IgnoreOverlayPermissionRestrictions] [-OverlayLoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -OverlayPath <string> [-Page <OfficePageSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <double>] [-Opacity <double>] [-Behind] [-PassThru] [-Document <PdfDocument>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-OverlayPage <int>] [-Fit <PdfPageOverlayFit>] [-HorizontalAlignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-OverlayPassword <securestring>] [-IgnoreOverlayPermissionRestrictions] [-OverlayLoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -458,7 +458,7 @@ Accept wildcard characters: False
 Native one-based page selector, including last, odd and even.
 
 ```yaml
-Type: PdfPageSelector
+Type: OfficePageSelector
 Parameter Sets: TextDocument, Text, TextDirectory, Image, ImageDirectory, Content, ContentDirectory, Page, PageDirectory, TextLiteralPath, ImageLiteralPath, ContentLiteralPath, PageLiteralPath, TextLiteralPathDirectory, ImageLiteralPathDirectory, ImageDocument, ContentLiteralPathDirectory, ContentDocument, PageLiteralPathDirectory, PageDocument
 Aliases: None
 Possible values:

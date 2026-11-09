@@ -234,7 +234,7 @@ public static class PdfPrintPlanner {
         cancellationToken.ThrowIfCancellationRequested();
         int[] pages = (validated.Pages == null || string.IsNullOrWhiteSpace(validated.Pages))
             ? Enumerable.Range(1, pageLayouts.Count).ToArray()
-            : PdfPageSelector.Parse(validated.Pages)
+            : OfficePageSelector.Parse(validated.Pages)
                 .ResolveSelection(pageLayouts.Count)
                 .Ranges
                 .SelectMany(static range => Enumerable.Range(range.FirstPage, range.PageCount))

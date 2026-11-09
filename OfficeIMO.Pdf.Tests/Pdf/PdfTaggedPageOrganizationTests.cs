@@ -132,7 +132,7 @@ public sealed partial class PdfTaggedPageOrganizationTests {
         if (allowed) {
             var output = result.RequireValue(); var read = PdfReadDocument.Open(output.ToBytes(), new PdfLoadOptions { Password = "open" });
             Assert.True(read.Security.HasEncryption); AssertStructure(read, 2);
-            var rotate = document.Pages.RotateResult(180, PdfPageSelector.Parse("last"));
+            var rotate = document.Pages.RotateResult(180, OfficePageSelector.Parse("last"));
             Assert.True(rotate.Succeeded, rotate.Exception?.ToString() ?? string.Join(" ", rotate.Diagnostics));
             var crop = document.Pages.SetPageBoxResult(PdfPageBoundaryBox.CropBox, 10, 10, 280, 480, PdfPageSelection.From(1));
             Assert.False(crop.Succeeded); // Assembly permits rotation; changing visible page boundaries requires modification.

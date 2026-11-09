@@ -401,7 +401,7 @@ public sealed class HtmlRenderRequestTests {
             Margins = HtmlRenderMargins.All(0D)
         };
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<p style='color:#336699'>Shared output</p>");
-        OfficeImageExportResult legacy = source.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult legacy = source.ToImage(OfficeImageExportFormat.Png, options);
 
         HtmlRenderRequest request = HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(options));

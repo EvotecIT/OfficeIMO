@@ -164,7 +164,7 @@ internal static class PdfPageImposer {
             overlays.Add(new PdfPageOverlayOptions {
                 SourcePageNumber = sourcePage,
                 SourceReadOptions = sourceReadOptions,
-                TargetPages = PdfPageSelector.Parse(sheet.ToString(CultureInfo.InvariantCulture)),
+                TargetPages = OfficePageSelector.Parse(sheet.ToString(CultureInfo.InvariantCulture)),
                 X = x, Y = y, Width = cellWidth, Height = cellHeight,
                 Fit = PdfPageOverlayFit.Contain
             });

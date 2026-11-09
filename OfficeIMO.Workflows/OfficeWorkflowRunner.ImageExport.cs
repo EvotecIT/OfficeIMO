@@ -51,7 +51,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             var options = new PdfImageExportOptions {
                 TargetDpi = validated.TargetDpi,
                 Format = validated.Format,
-                PageSelector = PdfPageSelector.Parse(PdfPageSelection.From(pageNumbers).ToString()),
+                PageSelector = OfficePageSelector.Parse(PdfPageSelection.From(pageNumbers).ToString()),
                 RasterEncoding = validated.RasterEncoding,
                 ThumbnailMaxDimension = validated.MaximumDimension,
                 MaximumOutputCount = validated.MaximumPages,
@@ -207,9 +207,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         if (request.MaximumDimension is < 1) throw new ArgumentOutOfRangeException(nameof(request.MaximumDimension));
         if (request.MaximumPages < 1) throw new ArgumentOutOfRangeException(nameof(request.MaximumPages));
         if (!OfficeRuntimeCompatibility.IsDefined(request.ConflictPolicy)) throw new ArgumentOutOfRangeException(nameof(request.ConflictPolicy));
-        PdfPageSelector? pageSelector = (request.Pages == null || string.IsNullOrWhiteSpace(request.Pages))
+        OfficePageSelector? pageSelector = (request.Pages == null || string.IsNullOrWhiteSpace(request.Pages))
             ? null
-            : PdfPageSelector.Parse(request.Pages);
+            : OfficePageSelector.Parse(request.Pages);
         OfficeOperationLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
         return new ValidatedImageExportRequest(
             request.Id,
@@ -227,7 +227,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             request.PublicationGuard, request.InputStream, request.DirectoryOutput);
     }
 
-    private static int[] ResolvePageNumbers(PdfPageSelector? selector, int pageCount, int maximumPages) {
+    private static int[] ResolvePageNumbers(OfficePageSelector? selector, int pageCount, int maximumPages) {
         if (pageCount < 1) throw new InvalidOperationException("The source PDF has no pages.");
         if (selector is not null) return selector.Resolve(pageCount, maximumPages).ToArray();
         if (pageCount > maximumPages) throw new InvalidOperationException("Page selection exceeds the configured page limit.");
@@ -259,7 +259,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         string Id,
         string InputPath,
         string OutputDirectory,
-        PdfPageSelector? PageSelector,
+        OfficePageSelector? PageSelector,
         OfficeImageExportFormat Format,
         OfficeRasterEncodingOptions RasterEncoding,
         double TargetDpi,

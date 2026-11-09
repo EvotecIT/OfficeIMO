@@ -31,13 +31,13 @@ namespace OfficeIMO.Tests {
             byte[] png = document.ToImage(new VisioImageExportOptions {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White
-            });
+            }).Bytes;
 
             AssertPngHeader(png, 600, 400);
             using MemoryStream blankStream = new();
             VisioDocument blank = VisioDocument.Create(blankStream);
             blank.AddPage("Blank").Size(OfficeLength.Inches(6), OfficeLength.Inches(4));
-            byte[] blankPng = blank.ToImage(new VisioImageExportOptions { TargetDpi = 100, BackgroundColor = OfficeColor.White });
+            byte[] blankPng = blank.ToImage(new VisioImageExportOptions { TargetDpi = 100, BackgroundColor = OfficeColor.White }).Bytes;
             AssertPngHeader(blankPng, 600, 400);
             Assert.NotEqual(blankPng, png);
         }
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(50, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(50, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(80, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(80, page.DefaultUnit)), "Bounded");
             using var output = new MemoryStream();
 
-            OfficeImageExportResult result = page.ExportImage(
+            OfficeImageExportResult result = page.ToImage(
                 OfficeImageExportFormat.Png,
                 new VisioImageExportOptions {
                     TargetDpi = 96D,
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int redPixels = 0;
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsRedPixel(image, 110, 110), "Expected text background center to account for TxtLocPin offsets.");
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int minY = image.Height;
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int translucentRedPixels = 0;
@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int longestGreenRun = 0;
@@ -350,7 +350,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             bool sawDash = false;
@@ -378,7 +378,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int redPixels = 0;
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             bool sawCapSeam = false;
@@ -438,7 +438,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 108, 100), "Expected the chevron notch to leave the former rectangle side untouched.");
@@ -459,7 +459,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 125, 65), "Expected the rounded terminator corner to leave the former rectangle corner untouched.");
@@ -480,7 +480,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 85, 145), "Expected the wavy document bottom to leave the former rectangle corner untouched.");
@@ -502,7 +502,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 216, 55), "Expected the rounded delay corner to leave the former rectangle corner untouched.");
@@ -524,7 +524,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 195, 55), "Expected the slanted manual-input top to leave the former rectangle corner untouched.");
@@ -579,7 +579,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsRedPixel(image, 150, 75), "Expected off-pin ellipse fill around the local geometry center.");
@@ -599,7 +599,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 80,
                 BackgroundColor = OfficeColor.Transparent,
                 Supersampling = 4
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int edgePixels = 0;
@@ -637,7 +637,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int redPixels = 0;
@@ -673,7 +673,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int backwardArrowPixels = 0;
@@ -713,7 +713,7 @@ namespace OfficeIMO.Tests {
                 BackgroundColor = OfficeColor.White,
                 FontFilePath = fontPath,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int darkPixels = 0;
@@ -751,7 +751,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int center = (((image.Height - 150) * image.Width) + 300) * 4;
@@ -790,7 +790,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             AssertPngHeader(png, 600, 300);
         }
@@ -820,7 +820,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 200, 150), "Expected the text pin itself to remain outside the rendered label background when TxtLocPin is bottom-left.");
@@ -857,7 +857,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             AssertPngHeader(png, 600, 300);
         }
@@ -895,7 +895,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             AssertPngHeader(png, 600, 300);
         }
@@ -913,7 +913,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int nonWhitePixels = 0;
@@ -988,7 +988,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 48,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int nonWhitePixels = 0;
@@ -1012,7 +1012,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1036,7 +1036,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1061,7 +1061,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1087,7 +1087,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1113,7 +1113,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1145,7 +1145,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1171,7 +1171,7 @@ namespace OfficeIMO.Tests {
                     TargetDpi = 100,
                     BackgroundColor = OfficeColor.White,
                     Supersampling = 1
-                });
+                }).Bytes;
 
                 return DecodeRgbaPng(png);
             }
@@ -1218,7 +1218,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int redPixels = 0;
@@ -1250,7 +1250,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1276,7 +1276,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1310,7 +1310,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1336,7 +1336,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1367,7 +1367,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 135, 100), "Expected SVG clipPath to leave the left side of package preview artwork unpainted.");
@@ -1386,7 +1386,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             bool sawDash = false;
@@ -1412,7 +1412,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             bool sawDash = false;
@@ -1438,7 +1438,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             (int RedMin, int RedMax, int RedCount) = FindHorizontalColorSpanNear(image, 84, radius: 2, IsRedPixel);
@@ -1461,7 +1461,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int redPixels = 0;
@@ -1492,7 +1492,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             (int RedMin, int RedMax, int RedCount) = FindVerticalColorSpanNear(image, 150, radius: 2, IsRedPixel);
@@ -1521,7 +1521,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsBluePixel(image, 150, 100), "Expected SVG arc preview artwork to render through the native PNG export path.");
@@ -1540,7 +1540,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsBluePixel(image, 150, 100), "Expected SVG rounded-rect package preview artwork to render through the native PNG export path.");
@@ -1559,7 +1559,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(HasBluePixelNear(image, 168, 83, radius: 3), "Expected SVG rotate transform to move preview artwork toward the upper-right.");
@@ -1577,7 +1577,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1601,7 +1601,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -1627,7 +1627,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int nonWhitePixels = 0;
@@ -1652,7 +1652,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsBluePixel(image, 150, 100), "Expected the wide package preview to be centered in the native PNG render.");
@@ -1701,7 +1701,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.False(IsBluePixel(image, 150, 100), "Expected SVG image opacity to avoid rendering the embedded preview as fully opaque blue.");
@@ -1719,7 +1719,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected preserved triangle geometry to leave the former rectangle corner untouched.");
@@ -1737,7 +1737,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsRedPixel(image, 128, 128), "Expected the first preserved subpath to render.");
@@ -1756,7 +1756,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsRedPixel(image, 120, 100), "Expected the outer preserved contour to fill.");
@@ -1774,7 +1774,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsRedPixel(image, 150, 130), "Expected the horizontal open geometry stroke to render.");
@@ -1793,7 +1793,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 190, 60), "Expected deleted geometry rows to avoid resurrecting the removed corner.");
@@ -1811,7 +1811,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected master preserved triangle geometry to leave the former rectangle corner untouched.");
@@ -1829,7 +1829,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 100), "Expected formula geometry to leave the former rectangle side untouched.");
@@ -1847,7 +1847,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 92, 100), "Expected LocPin formula geometry to leave the former rectangle side untouched.");
@@ -1865,7 +1865,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected shape transform formula geometry to leave the former rectangle corner untouched.");
@@ -1883,7 +1883,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 100), "Expected MIN/MAX formula geometry to leave the former rectangle side untouched.");
@@ -1901,7 +1901,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 100), "Expected ABS/SQRT formula geometry to leave the former rectangle side untouched.");
@@ -1919,7 +1919,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 100), "Expected SIN/COS formula geometry to leave the former rectangle side untouched.");
@@ -1937,7 +1937,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 100), "Expected advanced math formula geometry to leave the former rectangle side untouched.");
@@ -1955,7 +1955,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 100), "Expected power-operator formula geometry to leave the former rectangle side untouched.");
@@ -1973,7 +1973,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 100), "Expected unit formula geometry to leave the former rectangle side untouched.");
@@ -1991,7 +1991,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 100), "Expected guarded formula geometry to leave the former rectangle side untouched.");
@@ -2009,7 +2009,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 100), "Expected IF formula geometry to leave the former rectangle side untouched.");
@@ -2027,7 +2027,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 100), "Expected branch-selected IF formula geometry to leave the former rectangle side untouched.");
@@ -2045,7 +2045,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 100), "Expected logical IF formula geometry to leave the former rectangle side untouched.");
@@ -2063,7 +2063,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 150, 100), "Expected NoFill preserved geometry to leave the triangle interior untouched.");
@@ -2082,7 +2082,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected Ellipse geometry to leave the former rectangle corner untouched.");
@@ -2100,7 +2100,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsRedPixel(image, 150, 100), "Expected InfiniteLine geometry to stroke the clipped diagonal.");
@@ -2118,7 +2118,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected PolylineTo diamond geometry to leave the former rectangle corner untouched.");
@@ -2136,7 +2136,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 60), "Expected POLYLINE MIN/MAX geometry to leave the former rectangle corner untouched.");
@@ -2154,7 +2154,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 100, 60), "Expected POLYLINE percentage geometry to leave the former rectangle corner untouched.");
@@ -2172,7 +2172,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsRedPixel(image, 150, 165), "Expected positive ArcTo geometry to bow below its chord in Visio coordinates.");
@@ -2190,7 +2190,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected EllipticalArcTo geometry to leave the former rectangle corner untouched.");
@@ -2208,7 +2208,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected RelEllipticalArcTo geometry to leave the former rectangle corner untouched.");
@@ -2226,7 +2226,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected RelCubBezTo geometry to leave the former rectangle corner untouched.");
@@ -2244,7 +2244,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected CubBezTo geometry to leave the former rectangle corner untouched.");
@@ -2262,7 +2262,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected RelQuadBezTo geometry to leave the former rectangle corner untouched.");
@@ -2280,7 +2280,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected QuadBezTo geometry to leave the former rectangle corner untouched.");
@@ -2298,7 +2298,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected SplineStart/SplineKnot geometry to leave the former rectangle corner untouched.");
@@ -2316,7 +2316,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 120, 60), "Expected the deleted SplineKnot row to leave the former rectangle corner untouched.");
@@ -2334,7 +2334,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 110, 60), "Expected NURBSTo geometry to leave the former rectangle corner untouched.");
@@ -2352,7 +2352,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             bool sawApexPixel = false;
@@ -2377,7 +2377,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -2401,7 +2401,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 130, 100), "Expected transparent palette preview pixels to leave the native PNG background untouched.");
@@ -2419,7 +2419,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 130, 100), "Expected truecolor tRNS preview pixels to leave the native PNG background untouched.");
@@ -2437,7 +2437,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int darkPixels = 0;
@@ -2461,7 +2461,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int darkPixels = 0;
@@ -2485,7 +2485,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
 
             RgbaPng image = DecodeRgbaPng(png);
             int bluePixels = 0;
@@ -2546,7 +2546,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
         }
 
         private static byte[] RenderStyledRotatedText(double textAngle) {
@@ -2568,7 +2568,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
         }
 
         private static byte[] RenderStyledRotatedTextBackground(double textAngle) {
@@ -2592,7 +2592,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
         }
 
         private static byte[] RenderEllipseShape(double angle) {
@@ -2608,7 +2608,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
         }
 
         private static byte[] RenderPackagePreviewArtwork(double angle) {
@@ -2622,7 +2622,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
         }
 
         private static byte[] RenderStencilArtwork(double angle) =>
@@ -2642,7 +2642,7 @@ namespace OfficeIMO.Tests {
                 TargetDpi = 100,
                 BackgroundColor = OfficeColor.White,
                 Supersampling = 1
-            });
+            }).Bytes;
         }
 
         private static bool IsBluePixel(RgbaPng image, int x, int y) {

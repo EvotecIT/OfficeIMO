@@ -7,7 +7,7 @@ public sealed class OfficeScanCleanupOptions {
     /// <summary>Page selection, sampling density, region cropping, perspective, and tonal settings.</summary>
     public PdfOcrMergeOptions Preparation { get; set; } = new();
     /// <summary>Optional document-relative pages, resolved against the captured source. Cannot be combined with Preparation.ReadOptions.PageSelection.</summary>
-    public OfficeIMO.Pdf.PdfPageSelector? PageSelector { get; set; }
+    public OfficeIMO.OfficePageSelector? PageSelector { get; set; }
     /// <summary>Must be true to acknowledge that only rendered appearances are copied; native text, forms, links, signatures, and attachments are omitted.</summary>
     public bool AcknowledgeRasterOutput { get; set; }
     /// <summary>Optional SHA-256 hex digest from a reviewed source snapshot; a mismatch blocks output.</summary>

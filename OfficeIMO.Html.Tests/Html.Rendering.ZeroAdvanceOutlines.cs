@@ -37,8 +37,8 @@ public sealed partial class HtmlRenderingTests {
             shape.Shape.PathCommands.Count > 0 && shape.Shape.FillColor is OfficeColor fill
                 && fill.A > 0 && fill.R < 128 && fill.G < 128 && fill.B < 128);
 
-        OfficeImageExportResult image = document.ExportImage(OfficeImageExportFormat.Png, options);
-        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(pdf,
+        OfficeImageExportResult image = document.ToImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(pdf,
             OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
         Assert.Equal(replay.Bytes, image.Bytes);
         image.CreateReport().ThrowIfLoss();

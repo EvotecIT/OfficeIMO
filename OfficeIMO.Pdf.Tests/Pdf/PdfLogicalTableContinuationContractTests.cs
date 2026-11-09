@@ -48,7 +48,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
     public void TableContinuations_PublicReaderSupportsSelectorsAndPreflight() {
         PdfDocument source = PdfDocument.Load(BuildMultiPageTablePdf());
 
-        PdfLogicalTableContinuationGroup group = Assert.Single(source.Reader.TableContinuations(PdfPageSelector.Parse("all")));
+        PdfLogicalTableContinuationGroup group = Assert.Single(source.Reader.TableContinuations(OfficePageSelector.Parse("all")));
         PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> attempt = source.Reader.TableContinuationsResult();
 
         Assert.True(group.SpansPages);

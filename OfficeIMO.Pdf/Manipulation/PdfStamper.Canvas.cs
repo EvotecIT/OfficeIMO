@@ -68,7 +68,7 @@ internal static partial class PdfStamper {
                 CancellationToken = cancellationToken,
                 ContentIdentifier = effective.ContentIdentifier,
                 WatermarkSettings = effective.WatermarkSettings,
-                TargetPages = PdfPageSelector.Parse(pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                TargetPages = OfficePageSelector.Parse(pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 Fit = PdfPageOverlayFit.Stretch,
                 X = 0D,
                 Y = 0D,

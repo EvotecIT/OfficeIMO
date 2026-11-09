@@ -36,7 +36,7 @@ public sealed class PdfPageOverlayOptions : IPdfOperationCancellation {
     }
 
     /// <summary>Optional target-page selector. Null applies the imported page to every target page.</summary>
-    public PdfPageSelector? TargetPages { get; set; }
+    public OfficePageSelector? TargetPages { get; set; }
     /// <summary>How the imported page fits the target rectangle.</summary>
     public PdfPageOverlayFit Fit {
         get => _fit;
@@ -103,7 +103,7 @@ public sealed class PdfPageOverlayOptions : IPdfOperationCancellation {
 
     /// <summary>Sets the target pages from a rich page-selector expression.</summary>
     public PdfPageOverlayOptions UseTargetPages(string selector) {
-        TargetPages = PdfPageSelector.Parse(selector);
+        TargetPages = OfficePageSelector.Parse(selector);
         return this;
     }
 

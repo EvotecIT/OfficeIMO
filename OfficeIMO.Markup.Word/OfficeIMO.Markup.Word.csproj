@@ -9,7 +9,6 @@
         <IsPackable>False</IsPackable>
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
-        <PackageId>OfficeIMO.Markup.Word</PackageId>
         <PackageTags>officeimo;markup;markdown;docx;word;document</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -22,7 +21,6 @@
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
         <EnableTrimmingPolyfills>false</EnableTrimmingPolyfills>
     </PropertyGroup>
 

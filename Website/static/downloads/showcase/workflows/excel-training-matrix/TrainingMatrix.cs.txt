@@ -30,7 +30,7 @@ internal static class TrainingMatrix {
         sheet.Cell(13, 1).SetValue("Completion rate"); sheet.Cell(13, 5).SetFormula("E11/E12"); sheet.Cell(13, 5).SetNumberFormat("0%");
         sheet.Cell(13, 5).SetFillColor(OfficeColor.Parse("E7F6ED")); sheet.Cell(13, 5).SetBold(true);
         document.Calculate();
-        sheet.Range("A1:E15").ExportImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
+        sheet.Range("A1:E15").ToImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();
     }
 }

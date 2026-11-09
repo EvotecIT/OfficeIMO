@@ -1,3 +1,4 @@
+using OfficeIMO;
 using OfficeIMO.AI;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -30,8 +31,8 @@ internal static class DocumentInputs {
             using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes), new PdfLoadOptions {
                 Limits = new PdfReadLimits { MaxInputBytes = limits.MaxInputBytes }, PermissionPolicy = PdfPermissionPolicy.Enforce
             });
-            PdfPageSelector? selection = pages.Count == 0 ? null : PdfPageSelector.Parse(string.Join(",", pages));
-            IReadOnlyList<OfficeImageExportResult> rendered = document.ExportImages(
+            OfficePageSelector? selection = pages.Count == 0 ? null : OfficePageSelector.Parse(string.Join(",", pages));
+            IReadOnlyList<OfficeImageExportResult> rendered = document.ToImages(
                 new PdfImageExportOptions {
                     Format = OfficeImageExportFormat.Png, PageSelector = selection,
                     TargetDpi = 120, MaximumOutputCount = limits.MaxPages, MaximumRasterPixels = limits.MaxImagePixels,

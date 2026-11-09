@@ -31,7 +31,7 @@ public class PdfPageAttributeIncrementalTests {
         using var independent = UglyToad.PdfPig.PdfDocument.Open(output);
         Assert.Equal(before.PageCount, independent.NumberOfPages);
         Assert.Equal(90, independent.GetPage(1).Rotation.Value);
-        PdfOperationResult<PdfDocument> selectorResult = original.Pages.RotateResult(90, PdfPageSelector.Parse("1"));
+        PdfOperationResult<PdfDocument> selectorResult = original.Pages.RotateResult(90, OfficePageSelector.Parse("1"));
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, selectorResult.MutationPlan!.ExecutionMode);
         Assert.Equal(90, selectorResult.RequireValue().Inspect().Pages[0].RotationDegrees);
         Assert.Equal(PdfMutationOperation.RotatePages, rotated.Pipeline.Steps.Last().MutationOperation);

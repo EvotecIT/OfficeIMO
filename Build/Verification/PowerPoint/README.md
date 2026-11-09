@@ -6,4 +6,4 @@ On Windows with PowerPoint Desktop installed, the existing tests opt in through 
 
 The shared verifier disables macros before opening a document, validates the exported image sequence and PNG content, and retains on-slide geometry and omitted-content checks. It reports unavailable or failed native rendering without substituting managed images. Native Office execution is separate from managed rendering proof.
 
-Product callers use `PowerPointSlide.ExportImage(...)` or `ToImage()` for managed output. Record independently produced native artifacts with `PowerPointCompatibilityReport.RecordExternal(...)`.
+Product callers use `PowerPointSlide.ToImage(...)` or `ToImage()` for managed output. Record independently produced native artifacts with `PowerPointCompatibilityReport.RecordExternal(...)`.

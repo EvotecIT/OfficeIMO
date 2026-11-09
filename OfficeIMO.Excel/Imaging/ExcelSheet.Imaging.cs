@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Exports a worksheet range or used range as a supported raster format or SVG.
         /// </summary>
-        public OfficeImageExportResult ExportImage(
+        public OfficeImageExportResult ToImage(
             OfficeImageExportFormat format,
             ExcelImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
@@ -47,14 +47,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Exports one or more worksheet image results. Multi-area print areas and manual page-break splits are returned as separate images when requested.
         /// </summary>
-        public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelImageExportOptions? options = null) {
+        public IReadOnlyList<OfficeImageExportResult> ToImages(OfficeImageExportFormat format, ExcelImageExportOptions? options = null) {
             var results = new List<OfficeImageExportResult>();
-            ExportImages(format, results.Add, options);
+            ToImages(format, results.Add, options);
             return results.AsReadOnly();
         }
 
         /// <summary>Streams worksheet image parts to a consumer without retaining earlier payloads.</summary>
-        public void ExportImages(
+        public void ToImages(
             OfficeImageExportFormat format,
             OfficeImageExportConsumer consumer,
             ExcelImageExportOptions? options = null,

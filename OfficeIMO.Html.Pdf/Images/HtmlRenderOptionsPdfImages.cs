@@ -12,5 +12,5 @@ internal static class HtmlRenderOptionsPdfImages {
     }
 
     internal static global::OfficeIMO.Pdf.PdfPageSelection? ToPdfPageSelection(this HtmlRenderOptions source) =>
-        source.PageSelection == null ? null : global::OfficeIMO.Pdf.PdfPageSelection.From(source.PageSelection.ToArray());
+        source.PageSelector != null || source.PageSelection == null ? null : global::OfficeIMO.Pdf.PdfPageSelection.From(source.PageSelection.ToArray());
 }

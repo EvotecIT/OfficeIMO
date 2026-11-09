@@ -78,7 +78,7 @@ internal static partial class NativeAdapters {
         options.UseRenderingProfile(profile);
         using var output = new MemoryStream();
         OfficeConversionReport report = document.SaveAsPdf(output, new HtmlPdfExportOptions(options), cancellationToken);
-        return new NativeExport(output.ToArray(), format => document.ExportImages(format, options),
+        return new NativeExport(output.ToArray(), format => document.ToImages(format, options),
             report.Diagnostics.Select(item => item.Code).ToList());
     }
 }

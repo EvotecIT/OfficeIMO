@@ -17,12 +17,12 @@ public sealed class EpubFixedLayoutInspectionTests {
             new XElement(html + "div", new XAttribute("style", "width:40px;height:10px;background:#804e12")));
         book.SetContentXml("page", xml);
         byte[] empty = Read(book).InspectFixedLayoutPage(0).Rendering.Pages[0].CreateDrawing()
-            .ExportImage(OfficeImageExportFormat.Png).Bytes;
+            .ToImage(OfficeImageExportFormat.Png).Bytes;
         foreach (var child in frame.Elements()) child.Add(new XText(string.Empty));
         Assert.All(frame.Elements(), child => Assert.False(child.IsEmpty));
         book.SetContentXml("page", xml);
         byte[] closed = Read(book).InspectFixedLayoutPage(0).Rendering.Pages[0].CreateDrawing()
-            .ExportImage(OfficeImageExportFormat.Png).Bytes;
+            .ToImage(OfficeImageExportFormat.Png).Bytes;
         Assert.Equal(closed, empty);
     }
 
@@ -106,8 +106,8 @@ public sealed class EpubFixedLayoutInspectionTests {
         var selected = source.InspectFixedLayoutRegions(0, new[] { "other", "frame" });
         Assert.Equal(new[] { "other", "frame" }, selected.Regions.Select(r => r.ElementId));
         Assert.False(selected.Regions[0].HasOverflow); Assert.True(selected.Regions[1].HasOverflow);
-        Assert.Equal(plain.Rendering.Pages[0].CreateDrawing().ExportImage(OfficeImageExportFormat.Png).Bytes,
-            selected.Rendering.Pages[0].CreateDrawing().ExportImage(OfficeImageExportFormat.Png).Bytes);
+        Assert.Equal(plain.Rendering.Pages[0].CreateDrawing().ToImage(OfficeImageExportFormat.Png).Bytes,
+            selected.Rendering.Pages[0].CreateDrawing().ToImage(OfficeImageExportFormat.Png).Bytes);
     }
 
     [Fact]

@@ -147,7 +147,7 @@ public sealed partial class OfficeWorkflowRunner {
         words == 0 ? "PDF saved; no OCR text was added." : diagnostics.Any(item => item.Severity == OfficeWorkflowDiagnosticSeverity.Warning)
             ? "Searchable PDF created with recognition warnings; review the diagnostics." : "Searchable PDF created.";
 
-    private static PdfLoadOptions ResolveOcrReadSelection(PdfLoadOptions snapshot, PdfPageSelector selector, int pageCount, int maximumPages) => new() {
+    private static PdfLoadOptions ResolveOcrReadSelection(PdfLoadOptions snapshot, OfficePageSelector selector, int pageCount, int maximumPages) => new() {
         Profile = snapshot.Profile,
         PageSelection = PdfPageSelection.From(selector.Resolve(pageCount, maximumPages).ToArray()),
         LayoutOptions = snapshot.LayoutOptions,

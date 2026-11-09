@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(package);
             document.AddParagraph("Dependency-free raster export");
 
-            OfficeImageExportResult result = document.ExportImage(format, new WordImageExportOptions {
+            OfficeImageExportResult result = document.ToImage(format, new WordImageExportOptions {
                 RasterEncoding = new OfficeRasterEncodingOptions {
                     Tiff = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.None }
                 }
@@ -39,8 +39,8 @@ namespace OfficeIMO.Tests {
             OfficeConversionReport saved = document.SaveAsImage(output, new WordImageExportOptions { Format = OfficeImageExportFormat.Webp });
 
             Assert.Equal("Webp", saved.Target);
-            Assert.Equal(OfficeImageFormat.Jpeg, OfficeImageReader.Identify(document.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Jpeg })).Format);
-            Assert.Equal(OfficeImageFormat.Tiff, OfficeImageReader.Identify(document.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Tiff })).Format);
+            Assert.Equal(OfficeImageFormat.Jpeg, OfficeImageReader.Identify(document.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Jpeg }).Bytes).Format);
+            Assert.Equal(OfficeImageFormat.Tiff, OfficeImageReader.Identify(document.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Tiff }).Bytes).Format);
             Assert.Equal(OfficeImageFormat.Webp, OfficeImageReader.Identify(output.ToArray()).Format);
         }
     }

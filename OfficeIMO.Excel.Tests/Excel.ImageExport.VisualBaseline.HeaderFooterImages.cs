@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             using ExcelBaselineFixture fixture = CreateHeaderFooterImagesBaselineWorkbook();
             ExcelImageExportOptions options = CreateHeaderFooterImagesBaselineOptions();
 
-            OfficeImageExportResult png = fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options)[1];
-            OfficeImageExportResult svg = fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1];
+            OfficeImageExportResult png = fixture.Sheet.ToImages(OfficeImageExportFormat.Png, options)[1];
+            OfficeImageExportResult svg = fixture.Sheet.ToImages(OfficeImageExportFormat.Svg, options)[1];
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.Equal("HeaderFooterImages!A3:D4", png.Source);
@@ -46,8 +46,8 @@ namespace OfficeIMO.Tests {
             if (UpdateBaselines) {
                 using ExcelBaselineFixture fixture = CreateHeaderFooterImagesBaselineWorkbook();
                 ExcelImageExportOptions options = CreateHeaderFooterImagesBaselineOptions();
-                AssertRasterBaseline(HeaderFooterImagesBaselineName + ".png", fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options)[1].Bytes);
-                AssertTextBaseline(HeaderFooterImagesBaselineName + ".svg", Encoding.UTF8.GetString(fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1].Bytes));
+                AssertRasterBaseline(HeaderFooterImagesBaselineName + ".png", fixture.Sheet.ToImages(OfficeImageExportFormat.Png, options)[1].Bytes);
+                AssertTextBaseline(HeaderFooterImagesBaselineName + ".svg", Encoding.UTF8.GetString(fixture.Sheet.ToImages(OfficeImageExportFormat.Svg, options)[1].Bytes));
             }
 
             Assert.True(File.Exists(pngPath), "Missing approved header/footer image PNG baseline: " + pngPath);

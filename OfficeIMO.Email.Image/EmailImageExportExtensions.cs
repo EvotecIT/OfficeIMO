@@ -14,7 +14,7 @@ public static partial class EmailImageExportExtensions {
         new Uri("https://officeimo.invalid/message/");
 
     /// <summary>Exports one email body surface or selected rendered page.</summary>
-    public static OfficeImageExportResult ExportImage(
+    public static OfficeImageExportResult ToImage(
         this EmailDocument source,
         OfficeImageExportFormat format,
         EmailImageExportOptions? options = null,
@@ -22,7 +22,7 @@ public static partial class EmailImageExportExtensions {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         EmailRenderPreparation preparation = Prepare(source, options);
-        OfficeImageExportResult result = preparation.Document.ExportImage(
+        OfficeImageExportResult result = preparation.Document.ToImage(
             format,
             preparation.Options,
             pageIndex,
@@ -34,14 +34,14 @@ public static partial class EmailImageExportExtensions {
     }
 
     /// <summary>Asynchronously exports one email surface and resolves inline MIME resources.</summary>
-    public static async Task<OfficeImageExportResult> ExportImageAsync(
+    public static async Task<OfficeImageExportResult> ToImageAsync(
         this EmailDocument source,
         OfficeImageExportFormat format,
         EmailImageExportOptions? options = null,
         int pageIndex = 0,
         CancellationToken cancellationToken = default) {
         EmailRenderPreparation preparation = Prepare(source, options);
-        OfficeImageExportResult result = await preparation.Document.ExportImageAsync(
+        OfficeImageExportResult result = await preparation.Document.ToImageAsync(
             format,
             preparation.Options,
             pageIndex,
@@ -53,17 +53,17 @@ public static partial class EmailImageExportExtensions {
     }
 
     /// <summary>Exports every rendered email page.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(
         this EmailDocument source,
         OfficeImageExportFormat format,
         EmailImageExportOptions? options = null) {
         var results = new List<OfficeImageExportResult>();
-        source.ExportImages(format, results.Add, options);
+        source.ToImages(format, results.Add, options);
         return results.AsReadOnly();
     }
 
     /// <summary>Streams rendered email pages without retaining earlier payloads.</summary>
-    public static void ExportImages(
+    public static void ToImages(
         this EmailDocument source,
         OfficeImageExportFormat format,
         OfficeImageExportConsumer consumer,
@@ -71,7 +71,7 @@ public static partial class EmailImageExportExtensions {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(consumer);
         EmailRenderPreparation preparation = Prepare(source, options);
-        preparation.Document.ExportImages(
+        preparation.Document.ToImages(
             format,
             result => consumer(AttachDiagnostics(
                 result,
@@ -82,13 +82,13 @@ public static partial class EmailImageExportExtensions {
     }
 
     /// <summary>Asynchronously exports every rendered email page and resolves inline MIME resources.</summary>
-    public static async Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(
+    public static async Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(
         this EmailDocument source,
         OfficeImageExportFormat format,
         EmailImageExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         var results = new List<OfficeImageExportResult>();
-        await source.ExportImagesAsync(
+        await source.ToImagesAsync(
             format,
             (result, _) => {
                 results.Add(result);
@@ -100,7 +100,7 @@ public static partial class EmailImageExportExtensions {
     }
 
     /// <summary>Asynchronously streams rendered email pages and resolves inline MIME resources.</summary>
-    public static async Task ExportImagesAsync(
+    public static async Task ToImagesAsync(
         this EmailDocument source,
         OfficeImageExportFormat format,
         OfficeImageExportAsyncConsumer consumer,
@@ -108,7 +108,7 @@ public static partial class EmailImageExportExtensions {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(consumer);
         EmailRenderPreparation preparation = Prepare(source, options);
-        await preparation.Document.ExportImagesAsync(
+        await preparation.Document.ToImagesAsync(
             format,
             async (result, token) => await consumer(
                 AttachDiagnostics(

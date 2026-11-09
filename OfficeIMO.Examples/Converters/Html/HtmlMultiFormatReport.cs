@@ -79,7 +79,7 @@ internal static partial class Html {
         }
         Previews("Saved PDF pages", "pdf", consume => {
             using var pdfDocument = PdfDocument.Load(stem + ".pdf");
-            var pages = pdfDocument.ExportImages(null, out var imageReport);
+            var pages = pdfDocument.ToImages(null, out var imageReport);
             foreach (var diagnostic in imageReport.Diagnostics)
                 conversionNotes.Add("Saved PDF pages: " + diagnostic.Code + ": " + diagnostic.Message);
             foreach (var image in pages) {
@@ -90,10 +90,10 @@ internal static partial class Html {
             }
         });
         Previews("HTML layout pages", "html", consume => {
-            foreach (var image in report.ExportImages(OfficeImageExportFormat.Png, pdfOptions)) consume(image);
+            foreach (var image in report.ToImages(OfficeImageExportFormat.Png, pdfOptions)) consume(image);
         });
-        Previews("Word layout pages", "word", consume => word.ExportImages(OfficeImageExportFormat.Png, consume));
-        Previews("Excel worksheet layouts", "excel", consume => excel.ExportImages(OfficeImageExportFormat.Png, consume));
+        Previews("Word layout pages", "word", consume => word.ToImages(OfficeImageExportFormat.Png, consume));
+        Previews("Excel worksheet layouts", "excel", consume => excel.ToImages(OfficeImageExportFormat.Png, consume));
         index.Add(""); index.Add("## Conversion notes"); index.Add("");
         index.Add("Word page images use the same layout as Word PDF export. Excel images use worksheet layouts; page counts can differ from the source report.");
         index.Add("");

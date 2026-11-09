@@ -219,6 +219,18 @@ internal static class OfficeConversionSupportAssessments {
         "docx" or "xlsx" or "pptx" or "html" or "visio" => Established(
             "Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
             "Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."),
+        "rtf" or "mhtml" => Targeted(
+            "Direct image bridge contracts exercise the existing PDF conversion owner, source diagnostics, shared selection and bounded image persistence.",
+            "Uses the source owner's semantic PDF layout. Native Office pagination and unsupported source structures remain subject to reported conversion loss."),
+        "xps" or "publisher" or "odg" => Targeted(
+            "Native projection and shared image contracts cover page dimensions, selection, encoding, source evidence and persistence.",
+            "Uses the existing source drawing projection. Unsupported native source paint and layout remain reported or rejected by that owner; this route does not add a separate renderer."),
+        "djvu" => Targeted(
+            "Independent native decoder rasters are compared to encoded PNG pixels; other encodings use the shared raster owner.",
+            "Retains the DjVu renderer's qualified codec, annotation and short-edge limitations. SVG embeds the rendered raster and does not reconstruct vectors."),
+        "project" => Targeted(
+            "Project image contracts exercise portable report views, typography, image density, selection and bounded output.",
+            "Requires an explicit ProjectView. Scheduling requires a project calendar; portable reports do not reproduce native Project saved-view styling or filters."),
         "onenote" or "email" or "epub" or "odt" or "ods" or "odp" => Targeted(
             "Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
             "Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."),

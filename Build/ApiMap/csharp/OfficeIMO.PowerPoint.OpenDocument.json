@@ -4,7 +4,7 @@
   "changes": [
     {
       "old": "PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, PowerPointDocumentImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)",
-      "new": "PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, PowerPointImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)",
+      "new": "PowerPointOpenDocumentImageExportExtensions.ToImages(OdpPresentation, OfficeImageExportFormat, PowerPointImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)",
       "file": "OfficeIMO.PowerPoint.OpenDocument/PowerPointOpenDocumentImageExportExtensions.cs",
       "kind": "method",
       "action": "merge",
@@ -15,7 +15,7 @@
     },
     {
       "old": "PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, OfficeImageExportConsumer, PowerPointDocumentImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)",
-      "new": "PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, OfficeImageExportConsumer, PowerPointImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)",
+      "new": "PowerPointOpenDocumentImageExportExtensions.ToImages(OdpPresentation, OfficeImageExportFormat, OfficeImageExportConsumer, PowerPointImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)",
       "file": "OfficeIMO.PowerPoint.OpenDocument/PowerPointOpenDocumentImageExportExtensions.cs",
       "kind": "method",
       "action": "merge",

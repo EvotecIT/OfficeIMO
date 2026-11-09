@@ -9,7 +9,6 @@
     <IsPublishable>true</IsPublishable>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Visio.Pdf</PackageId>
     <PackageTags>visio;pdf;offline;converter;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -18,7 +17,6 @@
     <PackageIcon>OfficeIMO.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
   </PropertyGroup>

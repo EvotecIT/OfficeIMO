@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                         + "'. Expected " + ComputeSha256(sourceFingerprints[focus])
                         + " but found " + ComputeSha256(reopenedFingerprint) + ".");
                 }
-                OfficeImageExportResult firstSlide = reopened.Slides[0].ExportImage(
+                OfficeImageExportResult firstSlide = reopened.Slides[0].ToImage(
                     OfficeImageExportFormat.Png);
                 Assert.DoesNotContain(firstSlide.Diagnostics,
                     diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);

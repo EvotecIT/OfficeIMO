@@ -133,9 +133,8 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         pathValues.AddRange(OneNoteInkCodec.EncodePacketValues(yValues));
         pathValues.AddRange(OneNoteInkCodec.EncodePacketValues(pressureValues));
 
-        OneNoteExtendedGuid propertyId = owner.StrokePropertyObjectIds.TryGetValue(stroke, out OneNoteExtendedGuid? retainedPropertyId)
-            ? retainedPropertyId
-            : _ids.New();
+        OneNoteExtendedGuid propertyId = AnyIdOrNew(owner.StrokePropertyObjectIds.TryGetValue(stroke, out OneNoteExtendedGuid? retainedPropertyId)
+            ? retainedPropertyId : null);
         owner.StrokePropertyObjectIds[stroke] = propertyId;
         var propertyValues = new List<OneNoteWriteProperty> {
             Data(OneNoteSchema.InkDimensions, OneNoteInkCodec.EncodeDimensions(hasPressure)),
@@ -150,9 +149,8 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         };
         space.Objects.Add(new OneNoteWriteObject(propertyId, OneNoteSchema.JcidStrokePropertiesNode, propertyValues));
 
-        OneNoteExtendedGuid strokeId = owner.StrokeObjectIds.TryGetValue(stroke, out OneNoteExtendedGuid? retainedStrokeId)
-            ? retainedStrokeId
-            : _ids.New();
+        OneNoteExtendedGuid strokeId = AnyIdOrNew(owner.StrokeObjectIds.TryGetValue(stroke, out OneNoteExtendedGuid? retainedStrokeId)
+            ? retainedStrokeId : null);
         owner.StrokeObjectIds[stroke] = strokeId;
         var strokeProperties = new List<OneNoteWriteProperty> {
             Data(OneNoteSchema.InkPath, OneNoteInkCodec.EncodeSignedVector(pathValues)),
@@ -211,7 +209,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         OneNotePage page,
         OneNoteMaterializedObjectSpace? sourceSpace) {
         var wordIds = new List<OneNoteExtendedGuid>();
-        Guid recognizerBatchId = Guid.NewGuid();
+        Guid recognizerBatchId = _ids.NewGuid();
         OneNoteInk[] inks = OneNoteElementTraversal.Enumerate(page).OfType<OneNoteInk>().ToArray();
         foreach (OneNoteInk ink in inks) {
             foreach (OfficeInkStroke stroke in ink.Strokes) {

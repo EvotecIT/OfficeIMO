@@ -4,7 +4,7 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Studio.Features.Workspace;
 
 internal sealed partial class PdfWorkspace {
-    private async Task<int> ExportImagesAsync(PdfDocument snapshot, string destination, CancellationToken cancellationToken,
+    private async Task<int> ToImagesAsync(PdfDocument snapshot, string destination, CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress) {
         string localFolder = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(destination)
             ?? throw new IOException("Choose a local output folder to save multiple images.");

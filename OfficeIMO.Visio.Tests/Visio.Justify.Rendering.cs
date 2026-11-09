@@ -39,8 +39,8 @@ public sealed class VisioJustifyRenderingTests {
         var pngOptions = new VisioImageExportOptions { Supersampling = 1, ResolveConnectorLabelOverlaps = false };
         pngOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, font)
             .Add(spaceFamily, spaceFont).AddFallbackFamily(spaceFamily);
-        (int Left, int Right)[] leftInk = RasterLineBounds(left.ToImage(pngOptions));
-        (int Left, int Right)[] justifiedInk = RasterLineBounds(justified.ToImage(pngOptions));
+        (int Left, int Right)[] leftInk = RasterLineBounds(left.ToImage(pngOptions).Bytes);
+        (int Left, int Right)[] justifiedInk = RasterLineBounds(justified.ToImage(pngOptions).Bytes);
         Assert.Equal(2, leftInk.Length);
         Assert.Equal(leftInk.Length, justifiedInk.Length);
         Assert.Equal(leftInk[0].Left, justifiedInk[0].Left);

@@ -63,7 +63,7 @@ public sealed class PdfPageAttributeBatchTests {
         foreach (PdfOperationResult<PdfDocument> result in new[] {
             document.Pages.RotateByResult(90, "last"),
             document.Pages.RotateByResult(90, PdfPageSelection.From(1)),
-            document.Pages.RotateByResult(90, PdfPageSelector.Parse("odd"))
+            document.Pages.RotateByResult(90, OfficePageSelector.Parse("odd"))
         }) {
             Assert.Equal(180, result.RequireValue().Inspect().Pages[0].RotationDegrees);
             Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan!.ExecutionMode);

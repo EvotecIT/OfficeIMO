@@ -145,7 +145,7 @@ public sealed class OfficeWorkflowBuilder {
     }
 
     /// <summary>Selects independently ordered page scopes for ordinal rendered comparison. Null selects all pages on that side.</summary>
-    public OfficeWorkflowBuilder ComparePages(OfficeIMO.Pdf.PdfPageSelector? expectedPages, OfficeIMO.Pdf.PdfPageSelector? actualPages) {
+    public OfficeWorkflowBuilder ComparePages(OfficeIMO.OfficePageSelector? expectedPages, OfficeIMO.OfficePageSelector? actualPages) {
         if (_request.Operation != OfficeWorkflowOperation.Compare) throw new InvalidOperationException("Page comparison scopes require Compare.");
         _request.ComparisonExpectedPages = expectedPages;
         _request.ComparisonActualPages = actualPages;
