@@ -259,7 +259,9 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
 
             int pendingFormulaColumn = -1;
-            while (offset < rowEnd && TryReadDiscoveryRecord(ref offset, out RecordSlice record)) {
+            while (offset < rowEnd) {
+                if (rowEnd - offset < sizeof(uint)) return false;
+                if (!TryReadDiscoveryRecord(ref offset, out RecordSlice record)) break;
                 if (offset > rowEnd) return false;
                 if (pendingFormulaColumn >= 0) {
                     if (record.Type != (ushort)BiffRecordType.String) return false;

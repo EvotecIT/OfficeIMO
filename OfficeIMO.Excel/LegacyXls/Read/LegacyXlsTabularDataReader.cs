@@ -78,17 +78,23 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int lastColumn = -1;
             Dictionary<int, string?>? headerValues = null;
             try {
-                bool indexed = bufferedRowOffsets != null
-                    && TryDiscoverIndexed(
-                        sheetOffset,
-                        sheetEndOffset,
-                        bufferedRowOffsets,
-                        out bufferedWorksheetEndOffset,
-                        out firstRow,
-                        out lastRow,
-                        out firstColumn,
-                        out lastColumn,
-                        out headerValues);
+                bool indexed;
+                try {
+                    indexed = bufferedRowOffsets != null
+                        && TryDiscoverIndexed(
+                            sheetOffset,
+                            sheetEndOffset,
+                            bufferedRowOffsets,
+                            out bufferedWorksheetEndOffset,
+                            out firstRow,
+                            out lastRow,
+                            out firstColumn,
+                            out lastColumn,
+                            out headerValues);
+                } catch (InvalidDataException) {
+                    // INDEX/DBCELL hints cannot replace validation of the actual record stream.
+                    indexed = false;
+                }
                 if (!indexed) {
                     Discover(
                         sheetOffset,

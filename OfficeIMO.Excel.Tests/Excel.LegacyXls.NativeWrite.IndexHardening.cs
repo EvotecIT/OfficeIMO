@@ -99,6 +99,65 @@ namespace OfficeIMO.Tests {
             });
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(4)]
+        public void LegacyXls_IndexedHeaderFallsBackFromMisalignedCellPointers(int headerGap) {
+            byte[] xls = CreateWorkbookWithMisindexedHeader(headerGap);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(xls);
+            Assert.Equal("Value", reader.GetName(0));
+            int count = 0;
+            while (reader.Read()) {
+                Assert.Equal(count + 1, reader.GetInt32(0));
+                count++;
+            }
+            Assert.Equal(255, count);
+        }
+
+        private static byte[] CreateWorkbookWithMisindexedHeader(int headerGap) {
+            byte[] workbook = ReadCompoundStream(CreateDenseIndexedWorkbook(("Data", 1)), "Workbook");
+            IndexedWorksheetLayout layout = Assert.Single(ReadIndexedWorksheetLayouts(workbook));
+            int dbCellOffset = layout.DbCellOffsets[0];
+            int dbCellPayload = dbCellOffset + 4;
+            int firstRowOffset = checked(dbCellOffset - (int)ReadUInt32(workbook, dbCellPayload));
+            int firstRowEnd = firstRowOffset + 4 + ReadUInt16(workbook, firstRowOffset + 2);
+            int firstCell = firstRowEnd + ReadUInt16(workbook, dbCellPayload + 4);
+            int thirdCell = firstCell
+                + ReadUInt16(workbook, dbCellPayload + 6)
+                + ReadUInt16(workbook, dbCellPayload + 8);
+            Assert.Equal(0x00fd, ReadUInt16(workbook, firstCell));
+
+            const int insertedBytes = 132;
+            byte[] changed = new byte[workbook.Length + insertedBytes];
+            Array.Copy(workbook, 0, changed, 0, firstCell);
+            Array.Copy(workbook, firstCell, changed, firstCell + insertedBytes, workbook.Length - firstCell);
+            WriteUInt16(changed, firstCell, 0x7777);
+            WriteUInt16(changed, firstCell + 2, 128);
+
+            // The actual cells stay intact. Only the INDEX points into this opaque record.
+            int fakeHeader = firstCell + 12;
+            int fakeData = fakeHeader + 14 + headerGap;
+            WriteUInt16(changed, fakeHeader, 0x00fd);
+            WriteUInt16(changed, fakeHeader + 2, 10);
+            WriteUInt32(changed, fakeHeader + 10, ReadUInt32(workbook, firstCell + 10));
+            WriteUInt16(changed, fakeData, 0x027e);
+            WriteUInt16(changed, fakeData + 2, 64);
+            WriteUInt16(changed, fakeData + 4, 1);
+            WriteUInt32(changed, fakeData + 10, 6);
+            for (int index = 0; index < headerGap; index++) changed[fakeHeader + 14 + index] = 0xff;
+
+            for (int index = 0; index < layout.DbCellOffsets.Count; index++) {
+                WriteUInt32(changed, layout.IndexPayloadOffset + 16 + index * sizeof(uint),
+                    checked((uint)(layout.DbCellOffsets[index] + insertedBytes)));
+            }
+            int newDbCellPayload = dbCellPayload + insertedBytes;
+            WriteUInt32(changed, newDbCellPayload, checked(ReadUInt32(workbook, dbCellPayload) + insertedBytes));
+            WriteUInt16(changed, newDbCellPayload + 4, checked((ushort)(fakeHeader - firstRowEnd)));
+            WriteUInt16(changed, newDbCellPayload + 6, checked((ushort)(fakeData - fakeHeader)));
+            WriteUInt16(changed, newDbCellPayload + 8, checked((ushort)(thirdCell + insertedBytes - fakeData)));
+            return LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(changed);
+        }
+
         private static byte[] CreateDenseIndexedWorkbook(
             params (string Name, int FirstValue)[] sheets) {
             using ExcelDocument document = ExcelDocument.Create();
