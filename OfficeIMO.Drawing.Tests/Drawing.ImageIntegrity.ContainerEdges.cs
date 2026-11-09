@@ -103,6 +103,23 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CompleteContentValidationAcceptsMultiPictureJpegTrailingImages() {
+        byte[] primary = OfficeJpegCodec.Encode(new OfficeRasterImage(2, 2, OfficeColor.White));
+        byte[] secondary = OfficeJpegCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.Black));
+        byte[] mpfPayload = Encoding.ASCII.GetBytes("MPF\0MM\0*\0\0\0\b");
+        byte[] mpf = new byte[] { 0xFF, 0xE2, 0, (byte)(mpfPayload.Length + 2) }.Concat(mpfPayload).ToArray();
+        byte[] multiPicture = primary.Take(2).Concat(mpf).Concat(primary.Skip(2)).Concat(secondary).ToArray();
+        byte[] undeclared = primary.Concat(secondary).ToArray();
+        byte[] trailingJunk = primary.Take(2).Concat(mpf).Concat(primary.Skip(2)).Concat(new byte[] { 1, 2, 3 }).ToArray();
+
+        Assert.True(OfficeImageReader.TryValidateContent(multiPicture, "ultra-hdr.jpg", out _));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(multiPicture, null, out OfficeRasterImage? decoded, out _));
+        Assert.Equal(2, decoded!.Width);
+        Assert.False(OfficeImageReader.TryValidateContent(undeclared, "undeclared.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(trailingJunk, "trailing-junk.jpg", out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationBoundsAggregateExifIfdScheduling() {
         const int pointerCount = 1025;
         int tableLength = 2 + pointerCount * 12 + 4;

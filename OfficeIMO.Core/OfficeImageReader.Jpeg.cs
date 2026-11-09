@@ -133,6 +133,7 @@ public static partial class OfficeImageReader {
         bool seenExif = false;
         bool seenJfif = false;
         bool seenXmp = false;
+        bool seenMultiPicture = false;
         byte[][]? iccSegments = null;
         int offset = 2;
         while (offset < data.Length) {
@@ -159,7 +160,10 @@ public static partial class OfficeImageReader {
             }
 
             if (marker == 0xD9) {
-                return hasFrame && hasScan && offset == data.Length &&
+                // A multi-picture JPEG (CIPA DC-007: Ultra HDR gain maps, depth maps) stores its other images after the primary's EOI.
+                bool complete = offset == data.Length ||
+                                seenMultiPicture && offset + 1 < data.Length && data[offset] == 0xFF && data[offset + 1] == 0xD8;
+                return hasFrame && hasScan && complete &&
                        (!validateMetadata || HasValidJpegIccProfile(iccSegments, cancellationToken));
             }
             if (marker == 0x01) continue;
@@ -235,6 +239,8 @@ public static partial class OfficeImageReader {
                 var profilePart = new byte[profilePartLength];
                 Buffer.BlockCopy(data, segmentStart + 14, profilePart, 0, profilePartLength);
                 iccSegments[sequence - 1] = profilePart;
+            } else if (marker == 0xE2 && HasJpegSegmentPrefix(data, segmentStart, segmentDataLength, "MPF\0")) {
+                seenMultiPicture = true;
             } else if (marker == 0xDA) {
                 if (!hasFrame || segmentDataLength < 6) return false;
                 int componentCount = data[segmentStart];
