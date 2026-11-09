@@ -1,0 +1,46 @@
+diff --git a/OfficeIMO.Word/LegacyDoc/Model/LegacyDocFootnoteReader.cs b/OfficeIMO.Word/LegacyDoc/Model/LegacyDocFootnoteReader.cs
+index 2adbe7f250c941b2dec4971f154c5f8de13d30e5..caa567924d2763f26c649569e8e9817cdf9805f3 100644
+--- a/OfficeIMO.Word/LegacyDoc/Model/LegacyDocFootnoteReader.cs
++++ b/OfficeIMO.Word/LegacyDoc/Model/LegacyDocFootnoteReader.cs
+@@ -262,7 +262,6 @@
+             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
+             LegacyDocFieldMetadataReader? fieldMetadata = null,
+             bool orderedFormattingRanges = false,
+-            bool preserveExplicitEmptyParagraphs = false,
+             System.Threading.CancellationToken cancellationToken = default) {
+             cancellationToken.ThrowIfCancellationRequested();
+             if (endCharacter <= startCharacter) {
+@@ -477,7 +476,7 @@
+                         paragraphFormat = paragraphFormat.WithParagraphMarkFormat(paragraphMarkFormat);
+                     }
+ 
+-                    preserveEmptyParagraph = preserveExplicitEmptyParagraphs || laterContent[index + 1];
++                    preserveEmptyParagraph = laterContent[index + 1];
+                     AddCurrentParagraph(paragraphFormat, character.CharacterPosition, isFinalParagraph: false);
+                     isFirstParagraph = false;
+                     atParagraphStart = true;
+diff --git a/OfficeIMO.Word/LegacyDoc/Model/LegacyWord69Notes.cs b/OfficeIMO.Word/LegacyDoc/Model/LegacyWord69Notes.cs
+index adb6d1c1ab265cb0b6f44c22ff5bbc3954e3f914..150f0ec42040159242f07059c0191ac918147b86 100644
+--- a/OfficeIMO.Word/LegacyDoc/Model/LegacyWord69Notes.cs
++++ b/OfficeIMO.Word/LegacyDoc/Model/LegacyWord69Notes.cs
+@@ -153,7 +153,7 @@
+                     bool automatic = LegacyWord69Reader.U16(references, descriptorStart + index * 2) != 0;
+                     LegacyDocTextCharacter anchor = characters[reference];
+                     if (!automatic || (char.IsControl(anchor.Character) && anchor.Character != LegacyDocFootnoteReader.FootnoteReferenceCharacter)
+-                        || end == start) {
++                        || end == start || characters[storyStart + start].Character != LegacyDocFootnoteReader.FootnoteReferenceCharacter) {
+                         unprojected++;
+                         continue;
+                     }
+@@ -162,9 +162,8 @@
+                         noteCharacters, storyStart + start, storyStart + end, characterRanges, paragraphRanges,
+                         new LegacyDocBookmarkProjectionTracker(Array.Empty<LegacyDocBookmark>()),
+                         new Dictionary<int, LegacyDocPicture>(), fieldMetadata,
+-                        orderedFormattingRanges: true, preserveExplicitEmptyParagraphs: true, cancellationToken: cancellationToken);
+-                    int contentStart = start + (noteCharacters[0].Character == LegacyDocFootnoteReader.FootnoteReferenceCharacter ? 1 : 0);
+-                    for (int position = contentStart; position < end; position++) {
++                        orderedFormattingRanges: true, cancellationToken: cancellationToken);
++                    for (int position = start + 1; position < end; position++) {
+                         cancellationToken.ThrowIfCancellationRequested();
+                         // A flat note paragraph model cannot retain nested anchors or table cells.
+                         if (characters[storyStart + position].Character is '\u0002' or '\a') unqualifiedContent = true;

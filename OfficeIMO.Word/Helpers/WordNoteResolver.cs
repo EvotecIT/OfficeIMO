@@ -22,5 +22,12 @@ namespace OfficeIMO.Word {
             return mainPart?.EndnotesPart?.Endnotes?.Elements<Endnote>()
                 .FirstOrDefault(note => note.Id?.Value == referenceId.Value && IsOrdinary(note));
         }
+
+        /// <summary>Reads each top-level note paragraph through the canonical visible-run projection.</summary>
+        internal static IReadOnlyList<string>? GetTextParagraphs(WordDocument document, FootnoteEndnoteType? note) {
+            return note?.Elements<Paragraph>()
+                .Select(paragraph => string.Concat(new WordParagraph(document, paragraph).GetRuns().Select(run => run.Text)))
+                .ToArray();
+        }
     }
 }

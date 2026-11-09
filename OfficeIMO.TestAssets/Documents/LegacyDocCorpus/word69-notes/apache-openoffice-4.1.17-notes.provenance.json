@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "fixture": "apache-openoffice-4.1.17-notes.doc",
+  "sha256": "16CB066D00C23C7A5C4D02E5CC5CB126E0B692DAFFADA842FFC105BEEBA92822",
+  "bytes": 7168,
+  "gitBlob": "4db72d15ee2288b7398059e9bb0cefdf6afa511e",
+  "authorship": "Original neutral ASCII note control authored through official third-party Writer APIs, using the same semantics independently authored and read-only verified in Microsoft Word. No OfficeIMO producer or raw legacy writer generated these bytes.",
+  "rights": "Original fixture text is provided for the OfficeIMO test corpus under the repository license.",
+  "producer": {
+    "name": "Apache OpenOffice Writer",
+    "version": "4.1.17",
+    "build": "4117m2(Build:9818)",
+    "sourceCommit": "49c05bc6fdae1bd506103a6cb9d3feadc397fce1",
+    "officialArchive": {
+      "name": "Apache_OpenOffice_4.1.17_Linux_x86-64_install-deb_en-US.tar.gz",
+      "url": "https://archive.apache.org/dist/openoffice/4.1.17/binaries/en-US/Apache_OpenOffice_4.1.17_Linux_x86-64_install-deb_en-US.tar.gz",
+      "bytes": 164766874,
+      "sha256": "10F80A09AA3E9AB2B5BF0D8CDB82B019FB8FDA4127445AD079081F0CE2CABFA3"
+    },
+    "license": "Apache License2.0 and bundledcomponentterms retained with private comparison tool; fixture content is original neutral text",
+    "binarySha256": "AEAA76D4D4BBE3357C65A275B01CBB61D28551E53D3F827AF6FEFCD28926EAE5",
+    "filterName": "MS WinWord 6.0",
+    "filterUserData": [
+      "CWW6"
+    ],
+    "filterFlags": 67,
+    "generationVerifiedFromBytes": 101
+  },
+  "semanticOracle": {
+    "producer": "Microsoft Word16.0.20527.20150",
+    "sourceDocxSha256": "EE3E310559B8F58C18E154A3A330B595945C00B24EA9D6167626F075336DC09B",
+    "expectedManifestSha256": "F60BC35952B150C1174E4E4FEF8AEDBC0BA1151A62A67DF2526714BF77B23228",
+    "readonlyReadbackSha256": "DA2890B055565AE0BDF34F097E09ECF69AC3FA71E79800B8E6D20E7FCD819811",
+    "packageInspectionSha256": "F9333AB3AB2E88B19BE0DD8024A932968E987D4AE77F0A858A5BF3A0EFFE384B",
+    "noteCounts": {
+      "footnotes": 2,
+      "endnotes": 2
+    },
+    "bodyAnchorOrder": [
+      "F1",
+      "E1",
+      "F2",
+      "E2"
+    ],
+    "sourceNoteParagraphs": {
+      "F1": [
+        "F1 first paragraph has bold text.",
+        "F1 second paragraph has italic text."
+      ],
+      "E1": [
+        "E1 first paragraph has bold text.",
+        "E1 second paragraph has italic text."
+      ],
+      "F2": [
+        "F2 first paragraph has bold text.",
+        "F2 second paragraph has italic text."
+      ],
+      "E2": [
+        "E2 first paragraph has bold text.",
+        "E2 second paragraph has italic text."
+      ]
+    }
+  },
+  "productionRecipe": [
+    {
+      "step": 1,
+      "action": "Start the same official private soffice.bin headless with a fresh private UserInstallation and unique named UNO pipe. Give both server and bundled Python client the same private bootstrap profile. Use an accessible distro-local private HOME for UNO executable backing files and a private temp/cache directory."
+    },
+    {
+      "step": 2,
+      "action": "Create a hidden private:factory/swriter document with MacroExecutionMode short0 and UpdateDocMode short0. Create real body paragraphs through insertString/insertControlCharacter(PARAGRAPH_BREAK=0); append the explicitly expected terminal empty body paragraph."
+    },
+    {
+      "step": 3,
+      "action": "At the F1/E1/F2/E2 body keys insert official automatic Footnote/Endnote text objects. Populate exactly2 actual paragraphs per note through PARAGRAPH_BREAK, not LF linebreak insertion. Apply Times New Roman10pt, then bold150/NONE to bold and normal100/ITALIC to italic."
+    },
+    {
+      "step": 4,
+      "action": "Set Arabic numbering NumberingType4 and StartAt0 on both kinds, continuous FootnoteCounting2 and PositionEndOfDocfalse for footnotes; retain empty automatic labels and prefixes/suffixes."
+    },
+    {
+      "step": 5,
+      "action": "Assert actual fresh object collections/text/paragraphs/selectedformat spans/body anchor order/settings before export. This run passed54checks, including exactly8note paragraphs and6nonemptybody paragraphs plus terminalempty."
+    },
+    {
+      "step": 6,
+      "action": "Export through XStorable.storeToURL to a new absent output path with FilterName MS WinWord 6.0 and Overwritefalse. Hash output immediately. The original saved Word DOCX is a hash-bound independent semantic oracle and is not modified or imported by this authoring route."
+    },
+    {
+      "step": 7,
+      "action": "Close fresh owned document, reopen generated legacy file Hidden/ReadOnly with MacroExecutionMode short0 and UpdateDocMode short0, record exact note/paragraph/portion/anchor/settings values before shutdown. Inspect actual CFB WordDocument FIB/PLCs separately; do not infer profile from extension or filter name."
+    },
+    {
+      "step": 8,
+      "action": "Serialize primitive operation receipts before termination; close owned document once, release proxies/gc, call desktop.terminate as final remote operation. Independently retain actual client/server exit and surviving owned PIDs. Do not equate terminate returntrue with clean native exit."
+    }
+  ],
+  "actualNativeProfile": {
+    "signature": "0xa5dc",
+    "nFib": 101,
+    "flags": "0x0",
+    "complex": false,
+    "encrypted": false,
+    "textStart": 768,
+    "textEnd": 1257,
+    "storyLengths": {
+      "body": 190,
+      "footnote": 149,
+      "headerFooter": 0,
+      "macro": 0,
+      "annotation": 0,
+      "endnote": 149,
+      "textbox": 0,
+      "headerTextbox": 0
+    }
+  },
+  "actualReferences": {
+    "footnote": {
+      "referenceCps": [
+        46,
+        120,
+        489
+      ],
+      "automaticFlags": [
+        1,
+        2
+      ],
+      "textCps": [
+        0,
+        74,
+        148,
+        149
+      ],
+      "referenceFibOffset": "0x68",
+      "textFibOffset": "0x70"
+    },
+    "endnote": {
+      "referenceCps": [
+        82,
+        157,
+        489
+      ],
+      "automaticFlags": [
+        1,
+        2
+      ],
+      "textCps": [
+        0,
+        74,
+        148,
+        149
+      ],
+      "referenceFibOffset": "0x1d2",
+      "textFibOffset": "0x1da"
+    }
+  },
+  "independentLegacyReadback": {
+    "engine": "Apache OpenOffice Writer4.1.17, separate from OfficeIMO",
+    "operationComplete": true,
+    "footnotes": 2,
+    "endnotes": 2,
+    "paragraphsPerNote": 2,
+    "selectedSpans": "All4bold150/NONE and4italic100/ITALIC spans are fully covered by10ptTimesNewRoman readback portions",
+    "ledgerSha256": "DE112D051FAEFD9EA2B89758B82775F12F6BCC53F3ABA43A78EBD6E956E4464B",
+    "representation": "Binarycanonical removes exactlyoneleading automaticU+0002, retaining both firstandsecondparagraphTABs. AOOAPI omits firstmarker/TAB and retains secondTAB; bothviews are preserved separately.",
+    "sourceConversionLossless": false,
+    "sourceToLegacyDelta": "Old writer adds TAB before each raw note paragraph. No extraemptyparagraph, FF or duplicatedU+0002 occurs in this artifact.",
+    "oracleFile": "apache-openoffice-4.1.17-notes.oracle.json"
+  },
+  "metadataAndInertContent": {
+    "riskScanSha256": "0602567F2D038E025DCBC9A0AAF3180C1B9BE1DF6212D8DF72AC7BF061336654",
+    "passed": true,
+    "authorLastSavedByManagerCompany": "All4properties absent",
+    "storage": "OnlyrootWordDocument/CompObj/standardunlinkedOle/SummaryInformation/DocumentSummaryInformation; nochildstorages orforeignpayload",
+    "rootOle": "20bytes, version0x02000001, allotherfields0; nopath/moniker/linkedobject",
+    "macroStoryCharacters": 0,
+    "fieldInstructionControls": [],
+    "externalReferencePatterns": [],
+    "textControls": [
+      "U+0002",
+      "TAB",
+      "CR"
+    ]
+  },
+  "nativeProcessClosure": {
+    "clientExit": 0,
+    "serverExit": -11,
+    "ownedSurvivors": 0,
+    "docClosed": true,
+    "terminateAccepted": true,
+    "limitation": "AOO crashed during VCL Bitmap/Image destruction from sfx2sidebarTheme staticfinalization aftercompletedreadback/docclose/termination. This is not a clean native process exit; artifact hashes match beforeandafterreadback andafterclosure."
+  },
+  "qualificationBoundary": "Independently produced FIB101 automaticfootnote/endnote input with4anchors/8paragraphs and selectedrichformatting. It doesnot establish losslessDOCXconversion, custommarkers, advancednumbering or FIB104endnotes.",
+  "primarySources": [
+    "https://raw.githubusercontent.com/apache/openoffice/49c05bc6fdae1bd506103a6cb9d3feadc397fce1/main/sw/source/filter/ww8/ww8scan.cxx",
+    "https://raw.githubusercontent.com/apache/openoffice/49c05bc6fdae1bd506103a6cb9d3feadc397fce1/main/sw/source/filter/ww8/wrtww8.cxx",
+    "https://www.openoffice.org/api/docs/common/ref/com/sun/star/text/XSimpleText.html",
+    "https://www.openoffice.org/api/docs/common/ref/com/sun/star/text/ControlCharacter.html",
+    "https://www.openoffice.org/api/docs/common/ref/com/sun/star/frame/XStorable.html",
+    "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oleds/e0dc105e-77f1-4072-a938-9aa516dc43e9"
+  ]
+}

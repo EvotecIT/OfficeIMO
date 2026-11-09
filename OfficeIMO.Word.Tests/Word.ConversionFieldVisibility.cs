@@ -223,6 +223,10 @@ public sealed class WordConversionFieldVisibilityTests {
 
         Assert.Equal("Visible body", string.Concat(body.GetRuns().Select(run => run.Text)));
         Assert.Contains("Visible body", document.ToHtml(), StringComparison.Ordinal);
+        WordParagraphInfo inspectedBody = Assert.Single(
+            document.Inspect().Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>(),
+            paragraph => paragraph.Text == "Visible body");
+        Assert.Equal("Visible body", string.Concat(inspectedBody.Runs.Select(run => run.Text)));
     }
 
     [Fact]

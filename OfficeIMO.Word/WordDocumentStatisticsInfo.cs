@@ -7,6 +7,7 @@ public sealed class WordDocumentStatisticsInfo
     /// <param name="statistics">Document statistics read from OfficeIMO.Word.</param>
     internal WordDocumentStatisticsInfo(WordDocumentStatistics statistics)
     {
+        statistics = statistics.CaptureForSnapshot();
         Pages = statistics.Pages;
         Paragraphs = statistics.Paragraphs;
         Words = statistics.Words;

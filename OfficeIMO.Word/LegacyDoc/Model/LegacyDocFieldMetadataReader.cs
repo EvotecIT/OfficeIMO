@@ -30,12 +30,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return reader;
         }
 
-        /// <summary>Uses the Word 6/95 in-stream directories only for its supported body and header stories.</summary>
+        /// <summary>Uses the Word 6/95 in-stream field directories for the admitted editable stories.</summary>
         internal static LegacyDocFieldMetadataReader ReadWord69(byte[] wordDocument, int usedEnd,
-            IReadOnlyList<LegacyDocTextCharacter> characters, int bodyCount, int footnoteCount, int headerCount) {
+            IReadOnlyList<LegacyDocTextCharacter> characters, int bodyCount, int footnoteCount, int headerCount,
+            int endnoteStart = 0, int endnoteCount = 0) {
             var reader = new LegacyDocFieldMetadataReader("WordDocument");
             ReadOldStory("Main", 0, bodyCount, 0xD8);
             ReadOldStory("Header", bodyCount + footnoteCount, headerCount, 0xE0);
+            if (footnoteCount != 0) ReadOldStory("Footnote", bodyCount, footnoteCount, 0xE8);
+            if (endnoteCount != 0) ReadOldStory("Endnote", endnoteStart, endnoteCount, 0x1E2);
             return reader;
 
             void ReadOldStory(string story, int start, int count, int directoryOffset) {

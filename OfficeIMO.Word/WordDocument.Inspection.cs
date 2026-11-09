@@ -6,39 +6,6 @@ namespace OfficeIMO.Word {
     public partial class WordDocument {
         private const int MaximumInspectionNoteDepth = 32;
 
-        private sealed class InspectionExpansionContext {
-            internal InspectionExpansionContext(IReadOnlyDictionary<string, string?> paragraphStyleNames,
-                IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> listMarkers) {
-                ParagraphStyleNames = paragraphStyleNames;
-                ListMarkers = listMarkers;
-            }
-
-            internal HashSet<string> ActiveNoteKeys { get; } = new(StringComparer.Ordinal);
-            internal bool IncludeImageBytes { get; set; } = true;
-            internal CancellationToken CancellationToken { get; set; }
-            internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
-            internal IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> ListMarkers { get; }
-            private Dictionary<Paragraph, WordComplexFieldRunVisibility.FieldState> ComplexFieldPrefixes { get; } = new();
-            private HashSet<OpenXmlElement> ScannedFieldStories { get; } = new();
-
-            internal WordComplexFieldRunVisibility.FieldState? ComplexFieldResultsFor(Paragraph paragraph) {
-                OpenXmlElement story = paragraph.Ancestors().FirstOrDefault(element =>
-                    element is Footnote or Endnote or DocumentFormat.OpenXml.Wordprocessing.Header
-                        or DocumentFormat.OpenXml.Wordprocessing.Footer)
-                    ?? paragraph.Ancestors().LastOrDefault() ?? paragraph;
-                if (ScannedFieldStories.Add(story) && story.Descendants<FieldChar>().Any()) {
-                    var visibility = new WordComplexFieldRunVisibility();
-                    foreach (Paragraph candidate in story.Descendants<Paragraph>()) {
-                        if (visibility.CurrentState is WordComplexFieldRunVisibility.FieldState state)
-                            ComplexFieldPrefixes[candidate] = state;
-                        visibility.ObserveParagraphMarkers(candidate);
-                    }
-                }
-                return ComplexFieldPrefixes.TryGetValue(paragraph,
-                    out WordComplexFieldRunVisibility.FieldState? prefix) ? prefix : null;
-            }
-        }
-
         /// <summary>Creates an independent snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
         /// <returns>A snapshot suitable for inspection or serialization without retaining live Open XML elements.</returns>
         /// <exception cref="InvalidDataException">Generated list markers exceed the supported marker length or document character budget.</exception>
@@ -264,8 +231,7 @@ namespace OfficeIMO.Word {
             // Walk runs and simple fields together so a field's insertion index uses the
             // same run sequence that is stored in the inspection snapshot.
             int runIndex = 0;
-            var fieldVisibility = new WordComplexFieldRunVisibility(
-                expansionContext.ComplexFieldResultsFor(paragraph._paragraph));
+            var fieldVisibility = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
             foreach (OpenXmlElement item in EnumerateInspectionInlineItems(paragraph._paragraph)) {
                 if (item is SimpleField field) {
                     Hyperlink? containingLink = field.Ancestors<Hyperlink>().FirstOrDefault();
@@ -313,7 +279,7 @@ namespace OfficeIMO.Word {
                     RunShadingPattern = ((run.IsHyperLink ? run.Hyperlink?._runProperties : run._runProperties)
                         ?.Shading?.Val?.Value).ToOfficeEnum(),
                     VerticalTextAlignment = NormalizeOpenXmlEnumValue(run.VerticalTextAlignment),
-                    CapsStyle = run.ResolveEffectiveCapsStyle() is WordCapsStyle effectiveCaps
+                    CapsStyle = expansionContext.CapsStyleFor(run) is WordCapsStyle effectiveCaps
                         && effectiveCaps != WordCapsStyle.None
                             ? effectiveCaps.ToString()
                             : null,

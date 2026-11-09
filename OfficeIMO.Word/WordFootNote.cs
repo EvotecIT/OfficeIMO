@@ -38,6 +38,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets visible text for each top-level paragraph of the referenced ordinary footnote,
+        /// or null when its body cannot be resolved. Preserves empty paragraphs, whitespace and
+        /// tabs, and includes cached field results without field instructions.
+        /// </summary>
+        public IReadOnlyList<string>? TextParagraphs => WordNoteResolver.GetTextParagraphs(
+            _document, WordNoteResolver.FindFootnote(_document._wordprocessingDocument.MainDocumentPart, _reference?.Id?.Value));
+
+        /// <summary>
         /// Parent Paragraph is Paragraph/Run that has FootNote attached to it.
         /// This provides ability to find proper Run that has FootNote
         /// </summary>
@@ -116,7 +124,7 @@ namespace OfficeIMO.Word {
             var footnotesPart = document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
 
             if (footnotesPart?.Footnotes != null) {
-                var footNote = footnotesPart.Footnotes.Descendants<Footnote>();
+                var footNote = footnotesPart.Footnotes.Elements<Footnote>();
 
                 if (footNote.Any()) {
                     highestId = footNote.Max(en => en.Id?.Value ?? 0);

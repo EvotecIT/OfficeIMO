@@ -6,6 +6,9 @@ namespace OfficeIMO.Word {
     /// </summary>
     public class WordDocumentStatistics {
         private readonly WordDocument _document;
+        private readonly IReadOnlyList<WordParagraph>? _paragraphSnapshot;
+
+        private IReadOnlyList<WordParagraph> ParagraphsForCounting => _paragraphSnapshot ?? _document.Paragraphs;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WordDocumentStatistics"/> class.
@@ -15,6 +18,14 @@ namespace OfficeIMO.Word {
             _document = document;
             document.Statistics = this;
         }
+
+        private WordDocumentStatistics(WordDocument document, IReadOnlyList<WordParagraph> paragraphSnapshot) {
+            _document = document;
+            _paragraphSnapshot = paragraphSnapshot;
+        }
+
+        /// <summary>Shares one paragraph traversal while building a detached snapshot without replacing the live counters.</summary>
+        internal WordDocumentStatistics CaptureForSnapshot() => new WordDocumentStatistics(_document, _document.Paragraphs);
 
         /// <summary>
         /// Gets the total number of pages in the document.
@@ -26,14 +37,14 @@ namespace OfficeIMO.Word {
                     return pages;
                 }
 
-                return _document.ParagraphsPageBreaks.Count + _document.Sections.Count;
+                return ParagraphsForCounting.Count(paragraph => paragraph.IsPageBreak) + _document.Sections.Count;
             }
         }
 
         /// <summary>
         /// Gets the total number of paragraphs in the document.
         /// </summary>
-        public int Paragraphs => _document.Paragraphs.Count;
+        public int Paragraphs => ParagraphsForCounting.Count;
 
         /// <summary>
         /// Gets the total number of words in the document.
@@ -44,7 +55,7 @@ namespace OfficeIMO.Word {
                 if (wordsProp.HasValue) return wordsProp.Value;
 
                 int count = 0;
-                foreach (var paragraph in _document.Paragraphs) {
+                foreach (var paragraph in ParagraphsForCounting) {
                     var text = paragraph.Text;
                     if (!string.IsNullOrWhiteSpace(text)) {
                         count += text.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Length;
@@ -95,7 +106,7 @@ namespace OfficeIMO.Word {
                     return chars;
                 }
 
-                return _document.Paragraphs.Sum(p => p.Text.Replace(" ", "").Length);
+                return ParagraphsForCounting.Sum(p => p.Text.Replace(" ", "").Length);
             }
         }
 
@@ -109,7 +120,7 @@ namespace OfficeIMO.Word {
                     return chars;
                 }
 
-                return _document.Paragraphs.Sum(p => p.Text.Length);
+                return ParagraphsForCounting.Sum(p => p.Text.Length);
             }
         }
     }

@@ -6,6 +6,61 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Fact]
+    public void NoteTextParagraphsPreserveLogicalBoundariesAndVisibleContent() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph owner = source.AddParagraph("owner");
+        owner.AddBookmark("LocalAnchor");
+        owner.AddFootNote("footnote");
+        owner.AddEndNote("endnote");
+        var main = source.OpenXmlDocument.MainDocumentPart!;
+        FootnoteEndnoteType[] bodies = {
+            Assert.Single(main.FootnotesPart!.Footnotes!.Elements<Footnote>(), note => note.Type == null),
+            Assert.Single(main.EndnotesPart!.Endnotes!.Elements<Endnote>(), note => note.Type == null)
+        };
+        foreach (FootnoteEndnoteType body in bodies) {
+            body.RemoveAllChildren<Paragraph>();
+            var rich = new Paragraph(
+                new Run(new Text("left ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new RunProperties(new Bold()), new Text("bold")),
+                new Hyperlink(new Run(new Text(" link") { Space = SpaceProcessingModeValues.Preserve })) { Anchor = "LocalAnchor" },
+                new SimpleField(new Run(new Text(" cached") { Space = SpaceProcessingModeValues.Preserve })) { Instruction = " FILENAME " },
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" SECRET_INSTRUCTION ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text(" visible") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                new Run(new TabChar(), new Text(" end") { Space = SpaceProcessingModeValues.Preserve }));
+            rich.PrependChild(body is Footnote ? new Run(new FootnoteReferenceMark()) : new Run(new EndnoteReferenceMark()));
+            body.Append(rich, new Paragraph(),
+                new Paragraph(new Run(new Text(" ") { Space = SpaceProcessingModeValues.Preserve }, new TabChar(),
+                    new Text(" ") { Space = SpaceProcessingModeValues.Preserve })),
+                new Table(new TableRow(new TableCell(new Paragraph(new Run(new Text("nested table text")))))));
+        }
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        main = document.OpenXmlDocument.MainDocumentPart!;
+        WordFootNote footnote = Assert.Single(document.FootNotes);
+        WordEndNote endnote = Assert.Single(document.EndNotes);
+        string[] expected = { "left bold link cached visible\t end", "", " \t " };
+        string[] xml = { main.Document.OuterXml, main.FootnotesPart!.Footnotes!.OuterXml, main.EndnotesPart!.Endnotes!.OuterXml };
+        Assert.Equal(expected, footnote.TextParagraphs);
+        Assert.Equal(expected, endnote.TextParagraphs);
+        Assert.Equal(expected, Assert.Single(document.Sections[0].FootNotes).TextParagraphs);
+        Assert.Equal(expected, Assert.Single(document.Sections[0].EndNotes).TextParagraphs);
+        Assert.Equal(xml, new[] { main.Document.OuterXml, main.FootnotesPart.Footnotes.OuterXml, main.EndnotesPart.Endnotes.OuterXml });
+
+        Footnote footBody = Assert.Single(main.FootnotesPart.Footnotes.Elements<Footnote>(), note => note.Id?.Value == footnote.ReferenceId);
+        Endnote endBody = Assert.Single(main.EndnotesPart.Endnotes.Elements<Endnote>(), note => note.Id?.Value == endnote.ReferenceId);
+        footBody.Type = FootnoteEndnoteValues.Separator;
+        endBody.Type = FootnoteEndnoteValues.Separator;
+        Assert.Null(footnote.TextParagraphs);
+        Assert.Null(endnote.TextParagraphs);
+        footBody.Remove();
+        endBody.Remove();
+        Assert.Null(footnote.TextParagraphs);
+        Assert.Null(endnote.TextParagraphs);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

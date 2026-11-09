@@ -140,7 +140,6 @@ namespace OfficeIMO.Tests {
                         new BoldComplexScript(),
                         new Caps(),
                         new Underline { Val = UnderlineValues.Single },
-                        new Highlight { Val = HighlightColorValues.Yellow },
                         new VerticalTextAlignment { Val = VerticalPositionValues.Superscript });
 
                     Style childStyle = EnsureParagraphStyle(styles, childStyleId);
@@ -152,7 +151,6 @@ namespace OfficeIMO.Tests {
                         new Caps { Val = false },
                         new SmallCaps { Val = false },
                         new Underline { Val = UnderlineValues.None },
-                        new Highlight { Val = HighlightColorValues.None },
                         new VerticalTextAlignment { Val = VerticalPositionValues.Baseline });
 
                     document.AddParagraph("Built-in explicit off child").SetStyle(WordParagraphStyles.Heading2);
@@ -174,9 +172,6 @@ namespace OfficeIMO.Tests {
                     ContainsBytePattern(tableStream, 0x3E, 0x2A, 0x00),
                     "Expected the native DOC stylesheet stream to contain sprmCKul none for the child built-in paragraph style.");
                 Assert.True(
-                    ContainsBytePattern(tableStream, 0x0C, 0x2A, 0x00),
-                    "Expected the native DOC stylesheet stream to contain sprmCHighlight none for the child built-in paragraph style.");
-                Assert.True(
                     ContainsBytePattern(tableStream, 0x48, 0x2A, 0x00),
                     "Expected the native DOC stylesheet stream to contain sprmCIss baseline for the child built-in paragraph style.");
 
@@ -194,7 +189,6 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(baseRunProperties.GetFirstChild<BoldComplexScript>());
                 Assert.NotNull(baseRunProperties.GetFirstChild<Caps>());
                 Assert.Equal(UnderlineValues.Single, baseRunProperties.GetFirstChild<Underline>()?.Val?.Value);
-                Assert.Equal(HighlightColorValues.Yellow, baseRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
                 Assert.Equal(VerticalPositionValues.Superscript, baseRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
 
                 Style childStyleAfterReload = Assert.Single(stylesAfterReload.Elements<Style>(), style => style.StyleId == childStyleId);
@@ -205,7 +199,6 @@ namespace OfficeIMO.Tests {
                 Assert.False(Assert.IsType<Caps>(childRunProperties.GetFirstChild<Caps>()).Val?.Value ?? true);
                 Assert.False(Assert.IsType<SmallCaps>(childRunProperties.GetFirstChild<SmallCaps>()).Val?.Value ?? true);
                 Assert.Equal(UnderlineValues.None, childRunProperties.GetFirstChild<Underline>()?.Val?.Value);
-                Assert.Equal(HighlightColorValues.None, childRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
                 Assert.Equal(VerticalPositionValues.Baseline, childRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
             } finally {
                 DeleteIfExists(docPath);

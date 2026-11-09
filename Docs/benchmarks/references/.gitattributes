@@ -1,0 +1,6 @@
+# The reconstruction packet's checksums bind UTF-8/LF payload bytes.
+legacy-word-notes-baseline/README.md text eol=lf
+legacy-word-notes-baseline/source-manifest.json text eol=lf
+legacy-word-notes-baseline/first-correct.patch text eol=lf -whitespace
+legacy-word-notes-baseline/LICENSE text eol=lf
+legacy-word-notes-baseline/SHA256SUMS text eol=lf

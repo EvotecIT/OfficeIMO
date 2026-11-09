@@ -18,10 +18,13 @@ public abstract class MigrationWorkload {
     public virtual long OutputBytes => Output?.LongLength ?? 0;
     public int VerifiedUnits { get; protected set; }
     public string DiagnosticDigest { get; protected set; } = "";
+    public string SemanticDigest { get; protected set; } = "";
 
     /// <summary>Creates one deterministic input outside the measured operation.</summary>
     public static MigrationWorkload Create(string profile, int units) => profile switch {
         "Word69" => new Word69Workload(units),
+        "Word69Notes" => new Word69NotesWorkload(units, fibVersion: 101),
+        "Word95Notes" => new Word69NotesWorkload(units, fibVersion: 104),
         "Biff4" => new BiffWorkload(units),
         "IWork09" => new IWork09Workload(units),
         "Dbx" => new DbxWorkload(units),

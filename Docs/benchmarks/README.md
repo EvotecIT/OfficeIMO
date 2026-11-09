@@ -110,6 +110,22 @@ records the escaped-text writer change, identical package-part hashes, and
 rotated before/after samples on both Windows processor domains. Long-plain
 export and portable memory budgets remain open.
 
+## Legacy Word notes
+
+The [2026-11-08 Word 6/95 notes comparison](word69-notes-2026-11-08.md) covers
+Word69, Word69Notes and Word95Notes at three scales on both Windows L3 domains.
+All 2,160 measured outputs pass validation. Allocation and median budgets
+pass, while three P95 checks fail. The
+[compact companion](word69-notes-2026-11-08.json) retains every numerical sample,
+and the [source reconstruction packet](references/legacy-word-notes-baseline/README.md)
+identifies the exact note-preserving reference. The original independent 5%
+allocation and 10% median/P95 budgets remain unchanged.
+
+The [2026-11-09 integrated Word notes comparison](word69-notes-2026-11-09.md)
+uses the same workloads and budgets with the integrated Word and Core builds.
+One P95 check exceeds budget. Its [data companion](word69-notes-2026-11-09.json)
+retains all 2,160 measurements and their launch order.
+
 ## Word Open XML SDK evidence
 
 `OfficeIMO.Word.Benchmarks` has a publishable lane containing only OfficeIMO and

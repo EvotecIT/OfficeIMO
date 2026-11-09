@@ -696,7 +696,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private static LegacyDocCharacterFormat GetFormatForFileOffset(
+        internal static LegacyDocCharacterFormat GetFormatForFileOffset(
             IReadOnlyList<LegacyDocCharacterFormatRange> ranges, int fileOffset, bool orderedFormattingRanges) {
             if (orderedFormattingRanges) {
                 int index = FindOrderedRange(ranges, fileOffset, static range => range.FileOffsetStart, static range => range.FileOffsetEnd);
@@ -712,7 +712,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return LegacyDocCharacterFormat.Default;
         }
 
-        private static LegacyDocParagraphFormat GetParagraphFormatForFileOffset(
+        internal static LegacyDocParagraphFormat GetParagraphFormatForFileOffset(
             IReadOnlyList<LegacyDocParagraphFormatRange> ranges, int fileOffset, bool orderedFormattingRanges) {
             if (orderedFormattingRanges) {
                 int index = FindOrderedRange(ranges, fileOffset, static range => range.FileOffsetStart, static range => range.FileOffsetEnd);
