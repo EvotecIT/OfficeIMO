@@ -201,7 +201,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape outline = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#styled-strokes:outline");
         HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text == "StrokePdf");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -323,7 +323,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape mixedBackground = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#mixed-border" && shape.Shape.FillColor == OfficeColor.White);
         HtmlRenderText mixedText = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "BorderPdf");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -440,7 +440,7 @@ public sealed partial class HtmlRenderingTests {
             .Where(shape => shape.Source == "div#rounded")
             .ToList();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -488,7 +488,7 @@ public sealed partial class HtmlRenderingTests {
                 && (item.Source == "div#asymmetric" || item.Source.StartsWith("div#asymmetric:outline", StringComparison.Ordinal)))
             .ToList();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
@@ -577,8 +577,8 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Png, options);
-        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
+        IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ToImages(OfficeImageExportFormat.Svg, options);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         pdfOptions = new HtmlPdfExportOptions(options);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();

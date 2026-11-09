@@ -29,7 +29,7 @@ public sealed class VisioDrawingReviewRegressionTests {
             byte[] before = document.ToLegacyXmlResult().Value;
             OfficeDrawing drawing = document.ToDrawings().Value[0];
             Assert.Contains("path", OfficeDrawingSvgExporter.ToSvg(drawing, 1, OfficeSvgSizeUnit.Point));
-            byte[] png = drawing.ExportImage(OfficeImageExportFormat.Png, new OfficeImageExportOptions { BackgroundColor = OfficeColor.White }).Bytes;
+            byte[] png = drawing.ToImage(OfficeImageExportFormat.Png, new OfficeImageExportOptions { BackgroundColor = OfficeColor.White }).Bytes;
             Assert.True(OfficeRasterImageDecoder.TryDecode(png, out OfficeRasterImage? raster));
             int ink = 0;
             for (int y = 0; y < raster!.Height; y++) for (int x = 0; x < raster.Width; x++) {

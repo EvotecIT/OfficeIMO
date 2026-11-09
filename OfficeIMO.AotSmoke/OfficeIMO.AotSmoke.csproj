@@ -9,7 +9,7 @@
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <EnableAotAnalyzer>true</EnableAotAnalyzer>
     <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
+
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO/OfficeIMO.csproj" />

@@ -1031,6 +1031,14 @@
       "category": "formatting",
       "phase": "3.6-shared-formatting",
       "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Drawing.OfficeDrawing.ExportImage(...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Drawing.OfficeDrawing.ToImage(...) : OfficeImageExportResult",
+      "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
+      "category": "conversion"
     }
   ],
   "extraChanges": [

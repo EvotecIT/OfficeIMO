@@ -7,7 +7,7 @@
     <OfficeIMOOneNotePackageVersion Condition="'$(OfficeIMOOneNotePackageVersion)' == ''">3.3.0</OfficeIMOOneNotePackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
+
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableOfficeIMOOneNotePackageSmoke)' == 'true'">

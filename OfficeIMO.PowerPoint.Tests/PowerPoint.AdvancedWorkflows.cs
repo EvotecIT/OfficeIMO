@@ -442,7 +442,7 @@ namespace OfficeIMO.Tests {
             Dgm.LayoutDefinition layout = Assert.Single(reopened.Slides[0].SlidePart
                 .DiagramLayoutDefinitionParts).LayoutDefinition!;
             AssertSmartArtNativeLayoutContract(type, layout);
-            OfficeImageExportResult png = reopened.Slides[0].ExportImage(
+            OfficeImageExportResult png = reopened.Slides[0].ToImage(
                 OfficeImageExportFormat.Png);
             Assert.DoesNotContain(png.Diagnostics,
                 diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error
@@ -526,7 +526,7 @@ namespace OfficeIMO.Tests {
                 OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20),
                 OfficeIMO.OfficeLength.Points(320), OfficeIMO.OfficeLength.Points(180));
 
-            OfficeImageExportResult png = slide.ExportImage(
+            OfficeImageExportResult png = slide.ToImage(
                 OfficeImageExportFormat.Png);
 
             Assert.True(OfficePngReader.TryDecode(png.Bytes,
@@ -996,7 +996,7 @@ namespace OfficeIMO.Tests {
                 .SetCategoryAxisLabelTextStyle(fontFamily: "Georgia")
                 .SetValueAxisLabelTextStyle(fontFamily: "Arial");
 
-            OfficeImageExportResult rendered = slide.ExportImage(
+            OfficeImageExportResult rendered = slide.ToImage(
                 OfficeImageExportFormat.Png);
             Assert.Contains(rendered.Diagnostics, diagnostic =>
                 diagnostic.Code == "unsupported-chart"

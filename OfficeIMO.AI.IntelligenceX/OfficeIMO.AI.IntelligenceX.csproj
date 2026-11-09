@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
+
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <VersionPrefix>3.6.0</VersionPrefix>
     <PackageId>OfficeIMO.AI.IntelligenceX</PackageId>

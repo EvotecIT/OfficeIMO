@@ -86,7 +86,7 @@ public sealed class XpsSidewaysTests {
     [InlineData("vertical")]
     public void RotatedClippedSidewaysRunsSurviveNativeAndPdfConversion(string metrics) {
         var doc = XpsDocument.Load(XpsSidewaysFixtures.Create(metrics, positioned: true).ToBytes());
-        byte[] png = doc.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes;
+        byte[] png = doc.Pages[0].ToImage(OfficeImageExportFormat.Png).Bytes;
         Assert.True(OfficeRasterImageDecoder.TryDecode(png, out var raster));
         var pdf = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         var pdfRaster = OfficeDrawingRasterRenderer.Render(pdf.Render.Drawing(1), 96D / 72D);

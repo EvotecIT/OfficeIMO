@@ -4,6 +4,20 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Epub.Image;
 
 public static partial class EpubImageExportExtensions {
+    /// <summary>Renders a batch using the encoding and selection in the options.</summary>
+    public static IReadOnlyList<OfficeImageExportResult> ToImages(this EpubDocument document, EpubImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        EpubImageExportOptions resolved = options?.CloneEpub() ?? new EpubImageExportOptions();
+        return CreateEpubDocumentImageBatchOperation(document, resolved).Export(cancellationToken);
+    }
+
+    /// <summary>Renders a batch asynchronously using the same options and evidence contract.</summary>
+    public static Task<IReadOnlyList<OfficeImageExportResult>> ToImagesAsync(this EpubDocument document, EpubImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        EpubImageExportOptions resolved = options?.CloneEpub() ?? new EpubImageExportOptions();
+        return CreateEpubDocumentImageBatchOperation(document, resolved).ExportAsync(cancellationToken);
+    }
+
     /// <summary>Saves selected images without retaining payloads and returns aggregate conversion evidence.</summary>
     public static OfficeConversionReport SaveAsImages(this EpubDocument document, string folderPath,
         EpubImageExportOptions? options = null, CancellationToken cancellationToken = default) {
@@ -31,8 +45,8 @@ public static partial class EpubImageExportExtensions {
         EpubDocument document, EpubImageExportOptions options) {
         ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportBatchOperation<EpubImageExportOptions>(options, options.Format, options.FileConflictPolicy,
-            (encoding, effective) => document.ExportImages(encoding, effective),
-            exportEach: (encoding, effective, consumer, token) => document.ExportImages(encoding, consumer, effective, token),
-            exportEachAsync: (encoding, effective, consumer, token) => document.ExportImagesAsync(encoding, consumer, effective, token));
+            (encoding, effective) => document.ToImages(encoding, effective),
+            exportEach: (encoding, effective, consumer, token) => document.ToImages(encoding, consumer, effective, token),
+            exportEachAsync: (encoding, effective, consumer, token) => document.ToImagesAsync(encoding, consumer, effective, token));
     }
 }

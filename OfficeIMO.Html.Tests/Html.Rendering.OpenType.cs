@@ -38,7 +38,7 @@ public sealed partial class HtmlRenderingTests {
             .Where(item => item.Text.Contains("OfficeIMO", StringComparison.Ordinal)).ToArray();
         Assert.NotEmpty(layoutRequests);
         int layoutRequestCount = provider.Requests.Count;
-        string svg = Encoding.UTF8.GetString(document.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(document.ToImage(OfficeImageExportFormat.Svg, options).Bytes);
 
         Assert.Equal("dark", visual.FontPalette);
         Assert.Equal(0, visual.FeatureSettings.Features["kern"]);
@@ -100,9 +100,9 @@ public sealed partial class HtmlRenderingTests {
         };
 
         byte[] enabledPng = HtmlConversionDocument.Parse(enabledHtml)
-            .ExportImage(OfficeImageExportFormat.Png, renderOptions).Bytes;
+            .ToImage(OfficeImageExportFormat.Png, renderOptions).Bytes;
         byte[] disabledPng = HtmlConversionDocument.Parse(disabledHtml)
-            .ExportImage(OfficeImageExportFormat.Png, renderOptions).Bytes;
+            .ToImage(OfficeImageExportFormat.Png, renderOptions).Bytes;
         OfficeRasterImage enabledSvg = RasterizeHtmlImageSvg(HtmlConversionDocument.Parse(enabledHtml).ToSvg(renderOptions));
         OfficeRasterImage disabledSvg = RasterizeHtmlImageSvg(HtmlConversionDocument.Parse(disabledHtml).ToSvg(renderOptions));
         var pdfOptions = new HtmlPdfExportOptions(renderOptions) {
@@ -127,9 +127,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { 1, 2 }, ObservePaintedTrueTypeGlyphs(disabledScene, disabledText).Select(glyph => glyph.GlyphId));
         enabledScene.ThrowIfLoss();
         disabledScene.ThrowIfLoss();
-        OfficeImageExportResult enabledSavedImage = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+        OfficeImageExportResult enabledSavedImage = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(
             enabledRead, OfficeImageExportFormat.Png));
-        OfficeImageExportResult disabledSavedImage = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+        OfficeImageExportResult disabledSavedImage = Assert.Single(PdfCore.PdfImageExportExtensions.ToImages(
             disabledRead, OfficeImageExportFormat.Png));
         Assert.NotEqual(enabledSavedImage.Bytes, disabledSavedImage.Bytes);
         Assert.Equal("fi", enabledRead.ExtractText().Trim());
@@ -155,9 +155,9 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal("light", lightVisual.FontPalette);
         Assert.Equal("light", lightDrawingText.FontPalette);
-        Assert.True(OfficePngReader.TryDecode(light.ExportImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? lightImage));
-        Assert.True(OfficePngReader.TryDecode(dark.ExportImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? darkImage));
-        string darkSvg = Encoding.UTF8.GetString(dark.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        Assert.True(OfficePngReader.TryDecode(light.ToImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? lightImage));
+        Assert.True(OfficePngReader.TryDecode(dark.ToImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? darkImage));
+        string darkSvg = Encoding.UTF8.GetString(dark.ToImage(OfficeImageExportFormat.Svg, options).Bytes);
         byte[] darkPdf = (dark.ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
         OfficeColor[] pdfPaints = DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(darkPdf)).Render.Drawing(1))
             .OfType<OfficeDrawingShape>()

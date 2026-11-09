@@ -27,7 +27,7 @@ public sealed class PdfInterleaveSource {
     /// <summary>Optional parser, password, permission, and resource-budget settings.</summary>
     public PdfLoadOptions? ReadOptions { get; set; }
     /// <summary>Optional ordered page selector. All pages are used when omitted.</summary>
-    public PdfPageSelector? Pages { get; set; }
+    public OfficePageSelector? Pages { get; set; }
     /// <summary>Reverses the selected page order before interleaving.</summary>
     public bool Reverse { get; set; }
 

@@ -388,13 +388,20 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         } finally { File.Delete(path); }
     }
 
-    [Fact]
-    public void InvalidDateSerialKeepsGenericConstructionAndFailureOrder() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InvalidDateSerialKeepsGenericConstructionAndFailureOrder(bool parallel) {
         string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\" s=\"1\"><v>3000000</v></c></row>", new[] { "Date" }, 2);
         try {
             using var reader = ExcelDocument.OpenReader(path);
             DateConstructorProbeRow.Calls = 0;
-            Assert.Throws<ArgumentException>(() => reader.RowsAs<DateConstructorProbeRow>().ToArray());
+            Assert.Throws<ArgumentException>(() => {
+                if (parallel) reader.RowsAsParallel<DateConstructorProbeRow>(new ParallelRowMappingOptions {
+                    MaxDegreeOfParallelism = 2, BatchSize = 1
+                }).ToArray();
+                else reader.RowsAs<DateConstructorProbeRow>().ToArray();
+            });
             Assert.Equal(1, DateConstructorProbeRow.Calls);
             Assert.False(reader.IsClosed);
         } finally { File.Delete(path); }
@@ -449,17 +456,51 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         } finally { File.Delete(path); }
     }
 
-    [Fact]
-    public void MappingCancellationStopsBeforeTheNextNativeRow() {
-        string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\"><v>1</v></c></row><row r=\"3\"><c r=\"A3\"><v>2</v></c></row>", new[] { "Id" }, 3);
+    [Theory]
+    [InlineData(false, 0, false)]
+    [InlineData(false, 1, false)]
+    [InlineData(false, 2, false)]
+    [InlineData(true, 1, false)]
+    [InlineData(true, 2, false)]
+    [InlineData(false, 2, true)]
+    [InlineData(true, 2, true)]
+    [InlineData(true, 3, true)]
+    public void MappingCancellationStopsBeforeTheNextNativeRow(bool inferSchema, int mapping, bool cancelWhileMapping) {
+        string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\"><v>1</v></c></row><row r=\"3\"><c r=\"A3\"><v>2</v></c></row>" +
+            "<row r=\"4\"><c r=\"A4\"><v>3</v></c></row><row r=\"5\"><c r=\"A5\"><v>4</v></c></row>", new[] { "Id" }, 5);
         try {
             using var cancellation = new CancellationTokenSource();
-            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { CancellationToken = cancellation.Token });
-            using IEnumerator<IdRow> rows = reader.RowsAs<IdRow>().GetEnumerator();
-            Assert.True(rows.MoveNext());
-            Assert.Equal(1, rows.Current.Id);
-            cancellation.Cancel();
-            OperationCanceledException error = Assert.Throws<OperationCanceledException>(() => rows.MoveNext());
+            using var secondBatch = new ManualResetEventSlim();
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
+                CancellationToken = cancellation.Token, InferSchema = inferSchema
+            });
+            int MapId(int value) {
+                if (cancelWhileMapping) {
+                    if (value == 3) secondBatch.Set();
+                    else if (value == 1) {
+                        if (!secondBatch.Wait(TimeSpan.FromSeconds(10)))
+                            throw new TimeoutException("The second mapping batch did not start.");
+                        cancellation.Cancel();
+                    }
+                }
+                return value;
+            }
+            var options = new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2, BatchSize = cancelWhileMapping ? 2 : 128
+            };
+            IEnumerable<IdRow> mapped = mapping == 0 ? reader.RowsAs<IdRow>() : mapping == 1
+                ? reader.RowsAsParallel<IdRow>(options) : mapping == 3
+                ? reader.RowsAsParallel(record => new IdRow { Id = MapId(record.GetInt32(0)) }, options)
+                : reader.RowsAsParallel<IdRow>(map => map.FromColumn<int>("Id", (row, value) => {
+                    row.Id = MapId(value); return row;
+                }), options);
+            using IEnumerator<IdRow> rows = mapped.GetEnumerator();
+            if (!cancelWhileMapping) {
+                Assert.True(rows.MoveNext());
+                Assert.Equal(1, rows.Current.Id);
+                cancellation.Cancel();
+            }
+            OperationCanceledException error = Assert.ThrowsAny<OperationCanceledException>(() => rows.MoveNext());
             Assert.Equal(cancellation.Token, error.CancellationToken);
             Assert.False(reader.IsClosed);
         } finally { File.Delete(path); }

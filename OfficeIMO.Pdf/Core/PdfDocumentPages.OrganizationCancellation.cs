@@ -10,7 +10,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Deletes pages resolved by a document-relative selector with cooperative cancellation.</summary>
-    public PdfDocument Delete(PdfPageSelector selector, CancellationToken cancellationToken) =>
+    public PdfDocument Delete(OfficePageSelector selector, CancellationToken cancellationToken) =>
         Delete(ResolveSelector(selector, _document.ReadOptions, cancellationToken), _document.ReadOptions, cancellationToken);
 
     /// <summary>Deletes parsed page ranges with cooperative cancellation.</summary>
@@ -31,7 +31,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reports the delete operation while propagating cancellation as an exception.</summary>
-    internal PdfOperationResult<PdfDocument> DeleteResult(PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DeleteResult(OfficePageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Delete pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Delete(ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), effective, cancellationToken: cancellationToken);
@@ -51,7 +51,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reorders pages resolved by a document-relative selector with cooperative cancellation.</summary>
-    public PdfDocument Reorder(PdfPageSelector selector, CancellationToken cancellationToken) =>
+    public PdfDocument Reorder(OfficePageSelector selector, CancellationToken cancellationToken) =>
         Reorder(ResolveSelector(selector, _document.ReadOptions, cancellationToken), _document.ReadOptions, cancellationToken);
 
     /// <summary>Reorders parsed page ranges with cooperative cancellation.</summary>
@@ -68,7 +68,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reports the reorder operation while propagating cancellation as an exception.</summary>
-    internal PdfOperationResult<PdfDocument> ReorderResult(PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ReorderResult(OfficePageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Reorder(ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), effective, cancellationToken: cancellationToken);
@@ -88,7 +88,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Duplicates pages resolved by a document-relative selector with cooperative cancellation.</summary>
-    public PdfDocument Duplicate(PdfPageSelector selector, CancellationToken cancellationToken) =>
+    public PdfDocument Duplicate(OfficePageSelector selector, CancellationToken cancellationToken) =>
         Duplicate(ResolveSelector(selector, _document.ReadOptions, cancellationToken), _document.ReadOptions, cancellationToken);
 
     /// <summary>Duplicates parsed page ranges with cooperative cancellation.</summary>
@@ -109,7 +109,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reports the duplicate operation while propagating cancellation as an exception.</summary>
-    internal PdfOperationResult<PdfDocument> DuplicateResult(PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DuplicateResult(OfficePageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Duplicate(ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), effective, cancellationToken: cancellationToken);
@@ -129,7 +129,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Moves pages resolved by a document-relative selector with cooperative cancellation.</summary>
-    public PdfDocument Move(int insertBeforePageNumber, PdfPageSelector selector, CancellationToken cancellationToken) =>
+    public PdfDocument Move(int insertBeforePageNumber, OfficePageSelector selector, CancellationToken cancellationToken) =>
         Move(insertBeforePageNumber, ResolveSelector(selector, _document.ReadOptions, cancellationToken), _document.ReadOptions, cancellationToken);
 
     /// <summary>Moves parsed page ranges with cooperative cancellation.</summary>
@@ -150,7 +150,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reports the move operation while propagating cancellation as an exception.</summary>
-    internal PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, OfficePageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Move pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Move(insertBeforePageNumber, ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), effective, cancellationToken: cancellationToken);
@@ -170,7 +170,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Rotates pages resolved by a document-relative selector with cooperative cancellation.</summary>
-    public PdfDocument Rotate(int rotationDegrees, PdfPageSelector selector, CancellationToken cancellationToken) =>
+    public PdfDocument Rotate(int rotationDegrees, OfficePageSelector selector, CancellationToken cancellationToken) =>
         Rotate(rotationDegrees, ResolveSelector(selector, _document.ReadOptions, cancellationToken), _document.ReadOptions, cancellationToken);
 
     /// <summary>Rotates parsed page ranges with cooperative cancellation.</summary>
@@ -191,7 +191,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reports the rotate operation while propagating cancellation as an exception.</summary>
-    internal PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, OfficePageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages,
             () => Rotate(rotationDegrees, ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), effective, cancellationToken: cancellationToken);
@@ -214,13 +214,13 @@ public sealed partial class PdfDocumentPages {
         ApplyAttributes(new[] { PdfPageAttributeEdit.RotateBy(rotationDegrees, selection) }, cancellationToken);
 
     /// <summary>Turns pages resolved by a document-relative selector with cooperative cancellation.</summary>
-    public PdfDocument RotateBy(int rotationDegrees, PdfPageSelector selector, CancellationToken cancellationToken) =>
+    public PdfDocument RotateBy(int rotationDegrees, OfficePageSelector selector, CancellationToken cancellationToken) =>
         RotateBy(rotationDegrees, ResolveSelector(selector, _document.ReadOptions, cancellationToken), cancellationToken);
 
     /// <summary>Turns pages resolved by a document-relative expression with cooperative cancellation.</summary>
     public PdfDocument RotateBy(int rotationDegrees, string selector, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        return RotateBy(rotationDegrees, PdfPageSelector.Parse(selector), cancellationToken);
+        return RotateBy(rotationDegrees, OfficePageSelector.Parse(selector), cancellationToken);
     }
 
     /// <summary>Sets page boundary geometry with cooperative cancellation.</summary>
@@ -276,7 +276,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reports a relative page rotation while propagating cancellation as an exception.</summary>
-    internal PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, OfficePageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Turn pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages,
             () => _document.ApplyMutation(input => PdfPageEditor.EditPageAttributes(input,
@@ -289,7 +289,7 @@ public sealed partial class PdfDocumentPages {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Turn pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages,
             () => _document.ApplyMutation(input => PdfPageEditor.EditPageAttributes(input,
-                new[] { PdfPageAttributeEdit.RotateBy(rotationDegrees, ResolveSelector(PdfPageSelector.Parse(selector), effective, cancellationToken)) }, effective, cancellationToken),
+                new[] { PdfPageAttributeEdit.RotateBy(rotationDegrees, ResolveSelector(OfficePageSelector.Parse(selector), effective, cancellationToken)) }, effective, cancellationToken),
                 effective, cancellationToken: cancellationToken), effective, cancellationToken: cancellationToken);
     }
 

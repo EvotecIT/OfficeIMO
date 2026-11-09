@@ -28,7 +28,7 @@ public class PdfBatesNumbererTests {
         byte[] first = PdfProductionWorkflowTestSupport.CreatePdf("First one", "First two");
         byte[] second = PdfProductionWorkflowTestSupport.CreatePdf("Second one", "Second two");
         var secondInput = new PdfBatesDocument(second, "second.pdf") {
-            TargetPages = PdfPageSelector.Parse("2")
+            TargetPages = OfficePageSelector.Parse("2")
         };
 
         PdfBatesBatchResult result = PdfBatesNumberer.Apply(
@@ -57,7 +57,7 @@ public class PdfBatesNumbererTests {
     [Fact]
     public void Apply_RejectsDuplicatePageSelectionsBeforeAssigningNumbers() {
         var input = new PdfBatesDocument(PdfProductionWorkflowTestSupport.CreatePdf("Duplicate selection")) {
-            TargetPages = PdfPageSelector.Parse("1,1")
+            TargetPages = OfficePageSelector.Parse("1,1")
         };
 
         Assert.Throws<ArgumentException>(() => PdfBatesNumberer.Apply(new[] { input }));

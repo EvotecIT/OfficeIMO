@@ -9,7 +9,7 @@
     <IsPublishable>true</IsPublishable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
+
     <Authors>Przemyslaw Klys</Authors>
     <Company>Evotec</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests {
             ExcelRange range = fixture.Sheet.Range("A1:H10");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
@@ -35,8 +35,8 @@ namespace OfficeIMO.Tests {
             ExcelRange range = fixture.Sheet.Range("A1:H10");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
-            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult png = range.ToImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ToImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartSeriesStyleApproximation);
@@ -64,8 +64,8 @@ namespace OfficeIMO.Tests {
             Assert.True(File.Exists(pngPath), "Approved chart-axis PNG baseline is missing.");
             Assert.True(File.Exists(svgPath), "Approved chart-axis SVG baseline is missing.");
             OfficeRasterImage image = VisualBaselineTestSupport.DecodePng(File.ReadAllBytes(pngPath), "Approved chart-axis PNG baseline is not a supported PNG file.");
-            Assert.Equal(range.ExportImage(OfficeImageExportFormat.Png, options).Width, image.Width);
-            Assert.Equal(range.ExportImage(OfficeImageExportFormat.Png, options).Height, image.Height);
+            Assert.Equal(range.ToImage(OfficeImageExportFormat.Png, options).Width, image.Width);
+            Assert.Equal(range.ToImage(OfficeImageExportFormat.Png, options).Height, image.Height);
             Assert.True(VisualBaselineTestSupport.CountNonBackgroundPixels(image, OfficeColor.White) > 1200, "Approved chart-axis PNG baseline should contain a visible rendered chart.");
             string svg = File.ReadAllText(svgPath);
             Assert.Contains("Axis Label Density", svg, StringComparison.Ordinal);
@@ -83,8 +83,8 @@ namespace OfficeIMO.Tests {
             Assert.True(File.Exists(pngPath), "Approved chart data-label box PNG baseline is missing.");
             Assert.True(File.Exists(svgPath), "Approved chart data-label box SVG baseline is missing.");
             OfficeRasterImage image = VisualBaselineTestSupport.DecodePng(File.ReadAllBytes(pngPath), "Approved chart data-label box PNG baseline is not a supported PNG file.");
-            Assert.Equal(range.ExportImage(OfficeImageExportFormat.Png, options).Width, image.Width);
-            Assert.Equal(range.ExportImage(OfficeImageExportFormat.Png, options).Height, image.Height);
+            Assert.Equal(range.ToImage(OfficeImageExportFormat.Png, options).Width, image.Width);
+            Assert.Equal(range.ToImage(OfficeImageExportFormat.Png, options).Height, image.Height);
             Assert.True(VisualBaselineTestSupport.CountNonBackgroundPixels(image, OfficeColor.White) > 1500, "Approved chart data-label box PNG baseline should contain a visible rendered chart.");
             string svg = File.ReadAllText(svgPath);
             Assert.Contains("Data Label Box Fidelity", svg, StringComparison.Ordinal);

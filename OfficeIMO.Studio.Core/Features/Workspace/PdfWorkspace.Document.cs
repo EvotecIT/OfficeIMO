@@ -101,7 +101,7 @@ internal sealed partial class PdfWorkspace {
         IReadOnlyDictionary<string, PdfFormFieldValue>? formDrafts = null, IProgress<PdfWorkspaceProgress>? progress = null) {
         PdfDocument snapshot = CreateDocumentSnapshot();
         if (kind == PdfExportKind.Images) {
-            return await ExportImagesAsync(snapshot, destination, cancellationToken, progress).ConfigureAwait(false);
+            return await ToImagesAsync(snapshot, destination, cancellationToken, progress).ConfigureAwait(false);
         }
         bool canReadLogicalContent = ViewInfo.CanExtractContent;
         // Structured serialization and draft-filled XFDF do not accept cancellation. Keep the
@@ -196,5 +196,5 @@ internal sealed record PdfHeaderFooterOptions {
 
     public int[] ResolvePages(int pageCount) => string.IsNullOrWhiteSpace(PageRange)
         ? Enumerable.Range(1, pageCount).ToArray()
-        : PdfPageSelector.Parse(PageRange!.Trim()).Resolve(pageCount).ToArray();
+        : OfficePageSelector.Parse(PageRange!.Trim()).Resolve(pageCount).ToArray();
 }

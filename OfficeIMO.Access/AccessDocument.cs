@@ -13,7 +13,7 @@ namespace OfficeIMO.Access {
         internal AccessNativeDatabase? NativeDatabase;
         private AccessNativeWriter? _creationPlan;
         private long _creationPlanLimit;
-        internal DateTime CreatedAt { get; } = DateTime.Now;
+        internal DateTime CreatedAt { get; private set; } = DateTime.Now;
 
         private AccessDocument(AccessFileFormat format, DocumentAccessMode accessMode, AccessInspection? inspection) {
             Format = format; AccessMode = accessMode; Inspection = inspection;

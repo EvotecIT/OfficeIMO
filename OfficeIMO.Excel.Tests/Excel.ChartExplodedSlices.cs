@@ -51,7 +51,7 @@ public sealed class ExcelChartExplodedSlicesTests {
             Assert.Equal(new[] { "156082", "E97132" }, snapshot.Style!.Palette.Take(2)
                 .Select(color => color.ToRgbHex()));
             Assert.Null(snapshot.Data.Series.Single().PointColorArgb);
-            Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+            Assert.NotEmpty(chart.ToImage(OfficeImageExportFormat.Svg).Bytes);
             MethodInfo pdfProjection = typeof(ExcelPdfConverterExtensions).GetMethod(
                 "CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
             OfficeChartSnapshot pdfSnapshot = Assert.IsType<OfficeChartSnapshot>(
@@ -74,7 +74,7 @@ public sealed class ExcelChartExplodedSlicesTests {
         ExcelChart chart = reopened.Sheets.Single(sheet => sheet.Name == "Results").Charts.Single();
         Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(new[] { 25, 0 }, snapshot.Data.Series.Single().PointExplosions);
-        Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        Assert.NotEmpty(chart.ToImage(OfficeImageExportFormat.Svg).Bytes);
         chart.UpdateData(new ExcelChartData(new[] { "A", "B" }, new[] {
             new ExcelChartSeries("Status", new[] { 8d, 2d })
         }));
@@ -149,7 +149,7 @@ public sealed class ExcelChartExplodedSlicesTests {
         }));
         Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Null(snapshot.Data.Series.Single().PointExplosions);
-        Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        Assert.NotEmpty(chart.ToImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Empty(document.ValidateDocument());
     }
 }

@@ -22,7 +22,7 @@ internal static class PremiumReportProof {
                 PageHeight = 900, Timescale = ProjectViewTimescale.Day, StatusDate = new DateTime(2026, 10, 8),
                 Columns = new[] { ProjectViewColumn.Uid, ProjectViewColumn.Name }, MaxPages = 30 });
             var options = new ProjectImageExportOptions().UseRenderingProfile(typography);
-            var images = ProjectReportWorkflow.ExportImages(view, options: options);
+            var images = ProjectReportWorkflow.ToImages(view, options: options);
             var svgs = ProjectReportWorkflow.ToSvg(view, typography);
             for (int p = 0; p < images.Count; p++) {
                 File.WriteAllBytes(Path.Combine(output, kind + "-" + (p + 1) + ".png"), images[p].Bytes);

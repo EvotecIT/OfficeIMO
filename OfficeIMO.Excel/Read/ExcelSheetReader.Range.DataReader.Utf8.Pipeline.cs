@@ -74,6 +74,7 @@ namespace OfficeIMO.Excel {
                 if (_inflation != null) _length = _inflation.WaitForCompletion(ct);
                 if (!_validatedIndexedXml && !IsCanonicalWorksheetXmlFullyValidated(ct) && !ValidateBufferedWorksheetXml(ct)) return false;
                 ct.ThrowIfCancellationRequested();
+                _mappingRowsQualified = true;
                 declaredFirstColumn = firstColumn;
                 return true;
             }

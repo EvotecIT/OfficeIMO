@@ -5,7 +5,7 @@
     <PackageId>OfficeIMO</PackageId>
     <Description>Document conversion and resumable batches over the OfficeIMO format libraries.</Description>
     <VersionPrefix>3.6.0</VersionPrefix>
-    <Nullable>enable</Nullable>
+
     <LangVersion>Latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

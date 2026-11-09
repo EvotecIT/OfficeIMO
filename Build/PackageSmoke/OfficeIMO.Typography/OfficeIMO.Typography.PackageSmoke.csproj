@@ -7,7 +7,7 @@
     <OfficeIMOTypographyPackageVersion Condition="'$(OfficeIMOTypographyPackageVersion)' == ''">3.3.0</OfficeIMOTypographyPackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
+
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableOfficeIMOTypographyPackageSmoke)' == 'true'">

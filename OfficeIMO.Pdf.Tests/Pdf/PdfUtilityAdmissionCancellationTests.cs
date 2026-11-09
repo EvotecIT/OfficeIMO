@@ -125,7 +125,7 @@ public class PdfUtilityAdmissionCancellationTests {
             () => document.Pages.Extract(PdfPageRange.From(1, 1), cancelled.Token),
             () => document.Pages.Extract(PdfPageSelection.From(1), cancelled.Token),
             () => document.Pages.Extract("1", cancelled.Token),
-            () => document.Pages.Extract(PdfPageSelector.Parse("last"), cancelled.Token),
+            () => document.Pages.Extract(OfficePageSelector.Parse("last"), cancelled.Token),
             () => document.Pages.Split(cancelled.Token),
             () => document.Pages.Split(1, cancelled.Token),
             () => document.Pages.Split(new[] { PdfPageSelection.From(1) }, cancelled.Token),
@@ -151,7 +151,7 @@ public class PdfUtilityAdmissionCancellationTests {
         PdfDocument document = PdfDocument.Load(source);
         Action[] nullInputs = {
             () => document.Pages.ExtractResult((PdfPageSelection)null!, CancellationToken.None),
-            () => document.Pages.ExtractResult((PdfPageSelector)null!, CancellationToken.None),
+            () => document.Pages.ExtractResult((OfficePageSelector)null!, CancellationToken.None),
             () => document.Pages.SplitResult((IReadOnlyList<PdfPageSelection>)null!, CancellationToken.None),
             () => document.Pages.SplitResult((IEnumerable<PdfPageRange>)null!, CancellationToken.None)
         };

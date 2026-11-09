@@ -20,7 +20,7 @@ public sealed class ImageExportConformanceContracts {
         using (ExcelDocument workbook = ExcelDocument.Create(excelStream)) {
             ExcelSheet sheet = workbook.AddSheet("Budget");
             sheet.Cell(1, 1).SetValue("Excel");
-            results.Add(sheet.Range("A1:D8").ExportImage(
+            results.Add(sheet.Range("A1:D8").ToImage(
                 OfficeImageExportFormat.Webp,
                 new ExcelImageExportOptions {
                     Scale = 50D,
@@ -30,7 +30,7 @@ public sealed class ImageExportConformanceContracts {
 
         HtmlConversionDocument html = HtmlConversionDocument.Parse(
             "<div style='width:200px;height:100px;background:#369;color:white'>HTML</div>");
-        results.Add(html.ExportImage(
+        results.Add(html.ToImage(
             OfficeImageExportFormat.Webp,
             new HtmlRenderOptions {
                 Scale = 20D,
@@ -41,7 +41,7 @@ public sealed class ImageExportConformanceContracts {
         PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create(document => document
             .Content(content => content.AddParagraph(paragraph => paragraph.AddText("PDF"))))
             .ToBytes()));
-        results.Add(pdf.Pages[0].ExportImage(
+        results.Add(pdf.Pages[0].ToImage(
             OfficeImageExportFormat.Webp,
             new PdfImageExportOptions {
                 Scale = 50D,
@@ -53,7 +53,7 @@ public sealed class ImageExportConformanceContracts {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240D),OfficeIMO.OfficeLength.Points(160D));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = OfficeColor.Parse("336699");
-            results.Add(slide.ExportImage(
+            results.Add(slide.ToImage(
                 OfficeImageExportFormat.Webp,
                 new PowerPointImageExportOptions {
                     Scale = 50D,
@@ -65,7 +65,7 @@ public sealed class ImageExportConformanceContracts {
             VisioDocument document = VisioDocument.Create(visioStream);
             VisioPage page = document.AddPage("Budget").Size(OfficeLength.Inches(2D), OfficeLength.Inches(1D));
             page.AddRectangle(OfficeLength.Inches(1D), OfficeLength.Inches(0.5D), OfficeLength.Inches(1D), OfficeLength.Inches(0.5D), "Visio");
-            results.Add(page.ExportImage(
+            results.Add(page.ToImage(
                 OfficeImageExportFormat.Webp,
                 new VisioImageExportOptions {
                     Scale = 50D,
@@ -77,7 +77,7 @@ public sealed class ImageExportConformanceContracts {
         using (var wordStream = new MemoryStream())
         using (WordDocument document = WordDocument.Create(wordStream)) {
             document.AddParagraph("Word");
-            results.Add(document.ExportImage(
+            results.Add(document.ToImage(
                 OfficeImageExportFormat.Webp,
                 new WordImageExportOptions {
                     Scale = 50D,

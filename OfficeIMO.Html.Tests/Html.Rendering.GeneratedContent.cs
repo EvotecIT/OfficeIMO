@@ -416,8 +416,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, imageOptions);
-        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Png, imageOptions);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ToImage(OfficeImageExportFormat.Svg, imageOptions).Bytes);
         HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes())).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 

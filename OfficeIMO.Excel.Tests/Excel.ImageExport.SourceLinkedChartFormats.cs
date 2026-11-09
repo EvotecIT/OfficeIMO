@@ -41,7 +41,7 @@ public class ExcelSourceLinkedChartFormatTests {
         document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<DocumentFormat.OpenXml.Spreadsheet.CellFormat>().Last().NumberFormatId = id;
         var snapshot = sheet.Range("A1:J12").CreateVisualSnapshot();
         Assert.Equal("0%", Assert.Single(snapshot.Charts).Snapshot.Layout!.VerticalAxisNumberFormat);
-        var result = sheet.Range("A1:J12").ExportImage(OfficeImageExportFormat.Svg);
+        var result = sheet.Range("A1:J12").ToImage(OfficeImageExportFormat.Svg);
         Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
     }
 
@@ -61,7 +61,7 @@ public class ExcelSourceLinkedChartFormatTests {
             if (formats.Parent == null) stylesheet.AddChild(formats, true);
             formats.Append(new DocumentFormat.OpenXml.Spreadsheet.NumberingFormat { NumberFormatId = id, FormatCode = "0%" });
         } else stylesheet.CellFormats!.Elements<DocumentFormat.OpenXml.Spreadsheet.CellFormat>().Last().NumberFormatId = id;
-        var result = sheet.Range("A1:J12").ExportImage(OfficeImageExportFormat.Svg);
+        var result = sheet.Range("A1:J12").ToImage(OfficeImageExportFormat.Svg);
         Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
     }
     [Theory]
@@ -119,7 +119,7 @@ public class ExcelSourceLinkedChartFormatTests {
                 new DocumentFormat.OpenXml.Drawing.Charts.PointCount { Val = 2 },
                 new DocumentFormat.OpenXml.Drawing.Charts.NumericPoint(new DocumentFormat.OpenXml.Drawing.Charts.NumericValue("0.94")) { Index = 0 },
                 new DocumentFormat.OpenXml.Drawing.Charts.NumericPoint(new DocumentFormat.OpenXml.Drawing.Charts.NumericValue("0.82")) { Index = 1 })));
-        var result = sheet.Range("A1:J12").ExportImage(OfficeImageExportFormat.Svg);
+        var result = sheet.Range("A1:J12").ToImage(OfficeImageExportFormat.Svg);
         Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
     }
     [Fact]
@@ -132,7 +132,7 @@ public class ExcelSourceLinkedChartFormatTests {
         var formats = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!.CellFormats!;
         for (int index = formats.ChildElements.Count; index <= 100_000; index++)
             formats.Append(new DocumentFormat.OpenXml.Spreadsheet.CellFormat { NumberFormatId = 9 });
-        var result = sheet.Range("A1:J12").ExportImage(OfficeImageExportFormat.Svg);
+        var result = sheet.Range("A1:J12").ToImage(OfficeImageExportFormat.Svg);
         Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
     }
     [Fact]
@@ -143,7 +143,7 @@ public class ExcelSourceLinkedChartFormatTests {
         sheet.Cell(2, 1).SetValue("North"); sheet.Cell(2, 2).SetValue(.94); sheet.Cell(2, 2).SetNumberFormat("0%");
         sheet.Cell(3, 1).SetValue("South"); sheet.Cell(3, 2).SetValue(.82);
         sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
-        var result = sheet.Range("A1:J12").ExportImage(OfficeImageExportFormat.Svg);
+        var result = sheet.Range("A1:J12").ToImage(OfficeImageExportFormat.Svg);
         Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
     }
     [Theory]

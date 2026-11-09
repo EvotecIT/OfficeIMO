@@ -132,6 +132,11 @@ public static partial class ParallelRowMappingExtensions {
         T[] rows;
         try {
             rows = pending.Dequeue().GetAwaiter().GetResult();
+        } catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested &&
+                                                           exception.CancellationToken == stop.Token) {
+            stop.Cancel();
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
         } catch {
             stop.Cancel();
             throw;

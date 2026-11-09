@@ -31,7 +31,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Exports all pages or a caller-ordered selection through the shared image-export contract.
     /// </summary>
-    public IReadOnlyList<OfficeImageExportResult> ExportImages(
+    public IReadOnlyList<OfficeImageExportResult> ToImages(
         OfficeImageExportFormat format,
         PdfImageExportOptions? options = null,
         PdfPageSelection? selection = null,

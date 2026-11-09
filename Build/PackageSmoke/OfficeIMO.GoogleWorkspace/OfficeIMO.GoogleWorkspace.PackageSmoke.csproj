@@ -7,7 +7,7 @@
     <OfficeIMOGooglePackageVersion Condition="'$(OfficeIMOGooglePackageVersion)' == ''">3.3.0</OfficeIMOGooglePackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
+
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableOfficeIMOGooglePackageSmoke)' == 'true'">

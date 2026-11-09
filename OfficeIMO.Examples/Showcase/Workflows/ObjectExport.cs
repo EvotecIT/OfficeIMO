@@ -128,7 +128,7 @@ internal static class ObjectExport
             sheet.Cell(row, 5).SetNumberFormat("#,##0.00");
         }
 
-        sheet.Range("A1:F11").ExportImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
+        sheet.Range("A1:F11").ToImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();
     }
 }

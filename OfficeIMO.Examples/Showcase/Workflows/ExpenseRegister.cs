@@ -42,7 +42,7 @@ internal static class ExpenseRegister {
         sheet.Cell(10, 4).SetBold(true);
         sheet.View.Freeze(topRows: 4);
         document.Calculate();
-        sheet.Range("A1:E12").ExportImage(OfficeImageExportFormat.Png)
+        sheet.Range("A1:E12").ToImage(OfficeImageExportFormat.Png)
             .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();
     }

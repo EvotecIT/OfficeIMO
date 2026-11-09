@@ -78,9 +78,9 @@ internal static class OneNoteRevisionStoreWriter {
             OneNoteDesktopBinary.WriteNilReference(stream);
             FssHttpStreamObjectWriter.WriteUInt64(stream, expectedLength);
             FssHttpStreamObjectWriter.WriteUInt64(stream, 0);
-            OneNoteDesktopBinary.WriteGuid(stream, Guid.NewGuid());
+            OneNoteDesktopBinary.WriteGuid(stream, plan.NewGuid());
             FssHttpStreamObjectWriter.WriteUInt64(stream, 1);
-            OneNoteDesktopBinary.WriteGuid(stream, Guid.NewGuid());
+            OneNoteDesktopBinary.WriteGuid(stream, plan.NewGuid());
             FssHttpStreamObjectWriter.WriteUInt32(stream, 0);
             OneNoteDesktopBinary.WriteReference(stream, 0, 0);
             OneNoteDesktopBinary.WriteReference(stream, 0, 0);

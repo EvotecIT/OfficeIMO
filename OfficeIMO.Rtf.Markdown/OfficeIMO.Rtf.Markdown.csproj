@@ -10,7 +10,7 @@
     <Description>Semantic Rich Text Format and Markdown conversion bridge for OfficeIMO.</Description>
     <PackageTags>RTF;Markdown;OfficeIMO;document-conversion</PackageTags>
     <VersionPrefix>3.6.0</VersionPrefix>
-    <Nullable>enable</Nullable>
+
     <LangVersion>Latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>

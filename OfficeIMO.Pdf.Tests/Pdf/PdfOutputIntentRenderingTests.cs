@@ -354,7 +354,7 @@ public partial class PdfOutputIntentRenderingTests {
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-        OfficeImageExportResult export = page.ExportImage(OfficeImageExportFormat.Png);
+        OfficeImageExportResult export = page.ToImage(OfficeImageExportFormat.Png);
 
         Assert.Equal(OfficeColor.FromRgb(51, 102, 204), Assert.Single(drawing.Shapes).Shape.FillColor);
         Assert.Contains(export.Diagnostics, diagnostic =>

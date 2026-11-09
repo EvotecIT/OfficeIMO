@@ -77,8 +77,8 @@ public sealed partial class MainWindowViewModel {
         ComparisonSummary = ComparisonText("Comparing", "Comparing page appearance…");
         try {
             if (HasFormDrafts) throw new InvalidOperationException(ComparisonText("FormDrafts", "Apply pending form values before comparing page appearance."));
-            PdfPageSelector? expectedPages = ParseComparisonRange(ComparisonExpectedRange);
-            PdfPageSelector? actualPages = ParseComparisonRange(ComparisonActualRange);
+            OfficePageSelector? expectedPages = ParseComparisonRange(ComparisonExpectedRange);
+            OfficePageSelector? actualPages = ParseComparisonRange(ComparisonActualRange);
             PdfVisualComparisonReport report = await workspace.RunNonDetachableCpuWorkAsync(() => primary.CompareTo(actual,
                 new PdfVisualComparisonOptions {
                     ExpectedPages = expectedPages, ActualPages = actualPages,
@@ -126,8 +126,8 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand] private void CancelPageComparison() => _comparisonReportCancellation?.Cancel();
     [RelayCommand] private void NextComparisonDifference() => MoveComparisonDifference(1);
     [RelayCommand] private void PreviousComparisonDifference() => MoveComparisonDifference(-1);
-    private static PdfPageSelector? ParseComparisonRange(string value) => string.IsNullOrWhiteSpace(value)
-        ? null : value.Length <= 4096 ? PdfPageSelector.Parse(value) : throw new ArgumentException("Comparison page selection cannot exceed 4096 characters.");
+    private static OfficePageSelector? ParseComparisonRange(string value) => string.IsNullOrWhiteSpace(value)
+        ? null : value.Length <= 4096 ? OfficePageSelector.Parse(value) : throw new ArgumentException("Comparison page selection cannot exceed 4096 characters.");
 
     private int? GetComparisonPartner(int page, bool actualSide) {
         if (_comparisonReport is null) return page;

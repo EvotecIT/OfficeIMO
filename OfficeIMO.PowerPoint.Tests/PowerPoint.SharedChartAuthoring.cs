@@ -546,8 +546,8 @@ namespace OfficeIMO.Tests {
                      }) {
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddChart(kind, CreateData(kind), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(300), Height = global::OfficeIMO.OfficeLength.Points(170), Accessibility = new PowerPointChartAccessibilityOptions { AlternativeText = kind + " export proof" } });
-                OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-                OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+                OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+                OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
                 Assert.True(png.Bytes.Length > 100);
                 Assert.Contains("<svg", System.Text.Encoding.UTF8.GetString(svg.Bytes),
                     StringComparison.Ordinal);
@@ -556,8 +556,8 @@ namespace OfficeIMO.Tests {
             }
             PowerPointSlide comboSlide = presentation.AddSlide();
             comboSlide.AddChart(OfficeChartType.ColumnClustered, CreateComboData(), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(300), Height = global::OfficeIMO.OfficeLength.Points(170), Accessibility = new PowerPointChartAccessibilityOptions { AlternativeText = "Combo export proof" } });
-            OfficeImageExportResult comboPng = comboSlide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult comboSvg = comboSlide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult comboPng = comboSlide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult comboSvg = comboSlide.ToImage(OfficeImageExportFormat.Svg);
             Assert.DoesNotContain(comboPng.Diagnostics,
                 diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(comboSvg.Diagnostics,

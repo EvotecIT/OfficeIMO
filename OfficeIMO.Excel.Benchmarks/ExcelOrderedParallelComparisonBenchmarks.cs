@@ -28,6 +28,9 @@ public class ExcelOrderedParallelComparisonBenchmarks {
     [Params(false, true)]
     public bool EscapedNames { get; set; }
 
+    [Params(false, true)]
+    public bool InferSchema { get; set; }
+
     [GlobalSetup]
     public void Setup() {
         _fixture = new ExcelReaderGeneratedBenchmarks {
@@ -53,7 +56,7 @@ public class ExcelOrderedParallelComparisonBenchmarks {
 
     [Benchmark(Baseline = true)]
     public long OfficeIMO_Ordered() {
-        using var reader = ExcelDocument.OpenReader(_path, new ExcelReaderOptions { InferSchema = true });
+        using var reader = ExcelDocument.OpenReader(_path, new ExcelReaderOptions { InferSchema = InferSchema });
         long checksum = 0;
         int count = 0;
         foreach (GeneratedRecord row in reader.RowsAsParallel<GeneratedRecord>(_mapping)) {

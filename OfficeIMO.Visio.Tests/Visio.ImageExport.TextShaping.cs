@@ -26,7 +26,7 @@ public sealed class VisioImageExportTextShapingTests {
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFont('A'));
 
-        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(OfficeImageExportFormat.Png, result.Format);
         Assert.Contains(provider.Requests, request =>
@@ -54,7 +54,7 @@ public sealed class VisioImageExportTextShapingTests {
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFont('A'));
 
-        byte[] png = page.ToImage(options);
+        byte[] png = page.ToImage(options).Bytes;
 
         Assert.NotEmpty(png);
         Assert.Contains(provider.Requests, request =>

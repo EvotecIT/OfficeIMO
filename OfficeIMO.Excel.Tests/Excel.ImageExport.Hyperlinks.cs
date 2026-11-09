@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
             sheet.SetHyperlink(1, 1, "https://example.org/spec", display: "Spec", style: false);
 
-            string hintedSvg = System.Text.Encoding.UTF8.GetString(sheet.Range("A1:A1").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
-            string plainSvg = System.Text.Encoding.UTF8.GetString(sheet.Range("A1:A1").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+            string hintedSvg = System.Text.Encoding.UTF8.GetString(sheet.Range("A1:A1").ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
+            string plainSvg = System.Text.Encoding.UTF8.GetString(sheet.Range("A1:A1").ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 ShowGridlines = false,
                 ShowHyperlinkHints = false
             }).Bytes);

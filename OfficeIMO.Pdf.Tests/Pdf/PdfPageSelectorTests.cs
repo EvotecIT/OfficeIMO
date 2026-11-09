@@ -3,12 +3,12 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfPageSelectorTests {
+public class OfficePageSelectorTests {
     [Fact]
     public void BoundedResolutionRejectsRepeatsAndLargeRangesBeforeRetainingUnboundedPages() {
-        Assert.Throws<InvalidOperationException>(() => PdfPageSelector.Parse("all").Resolve(int.MaxValue, 2));
-        Assert.Throws<InvalidOperationException>(() => PdfPageSelector.Parse("last,last,last").Resolve(5, 2));
-        Assert.Equal([5, 1], PdfPageSelector.Parse("last,1").Resolve(5, 2));
+        Assert.Throws<InvalidOperationException>(() => OfficePageSelector.Parse("all").Resolve(int.MaxValue, 2));
+        Assert.Throws<InvalidOperationException>(() => OfficePageSelector.Parse("last,last,last").Resolve(5, 2));
+        Assert.Equal([5, 1], OfficePageSelector.Parse("last,1").Resolve(5, 2));
     }
     [Theory]
     [InlineData("last", new[] { 6 })]
@@ -22,7 +22,7 @@ public class PdfPageSelectorTests {
     [InlineData("!odd", new[] { 2, 4, 6 })]
     [InlineData("last,1..3,!2", new[] { 6, 1, 3 })]
     public void Resolve_SupportsRelativeReverseParityAndExclusionTerms(string expression, int[] expected) {
-        PdfPageSelector selector = PdfPageSelector.Parse(expression);
+        OfficePageSelector selector = OfficePageSelector.Parse(expression);
 
         Assert.Equal(expected, selector.Resolve(6));
         Assert.Equal(expected, selector.ResolveSelection(6).ToString().Split(',').Select(int.Parse));
@@ -30,7 +30,7 @@ public class PdfPageSelectorTests {
 
     [Fact]
     public void Parse_PreservesOrderedDuplicatesUntilAnOperationChoosesToDeduplicate() {
-        PdfPageSelector selector = PdfPageSelector.Parse("3,1..2,2");
+        OfficePageSelector selector = OfficePageSelector.Parse("3,1..2,2");
 
         Assert.Equal(new[] { 3, 1, 2, 2 }, selector.Resolve(4));
     }
@@ -42,24 +42,24 @@ public class PdfPageSelectorTests {
     [InlineData("last+")]
     [InlineData("0")]
     public void TryParse_RejectsMalformedSelectors(string expression) {
-        Assert.False(PdfPageSelector.TryParse(expression, out _));
+        Assert.False(OfficePageSelector.TryParse(expression, out _));
     }
 
     [Fact]
     public void Resolve_RejectsOutOfRangeAndEmptySelections() {
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageSelector.Parse("last-6").Resolve(6));
-        Assert.Throws<InvalidOperationException>(() => PdfPageSelector.Parse("all,!all").Resolve(6));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficePageSelector.Parse("last-6").Resolve(6));
+        Assert.Throws<InvalidOperationException>(() => OfficePageSelector.Parse("all,!all").Resolve(6));
     }
 
     [Fact]
     public void DocumentOperations_ResolveSelectorsAgainstTheActualDocument() {
         byte[] source = CreateSixPageDocument();
-        PdfPageSelector reverseWithoutFourth = PdfPageSelector.Parse("last..2,!4");
+        OfficePageSelector reverseWithoutFourth = OfficePageSelector.Parse("last..2,!4");
 
         IReadOnlyList<string> selectedText = PdfDocument.Load(source).Reader.TextByPage(reverseWithoutFourth);
         PdfDocument extracted = PdfDocument.Load(source).Pages.Extract(reverseWithoutFourth);
-        PdfDocument deleted = PdfDocument.Load(source).Pages.Delete(PdfPageSelector.Parse("odd"));
-        PdfOperationResult<PdfDocument> reordered = PdfDocument.Load(source).Pages.ReorderResult(PdfPageSelector.Parse("last..1"));
+        PdfDocument deleted = PdfDocument.Load(source).Pages.Delete(OfficePageSelector.Parse("odd"));
+        PdfOperationResult<PdfDocument> reordered = PdfDocument.Load(source).Pages.ReorderResult(OfficePageSelector.Parse("last..1"));
 
         Assert.Equal(new[] { "Page 6", "Page 5", "Page 3", "Page 2" }, selectedText.Select(static text => text.Trim()));
         Assert.Equal(4, extracted.Inspect().PageCount);

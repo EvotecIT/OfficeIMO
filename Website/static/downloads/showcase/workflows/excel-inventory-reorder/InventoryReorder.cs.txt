@@ -35,7 +35,7 @@ internal static class InventoryReorder {
         sheet.Cell(11, 7).SetBold(true); sheet.Cell(11, 7).SetFillColor(OfficeColor.Parse("E7F6ED"));
         sheet.Range("A13:G13").Merge(); sheet.Cell(13, 1).SetValue("Proposal only: check lead times and committed orders before purchasing.");
         document.Calculate();
-        sheet.Range("A1:G15").ExportImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
+        sheet.Range("A1:G15").ToImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();
     }
 }

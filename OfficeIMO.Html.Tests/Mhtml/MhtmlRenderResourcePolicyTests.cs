@@ -9,6 +9,26 @@ using Xunit;
 namespace OfficeIMO.Html.Tests;
 
 public sealed class MhtmlRenderResourcePolicyTests {
+    [Fact]
+    public async Task DirectArchiveImageBridgeKeepsEmbeddedStylesAndReportsSavedPages() {
+        var document = new MhtmlDocument("<link rel='stylesheet' href='cid:style'><div>Archive</div>",
+            new[] { new MhtmlResource(Encoding.UTF8.GetBytes("body{margin:0}div{width:40px;height:24px;background:#336699}"), "text/css", contentId: "style") },
+            "https://example.test/page.html");
+        HtmlPdfExportOptions conversion = CreateOptions();
+        var image = new PdfCore.PdfImageExportOptions { Format = OfficeImageExportFormat.Svg, TargetDpi = 96 };
+        OfficeImageExportResult result = Assert.Single(await document.ToImagesAsync(image, conversion));
+        Assert.Equal((160, 120), (result.Width, result.Height));
+        Assert.Contains("#336699", Encoding.UTF8.GetString(result.Bytes), StringComparison.OrdinalIgnoreCase);
+        string folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeimo-mhtml-images-" + Guid.NewGuid().ToString("N"));
+        try {
+            OfficeConversionReport saved = await document.SaveAsImagesAsync(folder, image, conversion);
+            Assert.Equal("MHTML", saved.Source); Assert.Equal("Svg", saved.Target); Assert.Equal(1, saved.ItemsWritten);
+            Assert.Single(System.IO.Directory.GetFiles(folder, "*.svg"));
+            Assert.False(conversion.ResourcePolicy.AllowRemoteResourceResolution);
+            Assert.False(conversion.ResourcePolicy.AllowLocalFileAccess);
+        } finally { if (System.IO.Directory.Exists(folder)) System.IO.Directory.Delete(folder, true); }
+    }
+
     [Theory]
     [InlineData(HtmlRenderIntentProfile.PrintPaged)]
     [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged)]
@@ -25,7 +45,7 @@ public sealed class MhtmlRenderResourcePolicyTests {
         var options = CreateOptions();
         HtmlRenderRequest pdfRequest = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options);
         PdfCore.PdfDocumentConversionResult pdf = await document.RenderToPdfDocumentResultAsync(pdfRequest);
-        var expected = PdfCore.PdfImageExportExtensions.ExportImages(pdf, OfficeImageExportFormat.Png,
+        var expected = PdfCore.PdfImageExportExtensions.ToImages(pdf, OfficeImageExportFormat.Png,
             new PdfCore.PdfImageExportOptions { Scale = 96D / 72D });
         Assert.Contains("Archived CSS", PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText(), StringComparison.Ordinal);
 
@@ -37,14 +57,14 @@ public sealed class MhtmlRenderResourcePolicyTests {
         Assert.Contains("Archived CSS", string.Concat(display.Document.Pages.SelectMany(page => Walk(page.Scene))
             .OfType<HtmlRenderText>().Select(text => text.Text)), StringComparison.Ordinal);
         HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteAsync(document.HtmlDocument, imageRequest);
-        var actual = rendered.ExportImages();
+        var actual = rendered.ToImages();
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
         Assert.Equal(expected.Count, actual.Count);
         for (int index = 0; index < expected.Count; index++) Assert.Equal(expected[index].Bytes, actual[index].Bytes);
 
         HtmlRenderResult svg = await HtmlRenderEngine.ExecuteAsync(document.HtmlDocument,
             imageRequest.WithEncoder(HtmlRenderEncoder.Svg));
-        string[] vectorPages = svg.ExportImages().Select(page => Encoding.UTF8.GetString(page.Bytes)).ToArray();
+        string[] vectorPages = svg.ToImages().Select(page => Encoding.UTF8.GetString(page.Bytes)).ToArray();
         string vectors = string.Concat(vectorPages);
         string vectorText = string.Concat(vectorPages.SelectMany(page =>
             XDocument.Parse(page).Descendants(XName.Get("text", "http://www.w3.org/2000/svg")))

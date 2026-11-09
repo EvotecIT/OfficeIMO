@@ -79,8 +79,8 @@ public sealed partial class AddOfficePdfStampCommand {
     [Parameter(ParameterSetName = "PageLiteralPath")]
     [Parameter(ParameterSetName = "PageLiteralPathDirectory")]
     [Parameter(ParameterSetName = "PageDocument")]
-    [PdfPageSelectorTransformation]
-    public PdfPageSelector? Page { get; set; }
+    [OfficePageSelectorTransformation]
+    public OfficePageSelector? Page { get; set; }
 
     /// <summary>Native X setting for the stamp.</summary>
     [Parameter(ParameterSetName = "Text")]

@@ -904,11 +904,11 @@ using PdfDocument pdf = PdfDocument.Load("input.pdf");
 
 OfficeIMO.OfficeConversionReport previews = pdf.SaveAsImages("preview", new PdfImageExportOptions {
     TargetDpi = 144, ThumbnailMaxDimension = 800,
-    PageSelector = PdfPageSelector.Parse("1"), Format = OfficeImageExportFormat.Png
+    PageSelector = OfficePageSelector.Parse("1"), Format = OfficeImageExportFormat.Png
 });
 
 pdf.SaveAsImages("page-images", new PdfImageExportOptions {
-    PageSelector = PdfPageSelector.Parse("1-3,last"),
+    PageSelector = OfficePageSelector.Parse("1-3,last"),
     MaximumOutputWidth = 1600, MaximumOutputHeight = 1200,
     MaximumRasterPixels = 20_000_000, Format = OfficeImageExportFormat.Webp
 });
@@ -938,7 +938,7 @@ using OfficeIMO.Markdown.Pdf;
 
 using var markdown = MarkdownDocument.Parse("# Page images");
 using var converted = markdown.ToPdf(null, out OfficeIMO.OfficeConversionReport report);
-IReadOnlyList<byte[]> pages = converted.ExportImages(null, out OfficeIMO.OfficeConversionReport imageReport);
+IReadOnlyList<byte[]> pages = converted.ToImages(null, out OfficeIMO.OfficeConversionReport imageReport);
 ```
 
 Inspect `report.Diagnostics` for source conversion findings; each page result contains rendering findings. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed. The returned `OfficeDrawingText.Text` keeps decoded, editable text, including multi-letter ligatures. Raster and SVG rendering use the PDF's painted glyphs where the embedded font requires them, preserving the painted order of shaped Arabic text.
@@ -1782,7 +1782,7 @@ selectedRanges[1].Save("packet-evidence.pdf");
 ```
 
 For document-relative expressions such as `last,1,last`, resolve the immutable
-`PdfPageSelector` against the inspected source page count. The overload
+`OfficePageSelector` against the inspected source page count. The overload
 `selector.Resolve(pageCount, maximumPages: 100)` rejects a selection before
 retaining more than 100 output pages, including repeats. Host workflows use this
 bound before extraction or OCR and keep the source separate from the output.
@@ -1855,8 +1855,8 @@ extracting temporary documents:
 ```csharp
 PdfVisualComparisonReport report = source.Proof.CompareVisual(revised,
     cancellationToken, options: new PdfVisualComparisonOptions {
-        ExpectedPages = PdfPageSelector.Parse("120-124,last"),
-        ActualPages = PdfPageSelector.Parse("121-125,last"),
+        ExpectedPages = OfficePageSelector.Parse("120-124,last"),
+        ActualPages = OfficePageSelector.Parse("121-125,last"),
         MaxPages = 100
     });
 string html = report.ToHtmlGallery("Section review", 96L * 1024 * 1024,
@@ -2516,7 +2516,7 @@ var watermark = new PdfWatermarkOptions {
     RotationDegrees = -30,
     Opacity = 0.3,
     Color = OfficeColor.FromRgb(180, 30, 30),
-    TargetPages = PdfPageSelector.Parse("1")
+    TargetPages = OfficePageSelector.Parse("1")
 };
 PdfDocument.Load("contract.pdf").Stamp.Watermark(watermark).Save("contract-draft.pdf");
 
@@ -2546,7 +2546,7 @@ rasterizing it:
 PdfDocument.Load("contract.pdf")
     .Stamp.OverlayPage("letterhead.pdf", new PdfPageOverlayOptions {
         SourcePageNumber = 1,
-        TargetPages = PdfPageSelector.Parse("all,!last"),
+        TargetPages = OfficePageSelector.Parse("all,!last"),
         Fit = PdfPageOverlayFit.Contain,
         Opacity = 0.9
     })
@@ -2565,7 +2565,7 @@ PdfDocument.Load("contract.pdf")
                 new[] { PdfTableCell.TextCell("Owner"), PdfTableCell.RichTextCell(new[] { PdfTextRun.Bolded("Legal") }) }
             }, 36, 620, page.Width - 72, 90);
     }, new PdfCanvasStampOptions {
-        TargetPages = PdfPageSelector.Parse("1,last"),
+        TargetPages = OfficePageSelector.Parse("1,last"),
         Opacity = 0.95
     })
     .Save("contract-with-review-panel.pdf");

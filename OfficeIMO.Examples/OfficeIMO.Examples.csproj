@@ -5,7 +5,6 @@
         <IsPackable>false</IsPackable>
         <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
         <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
         <VersionPrefix>3.3.0</VersionPrefix>
     </PropertyGroup>
 

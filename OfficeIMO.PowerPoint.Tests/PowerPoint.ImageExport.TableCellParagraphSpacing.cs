@@ -30,8 +30,8 @@ namespace OfficeIMO.Tests {
             second.SetSpaceBefore(global::OfficeIMO.OfficeLength.Points(4));
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
@@ -69,8 +69,8 @@ namespace OfficeIMO.Tests {
             cell.AddParagraph("Cell next line");
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             cell.SetParagraphs(new[] { "Cell first", "Cell second" });
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
@@ -145,8 +145,8 @@ namespace OfficeIMO.Tests {
             slide.SlidePart.Slide.Save();
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
@@ -178,8 +178,8 @@ namespace OfficeIMO.Tests {
             cell.AddBullets(new[] { "Cell nested" }, level: 1);
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics, "table-list-layout-approximation");
             AssertNoUnexpectedDiagnostics(png.Diagnostics, "table-list-layout-approximation");
@@ -212,8 +212,8 @@ namespace OfficeIMO.Tests {
             cell.SetBullets(new[] { "Only bullet" });
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics, "table-list-layout-approximation");
             AssertNoUnexpectedDiagnostics(png.Diagnostics, "table-list-layout-approximation");

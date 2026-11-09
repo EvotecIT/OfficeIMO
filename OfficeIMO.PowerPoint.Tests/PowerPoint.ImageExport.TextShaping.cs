@@ -23,7 +23,7 @@ public partial class PowerPointImageExportTests {
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFont('A'));
 
-        OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult result = slide.ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(OfficeImageExportFormat.Png, result.Format);
         Assert.Contains(provider.Requests, request =>

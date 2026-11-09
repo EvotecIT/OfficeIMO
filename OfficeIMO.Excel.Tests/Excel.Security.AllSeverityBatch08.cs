@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.AddManualColumnPageBreak(2, save: false);
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+                sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                     Range = "A1:D4",
                     SplitByManualPageBreaks = true,
                     MaximumPageBreakImages = 3
@@ -303,7 +303,7 @@ namespace OfficeIMO.Tests {
 
             sheet.WorksheetPart.Worksheet.Append(rowBreaks);
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
+                sheet.ToImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                     Range = "A1:A1",
                     SplitByManualPageBreaks = true,
                     MaximumPageBreakImages = 1

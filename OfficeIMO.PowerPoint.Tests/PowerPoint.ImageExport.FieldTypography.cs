@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
             });
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
             Assert.Contains("TEXT FIELD", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
             Assert.Contains("TABLE FIELD", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
             var textBoxSpans = snapshot.TextSpans.Where(span => span.X < 160 && !string.IsNullOrWhiteSpace(span.Text)).ToArray();
@@ -104,8 +104,8 @@ namespace OfficeIMO.Tests {
             cell.Runs[0].Capitalization = PowerPointCapitalization.SmallCaps;
             cell.Paragraphs[0].AddLineBreak().AddField("CellField", "custom");
 
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
             string text = GetSnapshotPlainText(slide.CreateVisualSnapshot());
 
             Assert.Contains("TextBoxField", text, StringComparison.Ordinal);
@@ -137,8 +137,8 @@ namespace OfficeIMO.Tests {
                 new A.DefaultRunProperties { Capital = A.TextCapsValues.Small, Language = "en-US" });
             cellParagraph.Runs[0].BaselinePercent = 80D;
 
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
             string text = GetSnapshotPlainText(slide.CreateVisualSnapshot());
 
             Assert.Contains("İZMİR", text, StringComparison.Ordinal);

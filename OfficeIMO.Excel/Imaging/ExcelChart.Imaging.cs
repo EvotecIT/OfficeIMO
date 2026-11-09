@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Shared Excel image-export settings.</param>
         /// <param name="cancellationToken">Token used to cancel rendering.</param>
         /// <returns>The encoded chart image and any fidelity diagnostics.</returns>
-        public OfficeImageExportResult ExportImage(
+        public OfficeImageExportResult ToImage(
             OfficeImageExportFormat format,
             ExcelImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {

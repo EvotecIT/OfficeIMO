@@ -2,7 +2,7 @@ namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeDrawing {
     /// <summary>Exports a detached drawing through the shared density, encoding, font, diagnostic and safety contracts. Options define the drawing's logical units per inch.</summary>
-    public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, OfficeImageExportOptions? options = null, CancellationToken cancellationToken = default) {
+    public OfficeImageExportResult ToImage(OfficeImageExportFormat format, OfficeImageExportOptions? options = null, CancellationToken cancellationToken = default) {
         var effective = (options ?? new OfficeImageExportOptions()).CreateEffectiveImageExportOptions<OfficeImageExportOptions>();
         return OfficeImageExportExecutionScope.Run(effective, cancellationToken, token => {
             token.ThrowIfCancellationRequested();

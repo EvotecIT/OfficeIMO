@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Ticket status" });
             chart.Name = "TicketStatus";
 
-            OfficeImageExportResult result = chart.ExportImage(format);
+            OfficeImageExportResult result = chart.ToImage(format);
 
             Assert.Equal(format, result.Format);
             Assert.Equal("TicketStatus", result.Name);
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(2, 2).SetValue(12);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Ticket status" });
 
-            byte[] result = chart.ToImage(new ExcelImageExportOptions { Format = OfficeImageExportFormat.Webp, Scale = 1.25D });
+            byte[] result = chart.ToImage(new ExcelImageExportOptions { Format = OfficeImageExportFormat.Webp, Scale = 1.25D }).Bytes;
 
             Assert.Equal(OfficeImageFormat.Webp, OfficeImageReader.Identify(result).Format);
             Assert.NotEmpty(result);
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
 
             byte[] result = chart.ToImage(new ExcelImageExportOptions {
                 Format = format, Scale = 2D, MaximumOutputWidth = 180, MaximumOutputHeight = 100
-            });
+            }).Bytes;
 
             OfficeImageInfo info = OfficeImageReader.Identify(result);
             Assert.True(info.Width <= 180);
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(2, 2).SetValue(12);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Small chart" });
 
-            OfficeImageExportResult result = chart.ExportImage(format);
+            OfficeImageExportResult result = chart.ToImage(format);
 
             Assert.Equal(160, result.Width);
             Assert.Equal(90, result.Height);
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Transparent chart" });
             chart.SetChartAreaStyle(noFill: true, noLine: true);
 
-            string svg = Encoding.UTF8.GetString(chart.ExportImage(
+            string svg = Encoding.UTF8.GetString(chart.ToImage(
                 OfficeImageExportFormat.Svg,
                 new ExcelImageExportOptions {
                     BackgroundColor = OfficeColor.FromRgb(12, 34, 56)
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
 
                 using ExcelDocument loaded = ExcelDocument.Load(filePath);
                 ExcelChart chart = Assert.Single(loaded.Sheets.Single().Charts);
-                OfficeImageExportResult result = chart.ExportImage(OfficeImageExportFormat.Png);
+                OfficeImageExportResult result = chart.ToImage(OfficeImageExportFormat.Png);
 
                 Assert.Equal(210, result.Width);
                 Assert.Equal(110, result.Height);

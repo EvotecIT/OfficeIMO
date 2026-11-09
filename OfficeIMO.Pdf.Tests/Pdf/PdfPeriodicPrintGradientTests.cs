@@ -78,7 +78,7 @@ public sealed class PdfPeriodicPrintGradientTests {
         var color = Assert.Single(shadings, d => d.Items["ColorSpace"] is PdfName { Name: "DeviceCMYK" });
         Assert.Equal(4, Assert.IsType<PdfArray>(color.Items["Function"]).Items.Count);
         Assert.Single(shadings, d => d.Items["ColorSpace"] is PdfName { Name: "DeviceGray" });
-        var image = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        var image = document.Pages[0].ToImage(OfficeImageExportFormat.Png);
         Assert.DoesNotContain(image.Diagnostics, d => d.Code == PdfRenderCapabilities.UnsupportedShadingId);
         Assert.True(OfficeRasterImageDecoder.TryDecode(image.Bytes, out var raster));
         Assert.NotEqual(OfficeColor.White, raster!.GetPixel(29, 18));

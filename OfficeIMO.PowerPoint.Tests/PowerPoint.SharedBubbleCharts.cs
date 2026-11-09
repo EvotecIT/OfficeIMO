@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests {
             Assert.False(Assert.Single(pdf.Data.Series).ShowInLegend);
 
             string svg = System.Text.Encoding.UTF8.GetString(
-                slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+                slide.ToImage(OfficeImageExportFormat.Svg).Bytes);
             Assert.DoesNotContain("Hidden Portfolio", svg, StringComparison.Ordinal);
 
             string html = presentation.ToHtml(new PowerPointHtmlExportOptions {
@@ -458,7 +458,7 @@ namespace OfficeIMO.Tests {
                 snapshot.Layout.VerticalAxisMinorTickMark);
 
             string svg = System.Text.Encoding.UTF8.GetString(
-                slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+                slide.ToImage(OfficeImageExportFormat.Svg).Bytes);
             Assert.Contains("Risk", svg, StringComparison.Ordinal);
             Assert.Contains("Return", svg, StringComparison.Ordinal);
         }
@@ -745,8 +745,8 @@ namespace OfficeIMO.Tests {
                         OfficeColor.Parse("#F4A261")
                     }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(420), Height = global::OfficeIMO.OfficeLength.Points(250) });
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
             Assert.True(png.Bytes.Length > 100);
             XElement[] paintedElements = XDocument.Parse(svgText).Descendants()
@@ -772,10 +772,10 @@ namespace OfficeIMO.Tests {
             }
             var page = PdfReadDocument.Open(pdf).Pages[0];
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? nativeImage));
-            Assert.True(OfficePngReader.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out OfficeRasterImage? pdfImage));
+            Assert.True(OfficePngReader.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out OfficeRasterImage? pdfImage));
             Assert.Equal(nativeImage!.Width, pdfImage!.Width);
             Assert.Equal(nativeImage.Height, pdfImage.Height);
-            string pdfSvg = System.Text.Encoding.UTF8.GetString(page.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+            string pdfSvg = System.Text.Encoding.UTF8.GetString(page.ToImage(OfficeImageExportFormat.Svg).Bytes);
             XElement[] pdfPaint = XDocument.Parse(pdfSvg).Descendants().Where(element => element.Attribute("fill") != null).ToArray();
             foreach (string color in new[] { "#D62828", "#2A9D8F", "#F4A261" }) {
                 Assert.Contains(pdfPaint, element => string.Equals(element.Attribute("fill")!.Value, color, StringComparison.OrdinalIgnoreCase));
@@ -815,7 +815,7 @@ namespace OfficeIMO.Tests {
                     }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(420), Height = global::OfficeIMO.OfficeLength.Points(250) });
 
             string svg = System.Text.Encoding.UTF8.GetString(
-                slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+                slide.ToImage(OfficeImageExportFormat.Svg).Bytes);
 
             // Inspect painted colors, independent of whether circles are encoded as ellipses or paths.
             XElement[] paintedElements = XDocument.Parse(svg).Descendants()

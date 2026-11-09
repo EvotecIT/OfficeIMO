@@ -54,7 +54,7 @@ public sealed class VisioRichTextParagraphRegressionTests {
     }
 
     private static int AssertRaster(VisioPage page, bool checkBackground) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(new VisioImageExportOptions { Supersampling = 1 }), out var image));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(new VisioImageExportOptions { Supersampling = 1 }).Bytes, out var image));
         int glyphLeft = image!.Width, backgroundLeft = image.Width;
         bool red = false, green = false;
         for (int y = 0; y < image.Height; y++) {

@@ -86,7 +86,7 @@ public sealed class XpsPngColorimetryTests {
         document.AddPage(16, 16).AddImage(source, 0, 0, 16, 16); return document;
     }
     private static OfficeRasterImage Raster(XpsPage page) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png, new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent }).Bytes, out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png, new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent }).Bytes, out var raster));
         return raster!;
     }
     private static byte[] BigEndian(int value) => new[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value };

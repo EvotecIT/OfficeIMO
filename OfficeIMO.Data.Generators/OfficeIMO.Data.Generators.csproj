@@ -22,7 +22,7 @@
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
+
   </PropertyGroup>
 
   <ItemGroup>

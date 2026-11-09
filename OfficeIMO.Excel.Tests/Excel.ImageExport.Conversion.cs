@@ -16,16 +16,16 @@ public sealed class ExcelImageConversionTests {
         var document = sheet.Range("A1:B2");
         sheet.Cell(1, 1).SetValue("Image conversion");
         var options = new ExcelImageExportOptions { Format = encoding, Scale = .15D };
-        byte[] bytes = document.ToImage(options, out var report);
+        byte[] bytes = document.ToImage(options, out var report).Bytes;
         var converted = await document.ToImageAsync(options);
         Assert.Equal(expected, OfficeImageReader.Identify(bytes).Format);
-        Assert.Equal(bytes, converted.Value);
+        Assert.Equal(bytes, converted.Bytes);
         Assert.Equal("Excel", report.Source);
         Assert.Equal(encoding.ToString(), report.Target);
         Assert.Equal(1, report.ItemsWritten);
         Assert.Null(report.OutputPath);
         Assert.Equal(report.Diagnostics.Select(d => (d.Code, d.Severity, d.LossKind, d.Location, d.Format)),
-            converted.Report.Diagnostics.Select(d => (d.Code, d.Severity, d.LossKind, d.Location, d.Format)));
+            converted.CreateReport().Diagnostics.Select(d => (d.Code, d.Severity, d.LossKind, d.Location, d.Format)));
         Assert.Equal(.15D, options.Scale);
     }
 
@@ -114,7 +114,7 @@ public sealed class ExcelImageConversionTests {
         using var stream = new MemoryStream();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        Assert.ThrowsAny<OperationCanceledException>(() => document.ToImage(cancellationToken: cancellation.Token));
+        Assert.ThrowsAny<OperationCanceledException>(() => document.ToImage(cancellationToken: cancellation.Token).Bytes);
         Assert.ThrowsAny<OperationCanceledException>(() => document.SaveAsImage(stream, cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.SaveAsImageAsync(stream,
             cancellationToken: cancellation.Token));

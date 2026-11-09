@@ -79,7 +79,7 @@ public static partial class OfficeConverter {
         LoadOptions = WordInputOptions(settings), SaveOptions = settings.WordSave,
         CompatibilityMode = settings.CompatibilityMode, EmbedSourceWhenLossy = settings.EmbedSourceWhenLossy,
         LossPolicy = settings.FailOnLoss ? OfficeConversionLossPolicy.Block : OfficeConversionLossPolicy.Allow,
-        VisualFallbackRenderer = document => document.ExportImages(OfficeImageExportFormat.Png)
+        VisualFallbackRenderer = document => document.ToImages(OfficeImageExportFormat.Png)
     };
 
     private static ExcelDocumentConversionOptions ExcelNativeOptions(OfficeConversionOptions settings) => new() {

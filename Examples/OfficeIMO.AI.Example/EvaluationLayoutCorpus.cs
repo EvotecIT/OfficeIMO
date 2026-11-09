@@ -57,7 +57,7 @@ internal static class EvaluationLayoutCorpus {
         new(id, extension, source, request, images, "Independent layout/reserve gold; inspect source and citations", gold) { Split = "heldout" };
     private static byte[] Raster(byte[] pdf) {
         using var document = PdfDocument.Load(new MemoryStream(pdf));
-        return document.ExportImages(new PdfImageExportOptions {
+        return document.ToImages(new PdfImageExportOptions {
             Format = OfficeImageExportFormat.Png, TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000
         }).Single().Bytes;
     }

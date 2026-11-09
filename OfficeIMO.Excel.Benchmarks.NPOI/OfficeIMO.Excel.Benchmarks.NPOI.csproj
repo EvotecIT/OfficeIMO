@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
+
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
     <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>

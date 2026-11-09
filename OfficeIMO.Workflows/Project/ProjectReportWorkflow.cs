@@ -15,13 +15,13 @@ public static partial class ProjectReportWorkflow {
         }).ToArray();
     }
 
-    /// <summary>Exports one PNG per page at 300 DPI by default. Explicit raster options retain their selected scale. Use ExportImages for density presets, encoded DPI and batch budgets.</summary>
+    /// <summary>Exports one PNG per page at 300 DPI by default. Explicit raster options retain their selected scale. Use ToImages for density presets, encoded DPI and batch budgets.</summary>
     public static IReadOnlyList<byte[]> ToPng(ProjectView view, OfficeDrawingRasterRenderOptions? options = null, OfficeRenderingProfile? typography = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(view);
         if (options == null) {
             var export = new ProjectImageExportOptions();
             if (typography != null) export.UseRenderingProfile(typography);
-            return ExportImages(view, OfficeImageExportFormat.Png, export, cancellationToken).Select(result => result.Bytes).ToArray();
+            return ToImages(view, OfficeImageExportFormat.Png, export, cancellationToken).Select(result => result.Bytes).ToArray();
         }
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, options.CancellationToken);
         var diagnostics = new List<OfficeImageExportDiagnostic>();

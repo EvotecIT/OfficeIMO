@@ -40,10 +40,10 @@ namespace OfficeIMO.Tests {
                     Index = A.FontCollectionIndexValues.Minor
                 });
 
-            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult png = slide.ToImage(OfficeImageExportFormat.Png);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(OfficeColor.FromRgb(17, 34, 51), image!.GetPixel(40, 40));
-            string svg = System.Text.Encoding.UTF8.GetString(slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+            string svg = System.Text.Encoding.UTF8.GetString(slide.ToImage(OfficeImageExportFormat.Svg).Bytes);
             Assert.Contains("#445566", svg, StringComparison.OrdinalIgnoreCase);
 
         }

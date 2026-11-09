@@ -17,7 +17,7 @@ internal static class EvaluationCorpus {
             new[] { "Item", "Quantity", "Unit price" }, new[] { "Pencil", "12", "1.50" }, new[] { "Notebook", "7", "4.25" }
         })), fontOptions).ToBytes();
         using var tableDocument = PdfDocument.Load(new MemoryStream(table));
-        byte[] scan = tableDocument.ExportImages(new PdfImageExportOptions {
+        byte[] scan = tableDocument.ToImages(new PdfImageExportOptions {
             Format = OfficeImageExportFormat.Png, TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000
         }).Single().Bytes;
         byte[] scannedPdf = PdfDocument.Create(builder => builder.Content(content => content.AddImage(scan, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(566))), fontOptions).ToBytes();

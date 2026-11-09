@@ -281,7 +281,7 @@ public sealed class PowerPointTextFittingRegressionTests {
         };
         options.UseRenderingProfile(new OfficeRenderingProfile("off-left-text-overflow", fonts));
 
-        var result = slide.ExportImage(OfficeImageExportFormat.Png, options);
+        var result = slide.ToImage(OfficeImageExportFormat.Png, options);
         Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
         Assert.Equal(160, image!.Width);
         Assert.Equal(100, image.Height);

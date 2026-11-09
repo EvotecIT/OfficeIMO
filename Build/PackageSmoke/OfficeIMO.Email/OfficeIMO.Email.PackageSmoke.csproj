@@ -11,7 +11,7 @@
     <OfficeIMOReaderImagePackageVersion Condition="'$(OfficeIMOReaderImagePackageVersion)' == ''">3.3.0</OfficeIMOReaderImagePackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
+
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == 'true'">

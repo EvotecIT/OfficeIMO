@@ -503,7 +503,7 @@ namespace OfficeIMO.Tests {
 
             var options = new WordDocumentConversionOptions {
                 CompatibilityMode = OfficeCompatibilityMode.PreferVisual,
-                VisualFallbackRenderer = document => document.ExportImages(OfficeImageExportFormat.Png)
+                VisualFallbackRenderer = document => document.ToImages(OfficeImageExportFormat.Png)
             };
             WordDocumentConversionReport preflight = WordDocument.AnalyzeConversion(sourcePath, visualPath, options);
 
@@ -548,7 +548,7 @@ namespace OfficeIMO.Tests {
                 destinationPath,
                 new WordDocumentConversionOptions {
                     CompatibilityMode = OfficeCompatibilityMode.PreservationOnly,
-                    VisualFallbackRenderer = document => document.ExportImages(OfficeImageExportFormat.Png)
+                    VisualFallbackRenderer = document => document.ToImages(OfficeImageExportFormat.Png)
                 });
 
             OfficeConversionDiagnostic carrier = Assert.Single(converted.Report.NativeDiagnostics,

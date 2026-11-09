@@ -1,6 +1,15 @@
 {
   "package": "OfficeIMO.Email.Image",
-  "changes": [],
+  "changes": [
+    {
+      "old": "OfficeIMO.Email.EmailDocument.ExportImage(...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Email.EmailDocument.ToImage(...) : OfficeImageExportResult",
+      "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
+      "category": "conversion"
+    }
+  ],
   "extraChanges": [
     {
       "old": "EmailImageExportBuilder; EmailImageExportBatchBuilder; fluent ToImage / ToImages",

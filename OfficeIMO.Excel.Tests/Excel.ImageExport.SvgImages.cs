@@ -20,7 +20,7 @@ public sealed class ExcelSvgImageExportTests {
         }
         using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(stream.ToArray()));
 
-        OfficeImageExportResult result = reloaded.Sheets[0].Range("A1:A1").ExportImage(OfficeImageExportFormat.Png,
+        OfficeImageExportResult result = reloaded.Sheets[0].Range("A1:A1").ToImage(OfficeImageExportFormat.Png,
             new ExcelImageExportOptions { ShowGridlines = false });
 
         Assert.DoesNotContain(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
@@ -34,7 +34,7 @@ public sealed class ExcelSvgImageExportTests {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         AddImage(document, UnsupportedSvg);
 
-        OfficeImageExportResult result = document.Sheets[0].Range("A1:A1").ExportImage(OfficeImageExportFormat.Png,
+        OfficeImageExportResult result = document.Sheets[0].Range("A1:A1").ToImage(OfficeImageExportFormat.Png,
             new ExcelImageExportOptions { ShowGridlines = false });
 
         OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics,
@@ -50,7 +50,7 @@ public sealed class ExcelSvgImageExportTests {
         AddImage(document, UnsupportedSvg);
         var codec = new SolidCodec();
 
-        OfficeImageExportResult result = document.Sheets[0].Range("A1:A1").ExportImage(OfficeImageExportFormat.Png,
+        OfficeImageExportResult result = document.Sheets[0].Range("A1:A1").ToImage(OfficeImageExportFormat.Png,
             new ExcelImageExportOptions { ShowGridlines = false, ImageCodec = codec });
 
         Assert.Equal(1, codec.Calls);
@@ -64,7 +64,7 @@ public sealed class ExcelSvgImageExportTests {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         AddImage(document, SupportedSvg);
         var options = new ExcelImageExportOptions { ShowGridlines = false, MaximumRasterPixels = 1_500 };
-        document.Sheets[0].Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, options);
+        document.Sheets[0].Range("A1:A1").ToImage(OfficeImageExportFormat.Png, options);
         document.Sheets[0].AddImage(1, 1, Encoding.UTF8.GetBytes(SupportedSvg), new OfficeIMO.Excel.ExcelImageOptions {
             ContentType = "image/svg+xml",
             Width = OfficeIMO.OfficeLength.Pixels(32),
@@ -79,7 +79,7 @@ public sealed class ExcelSvgImageExportTests {
         });
 
         Assert.Throws<OfficeImageExportLimitException>(() => document.Sheets[0].Range("A1:A1")
-            .ExportImage(OfficeImageExportFormat.Png, options));
+            .ToImage(OfficeImageExportFormat.Png, options));
     }
 
     [Theory]
@@ -102,7 +102,7 @@ public sealed class ExcelSvgImageExportTests {
         });
         var codec = new SolidCodec(16, 16);
 
-        OfficeImageExportResult result = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png,
+        OfficeImageExportResult result = sheet.Range("A1:A1").ToImage(OfficeImageExportFormat.Png,
             new ExcelImageExportOptions { ShowGridlines = false, ImageCodec = codec });
 
         Assert.Equal(validContainer ? 1 : 0, codec.Calls);
@@ -133,7 +133,7 @@ public sealed class ExcelSvgImageExportTests {
             ShowGridlines = false, MaximumRasterPixels = 1_500, ImageCodec = codec
         };
 
-        OfficeImageExportResult result = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult result = sheet.Range("A1:A1").ToImage(OfficeImageExportFormat.Png, options);
 
         Assert.Equal(callerDecodedSvg ? 1 : 0, codec.Calls);
         OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics,
@@ -146,7 +146,7 @@ public sealed class ExcelSvgImageExportTests {
 
         options.Policy = new OfficeImageExportPolicy { RequireNoOmissions = true };
         OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
-            sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, options));
+            sheet.Range("A1:A1").ToImage(OfficeImageExportFormat.Png, options));
         Assert.Contains(exception.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted &&
             d.Source == "Limited!Oversized" && d.LossKind == OfficeConversionLossKind.Omission);
         Assert.Equal(callerDecodedSvg ? 2 : 0, codec.Calls);

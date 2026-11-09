@@ -30,7 +30,7 @@ public partial class Excel {
         var letter = Assert.Single(pdf.GetPage(1).Letters.Where(letter => letter.Value == "V"));
         Assert.InRange(letter.FontSize, 24D * percent / 100D - 0.01D, 24D * percent / 100D + 0.01D);
         // SVG geometry is in CSS pixels: authored 24 points occupy 32 pixels.
-        string svg = System.Text.Encoding.UTF8.GetString(loaded.Sheets[0].Range("A1:D5").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes);
+        string svg = System.Text.Encoding.UTF8.GetString(loaded.Sheets[0].Range("A1:D5").ToImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes);
         Assert.Contains("font-size=\"32\"", svg, StringComparison.Ordinal);
     }
 }

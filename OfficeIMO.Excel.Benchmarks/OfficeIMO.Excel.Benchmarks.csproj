@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-    <Nullable>enable</Nullable>
+
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
     <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' == 'net8.0'">3.1.0</ExcelReaderBenchmarkVersion>

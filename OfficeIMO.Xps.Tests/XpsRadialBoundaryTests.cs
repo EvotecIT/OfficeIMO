@@ -56,7 +56,7 @@ public sealed class XpsRadialBoundaryTests {
             Assert.InRange(Math.Abs(actual.G - expected.G), 0, 4);
             Assert.InRange(Math.Abs(actual.B - expected.B), 0, 4);
         }
-        Assert.NotEmpty(page.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        Assert.NotEmpty(page.ToImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Contains("<pattern", OfficeDrawingSvgExporter.ToSvg(page.ToDrawing()));
         if (!alpha && !stroke) {
             var readback = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages[0].ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
@@ -162,7 +162,7 @@ public sealed class XpsRadialBoundaryTests {
     }
 
     private static OfficeRasterImage Raster(XpsPage page) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         return raster!;
     }
     private static double SmallestEllipse(double x, double y, double focus) {

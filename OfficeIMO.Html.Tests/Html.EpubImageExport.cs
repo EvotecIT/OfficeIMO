@@ -12,6 +12,18 @@ public sealed class HtmlEpubImageExportTests {
     private static readonly byte[] PixelPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==");
 
+    [Fact]
+    public void SharedSelectorChoosesAChapterWithoutFilteringItsRenderedPagesAgain() {
+        using var package = new MemoryStream(CreateEpub(includeSecondChapter: true));
+        var book = EpubDocument.Load(package, new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true });
+        var options = new EpubImageExportOptions { Mode = HtmlRenderMode.Paged, Format = OfficeImageExportFormat.Svg,
+            PageSelector = OfficePageSelector.Parse("2") };
+        var image = Assert.Single(book.ToImages(options));
+        Assert.Contains("chapter2.xhtml", image.Source, StringComparison.Ordinal);
+        Assert.Contains("Chapter Two", Encoding.UTF8.GetString(image.Bytes), StringComparison.Ordinal);
+        Assert.Equal("2", options.PageSelector.Expression);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -29,8 +41,8 @@ public sealed class HtmlEpubImageExportTests {
         });
         var options = new EpubImageExportOptions { Mode = HtmlRenderMode.Continuous };
         IReadOnlyList<OfficeImageExportResult> results = asynchronous
-            ? await book.ExportImagesAsync(OfficeImageExportFormat.Png, options)
-            : book.ExportImages(OfficeImageExportFormat.Png, options);
+            ? await book.ToImagesAsync(OfficeImageExportFormat.Png, options)
+            : book.ToImages(OfficeImageExportFormat.Png, options);
         OfficeImageExportResult image = Assert.Single(results);
         Assert.DoesNotContain(image.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         Assert.DoesNotContain(image.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
@@ -44,8 +56,8 @@ public sealed class HtmlEpubImageExportTests {
         EpubDocument book = LoadBaseResourceBook("assets/", "pixel.png", "assets/pixel.png");
         var options = new EpubImageExportOptions { Mode = HtmlRenderMode.Continuous };
         OfficeImageExportResult result = Assert.Single(asynchronous
-            ? await book.ExportImagesAsync(OfficeImageExportFormat.Png, options)
-            : book.ExportImages(OfficeImageExportFormat.Png, options));
+            ? await book.ToImagesAsync(OfficeImageExportFormat.Png, options)
+            : book.ToImages(OfficeImageExportFormat.Png, options));
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
     }
@@ -65,8 +77,8 @@ public sealed class HtmlEpubImageExportTests {
             }
         };
         OfficeImageExportResult result = Assert.Single(asynchronous
-            ? await book.ExportImagesAsync(OfficeImageExportFormat.Png, options)
-            : book.ExportImages(OfficeImageExportFormat.Png, options));
+            ? await book.ToImagesAsync(OfficeImageExportFormat.Png, options)
+            : book.ToImages(OfficeImageExportFormat.Png, options));
         Assert.Equal(asynchronous ? 1 : 0, calls);
         if (asynchronous) {
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
@@ -78,7 +90,7 @@ public sealed class HtmlEpubImageExportTests {
     [Fact]
     public void EpubImageExport_OtherVirtualOriginPortDoesNotAliasPackageBytes() {
         EpubDocument book = LoadBaseResourceBook("epub://document:123/EPUB/", "images/pixel.png", "images/pixel.png");
-        OfficeImageExportResult result = Assert.Single(book.ExportImages(OfficeImageExportFormat.Png,
+        OfficeImageExportResult result = Assert.Single(book.ToImages(OfficeImageExportFormat.Png,
             new EpubImageExportOptions { Mode = HtmlRenderMode.Continuous }));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
@@ -109,7 +121,7 @@ public sealed class HtmlEpubImageExportTests {
         imageOptions1.MaximumOutputWidth = 360;
         imageOptions1.MaximumOutputHeight = 360;
         imageOptions1.Format = OfficeImageExportFormat.Png;
-        OfficeImageExportResult result = Assert.Single(book.ExportImages(OfficeImageExportFormat.Png, imageOptions1));
+        OfficeImageExportResult result = Assert.Single(book.ToImages(OfficeImageExportFormat.Png, imageOptions1));
 
         Assert.True(result.Width <= 360);
         Assert.True(result.Height <= 360);
@@ -124,7 +136,7 @@ public sealed class HtmlEpubImageExportTests {
         int consumed = 0;
 
         OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            book.ExportImages(
+            book.ToImages(
                 OfficeImageExportFormat.Png,
                 _ => consumed++,
                 new EpubImageExportOptions {
@@ -151,7 +163,7 @@ public sealed class HtmlEpubImageExportTests {
         imageOptions2.Mode = HtmlRenderMode.Continuous;
         imageOptions2.Format = OfficeImageExportFormat.Png;
         var results = await book
-            .ExportImagesAsync(OfficeImageExportFormat.Png, imageOptions2);
+            .ToImagesAsync(OfficeImageExportFormat.Png, imageOptions2);
 
         OfficeImageExportResult result = Assert.Single(results);
         Assert.Equal("Chapter One", result.Name);
@@ -177,7 +189,7 @@ public sealed class HtmlEpubImageExportTests {
             });
 
         OfficeImageExportResult result = Assert.Single(
-            book.ExportImages(OfficeImageExportFormat.Png));
+            book.ToImages(OfficeImageExportFormat.Png));
 
         Assert.DoesNotContain(
             result.Diagnostics,
@@ -197,7 +209,7 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub());
         EpubDocument book = EpubDocument.Load(package, new EpubLoadOptions { IncludeRawHtml = true });
 
-        OfficeImageExportResult result = Assert.Single(book.ExportImages(format));
+        OfficeImageExportResult result = Assert.Single(book.ToImages(format));
 
         Assert.Equal(format, result.Format);
         Assert.True(result.Bytes.Length > 32);
@@ -225,10 +237,10 @@ public sealed class HtmlEpubImageExportTests {
         };
 
         IReadOnlyList<OfficeImageExportResult> results = asynchronous
-            ? await book.ExportImagesAsync(
+            ? await book.ToImagesAsync(
                 OfficeImageExportFormat.Png,
                 options)
-            : book.ExportImages(
+            : book.ToImages(
                 OfficeImageExportFormat.Png,
                 options);
 
@@ -257,7 +269,7 @@ public sealed class HtmlEpubImageExportTests {
         };
 
         OfficeImageExportResult result = Assert.Single(
-            book.ExportImages(
+            book.ToImages(
                 OfficeImageExportFormat.Svg,
                 options));
 
@@ -291,7 +303,7 @@ public sealed class HtmlEpubImageExportTests {
         };
 
         OfficeImageExportResult result = Assert.Single(
-            await book.ExportImagesAsync(
+            await book.ToImagesAsync(
                 OfficeImageExportFormat.Png,
                 options));
 
@@ -308,7 +320,7 @@ public sealed class HtmlEpubImageExportTests {
         EpubDocument book = EpubDocument.Load(package);
 
         OfficeImageExportResult result = Assert.Single(
-            book.ExportImages(OfficeImageExportFormat.Svg));
+            book.ToImages(OfficeImageExportFormat.Svg));
 
         Assert.Contains(
             result.Diagnostics,
@@ -327,7 +339,7 @@ public sealed class HtmlEpubImageExportTests {
         };
 
         Assert.Throws<OfficeImageExportPolicyException>(() =>
-            book.ExportImages(
+            book.ToImages(
                 OfficeImageExportFormat.Png,
                 options));
     }
@@ -346,7 +358,7 @@ public sealed class HtmlEpubImageExportTests {
         };
 
         OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
-            book.ExportImages(OfficeImageExportFormat.Png, options));
+            book.ToImages(OfficeImageExportFormat.Png, options));
 
         Assert.Contains(
             exception.Diagnostics,
@@ -370,7 +382,7 @@ public sealed class HtmlEpubImageExportTests {
         };
 
         OfficeImageExportResult result = Assert.Single(
-            book.ExportImages(OfficeImageExportFormat.Png, options));
+            book.ToImages(OfficeImageExportFormat.Png, options));
 
         Assert.Contains(
             result.Diagnostics,
@@ -394,7 +406,7 @@ public sealed class HtmlEpubImageExportTests {
         };
 
         OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
-            book.ExportImages(OfficeImageExportFormat.Png, options));
+            book.ToImages(OfficeImageExportFormat.Png, options));
 
         Assert.Contains(
             exception.Diagnostics,

@@ -315,18 +315,7 @@ internal static class PdfImageExportEngine {
             bool hasTypedLoss = false;
             foreach (OfficeDiagnostic diagnostic in report.Diagnostics) {
                 hasTypedLoss |= diagnostic.LossKind != OfficeConversionLossKind.None;
-                diagnostics.Add(new OfficeImageExportDiagnostic(
-                    diagnostic.LossKind == OfficeConversionLossKind.Failure
-                        ? OfficeImageExportDiagnosticSeverity.Error
-                        : diagnostic.LossKind == OfficeConversionLossKind.None
-                            ? OfficeImageExportDiagnosticSeverity.Info
-                            : OfficeImageExportDiagnosticSeverity.Warning,
-                    diagnostic.Code,
-                    diagnostic.Message,
-                    diagnostic.Location ?? diagnostic.Format,
-                    diagnostic.LossKind,
-                    diagnostic.Format,
-                    diagnostic.Location));
+                diagnostics.Add(OfficeImageExportEvidence.MapSourceDiagnostic(diagnostic));
             }
             if (report.HasLoss && !hasTypedLoss) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(

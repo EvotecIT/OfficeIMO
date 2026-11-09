@@ -7,8 +7,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointImageExportOptions snapshot = options?.Clone() ?? new PowerPointImageExportOptions();
             return new OfficeImageExportOperation<PowerPointImageExportOptions>(snapshot, format,
                 snapshot.FileConflictPolicy,
-                (encoding, effective) => this.ExportImage(encoding, effective),
-                (encoding, effective, token) => this.ExportImage(encoding, effective, token));
+                (encoding, effective) => this.ToImage(encoding, effective),
+                (encoding, effective, token) => this.ToImage(encoding, effective, token));
         }
     }
     public sealed partial class PowerPointDocument {
@@ -20,9 +20,9 @@ namespace OfficeIMO.PowerPoint {
             PowerPointImageExportOptions? options, OfficeImageExportFormat format) {
             PowerPointImageExportOptions snapshot = options?.Clone() ?? new PowerPointImageExportOptions();
             return new OfficeImageExportBatchOperation<PowerPointImageExportOptions>(snapshot, format,
-                snapshot.FileConflictPolicy, this.ExportImages,
+                snapshot.FileConflictPolicy, this.ToImages,
                 exportEach: (encoding, effective, consumer, token) =>
-                    this.ExportImages(encoding, consumer, effective, token));
+                    this.ToImages(encoding, consumer, effective, token));
         }
     }
 }

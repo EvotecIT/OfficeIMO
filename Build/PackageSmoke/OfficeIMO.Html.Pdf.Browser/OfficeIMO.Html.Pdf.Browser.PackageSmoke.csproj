@@ -7,7 +7,7 @@
     <OfficeIMOHtmlPdfBrowserPackageVersion Condition="'$(OfficeIMOHtmlPdfBrowserPackageVersion)' == ''">3.3.0</OfficeIMOHtmlPdfBrowserPackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
+
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableOfficeIMOHtmlPdfBrowserPackageSmoke)' == 'true'">

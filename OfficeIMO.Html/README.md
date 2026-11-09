@@ -54,7 +54,7 @@ HtmlRenderRequest request = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
 HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request);
 rendered.ThrowIfLoss();
 int pageNumber = 1;
-foreach (var page in rendered.ExportImages()) {
+foreach (var page in rendered.ToImages()) {
     page.CreateReport().ThrowIfLoss();
     File.WriteAllBytes($"report-{pageNumber++:D3}.svg", page.Bytes);
 }
@@ -88,7 +88,7 @@ using OfficeIMO.Html.Pdf;
 HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Notes</h1><p>Quarterly review</p>");
 HtmlConversionDocument styled = source.WithTheme(OfficeTheme.Boardroom);
 File.WriteAllText("notes.html", styled.ExportSourceHtml());
-byte[] preview = styled.ToImage();
+byte[] preview = styled.ToImage().Bytes;
 ```
 
 Authored stylesheets and inline CSS take precedence over the theme. Headings, body text, code, spacing, page margins and declared table headers receive defaults; the source snapshot and its resource policies stay unchanged. Applying another theme replaces the earlier theme stylesheet. Normal parsing and conversion retain the source appearance. The themed snapshot can also use the Word and PDF bridges.
@@ -112,7 +112,7 @@ HtmlDocument edited = source.Edit(document => {
 HtmlConversionDocument conversion = HtmlConversionDocument.FromDocument(edited);
 using var markdownDocument = conversion.ToMarkdown();
 string markdown = markdownDocument.ToMarkdown();
-byte[] preview = conversion.ToImage();
+byte[] preview = conversion.ToImage().Bytes;
 ```
 
 `HtmlDocumentEngine` is the provider-neutral document entry point. The default engine
@@ -321,9 +321,9 @@ var options = new HtmlRenderOptions {
 };
 options.AdditionalStylesheets.Add("body { color: hsl(215 35% 20%); }");
 
-byte[] png = source.ToImage(options);
+byte[] png = source.ToImage(options).Bytes;
 options.Format = OfficeImageExportFormat.Jpeg;
-byte[] jpeg = source.ToImage(options);
+byte[] jpeg = source.ToImage(options).Bytes;
 string svg = source.ToSvg(options);
 
 options.Format = OfficeImageExportFormat.Png;
@@ -394,7 +394,7 @@ var request = HtmlRenderRequest.Create(
     .WithPageSet(HtmlRenderPageSet.Pages(firstPageIndex: 0, pageCount: 2));
 
 HtmlRenderResult retained = HtmlRenderEngine.Execute(source, request);
-IReadOnlyList<OfficeImageExportResult> pages = retained.ExportImages();
+IReadOnlyList<OfficeImageExportResult> pages = retained.ToImages();
 
 HtmlRenderSurface firstSurface = retained.GetSurface(0);
 OfficeDrawing preview = firstSurface.CreateDrawing();
@@ -460,7 +460,7 @@ var strict = new HtmlRenderOptions {
     FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
 };
 
-OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, strict);
+OfficeImageExportResult image = source.ToImage(OfficeImageExportFormat.Png, strict);
 ```
 
 The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, positioned `clip` rectangles, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All`, `HtmlRenderProfileContracts.All`, or the generated support matrix for the exact declared subset.
@@ -798,7 +798,7 @@ metadata survives page fragmentation without repeating its text label. A float c
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
-`ToImage(options)` returns encoded bytes in the selected PNG, JPEG, TIFF or WebP format; its `out report` overload and `ToImageAsync(options)` also return fidelity evidence. `ToSvg()` returns SVG text. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`. Options select the format, zero-based page, layout, resource policy and output limits; caller-owned streams remain open.
+`ToImage(options)` and `ToImages(options)` return `OfficeImageExportResult` values containing encoded bytes, dimensions and diagnostics. Use `.Bytes` when only the selected PNG, JPEG, TIFF or WebP payload is needed. Their async counterparts return the same evidence. `ToSvg()` returns SVG text. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`. Options select the format, zero-based page, layout, resource policy and output limits; caller-owned streams remain open.
 
 HTML-to-PDF generation is in `OfficeIMO.Html.Pdf`. `HtmlPdfExportOptions` derives from `HtmlRenderOptions`, so the same configured instance drives PDF and all five image formats. See [HTML to PDF and paged images](../OfficeIMO.Html.Pdf/PDF.md) for resource policies, fonts, paged-media semantics and complete examples.
 
@@ -811,7 +811,7 @@ var options = new HtmlPdfExportOptions {
 
 using var pdfDocument = source.ToPdf(options);
 byte[] pdf = pdfDocument.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
-byte[] png = source.ToImage(options);
+byte[] png = source.ToImage(options).Bytes;
 string svg = source.ToSvg(options);
 ```
 
@@ -1093,7 +1093,6 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 2 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 1 | 0 | 0 | 0 | 0 | 0 |
 | Remove | 1 | 0 | 0 | 0 | 0 | 0 |
-| Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Html` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

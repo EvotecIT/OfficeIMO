@@ -46,7 +46,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             }
             document.Calculate();
             document.InspectFormulas().EnsureAllSupported().EnsureAllHaveCachedResults().EnsureNoDependencyIssues();
-            sheet.Range("A1:F14").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false })
+            sheet.Range("A1:F14").ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false })
                 .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
             document.Save();
         }

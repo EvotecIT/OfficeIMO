@@ -269,7 +269,7 @@ public sealed partial class HtmlRenderingTests {
         }
         Assert.Equal(new[] { "After" }, CollapsedGeometryPageVisuals(rendered.Pages[3]).OfType<HtmlRenderText>().Select(item => item.Text));
         IReadOnlyList<OfficeImageExportResult> png = HtmlConversionDocument.Parse(CollapsedGeometrySource(html))
-            .ExportImages(OfficeImageExportFormat.Png, options);
+            .ToImages(OfficeImageExportFormat.Png, options);
         Assert.True(OfficePngReader.TryDecode(png[2].Bytes, out OfficeRasterImage? raster));
         Assert.Equal(OfficeColor.Red, raster!.GetPixel(285, 48));
         Assert.Equal(OfficeColor.Black, raster.GetPixel(285, 44));
@@ -287,7 +287,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div class='probe'>Span</div></td><td colspan='2'><div class='probe'>Wide</div></td></tr>"
             + "<tr><td><div class='probe'>Lower</div></td><td><div class='probe'>Cell</div></td></tr></tbody></table>";
         Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(CollapsedGeometrySource(body))
-            .ToImage(CollapsedGeometryOptions()), out OfficeRasterImage? raster));
+            .ToImage(CollapsedGeometryOptions()).Bytes, out OfficeRasterImage? raster));
 
         Assert.Equal(OfficeColor.White, raster!.GetPixel(40, 34));
         Assert.Equal(OfficeColor.Lime, raster.GetPixel(190, 15));
@@ -332,7 +332,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = CollapsedGeometryOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(source, options);
         Assert.Equal(46D, TableGeometryShape(rendered, "table#grid").Height, 3);
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(source).ToImage(options), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(source).ToImage(options).Bytes, out OfficeRasterImage? raster));
         foreach (int y in new[] { 1, 7, 38, 44 }) Assert.Equal(OfficeColor.Black, raster!.GetPixel(200, y));
         Assert.Equal(OfficeColor.White, raster!.GetPixel(200, 4));
         Assert.Equal(OfficeColor.Orange, raster.GetPixel(200, 46));
@@ -354,7 +354,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = CollapsedGeometryOptions();
         options.Mode = HtmlRenderMode.Paged;
         IReadOnlyList<OfficeImageExportResult> pages = HtmlConversionDocument.Parse(CollapsedGeometrySource(body))
-            .ExportImages(OfficeImageExportFormat.Png, options);
+            .ToImages(OfficeImageExportFormat.Png, options);
         Assert.True(pages.Count >= 3);
         Assert.True(OfficePngReader.TryDecode(pages[2].Bytes, out OfficeRasterImage? raster));
         Assert.NotEqual(OfficeColor.White, raster!.GetPixel(270, upper));
@@ -402,7 +402,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Single(text, item => item.Text == label);
         }
         IReadOnlyList<OfficeImageExportResult> pages = HtmlConversionDocument.Parse(CollapsedGeometrySource(body))
-            .ExportImages(OfficeImageExportFormat.Png, options);
+            .ToImages(OfficeImageExportFormat.Png, options);
         Assert.True(OfficePngReader.TryDecode(pages[1].Bytes, out OfficeRasterImage? raster));
         Assert.Equal(OfficeColor.Red, raster!.GetPixel(200, 43));
         Assert.Equal(OfficeColor.Black, raster.GetPixel(200, 44));
@@ -431,7 +431,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Single(text, item => item.Text == "Body" + index.ToString("D2"));
         }
         IReadOnlyList<OfficeImageExportResult> pages = HtmlConversionDocument.Parse(source)
-            .ExportImages(OfficeImageExportFormat.Png, options);
+            .ToImages(OfficeImageExportFormat.Png, options);
         Assert.True(OfficePngReader.TryDecode(pages[0].Bytes, out OfficeRasterImage? firstPage));
         Assert.Equal(OfficeColor.Blue, firstPage!.GetPixel(200, 172));
         Assert.Equal(OfficeColor.White, firstPage.GetPixel(200, 182));

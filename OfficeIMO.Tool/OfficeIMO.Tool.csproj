@@ -21,7 +21,7 @@
     <IsPackable>true</IsPackable>
     <IsPublishable>true</IsPublishable>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
+
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(AotValidation)' == 'true'">

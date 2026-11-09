@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
+
     <IsPackable>false</IsPackable>
     <!-- Historical evidence only: the measured revision predates ReconstructLayout. -->
     <DefineConstants Condition="'$(PdfLayoutReconstruct)' != 'true'">$(DefineConstants);PDF_LAYOUT_BASELINE</DefineConstants>

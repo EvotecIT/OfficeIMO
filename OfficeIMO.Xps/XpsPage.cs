@@ -119,7 +119,11 @@ public sealed partial class XpsPage {
         return drawing;
     }
     /// <summary>Renders using the existing managed drawing codecs.</summary>
-    public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, OfficeImageExportOptions? options = null, CancellationToken cancellationToken = default) => ToDrawing(cancellationToken).ExportImage(format, options, cancellationToken);
+    public OfficeImageExportResult ToImage(OfficeImageExportFormat format, OfficeImageExportOptions? options = null, CancellationToken cancellationToken = default) {
+        OfficeImageExportOptions snapshot = (options ?? new OfficeImageExportOptions()).SnapshotForUnits(96D);
+        return OfficeImageExportExecutionScope.Run(snapshot, cancellationToken, token =>
+            ToDrawing(token).ToImage(format, snapshot, token).WithIdentity(PartName, "XPS"));
+    }
 }
 
 /// <summary>A self-contained SVG projection and its explicit loss diagnostics.</summary>

@@ -18,7 +18,7 @@ public sealed class PdfWatermarkOptions : IPdfOperationCancellation {
     public byte[]? ImageBytes { get; set; }
 
     /// <summary>Target pages; null selects every page.</summary>
-    public PdfPageSelector? TargetPages { get; set; }
+    public OfficePageSelector? TargetPages { get; set; }
 
     /// <summary>Nonnegative physical left offset on the visual page; null centers the rectangle horizontally.</summary>
     public global::OfficeIMO.OfficeLength? X { get; set; }

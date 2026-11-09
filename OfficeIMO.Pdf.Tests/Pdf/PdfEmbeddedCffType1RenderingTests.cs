@@ -65,7 +65,7 @@ public sealed class PdfEmbeddedCffType1RenderingTests {
     public void ExistingOpenTypeCidFixtureNoLongerSubstitutesItsCffOutlines() {
         string path = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Pdf", "Fixtures", "Interoperability", "Redaction", "embedded-cff-rotation-0.pdf");
         OfficeImageExportResult exported = PdfReadDocument.Open(File.ReadAllBytes(path)).Pages[0]
-            .ExportImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = 72 });
+            .ToImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = 72 });
         Assert.DoesNotContain(exported.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.CffFontSubstitutionId);
     }
 

@@ -104,7 +104,7 @@ if (typeof(HtmlDocument).Assembly.GetReferencedAssemblies().Any(name => name.Nam
     throw new InvalidOperationException("The owned HTML leaf references a parser or drawing implementation.");
 if (!changed.OuterHtml.Contains("Packed edit") || !conversion.ToSvg().Contains("<svg"))
     throw new InvalidOperationException("Packed HTML serialization or SVG export failed.");
-byte[] foundationPng = conversion.ToImage(new HtmlRenderOptions { Format = OfficeImageExportFormat.Png });
+byte[] foundationPng = conversion.ToImage(new HtmlRenderOptions { Format = OfficeImageExportFormat.Png }).Bytes;
 if (foundationPng.Length < 8 || foundationPng[0] != 137 || foundationPng[1] != 80)
     throw new InvalidOperationException("Packed owned document image rendering failed.");
 using var foundationPdf = conversion.ToPdf();
@@ -122,7 +122,7 @@ retained = retained.WithAdditionalDiagnostics(new[] {
 });
 HtmlRenderSurface retainedSurface = retained.GetSurface(0);
 if (retained.Surfaces.Count != 1 || retained.OutputSurfaces.Count != 1 ||
-    retained.ExportImage().Bytes.Length < 8 || retainedSurface.CreateDrawing().Width <= 0D ||
+    retained.ToImage().Bytes.Length < 8 || retainedSurface.CreateDrawing().Width <= 0D ||
     !retainedSurface.TryMapToSource(1D, 1D, out HtmlRenderSourcePoint? mappedSource) ||
     mappedSource == null || mappedSource.SourcePageNumber != 1 ||
     retained.Request.ProfileId != "screen-full-page-v1" ||

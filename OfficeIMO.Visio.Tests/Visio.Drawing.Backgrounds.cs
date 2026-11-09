@@ -16,7 +16,7 @@ public sealed class VisioBackgroundCompositionTests {
             VisioPage foreground = document.Pages[2];
             OfficeRasterImage native = Decode(foreground.ToImage(new VisioImageExportOptions {
                 TargetDpi = 72, Supersampling = 1, RenderText = false, RenderStencilArtwork = false
-            }));
+            }).Bytes);
             OfficeDrawing scene = foreground.ToDrawing().Value;
             OfficeRasterImage drawing = Decode(OfficeDrawingRasterRenderer.ToPng(scene, background: OfficeColor.White));
             Assert.Equal((288, 216), (native.Width, native.Height));
@@ -116,9 +116,9 @@ public sealed class VisioBackgroundCompositionTests {
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.Throws<OfficeConversionException>(() => document.Pages[2].ToDrawing(new VisioDrawingOptions { FailOnLoss = true }));
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Svg, OfficeImageExportFormat.Png }) {
-            var exported = document.Pages[2].ExportImage(format, new VisioImageExportOptions { RenderText = false, TargetDpi = 24, Supersampling = 1 });
+            var exported = document.Pages[2].ToImage(format, new VisioImageExportOptions { RenderText = false, TargetDpi = 24, Supersampling = 1 });
             Assert.Contains(exported.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<OfficeImageExportPolicyException>(() => document.Pages[2].ExportImage(format, new VisioImageExportOptions {
+            Assert.Throws<OfficeImageExportPolicyException>(() => document.Pages[2].ToImage(format, new VisioImageExportOptions {
                 RenderText = false, TargetDpi = 24, Supersampling = 1, Policy = new OfficeImageExportPolicy { FailOnLoss = true }
             }));
         }

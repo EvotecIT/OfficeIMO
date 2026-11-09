@@ -18,7 +18,7 @@ public sealed class XpsUnboundedRadialSpreadTests {
         brush.SetAttributeValue("SpreadMethod", spread);
         brush.SetAttributeValue("ColorInterpolationMode", linear ? "ScRgbLinearInterpolation" : "SRgbLinearInterpolation");
         page.ReplaceMarkup(xml);
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var native));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(OfficeImageExportFormat.Png).Bytes, out var native));
         string direct = page.ToSvg().Svg;
         string drawingSvg = OfficeDrawingSvgExporter.ToSvg(page.ToDrawing(), 1, OfficeSvgSizeUnit.Pixel);
         var images = new System.Collections.Generic.List<OfficeRasterImage> { native! };
@@ -42,11 +42,11 @@ public sealed class XpsUnboundedRadialSpreadTests {
         }
     }
     internal static void AssertPdfMatchesNative(XpsDocument document, params (int X, int Y)[] points) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(document.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var native));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(document.Pages[0].ToImage(OfficeImageExportFormat.Png).Bytes, out var native));
         using var pdfBytes = new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         using var pdf = PdfDocument.Load(pdfBytes);
-        byte[] rendered = Assert.Single(pdf.ExportImages(new PdfImageExportOptions {
-            Format = OfficeImageExportFormat.Png, Scale = 4D / 3D, PageSelector = PdfPageSelector.Parse("1")
+        byte[] rendered = Assert.Single(pdf.ToImages(new PdfImageExportOptions {
+            Format = OfficeImageExportFormat.Png, Scale = 4D / 3D, PageSelector = OfficePageSelector.Parse("1")
         })).Bytes;
         Assert.True(OfficeRasterImageDecoder.TryDecode(rendered, out var reopened));
         foreach (var point in points) {

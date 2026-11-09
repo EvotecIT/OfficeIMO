@@ -18,7 +18,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Extracts a document-relative selection while observing cancellation during resolution and rewriting.</summary>
-    public PdfDocument Extract(PdfPageSelector selector, CancellationToken cancellationToken) =>
+    public PdfDocument Extract(OfficePageSelector selector, CancellationToken cancellationToken) =>
         Extract(ResolveSelector(selector, _document.ReadOptions, cancellationToken), _document.ReadOptions, cancellationToken);
 
     /// <summary>Creates one PDF per source page with cooperative cancellation; the source is unchanged.</summary>
