@@ -12,7 +12,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile><PackageIcon>OfficeIMO.png</PackageIcon>
     <IsPackable>true</IsPackable><IsPublishable>true</IsPublishable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Nullable>enable</Nullable><LangVersion>latest</LangVersion>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.Core/OfficeIMO.Core.csproj" />

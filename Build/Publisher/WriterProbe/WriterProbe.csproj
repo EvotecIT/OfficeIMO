@@ -5,7 +5,6 @@
     <AssemblyName>OfficeIMO.Publisher.Tests</AssemblyName>
     <RootNamespace>OfficeIMO.Publisher.WriterProbe</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsPublishable>false</IsPublishable>
     <IsTestProject>false</IsTestProject>
