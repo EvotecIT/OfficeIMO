@@ -22,12 +22,12 @@ internal static class XlBenchShapeRunner {
         }
     }
 
-    private sealed record Scenario(string Name, Func<int> OfficeImo, Func<int>? OpenXml, Action<string, byte[]>? Validate, Func<byte[]>? OfficeImoOutput, Func<byte[]>? OpenXmlOutput);
+    private sealed record Scenario(string Name, Func<int> OfficeImo, Func<int>? OpenXml, Action<string, byte[]>? Validate, Func<byte[]>? OfficeImoOutput, Func<byte[]>? OpenXmlOutput, Action? Prepare = null);
 
     private static readonly Scenario[] Scenarios = [
         new("write", () => OfficeWork(XlBenchShapeScenarios.OfficeImoWrite()), () => OfficeWork(XlBenchShapeScenarios.OpenXmlWrite()),
             XlBenchShapeValidation.Write, XlBenchShapeScenarios.OfficeImoWrite, XlBenchShapeScenarios.OpenXmlWrite),
-        new("read-all", () => (int)XlBenchShapeScenarios.OfficeImoReadAll(), () => (int)XlBenchShapeScenarios.OpenXmlReadAll(), null, null, null),
+        new("read-all", () => (int)XlBenchShapeScenarios.OfficeImoReadAll(), () => (int)XlBenchShapeScenarios.OpenXmlReadAll(), null, null, null, XlBenchShapeScenarios.ValidateReadAll),
         new("sheets-20", () => (int)XlBenchShapeScenarios.OfficeImoSheets(), () => (int)XlBenchShapeScenarios.OpenXmlSheets(), null, null, null),
         new("read-while-writing", () => (int)XlBenchShapeScenarios.OfficeImoReadWhileWriting(), () => (int)XlBenchShapeScenarios.OpenXmlReadWhileWriting(), null, null, null),
         new("wide-read", () => (int)XlBenchShapeScenarios.OfficeImoWideRead(), () => (int)XlBenchShapeScenarios.OpenXmlWideRead(), null, null, null),
@@ -60,7 +60,8 @@ internal static class XlBenchShapeRunner {
         Console.WriteLine("| Scenario | OfficeIMO ms | OfficeIMO MB | SDK ms | SDK MB | Time ratio | Alloc ratio | Output |");
         Console.WriteLine("|---|---:|---:|---:|---:|---:|---:|---|");
         foreach (Scenario scenario in Select(arguments.Length > 3 ? arguments[3] : null)) {
-            string output = "n/a";
+            scenario.Prepare?.Invoke();
+            string output = scenario.Prepare != null ? "validated" : "n/a";
             if (scenario.Validate != null) {
                 scenario.Validate($"{scenario.Name} OfficeIMO", scenario.OfficeImoOutput!());
                 if (scenario.OpenXmlOutput != null) {
@@ -89,6 +90,7 @@ internal static class XlBenchShapeRunner {
     internal static void Profile(string[] arguments) {
         Scenario scenario = Select(arguments.Length > 1 ? arguments[1] : throw new ArgumentException("A scenario is required.")).Single();
         int iterations = arguments.Length > 2 ? int.Parse(arguments[2], CultureInfo.InvariantCulture) : 10;
+        scenario.Prepare?.Invoke();
         scenario.OfficeImo();
         using var listener = arguments.Contains("--cpu-only", StringComparer.OrdinalIgnoreCase) ? null : new AllocationListener();
         long before = GC.GetAllocatedBytesForCurrentThread();

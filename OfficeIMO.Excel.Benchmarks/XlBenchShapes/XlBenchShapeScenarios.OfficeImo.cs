@@ -24,15 +24,6 @@ internal static partial class XlBenchShapeScenarios {
         return Save(document);
     }
 
-    internal static long OfficeImoReadAll() {
-        using var document = ExcelDocument.Load(new MemoryStream(ReadWorkbook));
-        long checksum = 0;
-        foreach (var cell in document.Sheets[0].EnumerateCells()) {
-            checksum += (cell.Value?.ToString() ?? string.Empty).Length;
-        }
-        return checksum;
-    }
-
     internal static long OfficeImoSheets() {
         using var document = ExcelDocument.Load(new MemoryStream(SheetsWorkbook));
         long cells = 0;
