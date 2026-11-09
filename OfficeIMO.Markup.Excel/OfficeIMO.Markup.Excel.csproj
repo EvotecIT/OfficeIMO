@@ -9,7 +9,6 @@
         <IsPackable>False</IsPackable>
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
-        <PackageId>OfficeIMO.Markup.Excel</PackageId>
         <PackageTags>officeimo;markup;markdown;xlsx;excel;workbook</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>

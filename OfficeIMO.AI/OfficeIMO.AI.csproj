@@ -5,7 +5,6 @@
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <VersionPrefix>3.6.0</VersionPrefix>
-    <PackageId>OfficeIMO.AI</PackageId>
     <Description>Provider-neutral document AI operations with bounded evidence, source citations and validated extraction.</Description>
     <Authors>Przemyslaw Klys</Authors>
     <Company>Evotec</Company>

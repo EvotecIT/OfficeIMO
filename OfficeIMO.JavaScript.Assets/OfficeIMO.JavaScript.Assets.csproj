@@ -6,7 +6,6 @@
     <LangVersion>Latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <VersionPrefix>3.6.0</VersionPrefix>
-    <PackageId>OfficeIMO.JavaScript.Assets</PackageId>
     <Authors>Przemyslaw Klys</Authors>
     <Company>Evotec</Company>
     <Description>Embedded classic scripts and standalone modules built from the OfficeIMO TypeScript document libraries.</Description>
