@@ -308,7 +308,8 @@ internal static partial class PdfWriter {
 
     private static double GetMaxExplicitRunFontSize(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs) {
         double max = 0D;
-        foreach (PdfTextRun run in runs) {
+        for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+            PdfTextRun run = runs[runIndex];
             if (run.FontSize is OfficeLength fontSize) {
                 max = Math.Max(max, fontSize.ToPoints());
             }

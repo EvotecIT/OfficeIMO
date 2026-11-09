@@ -151,7 +151,8 @@ internal static partial class PdfWriter {
             bool hasBold = false;
             bool hasItalic = false;
             bool hasBoldItalic = false;
-            foreach (PdfTextRun run in effectiveRuns) {
+            for (int runIndex = 0; runIndex < effectiveRuns.Count; runIndex++) {
+                PdfTextRun run = effectiveRuns[runIndex];
                 bool isBold = run.Bold || forceBold;
                 bool isItalic = run.Italic;
                 hasBold |= isBold;
