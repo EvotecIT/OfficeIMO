@@ -7,7 +7,6 @@
     <OfficeIMOHtmlPackageVersion Condition="'$(OfficeIMOHtmlPackageVersion)' == ''">3.3.0</OfficeIMOHtmlPackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 

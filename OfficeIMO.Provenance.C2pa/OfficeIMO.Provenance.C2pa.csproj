@@ -17,7 +17,6 @@
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <IsPublishable>True</IsPublishable>
-    <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <WarningsAsErrors>nullable</WarningsAsErrors>

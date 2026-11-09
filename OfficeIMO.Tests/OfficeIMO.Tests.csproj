@@ -4,7 +4,6 @@
     <IsTestProject>true</IsTestProject>
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>

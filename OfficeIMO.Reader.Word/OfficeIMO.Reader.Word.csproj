@@ -9,7 +9,7 @@
     <PackageId>OfficeIMO.Reader.Word</PackageId>
     <PackageTags>reader;word;docx;docm;doc;ingestion;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl><PackageLicenseExpression>MIT</PackageLicenseExpression><RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile><LangVersion>Latest</LangVersion><Nullable>enable</Nullable><GenerateDocumentationFile>True</GenerateDocumentationFile><ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <PackageReadmeFile>README.md</PackageReadmeFile><LangVersion>Latest</LangVersion><GenerateDocumentationFile>True</GenerateDocumentationFile><ProduceReferenceAssembly>false</ProduceReferenceAssembly>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />

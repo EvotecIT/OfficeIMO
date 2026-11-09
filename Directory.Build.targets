@@ -44,10 +44,9 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
-  <!-- Examples are executable documentation. Keep nullable enabled so annotated samples do not emit CS8632 noise. -->
+  <!-- Examples are executable documentation; their warnings do not block validation. -->
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Examples'">
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <!-- Older target frameworks need the compiler marker for records and init-only properties.
