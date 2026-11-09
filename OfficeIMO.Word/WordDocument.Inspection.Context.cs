@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Threading;
 
 namespace OfficeIMO.Word {
@@ -16,8 +14,6 @@ namespace OfficeIMO.Word {
             internal CancellationToken CancellationToken { get; set; }
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
             internal IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> ListMarkers { get; }
-            private Dictionary<Paragraph, WordComplexFieldRunVisibility.FieldState> ComplexFieldPrefixes { get; } = new();
-            private HashSet<OpenXmlElement> ScannedFieldStories { get; } = new();
             private Dictionary<(string? CharacterStyleId, string? ParagraphStyleId, bool? Caps, bool? SmallCaps), WordCapsStyle> CapsStyles { get; } = new();
 
             /// <summary>Reuses resolved caps only within this read-only inspection; later inspections observe source edits.</summary>
@@ -32,23 +28,6 @@ namespace OfficeIMO.Word {
                     CapsStyles.Add(key, style);
                 }
                 return style;
-            }
-
-            internal WordComplexFieldRunVisibility.FieldState? ComplexFieldResultsFor(Paragraph paragraph) {
-                OpenXmlElement story = paragraph.Ancestors().FirstOrDefault(element =>
-                    element is Footnote or Endnote or DocumentFormat.OpenXml.Wordprocessing.Header
-                        or DocumentFormat.OpenXml.Wordprocessing.Footer)
-                    ?? paragraph.Ancestors().LastOrDefault() ?? paragraph;
-                if (ScannedFieldStories.Add(story) && story.Descendants<FieldChar>().Any()) {
-                    var visibility = new WordComplexFieldRunVisibility();
-                    foreach (Paragraph candidate in story.Descendants<Paragraph>()) {
-                        if (visibility.CurrentState is WordComplexFieldRunVisibility.FieldState state)
-                            ComplexFieldPrefixes[candidate] = state;
-                        visibility.ObserveParagraphMarkers(candidate);
-                    }
-                }
-                return ComplexFieldPrefixes.TryGetValue(paragraph,
-                    out WordComplexFieldRunVisibility.FieldState? prefix) ? prefix : null;
             }
         }
     }

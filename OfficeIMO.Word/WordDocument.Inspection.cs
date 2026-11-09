@@ -232,8 +232,7 @@ namespace OfficeIMO.Word {
             // Walk runs and simple fields together so a field's insertion index uses the
             // same run sequence that is stored in the inspection snapshot.
             int runIndex = 0;
-            var fieldVisibility = new WordComplexFieldRunVisibility(
-                expansionContext.ComplexFieldResultsFor(paragraph._paragraph));
+            var fieldVisibility = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
             foreach (OpenXmlElement item in EnumerateInspectionInlineItems(paragraph._paragraph)) {
                 if (item is SimpleField field) {
                     Hyperlink? containingLink = field.Ancestors<Hyperlink>().FirstOrDefault();
