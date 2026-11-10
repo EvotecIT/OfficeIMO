@@ -292,6 +292,7 @@
       "OfficeIMO.ChartForgeX.Markdown.Tests",
       "OfficeIMO.ChartForgeX.Tests",
       "OfficeIMO.Confluence.Tests",
+      "OfficeIMO.Data.Conversions.Tests",
       "OfficeIMO.DjVu.Tests",
       "OfficeIMO.DocBook.Tests",
       "OfficeIMO.Drawing.CodeGlyphX.Tests",
@@ -316,7 +317,8 @@
       "OfficeIMO.Tool.Tests",
       "OfficeIMO.VerifyTests",
       "OfficeIMO.Visio.Tests",
-      "OfficeIMO.Xps.Tests"
+      "OfficeIMO.Xps.Tests",
+      "OfficeIMO.Yaml.Tests"
     ]
   },
   "windows": [
@@ -371,6 +373,10 @@
     {
       "name": "Confluence",
       "project": "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"
+    },
+    {
+      "name": "Data-Conversions",
+      "project": "OfficeIMO.Data.Conversions.Tests/OfficeIMO.Data.Conversions.Tests.csproj"
     },
     {
       "name": "Drawing",
@@ -463,6 +469,10 @@
     {
       "name": "Word",
       "project": "OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj"
+    },
+    {
+      "name": "Yaml",
+      "project": "OfficeIMO.Yaml.Tests/OfficeIMO.Yaml.Tests.csproj"
     }
   ]
 }
