@@ -83,9 +83,12 @@ public class YamlDocumentMergeTests {
         Assert.Equal(OfficeDiagnosticCodes.YamlAliasedNodeEdited, Assert.Single(report.Diagnostics).Code);
     }
 
-    [Fact]
-    public void MergeKeysFollowTheTypedViewAndAreNeverFlattened() {
-        const string baseText = "%YAML 1.1\n---\ndefaults: &defaults\n  retries: 3\n  timeout: 10\njob:\n  <<: *defaults\n  name: build\n";
+    [Theory]
+    [InlineData("%YAML 1.1\n---\n")]
+    [InlineData("")]
+    public void MergeKeysFollowTheTypedViewAndAreNeverFlattened(string header) {
+        // Merge keys resolve under the default Core schema as well as under a YAML 1.1 directive.
+        string baseText = header + "defaults: &defaults\n  retries: 3\n  timeout: 10\njob:\n  <<: *defaults\n  name: build\n";
         YamlDocument document = YamlDocument.Parse(baseText);
         YamlMapping overlay = YamlDocument.Parse("timeout: 20\nretries: 3\n").Root!.AsMapping();
 

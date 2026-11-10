@@ -13,6 +13,11 @@ if (args.Length > 0 && string.Equals(args[0], "--large-corpus", StringComparison
     return;
 }
 
+if (args.Length > 0 && string.Equals(args[0], "--merge-corpus", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = YamlMergeCorpusRun.Run(args.Skip(1).ToArray());
+    return;
+}
+
 if (args.Length > 0 && string.Equals(args[0], "--mutations", StringComparison.OrdinalIgnoreCase)) {
     Environment.ExitCode = YamlMutationRun.Run(args.Skip(1).ToArray());
     return;
