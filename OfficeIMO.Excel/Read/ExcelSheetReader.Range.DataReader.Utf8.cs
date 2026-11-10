@@ -753,6 +753,13 @@ namespace OfficeIMO.Excel {
                                 kind,
                                 out hasCachedValue,
                                 out valueStart,
+                                out valueLength)
+                            && !TryIndexCompactFormulaCell(
+                                ref position,
+                                cellIndex,
+                                kind,
+                                out hasCachedValue,
+                                out valueStart,
                                 out valueLength)) {
                             _sheetDataSupportsFastValidation = false;
                             position = contentPosition;
