@@ -20,7 +20,6 @@ internal sealed class HtmlRenderBoxStyle {
     internal double PaddingRight;
     internal double PaddingBottom;
     internal double PaddingLeft;
-    internal HtmlRenderBorderEdges Borders = HtmlRenderBorderEdges.Uniform(0D, "none", OfficeColor.Black);
     internal double BorderWidth {
         get => Borders.MaximumLayoutWidth;
         set => Borders = Borders.WithUniformWidth(value);
@@ -41,8 +40,6 @@ internal sealed class HtmlRenderBoxStyle {
     internal double BorderLeftWidth => BorderInsets.Left;
     internal bool HasBorderLayout => BorderInsets.Horizontal > 0D || BorderInsets.Vertical > 0D;
     internal HtmlRenderBorderInsets BorderInsets => TableCollapsedBorderInsets ?? Borders.Insets;
-    internal bool BorderDeclared;
-    internal OfficeColor? BackgroundColor;
     internal OfficeFontInfo Font;
     internal OfficeFontFaceDescriptor FontDescriptor = OfficeFontFaceDescriptor.Regular;
     internal OfficeColor DecorationColor = OfficeColor.Black;
@@ -92,6 +89,15 @@ internal sealed class HtmlRenderBoxStyle {
     private static bool SameValue(double? left, double? right) => left.HasValue
         ? right.HasValue && SameValue(left.Value, right.Value)
         : !right.HasValue;
+
+    private static bool SameValue(HtmlRenderBorderEdges left, HtmlRenderBorderEdges right) =>
+        SameValue(left.Top, right.Top) && SameValue(left.Right, right.Right)
+        && SameValue(left.Bottom, right.Bottom) && SameValue(left.Left, right.Left);
+
+    private static bool SameValue(HtmlRenderBorderSide left, HtmlRenderBorderSide right) =>
+        SameValue(left.Width, right.Width)
+        && string.Equals(left.Style, right.Style, StringComparison.Ordinal)
+        && left.Color.Equals(right.Color);
 
     private static bool SameValue(HtmlFontSizeContext? left, HtmlFontSizeContext? right) => left.HasValue
         ? right.HasValue && SameValue(left.Value.Pixels, right.Value.Pixels)
@@ -176,6 +182,15 @@ internal sealed class HtmlRenderBoxStyle {
     internal string CaptionSide { get => _table.CaptionSide; set { if (!(string.Equals(_table.CaptionSide, value, StringComparison.Ordinal))) MutableTable().CaptionSide = value; } }
     internal string TableLayout { get => _table.TableLayout; set { if (!(string.Equals(_table.TableLayout, value, StringComparison.Ordinal))) MutableTable().TableLayout = value; } }
     internal string TablePercentageHeight { get => _table.TablePercentageHeight; set { if (!(string.Equals(_table.TablePercentageHeight, value, StringComparison.Ordinal))) MutableTable().TablePercentageHeight = value; } }
+    private BoxPaintValues _boxPaint = BoxPaintValues.Default;
+    private BoxPaintValues MutableBoxPaint() {
+        if ((_shared & 4096) == 0) return _boxPaint;
+        _shared &= ~4096;
+        return _boxPaint = _boxPaint.Copy();
+    }
+    internal HtmlRenderBorderEdges Borders { get => _boxPaint.Borders; set { if (!(SameValue(_boxPaint.Borders, value))) MutableBoxPaint().Borders = value; } }
+    internal bool BorderDeclared { get => _boxPaint.BorderDeclared; set { if (!(_boxPaint.BorderDeclared == value)) MutableBoxPaint().BorderDeclared = value; } }
+    internal OfficeColor? BackgroundColor { get => _boxPaint.BackgroundColor; set { if (!(Nullable.Equals(_boxPaint.BackgroundColor, value))) MutableBoxPaint().BackgroundColor = value; } }
     private TypographyValues _typography = TypographyValues.Default;
     private TypographyValues MutableTypography() {
         if ((_shared & 1) == 0) return _typography;
@@ -443,6 +458,14 @@ internal sealed class HtmlRenderBoxStyle {
         // Table tracks resolve percentages after the grid's content minimum is known.
         internal string TablePercentageHeight = string.Empty;
         internal TableValues Copy() => (TableValues)MemberwiseClone();
+    }
+
+    private sealed class BoxPaintValues {
+        internal static readonly BoxPaintValues Default = new BoxPaintValues();
+        internal HtmlRenderBorderEdges Borders = HtmlRenderBorderEdges.Uniform(0D, "none", OfficeColor.Black);
+        internal bool BorderDeclared;
+        internal OfficeColor? BackgroundColor;
+        internal BoxPaintValues Copy() => (BoxPaintValues)MemberwiseClone();
     }
 
     private sealed class TypographyValues {
