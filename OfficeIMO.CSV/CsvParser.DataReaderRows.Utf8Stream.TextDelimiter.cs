@@ -10,6 +10,9 @@ internal static partial class CsvParser
         /// <summary>The UTF-8 bytes of a multi-character ASCII delimiter, or null.</summary>
         private readonly byte[]? _delimiterText;
 
+        /// <summary>The one-byte delimiter as a span for the shared quote rules.</summary>
+        private readonly byte[] _delimiterByte;
+
         private enum TextRecordResult
         {
             NeedMoreData,
@@ -133,7 +136,7 @@ internal static partial class CsvParser
 
             _flexibleFieldBytes ??= new byte[256];
             var state = new TextQuoteState { WhiteSpaceOnly = true };
-            TextQuoteResult parse = ParseTextDelimitedQuotes(recordStart, firstEnd, _strictQuotes, visit: true, ref state);
+            TextQuoteResult parse = ParseTextDelimitedQuotes(recordStart, firstEnd, _delimiterText, _strictQuotes, visit: true, ref state);
             if (parse == TextQuoteResult.Invalid)
             {
                 next = firstNext;
@@ -173,7 +176,7 @@ internal static partial class CsvParser
                     return TextRecordResult.NeedMoreData;
                 }
 
-                ParseTextDelimitedQuotes(position, lineEnd, strict: false, visit: false, ref lineState);
+                ParseTextDelimitedQuotes(position, lineEnd, _delimiterText, strict: false, visit: false, ref lineState);
                 continuations++;
                 separators += lineNext > lineEnd ? 1 : 0;
                 recordEnd = lineEnd;
@@ -182,7 +185,7 @@ internal static partial class CsvParser
 
             _visitor.Reset();
             state = new TextQuoteState { WhiteSpaceOnly = true };
-            parse = ParseTextDelimitedQuotes(recordStart, recordEnd, _strictQuotes, visit: true, ref state);
+            parse = ParseTextDelimitedQuotes(recordStart, recordEnd, _delimiterText, _strictQuotes, visit: true, ref state);
             if (parse != TextQuoteResult.Complete)
             {
                 next = position;
@@ -258,13 +261,13 @@ internal static partial class CsvParser
         }
 
         /// <summary>
-        /// Runs the canonical quoted-record rules over <paramref name="start"/>..<paramref name="end"/>.
+        /// Runs the canonical quoted-record rules for <paramref name="delimiter"/> over
+        /// <paramref name="start"/>..<paramref name="end"/>.
         /// With <paramref name="visit"/> the completed fields are stored, except the last one.
         /// </summary>
-        private TextQuoteResult ParseTextDelimitedQuotes(int start, int end, bool strict, bool visit, ref TextQuoteState state)
+        private TextQuoteResult ParseTextDelimitedQuotes(int start, int end, ReadOnlySpan<byte> delimiter, bool strict, bool visit, ref TextQuoteState state)
         {
             byte[] buffer = _buffer;
-            ReadOnlySpan<byte> delimiter = _delimiterText;
             int position = start;
             while (position < end)
             {
@@ -397,13 +400,13 @@ internal static partial class CsvParser
         {
             next = firstNext;
             separators = firstNext > firstEnd ? 1 : 0;
-            if (!hasQuote || !LooksLikeDelimitedRawComment(_buffer.AsSpan(recordStart, firstEnd - recordStart)))
+            if (!hasQuote || !LooksLikeDelimitedComment(_buffer.AsSpan(recordStart, firstEnd - recordStart), _delimiterText))
             {
                 return TextRecordResult.Comment;
             }
 
             var state = new TextQuoteState();
-            if (ParseTextDelimitedQuotes(recordStart, firstEnd, strict: false, visit: false, ref state) != TextQuoteResult.InQuotes)
+            if (ParseTextDelimitedQuotes(recordStart, firstEnd, _delimiterText, strict: false, visit: false, ref state) != TextQuoteResult.InQuotes)
             {
                 return TextRecordResult.Comment;
             }
@@ -427,7 +430,7 @@ internal static partial class CsvParser
                     return TextRecordResult.NeedMoreData;
                 }
 
-                ParseTextDelimitedQuotes(position, lineEnd, strict: false, visit: false, ref state);
+                ParseTextDelimitedQuotes(position, lineEnd, _delimiterText, strict: false, visit: false, ref state);
                 separators += lineNext > lineEnd ? 1 : 0;
                 position = lineNext;
                 if (!state.InQuotes)
@@ -438,8 +441,6 @@ internal static partial class CsvParser
             }
         }
 
-        private bool LooksLikeDelimitedRawComment(ReadOnlySpan<byte> line) =>
-            line.IndexOf(_delimiterText) >= 0 || line.IndexOfAny(DelimitedCommentBytes) >= 0;
 
         private static readonly SearchValues<byte> DelimitedCommentBytes = SearchValues.Create(new[] { (byte)',', (byte)';', (byte)'|', (byte)'\t' });
     }

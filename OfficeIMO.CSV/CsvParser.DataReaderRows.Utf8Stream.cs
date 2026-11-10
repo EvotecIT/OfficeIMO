@@ -66,6 +66,7 @@ internal static partial class CsvParser
             _delimiter = checked((byte)GetDelimiterChar(options));
             _commentCharacter = checked((byte)options.CommentCharacter);
             _delimiterText = UsesTextDelimiter(options) ? Encoding.ASCII.GetBytes(options.DelimiterText!) : null;
+            _delimiterByte = new[] { _delimiter };
             _specialBytes = SearchValues.Create(new[] { _delimiter, (byte)'"', (byte)'\r', (byte)'\n' });
             _allowEmpty = options.AllowEmptyLines;
             _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
@@ -198,9 +199,10 @@ internal static partial class CsvParser
                 int recordLineNumber = _physicalLineSeparatorsConsumed + 1;
                 if (_buffer[recordStart] == _commentCharacter && ShouldSkipCommentRecord(ref recordStart, cancellationToken))
                 {
-                    if (!TrySkipCommentLine(ref recordStart, cancellationToken))
+                    // A skipped comment line with a quote can continue on later lines.
+                    if (!TrySkipCommentLine(ref recordStart, cancellationToken) &&
+                        !SkipQuotedCommentRecord(ref recordStart, cancellationToken))
                     {
-                        // A skipped comment line with a quote can continue on later lines.
                         return StartFallback(recordStart, recordLineNumber, cancellationToken);
                     }
 

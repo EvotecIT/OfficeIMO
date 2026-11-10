@@ -22,7 +22,8 @@ public sealed class CsvStreamReaderRecordBoundaryTests {
         { "\né,é", "é|é@2/2", false, "", false },
         { "#a,b\nc,d", "#a|b@1/1 c|d@2/2", false, "", false },
         { "a,b\n#x\r\nc,d", "a|b@1/1 c|d@3/3", false, "", true },
-        { "a,b\n#x \"y\nz\"\nc,d", "a|b@1/1 c|d@4/4", false, "", true }
+        { "a,b\n#x \"y\nz\"\nc,d", "a|b@1/1 c|d@4/4", false, "", true },
+        { "#x \"y\na,b\nq\"\nc,d", "a|b@2/2 c|d@4/4", false, "3", true }
     };
 
     [Theory]
