@@ -86,6 +86,7 @@ internal static partial class CsvParser
         /// Resolves a field's text bytes without its quotes. Returns false for a missing field or one
         /// held only as a decoded string; <paramref name="escaped"/> reports escaped quote pairs.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly bool TryResolveText(int ordinal, out int start, out int length, out bool escaped)
         {
             ref Field field = ref _fields[ordinal];
