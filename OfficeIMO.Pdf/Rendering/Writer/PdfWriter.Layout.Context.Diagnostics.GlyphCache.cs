@@ -40,6 +40,9 @@ internal static partial class PdfWriter {
                 _diagnosticGlyphContours.Add(key, cached);
                 _diagnosticGlyphPointCount += points;
             }
+            // A glyph without outline points paints no ink, so no clip can remove any. Its inspection would
+            // measure only the clips; they also bound every inked glyph of the run, which reports them.
+            if (contained != null && HasNoOutlinePoints(cached.Contours)) return null;
             // These are actual bounded contour extrema, never an unverified glyf header box.
             // Positive unsheared placement is monotone on each axis, including the Y reflection.
             if (contained != null && font is OfficeTrueTypeFont && cached.Bounds.IsFinite
@@ -51,6 +54,11 @@ internal static partial class PdfWriter {
                 if (bounds.IsFinite && contained(bounds)) return null;
             }
             return CopyDiagnosticGlyphForPlacement(cached.Contours);
+        }
+
+        private static bool HasNoOutlinePoints(List<List<OfficePoint>> contours) {
+            foreach (List<OfficePoint> contour in contours) if (contour.Count > 0) return false;
+            return true;
         }
     }
 }
