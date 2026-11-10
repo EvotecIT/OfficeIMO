@@ -80,6 +80,12 @@ public static class PdfSnapshot {
                     .Append("PdfCreateOptions.RegisterFontFamily so every machine produces the same PDF.\n");
             }
         }
+        string[] missingPages = Enumerable.Range(1, PdfSnapshotCapture.PageCount(approvedStructure))
+            .Select(page => files.Page(received: false, page)).Where(path => !File.Exists(path)).Select(path => Path.GetFileName(path)!).ToArray();
+        if (missingPages.Length > 0) {
+            problems.Append("Approved page images are missing: ").Append(string.Join(", ", missingPages))
+                .Append(". Restore them from version control or approve the snapshot again.\n");
+        }
         PdfVisualComparisonReport visual = PdfVisualComparer.CompareImages(files.ReadApprovedPages(), capture.Pages, effective.Visual);
         DescribeVisual(visual, problems);
         if (problems.Length == 0) {

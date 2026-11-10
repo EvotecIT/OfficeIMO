@@ -50,6 +50,18 @@ public sealed class PdfSnapshotTests : IDisposable {
     }
 
     [Fact]
+    public void MissingApprovedPageImagesAreNamed() {
+        byte[] pdf = SampleReport.Create("10");
+        Approve("partial", pdf);
+        File.Delete(Path.Combine(_directory, "partial.page-001.png"));
+
+        PdfSnapshotMismatchException failure = Assert.Throws<PdfSnapshotMismatchException>(
+            () => PdfSnapshot.Verify(pdf, "partial", Options()));
+
+        Assert.Contains("Approved page images are missing: partial.page-001.png.", failure.Message);
+    }
+
+    [Fact]
     public void ReceivedFilesUseStablePathsAndAreRemovedOnceTheSnapshotMatches() {
         Approve("stable", SampleReport.Create("10"));
         byte[] changed = SampleReport.Create("11");

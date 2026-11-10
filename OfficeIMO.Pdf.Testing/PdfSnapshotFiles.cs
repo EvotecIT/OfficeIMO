@@ -71,6 +71,8 @@ internal sealed class PdfSnapshotFiles {
 
     /// <summary>Promotes received files to approved files.</summary>
     public void Accept() {
+        // Keep the approved baseline unless there is a received snapshot to replace it.
+        if (!File.Exists(Structure(received: true))) throw new FileNotFoundException("No received snapshot to accept.", Structure(received: true));
         DeleteSet(received: false);
         File.Move(Structure(received: true), Structure(received: false));
         if (File.Exists(Pdf(received: true))) File.Move(Pdf(received: true), Pdf(received: false));

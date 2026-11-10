@@ -38,6 +38,12 @@ internal sealed class PdfSnapshotCapture {
         return new PdfSnapshotCapture(BuildStructure(read, rendered, fonts), pages);
     }
 
+    /// <summary>Returns the page count a structure file records, or zero when it records none.</summary>
+    public static int PageCount(string structure) {
+        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(structure, "\"pageCount\":\\s*(\\d+)");
+        return match.Success ? int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) : 0;
+    }
+
     /// <summary>Returns the font lines of a structure file, so callers can explain a font change separately.</summary>
     public static string FontSection(string structure) {
         string normalized = PdfSnapshotDiff.Normalize(structure);
