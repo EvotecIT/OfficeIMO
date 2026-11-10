@@ -107,11 +107,11 @@ namespace OfficeIMO.Excel {
                 if (_cellKinds != null) {
                     byte[] previous = _cellKinds;
                     _cellKinds = null;
-                    ArrayPool<byte>.Shared.Return(previous);
+                    ExcelArrayPool.Return(previous);
                 }
-                _valueStarts = ArrayPool<int>.Shared.Rent(cells);
-                _valueLengths = ArrayPool<int>.Shared.Rent(cells);
-                _cellKinds = ArrayPool<byte>.Shared.Rent(cells);
+                _valueStarts = ExcelArrayPool.RentInts(cells);
+                _valueLengths = ExcelArrayPool.RentInts(cells);
+                _cellKinds = ExcelArrayPool.RentBytes(cells);
                 // Qualification must retain formula-array presence, even if all
                 // formula cells occurred before promotion. Window replay relies on
                 // those arrays already existing before it initializes earlier cells.

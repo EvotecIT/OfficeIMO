@@ -30,8 +30,8 @@ namespace OfficeIMO.Excel {
             private int InitializeCellWindow(int rowCapacity, long rangeRows, int fieldCount) {
                 long maximumCells = Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells);
                 if (_unknownRowExtent) {
-                    _rowContentStarts = ArrayPool<int>.Shared.Rent(rowCapacity);
-                    _rowContentEnds = ArrayPool<int>.Shared.Rent(rowCapacity);
+                    _rowContentStarts = ExcelArrayPool.RentInts(rowCapacity);
+                    _rowContentEnds = ExcelArrayPool.RentInts(rowCapacity);
                     return (int)Math.Min(rowCapacity, maximumCells / fieldCount);
                 }
                 if (rangeRows * fieldCount <= maximumCells) {
@@ -42,8 +42,8 @@ namespace OfficeIMO.Excel {
                     _options.MaxDataReaderChunkRows, maximumCells / fieldCount);
                 _indexedTreatDatesUsingNumberFormat = _options.TreatDatesUsingNumberFormat;
                 _indexedUseCachedFormulaResult = _options.UseCachedFormulaResult;
-                _rowContentStarts = ArrayPool<int>.Shared.Rent(rowCapacity);
-                _rowContentEnds = ArrayPool<int>.Shared.Rent(rowCapacity);
+                _rowContentStarts = ExcelArrayPool.RentInts(rowCapacity);
+                _rowContentEnds = ExcelArrayPool.RentInts(rowCapacity);
                 return _cellWindowRowCapacity;
             }
 
