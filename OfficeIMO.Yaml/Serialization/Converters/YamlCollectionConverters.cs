@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Yaml;
 
@@ -114,12 +115,26 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
                     dictionary.Add(key, valueInfo.Read(cursor, state));
                     (merged ??= new HashSet<TKey>(dictionary.Comparer)).Add(key);
                 }
-            } else if (dictionary.ContainsKey(key)) {
+            } else {
+#if NET8_0_OR_GREATER
+                // One lookup finds the key or reserves its slot. Reading the value never touches this dictionary, so
+                // the slot stays valid; a failed read abandons the dictionary with the rest of the result.
+                ref TValue slot = ref CollectionsMarshal.GetValueRefOrAddDefault(dictionary, key, out bool exists)!;
+                if (!exists) {
+                    slot = valueInfo.Read(cursor, state);
+                    state.Pop();
+                    continue;
+                }
+#else
+                if (!dictionary.ContainsKey(key)) {
+                    dictionary.Add(key, valueInfo.Read(cursor, state));
+                    state.Pop();
+                    continue;
+                }
+#endif
                 // An explicit key replaces a merged value once; a second explicit occurrence is a duplicate.
                 if (merged is null || !merged.Remove(key)) throw YamlSerializationErrors.DuplicateKey(cursor, state, keyText);
                 dictionary[key] = valueInfo.Read(cursor, state);
-            } else {
-                dictionary.Add(key, valueInfo.Read(cursor, state));
             }
             state.Pop();
         }
