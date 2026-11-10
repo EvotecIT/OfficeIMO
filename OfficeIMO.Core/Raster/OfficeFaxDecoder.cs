@@ -3,14 +3,30 @@ namespace OfficeIMO.Drawing;
 /// <summary>Bounded T.4/T.6 decoding shared by document and raster readers.</summary>
 internal static partial class OfficeFaxDecoder {
     internal static byte[] Decode(byte[] encoded, int columns, int rows, int k, bool endOfLine,
-        bool byteAligned, bool blackIsOne, bool endOfBlock, int maximumBytes, CancellationToken cancellationToken) {
+        bool byteAligned, bool blackIsOne, bool endOfBlock, int maximumBytes, CancellationToken cancellationToken) =>
+        Decode(encoded, columns, rows, k, endOfLine, byteAligned, blackIsOne, endOfBlock, maximumBytes, cancellationToken, out _);
+
+    /// <summary>
+    /// Decodes a T.6 (MMR) bitmap with black as one, consuming an optional EOFB, and reports the whole bytes
+    /// consumed so callers such as JBIG2 gray-scale planes (T.88 C.5) can locate the next bitmap.
+    /// </summary>
+    internal static byte[] DecodeMmr(byte[] encoded, int columns, int rows, int maximumBytes,
+        CancellationToken cancellationToken, out int consumedBytes) {
+        byte[] output = Decode(encoded, columns, rows, -1, false, false, true, false, maximumBytes, cancellationToken, out FaxBits bits);
+        if (bits.TryReadEndOfLine()) bits.TryReadEndOfLine();
+        consumedBytes = (int)Math.Min(encoded.Length, (bits.Position + 7) / 8);
+        return output;
+    }
+
+    private static byte[] Decode(byte[] encoded, int columns, int rows, int k, bool endOfLine,
+        bool byteAligned, bool blackIsOne, bool endOfBlock, int maximumBytes, CancellationToken cancellationToken, out FaxBits bits) {
         if (columns <= 0 || rows <= 0) throw new InvalidDataException("Fax decoding requires positive image dimensions.");
         long strideLong = ((long)columns + 7) / 8;
         long length = strideLong * rows;
         if (length > maximumBytes) throw new InvalidDataException("Fax image exceeds the decoded byte limit.");
         int stride = (int)strideLong;
         var output = new byte[(int)length];
-        var bits = new FaxBits(encoded, cancellationToken);
+        bits = new FaxBits(encoded, cancellationToken);
         for (int row = 0; row < rows; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             bool foundEndOfLine = bits.TryReadEndOfLine();
@@ -191,6 +207,7 @@ internal static partial class OfficeFaxDecoder {
             // speculative probes that restore the bit position on failure.
             _maximumEndOfLineScanBits = (long)bytes.Length * 16L;
         }
+        internal long Position => _position;
         internal int Read() {
             if (_position >= (long)_bytes.Length * 8) throw new InvalidDataException("Truncated fax image.");
             int value = (_bytes[(int)(_position / 8)] >> (7 - (int)(_position & 7))) & 1;
