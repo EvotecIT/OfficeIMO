@@ -50,6 +50,10 @@ internal static partial class PdfCorpusRunner {
                 throw new InvalidDataException(
                     $"PDF corpus {label} collection properties cannot be null in {path}.");
             }
+            if (entry.Password is { Length: 0 }) {
+                throw new InvalidDataException(
+                    $"PDF corpus {label} password must be omitted or non-empty in {path}.");
+            }
             ValidateNonBlankValues(entry.Features, label, "features", path);
             ValidateNonBlankValues(entry.RequiredText, label, "requiredText", path);
             ValidateNonBlankValues(entry.ExpectedText, label, "expectedText", path);

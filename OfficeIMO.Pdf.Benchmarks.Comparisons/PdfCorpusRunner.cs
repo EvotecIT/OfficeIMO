@@ -131,8 +131,8 @@ internal static partial class PdfCorpusRunner {
         bool skipManipulation,
         string diagnosticsDirectory) {
         byte[] bytes = File.ReadAllBytes(path);
-        if (bytes.Length < 5 || !bytes.AsSpan(0, 4).SequenceEqual("%PDF"u8)) {
-            throw new InvalidDataException($"{entry.Id} does not start with a PDF header.");
+        if (!HasPdfHeader(bytes)) {
+            throw new InvalidDataException($"{entry.Id} has no PDF header in its first 1024 bytes.");
         }
 
         string sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
@@ -148,14 +148,15 @@ internal static partial class PdfCorpusRunner {
         OfficeIMO.Pdf.PdfDocumentReadResult? officeDocument = null;
         PdfCorpusSemanticObservation? semanticObservation = null;
         OfficeIMO.Pdf.PdfLoadOptions readOptions = new() {
-            IncludeArtifactText = true
+            IncludeArtifactText = true,
+            Password = entry.Password
         };
         PdfCorpusReadResult read;
         double recall = 0D;
         double readElapsedMilliseconds = 0D;
         long readAllocatedBytes = 0L;
         try {
-            (oraclePages, oracle) = ReadOracleByPage(bytes);
+            (oraclePages, oracle) = ReadOracleByPage(bytes, entry.Password);
             long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
             try {
@@ -190,7 +191,7 @@ internal static partial class PdfCorpusRunner {
 
             if (recall < entry.MinimumTokenRecall) {
                 using var debugInput = new MemoryStream(bytes, writable: false);
-                using OfficePdfDocument debugDocument = OfficePdfDocument.Load(debugInput);
+                using OfficePdfDocument debugDocument = OfficePdfDocument.Load(debugInput, readOptions);
                 WriteSpanDiagnostics(bytes, readOptions, diagnosticsDirectory, entry.Id);
                 File.WriteAllText(
                     GetEntryOutputPath(diagnosticsDirectory, entry.Id, ".officeimo.debug.txt"),
@@ -245,7 +246,10 @@ internal static partial class PdfCorpusRunner {
 
         PdfCorpusManipulationResult manipulation = skipManipulation
             ? new PdfCorpusManipulationResult(true, "Skipped", 0, 0, 0, Array.Empty<string>(), null)
-            : ValidateManipulation(bytes, oraclePages);
+            : entry.Password is not null
+                ? new PdfCorpusManipulationResult(true, "Skipped", 0, 0, 0, Array.Empty<string>(),
+                    "Password-protected sources are read-only in this lane.")
+                : ValidateManipulation(bytes, oraclePages, oracle);
         return CreateResult(entry, path, bytes.Length, sha256, read, manipulation);
     }
 
@@ -337,7 +341,10 @@ internal static partial class PdfCorpusRunner {
         }
     }
 
-    private static PdfCorpusManipulationResult ValidateManipulation(byte[] source, IReadOnlyList<string> oraclePages) {
+    private static PdfCorpusManipulationResult ValidateManipulation(
+        byte[] source,
+        IReadOnlyList<string> oraclePages,
+        string oracle) {
         try {
             int[] selectedPages = oraclePages.Count switch {
                 0 => Array.Empty<int>(),
@@ -351,7 +358,7 @@ internal static partial class PdfCorpusRunner {
 
             byte[] selected = PdfManipulationEngines.SelectWithOfficeImo(source, selectedPages);
             IReadOnlyList<string> expected = selectedPages.Select(page => oraclePages[page - 1]).ToArray();
-            ValidateManipulatedText("selection", selected, expected);
+            ValidateManipulatedText("selection", selected, expected, oracle);
 
             byte[][] split = PdfManipulationEngines.SplitWithOfficeImo(selected, 1);
             if (split.Length != selectedPages.Length) {
@@ -359,11 +366,11 @@ internal static partial class PdfCorpusRunner {
                     $"Split returned {split.Length} documents; expected {selectedPages.Length}.");
             }
             for (int index = 0; index < split.Length; index++) {
-                ValidateManipulatedText("split page " + (index + 1), split[index], new[] { expected[index] });
+                ValidateManipulatedText("split page " + (index + 1), split[index], new[] { expected[index] }, oracle);
             }
 
             byte[] merged = PdfManipulationEngines.MergeWithOfficeImo(split);
-            ValidateManipulatedText("merge", merged, expected);
+            ValidateManipulatedText("merge", merged, expected, oracle);
             return new PdfCorpusManipulationResult(
                 true,
                 "Passed",
@@ -393,8 +400,15 @@ internal static partial class PdfCorpusRunner {
         }
     }
 
-    private static void ValidateManipulatedText(string operation, byte[] pdf, IReadOnlyList<string> expectedPages) {
-        (IReadOnlyList<string> actualPages, _) = ReadOracleByPage(pdf);
+    private static void ValidateManipulatedText(
+        string operation,
+        byte[] pdf,
+        IReadOnlyList<string> expectedPages,
+        string oracle) {
+        // Compare outputs with the extractor that produced the source baseline.
+        IReadOnlyList<string> actualPages = oracle == "itext"
+            ? ReadITextByPage(pdf, null)
+            : ReadOracleByPage(pdf).Pages;
         if (actualPages.Count != expectedPages.Count) {
             throw new InvalidDataException(
                 $"OfficeIMO {operation} produced {actualPages.Count} pages; expected {expectedPages.Count}.");
@@ -416,21 +430,27 @@ internal static partial class PdfCorpusRunner {
         PdfCorpusManipulationResult manipulation) =>
         new(entry.Id, entry.Producer, entry.Tier, entry.SourceKind, path, bytes, sha256, entry.Features, read, manipulation);
 
-    private static (IReadOnlyList<string> Pages, string Oracle) ReadOracleByPage(byte[] bytes) {
+    private static (IReadOnlyList<string> Pages, string Oracle) ReadOracleByPage(byte[] bytes, string? password = null) {
         try {
             using var stream = new MemoryStream(bytes, writable: false);
-            using UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(stream);
+            using UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(
+                stream,
+                new UglyToad.PdfPig.ParsingOptions { Password = password ?? string.Empty });
             return (
                 document.GetPages().Select(static page => ContentOrderTextExtractor.GetText(page)).ToArray(),
                 "pdfpig");
         } catch {
-            return (ReadITextByPage(bytes), "itext");
+            return (ReadITextByPage(bytes, password), "itext");
         }
     }
 
-    private static IReadOnlyList<string> ReadITextByPage(byte[] bytes) {
+    private static IReadOnlyList<string> ReadITextByPage(byte[] bytes, string? password) {
         using var stream = new MemoryStream(bytes, writable: false);
-        using var reader = new iText.Kernel.Pdf.PdfReader(stream);
+        var properties = new iText.Kernel.Pdf.ReaderProperties();
+        if (password is not null) {
+            properties.SetPassword(System.Text.Encoding.UTF8.GetBytes(password));
+        }
+        using var reader = new iText.Kernel.Pdf.PdfReader(stream, properties);
         using var document = new iText.Kernel.Pdf.PdfDocument(reader);
         var pages = new string[document.GetNumberOfPages()];
         for (int page = 1; page <= pages.Length; page++) {
@@ -537,8 +557,8 @@ internal static partial class PdfCorpusRunner {
     }
 
     private static string? GetDownloadValidationError(PdfCorpusEntry entry, byte[] payload) {
-        if (payload.Length < 5 || !payload.AsSpan(0, 4).SequenceEqual("%PDF"u8)) {
-            return "the payload does not start with a PDF header.";
+        if (!HasPdfHeader(payload)) {
+            return "the payload has no PDF header in its first 1024 bytes.";
         }
 
         if (string.IsNullOrWhiteSpace(entry.Sha256)) {
@@ -550,6 +570,10 @@ internal static partial class PdfCorpusRunner {
             ? null
             : $"SHA-256 mismatch. Expected {entry.Sha256}, observed {observedSha256}.";
     }
+
+    // ISO 32000 readers accept bytes before the header, so offset-start files remain valid inputs.
+    private static bool HasPdfHeader(byte[] bytes) =>
+        bytes.AsSpan(0, Math.Min(bytes.Length, 1024)).IndexOf("%PDF-"u8) >= 0;
 
     private static string GenerateArtifact(PdfCorpusEntry entry, string repositoryRoot, string filesDirectory) =>
         entry.Generator switch {
