@@ -392,7 +392,10 @@ public sealed partial class PdfReadPage {
             Additions.TryGetValue(scalar, out glyph) || _program.UnicodeGlyphs.TryGetValue(scalar, out glyph);
     }
 
-    private void RegisterEmbeddedFonts(OfficeDrawing drawing, PdfDictionary? resources, HashSet<PdfStream> activeForms, int depth,
+    // visitedForms is never unwound: a form's fonts are registered once, however many resource dictionaries list it.
+    // Producers such as LibreOffice share one XObject dictionary across every form, so unwinding the set walked
+    // the same forms along every path, exponentially.
+    private void RegisterEmbeddedFonts(OfficeDrawing drawing, PdfDictionary? resources, HashSet<PdfStream> visitedForms, int depth,
         Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>? registeredFonts = null,
         bool preserveExistingFaces = false, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -407,13 +410,9 @@ public sealed partial class PdfReadPage {
         foreach (PdfObject value in xObjects.Items.Values) {
             if (ResolveObject(value) is not PdfStream form ||
                 !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) ||
-                !activeForms.Add(form)) continue;
-            try {
-                PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) ? formResourceValue : null) ?? resources;
-                RegisterEmbeddedFonts(drawing, formResources, activeForms, depth + 1, registeredFonts, preserveExistingFaces, cancellationToken);
-            } finally {
-                activeForms.Remove(form);
-            }
+                !visitedForms.Add(form)) continue;
+            PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) ? formResourceValue : null) ?? resources;
+            RegisterEmbeddedFonts(drawing, formResources, visitedForms, depth + 1, registeredFonts, preserveExistingFaces, cancellationToken);
         }
     }
 

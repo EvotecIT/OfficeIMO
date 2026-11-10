@@ -154,6 +154,13 @@ internal readonly partial struct PdfPageClipPath {
         PdfPageClipPath rectangleClip,
         PdfPageClipPath intersection,
         PdfTextClippingBudget? textClippingBudget) {
+        // A rectangle that encloses the path's control-point bounds removes nothing, so the path is the exact intersection.
+        if (rectangleClip.X <= pathClip.X && rectangleClip.Y <= pathClip.Y &&
+            pathClip.X + pathClip.Width <= rectangleClip.X + rectangleClip.Width &&
+            pathClip.Y + pathClip.Height <= rectangleClip.Y + rectangleClip.Height) {
+            return pathClip;
+        }
+
         textClippingBudget?.ChargeLinearIntersectionWork(pathClip.Commands.Count);
         textClippingBudget?.ChargeLinearIntersectionWork(CountFlattenedPathVertices(pathClip.Commands));
         List<OfficePathCommand> clippedCommands = ClipPathCommandsToRectangle(pathClip.Commands, rectangleClip, textClippingBudget);
@@ -247,11 +254,20 @@ internal readonly partial struct PdfPageClipPath {
             }
             : FlattenPathContours(clipped.Commands);
         if (sourceContours.Count == 0 || clippedContours.Count == 0) return false;
+        // Clipping keeps unclipped source edges exactly; only edges the clip introduced need the containment test.
+        var sourceEdges = new HashSet<(OfficePoint Start, OfficePoint End)>();
+        for (int contourIndex = 0; contourIndex < sourceContours.Count; contourIndex++) {
+            List<OfficePoint> contour = sourceContours[contourIndex];
+            for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+                sourceEdges.Add((contour[pointIndex], contour[(pointIndex + 1) % contour.Count]));
+            }
+        }
         for (int contourIndex = 0; contourIndex < clippedContours.Count; contourIndex++) {
             List<OfficePoint> contour = clippedContours[contourIndex];
             for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
                 OfficePoint start = contour[pointIndex];
                 OfficePoint end = contour[(pointIndex + 1) % contour.Count];
+                if (sourceEdges.Contains((start, end))) continue;
                 if (!IsSegmentWithinFilledArea(sourceContours, source.FillRule, start, end, textClippingBudget)) return false;
             }
         }

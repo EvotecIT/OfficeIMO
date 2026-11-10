@@ -212,6 +212,26 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void ExtractText_PolygonClipsInsideARectangleClipNeedNoIntersectionWork() {
+        // LibreOffice clips each custom shape to its frame rectangle and then to the shape outline.
+        var polygon = new System.Text.StringBuilder();
+        for (int index = 0; index < 400; index++) {
+            double angle = 2D * Math.PI * index / 400D;
+            polygon.Append((300D + 200D * Math.Cos(angle)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)).Append(' ')
+                .Append((400D + 200D * Math.Sin(angle)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))
+                .Append(index == 0 ? " m\n" : " l\n");
+        }
+        string shape = "q " + polygon + "h W* n BT /F1 12 Tf 280 400 Td (Inside) Tj ET Q\n";
+        byte[] pdf = BuildSingleStreamPdf(
+            "q 0 0 600 800 re W n\n" + string.Concat(Enumerable.Repeat(shape, 30)) + "Q",
+            "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+
+        string text = PdfReadDocument.Open(pdf).Pages[0].ExtractText();
+
+        Assert.Contains("Inside", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RenderPage_BoundsAggregateTextClipIntersectionWork() {
         const int runsPerObject = 1001;
         string runs = string.Concat(Enumerable.Repeat("(A) Tj ", runsPerObject));
@@ -254,7 +274,8 @@ public partial class PdfPageImageRendererTests {
         commands.Add(OfficePathCommand.Close());
         Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath path));
         path = path.AsTextClippingPath();
-        PdfPageClipPath rectangle = PdfPageClipPath.Rectangle(0D, -20D, 300D, 120D);
+        // The rectangle trims the path, so the intersection does real work.
+        PdfPageClipPath rectangle = PdfPageClipPath.Rectangle(0D, -20D, 299.5D, 120D);
         var budget = new PdfTextClippingBudget();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => {
@@ -283,7 +304,7 @@ public partial class PdfPageImageRendererTests {
         commands.Add(OfficePathCommand.Close());
         Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath path));
         path = path.AsTextClippingPath();
-        PdfPageClipPath rectangle = PdfPageClipPath.Rectangle(0D, 0D, 100D, 100D);
+        PdfPageClipPath rectangle = PdfPageClipPath.Rectangle(0D, 0D, 99.5D, 100D);
         var budget = new PdfTextClippingBudget();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
@@ -401,7 +422,7 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void VisualParser_ChargesLaterPathClipAgainstInheritedTextClip() {
         string content = BuildCurveHeavyPathClip();
-        PdfPageClipPath inheritedTextClip = PdfPageClipPath.Rectangle(0D, 100D, 100D, 120D).AsTextClippingPath();
+        PdfPageClipPath inheritedTextClip = PdfPageClipPath.Rectangle(0D, 100D, 99D, 120D).AsTextClippingPath();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             PdfPageContentVisualParser.Parse(
@@ -424,7 +445,7 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void FormInvocationParser_ChargesLaterPathClipAgainstInheritedTextClip() {
         string content = BuildCurveHeavyPathClip();
-        PdfPageClipPath inheritedTextClip = PdfPageClipPath.Rectangle(0D, 100D, 100D, 120D).AsTextClippingPath();
+        PdfPageClipPath inheritedTextClip = PdfPageClipPath.Rectangle(0D, 100D, 99D, 120D).AsTextClippingPath();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             TextContentParser.ExtractFormInvocations(
@@ -440,7 +461,7 @@ public partial class PdfPageImageRendererTests {
 
     [Fact]
     public void ParserPassesBoundOrdinaryClipIntersectionWork() {
-        string content = "0 -20 100 120 re W n " + BuildCurveHeavyPathClip();
+        string content = "0 -20 99 120 re W n " + BuildCurveHeavyPathClip();
 
         AssertIntersectionLimit(() => TextContentParser.Parse(
             content,
@@ -480,18 +501,14 @@ public partial class PdfPageImageRendererTests {
 
     [Fact]
     public void ParserChargesClippedContourRepresentabilityAgainstSourceEdges() {
+        // A sawtooth crossing the rectangle's top edge gives every clipped contour edges the clip introduced.
         const int pointCount = 1100;
-        var content = new StringBuilder();
+        var content = new StringBuilder("0 0 m ");
         for (int index = 0; index < pointCount; index++) {
-            double angle = index * Math.PI * 2D / pointCount;
-            double x = 100D + (50D * Math.Cos(angle));
-            double y = 100D + (50D * Math.Sin(angle));
-            content.Append(x.ToString("0.######", CultureInfo.InvariantCulture))
-                .Append(' ')
-                .Append(y.ToString("0.######", CultureInfo.InvariantCulture))
-                .Append(index == 0 ? " m " : " l ");
+            content.Append((index * 0.1D).ToString("0.###", CultureInfo.InvariantCulture))
+                .Append(index % 2 == 0 ? " 90 l " : " 110 l ");
         }
-        content.Append("h W n 0 0 200 200 re W n");
+        content.Append("110 0 l h W n 0 0 200 100 re W n");
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             TextContentParser.Parse(
