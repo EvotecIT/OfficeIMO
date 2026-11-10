@@ -131,7 +131,8 @@ public static partial class MarkdownPdfConverterExtensions {
         MarkdownPdfExportOptions options,
         MarkdownPdfStyle visualTheme) {
         var readerOptions = new OfficeSvgDrawingReaderOptions { CancellationToken = options.CancellationToken };
-        if (!OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out OfficeDrawing? drawing) || drawing == null || drawing.Width <= 0D || drawing.Height <= 0D) {
+        if (!OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out OfficeDrawing? drawing) || drawing == null ||
+            drawing.Width <= 0D || drawing.Height <= 0D || drawing.Elements.Count == 0) {
             AddWarning(options, "unsupported-image", sourceName, "The Markdown SVG image could not be read as a drawing scene.");
             RenderImagePlaceholder(pdf, altText ?? sourceName, visualTheme);
             return;

@@ -57,6 +57,18 @@ public class Markdown_Math_Tests {
         Assert.Contains("$$\n\\frac{a}{b}\n$$", written.Replace("\r\n", "\n"));
     }
 
+    [Fact]
+    public void Math_Writer_Trims_Edge_Spaces_So_Projected_Inline_Math_Reparses() {
+        var document = MarkdownDocument.Create();
+        var paragraph = new ParagraphBlock(new InlineSequence());
+        paragraph.Inlines.AddRaw(new MathInline(" x^2 "));
+        document.Add(paragraph);
+
+        var reparsed = MarkdownDocument.Parse(document.ToMarkdown(), new MarkdownLoadOptions { Math = true });
+
+        Assert.Equal("x^2", Assert.Single(((ParagraphBlock)reparsed.Blocks[0]).Inlines.Nodes.OfType<MathInline>()).Source);
+    }
+
     [Theory]
     [InlineData("Pay $5 and $10 today.")]
     [InlineData("A lone $ sign.")]

@@ -27,7 +27,9 @@ public sealed class MathInline : MarkdownInline, IRenderableMarkdownInline, IPla
 
     private string Delimiter => IsDisplay ? "$$" : "$";
 
-    string IRenderableMarkdownInline.RenderMarkdown() => Delimiter + Source + Delimiter;
+    // TeX ignores spaces at the edges of math, while the Markdown reader requires non-space characters
+    // next to a single $, so the edges are trimmed to keep projected math reparsable.
+    string IRenderableMarkdownInline.RenderMarkdown() => Delimiter + Source.Trim() + Delimiter;
 
     string IRenderableMarkdownInline.RenderHtml() {
         string source = HtmlTextEncoder.Encode(Source, HtmlRenderContext.Options);

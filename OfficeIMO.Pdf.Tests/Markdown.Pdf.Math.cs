@@ -41,4 +41,15 @@ public partial class MarkdownPdfTests {
         Assert.DoesNotContain("/Subtype /Image", pdf, StringComparison.Ordinal);
         Assert.DoesNotContain("Image unavailable", PdfCore.PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Markdown_SaveAsPdf_ShowsAPlaceholderForAnEmptySvgScene() {
+        const string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"40\"></svg>";
+        string markdown = "![Empty](data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg)) + ")";
+
+        PdfCore.PdfDocumentConversionResult result = MarkdownDocument.Parse(markdown).ConvertToPdfWithEvidence(new MarkdownPdfExportOptions());
+
+        Assert.Contains(result.Warnings, warning => warning.Code == "unsupported-image");
+        Assert.Contains("Image unavailable", PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
 }

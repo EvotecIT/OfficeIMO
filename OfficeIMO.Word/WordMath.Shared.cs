@@ -118,7 +118,7 @@ namespace OfficeIMO.Word {
                 case OfficeMathKind.Radical:
                     XElement degree = new XElement(OmmlNamespace + "deg");
                     if (expression.Children.Count == 2) AppendOmml(degree, expression.Children[1]);
-                    // A square root hides its empty degree; otherwise Word and LibreOffice show an index placeholder.
+                    // A square root hides its empty degree; otherwise Office shows an empty index placeholder.
                     parent.Add(expression.Children.Count == 2
                         ? Composite("rad", degree, Container("e", expression.Children[0]))
                         : Composite("rad", CharacterProperties("radPr", "degHide", "1"), degree, Container("e", expression.Children[0])));

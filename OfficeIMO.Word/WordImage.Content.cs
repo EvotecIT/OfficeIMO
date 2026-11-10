@@ -32,7 +32,8 @@ namespace OfficeIMO.Word {
                     _externalRelationshipId = initialBlip.Link;
                 } else if (initialBlip.Embed?.Value is { Length: > 0 } embedId) {
                     var part = GetContainingPart();
-                    _imagePart = part.GetPartById(embedId) as ImagePart;
+                    _imagePart = (GetSvgRelationshipId() is string svgId && part.TryGetPartById(svgId, out OpenXmlPart? svgPart)
+                        ? svgPart : part.GetPartById(embedId)) as ImagePart;
                 }
             }
 
@@ -187,10 +188,19 @@ namespace OfficeIMO.Word {
 
         private ImagePart? ResolveImagePart() {
             // Optimizing a BMP/GIF can change its media carrier while preserving the occurrence's relationship ID.
-            if (_imagePart != null && RelationshipId is string id &&
+            // A picture with an SVG extension is that SVG; its ordinary blip is only the raster fallback.
+            if (_imagePart != null && (GetSvgRelationshipId() ?? RelationshipId) is string id &&
                 GetContainingPart().TryGetPartById(id, out OpenXmlPart? current))
                 _imagePart = current as ImagePart;
             return _imagePart;
+        }
+
+        private string? GetSvgRelationshipId() {
+            OpenXmlElement? svgBlip = GetBlip()?.Descendants().FirstOrDefault(element => element.LocalName == "svgBlip" &&
+                (element.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2016/SVG/main" ||
+                 element.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2010/main"));
+            string? id = svgBlip?.GetAttribute("embed", "http://schemas.openxmlformats.org/officeDocument/2006/relationships").Value;
+            return string.IsNullOrEmpty(id) ? null : id;
         }
 
         /// <summary>
@@ -216,13 +226,23 @@ namespace OfficeIMO.Word {
             OpenXmlPart owner = GetContainingPart();
             ResolveImagePart();
             string? relationshipId = _externalRelationshipId ?? RelationshipId;
+            string? svgRelationshipId = GetSvgRelationshipId();
             occurrence.Remove();
-            bool referenced = relationshipId != null && owner.RootElement?.Descendants().Any(element =>
+            bool IsReferenced(string? id) => id != null && owner.RootElement?.Descendants().Any(element =>
                 element.GetAttributes().Any(attribute =>
                     attribute.NamespaceUri == "http://schemas.openxmlformats.org/officeDocument/2006/relationships" &&
-                    attribute.Value == relationshipId)) == true;
-            if (referenced) return;
-            if (_imagePart != null) {
+                    attribute.Value == id)) == true;
+            if (svgRelationshipId != null && svgRelationshipId != relationshipId && !IsReferenced(svgRelationshipId) &&
+                owner.TryGetPartById(svgRelationshipId, out OpenXmlPart? svgPart)) {
+                owner.DeletePart(svgPart);
+                if (ReferenceEquals(svgPart, _imagePart)) _imagePart = null;
+            }
+            if (IsReferenced(relationshipId)) return;
+            if (relationshipId != null && svgRelationshipId != null && _externalRelationshipId == null &&
+                owner.TryGetPartById(relationshipId, out OpenXmlPart? fallbackPart)) {
+                owner.DeletePart(fallbackPart);
+                _imagePart = null;
+            } else if (_imagePart != null) {
                 owner.DeletePart(_imagePart);
                 _imagePart = null;
             } else if (!string.IsNullOrEmpty(_externalRelationshipId)) {
@@ -236,28 +256,33 @@ namespace OfficeIMO.Word {
 
         private void AddImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WordImageTextWrapping wrapImage) {
             _document = document;
-            string? svgRelationshipId = null;
-            WordImageLocation imageLocation;
-            if (OfficeImageReader.FromExtension(fileName) == OfficeImageFormat.Svg &&
-                TryCreateSvgPngFallback(imageStream, out byte[] svgBytes, out byte[] fallbackPng, out double svgWidth, out double svgHeight)) {
-                if (width == null && height == null) {
-                    width = svgWidth;
-                    height = svgHeight;
-                } else if (width == null) {
-                    width = svgWidth * height!.Value / svgHeight;
-                } else if (height == null) {
-                    height = svgHeight * width.Value / svgWidth;
+            // Read from the start of a seekable copy so the fallback and the stored SVG use the same bytes,
+            // and the caller's stream keeps its position.
+            (WordImageLocation imageLocation, string? svgRelationshipId, ImagePart? svgImagePart) = Helpers.UseSeekableImageStream(imageStream, stream => {
+                if (OfficeImageReader.FromExtension(fileName) != OfficeImageFormat.Svg ||
+                    !TryCreateSvgPngFallback(stream, out byte[] svgBytes, out byte[] fallbackPng, out double svgWidth, out double svgHeight)) {
+                    return (AddImageToLocation(document, paragraph, stream, fileName, width, height), (string?)null, (ImagePart?)null);
+                }
+
+                double? pictureWidth = width, pictureHeight = height;
+                if (pictureWidth == null && pictureHeight == null) {
+                    pictureWidth = svgWidth;
+                    pictureHeight = svgHeight;
+                } else if (pictureWidth == null) {
+                    pictureWidth = svgWidth * pictureHeight!.Value / svgHeight;
+                } else if (pictureHeight == null) {
+                    pictureHeight = svgHeight * pictureWidth.Value / svgWidth;
                 }
 
                 using var pngStream = new MemoryStream(fallbackPng, writable: false);
-                imageLocation = AddImageToLocation(document, paragraph, pngStream, System.IO.Path.ChangeExtension(fileName, ".png"), width, height);
+                WordImageLocation fallbackLocation = AddImageToLocation(document, paragraph, pngStream, System.IO.Path.ChangeExtension(fileName, ".png"), pictureWidth, pictureHeight);
                 using var svgStream = new MemoryStream(svgBytes, writable: false);
-                svgRelationshipId = AddImageToLocation(document, paragraph, svgStream, fileName, width, height).RelationshipId;
-            } else {
-                imageLocation = AddImageToLocation(document, paragraph, imageStream, fileName, width, height);
-            }
+                WordImageLocation svgLocation = AddImageToLocation(document, paragraph, svgStream, fileName, pictureWidth, pictureHeight);
+                return (fallbackLocation, (string?)svgLocation.RelationshipId, (ImagePart?)svgLocation.ImagePart);
+            });
 
-            this._imagePart = imageLocation.ImagePart;
+            // The SVG is the picture's content; the ordinary blip carries its PNG fallback.
+            this._imagePart = svgImagePart ?? imageLocation.ImagePart;
 
             //calculate size in emu
             double emuWidth = imageLocation.Width * EnglishMetricUnitsPerInch / PixelsPerInch;

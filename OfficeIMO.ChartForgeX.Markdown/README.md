@@ -65,7 +65,7 @@ The parser preserves transformed fences within list items, slide bodies and dire
 
 For Word markup, select `OfficeMarkupProfile.Document` and import `OfficeIMO.Markup.Word`, then call `parsed.Document.ToWord()`. Word markup fits unsized embedded images to the current section and honors explicit image dimensions. Both markup exporters expose `AllowDataUriImages` and `MaximumDataUriImageBytes` in their options.
 
-The PowerPoint exporter embeds the generated PNG bytes in process, preserves their aspect ratio and alternative text, and includes image captions. PNG and JPEG data URI images are enabled by default, with a 16 MiB decoded-image limit. Set `MarkupPowerPointExportOptions.AllowDataUriImages` or `MaximumDataUriImageBytes` to apply a stricter policy. Existing file-path access rules continue to apply to file images.
+The PowerPoint exporter embeds the generated image bytes in process, preserves their aspect ratio and alternative text, and includes image captions. With the default SVG format, the slide picture is the SVG itself, without a PNG fallback; pass `MermaidMarkdownImageFormat.Png` to `CreateTransform` when the presentation must open in PowerPoint versions or viewers without SVG support. PNG, JPEG and SVG data URI images are enabled by default, with a 16 MiB decoded-image limit. Set `MarkupPowerPointExportOptions.AllowDataUriImages` or `MaximumDataUriImageBytes` to apply a stricter policy. Existing file-path access rules continue to apply to file images.
 
 ## Rendering limits
 

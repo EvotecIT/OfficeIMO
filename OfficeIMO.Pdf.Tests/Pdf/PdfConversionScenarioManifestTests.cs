@@ -108,7 +108,8 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.DoesNotContain(projection.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD103");
         Assert.DoesNotContain(result.Warnings, warning =>
             warning.Details.TryGetValue("stage", out string? stage) && stage == "semantic-projection");
-        Assert.False(result.HasLoss);
+        // A host without an installed math font keeps the formula as visible source and reports that loss.
+        Assert.Equal(result.Warnings.Any(warning => warning.Code == "math-font-unavailable"), result.HasLoss);
 
         WriteReviewArtifact("asciidoc-direct-semantic-document.pdf", pdf);
     }

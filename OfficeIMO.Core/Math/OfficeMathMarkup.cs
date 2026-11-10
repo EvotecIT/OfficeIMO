@@ -361,6 +361,7 @@ public static partial class OfficeMathMarkup {
 
     private static string DelimiterToLatex(string? delimiter) {
         switch (delimiter) {
+            case "": return ".";
             case "{": return "\\{";
             case "}": return "\\}";
             case "⟨":
@@ -700,7 +701,7 @@ public static partial class OfficeMathMarkup {
 
         private bool TryParseSlashedFraction(string source, string left, string right, out OfficeMathExpression? expression) {
             expression = null;
-            if (left != "." || right != ".") return false;
+            if (left.Length != 0 || right.Length != 0) return false;
             int braceDepth = 0;
             int delimiterDepth = 0;
             for (int index = 0; index < source.Length; index++) {
@@ -980,7 +981,9 @@ public static partial class OfficeMathMarkup {
                 if (delimiter == null) throw Error("Unsupported named delimiter \\" + command + ".");
                 return delimiter;
             }
-            return _text[_position++].ToString(CultureInfo.InvariantCulture);
+            // \left. and \right. are TeX's invisible delimiters.
+            char value = _text[_position++];
+            return value == '.' ? string.Empty : value.ToString(CultureInfo.InvariantCulture);
         }
 
         private int FindMatchingRight() {

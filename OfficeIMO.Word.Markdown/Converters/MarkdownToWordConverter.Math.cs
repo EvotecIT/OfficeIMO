@@ -14,7 +14,8 @@ namespace OfficeIMO.Word.Markdown {
             try {
                 omml = WordMathMarkup.ToOmml(OfficeMathMarkup.FromLatex(tex), display);
                 return true;
-            } catch (Exception ex) when (ex is OfficeMathParseException or FormatException or ArgumentException) {
+            } catch (Exception ex) when (ex is OfficeMathParseException or FormatException or ArgumentException or NotSupportedException) {
+                // NotSupportedException covers shared math nodes, such as gathered stacks, that Office Math cannot hold losslessly.
                 options.OnWarning?.Invoke($"TeX math '{tex}' could not be converted to Office Math and is kept as text. {ex.Message}");
                 return false;
             }

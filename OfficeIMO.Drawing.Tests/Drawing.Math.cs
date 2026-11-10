@@ -187,6 +187,7 @@ public class DrawingMathTests {
 
         OfficeMathExpression cases = OfficeMathMarkup.FromLatex(@"\begin{cases}x&x>0\\-x&x\le0\end{cases}");
         Assert.Equal(("{", string.Empty), (cases.Character, cases.SecondaryCharacter));
+        Assert.Equal(cases, OfficeMathMarkup.FromLatex(OfficeMathMarkup.ToLatex(cases)));
     }
 
     [Fact]
