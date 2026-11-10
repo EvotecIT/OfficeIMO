@@ -157,6 +157,17 @@ public partial class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_UsesSimpleFontEncodingDifferencesWithDigitAndAccentGlyphNames() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<4142434445464748494A4B4C4D4E4F505152> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [ 65 /zero /one /two /three /four /five /six /seven /eight /nine /dotlessi /caron /breve /dotaccent /ring /ogonek /hungarumlaut /trademark ] >> >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("0123456789\u0131\u02C7\u02D8\u02D9\u02DA\u02DB\u02DD\u2122", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExtractTextByPage_UsesBuiltInStandardEncodingForStandardType1Font() {
         byte[] pdf = BuildExternalSinglePagePdf(
             "BT\n/F13 12 Tf\n72 720 Td\n<2720AEAFE1F1> Tj\nET\n",
