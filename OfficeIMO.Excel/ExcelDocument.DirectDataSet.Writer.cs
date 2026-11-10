@@ -52,12 +52,7 @@ namespace OfficeIMO.Excel {
                 var sharedStrings = disableSharedStrings ? null
                     : collectSharedStrings ? DirectSharedStringTable.CreateStreaming()
                     : DirectSharedStringTable.Create(model, columnWritePlans, ct);
-                using var positionReportingDestination = stream.CanSeek
-                    ? null
-                    : new ExcelPositionReportingWriteStream(stream);
-                Stream packageDestination = positionReportingDestination ?? stream;
-                using var zip = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
-                ExcelPackageArchive archive = ExcelPackageArchive.Wrap(zip);
+                using ExcelPackageArchive archive = ExcelPackageArchive.Create(stream);
                 WritePackagePreamble(archive, model, stylePlan, sharedStrings != null, themeXml, theme);
                 if (sharedStrings != null && !collectSharedStrings) {
                     WriteSharedStrings(archive, sharedStrings, ct);
@@ -116,17 +111,17 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            internal static void WriteExtendedStyles(ZipArchive archive, ExtendedDirectWritePlan plan, OfficeTheme? theme) {
-                WriteStyles(ExcelPackageArchive.Wrap(archive), plan.StylePlan, theme);
+            internal static void WriteExtendedStyles(ExcelPackageArchive archive, ExtendedDirectWritePlan plan, OfficeTheme? theme) {
+                WriteStyles(archive, plan.StylePlan, theme);
             }
 
-            internal static void WriteExtendedSharedStrings(ZipArchive archive, ExtendedDirectWritePlan plan) {
+            internal static void WriteExtendedSharedStrings(ExcelPackageArchive archive, ExtendedDirectWritePlan plan) {
                 if (plan.SharedStrings != null) {
-                    WriteSharedStrings(ExcelPackageArchive.Wrap(archive), plan.SharedStrings);
+                    WriteSharedStrings(archive, plan.SharedStrings);
                 }
             }
 
-            internal static void WriteExtendedWorksheet(ZipArchive archive, ExtendedDirectWritePlan plan, DirectDataSetSheetModel sheet, string worksheetPath, string? tableRelationshipId, CancellationToken ct, bool allowBackgroundCompression = false) {
+            internal static void WriteExtendedWorksheet(ExcelPackageArchive archive, ExtendedDirectWritePlan plan, DirectDataSetSheetModel sheet, string worksheetPath, string? tableRelationshipId, CancellationToken ct, bool allowBackgroundCompression = false) {
                 int sheetIndex = -1;
                 for (int i = 0; i < plan.Model.Sheets.Count; i++) {
                     if (ReferenceEquals(plan.Model.Sheets[i], sheet)) {
@@ -139,7 +134,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("The direct worksheet is not part of the extended direct write plan.");
                 }
 
-                WriteWorksheet(ExcelPackageArchive.Wrap(archive), sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.Model.DateSystem, plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId, allowBackgroundCompression);
+                WriteWorksheet(archive, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.Model.DateSystem, plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId, allowBackgroundCompression);
             }
 
             private static void WriteContentTypes(ExcelPackageArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets, bool includeSharedStrings, bool includeTheme = false) {

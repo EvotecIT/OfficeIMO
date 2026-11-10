@@ -118,10 +118,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             using Stream package = pooledSnapshot
                 ? new XlsbPackageBuffer()
                 : new MemoryStream(XlsbWorksheetPartWriter.EstimateDirectWorksheetCapacity(source));
-            using (var archive = new ZipArchive(package, ZipArchiveMode.Create, leaveOpen: true)) {
-                ZipArchiveEntry entry = archive.CreateEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest);
-                entry.LastWriteTime = ReproducibleEntryTime;
-                using (Stream output = entry.Open()) {
+            using (ExcelPackageArchive archive = ExcelPackageArchive.Create(package, ReproducibleEntryTime.DateTime)) {
+                using (Stream output = archive.OpenEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest)) {
                     using var pipeline = pooledSnapshot && source.Rows.RowCount >= 4096
                         && document.Execution.AllowsBackgroundProcessing ? new WorksheetCompressionPipeline(output) : null;
                     if (!XlsbWorksheetPartWriter.TryWriteDirectTabular(
@@ -137,8 +135,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 cancellationToken.ThrowIfCancellationRequested();
                 WriteDirectTabularWorkbookEntries(archive, dateSystem, source.SheetName,
                     stylesPart != null, sharedStringsPart.HasValue, document.WorkbookPartRoot.ThemePart);
-                if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart, CompressionLevel.Fastest);
-                if (sharedStringsPart.HasValue) WriteEntry(archive, "xl/sharedStrings.bin", sharedStringsPart.Value, CompressionLevel.Fastest);
+                if (stylesPart != null) archive.WriteEntry("xl/styles.bin", stylesPart, CompressionLevel.Fastest);
+                if (sharedStringsPart.HasValue) archive.WriteEntry("xl/sharedStrings.bin", sharedStringsPart.Value, CompressionLevel.Fastest);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -164,37 +162,33 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ThemePart? theme,
             XlsbDirectTabularPlan plan,
             CancellationToken cancellationToken) {
-            using var positionReportingDestination = destination.CanSeek
-                ? null
-                : new ExcelPositionReportingWriteStream(destination);
-            Stream packageDestination = positionReportingDestination ?? destination;
-            using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
+            using (ExcelPackageArchive archive = ExcelPackageArchive.Create(destination, ReproducibleEntryTime.DateTime)) {
                 WriteDirectTabularWorkbookEntries(archive, dateSystem, sheetName,
                     stylesPart != null, sharedStringsPart.HasValue, theme);
-                ZipArchiveEntry entry = archive.CreateEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest);
-                entry.LastWriteTime = ReproducibleEntryTime;
-                using (Stream output = entry.Open()) {
+                using (Stream output = archive.OpenEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest)) {
                     XlsbWorksheetPartWriter.WriteDirectTabular(output, plan, cancellationToken);
                 }
-                if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart, CompressionLevel.Fastest);
-                if (sharedStringsPart.HasValue) WriteEntry(archive, "xl/sharedStrings.bin", sharedStringsPart.Value, CompressionLevel.Fastest);
+                if (stylesPart != null) archive.WriteEntry("xl/styles.bin", stylesPart, CompressionLevel.Fastest);
+                if (sharedStringsPart.HasValue) archive.WriteEntry("xl/sharedStrings.bin", sharedStringsPart.Value, CompressionLevel.Fastest);
             }
         }
 
         private static void WriteDirectTabularWorkbookEntries(
-            ZipArchive archive,
+            ExcelPackageArchive archive,
             ExcelDateSystem dateSystem,
             string sheetName,
             bool hasStyles,
             bool hasSharedStrings,
             ThemePart? theme) {
-            WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings, hasTheme: theme != null), CompressionLevel.Fastest);
-            WriteEntry(archive, "_rels/.rels", RootRelationships, CompressionLevel.Fastest);
-            WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.CreateDirectTabular(
+            archive.WriteEntry("[Content_Types].xml", CreateContentTypes(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings, hasTheme: theme != null), CompressionLevel.Fastest);
+            archive.WriteEntry("_rels/.rels", RootRelationships, CompressionLevel.Fastest);
+            archive.WriteEntry("xl/workbook.bin", XlsbWorkbookPartWriter.CreateDirectTabular(
                 sheetName,
                 dateSystem == ExcelDateSystem.NineteenFour), CompressionLevel.Fastest);
-            WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings, hasTheme: theme != null), CompressionLevel.Fastest);
-            WriteTheme(archive, theme, CompressionLevel.Fastest);
+            archive.WriteEntry("xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings, hasTheme: theme != null), CompressionLevel.Fastest);
+            if (theme == null) return;
+            using Stream output = archive.OpenEntry("xl/theme/theme1.xml", CompressionLevel.Fastest);
+            theme.Theme!.Save(output);
         }
 
         private static void WritePackage(

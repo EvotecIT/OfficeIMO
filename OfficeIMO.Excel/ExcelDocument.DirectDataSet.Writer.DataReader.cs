@@ -11,12 +11,7 @@ namespace OfficeIMO.Excel {
                 CancellationToken ct) {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
-                using var positionReportingDestination = stream.CanSeek
-                    ? null
-                    : new ExcelPositionReportingWriteStream(stream);
-                Stream packageDestination = positionReportingDestination ?? stream;
-                using var zip = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
-                ExcelPackageArchive archive = ExcelPackageArchive.Wrap(zip);
+                using ExcelPackageArchive archive = ExcelPackageArchive.Create(stream);
                 WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: false, themeXml: System.Text.Encoding.UTF8.GetString(DefaultThemeBytes.Value));
                 DirectDataSetSheetModel sheet = model.Sheets[0];
                 int rowCount = WriteDataReaderWorksheet(

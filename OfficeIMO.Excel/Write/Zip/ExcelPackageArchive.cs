@@ -16,26 +16,21 @@ internal abstract class ExcelPackageArchive : IDisposable {
         return new PlatformArchive(output, modified);
     }
 
-    /// <summary>Writes entries into an archive owned by the caller, with <see cref="ZipArchive"/>'s own defaults.</summary>
-    internal static ExcelPackageArchive Wrap(ZipArchive archive) => new BorrowedArchive(archive);
-
     /// <summary>Opens the next entry; dispose the returned stream before opening another.</summary>
     internal abstract Stream OpenEntry(string name, CompressionLevel level);
 
-    internal void WriteEntry(string name, byte[] content, CompressionLevel level) {
+    internal void WriteEntry(string name, byte[] content, CompressionLevel level) =>
+        WriteEntry(name, new ArraySegment<byte>(content), level);
+
+    internal void WriteEntry(string name, ArraySegment<byte> content, CompressionLevel level) {
         using Stream entry = OpenEntry(name, level);
-        entry.Write(content, 0, content.Length);
+        entry.Write(content.Array!, content.Offset, content.Count);
     }
 
     internal void WriteEntry(string name, string content, CompressionLevel level) =>
         WriteEntry(name, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(content), level);
 
     public abstract void Dispose();
-
-    private sealed class BorrowedArchive(ZipArchive archive) : ExcelPackageArchive {
-        internal override Stream OpenEntry(string name, CompressionLevel level) => archive.CreateEntry(name, level).Open();
-        public override void Dispose() { }
-    }
 
     private sealed class PlatformArchive : ExcelPackageArchive {
         private readonly ZipArchive _archive;
