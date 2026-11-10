@@ -168,6 +168,39 @@ internal static class YamlScalarFormat {
         return mantissa + "e" + power;
     }
 
+#if NET8_0_OR_GREATER
+    /// <summary>Formats a double as <see cref="Format(double)"/> does, into a buffer of at least 40 characters, without allocating.</summary>
+    public static int Format(double value, Span<char> destination) {
+        if (!double.IsFinite(value)) {
+            string special = Format(value);
+            special.AsSpan().CopyTo(destination);
+            return special.Length;
+        }
+        value.TryFormat(destination, out int length, "R", CultureInfo.InvariantCulture);
+        int exponent = destination.Slice(0, length).IndexOf('E');
+        int mantissaEnd = exponent < 0 ? length : exponent;
+        Span<char> power = stackalloc char[8];
+        int powerLength = 0;
+        if (exponent >= 0) {
+            ReadOnlySpan<char> digits = destination.Slice(exponent + 1, length - exponent - 1);
+            if (digits[0] != '-' && digits[0] != '+') power[powerLength++] = '+';
+            digits.CopyTo(power.Slice(powerLength));
+            powerLength += digits.Length;
+        }
+        int position = mantissaEnd;
+        if (destination.Slice(0, mantissaEnd).IndexOf('.') < 0) {
+            destination[position++] = '.';
+            destination[position++] = '0';
+        }
+        if (powerLength > 0) {
+            destination[position++] = 'e';
+            power.Slice(0, powerLength).CopyTo(destination.Slice(position));
+            position += powerLength;
+        }
+        return position;
+    }
+#endif
+
     /// <summary>The spelling of a boolean in every schema.</summary>
     public static string Format(bool value) => value ? "true" : "false";
 

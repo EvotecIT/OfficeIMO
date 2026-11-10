@@ -55,6 +55,9 @@ internal sealed class YamlEmitter {
     private string? _anchor;
     private string? _tag;
     private string? _trailingComment;
+    private string? _lastTag;
+    private string? _lastTagText;
+    private bool _lastTagRedefined;
 #if !NET8_0_OR_GREATER
     private char[]? _scratch;
 #endif
@@ -153,6 +156,9 @@ internal sealed class YamlEmitter {
         _depth = 0;
     }
 
+    /// <summary>Whether no collection is open, so the stream can be completed.</summary>
+    public bool IsComplete => _depth <= 1;
+
     /// <summary>Completes the stream: closes the open document and ends the last line.</summary>
     public void Finish() {
         if (_depth > 1) throw Invalid("A collection is still open.");
@@ -174,7 +180,13 @@ internal sealed class YamlEmitter {
 
     public void SetTag(string tag, bool secondaryHandleRedefined = false) {
         if (_tag is not null) throw Invalid("A tag is already pending for the next node.");
-        _tag = YamlScalarFormat.FormatTag(tag, secondaryHandleRedefined);
+        // Repeated tags (a custom tag on every item) reuse their formatted text.
+        if (!ReferenceEquals(tag, _lastTag) || secondaryHandleRedefined != _lastTagRedefined) {
+            _lastTagText = YamlScalarFormat.FormatTag(tag, secondaryHandleRedefined);
+            _lastTag = tag;
+            _lastTagRedefined = secondaryHandleRedefined;
+        }
+        _tag = _lastTagText;
     }
 
     /// <summary>Writes comment lines at the indentation of the next entry. Each line of <paramref name="text"/> becomes one comment.</summary>

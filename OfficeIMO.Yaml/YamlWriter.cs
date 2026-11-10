@@ -24,7 +24,7 @@ public sealed class YamlWriter : IDisposable {
     private readonly TextWriter _text;
     private readonly bool _ownsText;
     private readonly YamlEmitter _emitter;
-    private readonly char[] _number = new char[32];
+    private readonly char[] _number = new char[48];
     private bool _disposed;
 
     /// <summary>Creates a writer that encodes UTF-8 without a byte-order mark into a stream.</summary>
@@ -125,7 +125,12 @@ public sealed class YamlWriter : IDisposable {
     /// </summary>
     public void WriteScalar(double value) {
         CheckDisposed();
+#if NET8_0_OR_GREATER
+        int length = YamlScalarFormat.Format(value, _number);
+        _emitter.WritePlain(_number.AsSpan(0, length));
+#else
         _emitter.WritePlain(YamlScalarFormat.Format(value).AsSpan());
+#endif
     }
 
     /// <summary>Writes <c>true</c> or <c>false</c>.</summary>
@@ -181,7 +186,8 @@ public sealed class YamlWriter : IDisposable {
         if (_disposed) return;
         _disposed = true;
         try {
-            if (_emitter.Documents > 0) _emitter.Finish();
+            // Ending the last line is best effort: disposing a writer with open collections must not throw.
+            if (_emitter.Documents > 0 && _emitter.IsComplete) _emitter.Finish();
         } finally {
             if (_ownsText) _text.Dispose();
             else _text.Flush();
