@@ -17,20 +17,30 @@ namespace OfficeIMO.Excel {
         private static readonly ExcelReleasingArrayStore<long> LargeLongs =
             new ExcelReleasingArrayStore<long>(MaximumPerLength, MaximumRetainedBytes / sizeof(long));
 
-        internal static int[] RentInts(int minimumLength) {
-            if (minimumLength <= MaximumSharedBytes / sizeof(int)) return ArrayPool<int>.Shared.Rent(minimumLength);
+        internal static int[] RentInts(int minimumLength) => RentInts(minimumLength, releaseWhenIdle: false);
+
+        /// <summary>
+        /// Rents ints. <paramref name="releaseWhenIdle"/> keeps even a small array out of the shared pool, for storage
+        /// that only lives during one read, such as the many chunks of a parallel worksheet index.
+        /// </summary>
+        internal static int[] RentInts(int minimumLength, bool releaseWhenIdle) {
+            if (!releaseWhenIdle && minimumLength <= MaximumSharedBytes / sizeof(int)) return ArrayPool<int>.Shared.Rent(minimumLength);
             int length = RoundUpToPowerOfTwo(minimumLength);
             return LargeInts.TryTake(length) ?? new int[length];
         }
 
-        internal static byte[] RentBytes(int minimumLength) {
-            if (minimumLength <= MaximumSharedBytes) return ArrayPool<byte>.Shared.Rent(minimumLength);
+        internal static byte[] RentBytes(int minimumLength) => RentBytes(minimumLength, releaseWhenIdle: false);
+
+        internal static byte[] RentBytes(int minimumLength, bool releaseWhenIdle) {
+            if (!releaseWhenIdle && minimumLength <= MaximumSharedBytes) return ArrayPool<byte>.Shared.Rent(minimumLength);
             int length = RoundUpToPowerOfTwo(minimumLength);
             return LargeBytes.TryTake(length) ?? new byte[length];
         }
 
-        internal static long[] RentLongs(int minimumLength) {
-            if (minimumLength <= MaximumSharedBytes / sizeof(long)) return ArrayPool<long>.Shared.Rent(minimumLength);
+        internal static long[] RentLongs(int minimumLength) => RentLongs(minimumLength, releaseWhenIdle: false);
+
+        internal static long[] RentLongs(int minimumLength, bool releaseWhenIdle) {
+            if (!releaseWhenIdle && minimumLength <= MaximumSharedBytes / sizeof(long)) return ArrayPool<long>.Shared.Rent(minimumLength);
             int length = RoundUpToPowerOfTwo(minimumLength);
             return LargeLongs.TryTake(length) ?? new long[length];
         }
@@ -39,6 +49,13 @@ namespace OfficeIMO.Excel {
             if (array.Length <= MaximumSharedBytes / sizeof(int)) ArrayPool<int>.Shared.Return(array);
             else LargeInts.TryAdd(array);
         }
+
+        /// <summary>Returns an array rented with <c>releaseWhenIdle: true</c>.</summary>
+        internal static void ReturnIdleReleased(int[] array) => LargeInts.TryAdd(array);
+
+        internal static void ReturnIdleReleased(byte[] array) => LargeBytes.TryAdd(array);
+
+        internal static void ReturnIdleReleased(long[] array) => LargeLongs.TryAdd(array);
 
         internal static void Return(byte[] array) => Return(array, clearArray: false);
 

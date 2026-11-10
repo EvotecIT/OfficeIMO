@@ -328,40 +328,44 @@ namespace OfficeIMO.Excel {
                 internal int Allocate(int fieldCount, bool decodeValues, bool recordStarts) {
                     int rows = EstimatedRows;
                     int cells = checked(rows * fieldCount);
-                    RowIndexes = ExcelArrayPool.RentInts(rows);
-                    if (recordStarts) RowContentStarts = ExcelArrayPool.RentInts(rows);
-                    RowContentEnds = ExcelArrayPool.RentInts(rows);
-                    RowFirstColumns = ExcelArrayPool.RentInts(rows);
-                    RowLastColumns = ExcelArrayPool.RentInts(rows);
-                    ValueStarts = ExcelArrayPool.RentInts(cells);
-                    ValueLengths = ExcelArrayPool.RentInts(cells);
-                    CellKinds = ExcelArrayPool.RentBytes(cells);
+                    // Chunk storage lives for one read only; keep it out of the shared pool so a process
+                    // does not hold every helper's chunks once reading stops.
+                    RowIndexes = ExcelArrayPool.RentInts(rows, releaseWhenIdle: true);
+                    if (recordStarts) RowContentStarts = ExcelArrayPool.RentInts(rows, releaseWhenIdle: true);
+                    RowContentEnds = ExcelArrayPool.RentInts(rows, releaseWhenIdle: true);
+                    RowFirstColumns = ExcelArrayPool.RentInts(rows, releaseWhenIdle: true);
+                    RowLastColumns = ExcelArrayPool.RentInts(rows, releaseWhenIdle: true);
+                    ValueStarts = ExcelArrayPool.RentInts(cells, releaseWhenIdle: true);
+                    ValueLengths = ExcelArrayPool.RentInts(cells, releaseWhenIdle: true);
+                    CellKinds = ExcelArrayPool.RentBytes(cells, releaseWhenIdle: true);
                     if (decodeValues) {
-                        DecodedValues = ExcelArrayPool.RentLongs(cells);
-                        DecodedTags = ExcelArrayPool.RentBytes(cells);
+                        DecodedValues = ExcelArrayPool.RentLongs(cells, releaseWhenIdle: true);
+                        DecodedTags = ExcelArrayPool.RentBytes(cells, releaseWhenIdle: true);
                     }
                     return rows;
                 }
 
                 internal void ReturnStorage() {
-                    Return(ref RowIndexes);
-                    Return(ref RowContentStarts);
-                    Return(ref RowContentEnds);
-                    Return(ref RowFirstColumns);
-                    Return(ref RowLastColumns);
-                    Return(ref ValueStarts);
-                    Return(ref ValueLengths);
-                    Return(ref FormulaStarts);
-                    Return(ref FormulaLengths);
-                    if (CellKinds != null) ExcelArrayPool.Return(CellKinds);
-                    if (DecodedValues != null) ExcelArrayPool.Return(DecodedValues);
-                    if (DecodedTags != null) ExcelArrayPool.Return(DecodedTags);
+                    ReturnChunkArray(ref RowIndexes);
+                    ReturnChunkArray(ref RowContentStarts);
+                    ReturnChunkArray(ref RowContentEnds);
+                    ReturnChunkArray(ref RowFirstColumns);
+                    ReturnChunkArray(ref RowLastColumns);
+                    ReturnChunkArray(ref ValueStarts);
+                    ReturnChunkArray(ref ValueLengths);
+                    // Formula metadata comes from the helper's ordinary rents.
+                    if (FormulaStarts != null) ExcelArrayPool.Return(FormulaStarts);
+                    if (FormulaLengths != null) ExcelArrayPool.Return(FormulaLengths);
+                    FormulaStarts = FormulaLengths = null;
+                    if (CellKinds != null) ExcelArrayPool.ReturnIdleReleased(CellKinds);
+                    if (DecodedValues != null) ExcelArrayPool.ReturnIdleReleased(DecodedValues);
+                    if (DecodedTags != null) ExcelArrayPool.ReturnIdleReleased(DecodedTags);
                     CellKinds = DecodedTags = null;
                     DecodedValues = null;
                 }
 
-                private static void Return(ref int[]? values) {
-                    if (values != null) ExcelArrayPool.Return(values);
+                private static void ReturnChunkArray(ref int[]? values) {
+                    if (values != null) ExcelArrayPool.ReturnIdleReleased(values);
                     values = null;
                 }
             }
