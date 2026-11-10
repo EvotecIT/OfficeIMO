@@ -154,6 +154,7 @@ internal sealed partial class CsvLineReader : IDisposable
         isEmptyRecord = false;
         line = null;
         separator = string.Empty;
+        LastQuotedRecordLineSeparators = -1;
 
         if (!EnsureBuffered())
         {

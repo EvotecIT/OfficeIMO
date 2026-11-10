@@ -188,10 +188,46 @@ internal static partial class CsvParser
             }
         }
 
+        /// <summary>
+        /// Finds the first of a record's fields whose text is longer than <paramref name="maxLength"/>
+        /// characters, before <see cref="Complete"/> pads or limits the record to the header.
+        /// </summary>
+        internal int FindFieldLongerThan(int fieldCount, int maxLength, bool allFieldsAscii, bool mayHaveEscapedQuotes, out int length)
+        {
+            _allFieldsAscii = allFieldsAscii;
+            _mayHaveEscapedQuotes = mayHaveEscapedQuotes;
+            for (int ordinal = 0; ordinal < fieldCount; ordinal++)
+            {
+                ref Field field = ref _fields[ordinal];
+                // UTF-8 never takes fewer bytes than UTF-16 code units, so the raw byte length
+                // bounds the text length; only a field that may be too long is decoded.
+                int bound = field.Materialized?.Length ?? (field.Length < 0 ? ~field.Length : field.Length);
+                if (bound <= maxLength)
+                {
+                    continue;
+                }
+
+                length = field.Materialized?.Length ?? GetFieldString(ordinal).Length;
+                if (length > maxLength)
+                {
+                    return ordinal;
+                }
+            }
+
+            length = 0;
+            return -1;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal readonly string GetString(int ordinal)
         {
             ValidateOrdinal(ordinal);
+            return GetFieldString(ordinal);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private readonly string GetFieldString(int ordinal)
+        {
             ref Field field = ref _fields[ordinal];
             // Raw text becomes a new string on every call. Only interned and already decoded values
             // are stored, so ordinary reads write no string references back into the field table.

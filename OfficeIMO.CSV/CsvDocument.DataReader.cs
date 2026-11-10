@@ -471,9 +471,7 @@ public sealed partial class CsvDocument
                 && !options.DetectDelimiter))
         && !options.InferSchema
         && options.StaticColumns is null
-        && string.IsNullOrEmpty(options.DelimiterText)
-        && options.MaxFieldLength is null
-        && options.MaxQuotedFieldLength is null
+        && !CsvParser.UsesTextDelimiter(options)
         // Canonical interning reports progress after yielding the current record.
         && (!options.InternStrings || options.ProgressCallback is null || options.ProgressReportInterval <= 0)
         && !options.NormalizeQuotes;

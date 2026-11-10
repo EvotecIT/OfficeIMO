@@ -138,9 +138,6 @@ internal static partial class CsvParser
         ReadFieldSpansLineOrQuoted(reader, options, recordsToSkip, ref fieldVisitor);
     }
 
-    private static bool HasFieldLengthLimits(CsvParsingSettings options) =>
-        options.MaxFieldLength.HasValue || options.MaxQuotedFieldLength.HasValue;
-
     private static bool NeedsLogicalCommentSkipping(CsvParsingSettings options) =>
         options.SkipCommentRows ||
         (options.HasHeaderRow &&
@@ -1025,6 +1022,29 @@ internal static partial class CsvParser
         throw exception;
     }
 
+    /// <summary>
+    /// Skips the record or throws <paramref name="exception"/> as the parser's
+    /// <c>catch … when (HandleParseError(…))</c> filters do: past the error limit the original error
+    /// is thrown, still collected.
+    /// </summary>
+    private static void SkipOrThrowParseError(CsvParsingSettings options, CsvParseException exception, int lineNumber)
+    {
+        bool skip;
+        try
+        {
+            skip = HandleParseError(options, exception, lineNumber);
+        }
+        catch (CsvParseException)
+        {
+            skip = false;
+        }
+
+        if (!skip)
+        {
+            throw exception;
+        }
+    }
+
     private static void PrepareParsedRecord(string[] fields, CsvParsingSettings options, int lineNumber, bool quotedRecord, CsvStringCache? stringCache)
     {
         for (var i = 0; i < fields.Length; i++)
@@ -1067,16 +1087,31 @@ internal static partial class CsvParser
         }
     }
 
+    private static bool HasFieldLengthLimits(CsvParsingSettings options) =>
+        options.MaxFieldLength.HasValue || options.MaxQuotedFieldLength.HasValue;
+
+    /// <summary>
+    /// The longest field text a record may hold. Every field of a record whose text contains a quote
+    /// is also held to <see cref="CsvParsingSettings.MaxQuotedFieldLength"/>.
+    /// </summary>
+    private static int GetFieldLengthLimit(CsvParsingSettings options, bool quotedRecord) =>
+        Math.Min(
+            options.MaxFieldLength ?? int.MaxValue,
+            quotedRecord ? options.MaxQuotedFieldLength ?? int.MaxValue : int.MaxValue);
+
+    /// <summary>Describes a field longer than <see cref="GetFieldLengthLimit"/> allows.</summary>
+    private static CsvParseException CreateFieldLengthException(CsvParsingSettings options, int length, int lineNumber) =>
+        options.MaxFieldLength is { } maxFieldLength && length > maxFieldLength
+            ? new CsvParseException($"CSV field length {length} exceeds the configured maximum of {maxFieldLength}.", lineNumber)
+            : new CsvParseException(
+                $"CSV quoted field length {length} exceeds the configured maximum of {options.MaxQuotedFieldLength}.",
+                lineNumber);
+
     private static string PrepareParsedField(string value, CsvParsingSettings options, int lineNumber, bool quotedField, CsvStringCache? stringCache)
     {
-        if (options.MaxFieldLength is { } maxFieldLength && value.Length > maxFieldLength)
+        if (HasFieldLengthLimits(options) && value.Length > GetFieldLengthLimit(options, quotedField))
         {
-            throw new CsvParseException($"CSV field length {value.Length} exceeds the configured maximum of {maxFieldLength}.", lineNumber);
-        }
-
-        if (quotedField && options.MaxQuotedFieldLength is { } maxQuotedFieldLength && value.Length > maxQuotedFieldLength)
-        {
-            throw new CsvParseException($"CSV quoted field length {value.Length} exceeds the configured maximum of {maxQuotedFieldLength}.", lineNumber);
+            throw CreateFieldLengthException(options, value.Length, lineNumber);
         }
 
         if (options.NormalizeQuotes)

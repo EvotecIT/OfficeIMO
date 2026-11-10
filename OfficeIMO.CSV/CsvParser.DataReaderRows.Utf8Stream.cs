@@ -33,6 +33,7 @@ internal static partial class CsvParser
         private readonly bool _allowEmpty;
         private readonly bool _strictQuotes;
         private readonly bool _trim;
+        private readonly bool _checkFieldLengths;
         private Stream _stream;
         private byte[] _buffer;
         private byte[]? _flexibleFieldBytes;
@@ -68,6 +69,7 @@ internal static partial class CsvParser
             _allowEmpty = options.AllowEmptyLines;
             _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
             _trim = options.TrimWhitespace;
+            _checkFieldLengths = HasFieldLengthLimits(options);
             _buffer = buffer;
             _length = length;
             _position = position;
@@ -232,7 +234,7 @@ internal static partial class CsvParser
                 if (result == RecordScanResult.Invalid)
                 {
                     int errorLineNumber = recordLineNumber + _scan.LineBreaks;
-                    HandleParseError(
+                    SkipOrThrowParseError(
                         _options,
                         new CsvParseException("Invalid quoted field.", errorLineNumber),
                         errorLineNumber);
@@ -245,7 +247,7 @@ internal static partial class CsvParser
                 int lastLineNumber = recordLineNumber + _scan.LineBreaks - (_scan.EndsWithLineBreak ? 1 : 0);
                 _position = _length;
                 _physicalLineSeparatorsConsumed += _scan.LineBreaks;
-                HandleParseError(
+                SkipOrThrowParseError(
                     _options,
                     new CsvParseException("Unterminated quoted field.", lastLineNumber),
                     lastLineNumber);
@@ -1353,6 +1355,11 @@ internal static partial class CsvParser
                 : scan.Ascii == AsciiState.Ascii;
             if (!isAscii && _encoding.DecoderFallback is DecoderExceptionFallback)
                 _encoding.GetCharCount(_buffer, recordStart, recordLength);
+            if (_checkFieldLengths && !FieldLengthsWithinLimits(recordStart, recordLength, recordLineNumber + scan.LineBreaks, isAscii))
+            {
+                return false;
+            }
+
             _visitor.Complete(
                 scan.FieldCount,
                 _options.ColumnCountMismatchPolicy,
@@ -1365,6 +1372,30 @@ internal static partial class CsvParser
             _currentPhysicalLineNumber = recordLineNumber;
             _currentPhysicalEndLineNumber = endLineNumber;
             return true;
+        }
+
+        /// <summary>
+        /// Applies the configured field length limits to the record as the canonical parser does:
+        /// a violation is reported on the record's last line and the record is skipped or thrown.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private bool FieldLengthsWithinLimits(int recordStart, int recordLength, int lineNumber, bool isAscii)
+        {
+            bool quotedRecord = _options.MaxQuotedFieldLength.HasValue &&
+                _buffer.AsSpan(recordStart, recordLength).Contains((byte)'"');
+            if (_visitor.FindFieldLongerThan(
+                    _scan.FieldCount,
+                    GetFieldLengthLimit(_options, quotedRecord),
+                    isAscii,
+                    mayHaveEscapedQuotes: !_scan.NoEscapedQuotes,
+                    out int length) < 0)
+            {
+                return true;
+            }
+
+            _visitor.Reset();
+            SkipOrThrowParseError(_options, CreateFieldLengthException(_options, length, lineNumber), lineNumber);
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
