@@ -876,9 +876,11 @@ internal static partial class PdfAdvancedUnderstandingStages {
         public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) {
             double median = GetBodyFontSize(orderedRegions);
             var result = new List<PdfUnderstandingSemanticElement>(orderedRegions.Count);
-            foreach (PdfUnderstandingRegion region in orderedRegions) {
+            var pageRegions = new ClassificationRegions(context, orderedRegions);
+            for (int index = 0; index < orderedRegions.Count; index++) {
                 context.ConsumeWork();
-                (PdfUnderstandingSemanticKind kind, double confidence, string code, string message) = Classify(context, region, orderedRegions, median);
+                PdfUnderstandingRegion region = orderedRegions[index];
+                (PdfUnderstandingSemanticKind kind, double confidence, string code, string message) = Classify(context, region, index, pageRegions, median);
                 result.Add(new PdfUnderstandingSemanticElement(region, kind, confidence, new[] { new PdfInferenceEvidence(code, message, confidence - 0.5D) }));
             }
             return result.AsReadOnly();
@@ -887,21 +889,22 @@ internal static partial class PdfAdvancedUnderstandingStages {
         private static (PdfUnderstandingSemanticKind Kind, double Confidence, string Code, string Message) Classify(
             PdfUnderstandingPageContext context,
             PdfUnderstandingRegion region,
-            IReadOnlyList<PdfUnderstandingRegion> pageRegions,
+            int regionIndex,
+            ClassificationRegions pageRegions,
             double median) {
             string text = region.Text.Trim();
             double largest = region.Lines.Max(static line => line.FontSize);
-            if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
-            if (IsAdjacentTableCaption(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Caption, 0.78D, "semantic.table-caption-geometry", "A compact line is immediately adjacent to and aligned with a validated table.");
+            if (pageRegions.IsTable[regionIndex]) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
+            if (IsAdjacentTableCaption(context, region, regionIndex, pageRegions)) return (PdfUnderstandingSemanticKind.Caption, 0.78D, "semantic.table-caption-geometry", "A compact line is immediately adjacent to and aligned with a validated table.");
             if (PdfImageRegionDetectionStage.IsAdjacentImageCaption(context, region)) return (PdfUnderstandingSemanticKind.Caption, 0.8D, "semantic.figure-caption-geometry", "A compact region is immediately adjacent to and aligned with a positioned image.");
             if (IsNumberedHeading(region, text, largest, median)) return (PdfUnderstandingSemanticKind.Heading, 0.84D, "semantic.numbered-heading", "A single short numbered line is set materially larger than the body text.");
             if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic-list-marker", "The region begins with a bullet or numbered marker.");
             // Figures such as KPI values, totals and page numbers are often set large, but text without any letters
             // cannot introduce a section.
             if (!HasLetter(text)) return (PdfUnderstandingSemanticKind.Paragraph, 0.7D, "semantic.non-textual-prominent-value", "Large or prominent text without letters is a value, not a heading.");
-            if (IsLocalTypographicLead(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.8D, "semantic.local-font-transition", "A compact line is materially larger than the nearby aligned content it introduces.");
+            if (IsLocalTypographicLead(context, region, regionIndex, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.8D, "semantic.local-font-transition", "A compact line is materially larger than the nearby aligned content it introduces.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");
-            if (IsCenteredSpanningBand(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.76D, "semantic.centered-spanning-band", "A compact centered line forms a band above or below two separated content columns.");
+            if (IsCenteredSpanningBand(context, region, regionIndex, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.76D, "semantic.centered-spanning-band", "A compact centered line forms a band above or below two separated content columns.");
             return (PdfUnderstandingSemanticKind.Paragraph, 0.72D, "semantic.body-region", "No stronger business-document semantic signal was found.");
         }
 
@@ -978,20 +981,20 @@ internal static partial class PdfAdvancedUnderstandingStages {
         private static bool IsAdjacentTableCaption(
             PdfUnderstandingPageContext context,
             PdfUnderstandingRegion candidate,
-            IReadOnlyList<PdfUnderstandingRegion> pageRegions) {
+            int candidateIndex,
+            ClassificationRegions pageRegions) {
             string text = candidate.Text.Trim();
             if (candidate.Lines.Count != 1 || text.Length == 0 || PdfUnicodeScalarAnalysis.CountScalars(text) > 320) return false;
 
-            PdfVisualBounds candidateBounds = GetVisualBounds(context, candidate);
+            PdfVisualBounds candidateBounds = pageRegions.GetBounds(candidateIndex);
             double candidateWidth = candidateBounds.Right - candidateBounds.Left;
             double maximumGap = Math.Max(6D, candidate.Lines[0].FontSize * 1.75D);
-            for (int regionIndex = 0; regionIndex < pageRegions.Count; regionIndex++) {
+            foreach (int regionIndex in pageRegions.TableIndices) {
                 context.ConsumeWork();
-                PdfUnderstandingRegion table = pageRegions[regionIndex];
-                if (ReferenceEquals(candidate, table) ||
-                    !table.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal))) continue;
+                PdfUnderstandingRegion table = pageRegions.Regions[regionIndex];
+                if (ReferenceEquals(candidate, table)) continue;
 
-                PdfVisualBounds tableBounds = GetVisualBounds(context, table);
+                PdfVisualBounds tableBounds = pageRegions.GetBounds(regionIndex);
                 double tableWidth = tableBounds.Right - tableBounds.Left;
                 if (candidateWidth <= 0D || tableWidth <= 0D || candidateWidth > tableWidth * 1.1D) continue;
                 double[] tableFontSizes = table.Lines
@@ -1014,35 +1017,64 @@ internal static partial class PdfAdvancedUnderstandingStages {
         private static bool IsLocalTypographicLead(
             PdfUnderstandingPageContext context,
             PdfUnderstandingRegion candidate,
-            IReadOnlyList<PdfUnderstandingRegion> pageRegions) {
+            int candidateIndex,
+            ClassificationRegions pageRegions) {
             if (candidate.Lines.Count != 1 || candidate.Text.Trim().Length == 0) return false;
-            PdfVisualBounds candidateBounds = GetVisualBounds(context, candidate);
+            PdfVisualBounds candidateBounds = pageRegions.GetBounds(candidateIndex);
             double candidateFontSize = candidate.Lines[0].FontSize;
+            double maximumGap = Math.Max(18D, candidateFontSize * 4D);
             double bestGap = double.MaxValue;
+            int bestIndex = -1;
             double introducedFontSize = 0D;
-            for (int regionIndex = 0; regionIndex < pageRegions.Count; regionIndex++) {
+            int[]? byTop = double.IsNaN(candidateBounds.Bottom) ? null : pageRegions.GetNonTableIndicesByTop();
+            if (byTop is null) {
+                for (int regionIndex = 0; regionIndex < pageRegions.Count; regionIndex++) {
+                    context.ConsumeWork();
+                    if (pageRegions.IsTable[regionIndex]) continue;
+                    Consider(regionIndex);
+                }
+            } else {
+                // Only regions whose top lies within the gap window can be introduced by the candidate.
+                int low = 0;
+                int high = byTop.Length;
+                while (low < high) {
+                    int middle = low + (high - low) / 2;
+                    if (pageRegions.GetBounds(byTop[middle]).Top - candidateBounds.Bottom >= -1D) high = middle;
+                    else low = middle + 1;
+                }
                 context.ConsumeWork();
-                PdfUnderstandingRegion region = pageRegions[regionIndex];
-                if (ReferenceEquals(candidate, region) ||
-                    region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal))) continue;
-                PdfVisualBounds bounds = GetVisualBounds(context, region);
-                double gap = bounds.Top - candidateBounds.Bottom;
-                if (gap < -1D || gap > Math.Max(18D, candidateFontSize * 4D)) continue;
-                double horizontalOverlap = Math.Min(candidateBounds.Right, bounds.Right) - Math.Max(candidateBounds.Left, bounds.Left);
-                bool aligned = horizontalOverlap > 0D || Math.Abs(candidateBounds.Left - bounds.Left) <= candidateFontSize * 2D;
-                if (!aligned || gap >= bestGap) continue;
-                bestGap = gap;
-                introducedFontSize = region.Lines.Max(static line => line.FontSize);
+                for (int position = low; position < byTop.Length; position++) {
+                    context.ConsumeWork();
+                    double gap = pageRegions.GetBounds(byTop[position]).Top - candidateBounds.Bottom;
+                    if (gap > maximumGap || gap > bestGap) break;
+                    Consider(byTop[position]);
+                }
             }
             return introducedFontSize > 0D && candidateFontSize >= introducedFontSize * 1.2D;
+
+            void Consider(int regionIndex) {
+                PdfUnderstandingRegion region = pageRegions.Regions[regionIndex];
+                if (ReferenceEquals(candidate, region)) return;
+                PdfVisualBounds bounds = pageRegions.GetBounds(regionIndex);
+                double gap = bounds.Top - candidateBounds.Bottom;
+                if (gap < -1D || gap > maximumGap) return;
+                double horizontalOverlap = Math.Min(candidateBounds.Right, bounds.Right) - Math.Max(candidateBounds.Left, bounds.Left);
+                bool aligned = horizontalOverlap > 0D || Math.Abs(candidateBounds.Left - bounds.Left) <= candidateFontSize * 2D;
+                // The first region in page order wins among equal gaps.
+                if (!aligned || gap > bestGap || gap == bestGap && regionIndex > bestIndex) return;
+                bestGap = gap;
+                bestIndex = regionIndex;
+                introducedFontSize = region.Lines.Max(static line => line.FontSize);
+            }
         }
 
         private static bool IsCenteredSpanningBand(
             PdfUnderstandingPageContext context,
             PdfUnderstandingRegion candidate,
-            IReadOnlyList<PdfUnderstandingRegion> pageRegions) {
+            int candidateIndex,
+            ClassificationRegions pageRegions) {
             if (candidate.Lines.Count != 1 || candidate.Text.Trim().Length == 0) return false;
-            PdfVisualBounds candidateBounds = GetVisualBounds(context, candidate);
+            PdfVisualBounds candidateBounds = pageRegions.GetBounds(candidateIndex);
             (double pageWidth, _) = context.GetVisualSize();
             double candidateWidth = candidateBounds.Right - candidateBounds.Left;
             double pageCenter = pageWidth / 2D;
@@ -1055,9 +1087,9 @@ internal static partial class PdfAdvancedUnderstandingStages {
             bool hasRightColumn = false;
             for (int regionIndex = 0; regionIndex < pageRegions.Count; regionIndex++) {
                 context.ConsumeWork();
-                PdfUnderstandingRegion region = pageRegions[regionIndex];
+                PdfUnderstandingRegion region = pageRegions.Regions[regionIndex];
                 if (ReferenceEquals(candidate, region)) continue;
-                PdfVisualBounds bounds = GetVisualBounds(context, region);
+                PdfVisualBounds bounds = pageRegions.GetBounds(regionIndex);
                 bool separatedVertically = bounds.Top >= candidateBounds.Bottom || bounds.Bottom <= candidateBounds.Top;
                 if (!separatedVertically) continue;
                 double center = (bounds.Left + bounds.Right) / 2D;
@@ -1066,6 +1098,63 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 if (hasLeftColumn && hasRightColumn) return true;
             }
             return false;
+        }
+
+        /// <summary>Per-page region facts shared by the pairwise classification rules.</summary>
+        private sealed class ClassificationRegions {
+            private readonly PdfUnderstandingPageContext _context;
+            private readonly PdfVisualBounds[] _bounds;
+            private readonly bool[] _hasBounds;
+            private int[]? _nonTableIndicesByTop;
+            private bool _nonTableIndicesByTopUnavailable;
+
+            internal ClassificationRegions(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> regions) {
+                _context = context;
+                Regions = regions;
+                _bounds = new PdfVisualBounds[regions.Count];
+                _hasBounds = new bool[regions.Count];
+                IsTable = new bool[regions.Count];
+                var tables = new List<int>();
+                for (int index = 0; index < regions.Count; index++) {
+                    IsTable[index] = regions[index].Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal));
+                    if (IsTable[index]) tables.Add(index);
+                }
+                TableIndices = tables.ToArray();
+            }
+
+            internal IReadOnlyList<PdfUnderstandingRegion> Regions { get; }
+            internal int Count => Regions.Count;
+            internal bool[] IsTable { get; }
+            internal int[] TableIndices { get; }
+
+            internal PdfVisualBounds GetBounds(int index) {
+                if (!_hasBounds[index]) {
+                    _bounds[index] = GetVisualBounds(_context, Regions[index]);
+                    _hasBounds[index] = true;
+                }
+                return _bounds[index];
+            }
+
+            /// <summary>Non-table region indices ordered by visual top, then page order; null when a top is NaN.</summary>
+            internal int[]? GetNonTableIndicesByTop() {
+                if (_nonTableIndicesByTop is not null || _nonTableIndicesByTopUnavailable) return _nonTableIndicesByTop;
+                var indices = new List<int>(Count - TableIndices.Length);
+                for (int index = 0; index < Count; index++) {
+                    if (IsTable[index]) continue;
+                    if (double.IsNaN(GetBounds(index).Top)) {
+                        _nonTableIndicesByTopUnavailable = true;
+                        return null;
+                    }
+                    indices.Add(index);
+                }
+                _context.ConsumeWork(indices.Count + 1L);
+                int[] sorted = indices.ToArray();
+                Array.Sort(sorted, (left, right) => {
+                    int byTop = _bounds[left].Top.CompareTo(_bounds[right].Top);
+                    return byTop != 0 ? byTop : left.CompareTo(right);
+                });
+                return _nonTableIndicesByTop = sorted;
+            }
         }
 
         private static PdfVisualBounds GetVisualBounds(PdfUnderstandingPageContext context, PdfUnderstandingRegion region) {

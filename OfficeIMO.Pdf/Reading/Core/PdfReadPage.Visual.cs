@@ -942,6 +942,30 @@ public sealed partial class PdfReadPage {
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
     }
 
+    /// <summary>Reads identity-transform primitives at most once for the consumers of one logical page projection.</summary>
+    internal sealed class IdentityVisualPrimitiveMemo {
+        private readonly PdfReadPage _page;
+        private readonly CancellationToken _cancellationToken;
+        private IReadOnlyList<PdfPageVisualPrimitive>? _primitives;
+        private System.Runtime.ExceptionServices.ExceptionDispatchInfo? _failure;
+
+        internal IdentityVisualPrimitiveMemo(PdfReadPage page, CancellationToken cancellationToken) {
+            _page = page;
+            _cancellationToken = cancellationToken;
+        }
+
+        internal IReadOnlyList<PdfPageVisualPrimitive> Get() {
+            if (_primitives is not null) return _primitives;
+            _failure?.Throw();
+            try {
+                return _primitives = _page.GetIdentityVisualPrimitives(_cancellationToken);
+            } catch (Exception exception) when (exception is not OperationCanceledException && exception is not PdfReadLimitException) {
+                _failure = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception);
+                throw;
+            }
+        }
+    }
+
     internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives(CancellationToken cancellationToken = default) =>
         GetIdentityVisualPrimitives(scaleStrokeWidthWithTransform: false, cancellationToken: cancellationToken);
 

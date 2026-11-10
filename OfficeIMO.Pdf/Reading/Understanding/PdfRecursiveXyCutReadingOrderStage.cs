@@ -317,7 +317,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         double pageWidth,
         bool rightToLeft,
         int depth) {
-        foreach (RegionBox candidate in boxes.OrderByDescending(static box => box.Top)) {
+        foreach (RegionBox candidate in GetEdgeCandidates(context, boxes)) {
             context.ConsumeWork(boxes.Count);
             RegionBox[] remaining = boxes.Where(box => !ReferenceEquals(box.Region, candidate.Region)).ToArray();
             if (remaining.Length < 2) continue;
@@ -347,6 +347,50 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         }
 
         return false;
+    }
+
+    // Only a box whose vertical centre is strictly above, or strictly below, every other region can
+    // be an edge band. Testing every box made each partition quadratic and a page with many short
+    // regions exhausted its work budget; the two extremes keep the original top-down candidate order.
+    private static IEnumerable<RegionBox> GetEdgeCandidates(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<RegionBox> boxes) {
+        context.ConsumeWork(boxes.Count);
+        int highest = -1;
+        int lowest = -1;
+        double highestCenter = double.NegativeInfinity;
+        double lowestCenter = double.PositiveInfinity;
+        for (int index = 0; index < boxes.Count; index++) {
+            double center = (boxes[index].Bottom + boxes[index].Top) / 2D;
+            if (double.IsNaN(center)) return boxes.OrderByDescending(static box => box.Top);
+            if (highest < 0 || center > highestCenter) {
+                highest = index;
+                highestCenter = center;
+            }
+            if (lowest < 0 || center < lowestCenter) {
+                lowest = index;
+                lowestCenter = center;
+            }
+        }
+
+        var candidates = new List<int>(2);
+        if (IsStrictExtreme(boxes, highest, highestCenter)) candidates.Add(highest);
+        if (lowest != highest && IsStrictExtreme(boxes, lowest, lowestCenter)) candidates.Add(lowest);
+        // Same order as a stable descending sort by Top.
+        candidates.Sort((left, right) => {
+            int byTop = boxes[right].Top.CompareTo(boxes[left].Top);
+            return byTop != 0 ? byTop : left.CompareTo(right);
+        });
+        return candidates.Select(index => boxes[index]);
+    }
+
+    private static bool IsStrictExtreme(IReadOnlyList<RegionBox> boxes, int candidate, double center) {
+        PdfUnderstandingRegion region = boxes[candidate].Region;
+        for (int index = 0; index < boxes.Count; index++) {
+            if (index == candidate || ReferenceEquals(boxes[index].Region, region)) continue;
+            if ((boxes[index].Bottom + boxes[index].Top) / 2D == center) return false;
+        }
+        return true;
     }
 
     private static void AppendFallback(

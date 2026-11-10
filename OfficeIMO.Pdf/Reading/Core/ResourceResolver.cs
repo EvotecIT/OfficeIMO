@@ -112,12 +112,13 @@ internal static partial class ResourceResolver {
                 continue;
             }
             if (string.Equals(subtype, "Type0", System.StringComparison.Ordinal)) {
+                CidWidthMap? cidMap = GetCidWidthMap(fontResource, fontVal, objects);
                 if (fontResource.PredefinedCMap is Lazy<PdfPredefinedCMap> predefined) {
-                    TryBuildCidWidthMap(fontVal, objects, out CidWidthMap? widths);
+                    CidWidthMap? widths = cidMap;
                     map[kv.Key] = bytes => SumPredefinedCidWidths(bytes, widths, predefined, fontResource);
                     continue;
                 }
-                if (TryBuildCidWidthMap(fontVal, objects, out var cidMap)) {
+                if (cidMap is not null) {
                     var localMap = cidMap!;
                     map[kv.Key] = bytes => SumWidthsCid(bytes, localMap);
                 } else {
@@ -1228,6 +1229,7 @@ internal static partial class ResourceResolver {
         string? extension = null;
         string? mimeType = null;
         bool isImageFile = false;
+        bool ownsBytes = false;
         string? transparencyMaskKind = GetTransparencyMaskKind(stream.Dictionary, objects);
         bool transparencyMaskResolved = false;
 
@@ -1254,6 +1256,7 @@ internal static partial class ResourceResolver {
                 maxDecodedStreamBytes,
                 out var imageMaskPngBytes, cancellationToken)) {
             bytes = imageMaskPngBytes;
+            ownsBytes = true;
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
             isImageFile = true;
@@ -1262,6 +1265,7 @@ internal static partial class ResourceResolver {
                    (RequiresDctColorNormalization(stream.Dictionary, colorSpace, transparencyMaskKind, objects) || hasSupportedOutputIntent)) {
             if (TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var colorManagedJpegPngBytes, cancellationToken: cancellationToken)) {
                 bytes = colorManagedJpegPngBytes;
+                ownsBytes = true;
                 extension = "png";
                 mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
                 isImageFile = true;
@@ -1292,6 +1296,7 @@ internal static partial class ResourceResolver {
                    TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var pngBytes,
                        objectNumber > 0 ? indexedSoftMaskMemo : null, cancellationToken)) {
             bytes = pngBytes;
+            ownsBytes = true;
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
             isImageFile = true;
@@ -1342,7 +1347,8 @@ internal static partial class ResourceResolver {
                 ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent,
             requiresScanDecode: HasScanFilter(filterObj, objects, maxImageReferenceSteps, cancellationToken),
-            hasUnsafePassThroughDecode: hasUnsafePassThroughDecode);
+            hasUnsafePassThroughDecode: hasUnsafePassThroughDecode,
+            ownsBytes: ownsBytes);
     }
 
     private static void PreflightImageFilterReferences(PdfDictionary dictionary,
@@ -1598,6 +1604,10 @@ internal static partial class ResourceResolver {
         }
 
         if (IsPackedGray(colorSpace, bitsPerComponent)) {
+            if (TryBuildPackedGrayPngFile(stream, width, height, bitsPerComponent, colorSpaceObj, colorSpace, objects,
+                    maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget,
+                    functionResolutionContext, out bool packedGrayHandled, out pngBytes, cancellationToken)) return true;
+            if (packedGrayHandled) return false;
             if (!TryExpandPackedGray(stream, width, height, bitsPerComponent, objects, maxDecodedStreamBytes, out PdfStream expanded, cancellationToken)) return false;
             return TryBuildPngFile(expanded, width, height, 8, colorSpaceObj, colorSpace, string.Empty,
                 objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform,

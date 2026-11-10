@@ -59,12 +59,13 @@ internal static partial class PdfLogicalVectorFigureAnalysis {
         IReadOnlyList<PdfLogicalTextBlock> textBlocks,
         IReadOnlyList<PdfLogicalTable> tables,
         IReadOnlyList<PdfImagePlacement> imagePlacements,
+        PdfReadPage.IdentityVisualPrimitiveMemo visualPrimitives,
         CancellationToken cancellationToken) {
         (double pageWidth, double pageHeight) = page.GetVisualPageSize();
         double pageArea = Math.Max(1D, pageWidth * pageHeight);
         IReadOnlyList<PdfPageVisualPrimitive> primitives;
         try {
-            primitives = page.GetIdentityVisualPrimitives(cancellationToken);
+            primitives = visualPrimitives.Get();
         } catch (Exception exception) when (exception is not OperationCanceledException && exception is not PdfReadLimitException) {
             return Array.Empty<PdfLogicalVectorFigure>();
         }
