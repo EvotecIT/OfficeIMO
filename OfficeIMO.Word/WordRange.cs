@@ -34,8 +34,8 @@ namespace OfficeIMO.Word {
         private Paragraph _endParagraph;
         private int _end;
         private int _version;
-        // Fields open at each paragraph start, recorded by the search that found this range.
-        private readonly IReadOnlyDictionary<Paragraph, int>? _fieldDepths;
+        // Fields open at each paragraph start, recorded by the search that found this range or filled on first use.
+        private IReadOnlyDictionary<Paragraph, int>? _fieldDepths;
 
         internal WordRange(WordDocument document, Paragraph startParagraph, int start, Paragraph endParagraph, int end,
             BookmarkStart? anchor = null, IReadOnlyDictionary<Paragraph, int>? fieldDepths = null) {
@@ -396,9 +396,16 @@ namespace OfficeIMO.Word {
 
         /// <summary>Maps a paragraph with the fields left open by earlier paragraphs, for the checks that decide whether an edit is safe.</summary>
         private WordTextMap BuildForSafety(Paragraph paragraph) {
-            int depth = _fieldDepths != null && _fieldDepths.TryGetValue(paragraph, out int known)
-                ? known
-                : WordTextMap.GetEnteringFieldDepth(paragraph);
+            if (_fieldDepths == null || !_fieldDepths.TryGetValue(paragraph, out int depth)) {
+                // One pass over the story serves every later check on this range, instead of one walk per paragraph.
+                var depths = _fieldDepths == null ? new Dictionary<Paragraph, int>() : new Dictionary<Paragraph, int>(_fieldDepths.Count);
+                if (_fieldDepths != null) {
+                    foreach (KeyValuePair<Paragraph, int> known in _fieldDepths) depths[known.Key] = known.Value;
+                }
+                WordTextMap.GetEnteringFieldDepths(GetStoryRoot(paragraph), depths);
+                _fieldDepths = depths;
+                depth = depths.TryGetValue(paragraph, out int found) ? found : 0;
+            }
             return WordTextMap.Build(paragraph, depth);
         }
 

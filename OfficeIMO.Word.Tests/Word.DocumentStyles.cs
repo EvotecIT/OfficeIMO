@@ -147,8 +147,8 @@ public partial class Word {
 
         Assert.True(document.Styles.Remove("ListHeading"));
 
-        Assert.Empty(document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
-            .Descendants<ParagraphStyleIdInLevel>().Where(link => link.Val?.Value == "ListHeading"));
+        Assert.DoesNotContain(document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Descendants<ParagraphStyleIdInLevel>(), link => link.Val?.Value == "ListHeading");
     }
 
     [Fact]

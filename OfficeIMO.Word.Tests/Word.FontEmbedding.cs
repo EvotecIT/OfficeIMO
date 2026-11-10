@@ -52,6 +52,8 @@ namespace OfficeIMO.Tests {
                 int fontsBefore = document._wordprocessingDocument.MainDocumentPart!.FontTablePart?.Fonts?.Elements<Font>().Count() ?? 0;
 
                 Assert.Throws<ArgumentException>(() => document.EmbedFont(fontPath, "BrandFont", "Brand Font"));
+                document.Styles.AddCharacterStyle("BrandCharacter");
+                Assert.Throws<ArgumentException>(() => document.EmbedFont(fontPath, "BrandCharacter"));
 
                 Assert.False(document.Styles.Contains("BrandFont"));
                 Assert.Equal(fontsBefore, document._wordprocessingDocument.MainDocumentPart!.FontTablePart?.Fonts?.Elements<Font>().Count() ?? 0);

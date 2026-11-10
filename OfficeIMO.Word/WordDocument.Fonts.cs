@@ -41,6 +41,9 @@ namespace OfficeIMO.Word {
         public WordStyle EmbedFont(string fontPath, string styleId, string? styleName = null) {
             ArgumentException.ThrowIfNullOrWhiteSpace(styleId);
             WordStyle? existing = Styles.FindById(styleId);
+            if (existing != null && existing.Type != WordStyleType.Paragraph) {
+                throw new ArgumentException($"'{styleId}' is a {existing.Type.ToString().ToLowerInvariant()} style, not a paragraph style.", nameof(styleId));
+            }
             // Check the new style's name first, so a rejected style leaves the font table unchanged.
             string newName = string.IsNullOrWhiteSpace(styleName) ? styleId : styleName!;
             if (existing == null && Styles.FindByName(newName) != null) {
