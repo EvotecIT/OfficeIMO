@@ -146,6 +146,11 @@ namespace OfficeIMO.Excel {
                 int valueStart,
                 int valueLength) {
                 int validatedSharedStringIndex = -1;
+                if (_isParallelIndexHelper
+                    && (styleIndex >= 0 && !_owner.StylesLoaded || kind == Utf8CellKind.SharedString && !_owner._sst.IsLoaded)) {
+                    // The sequential indexer resumes at this row and loads the part on its own thread.
+                    throw new ParallelIndexRowDeferredException();
+                }
                 if (styleIndex >= 0 && (uint)styleIndex >= (uint)_owner.Styles.CellFormatCount) {
                     string reference = ExcelA1.CellReference(rowIndex, columnIndex);
                     throw new InvalidDataException(

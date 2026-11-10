@@ -692,7 +692,8 @@ namespace OfficeIMO.Excel {
                         _rowCount++;
                     }
 
-                    if (repeatedRowShapeValidated && !_parallelIndexAttempted) {
+                    // A few sequential rows first resolve the style and shared-string parts helpers read.
+                    if (repeatedRowShapeValidated && !_parallelIndexAttempted && _rowCount >= 8) {
                         TryStartParallelIndex(firstRow, lastRow, position);
                     }
                 }

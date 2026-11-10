@@ -397,6 +397,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>True after the table has loaded successfully; background readers never trigger loading.</summary>
+        internal bool IsLoaded => _initialized.IsValueCreated;
+
         internal void EnsureLoaded() {
             _ = _initialized.Value;
             ThrowIfDisposed();

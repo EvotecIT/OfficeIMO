@@ -108,6 +108,9 @@ namespace OfficeIMO.Excel {
 
         private StylesCache Styles => _stylesCache ??= _styles.GetValue(_opt.CancellationToken);
 
+        // Background indexing helpers may only read styles that this reader already resolved.
+        private bool StylesLoaded => Volatile.Read(ref _stylesCache) != null;
+
         private static object BoxBoolean(bool value) => value ? BoxedTrue : BoxedFalse;
 
         private string? GetSharedString(int index) => _sst.Get(index);

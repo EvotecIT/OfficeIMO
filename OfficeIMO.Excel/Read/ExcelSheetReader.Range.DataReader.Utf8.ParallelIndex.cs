@@ -8,6 +8,8 @@ namespace OfficeIMO.Excel {
             private const int MinimumParallelIndexBytes = 4 * 1024 * 1024;
             private const int MaximumParallelIndexHelpers = 3;
             private ParallelRowIndex? _parallelIndex;
+            // Helpers share package cursors with the sequential indexer, so they must not load parts.
+            private bool _isParallelIndexHelper;
             private bool _parallelIndexAttempted;
             // The complete part length when indexing overlaps inflation; zero uses the buffered length.
             private int _expectedLength;
@@ -29,8 +31,6 @@ namespace OfficeIMO.Excel {
                 int? maximumDegree = _options.Execution.MaxDegreeOfParallelism;
                 if (maximumDegree.HasValue) helpers = Math.Min(helpers, maximumDegree.Value - 1);
                 if (helpers <= 0) return;
-                // Helpers read style and shared-string limits; resolve the lazy style cache here.
-                _ = _owner.Styles.CellFormatCount;
                 int chunkBytes = Math.Max(512 * 1024, Math.Min(4 * 1024 * 1024, expected / (helpers * 8)));
                 int averageRowBytes = Math.Max(32, (position - Math.Max(0, _sheetDataContentStart)) / Math.Max(1, _rowCount));
                 _parallelIndex = new ParallelRowIndex(this, expected, chunkBytes, firstChunkStart: position,
@@ -176,6 +176,8 @@ namespace OfficeIMO.Excel {
                 chunk.MinimumCellColumn = _minimumCellColumn;
                 chunk.MaximumCellColumn = _maximumCellColumn;
             }
+
+            private sealed class ParallelIndexRowDeferredException : Exception { }
 
             private sealed class ParallelRowChunk {
                 internal const int Unclaimed = 0;
@@ -375,6 +377,7 @@ namespace OfficeIMO.Excel {
             private ExcelUtf8RangeRowSource CreateParallelIndexShadow() =>
                 new ExcelUtf8RangeRowSource(_owner, _buffer!, _length) {
                     _ownsBuffer = false,
+                    _isParallelIndexHelper = true,
                     _firstColumn = _firstColumn,
                     _fieldCount = _fieldCount,
                     _repeatedRowSuffixStart = _repeatedRowSuffixStart,
