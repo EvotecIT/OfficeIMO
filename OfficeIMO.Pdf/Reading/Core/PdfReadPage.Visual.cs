@@ -781,8 +781,8 @@ public sealed partial class PdfReadPage {
         double top = Math.Max(first.Y, second.Y);
         double right = Math.Min(first.X + first.Width, second.X + second.Width);
         double bottom = Math.Min(first.Y + first.Height, second.Y + second.Height);
-        double width = right - left;
-        double height = bottom - top;
+        double width = ExtentEndingAt(left, right);
+        double height = ExtentEndingAt(top, bottom);
         if (width <= 0D || height <= 0D) {
             intersection = default;
             return false;
@@ -790,6 +790,16 @@ public sealed partial class PdfReadPage {
 
         intersection = PdfPageClipPath.Rectangle(left, top, width, height);
         return true;
+    }
+
+    // right - left can round so that left + extent exceeds right by one ulp, which would place a clip fitted to the
+    // drawing just outside its bounds. Shrink the extent until it ends at or before right.
+    private static double ExtentEndingAt(double start, double end) {
+        double extent = end - start;
+        for (int attempt = 0; attempt < 8 && extent > 0D && start + extent > end; attempt++) {
+            extent -= Math.Max(start + extent - end, Math.Abs(end) * 1E-16);
+        }
+        return extent;
     }
 
     private static bool TryAddClippedShape(
