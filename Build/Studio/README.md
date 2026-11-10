@@ -4,6 +4,8 @@ PowerForge owns Studio publishing, signing, checksums, portable archives, the ge
 
 ## Scoop manifest
 
+The wrapper requires a PowerForge.Build release containing [`release prepare-scoop`](https://github.com/EvotecIT/PSPublishModule/pull/1245). Do not run it with PowerForge.Build 3.0.189: that version does not support the subcommand and can start the ordinary release workflow instead. Wait for the containing PowerForge release before using these instructions.
+
 `Prepare-StudioScoop.ps1` delegates manifest generation to `powerforge release prepare-scoop`. Download `windows-release-manifest.json`, `windows-SHA256SUMS.txt`, and both Windows portable ZIPs from the selected public `Studio-v<version>` release into one directory, then run:
 
 ```powershell
