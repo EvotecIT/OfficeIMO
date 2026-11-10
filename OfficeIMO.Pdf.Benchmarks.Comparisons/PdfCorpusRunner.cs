@@ -408,7 +408,7 @@ internal static partial class PdfCorpusRunner {
         // Compare outputs with the extractor that produced the source baseline.
         IReadOnlyList<string> actualPages = oracle == "itext"
             ? ReadITextByPage(pdf, null)
-            : ReadOracleByPage(pdf).Pages;
+            : ReadPdfPigByPage(pdf, null);
         if (actualPages.Count != expectedPages.Count) {
             throw new InvalidDataException(
                 $"OfficeIMO {operation} produced {actualPages.Count} pages; expected {expectedPages.Count}.");
@@ -432,16 +432,18 @@ internal static partial class PdfCorpusRunner {
 
     private static (IReadOnlyList<string> Pages, string Oracle) ReadOracleByPage(byte[] bytes, string? password = null) {
         try {
-            using var stream = new MemoryStream(bytes, writable: false);
-            using UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(
-                stream,
-                new UglyToad.PdfPig.ParsingOptions { Password = password ?? string.Empty });
-            return (
-                document.GetPages().Select(static page => ContentOrderTextExtractor.GetText(page)).ToArray(),
-                "pdfpig");
+            return (ReadPdfPigByPage(bytes, password), "pdfpig");
         } catch {
             return (ReadITextByPage(bytes, password), "itext");
         }
+    }
+
+    private static IReadOnlyList<string> ReadPdfPigByPage(byte[] bytes, string? password) {
+        using var stream = new MemoryStream(bytes, writable: false);
+        using UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(
+            stream,
+            new UglyToad.PdfPig.ParsingOptions { Password = password ?? string.Empty });
+        return document.GetPages().Select(static page => ContentOrderTextExtractor.GetText(page)).ToArray();
     }
 
     private static IReadOnlyList<string> ReadITextByPage(byte[] bytes, string? password) {
