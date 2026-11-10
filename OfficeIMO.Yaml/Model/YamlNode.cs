@@ -216,10 +216,11 @@ public abstract class YamlNode {
     /// <para>The comments belong to the line where the node's entry starts. A mapping value shares them with its key, and
     /// the first entry of a block collection that is a sequence item or the document root shares them with that
     /// collection; reading or setting them through any of these nodes reaches the same lines.</para>
-    /// <para>They are the own-line comments between the previous content (the previous entry, the key line of the parent,
-    /// or the start of the document) and the entry. Above the first entry of a document, comments separated from it by a
-    /// blank line belong to the document instead (<see cref="YamlDocumentPart.CommentBefore"/>). Comments inside flow
-    /// collections are kept in the source but not reported.</para>
+    /// <para>They are the own-line comments directly above the entry, with no blank line between. Comments that a blank
+    /// line separates from the entry belong to no entry, such as a commented-out example, and stay when the entry is
+    /// removed; above the first entry of a document they are the document's header
+    /// (<see cref="YamlDocumentPart.CommentBefore"/>). Comments inside flow collections are kept in the source but not
+    /// reported.</para>
     /// </remarks>
     public string? CommentBefore => YamlTrivia.GetCommentBefore(this);
 

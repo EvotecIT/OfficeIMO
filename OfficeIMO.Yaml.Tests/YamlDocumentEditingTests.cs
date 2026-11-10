@@ -46,6 +46,15 @@ public class YamlDocumentEditingTests {
     }
 
     [Fact]
+    public void RemovingAnEntryKeepsACommentBlockThatABlankLineSeparatesFromIt() {
+        // The shape of Helm values: a commented-out example under one key, then the next key's own note.
+        const string yaml = "affinity: {}\n#   nodeAffinity:\n#     required: true\n\n# Annotations to be added to pods\npodAnnotations:\n  # Fix for slow upgrades\n  safe-to-evict: \"true\"\n\n# Extra labels\npodLabels: {}\n";
+        YamlDocument document = YamlDocument.Parse(yaml);
+        document.Root!.AsMapping().Remove("podAnnotations");
+        Assert.Equal("affinity: {}\n#   nodeAffinity:\n#     required: true\n\n# Extra labels\npodLabels: {}\n", document.ToString());
+    }
+
+    [Fact]
     public void PathSetCreatesMissingMappingsAndAddAppendsToSequences() {
         using YamlDocument document = YamlDocument.Create();
         document.Set("metadata.name", "web");

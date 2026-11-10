@@ -43,12 +43,17 @@ public class YamlDocumentCommentTests {
 
     [Theory]
     [InlineData("apiVersion", "file header")]
-    [InlineData("metadata", "above metadata")]
     [InlineData("metadata.name", "above name")]
     [InlineData("empty", "after the script")]
     public void CommentsOnTheirOwnLinesLeadTheNextKey(string key, string comment) {
         Assert.Equal(comment, Key(key).CommentBefore);
         Assert.Equal(comment, Document.Select(key)!.CommentBefore);
+    }
+
+    [Fact]
+    public void CommentsThatABlankLineSeparatesBelongToNoEntry() {
+        Assert.Null(Key("metadata").CommentBefore);
+        Assert.True(Key("metadata").SpaceBefore);
     }
 
     [Fact]

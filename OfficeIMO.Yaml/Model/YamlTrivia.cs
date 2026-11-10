@@ -137,16 +137,16 @@ internal static class YamlTrivia {
         }
         // A sequence item's line is its dash's, whatever its first entry is now.
         int position = lineOwner._parent is YamlSequence { _style: YamlStyle.Block } && lineOwner._start >= 0 ? LinePosition(lineOwner) : LinePosition(owner);
-        int gap = GapStart(gapOwner, out bool documentStart);
-        return RegionAt(source, gap, documentStart, position, out blankStart, out commentStart, out lineStart);
+        int gap = GapStart(gapOwner, out _);
+        return RegionAt(source, gap, position, out blankStart, out commentStart, out lineStart);
     }
 
     /// <summary>
     /// Finds the region between the content ending at <paramref name="gap"/> and the line holding
-    /// <paramref name="position"/>; see <see cref="TryBeforeRegion"/>. At a document start, comments that a blank line
-    /// separates from the line are left out as the document's header.
+    /// <paramref name="position"/>; see <see cref="TryBeforeRegion"/>. Comments that a blank line separates from the line
+    /// are left out: at a document start they are the document's header, elsewhere they belong to no entry.
     /// </summary>
-    public static bool RegionAt(string source, int gap, bool documentStart, int position, out int blankStart, out int commentStart, out int lineStart) {
+    public static bool RegionAt(string source, int gap, int position, out int blankStart, out int commentStart, out int lineStart) {
         lineStart = LineStart(source, position);
         blankStart = commentStart = lineStart;
         if (!IsBlankLine(source, lineStart, position)) return false;
@@ -160,8 +160,9 @@ internal static class YamlTrivia {
             int end = LineContentEnd(source, line);
             if (IsCommentLine(source, line, end)) {
                 if (firstComment < 0) firstComment = line;
-            } else if (documentStart && firstComment >= 0) {
-                // Comments followed by a blank line at the top of a document belong to the document.
+            } else if (firstComment >= 0) {
+                // Comments followed by a blank line are not the entry's: at the top of a document they are its header,
+                // elsewhere a note or a commented-out example that belongs to no entry.
                 header = true;
                 firstComment = -1;
             }

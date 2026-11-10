@@ -176,7 +176,7 @@ internal sealed class YamlSaveWalk {
         int gap = index > 0 ? spans[2 * index - 1] : CollectionGap(collection, out bool documentStart);
         bool atDocumentStart = index == 0 && IsDocumentStart(collection);
         // Blank lines above the entry go with it, except below a document header, which needs them to stay a header.
-        YamlTrivia.RegionAt(_source, gap, atDocumentStart, linePosition, out int blankStart, out int commentStart, out _);
+        YamlTrivia.RegionAt(_source, gap, linePosition, out int blankStart, out int commentStart, out _);
         Skip(atDocumentStart ? commentStart : blankStart, end);
     }
 
@@ -188,7 +188,7 @@ internal sealed class YamlSaveWalk {
         int gap = index > 0 ? spans[2 * index - 1] : CollectionGap(collection, out _);
         bool atDocumentStart = index == 0 && IsDocumentStart(collection);
         // New entries go above the next entry's blank lines and comments, which stay with that entry.
-        YamlTrivia.RegionAt(_source, gap, atDocumentStart, linePosition, out int blankStart, out int commentStart, out _);
+        YamlTrivia.RegionAt(_source, gap, linePosition, out int blankStart, out int commentStart, out _);
         return atDocumentStart ? commentStart : blankStart;
     }
 
