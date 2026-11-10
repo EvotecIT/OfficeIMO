@@ -52,3 +52,18 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 #endif
 }
+
+#if NET10_0_OR_GREATER
+public partial class MarkPflug65KXlsbBenchmarks {
+    /// <summary>Enables background decompression while retaining every other published reader default.</summary>
+    [Benchmark]
+    public ExcelReadObservation ExcelReaderNet_Prefetch() {
+        var options = global::ExcelReader.Core.Reader.ExcelReaderOptions.Default with {
+            PrefetchDecompression = true
+        };
+        using var reader = global::ExcelReader.Core.Reader.Excel.FromXlsbFile(
+            MarkPflug65KFixture.XlsbPath, options);
+        return Validate(nameof(ExcelReaderNet_Prefetch), MarkPflug65KXlsxBenchmarks.ObserveExcelReader(reader));
+    }
+}
+#endif
