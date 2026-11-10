@@ -1,1 +1,18 @@
 #nullable enable
+OfficeIMO.Yaml.YamlDocument.Merge(OfficeIMO.Yaml.YamlDocument! overlay, OfficeIMO.Yaml.YamlMergeOptions? options = null) -> OfficeIMO.Yaml.YamlMergeReport!
+OfficeIMO.Yaml.YamlMapping.Merge(OfficeIMO.Yaml.YamlMapping! overlay, OfficeIMO.Yaml.YamlMergeOptions? options = null) -> OfficeIMO.Yaml.YamlMergeReport!
+OfficeIMO.Yaml.YamlMergeOptions
+OfficeIMO.Yaml.YamlMergeOptions.NullRemovesKey.get -> bool
+OfficeIMO.Yaml.YamlMergeOptions.NullRemovesKey.set -> void
+OfficeIMO.Yaml.YamlMergeOptions.Sequences.get -> OfficeIMO.Yaml.YamlSequenceMerge!
+OfficeIMO.Yaml.YamlMergeOptions.Sequences.set -> void
+OfficeIMO.Yaml.YamlMergeOptions.YamlMergeOptions() -> void
+OfficeIMO.Yaml.YamlMergeReport
+OfficeIMO.Yaml.YamlMergeReport.Added.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlMergeReport.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
+OfficeIMO.Yaml.YamlMergeReport.Removed.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlMergeReport.Replaced.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlSequenceMerge
+static OfficeIMO.Yaml.YamlSequenceMerge.Append.get -> OfficeIMO.Yaml.YamlSequenceMerge!
+static OfficeIMO.Yaml.YamlSequenceMerge.MergeByKey(string! keyName) -> OfficeIMO.Yaml.YamlSequenceMerge!
+static OfficeIMO.Yaml.YamlSequenceMerge.Replace.get -> OfficeIMO.Yaml.YamlSequenceMerge!

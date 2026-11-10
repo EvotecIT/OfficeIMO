@@ -271,6 +271,15 @@ internal static class YamlPath {
         return path.Length == 0 ? "$" : path.ToString();
     }
 
+    /// <summary>Appends a key step to a path in the grammar <see cref="Format"/> writes; an empty path is the root.</summary>
+    public static string AppendKey(string path, string key) {
+        if (!IsName(key)) return path + "[" + Quote(key) + "]";
+        return path.Length == 0 ? key : path + "." + key;
+    }
+
+    /// <summary>Appends an index step to a path.</summary>
+    public static string AppendIndex(string path, int index) => path + "[" + index.ToString(CultureInfo.InvariantCulture) + "]";
+
     private static bool IsName(string text) {
         if (text.Length == 0 || text[0] == '$') return false;
         foreach (char c in text) {

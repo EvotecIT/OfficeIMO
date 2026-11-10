@@ -11013,6 +11013,38 @@
       "origins": [
         "OfficeIMO.Yaml/Model/YamlEdit.cs"
       ]
+    },
+    {
+      "oldCode": "yaml-merge-alias-expanded",
+      "catalogCode": "yaml-merge-alias-expanded",
+      "member": "YamlMergeAliasExpanded",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-anchor-renamed",
+      "catalogCode": "yaml-merge-anchor-renamed",
+      "member": "YamlMergeAnchorRenamed",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-key-not-removed",
+      "catalogCode": "yaml-merge-key-not-removed",
+      "member": "YamlMergeKeyNotRemoved",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-kind-conflict",
+      "catalogCode": "yaml-merge-kind-conflict",
+      "member": "YamlMergeKindConflict",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
     }
   ],
   "dynamicPatterns": [
