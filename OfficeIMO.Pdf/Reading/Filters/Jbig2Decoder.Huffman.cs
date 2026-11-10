@@ -62,6 +62,7 @@ internal static partial class Jbig2Decoder {
         private readonly HuffmanLine[] _lines;
         private readonly int[] _codes;
         private readonly int _maximumLength;
+        private readonly Dictionary<long, int> _lookup = new();
 
         internal HuffmanTable(HuffmanLine[] lines) {
             _lines = lines;
@@ -81,7 +82,9 @@ internal static partial class Jbig2Decoder {
                 firstCode = (firstCode + counts[length - 1]) << 1;
                 int code = firstCode;
                 for (int index = 0; index < lines.Length; index++) {
-                    if (lines[index].PrefixLength == length) _codes[index] = code++;
+                    if (lines[index].PrefixLength != length) continue;
+                    _codes[index] = code++;
+                    _lookup[((long)length << 32) | (uint)_codes[index]] = index;
                 }
             }
         }
@@ -91,9 +94,8 @@ internal static partial class Jbig2Decoder {
             int code = 0;
             for (int length = 1; length <= _maximumLength; length++) {
                 code = (code << 1) | reader.ReadBit();
-                for (int index = 0; index < _lines.Length; index++) {
+                if (_lookup.TryGetValue(((long)length << 32) | (uint)code, out int index)) {
                     HuffmanLine line = _lines[index];
-                    if (line.PrefixLength != length || _codes[index] != code) continue;
                     long value = line.Kind switch {
                         3 => 0,
                         1 => (long)line.RangeLow - reader.ReadBits(32),

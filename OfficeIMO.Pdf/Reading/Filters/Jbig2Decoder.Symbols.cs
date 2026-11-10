@@ -260,7 +260,7 @@ internal static partial class Jbig2Decoder {
             var runLines = new HuffmanLine[35];
             for (int index = 0; index < runLines.Length; index++) runLines[index] = L((int)reader.ReadBits(4), 0, index);
             var runCodes = new HuffmanTable(runLines);
-            ReserveBytes((long)symbolCount * 16);
+            ReserveBytes((long)symbolCount * 64);
             var lengths = new int[symbolCount];
             int position = 0;
             while (position < symbolCount) {
