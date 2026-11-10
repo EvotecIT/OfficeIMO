@@ -281,18 +281,34 @@ namespace OfficeIMO.Excel {
                     }
 
                     int cellIndex = rowOffset + ordinal;
+                    bool sharedFormulaFollower = false;
                     bool hasCachedValue = false;
                     int valueStart = -1;
                     int valueLength = -1;
-                    if (!tag.IsEmpty
-                        && !TryIndexCompactValueCell(
-                            ref position,
-                            cellIndex,
-                            kind,
-                            out hasCachedValue,
-                            out valueStart,
-                            out valueLength)) {
-                        return false;
+                    if (!tag.IsEmpty) {
+                        int contentPosition = position;
+                        if (!TryIndexCompactValueCell(
+                                ref position,
+                                cellIndex,
+                                kind,
+                                out hasCachedValue,
+                                out valueStart,
+                                out valueLength)) {
+                            // Formulas and other element content use the same cell indexer, and the
+                            // same full XML check, as the general row parser.
+                            _sheetDataSupportsFastValidation = false;
+                            position = contentPosition;
+                            if (!TryIndexCell(
+                                    ref position,
+                                    cellIndex,
+                                    kind,
+                                    out sharedFormulaFollower,
+                                    out hasCachedValue,
+                                    out valueStart,
+                                    out valueLength)) {
+                                return false;
+                            }
+                        }
                     }
 
                     int sharedStringIndex = ValidateIndexedCell(
@@ -300,7 +316,7 @@ namespace OfficeIMO.Excel {
                         columnIndex,
                         kind,
                         styleIndex,
-                        sharedFormulaFollower: false,
+                        sharedFormulaFollower,
                         hasCachedValue,
                         valueStart,
                         valueLength);

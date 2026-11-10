@@ -19,8 +19,10 @@ public partial class Excel {
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
-    public void LargeUniformWorksheetReadsMatchSequentialIndexing(bool numericAsDecimal, bool implicitLayout) {
-        byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: 0, implicitLayout);
+    [InlineData(false, false, true)]
+    [InlineData(true, true, true)]
+    public void LargeUniformWorksheetReadsMatchSequentialIndexing(bool numericAsDecimal, bool implicitLayout, bool formulas = false) {
+        byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: 0, implicitLayout, formulas);
         using DbDataReader expected = OpenParallelIndexReader(workbook, numericAsDecimal, sequential: true);
         using DbDataReader actual = OpenParallelIndexReader(workbook, numericAsDecimal, sequential: false);
         int rows = 0;
@@ -135,7 +137,7 @@ public partial class Excel {
         return buffer.ToArray();
     }
 
-    private static byte[] CreateParallelIndexWorkbook(int invalidSharedStringRow, bool implicitLayout = false) {
+    private static byte[] CreateParallelIndexWorkbook(int invalidSharedStringRow, bool implicitLayout = false, bool formulas = false) {
         using ExcelDocument document = ExcelDocument.Create();
         document.AddSheet("Data").Cell(1, 1).SetValue("Name");
         using var buffer = new MemoryStream();
@@ -170,9 +172,13 @@ public partial class Excel {
             if (implicitRow && row % 7919 == 0) sheet.Append("<c/>");
             else if (row % 7919 != 0) sheet.Append(Cell('C')).Append("><v>").Append(400_000_000 + row * 7).Append("</v></c>");
             sheet.Append(Cell('D')).Append("><v>").Append(row % 3 == 0 ? "35.840000000000003" : (row % 1000 / 8.0).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</v></c>");
-            if (row == 17_011) sheet.Append(Cell('E')).Append("><f>1+1</f><v>2</v></c>");
+            // Formula rows: a plain formula in every row and an Excel shared formula with cached followers.
+            if (formulas) sheet.Append(Cell('E')).Append("><f>D").Append(row).Append("*2</f><v>").Append(row % 97).Append("</v></c>");
+            else if (row == 17_011) sheet.Append(Cell('E')).Append("><f>1+1</f><v>2</v></c>");
             else sheet.Append(Cell('E')).Append("><v>165258.23999999999</v></c>");
-            sheet.Append(Cell('F')).Append("><v>").Append(row % 2 == 0 ? "-0.25" : "-0").Append("</v></c>");
+            if (!formulas) sheet.Append(Cell('F')).Append("><v>").Append(row % 2 == 0 ? "-0.25" : "-0").Append("</v></c>");
+            else if (row == 2) sheet.Append(Cell('F')).Append("><f t=\"shared\" ref=\"F2:F").Append(ParallelIndexRows).Append("\" si=\"0\">C2+1</f><v>-0.25</v></c>");
+            else sheet.Append(Cell('F')).Append("><f t=\"shared\" si=\"0\"/><v>").Append(row % 5).Append("</v></c>");
             if (row == 13_001) sheet.Append(Cell('G')).Append(" t=\"inlineStr\"><is><t>inline</t></is></c>");
             else sheet.Append(Cell('G')).Append(" t=\"s\"><v>").Append(row % 5).Append("</v></c>");
             sheet.Append("</row>");

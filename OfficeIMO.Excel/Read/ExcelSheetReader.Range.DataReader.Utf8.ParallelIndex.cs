@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
                 // sequential indexer, so those builds keep it.
                 _ = expected;
 #else
-                if (expected < MinimumParallelIndexBytes || UsesCellWindow || _formulaStarts != null
+                if (expected < MinimumParallelIndexBytes || UsesCellWindow
                     || !_options.Execution.AllowsBackgroundProcessing) return;
                 int helpers = Math.Min(MaximumParallelIndexHelpers, Environment.ProcessorCount - 2);
                 int? maximumDegree = _options.Execution.MaxDegreeOfParallelism;
@@ -101,7 +101,13 @@ namespace OfficeIMO.Excel {
                         Array.Copy(chunk.DecodedTags, 0, _decodedTags!, rowOffset, cells);
                         _decodedThroughCell = rowOffset + cells;
                     }
-                    if (_formulaStarts != null) {
+                    // Formula arrays appear before the first published row that uses them.
+                    int[]? formulaStarts = Volatile.Read(ref chunk.FormulaStarts);
+                    if (formulaStarts != null) {
+                        EnsureFormulaMetadata();
+                        Array.Copy(formulaStarts, 0, _formulaStarts!, rowOffset, cells);
+                        Array.Copy(chunk.FormulaLengths!, 0, _formulaLengths!, rowOffset, cells);
+                    } else if (_formulaStarts != null) {
                         Array.Clear(_formulaStarts, rowOffset, cells);
                         _formulaLengths.AsSpan(rowOffset, cells).Fill(-1);
                     }
@@ -206,6 +212,9 @@ namespace OfficeIMO.Excel {
 
                 _length = available;
                 _sheetDataSupportsFastValidation = true;
+                // Formula metadata a helper creates belongs to the chunk that needed it.
+                _formulaStarts = null;
+                _formulaLengths = null;
                 chunk.Start = position;
                 // Attribute-free rows take their numbers from the sequential indexer when adopted;
                 // helpers number them from one. Other rows must repeat the validated row shape.
@@ -277,6 +286,10 @@ namespace OfficeIMO.Excel {
                     rows++;
                     // Published with the row so an adopted prefix carries its validation requirement.
                     if (!_sheetDataSupportsFastValidation) chunk.RequiresFullValidation = true;
+                    if (_formulaStarts != null && chunk.FormulaStarts == null) {
+                        chunk.FormulaLengths = _formulaLengths;
+                        Volatile.Write(ref chunk.FormulaStarts, _formulaStarts);
+                    }
                     Volatile.Write(ref chunk.CompletedRows, rows);
                     previousRow = rowIndex;
                 }
@@ -307,6 +320,8 @@ namespace OfficeIMO.Excel {
                 internal byte[]? CellKinds;
                 internal long[]? DecodedValues;
                 internal byte[]? DecodedTags;
+                internal int[]? FormulaStarts;
+                internal int[]? FormulaLengths;
 
                 /// <summary>Rents fixed storage for the chunk and returns its row capacity.</summary>
                 internal int Allocate(int fieldCount, bool decodeValues, bool recordStarts) {
@@ -335,6 +350,8 @@ namespace OfficeIMO.Excel {
                     Return(ref RowLastColumns);
                     Return(ref ValueStarts);
                     Return(ref ValueLengths);
+                    Return(ref FormulaStarts);
+                    Return(ref FormulaLengths);
                     if (CellKinds != null) ArrayPool<byte>.Shared.Return(CellKinds);
                     if (DecodedValues != null) ArrayPool<long>.Shared.Return(DecodedValues);
                     if (DecodedTags != null) ArrayPool<byte>.Shared.Return(DecodedTags);
