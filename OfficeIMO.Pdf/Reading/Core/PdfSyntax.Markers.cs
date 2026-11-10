@@ -58,7 +58,8 @@ internal static partial class PdfSyntax {
                 return false;
             }
 
-            return !IsSupportedOutlineGraph(objects, outlines, new HashSet<int>(), cancellationToken);
+            return !IsSupportedOutlineGraph(objects, outlines, new HashSet<int>(),
+                catalog.Items.ContainsKey("StructTreeRoot"), cancellationToken);
         } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
@@ -458,16 +459,12 @@ internal static partial class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
         const int maximumVersionTokenLength = 16;
 
-        if (pdf.Length < 8 ||
-            pdf[0] != (byte)'%' ||
-            pdf[1] != (byte)'P' ||
-            pdf[2] != (byte)'D' ||
-            pdf[3] != (byte)'F' ||
-            pdf[4] != (byte)'-') {
+        int header = FindHeaderOffset(pdf);
+        if (header < 0) {
             return null;
         }
 
-        int start = 5;
+        int start = header + 5;
         int end = start;
         while (end < pdf.Length && end - start <= maximumVersionTokenLength) {
             byte value = pdf[end];
@@ -481,6 +478,26 @@ internal static partial class PdfSyntax {
         // A PDF version is a short token. Do not scan or allocate an entire malformed input line.
         if (end - start > maximumVersionTokenLength) return null;
         return end > start ? PdfEncoding.Latin1GetString(pdf, start, end - start) : null;
+    }
+
+    /// <summary>
+    /// Finds the %PDF- header, which readers accept anywhere in the first 1024 bytes
+    /// (ISO 32000-2, Annex H implementation note), so leading data does not hide it.
+    /// </summary>
+    private static int FindHeaderOffset(byte[] pdf) {
+        const int headerSearchBytes = 1024;
+        int lastStart = Math.Min(pdf.Length - 8, headerSearchBytes - 5);
+        for (int index = 0; index <= lastStart; index++) {
+            if (pdf[index] == (byte)'%' &&
+                pdf[index + 1] == (byte)'P' &&
+                pdf[index + 2] == (byte)'D' &&
+                pdf[index + 3] == (byte)'F' &&
+                pdf[index + 4] == (byte)'-') {
+                return index;
+            }
+        }
+
+        return -1;
     }
 
 }

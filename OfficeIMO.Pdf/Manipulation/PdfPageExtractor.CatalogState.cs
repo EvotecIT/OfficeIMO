@@ -12,7 +12,15 @@ internal static partial class PdfPageExtractor {
     }
 
     internal static CatalogRewriteState ExtractCatalogRewriteState(Dictionary<int, PdfIndirectObject> sourceObjects,
-        string? trailerRaw = null, CancellationToken cancellationToken = default) {
+        string? trailerRaw = null, CancellationToken cancellationToken = default) =>
+        ExtractCatalogRewriteState(sourceObjects, trailerRaw, cancellationToken, cancellationToken);
+
+    /// <summary>
+    /// Builds catalog rewrite state whose deferred page and destination indexes observe
+    /// <paramref name="deferredCancellationToken"/> instead of the token used for the eager catalog read.
+    /// </summary>
+    internal static CatalogRewriteState ExtractCatalogRewriteState(Dictionary<int, PdfIndirectObject> sourceObjects,
+        string? trailerRaw, CancellationToken cancellationToken, CancellationToken deferredCancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? dictionary = PdfSyntax.FindCatalog(sourceObjects, trailerRaw, cancellationToken);
         if (dictionary is not null) {
@@ -31,7 +39,7 @@ internal static partial class PdfPageExtractor {
             dictionary.Items.TryGetValue("Names", out var names);
             dictionary.Items.TryGetValue("AF", out var associatedFiles);
             dictionary.Items.TryGetValue("OCProperties", out var optionalContent);
-            return new CatalogRewriteState(pageMode, pageLayout, BuildCatalogVersion(sourceObjects, catalogVersion), BuildCatalogLanguage(sourceObjects, catalogLanguage), BuildOutlines(sourceObjects, outlines, cancellationToken), pageLabels, namedDestinations, BuildNamedDestinationNameTree(sourceObjects, names, cancellationToken), openAction, BuildViewerPreferences(sourceObjects, viewerPreferences, cancellationToken), BuildXmpMetadata(sourceObjects, xmpMetadata), BuildCatalogUri(sourceObjects, catalogUri, cancellationToken), BuildOutputIntents(sourceObjects, outputIntents, cancellationToken), BuildEmbeddedFiles(sourceObjects, names, cancellationToken), BuildAssociatedFiles(sourceObjects, associatedFiles, cancellationToken), BuildOptionalContent(sourceObjects, optionalContent, cancellationToken), GetPageObjectNumbersInDocumentOrder(sourceObjects, dictionary, cancellationToken), sourceObjects, cancellationToken);
+            return new CatalogRewriteState(pageMode, pageLayout, BuildCatalogVersion(sourceObjects, catalogVersion), BuildCatalogLanguage(sourceObjects, catalogLanguage), BuildOutlines(sourceObjects, outlines, dictionary.Items.ContainsKey("StructTreeRoot"), cancellationToken), pageLabels, namedDestinations, BuildNamedDestinationNameTree(sourceObjects, names, cancellationToken), openAction, BuildViewerPreferences(sourceObjects, viewerPreferences, cancellationToken), BuildXmpMetadata(sourceObjects, xmpMetadata), BuildCatalogUri(sourceObjects, catalogUri, cancellationToken), BuildOutputIntents(sourceObjects, outputIntents, cancellationToken), BuildEmbeddedFiles(sourceObjects, names, cancellationToken), BuildAssociatedFiles(sourceObjects, associatedFiles, cancellationToken), BuildOptionalContent(sourceObjects, optionalContent, cancellationToken), GetPageObjectNumbersInDocumentOrder(sourceObjects, dictionary, cancellationToken), sourceObjects, deferredCancellationToken);
         }
     
         return new CatalogRewriteState(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);

@@ -25,7 +25,7 @@ internal static partial class PdfPageExtractor {
             (_, _document) = documentFactory == null
                 ? PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, options, cancellationToken: cancellationToken)
                 : PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, documentFactory, options, cancellationToken: cancellationToken);
-            _catalog = ExtractCatalogRewriteState(_document.Objects, _document.TrailerRaw, _document, cancellationToken);
+            _catalog = _document.GetCatalogRewriteState(cancellationToken);
             _fileVersion = GetSourceFileVersion(pdf);
         }
 

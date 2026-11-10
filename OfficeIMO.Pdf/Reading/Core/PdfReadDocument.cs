@@ -11,33 +11,21 @@ internal sealed partial class PdfReadDocument {
     private readonly PdfLoadOptions _options;
     private readonly long _decodedStreamBytes;
     private readonly PdfDecodedStreamBudget _decodedStreamBudget;
-    private Dictionary<string, PdfNamedDestination>? _nameDestinations;
-    private Dictionary<string, PdfNamedDestination>? _stringDestinations;
     private Dictionary<int, int>? _pageNumberByObject;
     private readonly PdfFontResourceCache _fontResourceCache = new();
     private readonly PdfDocumentProperties _metadata;
-    private readonly PdfXmpMetadataInfo? _xmpMetadata;
     private readonly IReadOnlyList<PdfOutputIntentInfo> _outputIntents;
     private readonly bool _outputIntentsAreComplete;
     private readonly PdfIccProfileRetentionBudget _outputIntentMetadataRetentionBudget;
-    private readonly IReadOnlyList<PdfOutlineItem> _outlines;
     private readonly IReadOnlyList<PdfPageLabel> _pageLabels;
-    private readonly IReadOnlyList<PdfNamedDestination> _namedDestinations;
     private readonly IReadOnlyList<PdfCatalogAction> _catalogActions;
     private readonly IReadOnlyList<PdfJavaScript> _javaScripts;
-    private readonly IReadOnlyList<PdfAttachmentInfo> _attachments;
-    private readonly PdfTaggedContentInfo? _taggedContent;
     private readonly PdfOptionalContentProperties? _optionalContent;
     private readonly PdfDocumentOpenAction? _openAction;
-    private readonly PdfPortfolioInfo? _portfolio;
-    private readonly IReadOnlyList<PdfFormField> _formFields;
-    private readonly int _formWidgetJavaScriptCount;
-    private readonly long _formWidgetJavaScriptBytes;
     private readonly string? _acroFormDefaultAppearance;
     private readonly int? _acroFormQuadding;
     private readonly bool? _acroFormNeedAppearances;
     private readonly int? _acroFormSignatureFlags;
-    private readonly PdfAcroFormXfaInfo? _acroFormXfa;
     private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
     private readonly PdfPageOptionalContentVisibility.DocumentState _optionalContentVisibilityState;
 
@@ -63,6 +51,13 @@ internal sealed partial class PdfReadDocument {
             throw new PdfParseException("no-indirect-objects", "The PDF contains no readable indirect objects and cannot be opened.", null);
         }
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfLoadOptions();
+        _namedDestinationsFeature = Defer(ExtractNamedDestinations);
+        _attachmentsFeature = Defer(ExtractAttachmentInfos);
+        _xmpMetadataFeature = Defer(ExtractXmpMetadata);
+        _taggedContentFeature = Defer(ExtractTaggedContent);
+        _outlinesFeature = Defer(ExtractOutlines);
+        _portfolioFeature = Defer(ExtractPortfolio);
+        _formsFeature = Defer(ExtractFormState);
         _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);
         _outputIntentMetadataRetentionBudget = new PdfIccProfileRetentionBudget(_options.Limits.MaxDecodedStreamBytes);
         Security = security;
@@ -85,38 +80,26 @@ internal sealed partial class PdfReadDocument {
         cancellationToken.ThrowIfCancellationRequested();
         _pageLabels = ExtractPageLabels(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        _namedDestinations = ExtractNamedDestinations(cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
         _catalogActions = ExtractCatalogActions(out _javaScripts, cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-        _attachments = ExtractAttachmentInfos(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         _outputIntents = ExtractOutputIntents(out bool outputIntentsAreComplete, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         _outputIntentsAreComplete = outputIntentsAreComplete;
-        _xmpMetadata = ExtractXmpMetadata(cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-        _taggedContent = ExtractTaggedContent(cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
         _optionalContent = ExtractOptionalContent(cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-        _outlines = ExtractOutlines(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         _openAction = ExtractOpenAction(cancellationToken);
         ViewerPreferences = ExtractViewerPreferences(cancellationToken);
-        _portfolio = ExtractPortfolio(cancellationToken);
         _acroFormDefaultAppearance = ExtractAcroFormText("DA");
         _acroFormQuadding = ExtractAcroFormInteger("Q");
-        _acroFormXfa = ExtractAcroFormXfaInfo(cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-        _formFields = ExtractFormFields(out _formWidgetJavaScriptCount, out _formWidgetJavaScriptBytes, cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
         _acroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
         _acroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
         CatalogPageMode = ExtractCatalogName("PageMode");
         CatalogPageLayout = ExtractCatalogName("PageLayout");
         CatalogVersion = ExtractCatalogName("Version");
         CatalogLanguage = ExtractCatalogString("Lang");
+        if (_options.ParsingMode == PdfParsingMode.Strict) {
+            CompleteDeferredFeatures(cancellationToken);
+        }
         cancellationToken.ThrowIfCancellationRequested();
         _decodedStreamBytes = _decodedStreamBudget.UsedBytes;
     }
@@ -135,13 +118,13 @@ internal sealed partial class PdfReadDocument {
     public PdfDocumentProperties Metadata => ReadLogicalContent(_metadata);
 
     /// <summary>Top-level document outline/bookmark entries.</summary>
-    public IReadOnlyList<PdfOutlineItem> Outlines => ReadLogicalContent(_outlines);
+    public IReadOnlyList<PdfOutlineItem> Outlines => ReadLogicalFeature(_outlinesFeature);
 
     /// <summary>Page-label rules discovered from the document catalog.</summary>
     public IReadOnlyList<PdfPageLabel> PageLabels => ReadLogicalContent(_pageLabels);
 
     /// <summary>Named destinations discovered from the document catalog.</summary>
-    public IReadOnlyList<PdfNamedDestination> NamedDestinations => ReadLogicalContent(_namedDestinations);
+    public IReadOnlyList<PdfNamedDestination> NamedDestinations => ReadLogicalFeature(_namedDestinationsFeature).Destinations;
 
     /// <summary>Catalog-level actions discovered from supported name trees.</summary>
     public IReadOnlyList<PdfCatalogAction> CatalogActions => ReadLogicalContent(_catalogActions);
@@ -156,10 +139,10 @@ internal sealed partial class PdfReadDocument {
     public PdfViewerPreferences? ViewerPreferences { get; }
 
     /// <summary>Document portfolio metadata discovered from the catalog, when present.</summary>
-    public PdfPortfolioInfo? Portfolio => ReadLogicalContent(_portfolio);
+    public PdfPortfolioInfo? Portfolio => ReadLogicalFeature(_portfolioFeature);
 
     /// <summary>Simple AcroForm fields discovered from the document catalog.</summary>
-    public IReadOnlyList<PdfFormField> FormFields => ReadLogicalContent(_formFields);
+    public IReadOnlyList<PdfFormField> FormFields => ReadLogicalFeature(_formsFeature).Fields;
 
     /// <summary>AcroForm default appearance string from /DA, when present.</summary>
     public string? AcroFormDefaultAppearance => ReadLogicalContent(_acroFormDefaultAppearance);
@@ -174,7 +157,7 @@ internal sealed partial class PdfReadDocument {
     public int? AcroFormSignatureFlags => ReadLogicalContent(_acroFormSignatureFlags);
 
     /// <summary>AcroForm XFA packet metadata when the document catalog exposes /AcroForm /XFA.</summary>
-    public PdfAcroFormXfaInfo? AcroFormXfa => ReadLogicalContent(_acroFormXfa);
+    public PdfAcroFormXfaInfo? AcroFormXfa => ReadLogicalFeature(_formsFeature).Xfa;
 
     /// <summary>Catalog page mode, for example UseOutlines or FullScreen, when present.</summary>
     public string? CatalogPageMode { get; }
@@ -219,5 +202,10 @@ internal sealed partial class PdfReadDocument {
     private T ReadLogicalContent<T>(T value) {
         DemandContentExtraction("logical object");
         return value;
+    }
+
+    private T ReadLogicalFeature<T>(DocumentFeature<T> feature) {
+        DemandContentExtraction("logical object");
+        return feature.GetValue();
     }
 }

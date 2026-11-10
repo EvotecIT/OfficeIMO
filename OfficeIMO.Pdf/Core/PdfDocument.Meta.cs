@@ -452,7 +452,7 @@ public sealed partial class PdfDocument : IDisposable {
         CancellationToken cancellationToken = default) {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         cancellationToken.ThrowIfCancellationRequested();
-        PdfArtifactInfo input = _pipeline.Output ?? PdfArtifactInfo.Capture(inputBytes, ReadOptions, cancellationToken);
+        PdfArtifactInfo input = _pipeline.Output ?? PdfArtifactInfo.CaptureOwned(inputBytes, ReadOptions, out _, cancellationToken);
         return WithBytes(inputBytes, input, pdf, readOptions, operationName, validatedReadDocument, cancellationToken);
     }
 
@@ -469,12 +469,11 @@ public sealed partial class PdfDocument : IDisposable {
         Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
-        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
-            readOptions ?? ReadOptions, inputBytes, pdf);
+        PdfLoadOptions effectiveReadOptions = ForGeneratedOutput(readOptions ?? ReadOptions, inputBytes, pdf);
         PdfReadDocument? readDocument = validatedReadDocument;
         PdfArtifactInfo output = readDocument is null
-            ? PdfArtifactInfo.Capture(pdf, effectiveReadOptions, out readDocument, cancellationToken)
-            : PdfArtifactInfo.CaptureKnownPageCount(pdf, readDocument.Pages.Count, cancellationToken);
+            ? PdfArtifactInfo.CaptureOwned(pdf, effectiveReadOptions, out readDocument, cancellationToken)
+            : PdfArtifactInfo.CaptureOwnedKnownPageCount(pdf, readDocument.Pages.Count);
         cancellationToken.ThrowIfCancellationRequested();
         return WithBytes(inputBytes, input, pdf, output, effectiveReadOptions, operationName, readDocument);
     }
@@ -497,9 +496,8 @@ public sealed partial class PdfDocument : IDisposable {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentOutOfRangeException.ThrowIfNegative(outputPageCount);
 
-        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
-            readOptions ?? ReadOptions, inputBytes, pdf);
-        PdfArtifactInfo output = PdfArtifactInfo.CaptureKnownPageCount(pdf, outputPageCount, cancellationToken);
+        PdfLoadOptions effectiveReadOptions = ForGeneratedOutput(readOptions ?? ReadOptions, inputBytes, pdf);
+        PdfArtifactInfo output = PdfArtifactInfo.CaptureOwnedKnownPageCount(pdf, outputPageCount);
         cancellationToken.ThrowIfCancellationRequested();
         return WithBytes(
             inputBytes,
@@ -509,6 +507,17 @@ public sealed partial class PdfDocument : IDisposable {
             effectiveReadOptions,
             operationName,
             canonicalRewrittenOutput: true);
+    }
+
+    /// <summary>Sizes output read limits, reusing this source's marker scan when the input is its own bytes.</summary>
+    private PdfLoadOptions ForGeneratedOutput(PdfLoadOptions sourceOptions, byte[] inputBytes, byte[] pdf) {
+        PdfDocumentSource? source = _source;
+        if (source is null || !ReferenceEquals(inputBytes, source.Bytes)) {
+            return PdfLoadOptions.ForGeneratedOutput(sourceOptions, inputBytes, pdf);
+        }
+
+        PdfLoadOptions resolved = PdfLoadOptions.Resolve(sourceOptions);
+        return PdfLoadOptions.ForGeneratedOutput(resolved, source.GetStructuralMarkers(resolved.Limits), pdf);
     }
 
     private PdfDocument WithBytes(

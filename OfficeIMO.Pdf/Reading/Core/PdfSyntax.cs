@@ -99,6 +99,7 @@ internal static partial class PdfSyntax {
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
         string text = decodedText ?? PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
+        using ClassicXrefSectionMemo xrefSections = ClassicXrefSectionMemo.Enter(text);
         IndirectObjectHeader[] matches = FindIndirectObjectHeaders(text, parseTimer, limits, cancellationToken);
         // The structural header scan has already enforced MaxIndirectObjects. Reserve
         // for ordinary multi-page documents without trusting a hostile stream full
@@ -393,12 +394,20 @@ internal static partial class PdfSyntax {
     }
 
     private static void ThrowIfParsingTimeExceeded(System.Diagnostics.Stopwatch timer, PdfReadLimits limits) {
-        if (timer.Elapsed > limits.MaxObjectParsingTime) {
+        // Compare raw timer ticks with the limit converted once per check; Elapsed is built only to report a failure.
+        if (timer.ElapsedTicks > ToStopwatchTicks(limits.MaxObjectParsingTime) && timer.Elapsed > limits.MaxObjectParsingTime) {
             throw PdfReadLimitException.Create(
                 PdfReadLimitKind.ObjectParsingTime,
                 (long)limits.MaxObjectParsingTime.TotalMilliseconds,
                 (long)timer.Elapsed.TotalMilliseconds);
         }
+    }
+
+    private static long ToStopwatchTicks(TimeSpan duration) {
+        long ticks = duration.Ticks;
+        if (ticks <= 0) return 0;
+        double stopwatchTicks = ticks * ((double)System.Diagnostics.Stopwatch.Frequency / TimeSpan.TicksPerSecond);
+        return stopwatchTicks >= long.MaxValue ? long.MaxValue : (long)stopwatchTicks;
     }
 
     private static void HandleStructuralDefect(

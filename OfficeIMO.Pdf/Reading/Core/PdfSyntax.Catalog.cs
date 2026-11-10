@@ -118,7 +118,9 @@ internal static partial class PdfSyntax {
     }
 
     private static bool IsSupportedGoToActionDictionary(Dictionary<int, PdfIndirectObject> map, PdfDictionary dictionary, CancellationToken cancellationToken = default) {
-        return dictionary.Items.Count == 2 &&
+        // The optional /Type /Action entry does not change the action.
+        int expectedEntries = dictionary.Get<PdfName>("Type")?.Name == "Action" ? 3 : 2;
+        return dictionary.Items.Count == expectedEntries &&
             dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
             dictionary.Items.TryGetValue("D", out var destination) &&
             IsDestinationForKnownPage(map, destination, cancellationToken);
@@ -246,10 +248,16 @@ internal static partial class PdfSyntax {
         }
     }
 
-    private static bool IsSupportedOutlineGraph(
+    /// <summary>
+    /// Proves that an outline graph can be copied and retargeted by the page rewriters: it reaches only pages,
+    /// plain values and GoTo actions to known pages. When the document is tagged, an outline item's /SE
+    /// structure-element reference is owned by the tagged-content rewrite, so it is not walked as outline data.
+    /// </summary>
+    internal static bool IsSupportedOutlineGraph(
         Dictionary<int, PdfIndirectObject> map,
         PdfObject value,
         HashSet<int> visitedReferences,
+        bool structureTreeOwnsElements,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         switch (value) {
@@ -269,10 +277,10 @@ internal static partial class PdfSyntax {
                 }
 
                 return IsPageDictionary(indirect.Value) ||
-                    IsSupportedOutlineGraph(map, indirect.Value, visitedReferences, cancellationToken);
+                    IsSupportedOutlineGraph(map, indirect.Value, visitedReferences, structureTreeOwnsElements, cancellationToken);
             case PdfArray array:
                 foreach (var item in array.Items) {
-                    if (!IsSupportedOutlineGraph(map, item, visitedReferences, cancellationToken)) {
+                    if (!IsSupportedOutlineGraph(map, item, visitedReferences, structureTreeOwnsElements, cancellationToken)) {
                         return false;
                     }
                 }
@@ -292,8 +300,13 @@ internal static partial class PdfSyntax {
                     return false;
                 }
 
-                foreach (var item in dictionary.Items.Values) {
-                    if (!IsSupportedOutlineGraph(map, item, visitedReferences, cancellationToken)) {
+                foreach (var item in dictionary.Items) {
+                    if (structureTreeOwnsElements && item.Key == "SE" && dictionary.Items.ContainsKey("Title") &&
+                        IsStructureElementReference(map, item.Value)) {
+                        continue;
+                    }
+
+                    if (!IsSupportedOutlineGraph(map, item.Value, visitedReferences, structureTreeOwnsElements, cancellationToken)) {
                         return false;
                     }
                 }
@@ -303,6 +316,13 @@ internal static partial class PdfSyntax {
                 return false;
         }
     }
+
+    internal static bool IsStructureElementReference(Dictionary<int, PdfIndirectObject> map, PdfObject value) =>
+        value is PdfReference reference &&
+        PdfObjectLookup.TryGet(map, reference, out var indirect) &&
+        indirect.Value is PdfDictionary element &&
+        (element.Get<PdfName>("Type")?.Name == "StructElem" ||
+            element.Get<PdfName>("Type") is null && element.Get<PdfName>("S") is not null && element.Items.ContainsKey("P"));
 
     private static bool IsPageDictionary(PdfObject value) {
         return value is PdfDictionary dictionary &&

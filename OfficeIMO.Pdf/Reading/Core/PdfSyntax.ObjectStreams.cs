@@ -50,8 +50,7 @@ internal static partial class PdfSyntax {
                 continue;
             }
             // Header: pairs of objectNumber and offset (ASCII)
-            byte[] headerBytes = CopyBytes(data, 0, first, cancellationToken);
-            string header = PdfEncoding.Latin1GetStringCancellable(headerBytes, cancellationToken);
+            string header = PdfEncoding.Latin1GetStringCancellable(data, 0, first, cancellationToken);
             var pairs = ParsePairs(header, n, out bool completeHeader, cancellationToken);
             if (!completeHeader) { reportUnreadable(id); continue; }
             for (int i = 0; i < n; i++) {
@@ -70,9 +69,7 @@ internal static partial class PdfSyntax {
                     reportUnreadable(id);
                     continue;
                 }
-                int len = end - start;
-                byte[] sliceBytes = CopyBytes(data, start, len, cancellationToken);
-                var slice = PdfEncoding.Latin1GetStringCancellable(sliceBytes, cancellationToken);
+                var slice = PdfEncoding.Latin1GetStringCancellable(data, start, end - start, cancellationToken);
                 var parsed = ParseTopLevelObject(
                     slice,
                     limits,
