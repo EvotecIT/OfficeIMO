@@ -173,6 +173,23 @@ public class DrawingMathTests {
     }
 
     [Fact]
+    public void LatexParserReadsAuthoredTexSumsSpacingAndDelimitedEnvironments() {
+        OfficeMathExpression sum = OfficeMathMarkup.FromLatex(@"\sum_{i=1}^{n} x_i^2");
+        Assert.Equal(OfficeMathKind.Nary, sum.Kind);
+        Assert.Equal(OfficeMathKind.SubSuperscript, sum.Children[0].Kind);
+
+        Assert.Equal("a\u2009b\u2003c", OfficeMathMarkup.FromLatex(@"a\,b\quad c").ToPlainText());
+
+        OfficeMathExpression matrix = OfficeMathMarkup.FromLatex(@"\begin{pmatrix}1&0\\0&1\end{pmatrix}");
+        Assert.Equal(OfficeMathKind.Delimited, matrix.Kind);
+        Assert.Equal(("(", ")"), (matrix.Character, matrix.SecondaryCharacter));
+        Assert.Equal((2, 2), (matrix.Children[0].RowCount, matrix.Children[0].ColumnCount));
+
+        OfficeMathExpression cases = OfficeMathMarkup.FromLatex(@"\begin{cases}x&x>0\\-x&x\le0\end{cases}");
+        Assert.Equal(("{", string.Empty), (cases.Character, cases.SecondaryCharacter));
+    }
+
+    [Fact]
     public void LatexParserAcceptsLegacyOfficeImoKindCommands() {
         OfficeMathExpression expression = OfficeMathMarkup.FromLatex(
             @"\officeimoidentifier{x}+\officeimonumber{42}+\officeimooperator{≈}+\officeimofunction{sin}{y}");
