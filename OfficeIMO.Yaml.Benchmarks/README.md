@@ -59,3 +59,18 @@ Generated inputs are built at run time and never committed. Setup validates each
 
 Compare rows within one class and workload. Ratios use YamlDotNet as the baseline; allocation columns come from the memory diagnoser. Runs depend on the host, so keep them as opt-in evidence rather than pull-request gates.
 
+## Large real-world corpus
+
+The committed corpus is small enough for every test run. A larger corpus of about 13,000 files from CI systems, Kubernetes and Helm, Compose, OpenAPI, Ansible, CloudFormation and SAM, Home Assistant, documentation front matter and application configuration is pinned in [`sources.json`](../OfficeIMO.TestAssets/Yaml/LargeCorpus/sources.json) and fetched into a local cache:
+
+```sh
+pwsh ./OfficeIMO.TestAssets/Yaml/LargeCorpus/Update-YamlLargeCorpus.ps1
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --large-corpus
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --mutations --seed 20261110
+```
+
+The fetcher checks out only the selected files of each source at its pinned commit, records each file's size and SHA-256 in `index.json` and records templated files (Helm Go templates, conda Jinja recipes), Markdown without YAML front matter and out-of-bounds files as excluded with a reason. The cache is `OFFICEIMO_YAML_CORPUS_CACHE` or `yaml-corpus` under the temporary folder; `--cache` overrides it for both runs, and nothing from it is committed.
+
+`--large-corpus` parses, loads and round-trips every indexed file with each library. It classifies each file by acceptance: a file OfficeIMO.Yaml rejects is invalid when YamlDotNet and SharpYaml also reject it, and a file to investigate when either accepts it. It compares events and loaded YAML 1.2 core values with each reference, counts how many files a YAML 1.1 loader would read differently, and totals throughput. It writes `large-corpus.md` and `large-corpus-failures.tsv` to `reports` in the cache, or to `--output-dir`.
+
+`--mutations` truncates, flips bytes, edits lines and indentation, injects deep nesting, alias bombs, huge scalars, node floods, invalid UTF-8, control characters and encoding changes in a seeded sample of corpus files. It runs each mutant through the reader and the model with a per-stage timeout. A mutant passes when only `YamlException`, `YamlLimitExceededException` or `OperationCanceledException` escapes, nothing hangs and allocation stays within budget. Mutants depend only on the seed, file, kind and variant, so `--file` and `--kind` reproduce one exactly. Failing mutants are saved next to `mutations.md`.
