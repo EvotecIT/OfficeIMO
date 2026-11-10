@@ -2,12 +2,13 @@ namespace OfficeIMO.Yaml;
 
 /// <summary>
 /// A small direct-mapped cache that returns the same string for repeated short spans, such as mapping keys and anchor
-/// names. A collision replaces the slot, so memory stays bounded regardless of input.
+/// names. A collision replaces the slot, so memory stays bounded regardless of input. The slots are rented, so a
+/// short read that meets one key does not allocate the whole table; <see cref="Release"/> clears and returns them.
 /// </summary>
 internal sealed class YamlStringCache {
     private const int Size = 256;
     private const int MaxLength = 64;
-    private readonly string?[] _entries = new string?[Size];
+    private string?[] _entries = ArrayPool<string?>.Shared.Rent(Size);
 
     public string Get(ReadOnlySpan<char> text) {
         if (text.Length == 0) return string.Empty;
@@ -20,5 +21,12 @@ internal sealed class YamlStringCache {
         entry = text.ToString();
         _entries[slot] = entry;
         return entry;
+    }
+
+    public void Release() {
+        string?[] entries = _entries;
+        if (entries.Length == 0) return;
+        _entries = Array.Empty<string?>();
+        ArrayPool<string?>.Shared.Return(entries, clearArray: true);
     }
 }

@@ -56,7 +56,8 @@ internal sealed class YamlEventCursor {
     private readonly bool _mergeKeysByDefault;
     private readonly bool _strict;
     private readonly int _maxExpansion;
-    private Frame[] _frames = new Frame[4];
+    // Replay frames exist only for aliases, merges and recorded trees, so a live read allocates none.
+    private Frame[] _frames = Array.Empty<Frame>();
     private int _frameCount;
     private YamlRecordedEvent _current;
     private bool _live;
@@ -230,7 +231,7 @@ internal sealed class YamlEventCursor {
     }
 
     private void PushFrame(List<YamlRecordedEvent> log, int start, int end, bool countsExpansion) {
-        if (_frameCount == _frames.Length) Array.Resize(ref _frames, _frames.Length * 2);
+        if (_frameCount == _frames.Length) Array.Resize(ref _frames, Math.Max(4, _frames.Length * 2));
         _frames[_frameCount++] = new Frame { Log = log, Position = start, End = end, CountsExpansion = countsExpansion };
     }
 

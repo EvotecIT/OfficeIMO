@@ -244,6 +244,8 @@ public sealed partial class YamlReader : IDisposable {
         if (_disposed) return;
         _disposed = true;
         _c.Release();
+        _strings?.Release();
+        _strings = null;
         if (_scratch is not null) {
             ArrayPool<char>.Shared.Return(_scratch);
             _scratch = null;
