@@ -5,6 +5,11 @@ namespace OfficeIMO.Yaml;
 /// supported schema reads the same way. The emitter and the model's style inference share these rules.
 /// </summary>
 internal static class YamlScalarFormat {
+#if NET8_0_OR_GREATER
+    private static readonly SearchValues<char> s_plainEverywhere = SearchValues.Create(
+        " !\"$%&'()*+-./0123456789;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ\\^_`abcdefghijklmnopqrstuvwxyz|~");
+#endif
+
     /// <summary>The longest scalar text written as an implicit key; YAML limits implicit keys to 1024 characters.</summary>
     public const int MaxImplicitKeyLength = 1000;
 
@@ -29,6 +34,11 @@ internal static class YamlScalarFormat {
         // Document markers at the start of a line would end the document.
         if (value.Length >= 3 && ((first == '-' && value[1] == '-' && value[2] == '-') || (first == '.' && value[1] == '.' && value[2] == '.'))
             && (value.Length == 3 || value[3] == ' ' || value[3] == '\t')) return false;
+#if NET8_0_OR_GREATER
+        // Printable ASCII without ':', '#' and the flow indicators is plain in any context; only text with those runs
+        // the character-by-character rules below.
+        if (value.IndexOfAnyExcept(s_plainEverywhere) < 0) return true;
+#endif
         for (int i = 0; i < value.Length; i++) {
             char c = value[i];
             if (!IsPrintableInline(c)) return false;
@@ -73,8 +83,21 @@ internal static class YamlScalarFormat {
     /// them as strings.
     /// </summary>
     public static bool IsSchemaAmbiguous(ReadOnlySpan<char> value) =>
-        YamlSchemaResolver.Resolve(value, YamlSchema.Core) != YamlScalarKind.String
-        || YamlSchemaResolver.ReadsAsNonString11(value);
+        !StartsAsText(value)
+        && (YamlSchemaResolver.Resolve(value, YamlSchema.Core) != YamlScalarKind.String
+            || YamlSchemaResolver.ReadsAsNonString11(value));
+
+    /// <summary>
+    /// Whether the text is a string in every schema by its first character alone: numbers, timestamps, merge keys and
+    /// <c>~</c> start with a digit, a sign, a dot or a symbol, and the null and boolean words (<c>null</c>, <c>yes</c>,
+    /// <c>on</c>, <c>true</c>, <c>false</c> and their 1.1 variants) start with one of <c>n y o t f</c> and have at most
+    /// five letters. Most names and values in real files pass, which skips the full resolution.
+    /// </summary>
+    private static bool StartsAsText(ReadOnlySpan<char> value) {
+        if (value.Length == 0) return false;
+        char c = (char)(value[0] | 0x20);
+        return c >= 'a' && c <= 'z' && (value.Length > 5 || c is not ('n' or 'y' or 'o' or 't' or 'f'));
+    }
 
     /// <summary>Returns whether the value fits single quotes on one line: printable text without line breaks.</summary>
     public static bool CanBeSingleQuoted(ReadOnlySpan<char> value) {
@@ -189,7 +212,25 @@ internal static class YamlScalarFormat {
             special.AsSpan().CopyTo(destination);
             return special.Length;
         }
-        value.TryFormat(destination, out int length, "R", CultureInfo.InvariantCulture);
+        // On .NET Core 3.0 and later the default format is the shortest round-trip one, the same digits as "R",
+        // through a faster path.
+        value.TryFormat(destination, out int length, default, CultureInfo.InvariantCulture);
+        return ShapeInPlace(destination, length);
+    }
+
+    /// <summary>Formats a float as <see cref="Format(float)"/> does, into a buffer of at least 40 characters, without allocating.</summary>
+    public static int Format(float value, Span<char> destination) {
+        if (!float.IsFinite(value)) {
+            string special = Format(value);
+            special.AsSpan().CopyTo(destination);
+            return special.Length;
+        }
+        value.TryFormat(destination, out int length, default, CultureInfo.InvariantCulture);
+        return ShapeInPlace(destination, length);
+    }
+
+    /// <summary>Applies the shape of <see cref="Shape"/> to formatted digits in place.</summary>
+    private static int ShapeInPlace(Span<char> destination, int length) {
         int exponent = destination.Slice(0, length).IndexOf('E');
         int mantissaEnd = exponent < 0 ? length : exponent;
         Span<char> power = stackalloc char[8];

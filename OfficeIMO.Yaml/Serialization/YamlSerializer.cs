@@ -152,7 +152,7 @@ public static class YamlSerializer {
     /// <summary>Writes <paramref name="value"/> with generated metadata and returns the text.</summary>
     public static string Serialize<T>(T value, YamlTypeInfo<T> typeInfo) {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        var output = new StringWriter(CultureInfo.InvariantCulture);
+        using var output = new YamlCharBuffer();
         using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) Write(writer, value, typeInfo);
         return output.ToString();
     }
@@ -311,7 +311,7 @@ public static class YamlSerializer {
     }
 
     private static string SerializeBoxed(object? value, YamlTypeInfo typeInfo) {
-        var output = new StringWriter(CultureInfo.InvariantCulture);
+        using var output = new YamlCharBuffer();
         using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) WriteBoxed(writer, value, typeInfo);
         return output.ToString();
     }

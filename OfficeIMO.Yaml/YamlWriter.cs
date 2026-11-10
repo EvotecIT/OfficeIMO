@@ -113,7 +113,7 @@ public sealed class YamlWriter : IDisposable {
             return;
         }
         if (!_emitter.AtKey) throw new InvalidOperationException("WriteKey is valid only where a mapping expects a key.");
-        _emitter.WriteScalar(key, _emitter.ChooseStyle(key, YamlStyle.None));
+        WriteChosen(key, _emitter.ChooseStyle(key, YamlStyle.None), YamlStyle.None);
     }
 
     /// <summary>
@@ -132,7 +132,19 @@ public sealed class YamlWriter : IDisposable {
             _emitter.WritePlain("null".AsSpan());
             return;
         }
-        _emitter.WriteScalar(value, _emitter.ChooseStyle(value, ScalarStyle(style)));
+        WriteChosen(value, _emitter.ChooseStyle(value, ScalarStyle(style)), style);
+    }
+
+    /// <summary>
+    /// Writes a scalar in its chosen style. A default-style choice of plain or single quotes guarantees one line, so
+    /// the emitter skips its line-break scans.
+    /// </summary>
+    private void WriteChosen(string value, YamlStyle chosen, YamlStyle requested) {
+        if (requested == YamlStyle.None && chosen is YamlStyle.Plain or YamlStyle.SingleQuoted && value.Length <= YamlScalarFormat.MaxImplicitKeyLength) {
+            _emitter.WriteSingleLine(value, chosen);
+        } else {
+            _emitter.WriteScalar(value, chosen);
+        }
     }
 
     /// <summary>Writes an integer as a plain scalar.</summary>
@@ -191,7 +203,7 @@ public sealed class YamlWriter : IDisposable {
             _builder.Scalar(new YamlScalar(key, YamlStyle.Plain));
             return;
         }
-        _emitter.WriteScalar(key, YamlStyle.Plain);
+        _emitter.WriteSingleLine(key, YamlStyle.Plain);
     }
 
     /// <summary>Writes text already in a canonical plain spelling, such as a formatted number or timestamp.</summary>

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Yaml;
 
@@ -65,11 +66,16 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
     private static readonly bool IsReferenceType = !typeof(T).IsValueType;
     private readonly YamlConverter<T> _converter;
     private readonly YamlTypeInfo? _nonPolymorphic;
+    // Read once: these are asked for every value written.
+    private readonly bool _tracksReferences;
+    private readonly bool _handlesNull;
 
     internal YamlTypeInfo(YamlSerializerOptions options, YamlConverter<T> converter, YamlTypeInfo? nonPolymorphic = null)
         : base(typeof(T), options) {
         _converter = converter;
         _nonPolymorphic = nonPolymorphic;
+        _tracksReferences = IsReferenceType && converter.IsContainer;
+        _handlesNull = converter.HandlesNull;
     }
 
     internal YamlConverter<T> Converter => _converter;
@@ -90,7 +96,7 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
             if (state.Preserve && state.TryGetReference(cursor.GetString(), out object? existing) && existing is T reference) return reference;
             cursor.ExpandAlias();
         }
-        if (!_converter.HandlesNull && cursor.IsNullScalar) {
+        if (!_handlesNull && cursor.IsNullScalar) {
             if (CanBeNull) return default!;
             throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(T));
         }
@@ -109,7 +115,7 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
             writer.WriteNull();
             return;
         }
-        if (IsReferenceType && _converter.IsContainer) {
+        if (_tracksReferences) {
             object instance = value;
             if (!state.Begin(writer, instance, typeof(T))) return;
             _converter.Write(writer, value, state);
@@ -123,7 +129,7 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
     internal void Collect(T value, YamlReferenceCollector collector) {
         EnsureConfigured();
         if (value is null) return;
-        if (IsReferenceType && _converter.IsContainer && !collector.Visit(value)) return;
+        if (_tracksReferences && !collector.Visit(value)) return;
         _converter.Collect(value, collector);
     }
 
@@ -222,9 +228,9 @@ public abstract class YamlPropertyInfo {
     /// <summary>The constructor parameter position the property binds to, or -1.</summary>
     internal int ParameterIndex { get; set; } = -1;
 
-    internal abstract bool CanRead { get; }
+    internal bool CanRead { get; private protected set; }
 
-    internal abstract bool CanSet { get; }
+    internal bool CanSet { get; private protected set; }
 
     internal abstract void Configure(YamlSerializerOptions options);
 
@@ -247,17 +253,16 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
     private static readonly bool IsValueTypeValue = typeof(T).IsValueType;
     private readonly Func<object, T>? _getter;
     private readonly Action<object, T>? _setter;
+    private static readonly bool _isString = typeof(T) == typeof(string);
     private YamlTypeInfo<T>? _typeInfo;
 
     public YamlPropertyInfo(YamlPropertyInfoValues<T> values)
         : base(values.Name ?? throw new ArgumentException("The property name is required.", nameof(values)), values.YamlName, values.IsRequired, values.IgnoreCondition, typeof(T)) {
         _getter = values.Getter;
         _setter = values.Setter;
+        CanRead = _getter is not null;
+        CanSet = _setter is not null;
     }
-
-    internal override bool CanRead => _getter is not null;
-
-    internal override bool CanSet => _setter is not null;
 
     private YamlTypeInfo<T> TypeInfo => _typeInfo!;
 
@@ -277,7 +282,19 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
         }
         if (NameIsPlain) writer.WritePlainKey(Name);
         else writer.WriteKey(Name);
-        TypeInfo.Write(writer, value, state);
+        // The common scalars go straight to the writer: the JIT folds these checks for value types, and strings use a
+        // flag because shared generic code cannot fold them. Everything else goes through the type's metadata.
+        if (typeof(T) == typeof(int)) writer.WriteScalar((long)(int)(object)value!);
+        else if (typeof(T) == typeof(long)) writer.WriteScalar((long)(object)value!);
+        else if (typeof(T) == typeof(bool)) writer.WriteScalar((bool)(object)value!);
+        else if (typeof(T) == typeof(double)) writer.WriteScalar((double)(object)value!);
+        else if (_isString) {
+            string? text = Unsafe.As<T, string?>(ref value);
+            if (text is null) writer.WriteNull();
+            else writer.WriteScalar(text);
+        } else {
+            TypeInfo.Write(writer, value, state);
+        }
     }
 
     internal override void ReadAndSet(YamlEventCursor cursor, YamlReadState state, object owner) {

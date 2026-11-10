@@ -46,6 +46,8 @@ internal sealed class YamlEmitter {
     }
 
     private readonly TextWriter _out;
+    /// <summary>The output when it is a <see cref="YamlCharBuffer"/>, which is written without virtual calls.</summary>
+    private readonly YamlCharBuffer? _buffer;
     private readonly YamlWriterOptions _options;
     private readonly string _newLine;
     private Frame[] _frames = new Frame[16];
@@ -64,6 +66,7 @@ internal sealed class YamlEmitter {
 
     public YamlEmitter(TextWriter output, YamlWriterOptions options) {
         _out = output;
+        _buffer = output as YamlCharBuffer;
         _options = options;
         _newLine = options.NewLine;
         options.Validate();
@@ -268,6 +271,17 @@ internal sealed class YamlEmitter {
         EndInline();
     }
 
+    /// <summary>
+    /// Writes a plain or single-quoted scalar the caller knows has no line break and fits an implicit key, as
+    /// <see cref="WriteScalar"/> would, without scanning it for breaks.
+    /// </summary>
+    public void WriteSingleLine(string value, YamlStyle style) {
+        BeginNode(Shape.Inline, empty: value.Length == 0 && style == YamlStyle.Plain, simpleKey: true, aliasKey: false, sequence: false, out _, out _);
+        if (style == YamlStyle.Plain) WriteRun(value, 0, value.Length);
+        else WriteSingleQuoted(value);
+        EndInline();
+    }
+
     /// <summary>Writes a plain scalar from a span without allocating, for typed values already in canonical form.</summary>
     public void WritePlain(ReadOnlySpan<char> value) {
         BeginNode(Shape.Inline, empty: value.Length == 0, simpleKey: value.Length > 0, aliasKey: false, sequence: false, out _, out _);
@@ -344,6 +358,27 @@ internal sealed class YamlEmitter {
         padding = -1;
         if (_depth == 0) StartDocument(explicitMarker: false);
         ref Frame top = ref _frames[_depth - 1];
+        // The two most common nodes, an inline key or value of a block mapping without properties, skip the general
+        // layout below; the text they write is the same.
+        if (top.Kind == FrameKind.BlockMapping && shape == Shape.Inline && !top.Pending && _anchor is null && _tag is null) {
+            if (top.AtValue) {
+                if (!top.ExplicitKey) {
+                    top.AtValue = false;
+                    top.Count++;
+                    childIndent = top.Indent + _options.MappingIndent;
+                    if (!empty) Write(' ');
+                    return top.Indent;
+                }
+            } else if (simpleKey && top.Padding < 0) {
+                EnsureLineStart();
+                WriteSpaces(top.Indent);
+                top.AtValue = true;
+                top.ExplicitKey = false;
+                top.PendingColon = true;
+                top.AliasKey = aliasKey;
+                return top.Indent;
+            }
+        }
         if (top.Pending) {
             ResolvePending(empty: false);
             top = ref _frames[_depth - 1];
@@ -719,7 +754,8 @@ internal sealed class YamlEmitter {
 
     private void NewLine() {
         if (_trailingComment is not null) WriteTrailingComment();
-        _out.Write(_newLine);
+        if (_buffer is not null) _buffer.Append(_newLine.AsSpan());
+        else _out.Write(_newLine);
         _column = 0;
     }
 
@@ -742,7 +778,8 @@ internal sealed class YamlEmitter {
     }
 
     private void Write(char c) {
-        _out.Write(c);
+        if (_buffer is not null) _buffer.Write(c);
+        else _out.Write(c);
         _column++;
     }
 
@@ -750,6 +787,11 @@ internal sealed class YamlEmitter {
 
     private void WriteRun(string text, int start, int length) {
         if (length <= 0) return;
+        if (_buffer is not null) {
+            _buffer.Append(text.AsSpan(start, length));
+            _column += length;
+            return;
+        }
 #if NET8_0_OR_GREATER
         _out.Write(text.AsSpan(start, length));
 #else
@@ -767,6 +809,11 @@ internal sealed class YamlEmitter {
 
     private void WriteSpan(ReadOnlySpan<char> text) {
         if (text.Length == 0) return;
+        if (_buffer is not null) {
+            _buffer.Append(text);
+            _column += text.Length;
+            return;
+        }
 #if NET8_0_OR_GREATER
         _out.Write(text);
 #else

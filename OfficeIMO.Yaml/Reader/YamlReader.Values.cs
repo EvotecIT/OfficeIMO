@@ -84,6 +84,19 @@ public sealed partial class YamlReader {
     /// <summary>Gets the current scalar's decoded value as a span, without allocating when the source holds it verbatim.</summary>
     internal ReadOnlySpan<char> ScalarValueSpan => ScalarText();
 
+    /// <summary>
+    /// Returns what <see cref="IsNull"/> returns for the current scalar, checking an untagged scalar's text directly
+    /// instead of resolving its kind: only plain <c>null</c> spellings and empty nodes are null without a tag.
+    /// </summary>
+    internal bool IsNullScalar() {
+        if (_event.Type != YamlTokenType.Scalar) return false;
+        if (_event.HasTag) return IsNull();
+        if (_event.Style != YamlStyle.Plain) return false;
+        ReadOnlySpan<char> text = Slice(_event.ValueStart, _event.ValueEnd);
+        if (text.Length > 4) return false;
+        return YamlSchemaResolver.IsNull(YamlScalarDecoder.IsVerbatim(_event.Style, _event.Flags) ? text : ScalarText(), _documentSchema);
+    }
+
     /// <summary>Gets whether the current node defines an anchor, without creating its name.</summary>
     internal bool HasAnchor => _event.AnchorStart >= 0 && _event.Type is YamlTokenType.Scalar or YamlTokenType.SequenceStart or YamlTokenType.MappingStart;
 

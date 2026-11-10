@@ -28,6 +28,7 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
     private readonly Func<YamlSerializerOptions, YamlPropertyInfo[]>? _propertyInitializer;
     private readonly Func<YamlParameterInfoValues[]>? _parameterInitializer;
     private YamlPropertyInfo[] _properties = Array.Empty<YamlPropertyInfo>();
+    private YamlPropertyInfo[] _written = Array.Empty<YamlPropertyInfo>();
     private YamlParameterInfoValues[] _parameters = Array.Empty<YamlParameterInfoValues>();
     private Dictionary<string, int> _byName = new Dictionary<string, int>(StringComparer.Ordinal);
 #if NET9_0_OR_GREATER
@@ -85,6 +86,7 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
         }
 
         _properties = properties;
+        _written = Array.FindAll(properties, static property => property.CanRead);
         _parameters = parameters;
         _byName = byName;
 #if NET9_0_OR_GREATER
@@ -104,19 +106,14 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
             writer.WriteKey(key);
             writer.WriteScalar(discriminator);
         }
-        YamlPropertyInfo[] properties = _properties;
-        for (int i = 0; i < properties.Length; i++) {
-            YamlPropertyInfo property = properties[i];
-            if (property.CanRead) property.Write(writer, owner, state);
-        }
+        YamlPropertyInfo[] properties = _written;
+        for (int i = 0; i < properties.Length; i++) properties[i].Write(writer, owner, state);
         writer.WriteEndMapping();
     }
 
     public override void Collect(T value, YamlReferenceCollector collector) {
         object owner = value!;
-        foreach (YamlPropertyInfo property in _properties) {
-            if (property.CanRead) property.Collect(owner, collector);
-        }
+        foreach (YamlPropertyInfo property in _written) property.Collect(owner, collector);
     }
 
     public override T Read(YamlEventCursor cursor, YamlReadState state) {
