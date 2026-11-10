@@ -206,8 +206,28 @@ namespace OfficeIMO.Excel {
                 && (!ReadUnsignedDecimal(bytes, length, ref position, out _) || !Consume(bytes, length, ref position, "\""))) return false;
             if (Consume(bytes, length, ref position, " uniqueCount=\"")
                 && (!ReadUnsignedDecimal(bytes, length, ref position, out declaredUniqueCount) || !Consume(bytes, length, ref position, "\""))) return false;
-            if (declaredUniqueCount == 0) declaredUniqueCount = length / 16;
-            return Consume(bytes, length, ref position, ">");
+            if (!Consume(bytes, length, ref position, ">")) return false;
+            if (declaredUniqueCount == 0) declaredUniqueCount = CountItemTags(bytes, length, position, prefixStart, prefixLength);
+            return true;
+        }
+
+        /// <summary>
+        /// Sizes the index of a table without a uniqueCount, so it is neither grown nor oversized.
+        /// A miscount only changes the initial capacity; the scan still validates every item.
+        /// </summary>
+        private static int CountItemTags(byte[] bytes, int length, int position, int prefixStart, int prefixLength) {
+            Span<byte> tag = stackalloc byte[prefixLength + 4];
+            tag[0] = (byte)'<';
+            bytes.AsSpan(prefixStart, prefixLength).CopyTo(tag.Slice(1));
+            tag[prefixLength + 1] = (byte)'s';
+            tag[prefixLength + 2] = (byte)'i';
+            tag[prefixLength + 3] = (byte)'>';
+            ReadOnlySpan<byte> remaining = bytes.AsSpan(position, length - position);
+            int count = 0;
+            for (int found; (found = remaining.IndexOf(tag)) >= 0; remaining = remaining.Slice(found + tag.Length)) {
+                count++;
+            }
+            return count;
         }
 
         private static bool ConsumeQualified(byte[] bytes, int length, ref int position, string lead, int prefixStart, int prefixLength, string localName) {

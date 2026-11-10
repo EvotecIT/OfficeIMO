@@ -155,6 +155,12 @@ namespace OfficeIMO.Excel {
                         indexedStream = null; // The validated index now owns the pooled stream.
                         return null;
                     }
+                    // The same part bytes, already inflated: parse them instead of reading the part again.
+                    if (indexedStream != null && !_preferDom) {
+                        if (indexedStream.CanSeek) indexedStream.Position = 0;
+                        if (TryLoadItemsXmlFast(indexedStream, out List<string> bufferedItems)) return bufferedItems;
+                        return LoadItemsFromDom();
+                    }
                 } finally {
                     indexedStream?.Dispose();
                 }
