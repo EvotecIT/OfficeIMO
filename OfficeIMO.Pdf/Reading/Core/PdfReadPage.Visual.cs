@@ -393,7 +393,7 @@ public sealed partial class PdfReadPage {
     }
 
     // visitedForms is never unwound: a form's fonts are registered once, however many resource dictionaries list it.
-    // Producers such as LibreOffice share one XObject dictionary across every form, so unwinding the set walked
+    // Some producers share one XObject dictionary across every form, so unwinding the set walked
     // the same forms along every path, exponentially.
     private void RegisterEmbeddedFonts(OfficeDrawing drawing, PdfDictionary? resources, HashSet<PdfStream> visitedForms, int depth,
         Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>? registeredFonts = null,
