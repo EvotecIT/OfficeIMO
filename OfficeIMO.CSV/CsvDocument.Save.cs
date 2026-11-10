@@ -208,6 +208,8 @@ public sealed partial class CsvDocument
         {
             var tsv = CsvProfiles.CreateSaveOptions(CsvProfile.Tsv);
             tsv.Culture = _culture;
+            // Keep an encoding chosen for the document (WithEncoding or a non-default load encoding).
+            if (_encoding is not UTF8Encoding || _encoding.GetPreamble().Length != 0) tsv.Encoding = _encoding;
             tsv.EscapeMode = _unquotedEscapeMode ?? CsvEscapeMode.None;
             return tsv;
         }

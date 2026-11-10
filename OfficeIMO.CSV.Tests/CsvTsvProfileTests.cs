@@ -13,14 +13,16 @@ public class CsvTsvProfileTests {
     public static IEnumerable<object[]> Routes() =>
         from ReadRoute route in Enum.GetValues(typeof(ReadRoute))
         from int rows in new[] { 6, 4000 } // 4000 rows exceed the 64 Ki quote-probe and SIMD thresholds.
-        select new object[] { route, rows };
+        from bool trim in new[] { false, true } // Trimming has its own SIMD record path on x64.
+        select new object[] { route, rows, trim };
 
     [Theory]
     [MemberData(nameof(Routes))]
-    public async Task TsvReadsQuotesAsDataOnEveryReadRoute(ReadRoute route, int rowCount) {
-        string[][] expected = CreateRowsWithStrayQuotes(rowCount);
-        string text = string.Join("\n", expected.Select(row => string.Join("\t", row))) + "\n";
-        string[][] actual = await ReadAsync(route, text);
+    public async Task TsvReadsQuotesAsDataOnEveryReadRoute(ReadRoute route, int rowCount, bool trim) {
+        string[][] source = CreateRowsWithStrayQuotes(rowCount);
+        string text = string.Join("\n", source.Select(row => string.Join("\t", row))) + "\n";
+        string[][] expected = trim ? source.Select(row => row.Select(value => value.Trim(' ')).ToArray()).ToArray() : source;
+        string[][] actual = await ReadAsync(route, text, trim);
         Assert.Equal(expected.Length, actual.Length);
         for (int i = 0; i < expected.Length; i++) Assert.Equal(expected[i], actual[i]);
     }
@@ -90,7 +92,13 @@ public class CsvTsvProfileTests {
                 Assert.True(reader.Read());
                 Assert.Equal("\"open", reader.GetString(1));
             }
-            if (extension == ".tsv") Assert.Equal("Id\tNote\n1\t\"open\n2\ta,b\n", File.ReadAllText(source));
+            if (extension == ".tsv") {
+                Assert.Equal("Id\tNote\n1\t\"open\n2\ta,b\n", File.ReadAllText(source));
+                string utf16 = Path.Combine(directory, "utf16.tsv");
+                loaded.WithEncoding(Encoding.Unicode).Save(utf16);
+                Assert.Equal(Encoding.Unicode.GetPreamble(), File.ReadAllBytes(utf16).Take(2).ToArray());
+                Assert.Equal("\"open", CsvDocument.Load(utf16).AsEnumerable().First().AsString("Note"));
+            }
         } finally { Directory.Delete(directory, recursive: true); }
     }
 
@@ -98,15 +106,20 @@ public class CsvTsvProfileTests {
         string[] notes = { "\"quoted\"", "he said \"hi", "\"", "\"\"", "mid\"dle with a long tail past thirty two chars", "plain" };
         var rows = new List<string[]> { new[] { "Id", "Note", "Tail" } };
         for (int i = 1; i < rowCount; i++)
-            rows.Add(new[] { i.ToString(System.Globalization.CultureInfo.InvariantCulture), notes[i % notes.Length], "\"opens" + i });
+            rows.Add(new[] {
+                i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                i % 3 == 0 ? "  " + notes[i % notes.Length] + " " : notes[i % notes.Length],
+                "\"opens" + i });
         return rows.ToArray();
     }
 
-    private static async Task<string[][]> ReadAsync(ReadRoute route, string text) {
+    private static async Task<string[][]> ReadAsync(ReadRoute route, string text, bool trim) {
         CsvLoadOptions load = CsvProfiles.CreateLoadOptions(CsvProfile.Tsv);
         load.HasHeaderRow = false;
+        load.TrimWhitespace = trim;
         CsvReaderOptions reader = CsvProfiles.CreateReaderOptions(CsvProfile.Tsv);
         reader.HasHeaderRow = false;
+        reader.TrimWhitespace = trim;
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".tsv");
         File.WriteAllText(path, text);
         try {
