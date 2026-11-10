@@ -11,23 +11,25 @@ namespace OfficeIMO.CSV.Tests;
 /// </summary>
 public sealed class CsvUtf8QuotedRecordParityTests {
     private static readonly string[] Pieces = {
-        "a", "bc", "é", " ", ",", ",", "\"", "\"\"", "\"x\"", "\r", "\n", "\r\n", "\"q,\r\nr\""
+        "a", "bc", "é", " ", "\t", "\u00a0", ",", ",", "\"", "\"\"", "\"x\"", "\r", "\n", "\r\n", "\"q,\r\nr\""
     };
 
     [Theory]
-    [InlineData(CsvQuoteParsingMode.Lenient, CsvParseErrorAction.Throw)]
-    [InlineData(CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw)]
-    [InlineData(CsvQuoteParsingMode.Strict, CsvParseErrorAction.SkipRow)]
-    public void StreamReaderFollowsQuotingRulesForRandomInput(CsvQuoteParsingMode quoting, CsvParseErrorAction errors) {
-        var random = new Random(20261110 + (int)quoting * 7 + (int)errors);
+    [InlineData(CsvQuoteParsingMode.Lenient, CsvParseErrorAction.Throw, false)]
+    [InlineData(CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw, false)]
+    [InlineData(CsvQuoteParsingMode.Strict, CsvParseErrorAction.SkipRow, false)]
+    [InlineData(CsvQuoteParsingMode.Lenient, CsvParseErrorAction.Throw, true)]
+    [InlineData(CsvQuoteParsingMode.Strict, CsvParseErrorAction.SkipRow, true)]
+    public void StreamReaderFollowsQuotingRulesForRandomInput(CsvQuoteParsingMode quoting, CsvParseErrorAction errors, bool trim) {
+        var random = new Random(20261110 + (int)quoting * 7 + (int)errors + (trim ? 3 : 0));
         for (int sample = 0; sample < 1000; sample++) {
             string input = sample % 2 == 0 ? RandomPieces(random) : RandomRecords(random);
             bool allowEmpty = random.Next(2) == 0;
             string expected = new QuotingModel(input, quoting == CsvQuoteParsingMode.Strict,
-                errors == CsvParseErrorAction.SkipRow, allowEmpty).Run();
-            string actual = Observe(input, quoting, errors, allowEmpty, random.Next(0, 8));
+                errors == CsvParseErrorAction.SkipRow, allowEmpty, trim).Run();
+            string actual = Observe(input, quoting, errors, allowEmpty, trim, random.Next(0, 8));
             if (expected != actual) {
-                Assert.Fail($"Input {Escape(input)} (allowEmpty {allowEmpty}):\nexpected\n{Escape(expected)}\nactual\n{Escape(actual)}");
+                Assert.Fail($"Input {Escape(input)} (allowEmpty {allowEmpty}, trim {trim}):\nexpected\n{Escape(expected)}\nactual\n{Escape(actual)}");
             }
         }
     }
@@ -40,8 +42,8 @@ public sealed class CsvUtf8QuotedRecordParityTests {
         }
         string input = text.ToString();
         Assert.Equal(
-            new QuotingModel(input, strict: true, skip: false, allowEmpty: false).Run(),
-            Observe(input, CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw, allowEmpty: false, chunk: 0));
+            new QuotingModel(input, strict: true, skip: false, allowEmpty: false, trim: false).Run(),
+            Observe(input, CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 0));
     }
 
     private static string RandomPieces(Random random) {
@@ -90,6 +92,7 @@ public sealed class CsvUtf8QuotedRecordParityTests {
         CsvQuoteParsingMode quoting,
         CsvParseErrorAction errors,
         bool allowEmpty,
+        bool trim,
         int chunk) {
         var result = new StringBuilder();
         var parseErrors = new List<CsvParseError>();
@@ -102,6 +105,7 @@ public sealed class CsvUtf8QuotedRecordParityTests {
             CollectParseErrors = errors == CsvParseErrorAction.SkipRow,
             ParseErrors = parseErrors,
             AllowEmptyLines = allowEmpty,
+            TrimWhitespace = trim,
             ProgressReportInterval = 1,
             ProgressCallback = progress => progressLine = progress.LineNumber
         };
@@ -137,6 +141,7 @@ public sealed class CsvUtf8QuotedRecordParityTests {
         private readonly bool _strict;
         private readonly bool _skip;
         private readonly bool _allowEmpty;
+        private readonly bool _trim;
         private readonly StringBuilder _result = new();
         private readonly StringBuilder _collected = new();
         private int _position;
@@ -144,11 +149,17 @@ public sealed class CsvUtf8QuotedRecordParityTests {
         private int _records;
         private int _fieldCount = -1;
 
-        internal QuotingModel(string input, bool strict, bool skip, bool allowEmpty) {
+        internal QuotingModel(string input, bool strict, bool skip, bool allowEmpty, bool trim) {
             _input = input;
             _strict = strict;
             _skip = skip;
             _allowEmpty = allowEmpty;
+            _trim = trim;
+        }
+
+        private string Unquoted(int start, int end) {
+            string value = _input.Substring(start, end - start);
+            return _trim ? value.Trim() : value;
         }
 
         internal string Run() {
@@ -227,12 +238,12 @@ public sealed class CsvUtf8QuotedRecordParityTests {
             int fieldStart = position;
             while (true) {
                 if (position == _input.Length || _input[position] is '\r' or '\n') {
-                    fields.Add(_input.Substring(fieldStart, position - fieldStart));
+                    fields.Add(Unquoted(fieldStart, position));
                     return position;
                 }
                 char value = _input[position];
                 if (value == ',') {
-                    fields.Add(_input.Substring(fieldStart, position - fieldStart));
+                    fields.Add(Unquoted(fieldStart, position));
                     fieldStart = ++position;
                     continue;
                 }
@@ -262,6 +273,7 @@ public sealed class CsvUtf8QuotedRecordParityTests {
                     }
                 }
                 fields.Add(quoted.ToString());
+                while (_trim && position < _input.Length && _input[position] is not (',' or '\r' or '\n') && char.IsWhiteSpace(_input[position])) position++;
                 if (position == _input.Length || _input[position] is '\r' or '\n') return position;
                 if (_input[position] != ',') {
                     invalidAt = position;
@@ -271,17 +283,23 @@ public sealed class CsvUtf8QuotedRecordParityTests {
             }
         }
 
+        // With trimming, whitespace before an opening quote and after a closing quote is dropped and
+        // a field that never had quotes is trimmed; quoted text keeps its whitespace.
         private int ParseFlexible(int position, List<string> fields, out bool unterminated) {
             var field = new StringBuilder();
             bool inQuotes = false;
             bool afterClosingQuote = false;
+            bool wasQuoted = false;
+            bool whiteSpaceOnly = true;
             for (; position < _input.Length; position++) {
                 char value = _input[position];
                 if (inQuotes) {
                     if (value != '"') {
                         field.Append(value);
+                        whiteSpaceOnly &= char.IsWhiteSpace(value);
                     } else if (position + 1 < _input.Length && _input[position + 1] == '"') {
                         field.Append('"');
+                        whiteSpaceOnly = false;
                         position++;
                     } else {
                         inQuotes = false;
@@ -290,24 +308,38 @@ public sealed class CsvUtf8QuotedRecordParityTests {
                     continue;
                 }
                 if (value == '"') {
-                    if (afterClosingQuote) field.Append('"');
-                    inQuotes = !afterClosingQuote;
-                    afterClosingQuote = false;
+                    if (afterClosingQuote) {
+                        field.Append('"');
+                        whiteSpaceOnly = false;
+                        afterClosingQuote = false;
+                    } else {
+                        if (_trim && whiteSpaceOnly) field.Clear();
+                        inQuotes = true;
+                        wasQuoted = true;
+                    }
                     continue;
                 }
                 if (value is '\r' or '\n') break;
                 if (value == ',') {
-                    fields.Add(field.ToString());
+                    fields.Add(Flexible(field, wasQuoted));
                     field.Clear();
-                } else {
-                    field.Append(value);
+                    wasQuoted = false;
+                    whiteSpaceOnly = true;
+                    afterClosingQuote = false;
+                    continue;
                 }
+                if (afterClosingQuote && _trim && char.IsWhiteSpace(value)) continue;
                 afterClosingQuote = false;
+                field.Append(value);
+                whiteSpaceOnly &= char.IsWhiteSpace(value);
             }
             unterminated = inQuotes;
-            fields.Add(field.ToString());
+            fields.Add(Flexible(field, wasQuoted));
             return position;
         }
+
+        private string Flexible(StringBuilder field, bool wasQuoted) =>
+            _trim && !wasQuoted ? field.ToString().Trim() : field.ToString();
     }
 
     /// <summary>Seekable input that returns at most a few bytes per read to force refills mid-record.</summary>

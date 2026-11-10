@@ -108,7 +108,7 @@ public sealed class CsvDataReaderUtf8TextTests {
     }
 
     [Fact]
-    public void Utf16PreambleAndTrimUseCanonicalTextFallback() {
+    public void Utf16PreambleUsesTextFallbackAndTrimBorrowsTrimmedText() {
         byte[] data = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("Name\nZażółć\n")).ToArray();
         using var stream = new MemoryStream(data);
         using var reader = CsvDocument.OpenReader(stream);
@@ -118,7 +118,8 @@ public sealed class CsvDataReaderUtf8TextTests {
         using var trimmedStream = new MemoryStream(Encoding.UTF8.GetBytes("Name\n  Ada  \n"));
         using var trimmed = CsvDocument.OpenReader(trimmedStream, options: new CsvReaderOptions { TrimWhitespace = true });
         Assert.True(trimmed.Read());
-        Assert.False(trimmed.TryGetUtf8Text(0, out _));
+        Assert.True(trimmed.TryGetUtf8Text(0, out var trimmedText));
+        Assert.Equal("Ada"u8.ToArray(), trimmedText.ToArray());
         Assert.Equal("Ada", trimmed.GetString(0));
     }
 

@@ -32,6 +32,7 @@ internal static partial class CsvParser
         private const int BlockSize = 64;
         private readonly bool _allowEmpty;
         private readonly bool _strictQuotes;
+        private readonly bool _trim;
         private Stream _stream;
         private byte[] _buffer;
         private byte[]? _flexibleFieldBytes;
@@ -66,6 +67,7 @@ internal static partial class CsvParser
             _specialBytes = SearchValues.Create(new[] { _delimiter, (byte)'"', (byte)'\r', (byte)'\n' });
             _allowEmpty = options.AllowEmptyLines;
             _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
+            _trim = options.TrimWhitespace;
             _buffer = buffer;
             _length = length;
             _position = position;
@@ -327,7 +329,7 @@ internal static partial class CsvParser
                 }
 
                 LoadBlockMasks(ref data, position, out ulong delimiters, out ulong quotes, out ulong lineSeparators, out ulong high);
-                if ((quotes | insideQuotes) == 0 && fieldQuotes == 0)
+                if ((quotes | insideQuotes) == 0 && fieldQuotes == 0 && !_trim)
                 {
                     // Common unquoted block: publish delimiters up to the first line separator.
                     if (lineSeparators == 0)
@@ -364,7 +366,7 @@ internal static partial class CsvParser
                         int end = position + bit;
                         if (fieldQuotes == 0)
                         {
-                            _visitor.VisitFieldRange(fieldIndex, fieldStart, end - fieldStart);
+                            VisitUnquotedField(fieldIndex, fieldStart, end);
                         }
                         else if (!TryVisitQuotedField(fieldIndex, fieldStart, end, fieldQuotes, innerLineBreaks, ref lineBreaks))
                         {
@@ -401,7 +403,7 @@ internal static partial class CsvParser
         {
             if (fieldStart >= 0)
             {
-                _visitor.VisitFieldRange(fieldIndex, fieldStart, end - fieldStart);
+                VisitUnquotedField(fieldIndex, fieldStart, end);
             }
 
             scan = default;
@@ -417,6 +419,13 @@ internal static partial class CsvParser
         private bool TryVisitQuotedField(int fieldIndex, int fieldStart, int end, int quotes, bool innerLineBreaks, ref int lineBreaks)
         {
             byte[] buffer = _buffer;
+            if (_trim)
+            {
+                // Strict quoting admits whitespace only after the closing quote.
+                while (!_strictQuotes && fieldStart < end && IsAsciiWhiteSpace(buffer[fieldStart])) fieldStart++;
+                while (end > fieldStart && IsAsciiWhiteSpace(buffer[end - 1])) end--;
+            }
+
             if ((quotes & 1) != 0 || end - fieldStart < 2 || buffer[fieldStart] != (byte)'"' || buffer[end - 1] != (byte)'"')
             {
                 return false;
@@ -552,7 +561,7 @@ internal static partial class CsvParser
                         return RecordScanResult.NeedMoreData;
                     }
 
-                    _visitor.VisitFieldRange(fieldIndex, fieldStart, length - fieldStart);
+                    VisitUnquotedField(fieldIndex, fieldStart, length);
                     scan.End = length;
                     scan.Next = length;
                     scan.FieldCount = fieldIndex + 1;
@@ -563,7 +572,7 @@ internal static partial class CsvParser
                 int special = position + found;
                 if (buffer[special] == _delimiter)
                 {
-                    _visitor.VisitFieldRange(fieldIndex++, fieldStart, special - fieldStart);
+                    VisitUnquotedField(fieldIndex++, fieldStart, special);
                     fieldStart = position = special + 1;
                     continue;
                 }
@@ -571,7 +580,7 @@ internal static partial class CsvParser
                 byte terminal = buffer[special];
                 if (terminal != (byte)'"')
                 {
-                    _visitor.VisitFieldRange(fieldIndex, fieldStart, special - fieldStart);
+                    VisitUnquotedField(fieldIndex, fieldStart, special);
                     scan.End = special;
                     scan.Next = special + 1;
                     scan.FieldCount = fieldIndex + 1;
@@ -626,6 +635,11 @@ internal static partial class CsvParser
                 lineBreaks += CountLineBreaks(buffer, contentStart, closingQuote, out _);
                 _visitor.VisitQuotedFieldRange(fieldIndex, contentStart, closingQuote - contentStart, escaped);
                 position = closingQuote + 1;
+                if (_trim && !SkipWhiteSpaceAfterQuote(ref position))
+                {
+                    return RecordScanResult.NeedMoreData;
+                }
+
                 if (position == length)
                 {
                     scan.End = position;
@@ -662,7 +676,8 @@ internal static partial class CsvParser
         /// <summary>
         /// Lenient parse of a record that is not RFC 4180 quoted, matching the canonical flexible
         /// parser: a quote opens a quoted section anywhere, and a quote right after a closing quote
-        /// is literal. Each field is unescaped and decoded during the scan.
+        /// is literal. With trimming, whitespace before an opening quote and after a closing quote
+        /// is dropped and fields without quotes are trimmed. Each field is decoded during the scan.
         /// </summary>
         private RecordScanResult ScanFlexibleRecord(int recordStart, out RecordScan scan)
         {
@@ -677,6 +692,8 @@ internal static partial class CsvParser
             int lineBreaks = 0;
             bool inQuotes = false;
             bool afterClosingQuote = false;
+            bool fieldWasQuoted = false;
+            bool whiteSpaceOnly = true;
             while (true)
             {
                 if (position == length)
@@ -694,7 +711,7 @@ internal static partial class CsvParser
                         return RecordScanResult.Unterminated;
                     }
 
-                    VisitFlexibleField(fieldIndex, fieldLength);
+                    VisitFlexibleField(fieldIndex, fieldLength, fieldWasQuoted);
                     scan.End = position;
                     scan.Next = position;
                     scan.FieldCount = fieldIndex + 1;
@@ -703,9 +720,9 @@ internal static partial class CsvParser
                 }
 
                 byte value = buffer[position];
-                if (inQuotes)
+                if (value == (byte)'"')
                 {
-                    if (value == (byte)'"')
+                    if (inQuotes)
                     {
                         if (position + 1 == length && !_endOfStream)
                         {
@@ -714,103 +731,219 @@ internal static partial class CsvParser
 
                         if (position + 1 < length && buffer[position + 1] == (byte)'"')
                         {
-                            AppendFlexibleByte(ref fieldLength, value);
+                            AppendFlexibleBytes(ref fieldLength, position, 1);
+                            whiteSpaceOnly = false;
                             position += 2;
                             continue;
                         }
 
                         inQuotes = false;
                         afterClosingQuote = true;
-                        position++;
-                        continue;
                     }
-
-                    if (value == (byte)'\r' || value == (byte)'\n')
+                    else if (afterClosingQuote)
                     {
-                        lineBreaks++;
-                        if (value == (byte)'\r')
-                        {
-                            if (position + 1 == length && !_endOfStream)
-                            {
-                                return RecordScanResult.NeedMoreData;
-                            }
-
-                            if (position + 1 < length && buffer[position + 1] == (byte)'\n')
-                            {
-                                AppendFlexibleByte(ref fieldLength, value);
-                                position++;
-                                value = (byte)'\n';
-                            }
-                        }
-                    }
-
-                    AppendFlexibleByte(ref fieldLength, value);
-                    position++;
-                    continue;
-                }
-
-                if (value == (byte)'"')
-                {
-                    if (afterClosingQuote)
-                    {
-                        AppendFlexibleByte(ref fieldLength, value);
+                        AppendFlexibleBytes(ref fieldLength, position, 1);
+                        whiteSpaceOnly = false;
                         afterClosingQuote = false;
                     }
                     else
                     {
+                        if (_trim && whiteSpaceOnly)
+                        {
+                            fieldLength = 0;
+                        }
+
                         inQuotes = true;
+                        fieldWasQuoted = true;
                     }
 
-                    position++;
-                    continue;
-                }
-
-                if (value == _delimiter)
-                {
-                    VisitFlexibleField(fieldIndex++, fieldLength);
-                    fieldLength = 0;
-                    afterClosingQuote = false;
                     position++;
                     continue;
                 }
 
                 if (value == (byte)'\r' || value == (byte)'\n')
                 {
-                    VisitFlexibleField(fieldIndex, fieldLength);
-                    scan.End = position;
-                    scan.Next = position + 1;
-                    scan.FieldCount = fieldIndex + 1;
-                    scan.LineBreaks = lineBreaks;
-                    scan.Terminator = value;
-                    return RecordScanResult.Complete;
+                    if (!inQuotes)
+                    {
+                        VisitFlexibleField(fieldIndex, fieldLength, fieldWasQuoted);
+                        scan.End = position;
+                        scan.Next = position + 1;
+                        scan.FieldCount = fieldIndex + 1;
+                        scan.LineBreaks = lineBreaks;
+                        scan.Terminator = value;
+                        return RecordScanResult.Complete;
+                    }
+
+                    // A separator inside quotes is kept as read and does not change whether the
+                    // field so far is whitespace.
+                    int separatorLength = 1;
+                    if (value == (byte)'\r')
+                    {
+                        if (position + 1 == length && !_endOfStream)
+                        {
+                            return RecordScanResult.NeedMoreData;
+                        }
+
+                        if (position + 1 < length && buffer[position + 1] == (byte)'\n')
+                        {
+                            separatorLength = 2;
+                        }
+                    }
+
+                    lineBreaks++;
+                    AppendFlexibleBytes(ref fieldLength, position, separatorLength);
+                    position += separatorLength;
+                    continue;
                 }
 
-                afterClosingQuote = false;
-                AppendFlexibleByte(ref fieldLength, value);
-                position++;
+                if (value == _delimiter && !inQuotes)
+                {
+                    VisitFlexibleField(fieldIndex++, fieldLength, fieldWasQuoted);
+                    fieldLength = 0;
+                    afterClosingQuote = false;
+                    fieldWasQuoted = false;
+                    whiteSpaceOnly = true;
+                    position++;
+                    continue;
+                }
+
+                int characterLength = 1;
+                bool whiteSpace = false;
+                if (_trim)
+                {
+                    if (!TryClassifyWhiteSpace(position, out whiteSpace, out characterLength))
+                    {
+                        return RecordScanResult.NeedMoreData;
+                    }
+
+                    if (!inQuotes && afterClosingQuote && whiteSpace)
+                    {
+                        position += characterLength;
+                        continue;
+                    }
+                }
+
+                if (!inQuotes)
+                {
+                    afterClosingQuote = false;
+                }
+
+                AppendFlexibleBytes(ref fieldLength, position, characterLength);
+                whiteSpaceOnly &= whiteSpace;
+                position += characterLength;
             }
         }
 
-        private void AppendFlexibleByte(ref int fieldLength, byte value)
+        private void AppendFlexibleBytes(ref int fieldLength, int start, int count)
         {
-            byte[] bytes = _flexibleFieldBytes!;
-            if (fieldLength == bytes.Length)
+            if (fieldLength + count > _flexibleFieldBytes!.Length)
             {
-                Array.Resize(ref _flexibleFieldBytes, checked(bytes.Length * 2));
-                bytes = _flexibleFieldBytes;
+                Array.Resize(ref _flexibleFieldBytes, checked(Math.Max(fieldLength + count, _flexibleFieldBytes.Length * 2)));
             }
 
-            bytes[fieldLength++] = value;
+            _buffer.AsSpan(start, count).CopyTo(_flexibleFieldBytes.AsSpan(fieldLength));
+            fieldLength += count;
         }
 
-        private void VisitFlexibleField(int fieldIndex, int fieldLength)
+        private void VisitFlexibleField(int fieldIndex, int fieldLength, bool fieldWasQuoted)
         {
             ReadOnlySpan<byte> bytes = _flexibleFieldBytes.AsSpan(0, fieldLength);
             string value = fieldLength == 0
                 ? string.Empty
                 : Ascii.IsValid(bytes) ? Encoding.Latin1.GetString(bytes) : _encoding.GetString(bytes);
-            _visitor.VisitMaterializedField(fieldIndex, value);
+            _visitor.VisitMaterializedField(fieldIndex, _trim && !fieldWasQuoted ? value.Trim() : value);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsAsciiWhiteSpace(byte value) => value == (byte)' ' || (uint)(value - 9) <= 4;
+
+        /// <summary>
+        /// Classifies the character at <paramref name="position"/> as <see cref="char.IsWhiteSpace(char)"/>
+        /// does, decoding a non-ASCII scalar. Returns false when a sequence continues past buffered input.
+        /// </summary>
+        private bool TryClassifyWhiteSpace(int position, out bool whiteSpace, out int length)
+        {
+            byte value = _buffer[position];
+            if (value < 0x80)
+            {
+                whiteSpace = IsAsciiWhiteSpace(value);
+                length = 1;
+                return true;
+            }
+
+            OperationStatus status = Rune.DecodeFromUtf8(_buffer.AsSpan(position, _length - position), out Rune rune, out length);
+            if (status == OperationStatus.NeedMoreData && !_endOfStream)
+            {
+                whiteSpace = false;
+                return false;
+            }
+
+            // Invalid UTF-8 decodes to U+FFFD, which is not whitespace.
+            whiteSpace = status == OperationStatus.Done && Rune.IsWhiteSpace(rune);
+            return true;
+        }
+
+        /// <summary>Skips whitespace between a closing quote and the next delimiter or line separator.</summary>
+        private bool SkipWhiteSpaceAfterQuote(ref int position)
+        {
+            while (position < _length)
+            {
+                byte value = _buffer[position];
+                if (value == _delimiter || value == (byte)'\r' || value == (byte)'\n')
+                {
+                    return true;
+                }
+
+                if (!TryClassifyWhiteSpace(position, out bool whiteSpace, out int length))
+                {
+                    return false;
+                }
+
+                if (!whiteSpace)
+                {
+                    return true;
+                }
+
+                position += length;
+            }
+
+            return _endOfStream;
+        }
+
+        /// <summary>Stores an unquoted field, trimming it as the canonical parser does when requested.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void VisitUnquotedField(int fieldIndex, int start, int end)
+        {
+            if (_trim && end > start &&
+                (IsAsciiWhiteSpace(_buffer[start]) || IsAsciiWhiteSpace(_buffer[end - 1]) ||
+                 _buffer[start] >= 0x80 || _buffer[end - 1] >= 0x80))
+            {
+                VisitTrimmedField(fieldIndex, start, end);
+                return;
+            }
+
+            _visitor.VisitFieldRange(fieldIndex, start, end - start);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void VisitTrimmedField(int fieldIndex, int start, int end)
+        {
+            byte[] buffer = _buffer;
+            while (start < end && IsAsciiWhiteSpace(buffer[start])) start++;
+            while (end > start && IsAsciiWhiteSpace(buffer[end - 1])) end--;
+            ReadOnlySpan<byte> text = buffer.AsSpan(start, end - start);
+            if (!text.IsEmpty &&
+                ((text[0] >= 0x80 && Rune.DecodeFromUtf8(text, out Rune first, out _) == OperationStatus.Done && Rune.IsWhiteSpace(first)) ||
+                 (text[^1] >= 0x80 && Rune.DecodeLastFromUtf8(text, out Rune last, out _) == OperationStatus.Done && Rune.IsWhiteSpace(last))))
+            {
+                // Non-ASCII whitespace at an edge: trim the decoded text exactly as string.Trim does.
+                _visitor.VisitMaterializedField(fieldIndex, _encoding.GetString(text).Trim());
+                return;
+            }
+
+            _visitor.VisitFieldRange(fieldIndex, start, end - start);
+        }
+
 
         /// <summary>Counts CR, LF and CRLF separators in quoted content.</summary>
         private static int CountLineBreaks(byte[] buffer, int start, int end, out bool endsWithLineBreak)

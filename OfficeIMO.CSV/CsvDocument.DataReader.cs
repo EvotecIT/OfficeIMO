@@ -450,8 +450,7 @@ public sealed partial class CsvDocument
     private static bool CanUseUtf8StreamDataReader(CsvReaderOptions options)
     {
         char delimiter = CsvParser.GetDelimiterChar(options);
-        return !options.TrimWhitespace &&
-            (options.Encoding is null || options.Encoding.CodePage == Encoding.UTF8.CodePage) &&
+        return (options.Encoding is null || options.Encoding.CodePage == Encoding.UTF8.CodePage) &&
             // Custom replacements can remove a record or introduce CSV syntax during decoding.
             (options.Encoding is null || options.Encoding.DecoderFallback is DecoderExceptionFallback ||
                 options.Encoding.DecoderFallback is DecoderReplacementFallback { DefaultString: "\uFFFD" }) &&
