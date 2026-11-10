@@ -64,12 +64,51 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        internal static WordTextMap Build(Paragraph paragraph) {
+        /// <summary>Builds the map from the paragraph alone; a field opened in an earlier paragraph is seen only through this paragraph's own markers.</summary>
+        internal static WordTextMap Build(Paragraph paragraph) => Build(paragraph, null);
+
+        /// <summary>Builds the map for a paragraph that starts inside <paramref name="enteringFieldDepth"/> open fields.</summary>
+        /// <param name="paragraph">Paragraph to map.</param>
+        /// <param name="enteringFieldDepth">Fields still open at the paragraph start, or <c>null</c> to judge from the paragraph alone.</param>
+        internal static WordTextMap Build(Paragraph paragraph, int? enteringFieldDepth) {
             var builder = new Builder();
-            builder.FieldStack.Clear();
-            if (StartsInsideFieldResult(paragraph)) builder.FieldStack.Push(true);
+            if (enteringFieldDepth is int depth) {
+                for (int level = 0; level < depth; level++) builder.FieldStack.Push(true);
+            } else if (StartsInsideFieldResult(paragraph)) {
+                builder.FieldStack.Push(true);
+            }
             builder.Walk(paragraph, WordTextHazard.None);
             return new WordTextMap(paragraph, builder.Text.ToString(), builder.Atoms);
+        }
+
+        /// <summary>
+        /// Counts the fields still open where <paramref name="paragraph"/> starts. A field result can run through several
+        /// paragraphs, such as a table of contents, so a paragraph without field markers can still be field text.
+        /// Walks the story up to the paragraph; use <see cref="GetEnteringFieldDepths"/> when mapping a whole story.
+        /// </summary>
+        internal static int GetEnteringFieldDepth(Paragraph paragraph) {
+            int depth = 0;
+            foreach (OpenXmlElement element in WordRange.GetStoryRoot(paragraph).Descendants()) {
+                if (ReferenceEquals(element, paragraph)) return depth;
+                if (element is FieldChar fieldChar) depth = Apply(fieldChar, depth);
+            }
+            return depth;
+        }
+
+        /// <summary>Counts the fields open at the start of every paragraph of a story in one pass.</summary>
+        internal static void GetEnteringFieldDepths(OpenXmlElement storyRoot, Dictionary<Paragraph, int> depths) {
+            int depth = 0;
+            foreach (OpenXmlElement element in storyRoot.Descendants()) {
+                if (element is Paragraph paragraph) depths[paragraph] = depth;
+                else if (element is FieldChar fieldChar) depth = Apply(fieldChar, depth);
+            }
+        }
+
+        private static int Apply(FieldChar fieldChar, int depth) {
+            FieldCharValues? type = fieldChar.FieldCharType?.Value;
+            if (type == FieldCharValues.Begin) return depth + 1;
+            if (type == FieldCharValues.End && depth > 0) return depth - 1;
+            return depth;
         }
 
         /// <summary>

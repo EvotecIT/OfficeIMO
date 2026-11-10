@@ -202,6 +202,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_Range_FieldResultSpanningParagraphsIsNotEditable() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.Body!;
+            document.AddParagraph("Contents ")._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" TOC \\o \"1-3\" ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("Entry one")));
+            document.AddParagraph("Entry two");
+            document.AddParagraph("Entry three")._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                new Run(new Text(" after") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
+            string before = body.InnerText;
+
+            // The middle paragraph has no field markers of its own; its text is still the field result.
+            Assert.Throws<InvalidOperationException>(() => document.Find("Entry two").Ranges.Single().Replace("x"));
+            Paragraph middle = body.Elements<Paragraph>().ElementAt(1);
+            Assert.Throws<InvalidOperationException>(() => new WordParagraph(document, middle).GetRange().Replace("x"));
+            Assert.Equal(before, body.InnerText);
+
+            // Text after the field end stays editable.
+            document.Find(" after").Ranges.Single().Replace(" later");
+            Assert.EndsWith("Entry three later", body.Elements<Paragraph>().Last().InnerText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_Range_UnsafeEditsThrowAndLeaveTextUnchanged() {
             string filePath = CopyFixtureDoc("FieldsAndSections.docx");
             using (WordDocument document = WordDocument.Load(filePath)) {

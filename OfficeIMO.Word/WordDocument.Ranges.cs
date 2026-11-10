@@ -71,7 +71,7 @@ namespace OfficeIMO.Word {
             StringComparison comparison = OfficeTextSearch.GetComparison(options);
             bool wholeWords = options?.WholeWords == true;
             var ranges = new List<WordRange>();
-            foreach (List<WordTextMap> story in GetSearchStories(section)) {
+            foreach (List<WordTextMap> story in GetSearchStories(section, out var depths)) {
                 if (wholeWords) {
                     foreach (WordTextMap map in story) {
                         int from = 0;
@@ -82,7 +82,7 @@ namespace OfficeIMO.Word {
                                 from = found + 1;
                                 continue;
                             }
-                            ranges.Add(new WordRange(this, map.Paragraph, found, map.Paragraph, found + text.Length));
+                            ranges.Add(new WordRange(this, map.Paragraph, found, map.Paragraph, found + text.Length, null, depths));
                             from = found + text.Length;
                         }
                     }
@@ -97,7 +97,7 @@ namespace OfficeIMO.Word {
                     if (found < 0) break;
                     (WordTextMap startMap, int start) = Locate(story, found, atEnd: false);
                     (WordTextMap endMap, int end) = Locate(story, found + text.Length, atEnd: true);
-                    ranges.Add(new WordRange(this, startMap.Paragraph, start, endMap.Paragraph, end));
+                    ranges.Add(new WordRange(this, startMap.Paragraph, start, endMap.Paragraph, end, null, depths));
                     searchFrom = found + text.Length;
                 }
             }
@@ -119,10 +119,10 @@ namespace OfficeIMO.Word {
 
         internal List<(WordRange Range, Match Match)> FindRegexRanges(Regex pattern, WordSection? section) {
             var ranges = new List<(WordRange, Match)>();
-            foreach (List<WordTextMap> story in GetSearchStories(section)) {
+            foreach (List<WordTextMap> story in GetSearchStories(section, out var depths)) {
                 foreach (WordTextMap map in story) {
                     foreach (Match match in pattern.Matches(map.Text)) {
-                        ranges.Add((new WordRange(this, map.Paragraph, match.Index, map.Paragraph, match.Index + match.Length), match));
+                        ranges.Add((new WordRange(this, map.Paragraph, match.Index, map.Paragraph, match.Index + match.Length, null, depths), match));
                     }
                 }
             }
@@ -130,18 +130,30 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>The paragraphs of each search scope, as visited by <c>Find</c> and <c>ReplaceAll</c>.</summary>
-        private List<List<WordTextMap>> GetSearchStories(WordSection? section) {
+        /// <param name="section">Section to search, or <c>null</c> for the whole document.</param>
+        /// <param name="fieldDepths">Fields open at the start of each paragraph, so field text spanning paragraphs is recognized.</param>
+        private List<List<WordTextMap>> GetSearchStories(WordSection? section, out Dictionary<Paragraph, int> fieldDepths) {
             var stories = new List<List<WordTextMap>>();
+            var depths = new Dictionary<Paragraph, int>(OfficeReferenceEqualityComparer<Paragraph>.Instance);
+            var mappedRoots = new HashSet<OpenXmlElement>(OfficeReferenceEqualityComparer<OpenXmlElement>.Instance);
             ForEachSearchScope((paragraphs, _) => {
                 var story = new List<WordTextMap>();
                 Paragraph? previous = null;
                 foreach (WordParagraph paragraph in paragraphs) {
                     if (paragraph == null || ReferenceEquals(paragraph._paragraph, previous)) continue;
                     previous = paragraph._paragraph;
-                    story.Add(WordTextMap.Build(previous));
+                    if (!depths.TryGetValue(previous, out int depth)) {
+                        // One pass per story root records every paragraph; a paragraph outside a story keeps its own markers.
+                        OpenXmlElement? root = previous.Ancestors().FirstOrDefault(ancestor =>
+                            ancestor is Body or Header or Footer or Footnote or Endnote or Comment or TextBoxContent);
+                        if (root != null && mappedRoots.Add(root)) WordTextMap.GetEnteringFieldDepths(root, depths);
+                        depths.TryGetValue(previous, out depth);
+                    }
+                    story.Add(WordTextMap.Build(previous, depth));
                 }
                 if (story.Count > 0) stories.Add(story);
             }, null, section);
+            fieldDepths = depths;
             return stories;
         }
 

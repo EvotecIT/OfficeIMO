@@ -34,9 +34,13 @@ namespace OfficeIMO.Word {
         private Paragraph _endParagraph;
         private int _end;
         private int _version;
+        // Fields open at each paragraph start, recorded by the search that found this range.
+        private readonly IReadOnlyDictionary<Paragraph, int>? _fieldDepths;
 
-        internal WordRange(WordDocument document, Paragraph startParagraph, int start, Paragraph endParagraph, int end, BookmarkStart? anchor = null) {
+        internal WordRange(WordDocument document, Paragraph startParagraph, int start, Paragraph endParagraph, int end,
+            BookmarkStart? anchor = null, IReadOnlyDictionary<Paragraph, int>? fieldDepths = null) {
             _document = document;
+            _fieldDepths = fieldDepths;
             _startParagraph = startParagraph;
             _start = start;
             _endParagraph = endParagraph;
@@ -78,7 +82,7 @@ namespace OfficeIMO.Word {
             if (Compare(_startParagraph, _start, end._endParagraph, end._end) > 0) {
                 throw new ArgumentException("The end range must not start before this range.", nameof(end));
             }
-            return new WordRange(_document, _startParagraph, _start, end._endParagraph, end._end);
+            return new WordRange(_document, _startParagraph, _start, end._endParagraph, end._end, null, _fieldDepths ?? end._fieldDepths);
         }
 
         /// <summary>
@@ -129,7 +133,7 @@ namespace OfficeIMO.Word {
             List<Paragraph> paragraphs = GetParagraphs();
             foreach (Paragraph paragraph in paragraphs) {
                 (int from, int to) = Bounds(paragraph, paragraphs);
-                foreach (WordTextAtom atom in WordTextMap.Build(paragraph).Atoms) {
+                foreach (WordTextAtom atom in BuildForSafety(paragraph).Atoms) {
                     if (atom.Length > 0 && atom.Start < to && atom.End > from &&
                         (atom.Hazard & (WordTextHazard.Field | WordTextHazard.TrackedChange)) != 0) {
                         throw Unsafe("it contains a field result or a tracked change");
@@ -368,7 +372,7 @@ namespace OfficeIMO.Word {
 
         private void ValidateMarkerBoundaries() {
             if (IsEmpty) {
-                WordTextMap map = WordTextMap.Build(_startParagraph);
+                WordTextMap map = BuildForSafety(_startParagraph);
                 WordTextAtom? inside = map.AtomAt(_start);
                 if (inside != null && inside.Start < _start && inside.Hazard != WordTextHazard.None) {
                     throw Unsafe("it falls inside a field result, tracked change or embedded object");
@@ -383,11 +387,20 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private WordTextAtom? FirstAtom() => _start < WordTextMap.Build(_startParagraph).Text.Length
-            ? WordTextMap.Build(_startParagraph).AtomAt(_start)
-            : null;
+        private WordTextAtom? FirstAtom() {
+            WordTextMap map = BuildForSafety(_startParagraph);
+            return _start < map.Text.Length ? map.AtomAt(_start) : null;
+        }
 
-        private WordTextAtom? LastAtom() => _end > 0 ? WordTextMap.Build(_endParagraph).AtomAt(_end - 1) : null;
+        private WordTextAtom? LastAtom() => _end > 0 ? BuildForSafety(_endParagraph).AtomAt(_end - 1) : null;
+
+        /// <summary>Maps a paragraph with the fields left open by earlier paragraphs, for the checks that decide whether an edit is safe.</summary>
+        private WordTextMap BuildForSafety(Paragraph paragraph) {
+            int depth = _fieldDepths != null && _fieldDepths.TryGetValue(paragraph, out int known)
+                ? known
+                : WordTextMap.GetEnteringFieldDepth(paragraph);
+            return WordTextMap.Build(paragraph, depth);
+        }
 
         private void InsertMarkers(OpenXmlElement startMarker, OpenXmlElement endMarker, OpenXmlElement? afterEnd) {
             ValidateMarkerBoundaries();
@@ -467,7 +480,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            WordTextMap firstMap = WordTextMap.Build(first);
+            WordTextMap firstMap = BuildForSafety(first);
             WordTextAtom? startAtom = _start < firstMap.Text.Length ? firstMap.AtomAt(_start) : null;
             WordTextAtom? previousAtom = _start > 0 ? firstMap.AtomAt(_start - 1) : null;
             // An empty range continues the formatting of the text before it, like typing does.
@@ -499,9 +512,9 @@ namespace OfficeIMO.Word {
                 if (startAtom != null) CollectZone(plan, first, firstMap, startAtom.InlineNode, null, startSdt);
                 for (int index = 1; index < paragraphs.Count - 1; index++) {
                     Paragraph middle = paragraphs[index];
-                    CollectZone(plan, middle, WordTextMap.Build(middle), null, null, null);
+                    CollectZone(plan, middle, BuildForSafety(middle), null, null, null);
                 }
-                WordTextMap lastMap = WordTextMap.Build(last);
+                WordTextMap lastMap = BuildForSafety(last);
                 OpenXmlElement? lastNode = _end > 0 ? lastMap.AtomAt(_end - 1)!.InlineNode : null;
                 if (lastNode != null) CollectZone(plan, last, lastMap, null, lastNode, null);
                 else CollectLeadingMarkers(plan, last);
