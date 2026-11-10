@@ -3508,7 +3508,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Pdf
 
 <details>
-<summary>307 changes</summary>
+<summary>308 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3812,6 +3812,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | images | `OfficeIMO.Pdf.PdfContentBuilder.Image(...)` | Renamed | `OfficeIMO.Pdf.PdfDocument.AddImage(...) : PdfImage / PdfContentBuilder.AddImage(...)` | AddImage appends at the current flow position; there is no positional insert in PDF authoring. |
 | images | `OfficeIMO.Pdf.PdfImageStyle.AlternativeText` | Renamed | `OfficeIMO.Pdf.PdfImageStyle.AltText` | Image alt text is AltText in Word, PowerPoint, Markdown and PDF. |
 | images | `OfficeIMO.Pdf.PdfInlineElement.AlternativeText; PdfInlineImage(..., string? alternativeText, ...); PdfInlineBox(..., string? alternativeText, ...)` | Renamed | `OfficeIMO.Pdf.PdfInlineElement.AltText; altText parameters` | Image alt text is AltText in Word, PowerPoint, Markdown and PDF. |
+| reading | `OfficeIMO.Pdf.PdfArtifactInfo.Sha256` | Changed | `OfficeIMO.Pdf.PdfArtifactInfo.Sha256` | Artifacts captured from bytes a PdfDocument owns (loaded input, page extraction, split and other in-memory mutation outputs) compute the digest on first read of Sha256 instead of during Load or the operation. The value is unchanged. Until it is read, the pipeline report keeps the artifact bytes alive; reading Sha256 releases them. The first read is not cancellable. |
 | reading | `OfficeIMO.Pdf.PdfLoadOptions.ParsingMode` | Changed | `OfficeIMO.Pdf.PdfLoadOptions.ParsingMode` | Opening a PDF no longer reads every document-level feature. With Lenient parsing, outlines, named destinations, XMP metadata, the attachment inventory, AcroForm fields, tagged structure and portfolio data are read when first used, so a damaged or over-limit feature throws on first use (and on every later use) instead of failing Load. Strict parsing still reads them while loading and fails there. |
 | search | `OfficeIMO.Pdf.PdfTextSearchOptions.MatchCase / WholeWords` | Moved | `OfficeIMO.OfficeTextSearchOptions.MatchCase / WholeWords (inherited by PdfTextSearchOptions)` | No source change: PdfTextSearchOptions derives from OfficeTextSearchOptions, so options.MatchCase and options.WholeWords still compile with the same defaults. Recompile against the new package. |
 | selection | `OfficeIMO.Pdf.PdfPageSelector` | Moved | `OfficeIMO.OfficePageSelector` | The same ordered, one-based selector is shared by image adapters through OfficeImageExportOptions.PageSelector. PDF manipulation retains ResolveSelection through a PDF extension method. |

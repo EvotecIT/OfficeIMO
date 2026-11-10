@@ -191,7 +191,7 @@ internal sealed class PdfDocumentSource {
 
     /// <summary>
     /// Captures the opened artifact while priming and reusing the source's canonical parse.
-    /// Invalid input still produces hash and size evidence and caches the parse failure.
+    /// Invalid input still produces size and on-demand hash evidence and caches the parse failure.
     /// </summary>
     internal PdfArtifactInfo CaptureArtifact(CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -204,7 +204,7 @@ internal sealed class PdfDocumentSource {
             // Artifact identity remains useful even when the canonical parse fails.
         }
 
-        return PdfArtifactInfo.CaptureKnownPageCount(_bytes, pageCount, cancellationToken);
+        return PdfArtifactInfo.CaptureOwnedKnownPageCount(_bytes, pageCount);
     }
 
     private static PdfDocumentSource FromBoundedStream(Stream stream, PdfLoadOptions options) =>

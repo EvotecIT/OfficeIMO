@@ -4295,6 +4295,15 @@
       "reason": "Opening a PDF no longer reads every document-level feature. With Lenient parsing, outlines, named destinations, XMP metadata, the attachment inventory, AcroForm fields, tagged structure and portfolio data are read when first used, so a damaged or over-limit feature throws on first use (and on every later use) instead of failing Load. Strict parsing still reads them while loading and fails there.",
       "file": "OfficeIMO.Pdf/Reading/Core/PdfReadDocument.Features.cs",
       "category": "reading"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfArtifactInfo.Sha256",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfArtifactInfo.Sha256",
+      "reason": "Artifacts captured from bytes a PdfDocument owns (loaded input, page extraction, split and other in-memory mutation outputs) compute the digest on first read of Sha256 instead of during Load or the operation. The value is unchanged. Until it is read, the pipeline report keeps the artifact bytes alive; reading Sha256 releases them. The first read is not cancellable.",
+      "file": "OfficeIMO.Pdf/Core/PdfArtifactSnapshot.cs",
+      "category": "reading"
     }
   ],
   "packageMoves": [
