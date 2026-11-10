@@ -22,17 +22,13 @@ public sealed partial class PdfLogicalPage {
         IReadOnlyList<PdfLogicalParagraph> paragraphs,
         IReadOnlyList<PdfLogicalListItem> listItems,
         IReadOnlyList<PdfLogicalTable> tables,
-        int vectorPrimitiveCount,
-        int unrepresentedVectorPrimitiveCount,
         IReadOnlyList<PdfLogicalImage> images,
         IReadOnlyList<PdfLogicalLinkAnnotation> links,
         IReadOnlyList<PdfAnnotation> annotations,
         IReadOnlyList<PdfLinkAnnotation> linkAnnotations,
         IReadOnlyList<PdfLogicalFormWidget> formWidgets,
         IReadOnlyList<PdfPageAction> pageActions,
-        bool hasOptionalContentUsage,
         PdfUnderstandingPageResult analysis,
-        bool hasVisualPrimitiveCounts = true,
         bool includesImages = true,
         bool includesFormWidgets = true) {
         PageNumber = pageNumber;
@@ -46,9 +42,6 @@ public sealed partial class PdfLogicalPage {
         Paragraphs = paragraphs;
         ListItems = listItems;
         Tables = tables;
-        VectorPrimitiveCount = vectorPrimitiveCount;
-        UnrepresentedVectorPrimitiveCount = unrepresentedVectorPrimitiveCount;
-        HasVisualPrimitiveCounts = hasVisualPrimitiveCounts;
         IncludesImages = includesImages;
         IncludesFormWidgets = includesFormWidgets;
         Images = images;
@@ -57,7 +50,6 @@ public sealed partial class PdfLogicalPage {
         LinkAnnotations = linkAnnotations;
         FormWidgets = formWidgets;
         PageActions = pageActions;
-        HasOptionalContentUsage = hasOptionalContentUsage;
         Analysis = analysis;
     }
 
@@ -246,13 +238,31 @@ public sealed partial class PdfLogicalPage {
     public IReadOnlyList<PdfLogicalTable> Tables { get; }
 
     /// <summary>Number of visible vector drawing primitives recovered from the source page.</summary>
-    public int VectorPrimitiveCount { get; }
+    /// <remarks>The source page is inspected on first use, so a damaged page can report its read error here.</remarks>
+    public int VectorPrimitiveCount => GetVisualPrimitiveCounts(CancellationToken.None).Total;
 
     /// <summary>True when optional visual primitive inspection ran. When false, a zero primitive count
     /// describes an omitted projection and does not establish the absence of source graphics.</summary>
-    public bool HasVisualPrimitiveCounts { get; }
+    /// <remarks>The source page is inspected on first use, so a damaged page can report its read error here.</remarks>
+    public bool HasVisualPrimitiveCounts => GetHasVisualPrimitiveCounts(CancellationToken.None);
 
-    internal int UnrepresentedVectorPrimitiveCount { get; }
+    internal int UnrepresentedVectorPrimitiveCount => GetUnrepresentedVectorPrimitiveCount(CancellationToken.None);
+
+    internal bool GetHasVisualPrimitiveCounts(CancellationToken cancellationToken) =>
+        GetVisualPrimitiveCounts(cancellationToken).Available;
+
+    internal int GetUnrepresentedVectorPrimitiveCount(CancellationToken cancellationToken) =>
+        GetVisualPrimitiveCounts(cancellationToken).Unrepresented;
+
+    private PdfLogicalVisualPrimitiveCounts GetVisualPrimitiveCounts(CancellationToken cancellationToken) =>
+        _visualPrimitiveCounts.GetOrCreate(this, static (page, token) => {
+            PdfLogicalVisualPrimitiveCounts counts = page._visualPrimitiveCountsSource?.Invoke(token) ?? default;
+            page._visualPrimitiveCountsSource = null;
+            return counts;
+        }, cancellationToken);
+
+    private readonly PdfReadCache<PdfLogicalVisualPrimitiveCounts> _visualPrimitiveCounts = new();
+    private Func<CancellationToken, PdfLogicalVisualPrimitiveCounts>? _visualPrimitiveCountsSource;
 
     /// <summary>True when the source image projection was requested. When false, an empty
     /// <see cref="Images"/> collection does not establish the absence of source images.</summary>
@@ -293,13 +303,39 @@ public sealed partial class PdfLogicalPage {
     public bool HasPageActions => PageActionCount > 0;
 
     /// <summary>True when the page content, an invoked resource, or a page annotation uses optional-content membership.</summary>
-    public bool HasOptionalContentUsage { get; }
+    /// <remarks>The source page is inspected on first use, so a damaged page can report its read error here.</remarks>
+    public bool HasOptionalContentUsage => GetHasOptionalContentUsage(CancellationToken.None);
+
+    internal bool GetHasOptionalContentUsage(CancellationToken cancellationToken) =>
+        _optionalContentUsage.GetOrCreate(this, static (page, token) => {
+            bool usesOptionalContent = page._optionalContentUsageSource?.Invoke(token) == true;
+            page._optionalContentUsageSource = null;
+            return usesOptionalContent;
+        }, cancellationToken);
+
+    private readonly PdfReadCache<bool> _optionalContentUsage = new();
+    private Func<CancellationToken, bool>? _optionalContentUsageSource;
 
     /// <summary>Visible artifact-marked text spans (running headers, footers, page numbers) left out of this page.</summary>
-    internal int OmittedArtifactTextSpanCount { get; set; }
+    /// <remarks>Only editable converters report this count, so it reparses the page on first use instead of during the read.</remarks>
+    internal int OmittedArtifactTextSpanCount => _omittedArtifactTextSpanCount.GetOrCreate(this, static (page, token) => {
+        int count = page._omittedArtifactTextSpanCountSource?.Invoke(token) ?? 0;
+        page._omittedArtifactTextSpanCountSource = null;
+        return count;
+    });
 
     /// <summary>Bounded vector drawings (charts) that editable converters place as pictures.</summary>
-    internal IReadOnlyList<PdfLogicalVectorFigure> VectorFigures { get; set; } = Array.Empty<PdfLogicalVectorFigure>();
+    /// <remarks>Detected on first use unless the read already parsed the page's visual primitives.</remarks>
+    internal IReadOnlyList<PdfLogicalVectorFigure> VectorFigures => _vectorFigures.GetOrCreate(this, static (page, token) => {
+        IReadOnlyList<PdfLogicalVectorFigure> figures = page._vectorFiguresSource?.Invoke(token) ?? Array.Empty<PdfLogicalVectorFigure>();
+        page._vectorFiguresSource = null;
+        return figures;
+    });
+
+    private readonly PdfReadCache<int> _omittedArtifactTextSpanCount = new();
+    private Func<CancellationToken, int>? _omittedArtifactTextSpanCountSource;
+    private readonly PdfReadCache<IReadOnlyList<PdfLogicalVectorFigure>> _vectorFigures = new();
+    private Func<CancellationToken, IReadOnlyList<PdfLogicalVectorFigure>>? _vectorFiguresSource;
 
     private static List<PdfUnderstandingLine> GetRetainedProjectionLines(PdfUnderstandingPageResult analysis) {
         return new List<PdfUnderstandingLine>(analysis.LogicalProjectionLines);
@@ -1141,4 +1177,21 @@ public sealed partial class PdfLogicalPage {
             (!image.IsImageMask || placement.ImageMaskColor.Equals(image.ImageMaskColor))).ToList();
         return matchingVariant.Count > 0 ? matchingVariant.AsReadOnly() : result.AsReadOnly();
     }
+}
+
+/// <summary>Visible vector primitive counts of one source page.</summary>
+internal readonly struct PdfLogicalVisualPrimitiveCounts {
+    internal PdfLogicalVisualPrimitiveCounts(int total, int unrepresented, bool available) {
+        Total = total;
+        Unrepresented = unrepresented;
+        Available = available;
+    }
+
+    internal int Total { get; }
+
+    /// <summary>Primitives not explained by a detected table border.</summary>
+    internal int Unrepresented { get; }
+
+    /// <summary>False when visual inspection was not requested or could not certify the counts.</summary>
+    internal bool Available { get; }
 }

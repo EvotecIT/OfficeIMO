@@ -963,6 +963,9 @@ public sealed partial class PdfReadPage {
             _cancellationToken = cancellationToken;
         }
 
+        /// <summary>True once the primitives were parsed, or their parse failed.</summary>
+        internal bool HasResult => _primitives is not null || _failure is not null;
+
         internal IReadOnlyList<PdfPageVisualPrimitive> Get() {
             if (_primitives is not null) return _primitives;
             _failure?.Throw();
