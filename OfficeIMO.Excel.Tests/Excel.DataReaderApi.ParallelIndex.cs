@@ -11,14 +11,16 @@ public partial class Excel {
     private const int ParallelIndexRows = 24_000;
 
     /// <summary>
-    /// Large uniform worksheets are indexed in background chunks. Irregular rows, a late formula
-    /// and whitespace between rows must still produce exactly the sequential reader's values.
+    /// Large uniform worksheets are indexed in background chunks, including attribute-free rows
+    /// without a declared dimension. Irregular rows, a late formula and whitespace between rows
+    /// must still produce exactly the sequential reader's values.
     /// </summary>
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void LargeUniformWorksheetReadsMatchSequentialIndexing(bool numericAsDecimal) {
-        byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: 0);
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void LargeUniformWorksheetReadsMatchSequentialIndexing(bool numericAsDecimal, bool implicitLayout) {
+        byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: 0, implicitLayout);
         using DbDataReader expected = OpenParallelIndexReader(workbook, numericAsDecimal, sequential: true);
         using DbDataReader actual = OpenParallelIndexReader(workbook, numericAsDecimal, sequential: false);
         int rows = 0;
@@ -60,7 +62,7 @@ public partial class Excel {
         return ExcelDocument.OpenReader(new MemoryStream(workbook, writable: false), options);
     }
 
-    private static byte[] CreateParallelIndexWorkbook(int invalidSharedStringRow) {
+    private static byte[] CreateParallelIndexWorkbook(int invalidSharedStringRow, bool implicitLayout = false) {
         using ExcelDocument document = ExcelDocument.Create();
         document.AddSheet("Data").Cell(1, 1).SetValue("Name");
         using var buffer = new MemoryStream();
@@ -74,8 +76,9 @@ public partial class Excel {
         }
 
         var sheet = new StringBuilder(ParallelIndexRows * 300);
-        sheet.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><dimension ref=\"A1:G")
-            .Append(ParallelIndexRows).Append("\"/><sheetData>")
+        sheet.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");
+        if (!implicitLayout) sheet.Append("<dimension ref=\"A1:G").Append(ParallelIndexRows).Append("\"/>");
+        sheet.Append("<sheetData>")
             .Append("<row r=\"1\" spans=\"1:7\"><c r=\"A1\" t=\"s\"><v>0</v></c><c r=\"B1\" t=\"inlineStr\"><is><t>Date</t></is></c>")
             .Append("<c r=\"C1\" t=\"inlineStr\"><is><t>Id</t></is></c><c r=\"D1\" t=\"inlineStr\"><is><t>Price</t></is></c>")
             .Append("<c r=\"E1\" t=\"inlineStr\"><is><t>Cost</t></is></c><c r=\"F1\" t=\"inlineStr\"><is><t>Delta</t></is></c>")
@@ -83,17 +86,22 @@ public partial class Excel {
         for (int row = 2; row <= ParallelIndexRows; row++) {
             // Irregular rows make the background chunk stop and the sequential indexer resume.
             string spans = row % 5003 == 0 ? "1:6" : "1:7";
-            sheet.Append("<row r=\"").Append(row).Append("\" spans=\"").Append(spans).Append("\">");
+            // Explicit row numbers would let a misnumbered chunk fall back to the general reader.
+            bool implicitRow = implicitLayout;
+            if (implicitRow) sheet.Append("<row>");
+            else sheet.Append("<row r=\"").Append(row).Append("\" spans=\"").Append(spans).Append("\">");
+            string Cell(char column) => implicitRow ? "<c" : "<c r=\"" + column + row + "\"";
             int sharedString = row == invalidSharedStringRow ? 99 : 1 + row % 7;
-            sheet.Append("<c r=\"A").Append(row).Append("\" t=\"s\"><v>").Append(sharedString).Append("</v></c>");
-            sheet.Append("<c r=\"B").Append(row).Append("\" s=\"1\"><v>").Append(40000 + row % 3000).Append(row % 4 == 0 ? ".5" : "").Append("</v></c>");
-            if (row % 7919 != 0) sheet.Append("<c r=\"C").Append(row).Append("\"><v>").Append(400_000_000 + row * 7).Append("</v></c>");
-            sheet.Append("<c r=\"D").Append(row).Append("\"><v>").Append(row % 3 == 0 ? "35.840000000000003" : (row % 1000 / 8.0).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</v></c>");
-            if (row == 17_011) sheet.Append("<c r=\"E").Append(row).Append("\"><f>1+1</f><v>2</v></c>");
-            else sheet.Append("<c r=\"E").Append(row).Append("\"><v>165258.23999999999</v></c>");
-            sheet.Append("<c r=\"F").Append(row).Append("\"><v>").Append(row % 2 == 0 ? "-0.25" : "-0").Append("</v></c>");
-            if (row == 13_001) sheet.Append("<c r=\"G").Append(row).Append("\" t=\"inlineStr\"><is><t>inline</t></is></c>");
-            else sheet.Append("<c r=\"G").Append(row).Append("\" t=\"s\"><v>").Append(row % 5).Append("</v></c>");
+            sheet.Append(Cell('A')).Append(" t=\"s\"><v>").Append(sharedString).Append("</v></c>");
+            sheet.Append(Cell('B')).Append(" s=\"1\"><v>").Append(40000 + row % 3000).Append(row % 4 == 0 ? ".5" : "").Append("</v></c>");
+            if (implicitRow && row % 7919 == 0) sheet.Append("<c/>");
+            else if (row % 7919 != 0) sheet.Append(Cell('C')).Append("><v>").Append(400_000_000 + row * 7).Append("</v></c>");
+            sheet.Append(Cell('D')).Append("><v>").Append(row % 3 == 0 ? "35.840000000000003" : (row % 1000 / 8.0).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</v></c>");
+            if (row == 17_011) sheet.Append(Cell('E')).Append("><f>1+1</f><v>2</v></c>");
+            else sheet.Append(Cell('E')).Append("><v>165258.23999999999</v></c>");
+            sheet.Append(Cell('F')).Append("><v>").Append(row % 2 == 0 ? "-0.25" : "-0").Append("</v></c>");
+            if (row == 13_001) sheet.Append(Cell('G')).Append(" t=\"inlineStr\"><is><t>inline</t></is></c>");
+            else sheet.Append(Cell('G')).Append(" t=\"s\"><v>").Append(row % 5).Append("</v></c>");
             sheet.Append("</row>");
             if (row % 9001 == 0) sheet.Append('\n');
         }

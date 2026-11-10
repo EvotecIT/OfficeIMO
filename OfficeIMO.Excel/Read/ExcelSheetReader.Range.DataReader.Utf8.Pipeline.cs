@@ -101,6 +101,8 @@ namespace OfficeIMO.Excel {
                 _indexedUseCachedFormulaResult = _options.UseCachedFormulaResult;
                 int cells = checked(_cellWindowRowCapacity * _fieldCount);
                 bool hadFormulas = _formulaStarts != null;
+                // Decoded slots follow whole-sheet cell offsets; window replay parses tokens again.
+                ReturnDecodedValues();
                 ReturnRowArray(ref _valueStarts);
                 ReturnRowArray(ref _valueLengths);
                 ReturnRowArray(ref _formulaStarts);
