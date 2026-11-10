@@ -91,6 +91,10 @@ internal static class PdfContentStreamInterpreter {
         private string?[]? _rawNames;
         private string?[]? _decodedNames;
         private List<object>?[]? _arrayScratch;
+        // Borrowed operands may also borrow their mixed arrays, such as TJ arrays. A synchronous
+        // visitor reads them only during its callback, so the lists are reused by later operations.
+        private List<List<object>>? _borrowedArrays;
+        private int _borrowedArrayCount;
 
         internal Reader(
             string content,
@@ -159,14 +163,14 @@ internal static class PdfContentStreamInterpreter {
                 bool invalidOperation = hasInvalidOperand || hasInvalidInlineImageOperand;
                 bool skipOperation = hasInvalidInlineImageOperand && !_dispatchInvalidOperations ||
                     hasInvalidOperand && !_dispatchInvalidOperations && !CanDispatchWithInvalidOperands(name);
-                if (invalidOperation) _operands.Clear();
+                if (invalidOperation) ClearOperands();
                 var operation = new PdfContentOperation(
                     name,
                     _borrowOperands ? _operands : _operands.Count == 0 ? Array.Empty<object>() : _operands.ToArray(),
                     operatorOffset,
                     inlineImage,
                     invalidOperation);
-                if (!_borrowOperands || skipOperation) _operands.Clear();
+                if (!_borrowOperands || skipOperation) ClearOperands();
                 _hasInvalidOperand = false;
                 if (skipOperation) {
                     continue;
@@ -183,7 +187,7 @@ internal static class PdfContentStreamInterpreter {
                 try {
                     keepReading = visit(operation);
                 } finally {
-                    if (_borrowOperands) _operands.Clear();
+                    if (_borrowOperands) ClearOperands();
                 }
                 if (!keepReading) {
                     return false;
@@ -197,7 +201,7 @@ internal static class PdfContentStreamInterpreter {
                         _maxOperations,
                         _operationCount);
                 }
-                _operands.Clear();
+                ClearOperands();
                 _hasInvalidOperand = false;
                 return visit(new PdfContentOperation(
                     string.Empty,
@@ -241,7 +245,7 @@ internal static class PdfContentStreamInterpreter {
             }
 
             if (current == '[') {
-                value = ReadArray(EnsureNestingBudget(nestingDepth));
+                value = ReadArray(EnsureNestingBudget(nestingDepth), borrowMixedResult: _borrowOperands && nestingDepth == 0);
                 CountOperand();
                 return true;
             }
@@ -427,7 +431,12 @@ internal static class PdfContentStreamInterpreter {
             return PdfTextString.DecodeHexBytes(_content, start, length);
         }
 
-        private object ReadArray(int nestingDepth) {
+        private void ClearOperands() {
+            _operands.Clear();
+            _borrowedArrayCount = 0;
+        }
+
+        private object ReadArray(int nestingDepth, bool borrowMixedResult = false) {
             _index++;
             // Each nesting level collects into its own reusable list; the result is sized exactly.
             if (_arrayScratch == null || _arrayScratch.Length <= nestingDepth) {
@@ -481,6 +490,13 @@ internal static class PdfContentStreamInterpreter {
                 var numbers = new double[values.Count];
                 for (int index = 0; index < numbers.Length; index++) numbers[index] = (double)values[index];
                 result = numbers;
+            } else if (borrowMixedResult) {
+                _borrowedArrays ??= new List<List<object>>();
+                if (_borrowedArrayCount == _borrowedArrays.Count) _borrowedArrays.Add(new List<object>(values.Count));
+                List<object> borrowed = _borrowedArrays[_borrowedArrayCount++];
+                borrowed.Clear();
+                borrowed.AddRange(values);
+                result = borrowed;
             } else {
                 result = new List<object>(values);
             }
