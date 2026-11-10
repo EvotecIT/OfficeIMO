@@ -287,6 +287,8 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
     private static readonly bool IsValueTypeValue = typeof(T).IsValueType;
     private readonly Func<object, T>? _getter;
     private readonly Action<object, T>? _setter;
+    // An instance flag, because shared generic code reads a static through a lookup.
+    private readonly bool _isString = typeof(T) == typeof(string);
     private YamlTypeInfo<T>? _typeInfo;
 
     public YamlPropertyInfo(YamlPropertyInfoValues<T> values)
@@ -313,8 +315,23 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
                 if (value is null || (IsValueTypeValue && EqualityComparer<T>.Default.Equals(value, default!))) return;
                 break;
         }
-        if (NameIsPlain) writer.WritePlainKey(Name);
-        else writer.WriteKey(Name);
+        if (NameIsPlain) {
+            // Strings and the common scalars write the whole entry at once where the writer allows; the text is the
+            // same as the key and the value written one by one below.
+            if (typeof(T) == typeof(int)) {
+                if (writer.TryWritePlainEntry(Name, (long)(int)(object)value!)) return;
+            } else if (typeof(T) == typeof(long)) {
+                if (writer.TryWritePlainEntry(Name, (long)(object)value!)) return;
+            } else if (typeof(T) == typeof(bool)) {
+                if (writer.TryWritePlainEntry(Name, (bool)(object)value!)) return;
+            } else if (_isString) {
+                string? text = Unsafe.As<T, string?>(ref value);
+                if (text is not null && writer.TryWritePlainEntry(Name, text)) return;
+            }
+            writer.WritePlainKey(Name);
+        } else {
+            writer.WriteKey(Name);
+        }
         TypeInfo.Write(writer, value, state);
     }
 

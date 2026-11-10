@@ -206,6 +206,37 @@ public sealed class YamlWriter : IDisposable {
         _emitter.WriteSingleLine(key, YamlStyle.Plain);
     }
 
+    /// <summary>
+    /// Writes a block mapping entry whose key is safe as a plain scalar everywhere and whose string value gets its default
+    /// style, as <see cref="WritePlainKey"/> and <see cref="WriteScalar(string?, YamlStyle)"/> would, in one step.
+    /// Returns false, having written nothing, when the position or the value needs the general path.
+    /// </summary>
+    internal bool TryWritePlainEntry(string key, string value) {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockKey) return false;
+        ReadOnlySpan<char> text = value.AsSpan();
+        if (!YamlScalarFormat.CanBePlain(text, flow: false) || YamlScalarFormat.IsSchemaAmbiguous(text)) return false;
+        _emitter.WriteEntry(key, text);
+        return true;
+    }
+
+    /// <summary>Writes a block mapping entry with a plain-safe key and an integer value in one step; see <see cref="TryWritePlainEntry(string, string)"/>.</summary>
+    internal bool TryWritePlainEntry(string key, long value) {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockKey) return false;
+        int length = YamlScalarFormat.Format(value, _number);
+        _emitter.WriteEntry(key, _number.AsSpan(0, length));
+        return true;
+    }
+
+    /// <summary>Writes a block mapping entry with a plain-safe key and a boolean value in one step; see <see cref="TryWritePlainEntry(string, string)"/>.</summary>
+    internal bool TryWritePlainEntry(string key, bool value) {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockKey) return false;
+        _emitter.WriteEntry(key, YamlScalarFormat.Format(value).AsSpan());
+        return true;
+    }
+
     /// <summary>Writes text already in a canonical plain spelling, such as a formatted number or timestamp.</summary>
     internal void WritePlainValue(ReadOnlySpan<char> value) {
         CheckDisposed();

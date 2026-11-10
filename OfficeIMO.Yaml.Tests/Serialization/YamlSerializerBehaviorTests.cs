@@ -298,4 +298,74 @@ public class YamlSerializerBehaviorTests {
         Assert.Contains("YamlSerializerContext", missing.Message, StringComparison.Ordinal);
         Assert.Null(Context.GetTypeInfo(typeof(Version)));
     }
+    // Properties with a plain name write string, integer and boolean entries in one step. The text must be what the
+    // writer produces for the key and the value written one by one, at the root, nested and as a compact sequence item.
+    [Fact]
+    public void OneStepEntriesMatchKeyThenValueWrites() {
+        string[] texts = {
+            "", "plain", "yes", "8080", "100m", "128Mi", "a: b", "#x", "x #y", " lead", "trail ", "multi\nline", "it's", "ünï",
+            new string('x', 1200), "-", "- item", "~", "null", "1.5", "+_1.", "registry.example.com/app:1.2.0", "[x]", "{x}"
+        };
+        var options = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+        var root = new List<EntryShapes>();
+        for (int i = 0; i < texts.Length; i++) {
+            root.Add(new EntryShapes {
+                Text = texts[i], Number = i * 7 - 50, Name = texts[(i + 5) % texts.Length], Big = long.MinValue + i, Flag = i % 2 == 0,
+                Inner = new EntryLeaf { Value = texts[(i + 11) % texts.Length], Count = i },
+                Items = { new EntryShapes { Text = texts[texts.Length - 1 - i], Number = i, Flag = i % 3 == 0 } }
+            });
+        }
+        var single = new StringWriter();
+        using (var writer = new YamlWriter(single)) Write(writer, root[3]);
+        Assert.Equal(single.ToString(), YamlSerializer.Serialize(root[3], options));
+
+        var expected = new StringWriter();
+        using (var writer = new YamlWriter(expected)) {
+            writer.WriteStartSequence();
+            foreach (EntryShapes item in root) Write(writer, item);
+            writer.WriteEndSequence();
+        }
+        Assert.Equal(expected.ToString(), YamlSerializer.Serialize(root, options));
+
+        static void Write(YamlWriter writer, EntryShapes value) {
+            writer.WriteStartMapping();
+            writer.WriteKey("text");
+            writer.WriteScalar(value.Text);
+            writer.WriteKey("number");
+            writer.WriteScalar(value.Number);
+            writer.WriteKey("name");
+            writer.WriteScalar(value.Name);
+            writer.WriteKey("big");
+            writer.WriteScalar(value.Big);
+            writer.WriteKey("flag");
+            writer.WriteScalar(value.Flag);
+            writer.WriteKey("inner");
+            writer.WriteStartMapping();
+            writer.WriteKey("value");
+            writer.WriteScalar(value.Inner.Value);
+            writer.WriteKey("count");
+            writer.WriteScalar(value.Inner.Count);
+            writer.WriteEndMapping();
+            writer.WriteKey("items");
+            writer.WriteStartSequence();
+            foreach (EntryShapes item in value.Items) Write(writer, item);
+            writer.WriteEndSequence();
+            writer.WriteEndMapping();
+        }
+    }
+
+    public sealed class EntryShapes {
+        public string Text { get; set; } = string.Empty;
+        public int Number { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public long Big { get; set; }
+        public bool Flag { get; set; }
+        public EntryLeaf Inner { get; set; } = new EntryLeaf();
+        public List<EntryShapes> Items { get; set; } = new List<EntryShapes>();
+    }
+
+    public sealed class EntryLeaf {
+        public string Value { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
 }

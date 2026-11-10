@@ -351,6 +351,51 @@ internal sealed class YamlEmitter {
     public YamlStyle ChooseStyle(string value, YamlStyle requested, YamlStyle quote = YamlStyle.SingleQuoted) =>
         YamlScalarFormat.Choose(value, requested, InFlow, AtKey, quote);
 
+    /// <summary>
+    /// Whether the next node is a key of a block mapping, including the first key of one just started, with no
+    /// anchor or tag set for it, where <see cref="WriteEntry"/> can write a whole entry.
+    /// </summary>
+    public bool AtBlockKey {
+        get {
+            if (_depth == 0 || _anchor is not null || _tag is not null) return false;
+            ref Frame top = ref _frames[_depth - 1];
+            return top.Kind == FrameKind.BlockMapping && !top.AtValue;
+        }
+    }
+
+    /// <summary>
+    /// Writes a block mapping entry at <see cref="AtBlockKey"/>: a key and a value the caller knows are plain on one line.
+    /// The text and the mapping's state are what a key and a value written one by one leave.
+    /// </summary>
+    public void WriteEntry(string key, ReadOnlySpan<char> value) {
+        ref Frame top = ref _frames[_depth - 1];
+        if (top.Pending) {
+            ResolvePending(empty: false);
+            top = ref _frames[_depth - 1];
+        }
+        if (top.Padding >= 0) {
+            WriteSpaces(top.Padding);
+            top.Padding = -1;
+        } else {
+            StartLine(top.Indent);
+        }
+        WriteRun(key, 0, key.Length);
+        if (_buffer is not null && value.Length > 0) {
+            _buffer.Append(": ".AsSpan());
+            _buffer.Append(value);
+            _column += 2 + value.Length;
+        } else {
+            Write(':');
+            if (value.Length > 0) {
+                Write(' ');
+                WriteSpan(value);
+            }
+        }
+        top.ExplicitKey = false;
+        top.AliasKey = false;
+        top.Count++;
+    }
+
     // ------------------------------------------------------------------ layout
 
     /// <summary>
