@@ -46,6 +46,9 @@ internal sealed class YamlScanContext {
     /// <summary>Line on which the last real token ended; tokens on a later line are the first on their line.</summary>
     public int LastLine = -1;
 
+    // Absolute offset of the last stale implicit-key check; the check is repeated only after the position moves.
+    public int StaleCheckedAt = -1;
+
     // Comments, recorded only when requested.
     public bool IncludeComments;
     public YamlComment[] Comments;

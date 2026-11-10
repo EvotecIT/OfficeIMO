@@ -48,7 +48,8 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         if (c.TokenCount == 0) return !c.StreamEndProduced;
         if (c.StreamEndProduced) return false;
-        StaleSimpleKeys();
+        // The parser peeks several times per token; candidates go stale only when the position moves.
+        if (c.Base + c.Pos != c.StaleCheckedAt) StaleSimpleKeys();
         YamlSimpleKey[] keys = c.SimpleKeys;
         for (int i = 0; i <= c.FlowLevel; i++) {
             if (keys[i].Possible && keys[i].TokenNumber == c.TokensParsed) return true;
@@ -342,33 +343,47 @@ internal ref partial struct YamlScanner {
     private void ScanToNextToken() {
         YamlScanContext c = _c;
         int lines = 0;
+        // The position and column stay in locals while blanks and line breaks are skipped; the context is updated
+        // before anything that reads it (comments, compaction, errors) and at the end.
+        int pos = c.Pos, column = c.Column;
         while (true) {
-            if (c.Column == 0 && !c.InDocument && At(c.Pos) == '﻿') {
-                c.Pos++;
+            if (column == 0 && !c.InDocument && At(pos) == '﻿') {
+                pos++;
             }
 
             int firstTabColumn = -1;
-            int runStart = c.Pos;
+            int runStart = pos;
+            char current;
             while (true) {
-                char ch = At(c.Pos);
-                if (ch == ' ') { Advance(1); continue; }
-                if (ch == '\t') {
-                    if (firstTabColumn < 0) firstTabColumn = c.Column;
-                    Advance(1);
+                current = At(pos);
+                if (current == ' ') {
+                    pos++;
+                    column++;
+                    continue;
+                }
+                if (current == '\t') {
+                    if (firstTabColumn < 0) firstTabColumn = column;
+                    pos++;
+                    column++;
                     continue;
                 }
                 break;
             }
 
-            char current = At(c.Pos);
             // A line start separates a comment like whitespace does; only a block scalar ends exactly there.
-            if (current == '#' && (c.Pos > runStart || Absolute(c.Pos) != c.LastEnd || c.Column == 0)) {
+            if (current == '#' && (pos > runStart || Absolute(pos) != c.LastEnd || column == 0)) {
+                c.Pos = pos;
+                c.Column = column;
                 SkipComment();
-                current = At(c.Pos);
+                pos = c.Pos;
+                column = c.Column;
+                current = At(pos);
             }
 
-            if (YamlChars.IsBreak(current)) {
-                AdvanceBreak();
+            if (current == '\n' || current == '\r') {
+                pos += current == '\r' && At(pos + 1) == '\n' ? 2 : 1;
+                c.Line++;
+                column = 0;
                 if (c.FlowLevel == 0) c.SimpleKeyAllowed = true;
                 if (++lines >= 64) {
                     lines = 0;
@@ -376,11 +391,16 @@ internal ref partial struct YamlScanner {
                         c.CancelCountdown = YamlScanContext.CancelInterval;
                         c.Cancellation.ThrowIfCancellationRequested();
                     }
+                    c.Pos = pos;
+                    c.Column = 0;
                     CompactAtSafePoint();
+                    pos = c.Pos;
                 }
                 continue;
             }
 
+            c.Pos = pos;
+            c.Column = column;
             c.TabBefore = false;
             if (firstTabColumn >= 0 && !(current == '\0' && !HasChar(c.Pos))) {
                 bool firstOnLine = c.LastLine != c.Line;
@@ -449,6 +469,7 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         YamlSimpleKey[] keys = c.SimpleKeys;
         int absolute = Absolute(c.Pos);
+        c.StaleCheckedAt = absolute;
         for (int i = 0; i <= c.FlowLevel; i++) {
             ref YamlSimpleKey key = ref keys[i];
             if (key.Possible && (key.Line < c.Line || absolute - key.Offset > MaxImplicitKeyLength)) {
