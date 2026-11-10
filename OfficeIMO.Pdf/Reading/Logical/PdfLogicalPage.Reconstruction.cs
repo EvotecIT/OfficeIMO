@@ -105,8 +105,9 @@ public sealed partial class PdfLogicalPage {
             elements.Add(logicalTable);
         }
 
+        var identityPrimitives = new PdfReadPage.IdentityVisualPrimitiveMemo(page, cancellationToken);
         if (includeImages && tables.Count > 0) {
-            PdfLogicalTableCellStyleAnalysis.Assign(page, tables, cancellationToken);
+            PdfLogicalTableCellStyleAnalysis.Assign(page, tables, identityPrimitives, cancellationToken);
         }
 
         IReadOnlyList<PdfImagePlacement> imagePlacements = !includeImages ? Array.Empty<PdfImagePlacement>() : analysis is not null
@@ -197,7 +198,7 @@ public sealed partial class PdfLogicalPage {
             includesImages: includeImages, includesFormWidgets: includeFormWidgets);
         logicalPage.OmittedArtifactTextSpanCount = page.CountOmittedArtifactTextSpans(cancellationToken, recoverDecodableText);
         if (includeImages && unrepresentedVectorPrimitiveCount >= 6) {
-            logicalPage.VectorFigures = PdfLogicalVectorFigureAnalysis.Detect(page, textBlocks, tables, imagePlacements, cancellationToken);
+            logicalPage.VectorFigures = PdfLogicalVectorFigureAnalysis.Detect(page, textBlocks, tables, imagePlacements, identityPrimitives, cancellationToken);
         }
         return logicalPage;
     }

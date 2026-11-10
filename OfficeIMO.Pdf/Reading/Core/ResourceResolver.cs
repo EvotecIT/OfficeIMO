@@ -112,12 +112,13 @@ internal static partial class ResourceResolver {
                 continue;
             }
             if (string.Equals(subtype, "Type0", System.StringComparison.Ordinal)) {
+                CidWidthMap? cidMap = GetCidWidthMap(fontResource, fontVal, objects);
                 if (fontResource.PredefinedCMap is Lazy<PdfPredefinedCMap> predefined) {
-                    TryBuildCidWidthMap(fontVal, objects, out CidWidthMap? widths);
+                    CidWidthMap? widths = cidMap;
                     map[kv.Key] = bytes => SumPredefinedCidWidths(bytes, widths, predefined, fontResource);
                     continue;
                 }
-                if (TryBuildCidWidthMap(fontVal, objects, out var cidMap)) {
+                if (cidMap is not null) {
                     var localMap = cidMap!;
                     map[kv.Key] = bytes => SumWidthsCid(bytes, localMap);
                 } else {
