@@ -45,14 +45,28 @@ internal static partial class TextLayoutEngine {
         public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans, PdfReadingDirection readingDirection = PdfReadingDirection.Auto,
             double? baselineNormal = null) {
             Y = y; XStart = xs; XEnd = xe; Text = text; Spans = spans;
-            LogicalLineBreaksBefore = spans.Count == 0 ? 0 : spans.Max(span => span.LogicalLineBreaksBefore);
             ReadingDirection = readingDirection;
             if (spans.Count > 0) {
+                int lineBreaks = spans[0].LogicalLineBreaksBefore;
+                for (int index = 1; index < spans.Count; index++) lineBreaks = Math.Max(lineBreaks, spans[index].LogicalLineBreaksBefore);
+                LogicalLineBreaksBefore = lineBreaks;
                 // Compatible directions use one common basis for duplicate comparison.
                 var coordinates = new PdfTextBaselineCoordinates(RotationKey(spans[0]), useLogicalLayoutBaseline: true);
-                BaselineNormal = baselineNormal ?? spans.Average(coordinates.Normal);
-                BaselineStart = spans.Min(coordinates.Along);
-                BaselineEnd = spans.Max(span => coordinates.Along(span) + Math.Max(0D, span.LogicalLayoutAdvance));
+                if (baselineNormal.HasValue) {
+                    BaselineNormal = baselineNormal.Value;
+                } else {
+                    double normalSum = coordinates.Normal(spans[0]);
+                    for (int index = 1; index < spans.Count; index++) normalSum += coordinates.Normal(spans[index]);
+                    BaselineNormal = normalSum / spans.Count;
+                }
+                var along = new double[spans.Count];
+                var alongEnd = new double[spans.Count];
+                for (int index = 0; index < spans.Count; index++) {
+                    along[index] = coordinates.Along(spans[index]);
+                    alongEnd[index] = along[index] + Math.Max(0D, spans[index].LogicalLayoutAdvance);
+                }
+                BaselineStart = MinimumOf(along);
+                BaselineEnd = MaximumOf(alongEnd);
             }
         }
     }
@@ -336,8 +350,14 @@ internal static partial class TextLayoutEngine {
         IReadOnlyList<PdfTextSpan> textSpans = options?.ReadingDirection == PdfReadingDirection.LeftToRight
             ? visualOrder
             : PdfTextDirectionAnalysis.RestoreLogicalFragmentOrder(visualOrder, static span => span.Text, direction);
-        double xs = spans.Min(static span => span.X);
-        double xe = spans.Max(static span => span.X + Math.Max(0D, span.LogicalLayoutAdvance));
+        var starts = new double[spans.Count];
+        var ends = new double[spans.Count];
+        for (int index = 0; index < spans.Count; index++) {
+            starts[index] = spans[index].X;
+            ends[index] = spans[index].X + Math.Max(0D, spans[index].LogicalLayoutAdvance);
+        }
+        double xs = MinimumOf(starts);
+        double xe = MaximumOf(ends);
         var text = new StringBuilder();
         for (int i = 0; i < textSpans.Count; i++) {
             var s = textSpans[i];
@@ -423,9 +443,36 @@ internal static partial class TextLayoutEngine {
         return leftmost.LogicalLayoutY;
     }
 
+    // Enumerable.Min semantics for doubles: any NaN yields NaN.
+    private static double MinimumOf(double[] values) {
+        double minimum = values[0];
+        if (double.IsNaN(minimum)) return minimum;
+        for (int index = 1; index < values.Length; index++) {
+            double value = values[index];
+            if (value < minimum) minimum = value;
+            else if (double.IsNaN(value)) return value;
+        }
+        return minimum;
+    }
+
+    // Enumerable.Max semantics for doubles: NaN only when every value is NaN.
+    private static double MaximumOf(double[] values) {
+        int index = 0;
+        double maximum = values[index];
+        while (double.IsNaN(maximum)) {
+            if (++index >= values.Length) return maximum;
+            maximum = values[index];
+        }
+        for (index++; index < values.Length; index++) {
+            if (values[index] > maximum) maximum = values[index];
+        }
+        return maximum;
+    }
+
     // Stable ascending order along the baseline; equal positions keep their list order.
     private static List<PdfTextSpan> OrderAlongBaseline(List<PdfTextSpan> spans, PdfTextBaselineCoordinates coordinates) {
         int count = spans.Count;
+        if (count == 1) return new List<PdfTextSpan>(spans);
         var keys = new double[count];
         var order = new int[count];
         for (int index = 0; index < count; index++) {
