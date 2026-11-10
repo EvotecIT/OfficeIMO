@@ -59,7 +59,7 @@ public sealed partial class PdfTaggedMergeTests {
         byte[] first = TaggedForm("first");
         byte[] second = TaggedForm("second");
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { Forms = mode, FormFieldCollisions = collision } };
-        Assert.Throws<NotSupportedException>(() => PdfDocument.MergeToBytes(options, first, second));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.MergeToBytes(options, first, second));
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed partial class PdfTaggedMergeTests {
             case "outlines": policy.Outlines = mode; break;
             case "attachments": policy.Attachments = mode; break;
         }
-        var error = Assert.Throws<NotSupportedException>(() => PdfDocument.MergeToBytes(new PdfMergeOptions { Policy = policy }, first, second));
+        var error = Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.MergeToBytes(new PdfMergeOptions { Policy = policy }, first, second));
         Assert.Contains("Tagged PDF merge", error.Message, StringComparison.Ordinal);
         Assert.Contains(structure, error.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(firstSnapshot, first);

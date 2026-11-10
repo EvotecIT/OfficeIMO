@@ -229,6 +229,7 @@ internal static partial class PdfMerger {
             throw new ArgumentException("Read-document factories must contain one entry for every PDF input.", nameof(readDocumentFactories));
         }
         var importedSources = new List<ImportedSource>(sources.Length);
+        PdfMutationPlan? primaryPlan = null;
         int mergedPageOffset = 0;
         for (int i = 0; i < sources.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -250,6 +251,7 @@ internal static partial class PdfMerger {
                     readDocumentFactory,
                     sourceReadOptions,
                     cancellationToken: cancellationToken);
+            if (i == primarySourceIndex) primaryPlan = sourceMergePlan;
             PdfDocumentSecurityInfo sourceSecurity = sourceMergePlan.Preflight.Probe.Security;
             PdfPermissionPolicy sourcePermissionPolicy = sourceMergePlan.Preflight.PermissionPolicy;
             ValidateXfaSourceBeforePreparation(
@@ -273,7 +275,7 @@ internal static partial class PdfMerger {
             mergedPageOffset += importedSources[importedSources.Count - 1].PageObjectNumbers.Length;
         }
 
-        ValidateTaggedMergePolicy(importedSources, primarySourceIndex, options?.Policy ?? new PdfMergePolicy());
+        ValidateMergePolicy(importedSources, primarySourceIndex, options?.Policy ?? new PdfMergePolicy(), primaryPlan!);
         byte[] merged = WriteMerged(importedSources, primarySourceIndex, outputOrder: null, out int mergedObjectCount, cancellationToken);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.ForComposedOutput(
             importedSources[primarySourceIndex].Document.ReadOptions,

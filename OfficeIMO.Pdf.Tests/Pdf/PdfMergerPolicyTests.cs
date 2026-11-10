@@ -542,7 +542,7 @@ public class PdfMergerPolicyTests {
         byte[] second = PdfOptionalContentSupport.BuildOptionalContentMetadataPdf();
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { CatalogState = PdfMergeStructureMode.Combine } };
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfMerger.MergeResult(options, first, second));
 
         Assert.Contains("intentionally hid", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -560,9 +560,10 @@ public class PdfMergerPolicyTests {
             .ToBytes();
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { CatalogState = mode } };
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfMerger.MergeResult(options, first, second));
 
+        Assert.Equal(new[] { "MergePolicy.OptionalContent" }, exception.Plan.BlockerCodes);
         Assert.Contains("hidden", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 

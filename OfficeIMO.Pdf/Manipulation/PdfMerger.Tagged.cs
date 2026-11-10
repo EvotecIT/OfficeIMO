@@ -62,33 +62,61 @@ internal static partial class PdfMerger {
         return PdfPageExtractor.Assemble(serialized, catalogId, infoId, fileVersion, cancellationToken);
     }
 
+    /// <summary>
+    /// Reports structure policies that the merge cannot honor for these sources as a blocked plan, before assembly,
+    /// so callers receive blocker codes instead of a failure from inside a policy editor.
+    /// </summary>
+    private static void ValidateMergePolicy(IReadOnlyList<ImportedSource> sources,
+        int primarySourceIndex, PdfMergePolicy policy, PdfMutationPlan primaryPlan) {
+        string? conflict = FindOptionalContentPolicyConflict(sources, primarySourceIndex, policy.CatalogState);
+        if (conflict is not null) throw PdfMutationBlockedException.PolicyConflict(primaryPlan, "MergePolicy.OptionalContent", conflict);
+        ValidateTaggedMergePolicy(sources, primarySourceIndex, policy, primaryPlan);
+    }
+
+    private static string? FindOptionalContentPolicyConflict(IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode) {
+        bool incomingOptionalContent = sources.Where((source, index) => index != primarySourceIndex)
+            .Any(static source => source.CatalogState.OptionalContent != null);
+        bool anyOptionalContent = sources.Any(static source => source.CatalogState.OptionalContent != null);
+        if (mode == PdfMergeStructureMode.KeepPrimary && incomingOptionalContent)
+            return "Keeping only the primary PDF optional-content configuration is blocked because incoming pages can reference hidden layers whose visibility state would be discarded.";
+        if (mode == PdfMergeStructureMode.Combine && anyOptionalContent)
+            return "Combining PDF optional-content configurations is blocked because rebuilding them with an all-visible default can expose content that a source intentionally hid.";
+        if (mode == PdfMergeStructureMode.Drop && anyOptionalContent)
+            return "Dropping PDF optional-content configuration is blocked because page content can remain associated with hidden layers and become visible without its source visibility state.";
+        return null;
+    }
+
     /// <summary>Rejects catalog edits whose existing editors cannot preserve a tagged graph, before assembly.</summary>
     private static void ValidateTaggedMergePolicy(IReadOnlyList<ImportedSource> sources,
-        int primarySourceIndex, PdfMergePolicy policy) {
+        int primarySourceIndex, PdfMergePolicy policy, PdfMutationPlan primaryPlan) {
         if (!sources.Any(source => PdfTaggedPageOrganizer.IsTagged(source.Document))) return;
         if (policy.Metadata == PdfMergeStructureMode.Drop || policy.Metadata == PdfMergeStructureMode.Combine)
-            throw new NotSupportedException("Tagged PDF merge cannot drop or combine metadata. KeepPrimary or RejectIncoming preserves the tagged document catalog.");
+            throw PdfMutationBlockedException.PolicyConflict(primaryPlan, "MergePolicy.TaggedMetadata",
+                "Tagged PDF merge cannot drop or combine metadata. KeepPrimary or RejectIncoming preserves the tagged document catalog.");
         if (policy.Outlines == PdfMergeStructureMode.Drop || policy.Outlines == PdfMergeStructureMode.Combine)
-            throw new NotSupportedException("Tagged PDF merge cannot drop or combine outlines. KeepPrimary or RejectIncoming preserves the tagged document catalog.");
+            throw PdfMutationBlockedException.PolicyConflict(primaryPlan, "MergePolicy.TaggedOutlines",
+                "Tagged PDF merge cannot drop or combine outlines. KeepPrimary or RejectIncoming preserves the tagged document catalog.");
         bool anyAttachments = sources.Any(source => source.Document.Attachments.Count > 0);
         bool incomingAttachments = sources.Where((source, index) => index != primarySourceIndex)
             .Any(source => source.Document.Attachments.Count > 0);
         if (policy.Attachments == PdfMergeStructureMode.Combine ||
             policy.Attachments == PdfMergeStructureMode.Drop && anyAttachments ||
             policy.Attachments == PdfMergeStructureMode.KeepPrimary && incomingAttachments)
-            throw new NotSupportedException("Tagged PDF merge cannot rewrite attachments. KeepPrimary supports primary attachments when incoming sources have none; RejectIncoming rejects sources that contain attachments.");
-        ValidateTaggedFormMergePolicy(sources, primarySourceIndex, policy);
+            throw PdfMutationBlockedException.PolicyConflict(primaryPlan, "MergePolicy.TaggedAttachments",
+                "Tagged PDF merge cannot rewrite attachments. KeepPrimary supports primary attachments when incoming sources have none; RejectIncoming rejects sources that contain attachments.");
+        ValidateTaggedFormMergePolicy(sources, primarySourceIndex, policy, primaryPlan);
     }
 
     private static void ValidateTaggedFormMergePolicy(IReadOnlyList<ImportedSource> sources,
-        int primarySourceIndex, PdfMergePolicy policy) {
+        int primarySourceIndex, PdfMergePolicy policy, PdfMutationPlan primaryPlan) {
         bool taggedFields = sources.Any(source => source.FormFieldCount > 0 && PdfTaggedPageOrganizer.IsTagged(source.Document));
         if (!taggedFields) return;
         bool dropsTaggedFields = policy.Forms == PdfMergeStructureMode.Drop ||
             policy.Forms == PdfMergeStructureMode.KeepPrimary && sources.Where((source, index) => index != primarySourceIndex)
                 .Any(source => source.FormFieldCount > 0 && PdfTaggedPageOrganizer.IsTagged(source.Document));
         if (dropsTaggedFields || policy.Forms == PdfMergeStructureMode.Combine && policy.FormFieldCollisions == PdfMergeCollisionMode.KeepFirst)
-            throw new NotSupportedException("Tagged form fields must keep their accessibility links. Use a Combine form policy with RenameIncoming or Reject collisions.");
+            throw PdfMutationBlockedException.PolicyConflict(primaryPlan, "MergePolicy.TaggedForms",
+                "Tagged form fields must keep their accessibility links. Use a Combine form policy with RenameIncoming or Reject collisions.");
     }
 
     private static PdfObject MapCatalogValue(PdfObject value, IReadOnlyDictionary<int, int> map,
