@@ -608,21 +608,40 @@ internal static partial class HtmlPdfRenderedConverter {
     private static IEnumerable<string> EnumerateFamilies(string? familyNames) =>
         HtmlRenderCssValues.FontFamilyNames(familyNames);
 
-    private static IEnumerable<string> EnumerateBoundedSystemFamilies(string? familyNames) {
+    private const int MaximumBoundedSystemFamilyLists = 256;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> BoundedSystemFamilyLists =
+        new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The CSS stack followed by its shared Office substitutes. Both depend only on the family list, and
+    /// every text run asks for its stack, so a bounded number of lists is resolved once per process.
+    /// </summary>
+    private static IReadOnlyList<string> EnumerateBoundedSystemFamilies(string? familyNames) {
+        if (familyNames == null) return ResolveBoundedSystemFamilies(null);
+        if (BoundedSystemFamilyLists.TryGetValue(familyNames, out string[]? cached)) return cached;
+        string[] resolved = ResolveBoundedSystemFamilies(familyNames);
+        if (familyNames.Length <= 1024 && BoundedSystemFamilyLists.Count < MaximumBoundedSystemFamilyLists)
+            BoundedSystemFamilyLists.TryAdd(familyNames, resolved);
+        return resolved;
+    }
+
+    private static string[] ResolveBoundedSystemFamilies(string? familyNames) {
         if (!HtmlRenderCssValues.TrySplitTopLevelCommas(familyNames, MaximumCssFontFamilyCandidates, out _))
-            yield break;
+            return Array.Empty<string>();
         string[] requested = EnumerateFamilies(familyNames).Where(name => name.Length <= 256).ToArray();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var families = new List<string>();
         // CSS's explicit stack wins before the shared Office substitutions are considered.
         foreach (string family in requested) {
-            if (seen.Add(family)) yield return family;
+            if (seen.Add(family)) families.Add(family);
         }
         foreach (string family in requested) {
             foreach (string substitute in OfficeDocumentFontSubstitutions.Enumerate(family)) {
-                if (seen.Count >= MaximumSystemFontFamilyCandidates) yield break;
-                if (seen.Add(substitute)) yield return substitute;
+                if (seen.Count >= MaximumSystemFontFamilyCandidates) return families.ToArray();
+                if (seen.Add(substitute)) families.Add(substitute);
             }
         }
+        return families.ToArray();
     }
 
     private sealed class RegisteredWebFonts {
