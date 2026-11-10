@@ -44,13 +44,13 @@ IReadOnlyList<PdfDocument> parts = PdfDocument.Load("Review-pack.pdf").Pages.Spl
 for (int i = 0; i < parts.Count; i++) parts[i].Save($"Review-pack-{i + 1}.pdf");
 ```
 
-Page operations return a new document; the source file is never changed in place. `PdfDocument.Merge(documents, options, out PdfMergeReport report)` combines several loaded documents under an explicit structure policy, and `pdf.Pages.SplitForProduction(...)` splits by page count, boundary text or target size.
+Page operations return a new document and do not overwrite the source; save the result to a different path to keep the original. `PdfDocument.Merge(documents, options, out PdfMergeReport report)` combines several loaded documents under an explicit structure policy, and `pdf.Pages.SplitForProduction(...)` splits by page count, boundary text or target size.
 
 Stamp and watermark operations support text, images and imported pages. Annotation editors, page operations, metadata changes, and optimization produce mutation evidence where signatures or structural constraints matter.
 
 ## Redaction is removal, not decoration
 
-Use `pdf.Redactions.Search(...)` to build a reviewable plan, then `ApplyWithEvidence(plan)` to remove the content and verify the saved bytes. Drawing a black rectangle over text is not redaction; the original content may remain extractable.
+Use `pdf.Redactions.Search(...)` to build a reviewable plan, then `ApplyWithEvidence(plan)` to remove the content and verify the saved bytes. Call `ThrowIfUnverified()` on the result before saving or sharing it: evidence can report residual or inconclusive matches. Drawing a black rectangle over text is not redaction; the original content may remain extractable.
 
 ## Operational policy
 

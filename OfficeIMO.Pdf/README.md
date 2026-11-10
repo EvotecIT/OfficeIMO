@@ -39,7 +39,7 @@ dotnet add package OfficeIMO.Pdf
 
 ## Examples
 
-Each example uses `using OfficeIMO.Pdf;`. Page numbers and ranges are 1-based, and every operation returns a new document — the source file is not changed.
+Each example uses `using OfficeIMO.Pdf;`, and page numbers and ranges are 1-based. Page, merge and form operations return a new document; save it to a different path to keep the source file.
 
 ### Create a report
 
@@ -74,6 +74,8 @@ Console.WriteLine(result.ExtractMarkdown());
 
 ### Merge, rotate and split
 
+This example combines the report with an `Appendix.pdf` of your own.
+
 <!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Combine" -->
 ```csharp
 PdfDocument.Load("Service-review.pdf")
@@ -87,6 +89,8 @@ for (int i = 0; i < parts.Count; i++) parts[i].Save($"Review-pack-{i + 1}.pdf");
 <!-- /powerforge:code -->
 
 ### Fill a form
+
+This example fills `Application.pdf`, a form with `Applicant.Name` and `Approval.Status` text fields. The [forms guide](../Docs/officeimo.pdf-guide.md#forms) shows how to create one.
 
 <!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="FillForm" -->
 ```csharp

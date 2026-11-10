@@ -66,7 +66,12 @@ Require(result.ExtractMarkdown().Contains("Rotate certificates"), "The read Mark
 
 PdfDocumentReadResult pack = PdfDocument.Load("Review-pack.pdf").Read();
 Require(pack.Pages.Count == 2 && pack.Text.Contains("Appendix"), "The combined pack must contain both source documents");
-Require(parts.Count == 2 && PdfDocument.Load("Review-pack-2.pdf").Read().Text.Contains("Backup schedule"), "Split must save one file per page");
+PdfDocumentInfo packInfo = PdfDocument.Load("Review-pack.pdf").Inspect();
+Require(packInfo.Pages[0].RotationDegrees == 0 && packInfo.Pages[1].RotationDegrees == 90, "Only page 2 of the pack must be rotated");
+Require(parts.Count == 2, "Split must save one file per page");
+Require(PdfDocument.Load("Review-pack-1.pdf").Read().Text.Contains("Rotate certificates"), "The first split file must hold the report page");
+PdfDocument secondPart = PdfDocument.Load("Review-pack-2.pdf");
+Require(secondPart.Read().Text.Contains("Backup schedule") && secondPart.Inspect().Pages[0].RotationDegrees == 90, "The second split file must hold the rotated appendix page");
 
 PdfDocument filled = PdfDocument.Load("Application-filled.pdf");
 Require(filled.Read().Text.Contains("Adele Vance") && filled.Inspect().FormFields.Count == 0, "Flattened values must become page text");
