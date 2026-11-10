@@ -25,7 +25,8 @@ public sealed partial class YamlReader : IDisposable {
     private readonly YamlReaderOptions _options;
     private readonly YamlStreamSource? _streamSource;
     private YamlEvent _event;
-    private YamlEvent _pending;
+    // The event held back while the comments before it are read; created only when comment events are requested.
+    private YamlEvent[]? _pending;
     private bool _hasPending;
     private bool _finished;
     private bool _faulted;
@@ -177,17 +178,17 @@ public sealed partial class YamlReader : IDisposable {
         c.RetainMark = -1;
         if (c.Source is not null) c.Compact();
         if (_hasPending) {
-            if (c.CommentCount > 0 && c.Comments[c.CommentHead].Start < _pending.Start) {
+            if (c.CommentCount > 0 && c.Comments[c.CommentHead].Start < _pending![0].Start) {
                 TakeComment();
                 return;
             }
-            _event = _pending;
+            _event = _pending![0];
             _hasPending = false;
         } else {
             var scanner = new YamlScanner(CurrentText, c);
             ParseEvent(ref scanner, out _event);
             if (c.CommentCount > 0 && c.Comments[c.CommentHead].Start <= _event.Start) {
-                _pending = _event;
+                (_pending ??= new YamlEvent[1])[0] = _event;
                 _hasPending = true;
                 TakeComment();
                 return;
