@@ -23,7 +23,6 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
-    <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
   </PropertyGroup>
 
   <ItemGroup>

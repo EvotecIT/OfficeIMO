@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Data;
 using System.Data.Common;
+#if NET5_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
+#endif
 
 namespace OfficeIMO.Data.Conversions;
 
@@ -448,8 +450,10 @@ public sealed class StructuredDataReader : DbDataReader {
     }
 
     /// <inheritdoc />
+#if NET5_0_OR_GREATER
     [UnconditionalSuppressMessage("Trimming", "IL2063", Justification = "Column types are scalar value types and string, returned as data; nothing reflects over their members.")]
     [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
+#endif
     public override Type GetFieldType(int ordinal) => _text ? typeof(string) : Current.Types[ordinal];
 
     /// <inheritdoc />
@@ -535,7 +539,9 @@ public sealed class StructuredDataReader : DbDataReader {
     public override long GetInt64(int ordinal) => System.Convert.ToInt64(GetValue(ordinal), CultureInfo.InvariantCulture);
 
     /// <inheritdoc />
+#if NET5_0_OR_GREATER
     [UnconditionalSuppressMessage("Trimming", "IL2111", Justification = "The schema table stores Type values as data and does not reflect over Type members.")]
+#endif
     public override DataTable GetSchemaTable() {
         var schema = new DataTable("SchemaTable") { Locale = CultureInfo.InvariantCulture };
         schema.Columns.Add(SchemaTableColumn.ColumnName, typeof(string));

@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Data;
 using System.Data.Common;
+#if NET5_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
+#endif
 
 namespace OfficeIMO.Data.Conversions;
 
@@ -51,7 +53,7 @@ internal sealed class ExcelValueReader : DbDataReader {
     }
 
     private static int SignificantDigits(decimal number) {
-        string digits = decimal.Abs(number).ToString(CultureInfo.InvariantCulture).Replace(".", string.Empty).TrimStart('0');
+        string digits = Math.Abs(number).ToString(CultureInfo.InvariantCulture).Replace(".", string.Empty).TrimStart('0');
         return digits.TrimEnd('0').Length == 0 ? 0 : digits.Length;
     }
 
@@ -61,8 +63,10 @@ internal sealed class ExcelValueReader : DbDataReader {
     public override string GetName(int ordinal) => _rows.GetName(ordinal);
     public override int GetOrdinal(string name) => _rows.GetOrdinal(name);
 
+#if NET5_0_OR_GREATER
     [UnconditionalSuppressMessage("Trimming", "IL2063", Justification = "Column types are scalar value types and string, returned as data.")]
     [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
+#endif
     public override Type GetFieldType(int ordinal) => typeof(object);
 
     public override string GetDataTypeName(int ordinal) => "object";
