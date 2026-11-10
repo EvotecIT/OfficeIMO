@@ -679,7 +679,7 @@ namespace OfficeIMO.Word.Html {
 
                     if (run.FontSize != null) {
                         var span = CreateOutputElement(htmlDoc, "span");
-                        SetOutputAttribute(span, "style", $"font-size:{run.FontSize.Value}pt", "RunFormatting:font-size");
+                        SetOutputAttribute(span, "style", $"font-size:{run.FontSize.Value.ToString("pt")}", "RunFormatting:font-size");
                         span.AppendChild(node);
                         node = span;
                     }
