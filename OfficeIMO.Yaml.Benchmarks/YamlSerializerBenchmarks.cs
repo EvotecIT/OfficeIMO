@@ -170,6 +170,14 @@ public class YamlSerializeBenchmarks : YamlSerializerBenchmarkBase {
 
     [Benchmark]
     public int OfficeIMOReflection() => YamlSerializer.Serialize(Value, Value.GetType(), Reflection).Length;
+
+    /// <summary>UTF-8 output, the form VYaml returns, written to a new stream as VYaml returns new memory.</summary>
+    [Benchmark]
+    public long OfficeIMOGeneratedUtf8() {
+        var stream = new MemoryStream();
+        YamlSerializer.Serialize(stream, Value, Value.GetType(), Context);
+        return stream.Length;
+    }
 }
 
 [MemoryDiagnoser]

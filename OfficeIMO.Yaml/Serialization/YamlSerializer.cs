@@ -152,7 +152,7 @@ public static class YamlSerializer {
     /// <summary>Writes <paramref name="value"/> with generated metadata and returns the text.</summary>
     public static string Serialize<T>(T value, YamlTypeInfo<T> typeInfo) {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        var output = new StringWriter(CultureInfo.InvariantCulture);
+        using var output = new YamlCharBuffer();
         using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) Write(writer, value, typeInfo);
         return output.ToString();
     }
@@ -161,7 +161,8 @@ public static class YamlSerializer {
     public static void Serialize<T>(Stream utf8Yaml, T value, YamlTypeInfo<T> typeInfo) {
         if (utf8Yaml is null) throw new ArgumentNullException(nameof(utf8Yaml));
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        using var writer = new YamlWriter(utf8Yaml, typeInfo.Options.EffectiveWriterOptions);
+        using var output = new YamlCharBuffer(utf8Yaml);
+        using var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions);
         Write(writer, value, typeInfo);
     }
 
@@ -311,14 +312,15 @@ public static class YamlSerializer {
     }
 
     private static string SerializeBoxed(object? value, YamlTypeInfo typeInfo) {
-        var output = new StringWriter(CultureInfo.InvariantCulture);
+        using var output = new YamlCharBuffer();
         using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) WriteBoxed(writer, value, typeInfo);
         return output.ToString();
     }
 
     private static void SerializeBoxed(Stream utf8Yaml, object? value, YamlTypeInfo typeInfo) {
         if (utf8Yaml is null) throw new ArgumentNullException(nameof(utf8Yaml));
-        using var writer = new YamlWriter(utf8Yaml, typeInfo.Options.EffectiveWriterOptions);
+        using var output = new YamlCharBuffer(utf8Yaml);
+        using var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions);
         WriteBoxed(writer, value, typeInfo);
     }
 

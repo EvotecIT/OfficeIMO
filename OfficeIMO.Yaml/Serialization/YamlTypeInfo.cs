@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Yaml;
 
@@ -63,13 +64,19 @@ public abstract class YamlTypeInfo {
 public sealed class YamlTypeInfo<T> : YamlTypeInfo {
     private static readonly bool CanBeNull = default(T) is null;
     private static readonly bool IsReferenceType = !typeof(T).IsValueType;
+    private static readonly bool IsString = typeof(T) == typeof(string);
     private readonly YamlConverter<T> _converter;
     private readonly YamlTypeInfo? _nonPolymorphic;
+    // Read once: these are asked for every value written.
+    private readonly bool _tracksReferences;
+    private readonly bool _handlesNull;
 
     internal YamlTypeInfo(YamlSerializerOptions options, YamlConverter<T> converter, YamlTypeInfo? nonPolymorphic = null)
         : base(typeof(T), options) {
         _converter = converter;
         _nonPolymorphic = nonPolymorphic;
+        _tracksReferences = IsReferenceType && converter.IsContainer;
+        _handlesNull = converter.HandlesNull;
     }
 
     internal YamlConverter<T> Converter => _converter;
@@ -90,7 +97,7 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
             if (state.Preserve && state.TryGetReference(cursor.GetString(), out object? existing) && existing is T reference) return reference;
             cursor.ExpandAlias();
         }
-        if (!_converter.HandlesNull && cursor.IsNullScalar) {
+        if (!_handlesNull && cursor.IsNullScalar) {
             if (CanBeNull) return default!;
             throw YamlSerializationErrors.TypeMismatch(cursor, state, typeof(T));
         }
@@ -104,12 +111,36 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
 
     /// <summary>Writes a value at the writer's position: an alias for a value already written under Preserve, otherwise the node.</summary>
     internal void Write(YamlWriter writer, T value, YamlWriteState state) {
+        // The common scalars go straight to the writer, as their built-in converters would: the JIT folds these checks
+        // for value types, and strings use a flag because shared generic code cannot fold them.
+        if (typeof(T) == typeof(int)) {
+            writer.WriteScalar((long)(int)(object)value!);
+            return;
+        }
+        if (typeof(T) == typeof(long)) {
+            writer.WriteScalar((long)(object)value!);
+            return;
+        }
+        if (typeof(T) == typeof(bool)) {
+            writer.WriteScalar((bool)(object)value!);
+            return;
+        }
+        if (typeof(T) == typeof(double)) {
+            writer.WriteScalar((double)(object)value!);
+            return;
+        }
+        if (IsString) {
+            string? text = Unsafe.As<T, string?>(ref value);
+            if (text is null) writer.WriteNull();
+            else writer.WriteScalar(text);
+            return;
+        }
         EnsureConfigured();
         if (value is null) {
             writer.WriteNull();
             return;
         }
-        if (IsReferenceType && _converter.IsContainer) {
+        if (_tracksReferences) {
             object instance = value;
             if (!state.Begin(writer, instance, typeof(T))) return;
             _converter.Write(writer, value, state);
@@ -123,7 +154,7 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
     internal void Collect(T value, YamlReferenceCollector collector) {
         EnsureConfigured();
         if (value is null) return;
-        if (IsReferenceType && _converter.IsContainer && !collector.Visit(value)) return;
+        if (_tracksReferences && !collector.Visit(value)) return;
         _converter.Collect(value, collector);
     }
 
@@ -222,9 +253,9 @@ public abstract class YamlPropertyInfo {
     /// <summary>The constructor parameter position the property binds to, or -1.</summary>
     internal int ParameterIndex { get; set; } = -1;
 
-    internal abstract bool CanRead { get; }
+    internal bool CanRead { get; private protected set; }
 
-    internal abstract bool CanSet { get; }
+    internal bool CanSet { get; private protected set; }
 
     internal abstract void Configure(YamlSerializerOptions options);
 
@@ -253,11 +284,9 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
         : base(values.Name ?? throw new ArgumentException("The property name is required.", nameof(values)), values.YamlName, values.IsRequired, values.IgnoreCondition, typeof(T)) {
         _getter = values.Getter;
         _setter = values.Setter;
+        CanRead = _getter is not null;
+        CanSet = _setter is not null;
     }
-
-    internal override bool CanRead => _getter is not null;
-
-    internal override bool CanSet => _setter is not null;
 
     private YamlTypeInfo<T> TypeInfo => _typeInfo!;
 

@@ -67,9 +67,11 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         EnsureTokenCapacity();
         int index = c.TokenHead + (tokenNumber - c.TokensParsed);
-        int tail = c.TokenHead + c.TokenCount;
-        if (index < tail) Array.Copy(c.Tokens, index, c.Tokens, index + 1, tail - index);
-        c.Tokens[index] = token;
+        YamlToken[] tokens = c.Tokens;
+        // The queue holds a few tokens, so shifting them one by one beats Array.Copy, whose fixed cost dominated
+        // reading block mappings (two inserts per key).
+        for (int i = c.TokenHead + c.TokenCount; i > index; i--) tokens[i] = tokens[i - 1];
+        tokens[index] = token;
         c.TokenCount++;
     }
 

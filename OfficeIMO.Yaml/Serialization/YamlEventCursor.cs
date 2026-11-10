@@ -123,7 +123,7 @@ internal sealed class YamlEventCursor {
     }
 
     /// <summary>Gets whether the current node is a null scalar under its schema: plain <c>null</c>, <c>~</c>, empty, or <c>!!null</c>.</summary>
-    public bool IsNullScalar => _live ? _reader!.TokenType == YamlTokenType.Scalar && _reader.IsNull() : _current.Type == YamlTokenType.Scalar && _current.IsNull;
+    public bool IsNullScalar => _live ? _reader!.IsNullScalar() : _current.Type == YamlTokenType.Scalar && _current.IsNull;
 
     /// <summary>Gets whether the current scalar is the merge key <c>&lt;&lt;</c> where merge keys apply.</summary>
     public bool IsMergeKey => _live ? LiveIsMergeKey() : _current.IsMergeKey;
@@ -320,7 +320,7 @@ internal sealed class YamlEventCursor {
             case YamlTokenType.Scalar:
                 snapshot.Tag = reader.Tag;
                 snapshot.Value = reader.GetString();
-                snapshot.IsNull = reader.IsNull();
+                snapshot.IsNull = reader.IsNullScalar();
                 snapshot.IsMergeKey = LiveIsMergeKey();
                 break;
             case YamlTokenType.MappingStart:

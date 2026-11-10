@@ -30,8 +30,21 @@ internal static class YamlScalarText {
         return value;
     }
 
-    public static void WriteInvariant(YamlWriter writer, IFormattable value, string? format) =>
+    public static void WriteInvariant<T>(YamlWriter writer, T value, string? format) where T : IFormattable
+#if NET8_0_OR_GREATER
+        , ISpanFormattable
+#endif
+    {
+#if NET8_0_OR_GREATER
+        // Format into the stack and hand the span to the writer, without a string per value.
+        Span<char> buffer = stackalloc char[64];
+        if (value.TryFormat(buffer, out int length, format, CultureInfo.InvariantCulture)) {
+            writer.WritePlainValue(buffer.Slice(0, length));
+            return;
+        }
+#endif
         writer.WritePlainValue(value.ToString(format, CultureInfo.InvariantCulture).AsSpan());
+    }
 }
 
 internal sealed class YamlStringConverter : YamlConverter<string> {
@@ -162,7 +175,14 @@ internal sealed class YamlSingleConverter : YamlConverter<float> {
         return (float)value;
     }
 
-    public override void Write(YamlWriter writer, float value, YamlWriteState state) => writer.WritePlainValue(YamlScalarFormat.Format(value).AsSpan());
+    public override void Write(YamlWriter writer, float value, YamlWriteState state) {
+#if NET8_0_OR_GREATER
+        Span<char> buffer = stackalloc char[48];
+        writer.WritePlainValue(buffer.Slice(0, YamlScalarFormat.Format(value, buffer)));
+#else
+        writer.WritePlainValue(YamlScalarFormat.Format(value).AsSpan());
+#endif
+    }
 }
 
 internal sealed class YamlDecimalConverter : YamlConverter<decimal> {
