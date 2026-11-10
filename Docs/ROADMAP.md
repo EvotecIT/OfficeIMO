@@ -851,6 +851,15 @@ Build `OfficeIMO.Yaml` as an owned, dependency-free YAML 1.2 engine with lossles
 - [ ] Y4: `YamlSerializer` with a packaged source generator for trimming and NativeAOT and a reflection fallback.
 - [ ] Lead YamlDotNet and SharpYaml on parse-to-events and load-to-model elapsed time and allocation across the benchmark workloads, with Windows, Linux and macOS evidence.
 
+## Managed complex-script shaping
+
+Extend the managed shaping provider in `OfficeIMO.Core` so complex scripts and vertical text no longer depend on the optional HarfBuzz adapter. HarfBuzzSharp ships native assets only for Windows, Linux, macOS and WebAssembly, so iOS, Android, trimmed and NativeAOT hosts currently fall back for these scripts. A single managed provider also gives identical glyph output on every platform. `OfficeIMO.Drawing.HarfBuzz` remains the optional provider for AAT and Graphite fonts. This work starts after the [YAML engine](#yaml-engine) milestones.
+
+- [ ] Support all GSUB/GPOS lookup flags, including ignore-marks and mark-filtering sets, plus complete mark-to-base, mark-to-ligature and mark-to-mark positioning.
+- [ ] Shape Hebrew, Thai and Lao, then add the Indic shaper, the Universal Shaping Engine, Myanmar and Khmer.
+- [ ] Shape vertical text with `vert`/`vrt2` substitutions and vertical metrics, so Drawing and PDF paint positioned vertical glyphs without the HarfBuzz adapter.
+- [ ] Qualify each script against HarfBuzz glyph IDs, clusters and positions over a provenance-recorded font and text corpus, and remove each script from the managed decline list only after it matches.
+
 ## Additional formats and product boundaries
 
 - [ ] Establish independent application/producer validation for each adopted legacy generation before claiming its read, edit, or write operation.
