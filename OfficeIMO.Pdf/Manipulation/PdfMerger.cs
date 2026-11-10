@@ -69,6 +69,15 @@ internal static partial class PdfMerger {
         return MergeCore(pdfs, primarySourceIndex: 0, options, readOptions, cancellationToken: cancellationToken);
     }
 
+    /// <summary>Merges sources whose canonical parses, when supplied, were opened from exactly these bytes and read options.</summary>
+    internal static PdfMergeResult MergeResult(PdfMergeOptions options, IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfLoadOptions> readOptions,
+        IReadOnlyList<Func<PdfReadDocument>?> readDocumentFactories, CancellationToken cancellationToken = default) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(readOptions, nameof(readOptions));
+        Guard.NotNull(readDocumentFactories, nameof(readDocumentFactories));
+        return MergeCore(pdfs, primarySourceIndex: 0, options, readOptions, readDocumentFactories, cancellationToken);
+    }
+
     /// <summary>
     /// Merges all pages from the supplied PDFs into one new PDF, applying optional source preparation first.
     /// </summary>
