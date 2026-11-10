@@ -135,7 +135,89 @@ public static class PdfVisualComparer {
         };
         OfficeRasterImage expectedImage = OfficeDrawingRasterRenderer.Render(expectedDrawing, rasterOptions);
         OfficeRasterImage actualImage = OfficeDrawingRasterRenderer.Render(actualDrawing, rasterOptions);
+        return CompareRasters(expectedImage, actualImage, null, null, expectedPageNumber, actualPageNumber, incomplete,
+            options, structural, ref totalPixels, expectedDiagnostics, actualDiagnostics, cancellationToken);
+    }
 
+    /// <summary>Compares page images rendered earlier, such as approved snapshot baselines, with newly rendered page images.</summary>
+    /// <remarks>
+    /// Images pair by position and page numbers follow that order. Tolerances, ignored regions, alignment, background
+    /// and limits apply; <see cref="PdfVisualComparisonOptions.Scale"/> does not, because the inputs are already rasterized.
+    /// The report's SHA-256 identities describe each ordered PNG sequence rather than a PDF file.
+    /// </remarks>
+    public static PdfVisualComparisonReport CompareImages(
+        IReadOnlyList<byte[]> expectedPagePngs,
+        IReadOnlyList<byte[]> actualPagePngs,
+        PdfVisualComparisonOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(expectedPagePngs, nameof(expectedPagePngs));
+        Guard.NotNull(actualPagePngs, nameof(actualPagePngs));
+        PdfVisualComparisonOptions effective = options ?? new PdfVisualComparisonOptions();
+        effective.Validate();
+        if (effective.ExpectedPages is not null || effective.ActualPages is not null)
+            throw new ArgumentException("Page selectors apply to PDF inputs; pass only the page images to compare.", nameof(options));
+        int largest = Math.Max(expectedPagePngs.Count, actualPagePngs.Count);
+        if (largest > effective.MaxPages) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, effective.MaxPages, largest);
+        var structural = new List<string>();
+        if (expectedPagePngs.Count != actualPagePngs.Count) {
+            structural.Add("PageCount: expected " + expectedPagePngs.Count + ", actual " + actualPagePngs.Count + ".");
+        }
+
+        int pairCount = Math.Min(expectedPagePngs.Count, actualPagePngs.Count);
+        int[] expectedPages = Enumerable.Range(1, expectedPagePngs.Count).ToArray();
+        int[] actualPages = Enumerable.Range(1, actualPagePngs.Count).ToArray();
+        int[] unmatchedExpected = expectedPages.Skip(pairCount).ToArray();
+        int[] unmatchedActual = actualPages.Skip(pairCount).ToArray();
+        foreach (int page in unmatchedExpected) structural.Add("Expected page " + page + " has no selected actual partner.");
+        foreach (int page in unmatchedActual) structural.Add("Actual page " + page + " has no selected expected partner.");
+        var pages = new List<PdfVisualPageComparison>(pairCount);
+        long totalPixels = 0;
+        long totalOutputBytes = 0;
+        for (int index = 0; index < pairCount; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] expectedPng = expectedPagePngs[index] ?? throw new ArgumentException("Page images cannot be null.", nameof(expectedPagePngs));
+            byte[] actualPng = actualPagePngs[index] ?? throw new ArgumentException("Page images cannot be null.", nameof(actualPagePngs));
+            OfficeRasterImage expectedImage = DecodePagePng(expectedPng, index + 1, nameof(expectedPagePngs), effective, ref totalPixels);
+            OfficeRasterImage actualImage = DecodePagePng(actualPng, index + 1, nameof(actualPagePngs), effective, ref totalPixels);
+            PdfVisualPageComparison page = CompareRasters(expectedImage, actualImage, expectedPng, actualPng, index + 1, index + 1,
+                incomplete: false, effective, structural, ref totalPixels,
+                Array.Empty<PdfRenderCapabilityDiagnostic>(), Array.Empty<PdfRenderCapabilityDiagnostic>(), cancellationToken);
+            totalOutputBytes = checked(totalOutputBytes + page.OutputByteLength);
+            if (totalOutputBytes > effective.MaxTotalOutputBytes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effective.MaxTotalOutputBytes, totalOutputBytes);
+            }
+            pages.Add(page);
+        }
+
+        return new PdfVisualComparisonReport(pages.AsReadOnly(), structural.AsReadOnly(), expectedPagePngs.Count, actualPagePngs.Count,
+            expectedPages, actualPages, unmatchedExpected, unmatchedActual,
+            ComputeSequenceSha256(expectedPagePngs, cancellationToken), ComputeSequenceSha256(actualPagePngs, cancellationToken), selectedScope: false);
+    }
+
+    private static OfficeRasterImage DecodePagePng(byte[] png, int pageNumber, string parameterName, PdfVisualComparisonOptions options, ref long totalPixels) {
+        if (!OfficePngReader.TryDecode(png, out OfficeRasterImage? image) || image is null) {
+            throw new ArgumentException("Page image " + pageNumber + " is not a readable PNG.", parameterName);
+        }
+        AddPixelBudget(image.Width, image.Height, 1D, options, ref totalPixels);
+        return image;
+    }
+
+    private static string ComputeSequenceSha256(IReadOnlyList<byte[]> images, CancellationToken cancellationToken) {
+        using var sha256 = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+        foreach (byte[] image in images) {
+            cancellationToken.ThrowIfCancellationRequested();
+            sha256.AppendData(BitConverter.GetBytes((long)image.Length));
+            sha256.AppendData(image);
+        }
+        return PdfArtifactInfo.ToLowerHex(sha256.GetHashAndReset());
+    }
+
+    private static PdfVisualPageComparison CompareRasters(
+        OfficeRasterImage expectedImage, OfficeRasterImage actualImage, byte[]? expectedPng, byte[]? actualPng,
+        int expectedPageNumber, int actualPageNumber, bool incomplete, PdfVisualComparisonOptions options,
+        List<string> structural, ref long totalPixels,
+        IReadOnlyList<PdfRenderCapabilityDiagnostic> expectedDiagnostics, IReadOnlyList<PdfRenderCapabilityDiagnostic> actualDiagnostics,
+        CancellationToken cancellationToken) {
         bool hasSizeDifference = expectedImage.Width != actualImage.Width || expectedImage.Height != actualImage.Height;
         if (hasSizeDifference) {
             structural.Add("Page " + expectedPageNumber + " dimensions: expected " + expectedImage.Width + "x" + expectedImage.Height + ", actual " + actualImage.Width + "x" + actualImage.Height + ".");
@@ -188,8 +270,8 @@ public static class PdfVisualComparer {
 
         double ratio = compared == 0 ? 0D : different / (double)compared;
         double mean = compared == 0 ? 0D : channelDifferenceTotal / (double)(compared * 4L);
-        byte[] expectedPng = OfficePngWriter.Encode(expectedImage, cancellationToken);
-        byte[] actualPng = OfficePngWriter.Encode(actualImage, cancellationToken);
+        expectedPng ??= OfficePngWriter.Encode(expectedImage, cancellationToken);
+        actualPng ??= OfficePngWriter.Encode(actualImage, cancellationToken);
         byte[] diffPng = OfficePngWriter.Encode(diff, cancellationToken);
         return new PdfVisualPageComparison(
             expectedPageNumber,

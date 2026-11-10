@@ -896,3 +896,4 @@ OfficeIMO.Pdf.PdfFontInspectionDiagnosticCode.UnmappableText = 14 -> OfficeIMO.P
 OfficeIMO.Pdf.PdfLoadOptions.RecoverDecodableTextForInspection.get -> bool
 OfficeIMO.Pdf.PdfLoadOptions.RecoverDecodableTextForInspection.init -> void
 OfficeIMO.Pdf.PdfPageReadStatus.DamagedContentStream = 3 -> OfficeIMO.Pdf.PdfPageReadStatus
+static OfficeIMO.Pdf.PdfVisualComparer.CompareImages(System.Collections.Generic.IReadOnlyList<byte[]!>! expectedPagePngs, System.Collections.Generic.IReadOnlyList<byte[]!>! actualPagePngs, OfficeIMO.Pdf.PdfVisualComparisonOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfVisualComparisonReport!
