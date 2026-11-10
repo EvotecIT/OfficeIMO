@@ -212,7 +212,6 @@ namespace OfficeIMO.Excel {
             document.ApplicationProperties = new ExcelApplicationProperties(document);
             document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
-            ExcelChartAxisIdGenerator.Initialize(document._spreadSheetDocument);
             return document;
         }
 

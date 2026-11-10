@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 
@@ -5,9 +6,24 @@ namespace OfficeIMO.Excel {
     internal static class ExcelChartAxisIdGenerator {
         private const long BaseAxisId = 48650112L;
         private static long _axisIdSeed = BaseAxisId;
+        private static readonly ConditionalWeakTable<OpenXmlPackage, object> ScannedPackages = new();
 
-        internal static void Initialize(SpreadsheetDocument document) {
-            if (document?.WorkbookPart == null) {
+        /// <summary>
+        /// Raises the seed above the axis ids already in a package before the first chart in it
+        /// takes a new id. Scanning on first use spares opening every worksheet's relationships
+        /// when a workbook is loaded and no chart is ever built or updated.
+        /// </summary>
+        internal static void EnsureInitialized(OpenXmlPackage? package) {
+            if (package is not SpreadsheetDocument document) return;
+            lock (ScannedPackages) {
+                if (ScannedPackages.TryGetValue(document, out _)) return;
+                Initialize(document);
+                ScannedPackages.Add(document, ScannedPackages);
+            }
+        }
+
+        private static void Initialize(SpreadsheetDocument document) {
+            if (document.WorkbookPart == null) {
                 return;
             }
 
