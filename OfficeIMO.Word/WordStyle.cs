@@ -74,7 +74,9 @@ public sealed class WordStyle {
                 Element.BasedOn = null;
                 return;
             }
-            for (string? current = value; current != null; current = _document.Styles.FindById(current)?.BasedOnStyleId) {
+            // A loaded document can already contain a cycle elsewhere in the chain, so stop at the first repeat.
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            for (string? current = value; current != null && visited.Add(current); current = _document.Styles.FindById(current)?.BasedOnStyleId) {
                 if (string.Equals(current, StyleId, StringComparison.Ordinal))
                     throw new ArgumentException($"Basing '{StyleId}' on '{value}' would make it inherit from itself.", nameof(value));
             }

@@ -87,6 +87,37 @@ public partial class Word {
     }
 
     [Fact]
+    public void DocumentStyles_BasingOnAnExistingCycleDoesNotHang() {
+        using WordDocument document = WordDocument.Create();
+        WordStyle first = document.Styles.AddParagraphStyle("CycleA");
+        WordStyle second = document.Styles.AddParagraphStyle("CycleB");
+        second.BasedOnStyleId = first.StyleId;
+        // A loaded document can already contain a cycle the setter would refuse to create.
+        first.Element.BasedOn = new BasedOn { Val = second.StyleId };
+        WordStyle third = document.Styles.AddParagraphStyle("CycleC");
+
+        third.BasedOnStyleId = first.StyleId;
+
+        Assert.Equal("CycleA", third.BasedOnStyleId);
+    }
+
+    [Fact]
+    public void DocumentStyles_ImportRenamesAStyleWhoseNameATargetStyleOfAnotherTypeUses() {
+        using WordDocument source = WordDocument.Create();
+        source.Styles.AddParagraphStyle("NoteParagraph", "Note").Bold = true;
+
+        using WordDocument target = WordDocument.Create();
+        target.Styles.AddCharacterStyle("NoteCharacter", "Note");
+
+        WordStyleImportReport report = target.Styles.Import(source, WordStyleConflictMode.KeepTarget, new[] { "NoteParagraph" });
+
+        Assert.Equal("NoteParagraph_1", report.Renamed["NoteParagraph"]);
+        Assert.Equal(WordStyleType.Character, target.Styles.Get("Note")!.Type);
+        Assert.Equal("Note 1", target.Styles["NoteParagraph_1"].Name);
+        Assert.True(target.Styles["NoteParagraph_1"].Bold);
+    }
+
+    [Fact]
     public void DocumentStyles_RemovingAStyleRebasesDependentsAndClearsReferences() {
         using WordDocument document = WordDocument.Create();
         WordStyle parent = document.Styles.AddParagraphStyle("Parent");

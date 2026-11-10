@@ -1528,7 +1528,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word
 
 <details>
-<summary>460 changes</summary>
+<summary>458 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1715,12 +1715,10 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.Word.WordParagraph.SetSuperScript()` | Renamed | `OfficeIMO.Word.WordParagraph.SetSuperscript()` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordParagraph.Strike` | Renamed | `OfficeIMO.Word.WordParagraph.Strikethrough` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontName, string styleName = null)` | Removed | &mdash; | Create the style in the document with document.Styles.AddParagraphStyle and set FontFamily. |
-| Authoring | `OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontName, string? styleName = null)` | Changed | `OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontFamily, string? styleName = null)` | Use FontFamily for typeface names across authoring and design models. |
 | Authoring | `OfficeIMO.Word.WordParagraphStyle.GetStyleDefinition(WordParagraphStyles style)` | Merged | `OfficeIMO.Word.WordStyleCollection.GetOrAdd(WordParagraphStyles style) : WordStyle` | Read the document's definition with document.Styles\["Heading1"\], document.Styles.Get(idOrName) or document.Styles.GetOrAdd(WordParagraphStyles.Heading1). |
 | Authoring | `OfficeIMO.Word.WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles style, WordParagraphStyleDefinition styleDefinition)` | Merged | `OfficeIMO.Word.WordStyleCollection.GetOrAdd(WordParagraphStyles style) : WordStyle` | Edit the document's own definition: document.Styles.GetOrAdd(WordParagraphStyles.Normal).Bold = true; or import a template's styles with document.Styles.Import(template, WordStyleConflictMode.Overwrite). |
 | Authoring | `OfficeIMO.Word.WordParagraphStyle.RegisterCustomStyle(string styleId, WordParagraphStyleDefinition styleDefinition)` | Merged | `OfficeIMO.Word.WordStyleCollection.AddParagraphStyle(string styleId, string name = null) : WordStyle` | Create the style in the document that uses it: document.Styles.AddParagraphStyle("MyStyle") and set its properties on the returned WordStyle. |
 | Authoring | `OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontName, string styleName = null)` | Merged | `OfficeIMO.Word.WordStyleCollection.AddParagraphStyle(string styleId, string name = null) : WordStyle` | document.Styles.AddParagraphStyle(styleId, styleName).FontFamily = fontName; |
-| Authoring | `OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontName, string? styleName = null)` | Changed | `OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontFamily, string? styleName = null)` | Use FontFamily for typeface names across authoring and design models. |
 | Authoring | `OfficeIMO.Word.WordParagraphStyleDefinition` | Merged | `OfficeIMO.Word.WordStyle` | WordStyle edits a style in place in its document. LeftIndent is IndentationBefore, SpacingBefore and SpacingAfter are LineSpacingBefore and LineSpacingAfter, and Alignment is ParagraphAlignment, matching WordParagraph. |
 | Authoring | `OfficeIMO.Word.WordRunInfo.DoubleStrike` | Renamed | `OfficeIMO.Word.WordRunInfo.DoubleStrikethrough` | Use one formatting vocabulary on the native object model. |
 | Authoring | `OfficeIMO.Word.WordRunInfo.Strike` | Renamed | `OfficeIMO.Word.WordRunInfo.Strikethrough` | Use one formatting vocabulary on the native object model. |

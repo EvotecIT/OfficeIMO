@@ -7401,28 +7401,6 @@
       "applied": "applied"
     },
     {
-      "old": "OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontName, string? styleName = null)",
-      "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontFamily, string? styleName = null)",
-      "reason": "Use FontFamily for typeface names across authoring and design models.",
-      "file": "OfficeIMO.Word/WordParagraphStyle.cs",
-      "category": "authoring",
-      "phase": "B",
-      "applied": "applied"
-    },
-    {
-      "old": "OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontName, string? styleName = null)",
-      "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontFamily, string? styleName = null)",
-      "reason": "Use FontFamily for typeface names across authoring and design models.",
-      "file": "OfficeIMO.Word/WordParagraphStyle.cs",
-      "category": "authoring",
-      "phase": "B",
-      "applied": "applied"
-    },
-    {
       "old": "OfficeIMO.Word.WordTable.DistributeColumnsEvenly() -> void",
       "kind": "method",
       "action": "change",

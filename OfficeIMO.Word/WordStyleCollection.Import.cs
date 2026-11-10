@@ -123,6 +123,9 @@ public sealed partial class WordStyleCollection {
                 Style? match = FindMatch(style, out bool typeClash);
                 // Styles pulled in only as dependencies never replace or duplicate a matching target style.
                 WordStyleConflictMode mode = requested == null || explicitlyRequested.Contains(id) ? _mode : WordStyleConflictMode.KeepTarget;
+                // A target style of another type with the same name is a clash too: names are unique across types.
+                string? sourceName = style.StyleName?.Val?.Value?.Trim();
+                if (match == null && sourceName != null && targetNames.Contains(sourceName)) typeClash = true;
                 if (match == null && !typeClash) {
                     _map[id] = id;
                     targetIds.Add(id);
