@@ -247,6 +247,14 @@
       "family": "other"
     },
     {
+      "name": "JSON",
+      "family": "other"
+    },
+    {
+      "name": "JSON Lines",
+      "family": "other"
+    },
+    {
       "name": "POT",
       "family": "other"
     },
@@ -339,7 +347,15 @@
       "family": "other"
     },
     {
+      "name": "XML",
+      "family": "other"
+    },
+    {
       "name": "XML Spreadsheet 2003",
+      "family": "other"
+    },
+    {
+      "name": "YAML",
       "family": "other"
     }
   ],
@@ -842,6 +858,30 @@
       "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -As Markdown -FailOnLoss).Value | Set-Content -LiteralPath ./out.md -Encoding utf8"
     },
     {
+      "id": "csv-json",
+      "source": "CSV",
+      "target": "JSON",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "CsvDocument.Load(stream).SaveAsJson(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "csv-jsonl",
+      "source": "CSV",
+      "target": "JSON Lines",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "CsvDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "csv-xlsx",
       "source": "CSV",
       "target": "XLSX",
@@ -855,6 +895,18 @@
       ],
       "cmdlet": "Export-OfficeExcel",
       "example": "Import-OfficeCsv -Path ./in.csv -As DataTable | Export-OfficeExcel -Path ./out.xlsx -Sheet Data"
+    },
+    {
+      "id": "csv-xml",
+      "source": "CSV",
+      "target": "XML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "CsvDocument.Load(stream).SaveAsXml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
     },
     {
       "id": "dbf-csv",
@@ -1715,6 +1767,102 @@
       "support": "Established",
       "fidelity": "Editable",
       "api": "HtmlConversionDocument.Parse(html).SaveAsExcel(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "json-csv",
+      "source": "JSON",
+      "target": "CSV",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "JsonNode.Parse(stream).SaveAsCsv(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "json-jsonl",
+      "source": "JSON",
+      "target": "JSON Lines",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "JsonNode.Parse(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "json-xlsx",
+      "source": "JSON",
+      "target": "XLSX",
+      "package": "OfficeIMO.Data.Conversions.Excel",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "JsonNode.Parse(stream).SaveAsExcel(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "json-xml",
+      "source": "JSON",
+      "target": "XML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "JsonNode.Parse(stream).SaveAsXml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "jsonl-csv",
+      "source": "JSON Lines",
+      "target": "CSV",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "jsonl-json",
+      "source": "JSON Lines",
+      "target": "JSON",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "jsonl-xlsx",
+      "source": "JSON Lines",
+      "target": "XLSX",
+      "package": "OfficeIMO.Data.Conversions.Excel",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "jsonl-xml",
+      "source": "JSON Lines",
+      "target": "XML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
       "surfaces": [
         "dotnet"
       ]
@@ -3695,6 +3843,30 @@
       "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Jpeg"
     },
     {
+      "id": "xlsx-json",
+      "source": "XLSX",
+      "target": "JSON",
+      "package": "OfficeIMO.Data.Conversions.Excel",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ExcelDocument.Load(stream).SaveAsJson(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsx-jsonl",
+      "source": "XLSX",
+      "target": "JSON Lines",
+      "package": "OfficeIMO.Data.Conversions.Excel",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ExcelDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "xlsx-ods",
       "source": "XLSX",
       "target": "ODS",
@@ -3788,6 +3960,66 @@
       "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Webp"
     },
     {
+      "id": "xlsx-xml",
+      "source": "XLSX",
+      "target": "XML",
+      "package": "OfficeIMO.Data.Conversions.Excel",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ExcelDocument.Load(stream).SaveAsXml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xml-csv",
+      "source": "XML",
+      "target": "CSV",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "XDocument.Load(stream).SaveAsCsv(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xml-json",
+      "source": "XML",
+      "target": "JSON",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "XDocument.Load(stream).SaveAsJson(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xml-jsonl",
+      "source": "XML",
+      "target": "JSON Lines",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "XDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xml-xlsx",
+      "source": "XML",
+      "target": "XLSX",
+      "package": "OfficeIMO.Data.Conversions.Excel",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "XDocument.Load(stream).SaveAsExcel(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "xps-jpeg",
       "source": "XPS/OpenXPS",
       "target": "JPEG",
@@ -3857,6 +4089,66 @@
       "support": "Targeted",
       "fidelity": "FixedLayout",
       "api": "XpsDocument.Load(stream).ToImages(new OfficeImageExportOptions { Format = format })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "yaml-csv",
+      "source": "YAML",
+      "target": "CSV",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "YamlDocument.Load(stream).SaveAsCsv(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "yaml-json",
+      "source": "YAML",
+      "target": "JSON",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "YamlDocument.Load(stream).SaveAsJson(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "yaml-jsonl",
+      "source": "YAML",
+      "target": "JSON Lines",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "YamlDocument.Load(stream).SaveAsJson(output, new DataConversionOptions { JsonLines = true })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "yaml-xlsx",
+      "source": "YAML",
+      "target": "XLSX",
+      "package": "OfficeIMO.Data.Conversions.Excel",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "YamlDocument.Load(stream).SaveAsExcel(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "yaml-xml",
+      "source": "YAML",
+      "target": "XML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "YamlDocument.Load(stream).SaveAsXml(output, options)",
       "surfaces": [
         "dotnet"
       ]

@@ -105,3 +105,5 @@ OfficeIMO.OfficePdfValidationOptions.Proof.set -> void
 OfficeIMO.OfficePdfValidationOptions.Rewrite.get -> OfficeIMO.Pdf.PdfRewritePreservationOptions?
 OfficeIMO.OfficePdfValidationOptions.Rewrite.set -> void
 static OfficeIMO.OfficeDocument.Validate(object! document, OfficeIMO.OfficeDocumentCheck[]? checks = null, OfficeIMO.OfficeDocumentValidationOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeValidationReport!
+OfficeIMO.OfficeConversionOptions.Data.get -> OfficeIMO.Data.Conversions.DataConversionOptions?
+OfficeIMO.OfficeConversionOptions.Data.set -> void
