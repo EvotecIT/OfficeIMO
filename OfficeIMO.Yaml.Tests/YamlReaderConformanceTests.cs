@@ -56,6 +56,19 @@ public class YamlReaderConformanceTests {
         Assert.True(IsTrivia(text.Substring((int)covered)), id + ": unexpected text after the last event.");
     }
 
+    // The suite has no comment at the start of the line after a block scalar, whose span ends at that line start.
+    [Theory]
+    [InlineData("a: |\n  x\n# c\nb: 1\n")]
+    [InlineData("- >-\n  x\n\n# c\n- y\n")]
+    public void CommentAtTheStartOfTheLineAfterABlockScalarIsTrivia(string yaml) {
+        using var reader = new YamlReader(yaml);
+        int scalars = 0;
+        while (reader.Read()) {
+            if (reader.TokenType == YamlTokenType.Scalar) scalars++;
+        }
+        Assert.Equal(yaml.StartsWith("a", StringComparison.Ordinal) ? 4 : 2, scalars);
+    }
+
     private static bool IsTrivia(string gap) {
         foreach (char ch in gap) {
             if (ch is not (' ' or '\t' or '\r' or '\n' or '-' or '?' or ':' or ',' or '.' or '﻿')) return false;

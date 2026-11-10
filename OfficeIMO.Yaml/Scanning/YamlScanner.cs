@@ -355,7 +355,8 @@ internal ref partial struct YamlScanner {
             }
 
             char current = At(c.Pos);
-            if (current == '#' && (c.Pos > runStart || Absolute(c.Pos) != c.LastEnd || c.Pos == 0)) {
+            // A line start separates a comment like whitespace does; only a block scalar ends exactly there.
+            if (current == '#' && (c.Pos > runStart || Absolute(c.Pos) != c.LastEnd || c.Column == 0)) {
                 SkipComment();
                 current = At(c.Pos);
             }
