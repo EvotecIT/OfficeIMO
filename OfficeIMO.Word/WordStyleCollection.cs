@@ -66,7 +66,7 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
 
     /// <summary>
     /// Removes a style. Content that used it falls back to the default style, styles based on it inherit from its
-    /// base style instead, and next-style and linked-style references to it are removed.
+    /// base style instead, and next-style, linked-style and list-level references to it are removed.
     /// </summary>
     /// <returns><see langword="true"/> when the style existed and was removed.</returns>
     /// <exception cref="InvalidOperationException">The style is the default style of its type.</exception>
@@ -88,6 +88,13 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
         foreach (OpenXmlElement root in EnumerateContentRoots()) {
             foreach (OpenXmlElement reference in root.Descendants().Where(IsStyleReference).ToList()) {
                 if (string.Equals(ReadStyleReference(reference), styleId, StringComparison.Ordinal)) reference.Remove();
+            }
+        }
+        // A list level linked to the style would otherwise claim paragraphs of a later style that reuses the identifier.
+        Numbering? numbering = _document._wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
+        if (numbering != null) {
+            foreach (ParagraphStyleIdInLevel link in numbering.Descendants<ParagraphStyleIdInLevel>().ToList()) {
+                if (string.Equals(link.Val?.Value, styleId, StringComparison.Ordinal)) link.Remove();
             }
         }
         return true;

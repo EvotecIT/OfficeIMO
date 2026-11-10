@@ -40,8 +40,14 @@ namespace OfficeIMO.Word {
         /// <returns>The paragraph style that uses the embedded font.</returns>
         public WordStyle EmbedFont(string fontPath, string styleId, string? styleName = null) {
             ArgumentException.ThrowIfNullOrWhiteSpace(styleId);
+            WordStyle? existing = Styles.FindById(styleId);
+            // Check the new style's name first, so a rejected style leaves the font table unchanged.
+            string newName = string.IsNullOrWhiteSpace(styleName) ? styleId : styleName!;
+            if (existing == null && Styles.FindByName(newName) != null) {
+                throw new ArgumentException($"The document already has a style named '{newName}'.", nameof(styleName));
+            }
             EmbedFont(fontPath);
-            WordStyle style = Styles.FindById(styleId) ?? Styles.AddParagraphStyle(styleId, styleName);
+            WordStyle style = existing ?? Styles.AddParagraphStyle(styleId, styleName);
             style.FontFamily = Path.GetFileNameWithoutExtension(fontPath);
             return style;
         }

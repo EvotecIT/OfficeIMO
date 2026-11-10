@@ -135,6 +135,23 @@ public partial class Word {
     }
 
     [Fact]
+    public void DocumentStyles_RemovingAStyleClearsListLevelsLinkedToIt() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddList(WordListStyle.Numbered);
+        list.AddItem("Item");
+        document.Styles.AddParagraphStyle("ListHeading");
+        Level level = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Descendants<Level>().First();
+        // Word links a list level to a paragraph style with w:pStyle.
+        level.ParagraphStyleIdInLevel = new ParagraphStyleIdInLevel { Val = "ListHeading" };
+
+        Assert.True(document.Styles.Remove("ListHeading"));
+
+        Assert.Empty(document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Descendants<ParagraphStyleIdInLevel>().Where(link => link.Val?.Value == "ListHeading"));
+    }
+
+    [Fact]
     public void DocumentStyles_RemovingAStyleRebasesDependentsAndClearsReferences() {
         using WordDocument document = WordDocument.Create();
         WordStyle parent = document.Styles.AddParagraphStyle("Parent");
