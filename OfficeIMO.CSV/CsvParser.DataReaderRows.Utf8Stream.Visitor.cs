@@ -1,4 +1,5 @@
 #if NET8_0_OR_GREATER
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -11,17 +12,27 @@ internal static partial class CsvParser
 {
     internal struct CsvUtf8DataReaderRowVisitor
     {
-        private readonly byte[] _buffer;
+        private byte[] _buffer;
         private readonly Encoding _encoding;
         private static readonly string[] SingleCharacterStrings = CreateSingleCharacterStrings();
         private Field[] _fields;
 
+        /// <summary>
+        /// One field of the current row. <see cref="Start"/> is the byte offset of the raw text,
+        /// <see cref="MissingStart"/> for a column the row does not have, or
+        /// <see cref="MaterializedStart"/> when only <see cref="Materialized"/> holds the value.
+        /// A negative <see cref="Length"/> is the bitwise complement of a quoted field's inner
+        /// length when that text contains escaped quotes.
+        /// </summary>
         private struct Field
         {
             internal int Start;
             internal int Length;
             internal string? Materialized;
         }
+
+        private const int MissingStart = -1;
+        private const int MaterializedStart = -2;
         private bool _allFieldsAscii;
 
         internal CsvUtf8DataReaderRowVisitor(byte[] buffer, Encoding encoding)
@@ -45,6 +56,25 @@ internal static partial class CsvParser
 
         internal void Reset() => FieldCount = 0;
 
+        internal void SetBuffer(byte[] buffer) => _buffer = buffer;
+
+        /// <summary>Stores a quoted field's inner text, deferring removal of escaped quotes.</summary>
+        internal void VisitQuotedFieldRange(int fieldIndex, int start, int length, bool escaped) =>
+            VisitFieldRange(fieldIndex, start, escaped ? ~length : length);
+
+        /// <summary>Stores a field that was already unescaped and decoded.</summary>
+        internal void VisitMaterializedField(int fieldIndex, string value)
+        {
+            VisitFieldRange(fieldIndex, MaterializedStart, 0);
+            _fields[fieldIndex].Materialized = value;
+        }
+
+        internal readonly bool IsEmpty(int ordinal)
+        {
+            ref Field field = ref _fields[ordinal];
+            return field.Length == 0 && (field.Materialized is null || field.Materialized.Length == 0);
+        }
+
         internal void VisitFieldRange(int fieldIndex, int start, int length)
         {
             if ((uint)fieldIndex >= (uint)_fields.Length)
@@ -57,6 +87,37 @@ internal static partial class CsvParser
             field.Start = start;
             field.Length = length;
             field.Materialized = null;
+        }
+
+        /// <summary>Publishes the fields in one 64-byte block after reserving their complete span.</summary>
+        internal void VisitDelimiterMask(
+            ulong delimiterMask,
+            int chunkStart,
+            ref int fieldStart,
+            ref int fieldIndex)
+        {
+            if (delimiterMask == 0)
+            {
+                return;
+            }
+
+            int delimiterCount = BitOperations.PopCount(delimiterMask);
+            int completedFieldCount = fieldIndex + delimiterCount;
+            EnsureCapacity(completedFieldCount);
+            Span<Field> fields = _fields.AsSpan(fieldIndex, delimiterCount);
+            for (int index = 0; index < fields.Length; index++)
+            {
+                int delimiterIndex = chunkStart + BitOperations.TrailingZeroCount(delimiterMask);
+                ref Field field = ref fields[index];
+                field.Start = fieldStart;
+                field.Length = delimiterIndex - fieldStart;
+                field.Materialized = null;
+                fieldStart = delimiterIndex + 1;
+                delimiterMask &= delimiterMask - 1;
+            }
+
+            fieldIndex = completedFieldCount;
+            FieldCount = completedFieldCount;
         }
 
         /// <summary>Publishes the fields in one scanned block after reserving their complete span.</summary>
@@ -90,14 +151,6 @@ internal static partial class CsvParser
             FieldCount = completedFieldCount;
         }
 
-        internal void ShiftStarts(int offset)
-        {
-            for (int index = 0; index < FieldCount; index++)
-            {
-                _fields[index].Start += offset;
-            }
-        }
-
         internal void Complete(
             int fieldCount,
             CsvColumnCountMismatchPolicy mismatchPolicy,
@@ -118,8 +171,8 @@ internal static partial class CsvParser
             int expectedCount = SourceColumnCount > 0 ? SourceColumnCount : fieldCount;
             for (int index = fieldCount; index < expectedCount; index++)
             {
-                _fields[index].Start = -1;
-                _fields[index].Length = -1;
+                _fields[index].Start = MissingStart;
+                _fields[index].Length = 0;
                 _fields[index].Materialized = null;
             }
         }
@@ -129,14 +182,23 @@ internal static partial class CsvParser
         {
             ValidateOrdinal(ordinal);
             ref Field field = ref _fields[ordinal];
+            string? materialized = field.Materialized;
+            if (materialized is not null)
+            {
+                return materialized;
+            }
+
             int length = field.Length;
             if (length <= 0)
             {
-                return string.Empty;
-            }
+                if (length == 0)
+                {
+                    return string.Empty;
+                }
 
-            string? materialized = field.Materialized;
-            if (materialized is null)
+                materialized = CreateUnescapedString(field.Start, ~length);
+            }
+            else
             {
                 int start = field.Start;
                 if (length == 1 && _buffer[start] < SingleCharacterStrings.Length)
@@ -157,11 +219,47 @@ internal static partial class CsvParser
                             : _encoding.GetString(bytes);
                     }
                 }
-
-                field.Materialized = materialized;
             }
 
+            field.Materialized = materialized;
             return materialized;
+        }
+
+        /// <summary>Decodes quoted text whose escaped quote pairs each become one quote.</summary>
+        private readonly string CreateUnescapedString(int start, int length)
+        {
+            ReadOnlySpan<byte> raw = _buffer.AsSpan(start, length);
+            byte[]? rented = null;
+            Span<byte> bytes = length <= 256
+                ? stackalloc byte[256]
+                : (rented = ArrayPool<byte>.Shared.Rent(length));
+            int written = 0;
+            while (true)
+            {
+                // Inside a scanned quoted field every quote is the first of an escaped pair.
+                int quote = raw.IndexOf((byte)'"');
+                if (quote < 0)
+                {
+                    raw.CopyTo(bytes.Slice(written));
+                    written += raw.Length;
+                    break;
+                }
+
+                raw.Slice(0, quote + 1).CopyTo(bytes.Slice(written));
+                written += quote + 1;
+                raw = raw.Slice(quote + 2);
+            }
+
+            ReadOnlySpan<byte> unescaped = bytes.Slice(0, written);
+            string value = _allFieldsAscii || Ascii.IsValid(unescaped)
+                ? Encoding.Latin1.GetString(unescaped)
+                : _encoding.GetString(unescaped);
+            if (rented is not null)
+            {
+                ArrayPool<byte>.Shared.Return(rented);
+            }
+
+            return value;
         }
 
         // Only validated ASCII reaches this method. The first and last bounded loads
@@ -270,14 +368,15 @@ internal static partial class CsvParser
         internal bool IsMissing(int ordinal)
         {
             ValidateOrdinal(ordinal);
-            return _fields[ordinal].Length < 0;
+            return _fields[ordinal].Start == MissingStart;
         }
 
         internal bool TryGetUtf8Text(int ordinal, out ReadOnlySpan<byte> text)
         {
             ValidateOrdinal(ordinal);
             int length = _fields[ordinal].Length;
-            if (length < 0)
+            // Missing, decoded and escaped fields have no borrowable raw UTF-8 text.
+            if (_fields[ordinal].Start < 0 || length < 0)
             {
                 text = default;
                 return false;

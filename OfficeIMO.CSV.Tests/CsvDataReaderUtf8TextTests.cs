@@ -70,7 +70,7 @@ public sealed class CsvDataReaderUtf8TextTests {
     }
 
     [Fact]
-    public void QuotedFallbackKeepsNormalizedEscapedAndMultilineText() {
+    public void QuotedRecordKeepsNormalizedTextWithoutDisablingLaterUtf8Text() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Name\nplain\n\"a\"\"b\nend\"\nlast\n"));
         using var reader = CsvDocument.OpenReader(stream);
         Assert.True(reader.Read());
@@ -79,7 +79,8 @@ public sealed class CsvDataReaderUtf8TextTests {
         Assert.False(reader.TryGetUtf8Text(0, out _));
         Assert.Equal("a\"b\nend", reader.GetString(0));
         Assert.True(reader.Read());
-        Assert.False(reader.TryGetUtf8Text(0, out _));
+        Assert.True(reader.TryGetUtf8Text(0, out var last));
+        Assert.Equal("last"u8.ToArray(), last.ToArray());
         Assert.Equal("last", reader.GetString(0));
     }
 
