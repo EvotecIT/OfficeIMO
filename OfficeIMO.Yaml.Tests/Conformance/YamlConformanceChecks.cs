@@ -6,6 +6,8 @@ namespace OfficeIMO.Yaml.Tests.Conformance;
 public enum YamlConformanceCheck {
     /// <summary>A valid case produces exactly the events in <c>test.event</c>.</summary>
     Events,
+    /// <summary>A valid case produces the content of <c>test.event</c>: kinds, values, tags, anchors and aliases, ignoring presentation.</summary>
+    EventContent,
     /// <summary>An invalid case is rejected.</summary>
     ErrorCase,
     /// <summary>A valid case loads to values equal to <c>in.json</c>.</summary>
@@ -62,7 +64,7 @@ public sealed class YamlCheckResult {
 }
 
 /// <summary>Runs the conformance checks for one engine.</summary>
-public sealed class YamlConformanceChecks {
+public sealed partial class YamlConformanceChecks {
     private readonly IYamlConformanceEngine _engine;
     private readonly TimeSpan? _timeout;
 
@@ -98,7 +100,7 @@ public sealed class YamlConformanceChecks {
     public YamlCheckResult CheckEvents(YamlTestSuiteCase testCase) {
         if (testCase == null) throw new ArgumentNullException(nameof(testCase));
         const YamlConformanceCheck check = YamlConformanceCheck.Events;
-        if (testCase.IsError || !Has(YamlEngineFeatures.Events)) return Skip(testCase.Id, check);
+        if (testCase.IsError || !Has(YamlEngineFeatures.Events) || Has(YamlEngineFeatures.ContentEvents)) return Skip(testCase.Id, check);
         if (!TryRun(() => _engine.Parse(testCase.Input), out IReadOnlyList<YamlTestEvent>? events, out string? error)) {
             return new YamlCheckResult(testCase.Id, check, YamlCheckOutcome.Error, error);
         }

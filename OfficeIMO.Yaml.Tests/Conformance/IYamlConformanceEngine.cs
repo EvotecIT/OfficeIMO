@@ -13,8 +13,13 @@ public enum YamlEngineFeatures {
     RoundTrip = 4,
     /// <summary>The engine claims that an unedited round-trip returns the input bytes unchanged.</summary>
     Lossless = 8,
+    /// <summary>
+    /// <see cref="IYamlConformanceEngine.Parse"/> reports content only: the engine does not expose scalar styles, flow
+    /// collection markers or explicit document markers, so events are compared by content instead of exactly.
+    /// </summary>
+    ContentEvents = 16,
     /// <summary><see cref="IYamlConformanceEngine.Emit"/> writes an event stream as YAML text.</summary>
-    Emit = 16
+    Emit = 32
 }
 
 /// <summary>

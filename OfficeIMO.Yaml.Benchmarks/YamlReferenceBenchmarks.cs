@@ -20,6 +20,9 @@ public class YamlParseEventsBenchmarks {
     [GlobalSetup(Target = nameof(OfficeIMOYaml))]
     public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
 
+    [GlobalSetup(Target = nameof(VYaml))]
+    public void SetupVYaml() => Setup(VYamlLibrary.Instance);
+
     [Benchmark(Baseline = true)]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
@@ -28,6 +31,10 @@ public class YamlParseEventsBenchmarks {
 
     [Benchmark]
     public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
+
+    /// <summary>VYaml reads UTF-8 bytes encoded once during setup.</summary>
+    [Benchmark]
+    public long VYaml() => Run(VYamlLibrary.Instance);
 
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);
@@ -57,6 +64,13 @@ public class YamlLoadTreeBenchmarks {
 
     [GlobalSetup(Targets = new[] { nameof(OfficeIMOYaml), nameof(OfficeIMOYamlWithValues) })]
     public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
+
+    [GlobalSetup(Target = nameof(VYaml))]
+    public void SetupVYaml() => Setup(VYamlLibrary.Instance);
+
+    /// <summary>VYaml has no representation tree; this is its dynamic deserialization into dictionaries and lists.</summary>
+    [Benchmark]
+    public long VYaml() => Run(VYamlLibrary.Instance);
 
     [Benchmark(Baseline = true)]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
