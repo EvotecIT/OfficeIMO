@@ -27,7 +27,7 @@ OfficeIMO.Markdown is a purpose-built Markdown engine for .NET. It gives you a s
 - **Source spans for every node** — line, column, and offset tracking for diagnostics and editor support
 - **Multiple reader profiles** — OfficeIMO, CommonMark, GFM, and Portable profiles with configurable strictness
 - **HTML rendering** — emit fragment or full-page HTML with customizable templates
-- **Front matter support** — parse YAML and TOML front matter into typed dictionaries
+- **Front matter support** — read, edit and write YAML front matter, including nested values, through OfficeIMO.Yaml without losing comments or formatting
 - **TOC helpers & callouts** — generate table of contents from headings and render note/warning/tip callouts
 - **Tables from objects** — build Markdown tables directly from collections with column selectors
 - **Input normalization presets** — normalize line endings, whitespace, and encoding before parsing
