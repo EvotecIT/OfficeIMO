@@ -5238,7 +5238,7 @@ PSWriteOffice 3.6 dropped parameter aliases along with the parameter renames in 
 
 These aliases are available again, so scripts written for 3.0 to 3.5 keep working:
 
-- `-FilePath` for `-Path` on `Export-OfficeExcel`, `Import-OfficeExcel`, `Copy-OfficeExcelSheet`, `Edit-OfficeExcelRow`, `Find-OfficeExcel`, `Update-OfficeExcelText`, the `Get-OfficeExcel*` query commands that read a workbook path, and every `New-Office{Format}` command.
+- `-FilePath` for `-Path` on `Export-OfficeExcel`, `Import-OfficeExcel`, `Copy-OfficeExcelSheet`, `Edit-OfficeExcelRow`, `Find-OfficeExcel`, `Update-OfficeExcelText`, the `Get-OfficeExcel*` query commands that read a workbook path, and `New-OfficeEpub`, `New-OfficeExcel`, `New-OfficeMarkdown`, `New-OfficeOpenDocument`, `New-OfficePdf`, `New-OfficePowerPoint`, `New-OfficeVisio` and `New-OfficeWord`.
 - `-WorksheetName` for `-Sheet` on `Export-OfficeExcel`, `Import-OfficeExcel`, `Copy-OfficeExcelSheet`, `Edit-OfficeExcelRow`, `Find-OfficeExcel`, `Update-OfficeExcelText`, `Add-OfficeExcelPageBreak`, `Add-OfficeExcelTableRow`, `Move-OfficeExcelSheet` and the `Get-OfficeExcel*` query commands that take `-Sheet`.
 
 `-AutoFit` and `-Force` are not restored on `Export-OfficeExcel`. Fitted columns are the default, and `-NoAutoFit` turns them off. `Export-OfficeExcel` never had `-Force`; it replaces an existing file unless you add `-NoClobber`.

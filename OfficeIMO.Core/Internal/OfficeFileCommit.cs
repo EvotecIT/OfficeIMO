@@ -496,9 +496,9 @@ namespace OfficeIMO.Core.Internal {
                 // Some file systems reject File.Replace even though moves are supported.
             }
 
-            // A move publishes the staging file's owner-only Windows DACL; inherit the folder's instead.
+            // A move publishes the staging file's DACL; keep the replaced file's, as File.Replace does.
             if (!ownerOnlyUnixPermissions && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                OfficeTemporaryFile.ApplyDefaultCreationPermissions(temporaryPath);
+                OfficeTemporaryFile.CopyWindowsPermissions(fullTargetPath, temporaryPath);
             }
             ReplaceUsingBackup(temporaryPath, fullTargetPath);
         }
