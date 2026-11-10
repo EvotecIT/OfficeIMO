@@ -20,18 +20,6 @@ public sealed class PdfIndependentCorpusTests {
     // Current defects from Docs/benchmarks/pdf-independent-corpus-2026-11-10.md. Each entry must still fail at
     // every listed stage and nowhere else; the test fails once a defect is fixed so the entry gets removed.
     private static readonly Dictionary<string, KnownFailure> KnownFailures = new(StringComparer.Ordinal) {
-        ["qpdf-enc-r6-aes256-user-view"] = new(
-            "Revision 6 AES-256 is rejected: \"Standard security dictionary entries have invalid lengths\".",
-            Stage.Load),
-        ["acl-2021-mt5-multilingual"] = new(
-            "Digits vanish from the pdfTeX Type1 subsets with /Differences, so \"mT5-XXL\" reads as \"mT-XXL\".",
-            Stage.ExpectedText),
-        ["verapdf-cmap-embedded"] = new(
-            "CIDFontType0C text with an embedded CMap extracts no text.",
-            Stage.ExpectedText),
-        ["verapdf-composite-font"] = new(
-            "Adobe-Korea1-2 without ToUnicode raises PdfUnsupportedTextMappingException in extraction and rendering.",
-            Stage.Text, Stage.Render),
         ["verapdf-jpx-image"] = new(
             "Opaque 8-bit RGB/ICC JPX images cannot be decoded by the managed renderer.",
             Stage.Render),
