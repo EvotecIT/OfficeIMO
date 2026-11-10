@@ -55,7 +55,6 @@ internal sealed class YamlEmitter {
     private static readonly string?[] s_lfLineStarts = new string?[LineStartCacheSize];
     private static readonly string?[] s_crlfLineStarts = new string?[LineStartCacheSize];
     private Frame[] _frames = new Frame[16];
-    private readonly string?[]? _lineStarts;
     private int _depth;
     private int _column;
     private int _documents;
@@ -74,7 +73,6 @@ internal sealed class YamlEmitter {
         _buffer = output as YamlCharBuffer;
         _options = options;
         _newLine = options.NewLine;
-        _lineStarts = _newLine == "\n" ? s_lfLineStarts : _newLine == "\r\n" ? s_crlfLineStarts : null;
         options.Validate();
     }
 
@@ -833,8 +831,9 @@ internal sealed class YamlEmitter {
     /// indentation go as one run cached per indentation.
     /// </summary>
     private void StartLine(int indent) {
-        string?[]? cache = _lineStarts;
-        if (_column > 0 && _trailingComment is null && _buffer is not null && cache is not null && (uint)indent < LineStartCacheSize) {
+        if (_column > 0 && _trailingComment is null && _buffer is not null && (uint)indent < LineStartCacheSize) {
+            // The options allow only "\n" and "\r\n".
+            string?[] cache = _newLine.Length == 1 ? s_lfLineStarts : s_crlfLineStarts;
             string text = cache[indent] ??= _newLine + new string(' ', indent);
             _buffer.Append(text.AsSpan());
             _column = indent;
