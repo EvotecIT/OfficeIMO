@@ -45,7 +45,7 @@ public sealed partial class YamlReader {
         }
     }
 
-    private YamlStringCache Strings => _strings ??= new YamlStringCache();
+    private YamlStringCache Strings => _strings ??= YamlStringCache.Rent();
 
     /// <summary>
     /// Returns the decoded value of the current scalar (folding, escapes and block chomping applied), the text of the
