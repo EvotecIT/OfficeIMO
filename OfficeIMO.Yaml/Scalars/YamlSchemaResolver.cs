@@ -49,6 +49,23 @@ internal static class YamlSchemaResolver {
         }
     }
 
+    /// <summary>
+    /// Determines how a scalar resolves: an explicit tag wins, the non-specific tag <c>!</c> and quoted or block styles
+    /// mean string, and untagged plain scalars follow the schema. <paramref name="plainText"/> is read only for untagged
+    /// plain scalars. Returns <see langword="false"/> for tags that name no type the schema resolves, such as custom tags.
+    /// </summary>
+    public static bool TryGetKind(string? tag, YamlStyle style, ReadOnlySpan<char> plainText, YamlSchema schema, out YamlScalarKind kind) {
+        kind = YamlScalarKind.String;
+        if (tag is not null) {
+            if (tag == "!") return true;
+            if (!TryGetTagKind(tag, out kind)) return false;
+            return schema != YamlSchema.Failsafe || kind == YamlScalarKind.String;
+        }
+        if (style != YamlStyle.Plain) return true;
+        kind = Resolve(plainText, schema);
+        return true;
+    }
+
     /// <summary>Maps a resolved tag (<c>tag:yaml.org,2002:int</c> and so on) to a kind; other tags are not resolvable.</summary>
     public static bool TryGetTagKind(string tag, out YamlScalarKind kind) {
         kind = YamlScalarKind.String;
