@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel {
 
         private readonly Lazy<SharedStringTablePart?> _part;
         private readonly Func<Stream>? _openPartStream;
+        private readonly Func<SharedStringTablePart, Stream?>? _openIndexedPartStream;
         private readonly bool _preferDom;
         private readonly bool _keepUnmarkedWhitespace;
         private readonly int _maxSharedStringItems;
@@ -30,10 +31,12 @@ namespace OfficeIMO.Excel {
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
         private ExcelUtf8TextCache? _utf8Cache;
 
-        private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReaderOptions options, bool keepUnmarkedWhitespace = false) {
+        private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReaderOptions options, bool keepUnmarkedWhitespace = false,
+            Func<SharedStringTablePart, Stream?>? openIndexedPartStream = null) {
             _keepUnmarkedWhitespace = keepUnmarkedWhitespace;
             _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
             _openPartStream = null;
+            _openIndexedPartStream = openIndexedPartStream;
             _preferDom = preferDom;
             _maxSharedStringItems = options.MaxSharedStringItems;
             _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
@@ -75,6 +78,16 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal static SharedStringCache BuildKeepingUnmarkedWhitespace(SpreadsheetDocument doc, ExcelReaderOptions options) =>
             new(doc.WorkbookPart, preferDom: false, options, keepUnmarkedWhitespace: true);
+
+        /// <summary>
+        /// Builds the same table, first trying the plain-text index over a buffered copy of the part.
+        /// That index accepts only text both routes read identically; anything else keeps the XML route.
+        /// </summary>
+        internal static SharedStringCache BuildKeepingUnmarkedWhitespace(
+            SpreadsheetDocument doc,
+            ExcelReaderOptions options,
+            Func<SharedStringTablePart, Stream?> openIndexedPartStream) =>
+            new(doc.WorkbookPart, preferDom: false, options, keepUnmarkedWhitespace: true, openIndexedPartStream);
 
         internal static SharedStringCache Build(Func<Stream> openPartStream, ExcelReaderOptions options) =>
             new(openPartStream, options);
@@ -133,6 +146,25 @@ namespace OfficeIMO.Excel {
 
             SharedStringTablePart? part = GetSharedStringTablePart();
             if (part == null) return new List<string>();
+            if (_openIndexedPartStream != null) {
+                Stream? indexedStream = _openIndexedPartStream(part);
+                try {
+                    if (indexedStream is OpenXmlPooledPartStream pooled
+                        && TryIndexSimpleAsciiItems(pooled, out IndexedAsciiItems? indexedItems)) {
+                        _indexedItems = indexedItems;
+                        indexedStream = null; // The validated index now owns the pooled stream.
+                        return null;
+                    }
+                    // The same part bytes, already inflated: parse them instead of reading the part again.
+                    if (indexedStream != null && !_preferDom) {
+                        if (indexedStream.CanSeek) indexedStream.Position = 0;
+                        if (TryLoadItemsXmlFast(indexedStream, out List<string> bufferedItems)) return bufferedItems;
+                        return LoadItemsFromDom();
+                    }
+                } finally {
+                    indexedStream?.Dispose();
+                }
+            }
             if (_preferDom && part.SharedStringTable != null) {
                 return LoadItemsFromDom();
             }

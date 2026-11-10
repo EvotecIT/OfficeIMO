@@ -9,11 +9,21 @@ namespace OfficeIMO.Excel {
         private long _formulaAuthoredMutationVersion;
         private readonly ConcurrentDictionary<Uri, long> _formulaRecalculationVersions = new();
         private readonly ConcurrentDictionary<Uri, long> _formulaAuthoredRecalculationVersions = new();
-        private readonly FormulaCellVersionMap _formulaAuthoredVersions = new();
-        private readonly FormulaCellVersionMap _formulaCellRecalculationVersions = new();
-        private readonly FormulaCellVersionMap _formulaDependencyBaselines = new();
-        private readonly FormulaCellVersionMap _formulaCellDependencyRecalculationVersions = new();
-        private readonly FormulaCellVersionMap _formulaDependencyMutationVersions = new();
+        // Authoring a formula records both versions at once, so one entry per cell holds them.
+        private readonly FormulaCellVersionMap<FormulaAuthoredVersions> _formulaAuthoredVersions = new();
+        private readonly FormulaCellVersionMap<long> _formulaCellRecalculationVersions = new();
+        private readonly FormulaCellVersionMap<long> _formulaCellDependencyRecalculationVersions = new();
+
+        /// <summary>The input-mutation version a formula was authored at, and its dependency version.</summary>
+        internal readonly struct FormulaAuthoredVersions {
+            internal FormulaAuthoredVersions(long input, long dependency) {
+                Input = input;
+                Dependency = dependency;
+            }
+
+            internal long Input { get; }
+            internal long Dependency { get; }
+        }
 
         /// <summary>
         /// Formula calculation and cached-result policy used during save.
@@ -34,9 +44,7 @@ namespace OfficeIMO.Excel {
             new Dictionary<Uri, long>(_formulaAuthoredRecalculationVersions),
             _formulaAuthoredVersions.Snapshot(),
             _formulaCellRecalculationVersions.Snapshot(),
-            _formulaDependencyBaselines.Snapshot(),
-            _formulaCellDependencyRecalculationVersions.Snapshot(),
-            _formulaDependencyMutationVersions.Snapshot());
+            _formulaCellDependencyRecalculationVersions.Snapshot());
 
         internal void RestoreFormulaMutationState(FormulaMutationState state) {
             ArgumentNullException.ThrowIfNull(state);
@@ -46,9 +54,7 @@ namespace OfficeIMO.Excel {
             RestoreFormulaMutationDictionary(_formulaAuthoredRecalculationVersions, state.AuthoredRecalculationVersions);
             _formulaAuthoredVersions.Restore(state.AuthoredVersions);
             _formulaCellRecalculationVersions.Restore(state.CellRecalculationVersions);
-            _formulaDependencyBaselines.Restore(state.DependencyBaselines);
             _formulaCellDependencyRecalculationVersions.Restore(state.CellDependencyRecalculationVersions);
-            _formulaDependencyMutationVersions.Restore(state.DependencyMutationVersions);
         }
 
         private static void RestoreFormulaMutationDictionary<TKey>(
@@ -64,31 +70,25 @@ namespace OfficeIMO.Excel {
                 long authoredMutationVersion,
                 IReadOnlyDictionary<Uri, long> recalculationVersions,
                 IReadOnlyDictionary<Uri, long> authoredRecalculationVersions,
-                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> authoredVersions,
+                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), FormulaAuthoredVersions> authoredVersions,
                 IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> cellRecalculationVersions,
-                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> dependencyBaselines,
-                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> cellDependencyRecalculationVersions,
-                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> dependencyMutationVersions) {
+                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> cellDependencyRecalculationVersions) {
                 InputMutationVersion = inputMutationVersion;
                 AuthoredMutationVersion = authoredMutationVersion;
                 RecalculationVersions = recalculationVersions;
                 AuthoredRecalculationVersions = authoredRecalculationVersions;
                 AuthoredVersions = authoredVersions;
                 CellRecalculationVersions = cellRecalculationVersions;
-                DependencyBaselines = dependencyBaselines;
                 CellDependencyRecalculationVersions = cellDependencyRecalculationVersions;
-                DependencyMutationVersions = dependencyMutationVersions;
             }
 
             internal long InputMutationVersion { get; }
             internal long AuthoredMutationVersion { get; }
             internal IReadOnlyDictionary<Uri, long> RecalculationVersions { get; }
             internal IReadOnlyDictionary<Uri, long> AuthoredRecalculationVersions { get; }
-            internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> AuthoredVersions { get; }
+            internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), FormulaAuthoredVersions> AuthoredVersions { get; }
             internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> CellRecalculationVersions { get; }
-            internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> DependencyBaselines { get; }
             internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> CellDependencyRecalculationVersions { get; }
-            internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> DependencyMutationVersions { get; }
         }
 
         internal bool HasFormulaInputMutationsAfterLastRecalculation(WorksheetPart worksheetPart) {
@@ -102,36 +102,36 @@ namespace OfficeIMO.Excel {
         /// Per-cell formula versions. Each authored or recalculated formula adds entries, and a lock over one
         /// dictionary stores them in its entry array instead of allocating a node per entry as a concurrent map does.
         /// </summary>
-        private sealed class FormulaCellVersionMap {
-            private readonly Dictionary<(Uri WorksheetUri, string CellReference), long> _versions = new(FormulaCellKeyComparer.Instance);
+        private sealed class FormulaCellVersionMap<TValue> where TValue : struct {
+            private readonly Dictionary<(Uri WorksheetUri, string CellReference), TValue> _versions = new(FormulaCellKeyComparer.Instance);
 
-            internal long this[(Uri WorksheetUri, string CellReference) key] {
+            internal TValue this[(Uri WorksheetUri, string CellReference) key] {
                 set {
                     lock (_versions) _versions[key] = value;
                 }
             }
 
-            internal bool TryGetValue((Uri WorksheetUri, string CellReference) key, out long value) {
+            internal bool TryGetValue((Uri WorksheetUri, string CellReference) key, out TValue value) {
                 lock (_versions) return _versions.TryGetValue(key, out value);
             }
 
-            internal Dictionary<(Uri WorksheetUri, string CellReference), long> Snapshot() {
-                lock (_versions) return new Dictionary<(Uri WorksheetUri, string CellReference), long>(_versions, FormulaCellKeyComparer.Instance);
+            internal Dictionary<(Uri WorksheetUri, string CellReference), TValue> Snapshot() {
+                lock (_versions) return new Dictionary<(Uri WorksheetUri, string CellReference), TValue>(_versions, FormulaCellKeyComparer.Instance);
             }
 
-            internal bool Any(Func<(Uri WorksheetUri, string CellReference), long, bool> predicate) {
+            internal bool Any(Func<(Uri WorksheetUri, string CellReference), TValue, bool> predicate) {
                 lock (_versions) {
-                    foreach (KeyValuePair<(Uri WorksheetUri, string CellReference), long> item in _versions) {
+                    foreach (KeyValuePair<(Uri WorksheetUri, string CellReference), TValue> item in _versions) {
                         if (predicate(item.Key, item.Value)) return true;
                     }
                 }
                 return false;
             }
 
-            internal void Restore(IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> snapshot) {
+            internal void Restore(IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), TValue> snapshot) {
                 lock (_versions) {
                     _versions.Clear();
-                    foreach (KeyValuePair<(Uri WorksheetUri, string CellReference), long> item in snapshot) _versions[item.Key] = item.Value;
+                    foreach (KeyValuePair<(Uri WorksheetUri, string CellReference), TValue> item in snapshot) _versions[item.Key] = item.Value;
                 }
             }
         }
@@ -151,11 +151,9 @@ namespace OfficeIMO.Excel {
             WorksheetPart worksheetPart,
             string cellReference,
             bool retainedCachedValue = false) {
-            var key = (worksheetPart.Uri, cellReference);
-            _formulaAuthoredVersions[key] = Interlocked.Read(ref _formulaInputMutationVersion);
+            long inputVersion = Interlocked.Read(ref _formulaInputMutationVersion);
             long dependencyVersion = Interlocked.Increment(ref _formulaAuthoredMutationVersion);
-            _formulaDependencyBaselines[key] = dependencyVersion;
-            _formulaDependencyMutationVersions[key] = dependencyVersion;
+            _formulaAuthoredVersions[(worksheetPart.Uri, cellReference)] = new FormulaAuthoredVersions(inputVersion, dependencyVersion);
             if (retainedCachedValue) MarkFormulaInputMutation();
         }
 
@@ -169,9 +167,9 @@ namespace OfficeIMO.Excel {
             if (_formulaRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)) {
                 baseline = recalculationVersion;
             }
-            if (_formulaAuthoredVersions.TryGetValue((worksheetPart.Uri, cellReference), out long authoredVersion)
-                && authoredVersion > baseline) {
-                baseline = authoredVersion;
+            if (_formulaAuthoredVersions.TryGetValue((worksheetPart.Uri, cellReference), out FormulaAuthoredVersions authored)
+                && authored.Input > baseline) {
+                baseline = authored.Input;
             }
             if (_formulaCellRecalculationVersions.TryGetValue((worksheetPart.Uri, cellReference), out long cellRecalculationVersion)
                 && cellRecalculationVersion > baseline) {
@@ -202,9 +200,9 @@ namespace OfficeIMO.Excel {
             if (_formulaAuthoredRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)) {
                 baseline = recalculationVersion;
             }
-            if (_formulaDependencyBaselines.TryGetValue((worksheetPart.Uri, cellReference), out long authoredVersion)
-                && authoredVersion > baseline) {
-                baseline = authoredVersion;
+            if (_formulaAuthoredVersions.TryGetValue((worksheetPart.Uri, cellReference), out FormulaAuthoredVersions authored)
+                && authored.Dependency > baseline) {
+                baseline = authored.Dependency;
             }
             if (_formulaCellDependencyRecalculationVersions.TryGetValue(
                     (worksheetPart.Uri, cellReference),
@@ -226,10 +224,10 @@ namespace OfficeIMO.Excel {
             if (cellCount <= 4096L) {
                 for (int row = firstRow; row <= lastRow; row++) {
                     for (int column = firstColumn; column <= lastColumn; column++) {
-                        if (_formulaDependencyMutationVersions.TryGetValue(
+                        if (_formulaAuthoredVersions.TryGetValue(
                                 (worksheetPart.Uri, ExcelA1.CellReference(row, column)),
-                                out long mutationVersion)
-                            && mutationVersion > baseline) {
+                                out FormulaAuthoredVersions authored)
+                            && authored.Dependency > baseline) {
                             return true;
                         }
                     }
@@ -237,8 +235,8 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            return _formulaDependencyMutationVersions.Any((key, version) =>
-                version > baseline
+            return _formulaAuthoredVersions.Any((key, version) =>
+                version.Dependency > baseline
                 && key.WorksheetUri == worksheetPart.Uri
                 && ExcelA1.TryParseCellReferenceFast(key.CellReference, out int row, out int column)
                 && row >= firstRow && row <= lastRow && column >= firstColumn && column <= lastColumn);

@@ -85,12 +85,12 @@ namespace OfficeIMO.Excel {
                 _fieldCount = fieldCount;
 
                 int rowCapacity = Math.Max(16, Math.Min(lastRow - firstRow + 1, 4096));
-                _rowIndexes = ArrayPool<int>.Shared.Rent(rowCapacity);
+                _rowIndexes = ExcelArrayPool.RentInts(rowCapacity);
                 int cellRows = InitializeCellWindow(rowCapacity, (long)lastRow - firstRow + 1, fieldCount);
                 int cellCapacity = checked(cellRows * fieldCount);
-                _valueStarts = ArrayPool<int>.Shared.Rent(cellCapacity);
-                _valueLengths = ArrayPool<int>.Shared.Rent(cellCapacity);
-                _cellKinds = ArrayPool<byte>.Shared.Rent(cellCapacity);
+                _valueStarts = ExcelArrayPool.RentInts(cellCapacity);
+                _valueLengths = ExcelArrayPool.RentInts(cellCapacity);
+                _cellKinds = ExcelArrayPool.RentBytes(cellCapacity);
             }
 
             internal static bool TryCreateForUsedRange(
@@ -464,7 +464,7 @@ namespace OfficeIMO.Excel {
                 ReturnImplicitCellTagCache();
                 ReturnDecodedValues();
                 if (_cellKinds != null) {
-                    ArrayPool<byte>.Shared.Return(_cellKinds);
+                    ExcelArrayPool.Return(_cellKinds);
                     _cellKinds = null;
                 }
             }
@@ -776,6 +776,13 @@ namespace OfficeIMO.Excel {
                     if (!tag.IsEmpty) {
                         int contentPosition = position;
                         if (!TryIndexCompactValueCell(
+                                ref position,
+                                cellIndex,
+                                kind,
+                                out hasCachedValue,
+                                out valueStart,
+                                out valueLength)
+                            && !TryIndexCompactFormulaCell(
                                 ref position,
                                 cellIndex,
                                 kind,
@@ -1176,8 +1183,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 int capacity = _valueStarts!.Length;
-                int[] starts = ArrayPool<int>.Shared.Rent(capacity);
-                int[] lengths = ArrayPool<int>.Shared.Rent(capacity);
+                int[] starts = ExcelArrayPool.RentInts(capacity);
+                int[] lengths = ExcelArrayPool.RentInts(capacity);
                 int initializedCellCount = GetInitializedFormulaCellCount();
                 Array.Clear(starts, 0, initializedCellCount);
                 for (int index = 0; index < initializedCellCount; index++) {
@@ -1189,22 +1196,22 @@ namespace OfficeIMO.Excel {
             }
 
             private void GrowCellKindArray(int capacity, int count) {
-                byte[] next = ArrayPool<byte>.Shared.Rent(capacity);
+                byte[] next = ExcelArrayPool.RentBytes(capacity);
                 Array.Copy(_cellKinds!, next, count);
-                ArrayPool<byte>.Shared.Return(_cellKinds!);
+                ExcelArrayPool.Return(_cellKinds!);
                 _cellKinds = next;
             }
 
             private static void GrowRowArray(ref int[]? values, int capacity, int count) {
-                int[] next = ArrayPool<int>.Shared.Rent(capacity);
+                int[] next = ExcelArrayPool.RentInts(capacity);
                 Array.Copy(values!, next, count);
-                ArrayPool<int>.Shared.Return(values!);
+                ExcelArrayPool.Return(values!);
                 values = next;
             }
 
             private static void ReturnRowArray(ref int[]? values) {
                 if (values != null) {
-                    ArrayPool<int>.Shared.Return(values);
+                    ExcelArrayPool.Return(values);
                     values = null;
                 }
             }
