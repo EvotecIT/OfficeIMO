@@ -15,7 +15,7 @@ public sealed class LatexProjectionContractTests {
     [InlineData("A\\% B", "A% B")]
     public void LiteralControlWordsDiscardDelimiterWhitespaceInTextAndScalars(string source, string expected) {
         MarkdownDocument markdown = LatexDocument.Parse("\\author{" + source + "}" + Wrap(source)).ToMarkdown();
-        Assert.Equal(expected, markdown.FindFrontMatterEntry("author")?.Value);
+        Assert.Equal(expected, markdown.FindFrontMatterEntry("author")?.Value.AsString());
         var text = new StringBuilder();
         foreach (IPlainTextMarkdownInline inline in Assert.Single(markdown.Blocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<IPlainTextMarkdownInline>()) inline.AppendPlainText(text);
         Assert.Equal(expected, text.ToString());
@@ -69,9 +69,9 @@ public sealed class LatexProjectionContractTests {
             "\\begin{theorem}[\\textbf{Useful}~100\\%]Body\\end{theorem}";
         var result = LatexDocument.Parse("\\title{Cost 100\\%}\\author{\\textbf{Alice\\_Doe}}\\date{R\\&D}" + Wrap(body)).ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport1);
         var resultReport = (LatexToMarkdownReport)conversionReport1;
-        Assert.Equal("Cost 100%", result.FindFrontMatterEntry("title")?.Value);
-        Assert.Equal("Alice_Doe", result.FindFrontMatterEntry("author")?.Value);
-        Assert.Equal("R&D", result.FindFrontMatterEntry("date")?.Value);
+        Assert.Equal("Cost 100%", result.FindFrontMatterEntry("title")?.Value.AsString());
+        Assert.Equal("Alice_Doe", result.FindFrontMatterEntry("author")?.Value.AsString());
+        Assert.Equal("R&D", result.FindFrontMatterEntry("date")?.Value.AsString());
         Assert.Equal("R&D 100%", Assert.Single(result.Blocks.OfType<ImageBlock>()).Caption);
         Assert.Equal("Cost 50%", Assert.Single(result.Blocks.OfType<TableBlock>()).Attributes.GetAttribute("caption"));
         Assert.Equal("Useful 100%", Assert.Single(result.Blocks.OfType<CalloutBlock>()).Title);
@@ -85,8 +85,8 @@ public sealed class LatexProjectionContractTests {
         source.FrontMatter(new Dictionary<string, object?> { ["author"] = "Alice_Doe", ["date"] = "R&D" });
         source.Add(new ImageBlock("a.png", "100% useful") { Caption = "100% useful" });
         MarkdownDocument result = source.ToLatex().ToMarkdown();
-        Assert.Equal("Alice_Doe", result.FindFrontMatterEntry("author")?.Value);
-        Assert.Equal("R&D", result.FindFrontMatterEntry("date")?.Value);
+        Assert.Equal("Alice_Doe", result.FindFrontMatterEntry("author")?.Value.AsString());
+        Assert.Equal("R&D", result.FindFrontMatterEntry("date")?.Value.AsString());
         Assert.Equal("100% useful", Assert.Single(result.Blocks.OfType<ImageBlock>()).Caption);
     }
 

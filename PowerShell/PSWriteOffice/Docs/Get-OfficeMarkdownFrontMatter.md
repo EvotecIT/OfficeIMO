@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # Get-OfficeMarkdownFrontMatter
 ## SYNOPSIS
-Gets YAML front matter entries from a Markdown document.
+Gets top-level YAML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.
 
 ## SYNTAX
 ### Document (Default)
@@ -177,7 +177,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.FrontMatterBlock+Entry`
+- `System.Management.Automation.PSObject`
 
 ## RELATED LINKS
 

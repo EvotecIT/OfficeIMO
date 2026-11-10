@@ -21,9 +21,9 @@ public sealed class LatexAuditConversionTests {
         Assert.Equal("ab.png", Assert.Single(paragraph.Inlines.Nodes.OfType<ImageInline>()).Src);
         Assert.Equal("ab", Assert.Single(result.Blocks.OfType<SemanticFencedBlock>()).Content);
         Assert.DoesNotContain("PRIVATE", result.ToMarkdown(), StringComparison.Ordinal);
-        Assert.Equal("ab", result.FindFrontMatterEntry("author")?.Value);
+        Assert.Equal("ab", result.FindFrontMatterEntry("author")?.Value.AsString());
         MarkdownDocument twoLines = LatexDocument.Parse("\\author{a% note" + ending + ending + "b}" + Wrap("Visible")).ToMarkdown();
-        Assert.Equal("a" + ending + "b", twoLines.FindFrontMatterEntry("author")?.Value);
+        Assert.Equal("a" + ending + "b", twoLines.FindFrontMatterEntry("author")?.Value.AsString());
     }
 
     [Fact]
