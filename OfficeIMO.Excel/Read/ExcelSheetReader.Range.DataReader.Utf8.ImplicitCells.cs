@@ -107,11 +107,16 @@ namespace OfficeIMO.Excel {
                 out int valueLength) {
                 valueStart = valueLength = -1;
                 int cursor = position;
-                if (!MatchesUtf8(cursor, "<is><t>"u8)) {
+                int contentStart;
+                if (MatchesUtf8(cursor, "<is><t>"u8)) {
+                    contentStart = cursor + 7;
+                } else if (MatchesUtf8(cursor, "<is><t xml:space=\"preserve\">"u8)) {
+                    // Writers mark leading or trailing spaces this way; the text is read verbatim either way.
+                    contentStart = cursor + 28;
+                } else {
                     return false;
                 }
 
-                int contentStart = cursor + 7;
                 int relativeEnd = _buffer!.AsSpan(contentStart, _length - contentStart).IndexOf((byte)'<');
                 if (relativeEnd < 0) {
                     return false;

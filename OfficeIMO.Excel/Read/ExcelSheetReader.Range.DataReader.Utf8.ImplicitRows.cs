@@ -58,6 +58,7 @@ namespace OfficeIMO.Excel {
                 int cellsUntilCancellationCheck = 0;
                 Utf8ImplicitCellTagCacheEntry[]? tagCache = _implicitCellTagCache;
                 while (position < _length) {
+                    SkipWhitespaceInsideRow(ref position);
                     if (position <= _length - 6
                         && _buffer![position + 1] == (byte)'/'
                         && TryConsumeCompactRowEnd(ref position)) {

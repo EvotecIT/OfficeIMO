@@ -25,8 +25,12 @@ namespace OfficeIMO.Excel {
                 if (_parallelIndexAttempted) return;
                 _parallelIndexAttempted = true;
                 int expected = _expectedLength > 0 ? _expectedLength : _length;
-                if (expected < MinimumParallelIndexBytes || UsesCellWindow
-                    || _worksheetPrefixLength != 0 || _formulaStarts != null
+#if !NET8_0_OR_GREATER
+                // On .NET Framework and .NET Standard hosts the helpers measured slower than the
+                // sequential indexer, so those builds keep it.
+                _ = expected;
+#else
+                if (expected < MinimumParallelIndexBytes || UsesCellWindow || _formulaStarts != null
                     || !_options.Execution.AllowsBackgroundProcessing) return;
                 int helpers = Math.Min(MaximumParallelIndexHelpers, Environment.ProcessorCount - 2);
                 int? maximumDegree = _options.Execution.MaxDegreeOfParallelism;
@@ -35,8 +39,9 @@ namespace OfficeIMO.Excel {
                 int averageRowBytes = Math.Max(32, (position - Math.Max(0, _sheetDataContentStart)) / Math.Max(1, _rowCount));
                 // A sheet expected to outgrow the whole-sheet cell budget is read through a rolling
                 // window; its index metadata is not retained, so helpers would only duplicate work.
+                // Adoption enforces the exact budget, so this estimate only screens clear cases.
                 if (_unknownRowExtent
-                    && (long)expected / averageRowBytes * _fieldCount > Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells) * 3L / 4) return;
+                    && (long)expected / averageRowBytes * _fieldCount > Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells) * 5L / 4) return;
                 helpers = ExcelParallelReadBudget.Reserve(helpers);
                 if (helpers <= 0) return;
                 int chunkBytes = Math.Max(256 * 1024, Math.Min(4 * 1024 * 1024, expected / (helpers * 8)));
@@ -47,8 +52,8 @@ namespace OfficeIMO.Excel {
                     ExcelParallelReadBudget.Release(helpers);
                     throw;
                 }
+#endif
             }
-
             /// <summary>Adopts the completed helper rows that start at the current row boundary.</summary>
             private bool TryStitchParallelChunk(ref int position, ref int previousRow, CancellationToken ct) {
                 ParallelRowIndex index = _parallelIndex!;
@@ -112,6 +117,7 @@ namespace OfficeIMO.Excel {
                         if (firstColumn < _minimumCellColumn) _minimumCellColumn = firstColumn;
                     }
 
+                    if (chunk.RequiresFullValidation) _sheetDataSupportsFastValidation = false;
                     previousRow = chunk.RowIndexes[rows - 1] + rowBase;
                     _rowCount += rows;
                     position = end;
@@ -173,22 +179,23 @@ namespace OfficeIMO.Excel {
                 while (true) {
                     if (Volatile.Read(ref chunk.Abandoned)) return;
                     int searchEnd = Math.Min(available, chunkEnd);
+                    byte[] rowToken = RowStartToken();
                     while (searchFrom < searchEnd) {
-                        int relative = _buffer!.AsSpan(searchFrom, searchEnd - searchFrom).IndexOf("<row"u8);
+                        int relative = _buffer!.AsSpan(searchFrom, searchEnd - searchFrom).IndexOf(rowToken);
                         if (relative < 0) {
-                            searchFrom = Math.Max(searchFrom, searchEnd - 3);
+                            searchFrom = Math.Max(searchFrom, searchEnd - rowToken.Length + 1);
                             break;
                         }
                         int candidate = searchFrom + relative;
-                        if (candidate + 4 >= available) {
+                        if (candidate + rowToken.Length >= available) {
                             searchFrom = candidate;
                             break;
                         }
-                        if (_buffer![candidate + 4] is (byte)' ' or (byte)'>') {
+                        if (_buffer![candidate + rowToken.Length] is (byte)' ' or (byte)'>') {
                             position = candidate;
                             break;
                         }
-                        searchFrom = candidate + 4;
+                        searchFrom = candidate + rowToken.Length;
                     }
                     if (position >= 0) break;
                     if (available >= chunkEnd || index.IsComplete(available)) return;
@@ -198,10 +205,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 _length = available;
+                _sheetDataSupportsFastValidation = true;
                 chunk.Start = position;
                 // Attribute-free rows take their numbers from the sequential indexer when adopted;
                 // helpers number them from one. Other rows must repeat the validated row shape.
-                bool implicitRows = MatchesUtf8(position, "<row>"u8);
+                bool implicitRows = IsAttributeFreeRowTag(position);
                 chunk.ImplicitRows = implicitRows;
                 // Storage is fixed before the first published row, so the sequential indexer can copy
                 // published rows while this helper continues.
@@ -220,12 +228,13 @@ namespace OfficeIMO.Excel {
                         _length = next;
                     }
 
+                    SkipWhitespaceBetweenRows(ref position);
                     int rowStart = position;
                     int rowIndex;
                     bool emptyRow;
                     if (implicitRows) {
-                        if (!MatchesUtf8(position, "<row>"u8)) break;
-                        position += 5;
+                        if (!IsAttributeFreeRowTag(position)) break;
+                        position += 5 + _worksheetPrefixLength;
                         rowIndex = rows + 1;
                         emptyRow = false;
                     } else if (!TryReadRepeatedRowStartTag(ref position, out Utf8Tag tag, out rowIndex)
@@ -266,6 +275,8 @@ namespace OfficeIMO.Excel {
                     chunk.RowLastColumns![rows] = _maximumCellRow > 0 ? _maximumCellColumn : 0;
                     chunk.RowIndexes![rows] = rowIndex;
                     rows++;
+                    // Published with the row so an adopted prefix carries its validation requirement.
+                    if (!_sheetDataSupportsFastValidation) chunk.RequiresFullValidation = true;
                     Volatile.Write(ref chunk.CompletedRows, rows);
                     previousRow = rowIndex;
                 }
@@ -285,6 +296,7 @@ namespace OfficeIMO.Excel {
                 internal int Start = -1;
                 internal int EstimatedRows;
                 internal bool ImplicitRows;
+                internal bool RequiresFullValidation;
                 internal int[]? RowIndexes;
                 internal int[]? RowContentStarts;
                 internal int[]? RowContentEnds;
@@ -463,10 +475,26 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            private byte[]? _rowStartToken;
+
+            /// <summary>The bytes that open a row element in this worksheet's prefix, without the name terminator.</summary>
+            private byte[] RowStartToken() {
+                if (_rowStartToken != null) return _rowStartToken;
+                var token = new byte[4 + _worksheetPrefixLength];
+                token[0] = (byte)'<';
+                Array.Copy(_buffer!, _worksheetPrefixStart, token, 1, _worksheetPrefixLength);
+                token[token.Length - 3] = (byte)'r';
+                token[token.Length - 2] = (byte)'o';
+                token[token.Length - 1] = (byte)'w';
+                return _rowStartToken = token;
+            }
+
             private ExcelUtf8RangeRowSource CreateParallelIndexShadow() =>
                 new ExcelUtf8RangeRowSource(_owner, _buffer!, _length) {
                     _ownsBuffer = false,
                     _isParallelIndexHelper = true,
+                    _worksheetPrefixStart = _worksheetPrefixStart,
+                    _worksheetPrefixLength = _worksheetPrefixLength,
                     _firstColumn = _firstColumn,
                     _fieldCount = _fieldCount,
                     _repeatedRowSuffixStart = _repeatedRowSuffixStart,

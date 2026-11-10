@@ -42,6 +42,29 @@ public partial class Excel {
         Assert.Equal(ParallelIndexRows - 1, rows);
     }
 
+    /// <summary>
+    /// Shapes written by common producers: a namespace prefix, cells with both style and type,
+    /// xml:space on text and on cells, and indentation between rows and cells.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProducerShapedWorksheetsReadMatchSequentialIndexing(bool prefixed) {
+        byte[] workbook = CreateProducerShapedWorkbook(prefixed);
+        using DbDataReader expected = OpenParallelIndexReader(workbook, numericAsDecimal: false, sequential: true);
+        using DbDataReader actual = OpenParallelIndexReader(workbook, numericAsDecimal: false, sequential: false);
+        int rows = 0;
+        while (expected.Read()) {
+            Assert.True(actual.Read());
+            rows++;
+            for (int ordinal = 0; ordinal < expected.FieldCount; ordinal++) {
+                Assert.Equal(expected.GetValue(ordinal), actual.GetValue(ordinal));
+            }
+        }
+        Assert.False(actual.Read());
+        Assert.Equal(ParallelIndexRows - 1, rows);
+    }
+
     [Fact]
     public void LargeUniformWorksheetReportsLateInvalidCellBeforeTheFirstRow() {
         byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: ParallelIndexRows - 3);
@@ -60,6 +83,56 @@ public partial class Excel {
         var options = new ExcelReaderOptions { NumericAsDecimal = numericAsDecimal };
         if (sequential) options.Execution.Mode = ExcelExecutionMode.Sequential;
         return ExcelDocument.OpenReader(new MemoryStream(workbook, writable: false), options);
+    }
+
+    private static byte[] CreateProducerShapedWorkbook(bool prefixed) {
+        string p = prefixed ? "x:" : string.Empty;
+        string ns = prefixed ? " xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"" : " xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"";
+        var sheet = new StringBuilder(ParallelIndexRows * 400);
+        sheet.Append('<').Append(p).Append("worksheet").Append(ns).Append("><").Append(p).Append("dimension ref=\"A1:D")
+            .Append(ParallelIndexRows).Append("\"/><").Append(p).Append("sheetData>\n");
+        sheet.Append('<').Append(p).Append("row r=\"1\">");
+        foreach (string header in new[] { "Region", "Note", "Date", "Amount" }) {
+            sheet.Append('<').Append(p).Append("c t=\"inlineStr\"><").Append(p).Append("is><").Append(p).Append("t>")
+                .Append(header).Append("</").Append(p).Append("t></").Append(p).Append("is></").Append(p).Append("c>");
+        }
+        sheet.Append("</").Append(p).Append("row>\n");
+        for (int row = 2; row <= ParallelIndexRows; row++) {
+            sheet.Append("  <").Append(p).Append("row r=\"").Append(row).Append("\">\n    ");
+            sheet.Append('<').Append(p).Append("c r=\"A").Append(row).Append("\" s=\"0\" t=\"s\"><").Append(p).Append("v>")
+                .Append(1 + row % 7).Append("</").Append(p).Append("v></").Append(p).Append("c>\n    ");
+            string text = row % 3 == 0 ? "note " + row % 11 + " " : "note" + row % 11;
+            string space = prefixed || row % 3 != 0 ? string.Empty : " xml:space=\"preserve\"";
+            sheet.Append('<').Append(p).Append("c r=\"B").Append(row).Append("\" t=\"inlineStr\"><").Append(p).Append("is><").Append(p)
+                .Append('t').Append(space).Append('>').Append(text).Append("</").Append(p).Append("t></").Append(p).Append("is></").Append(p).Append("c>\n    ");
+            sheet.Append('<').Append(p).Append("c r=\"C").Append(row).Append("\" s=\"1\"><").Append(p).Append("v>")
+                .Append(40000 + row % 900).Append("</").Append(p).Append("v></").Append(p).Append("c>\n    ");
+            string cellSpace = row % 5 == 0 ? " xml:space=\"preserve\"" : string.Empty;
+            sheet.Append('<').Append(p).Append("c r=\"D").Append(row).Append("\" t=\"n\" s=\"0\"").Append(cellSpace).Append("><").Append(p).Append("v>")
+                .Append((row % 400 / 4.0).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</").Append(p).Append("v></").Append(p).Append("c>\n");
+            sheet.Append("  </").Append(p).Append("row>\n");
+        }
+        sheet.Append("</").Append(p).Append("sheetData></").Append(p).Append("worksheet>");
+        return ReplaceParallelIndexWorksheet(sheet.ToString());
+    }
+
+    private static byte[] ReplaceParallelIndexWorksheet(string worksheet) {
+        using ExcelDocument document = ExcelDocument.Create();
+        document.AddSheet("Data").Cell(1, 1).SetValue("Name");
+        using var buffer = new MemoryStream();
+        byte[] original = document.ToBytes();
+        buffer.Write(original, 0, original.Length);
+        using (var package = SpreadsheetDocument.Open(buffer, true)) {
+            var part = package.WorkbookPart!.SharedStringTablePart ?? package.WorkbookPart.AddNewPart<SharedStringTablePart>();
+            part.SharedStringTable = new SharedStringTable(
+                Enumerable.Range(0, 8).Select(index => new SharedStringItem(new Text(index == 0 ? "Name" : "Region " + index))));
+            part.SharedStringTable.Save();
+        }
+        using (var archive = new ZipArchive(buffer, ZipArchiveMode.Update, leaveOpen: true)) {
+            ReplaceAsyncCultureEntry(archive, "xl/worksheets/sheet1.xml", worksheet);
+            ReplaceAsyncCultureEntry(archive, "xl/styles.xml", "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><cellXfs count=\"2\"><xf numFmtId=\"0\"/><xf numFmtId=\"14\"/></cellXfs></styleSheet>");
+        }
+        return buffer.ToArray();
     }
 
     private static byte[] CreateParallelIndexWorkbook(int invalidSharedStringRow, bool implicitLayout = false) {

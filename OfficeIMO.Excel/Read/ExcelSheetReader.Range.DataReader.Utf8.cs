@@ -570,6 +570,7 @@ namespace OfficeIMO.Excel {
                 bool repeatedRowShapeValidated = false;
                 while (position < _length || TryAdvanceInflation(ct)) {
                     ct.ThrowIfCancellationRequested();
+                    SkipWhitespaceBetweenRows(ref position);
                     if (_parallelIndex != null && position >= _parallelIndex.NextBoundary
                         && TryStitchParallelChunk(ref position, ref previousRow, ct)) {
                         nextImplicitRow = previousRow + 1;
@@ -582,16 +583,17 @@ namespace OfficeIMO.Excel {
                     // Exact attribute-free row tags already prove their XML syntax.
                     // This does not prove the row number: a later explicit cell can
                     // still require the ordinary coordinate lookahead below.
-                    bool simpleImplicitRow = MatchesUtf8(position, "<row>"u8);
+                    bool simpleImplicitRow = IsAttributeFreeRowTag(position);
                     bool repeatedRow = !simpleImplicitRow && repeatedRowShapeValidated
                         && TryReadRepeatedRowStartTag(
                             ref position,
                             out tag,
                             out rowIndex);
                     if (simpleImplicitRow) {
-                        tag = new Utf8Tag(position, position + 4, position + 1, position + 4,
-                            position + 1, isEnd: false, isEmpty: false);
-                        position += 5;
+                        int prefix = _worksheetPrefixLength;
+                        tag = new Utf8Tag(position, position + 4 + prefix, position + 1, position + 4 + prefix,
+                            position + 1 + prefix, isEnd: false, isEmpty: false);
+                        position += 5 + prefix;
                     } else if (!repeatedRow
                         && !TryReadNextTag(ref position, _length, out tag)) {
                         return false;
