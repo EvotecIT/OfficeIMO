@@ -100,7 +100,10 @@ internal sealed class PdfNull : PdfObject {
 
 /// <summary>PDF dictionary object.</summary>
 internal sealed class PdfDictionary : PdfObject {
-    public System.Collections.Generic.Dictionary<string, PdfObject> Items { get; } = new();
+    public PdfDictionary() => Items = new();
+    internal PdfDictionary(int capacity) => Items = new(capacity > 0 ? capacity : 0);
+
+    public System.Collections.Generic.Dictionary<string, PdfObject> Items { get; }
     public T? Get<T>(string key) where T : PdfObject => Items.TryGetValue(key, out var v) ? v as T : null;
 }
 

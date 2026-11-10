@@ -116,8 +116,10 @@ internal static partial class PdfSyntax {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, effectiveLimits.MaxObjectCharacters, length);
         }
 
-        var d = new PdfDictionary();
         using var tokens = Tokenize(source, start, length, effectiveLimits, trackEncodedStringSourceSpans, cancellationToken);
+        var d = new PdfDictionary(tokens.Count > 0 && tokens[0].Equals(tokens.Source, "<<")
+            ? EstimateDictionaryKeyCount(tokens, 0, cancellationToken)
+            : 0);
         for (int i = 0; i < tokens.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfToken token = tokens[i];
@@ -147,7 +149,7 @@ internal static partial class PdfSyntax {
         PdfToken token = tokens[i];
         string source = tokens.Source;
         if (token.Equals(source, "<<")) {
-            var dict = new PdfDictionary();
+            var dict = new PdfDictionary(EstimateDictionaryKeyCount(tokens, i, cancellationToken));
             int j = i + 1;
             while (j < tokens.Count && !tokens[j].Equals(source, ">>")) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -215,6 +217,46 @@ internal static partial class PdfSyntax {
             }
         }
         return (new PdfName(token.GetText(source, cancellationToken)) { HasIncompleteSyntax = true }, 0);
+    }
+
+    // Counts the keys of a dictionary whose entries are found within a short scan, so it is
+    // allocated at its final size. Long or malformed dictionaries return 0 and grow as parsed.
+    private static int EstimateDictionaryKeyCount(in PooledTokenBuffer tokens, int dictionaryStart,
+        System.Threading.CancellationToken cancellationToken) {
+        const int MaximumScannedTokens = 64;
+        string source = tokens.Source;
+        int end = Math.Min(tokens.Count, dictionaryStart + 1 + MaximumScannedTokens);
+        int count = 0;
+        int depth = 0;
+        bool expectKey = true;
+        for (int index = dictionaryStart + 1; index < end; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfToken token = tokens[index];
+            if (token.Equals(source, "<<") || token.Equals(source, "[")) {
+                depth++;
+                continue;
+            }
+            if (token.Equals(source, ">>") || token.Equals(source, "]")) {
+                if (depth == 0) return token.Equals(source, ">>") ? count : 0;
+                if (--depth == 0) expectKey = true;
+                continue;
+            }
+            if (depth > 0) continue;
+            if (expectKey) {
+                if (token.Length == 0 || token.GetCharacter(source, 0) != '/') return 0;
+                count++;
+                expectKey = false;
+            } else {
+                if (index + 2 < end &&
+                    tokens[index + 2].Equals(source, "R") &&
+                    tokens[index].TryParseInt32(source, out _, cancellationToken) &&
+                    tokens[index + 1].TryParseInt32(source, out _, cancellationToken)) {
+                    index += 2;
+                }
+                expectKey = true;
+            }
+        }
+        return 0;
     }
 
     private static int EstimateArrayItemCount(in PooledTokenBuffer tokens, int arrayStart,
