@@ -118,6 +118,7 @@ internal static class YamlEdit {
         RequireDetached(node);
         CheckRemovable(old);
         bool hadRegion = old._start >= 0 && collection.HasSourceSpan;
+        bool replacesBlock = hadRegion && old is YamlMapping or YamlSequence && old._style == YamlStyle.Block;
         int start = old._start, end = old._end;
         if (old.HasSourceSpan) Materialize(old);
         // The replacement takes over the old value's line, and with it the comment at its end.
@@ -136,7 +137,7 @@ internal static class YamlEdit {
         if (hadRegion) {
             node._start = start;
             node._end = end;
-            MarkChanged(node, YamlNodeState.Dirty);
+            MarkChanged(node, replacesBlock ? YamlNodeState.Dirty | YamlNodeState.ReplacedBlock : YamlNodeState.Dirty);
         } else {
             MarkChanged(collection, YamlNodeState.None);
         }

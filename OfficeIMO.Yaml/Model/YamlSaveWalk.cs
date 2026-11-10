@@ -313,11 +313,12 @@ internal sealed class YamlSaveWalk {
             int keyIndent = Column(key._start);
             bool oldInline = !ContainsBreak(colonEnd, start);
             string inline = RenderSlot(node, start == colonEnd ? YamlSlot.MappingValue : YamlSlot.Inline, keyIndent, Column(start));
-            if (oldInline && !endsAtLineStart && !ContainsBreak(inline)) {
+            bool block = node is YamlMapping or YamlSequence && node._style == YamlStyle.Block;
+            if (oldInline && !endsAtLineStart && !block && !ContainsBreak(inline)) {
                 Replace(start, end, inline);
                 return false;
             }
-            if (!oldInline && !endsAtLineStart && start > colonEnd && node is YamlScalar or YamlAlias) {
+            if (!oldInline && !endsAtLineStart && start > colonEnd && node is YamlScalar or YamlAlias && (node._state & YamlNodeState.ReplacedBlock) == 0) {
                 // A value on its own line below the key stays there when it fits on one line.
                 string below = RenderSlot(node, YamlSlot.Inline, keyIndent, Column(start));
                 if (!ContainsBreak(below)) {
