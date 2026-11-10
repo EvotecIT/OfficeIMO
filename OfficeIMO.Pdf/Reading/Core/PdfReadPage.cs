@@ -260,8 +260,6 @@ public sealed partial class PdfReadPage {
         PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);
         string content = contentSequence.Content;
         if (content.Length > 0) {
-            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources,
-                cancellationToken.CanBeCanceled ? cancellationToken.ThrowIfCancellationRequested : null);
             CollectTextAndForms(
                 content,
                 pageResources,
@@ -282,7 +280,8 @@ public sealed partial class PdfReadPage {
                 cancellationCheck: cancellationToken.CanBeCanceled
                     ? cancellationToken.ThrowIfCancellationRequested
                     : null,
-                invokedResourceNames: invokedResources,
+                invokedResourceNames: () => GetRootInvokedResourceNames(content, pageResources,
+                    cancellationToken.CanBeCanceled ? cancellationToken.ThrowIfCancellationRequested : null),
                 onUnmappableText: onUnmappableText,
                 retainEditingEvidence: retainEditingEvidence);
         }
@@ -937,7 +936,7 @@ public sealed partial class PdfReadPage {
         Action? cancellationCheck = null,
         bool includeHiddenOptionalContent = false,
         PdfTextStateSnapshot? initialTextState = null,
-        PdfPageInvokedResourceNames? invokedResourceNames = null,
+        Func<PdfPageInvokedResourceNames>? invokedResourceNames = null,
         Action<int>? onTextSpan = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
@@ -1036,8 +1035,12 @@ public sealed partial class PdfReadPage {
         PdfPageOptionalContentVisibility? optionalContentVisibility = includeHiddenOptionalContent
             ? null
             : GetOptionalContentVisibility(resources);
-        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
-            content, resources, cancellationCheck ?? (Action)pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
+        PageContentBudget colorSpaceBudget = pageContentBudget;
+        IReadOnlyDictionary<string, PdfPageColorSpace> colorSpaceResources = GetDeferredColorSpaceResources(
+            resources,
+            invokedResourceNames ?? (() => GetInvokedResourceNames(
+                content, resources, cancellationCheck ?? (Action)colorSpaceBudget.CancellationToken.ThrowIfCancellationRequested)),
+            colorSpaceBudget);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
             GetGraphicsStateResources(resources, pageContentBudget, decoders, widthProviders, fonts);
         var actualTextForms = new Dictionary<int, TextContentParser.MarkedContentState>();
@@ -1049,7 +1052,7 @@ public sealed partial class PdfReadPage {
             actualTextForProperty: ResolveActualTextProperty,
             mcidForProperty: ResolveMarkedContentMcid,
             graphicsStates: graphicsStates,
-            colorSpaces: GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
+            colorSpaces: colorSpaceResources,
             baseFontForResource: ResolveBaseFont,
             isType3FontResource: IsType3FontResource,
             drawingFontFamilyForResource: ResolveDrawingFontFamily,
@@ -1123,7 +1126,7 @@ public sealed partial class PdfReadPage {
                      paintOrderScale,
                      paintOrderOffset,
                      graphicsStates,
-                     GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
+                     colorSpaceResources,
                      pageHeight,
                      initialFillColor,
                      initialFillColorSpace,
