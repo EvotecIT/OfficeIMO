@@ -34,6 +34,16 @@ public class TableConversionTests {
         Assert.Equal("1990-05-01", first.GetProperty("born").GetString());
     }
 
+    // CSV output finds its columns from a sample; a later row with a new column fails instead of losing the value.
+    [Fact]
+    public void LateColumnsFailUnlessEveryRowIsRead() {
+        const string rows = "[{\"a\":1},{\"a\":2},{\"a\":3,\"b\":4}]";
+        var error = Assert.Throws<InvalidDataException>(() => Convert.Run(rows, DataFormat.Json, DataFormat.Csv, new DataConversionOptions { SampleRows = 2 }));
+        Assert.Contains("'b'", error.Message);
+        (string csv, _) = Convert.Run(rows, DataFormat.Json, DataFormat.Csv, new DataConversionOptions { SampleRows = 0 });
+        Assert.Equal("a,b\n1,\n2,\n3,4\n", csv);
+    }
+
     [Fact]
     public void SelectReadsRowsBelowTheRootAndSeveralMembersAreTables() {
         const string response = "{\"data\":[{\"a\":1},{\"a\":2}],\"meta\":{\"page\":1}}";

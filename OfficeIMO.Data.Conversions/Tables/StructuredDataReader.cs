@@ -34,6 +34,9 @@ public sealed class StructuredDataReader : DbDataReader {
     private string?[] _texts = Array.Empty<string?>();
     private StringBuilder?[] _joins = Array.Empty<StringBuilder?>();
     private long _row;
+    private readonly long _sampleRows;
+    private bool _sampled;
+    private string? _latePath;
 
     private enum Mode {
         Rows,
@@ -48,6 +51,8 @@ public sealed class StructuredDataReader : DbDataReader {
         _owned = owned;
         _culture = context.Options.Culture ?? CultureInfo.InvariantCulture;
         _multiDocument = documents is null or > 1;
+        // CSV output needs only the column set, so it reads a sample first; typed output reads every row for column types.
+        _sampleRows = text && context.Options.Columns == null && context.Options.SampleRows > 0 ? context.Options.SampleRows : long.MaxValue;
         if (context.Options.Select is { } select) {
             if (!DataPath.TryParse(select, out List<DataPathSegment> segments)) throw new ArgumentException("The Select path '" + select + "' is not a valid path.");
             _select = segments;
@@ -57,7 +62,6 @@ public sealed class StructuredDataReader : DbDataReader {
         foreach (TableLayout table in _tables) {
             if (context.Options.Columns is { } columns) Replace(table, columns);
             table.Complete(context);
-            ReportTextLoss(table);
         }
 
         if (_tables.Count == 0) {
@@ -157,7 +161,7 @@ public sealed class StructuredDataReader : DbDataReader {
             if (reader.TokenType == DataTokenType.StartArray) {
                 while (TableEventWalker.Next(reader) is not (DataTokenType.EndArray or DataTokenType.None)) {
                     Walk(reader, rows.Root, scan: true);
-                    rows.Rows++;
+                    if (++rows.Rows >= _sampleRows) return Sampled(rows);
                 }
             } else if (!_multiDocument && reader.TokenType == DataTokenType.StartObject) {
                 if (ScanTables(reader)) return Mode.Tables;
@@ -167,7 +171,7 @@ public sealed class StructuredDataReader : DbDataReader {
                 return Mode.SingleRow;
             } else {
                 Walk(reader, rows.Root, scan: true);
-                rows.Rows++;
+                if (++rows.Rows >= _sampleRows && _multiDocument) return Sampled(rows);
                 if (!_multiDocument) {
                     _tables.Add(rows);
                     return Mode.SingleRow;
@@ -182,12 +186,24 @@ public sealed class StructuredDataReader : DbDataReader {
         return Mode.Rows;
     }
 
+    private Mode Sampled(TableLayout rows) {
+        _sampled = true;
+        _tables.Add(rows);
+        return Mode.Rows;
+    }
+
     // An object whose every member is an array is a set of tables named by its keys.
     private bool ScanTables(DataEventReader reader) {
         while (TableEventWalker.Next(reader) == DataTokenType.PropertyName) {
             var table = new TableLayout(reader.Text.ToString());
             if (TableEventWalker.Next(reader) != DataTokenType.StartArray) return false;
             while (TableEventWalker.Next(reader) is not (DataTokenType.EndArray or DataTokenType.None)) {
+                if (table.Rows >= _sampleRows) {
+                    _sampled = true;
+                    TableEventWalker.SkipValue(reader);
+                    continue;
+                }
+
                 Walk(reader, table.Root, scan: true);
                 table.Rows++;
             }
@@ -243,16 +259,6 @@ public sealed class StructuredDataReader : DbDataReader {
         return node;
     }
 
-    private void ReportTextLoss(TableLayout table) {
-        if (!_text) return;
-        foreach (TableColumnNode column in table.Columns) {
-            if (column.Kind == DataScalarKind.String && column.HasNull) {
-                _context.Report(OfficeDiagnosticCodes.NullAsEmpty, OfficeConversionLossKind.Approximation,
-                    "Nulls in text columns became empty fields, which read back as empty strings.", column.Path);
-            }
-        }
-    }
-
     // ---------------------------------------------------------------- shared walk
 
     /// <summary>Walks one value. Pass one grows the trie and records evidence; pass two fills cells.</summary>
@@ -260,13 +266,15 @@ public sealed class StructuredDataReader : DbDataReader {
         switch (reader.TokenType) {
             case DataTokenType.Scalar:
                 if (scan) node!.Observe(reader.ScalarKind, reader.Text);
-                else if (node is { Column: >= 0 }) SetCell(node.Column, reader.ScalarKind, reader.Text);
+                else if (node is { Column: >= 0 }) SetCell(node, reader.ScalarKind, reader.Text);
+                else if (_sampled && reader.ScalarKind != DataScalarKind.Null) LateColumn(node, reader);
                 return;
             case DataTokenType.StartObject: {
                 bool empty = true;
                 while (TableEventWalker.Next(reader) == DataTokenType.PropertyName) {
                     empty = false;
                     TableColumnNode? child = scan ? node!.GetOrAddName(reader.Text) : node?.FindName(reader.Text);
+                    if (child == null && node != null && _sampled) _latePath = (node.Path.Length == 0 ? string.Empty : node.Path + ".") + reader.Text.ToString();
                     TableEventWalker.Next(reader);
                     Walk(reader, child, scan);
                 }
@@ -311,7 +319,22 @@ public sealed class StructuredDataReader : DbDataReader {
         _texts[node.Column] = builder.ToString();
     }
 
-    private void SetCell(int column, DataScalarKind kind, ReadOnlySpan<char> text) {
+    // A row past the sample holds a value at a path the header does not have.
+    private void LateColumn(TableColumnNode? node, DataEventReader reader) {
+        string? path = node?.Path is { Length: > 0 } known ? known : _latePath;
+        string where = path != null ? "'" + path + "'" : "a new path";
+        throw new InvalidDataException("Row " + (_row + 1).ToString(CultureInfo.InvariantCulture) + " has a value at " + where
+            + " that the first " + _sampleRows.ToString(CultureInfo.InvariantCulture) + " rows did not have" + (reader.Location is { } at ? " (" + at + ")" : string.Empty)
+            + ". Set SampleRows to 0 to read every row before writing, or list the columns in Columns.");
+    }
+
+    private void SetCell(TableColumnNode node, DataScalarKind kind, ReadOnlySpan<char> text) {
+        int column = node.Column;
+        if (_text && kind == DataScalarKind.Null && node.Kind is null or DataScalarKind.String) {
+            _context.Report(OfficeDiagnosticCodes.NullAsEmpty, OfficeConversionLossKind.Approximation,
+                "Nulls in text columns became empty fields, which read back as empty strings.", node.Path);
+        }
+
         _kinds[column] = kind;
         _texts[column] = kind == DataScalarKind.Null ? null : text.ToString();
         if (_text && kind == DataScalarKind.String && TableTypes.LooksTyped(text)) {

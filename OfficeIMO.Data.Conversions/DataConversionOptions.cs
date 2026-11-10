@@ -10,6 +10,7 @@ public sealed class DataConversionOptions {
     private string _rootName = "root";
     private string _arraySeparator = ", ";
     private int _maxColumns = 16_384;
+    private int _sampleRows = 1000;
 
     internal static DataConversionOptions Default { get; } = new DataConversionOptions();
 
@@ -27,6 +28,19 @@ public sealed class DataConversionOptions {
 
     /// <summary>The A1 range to read from a worksheet (<c>B2:D40</c>), such as an Excel table's range. Null reads the used range.</summary>
     public string? Range { get; set; }
+
+    /// <summary>
+    /// For CSV output, how many rows are read to find the columns before writing; a later row with a value at a new path
+    /// fails with a message naming it. 0 reads every row first. Defaults to 1,000. Typed outputs (Excel, data readers)
+    /// always read every row, because they also need each column's type.
+    /// </summary>
+    public int SampleRows {
+        get => _sampleRows;
+        set {
+            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "The sample cannot be negative.");
+            _sampleRows = value;
+        }
+    }
 
     /// <summary>The table columns as header paths, in order. Fixes the column set and lets table output be written in one pass.</summary>
     public IReadOnlyList<string>? Columns { get; set; }

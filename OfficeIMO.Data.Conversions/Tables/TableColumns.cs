@@ -59,10 +59,24 @@ internal sealed class TableColumnNode {
     public IReadOnlyList<TableColumnNode> Named => _named;
     public IReadOnlyList<TableColumnNode?> Indexed => (IReadOnlyList<TableColumnNode?>?)_indexed ?? Array.Empty<TableColumnNode?>();
 
+    // Rows usually repeat their keys in the same order, so the child after the last match is tried first.
+    private int _cursor;
+
     public TableColumnNode? FindName(ReadOnlySpan<char> name) {
+        if (_named.Count > 0) {
+            int next = _cursor < _named.Count ? _cursor : 0;
+            if (name.SequenceEqual(_named[next].Name.AsSpan())) {
+                _cursor = next + 1;
+                return _named[next];
+            }
+        }
+
         int hash = Hash(name);
         for (int i = 0; i < _named.Count; i++) {
-            if (_hashes[i] == hash && name.SequenceEqual(_named[i].Name.AsSpan())) return _named[i];
+            if (_hashes[i] == hash && name.SequenceEqual(_named[i].Name.AsSpan())) {
+                _cursor = i + 1;
+                return _named[i];
+            }
         }
 
         return null;

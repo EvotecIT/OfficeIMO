@@ -6,11 +6,14 @@ namespace OfficeIMO.Data.Conversions;
 /// </summary>
 internal abstract class DataEventReader : IDisposable {
     private char[] _text = new char[256];
+    private char[] _view;
+    private int _viewStart;
     private int _textLength;
     private DuplicateKeyTracker? _keys;
 
     protected DataEventReader(DataConversionContext context) {
         Context = context;
+        _view = _text;
     }
 
     public DataConversionContext Context { get; }
@@ -20,7 +23,7 @@ internal abstract class DataEventReader : IDisposable {
     public DataScalarKind ScalarKind { get; private set; }
 
     /// <summary>The property name, scalar text or comment of the current event.</summary>
-    public ReadOnlySpan<char> Text => new ReadOnlySpan<char>(_text, 0, _textLength);
+    public ReadOnlySpan<char> Text => new ReadOnlySpan<char>(_view, _viewStart, _textLength);
 
     /// <summary>A human-readable source position for diagnostics, such as <c>line 12, column 5</c>.</summary>
     public abstract string? Location { get; }
@@ -45,6 +48,8 @@ internal abstract class DataEventReader : IDisposable {
 
     protected void Set(DataTokenType type) {
         TokenType = type;
+        _view = _text;
+        _viewStart = 0;
         _textLength = 0;
         if (_keys != null) {
             if (type == DataTokenType.StartObject) _keys.Push();
@@ -73,20 +78,45 @@ internal abstract class DataEventReader : IDisposable {
         CopyText(text);
     }
 
-    /// <summary>Gives a derived reader a buffer to decode the next text into; commit it with <see cref="CommitScalar"/> or <see cref="CommitPropertyName"/>.</summary>
+    /// <summary>Gives a derived reader a buffer to decode the next text into; commit it with <see cref="CommitScalar(DataScalarKind, int)"/> or <see cref="CommitPropertyName(int)"/>.</summary>
     protected Span<char> GetTextBuffer(int minimumLength) {
         if (_text.Length < minimumLength) _text = new char[Math.Max(minimumLength, _text.Length * 2)];
+        _view = _text;
         return _text;
     }
 
     protected void CommitScalar(DataScalarKind kind, int length) {
         TokenType = DataTokenType.Scalar;
         ScalarKind = kind;
+        _view = _text;
+        _viewStart = 0;
         _textLength = length;
+    }
+
+    /// <summary>Points the current scalar at text the derived reader already holds, without copying it.</summary>
+    protected void CommitScalar(DataScalarKind kind, char[] buffer, int start, int length) {
+        TokenType = DataTokenType.Scalar;
+        ScalarKind = kind;
+        _view = buffer;
+        _viewStart = start;
+        _textLength = length;
+    }
+
+    /// <summary>Points the current property name at text the derived reader already holds, without copying it.</summary>
+    protected void CommitPropertyName(char[] buffer, int start, int length) {
+        TokenType = DataTokenType.PropertyName;
+        _view = buffer;
+        _viewStart = start;
+        _textLength = length;
+        if (_keys != null && !_keys.Add(Text)) {
+            throw new InvalidDataException("The key '" + Text.ToString() + "' appears twice in one object" + At() + ".");
+        }
     }
 
     protected void CommitPropertyName(int length) {
         TokenType = DataTokenType.PropertyName;
+        _view = _text;
+        _viewStart = 0;
         _textLength = length;
         if (_keys != null && !_keys.Add(Text)) {
             throw new InvalidDataException("The key '" + Text.ToString() + "' appears twice in one object" + At() + ".");
@@ -101,6 +131,8 @@ internal abstract class DataEventReader : IDisposable {
     private void CopyText(ReadOnlySpan<char> text) {
         if (_text.Length < text.Length) _text = new char[Math.Max(text.Length, _text.Length * 2)];
         text.CopyTo(_text);
+        _view = _text;
+        _viewStart = 0;
         _textLength = text.Length;
     }
 

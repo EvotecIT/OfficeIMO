@@ -2,30 +2,48 @@ namespace OfficeIMO.Data.Conversions;
 
 /// <summary>
 /// Reads JSON or JSON Lines from a stream with <see cref="Utf8JsonReader"/> over one pooled, refilled buffer, so memory
-/// stays bounded by the longest token. Each top-level value is a document.
+/// stays bounded by the longest token. Tokens are decoded in batches into a reused character arena, which amortizes
+/// creating the reader and lets property names and strings reach the sink without a copy. Each top-level value is a
+/// document.
 /// </summary>
 internal sealed class JsonEventReader : DataEventReader {
     private const int InitialBufferSize = 64 * 1024;
+    private const int BatchTokens = 4096;
     private readonly Stream _stream;
     private readonly bool _leaveOpen;
     private readonly bool _jsonLines;
+    private readonly JsonReaderOptions _options;
     private byte[] _buffer;
     private int _start;
     private int _end;
     private bool _final;
+    private bool _bomChecked;
     private long _offset;
-    private long _tokenOffset;
     private JsonReaderState _state;
+    private bool _atBoundary = true;
+    private int _scanDepth;
+
+    // The current batch: token kinds and their text ranges in the arena.
+    private Token[] _tokens = new Token[BatchTokens];
+    private int _tokenCount;
+    private int _tokenIndex;
+    private char[] _arena = new char[16 * 1024];
+    private int _arenaLength;
+    private long _tokenOffset;
+
+    // Document framing.
     private int _depth;
     private bool _inDocument;
     private bool _endDocumentPending;
-    private bool _held;
-    private DataTokenType _heldType;
-    private DataScalarKind _heldKind;
-    private int _heldLength;
     private bool _sawDocument;
-    private readonly JsonReaderOptions _options;
-    private bool _atBoundary = true;
+
+    private struct Token {
+        public DataTokenType Type;
+        public DataScalarKind Kind;
+        public int Start;
+        public int Length;
+        public long Offset;
+    }
 
     public JsonEventReader(Stream stream, bool jsonLines, DataConversionContext context, bool leaveOpen = true) : base(context) {
         _stream = stream ?? throw new ArgumentNullException(nameof(stream));
@@ -47,65 +65,160 @@ internal sealed class JsonEventReader : DataEventReader {
             return true;
         }
 
-        if (_held) {
-            _held = false;
-            Deliver(_heldType, _heldKind, _heldLength);
-            return true;
-        }
-
-        if (!ReadToken(out DataTokenType type, out DataScalarKind kind, out int length)) {
+        if (_tokenIndex == _tokenCount && !FillBatch()) {
             if (!_sawDocument && !_jsonLines) throw new InvalidDataException("The JSON input is empty.");
             return false;
         }
 
-        if (!_inDocument && type != DataTokenType.Comment) {
+        ref Token token = ref _tokens[_tokenIndex];
+        _tokenOffset = token.Offset;
+        if (!_inDocument && token.Type != DataTokenType.Comment) {
             _inDocument = true;
             _sawDocument = true;
-            _held = true;
-            _heldType = type;
-            _heldKind = kind;
-            _heldLength = length;
             Set(DataTokenType.StartDocument);
             return true;
         }
 
-        Deliver(type, kind, length);
-        return true;
-    }
-
-    private void Deliver(DataTokenType type, DataScalarKind kind, int length) {
-        switch (type) {
+        _tokenIndex++;
+        switch (token.Type) {
             case DataTokenType.StartObject:
             case DataTokenType.StartArray:
                 _depth++;
-                Set(type);
+                Set(token.Type);
                 break;
             case DataTokenType.EndObject:
             case DataTokenType.EndArray:
                 _depth--;
-                Set(type);
-                if (_depth == 0) EndValue();
+                Set(token.Type);
+                if (_depth == 0) _endDocumentPending = true;
                 break;
             case DataTokenType.PropertyName:
-                CommitPropertyName(length);
+                CommitPropertyName(_arena, token.Start, token.Length);
                 break;
             case DataTokenType.Scalar:
-                CommitScalar(kind, length);
-                if (_depth == 0) EndValue();
+                CommitScalar(token.Kind, _arena, token.Start, token.Length);
+                if (_depth == 0) _endDocumentPending = true;
                 break;
             case DataTokenType.Comment:
-                SetComment(GetTextBuffer(length).Slice(0, length));
+                SetComment(new ReadOnlySpan<char>(_arena, token.Start, token.Length));
                 break;
+        }
+
+        return true;
+    }
+
+    // Decodes the next run of tokens with one reader instance. JSON Lines batches stop at the end of each top-level
+    // value, because the next value starts with a fresh reader state.
+    private bool FillBatch() {
+        _tokenCount = 0;
+        _tokenIndex = 0;
+        _arenaLength = 0;
+        while (true) {
+            if (_jsonLines && _atBoundary) {
+                if (!SkipToNextValue()) return false;
+                _atBoundary = false;
+                _state = new JsonReaderState(_options);
+            }
+
+            ReadTokens();
+            if (_tokenCount > 0) return true;
+            if (_final) return false;
+            Refill();
         }
     }
 
-    // JSON Lines: each top-level value starts a fresh reader state, so values can follow each other on new lines.
-    private void EndValue() {
-        _endDocumentPending = true;
-        if (_jsonLines) {
-            _state = new JsonReaderState(_options);
-            _atBoundary = true;
+    private void ReadTokens() {
+        if (_end - _start == 0 && !_final) return;
+        var reader = new Utf8JsonReader(new ReadOnlySpan<byte>(_buffer, _start, _end - _start), _final, _state);
+        try {
+            while (_tokenCount < BatchTokens && _arenaLength < _arena.Length - 16 && reader.Read()) {
+                Add(ref reader);
+                if (_jsonLines && _scanDepth == 0 && reader.TokenType is not (JsonTokenType.PropertyName or JsonTokenType.Comment)) {
+                    _atBoundary = true;
+                    break;
+                }
+            }
+        } catch (JsonException error) {
+            throw new InvalidDataException("The JSON input is invalid near byte "
+                + (_offset + _start + reader.BytesConsumed).ToString(CultureInfo.InvariantCulture) + ": " + error.Message, error);
+        } catch (InvalidOperationException error) {
+            throw new InvalidDataException("The JSON input has invalid text near byte "
+                + (_offset + _start + reader.BytesConsumed).ToString(CultureInfo.InvariantCulture) + ": " + error.Message, error);
         }
+
+        _state = reader.CurrentState;
+        _start += (int)reader.BytesConsumed;
+    }
+
+    private void Add(ref Utf8JsonReader reader) {
+        ref Token token = ref _tokens[_tokenCount++];
+        token.Offset = _offset + _start + reader.TokenStartIndex;
+        token.Kind = default;
+        token.Start = _arenaLength;
+        token.Length = 0;
+        switch (reader.TokenType) {
+            case JsonTokenType.StartObject: token.Type = DataTokenType.StartObject; _scanDepth++; return;
+            case JsonTokenType.StartArray: token.Type = DataTokenType.StartArray; _scanDepth++; return;
+            case JsonTokenType.EndObject: token.Type = DataTokenType.EndObject; _scanDepth--; return;
+            case JsonTokenType.EndArray: token.Type = DataTokenType.EndArray; _scanDepth--; return;
+            case JsonTokenType.PropertyName:
+                token.Type = DataTokenType.PropertyName;
+                token.Length = reader.CopyString(Arena(reader.ValueSpan.Length));
+                break;
+            case JsonTokenType.String:
+                token.Type = DataTokenType.Scalar;
+                token.Kind = DataScalarKind.String;
+                token.Length = reader.CopyString(Arena(reader.ValueSpan.Length));
+                break;
+            case JsonTokenType.Number: {
+                token.Type = DataTokenType.Scalar;
+                ReadOnlySpan<byte> raw = reader.ValueSpan;
+                Span<char> text = Arena(raw.Length);
+                bool integer = true;
+                for (int i = 0; i < raw.Length; i++) {
+                    byte b = raw[i];
+                    if (b == (byte)'.' || b == (byte)'e' || b == (byte)'E') integer = false;
+                    text[i] = (char)b;
+                }
+
+                token.Kind = integer ? DataScalarKind.Integer : DataScalarKind.Float;
+                token.Length = raw.Length;
+                break;
+            }
+            case JsonTokenType.True:
+                token.Type = DataTokenType.Scalar;
+                token.Kind = DataScalarKind.Boolean;
+                token.Length = Literal("true");
+                break;
+            case JsonTokenType.False:
+                token.Type = DataTokenType.Scalar;
+                token.Kind = DataScalarKind.Boolean;
+                token.Length = Literal("false");
+                break;
+            case JsonTokenType.Null:
+                token.Type = DataTokenType.Scalar;
+                token.Kind = DataScalarKind.Null;
+                break;
+            case JsonTokenType.Comment:
+                token.Type = DataTokenType.Comment;
+                token.Length = Literal(reader.GetComment());
+                break;
+            default:
+                throw new InvalidDataException("Unexpected JSON token " + reader.TokenType + ".");
+        }
+
+        _arenaLength += token.Length;
+    }
+
+    // Room for a value's characters at the end of the arena; decoded text is never longer than its UTF-8 bytes.
+    private Span<char> Arena(int length) {
+        if (_arena.Length - _arenaLength < length) Array.Resize(ref _arena, Math.Max(_arena.Length * 2, _arenaLength + length));
+        return new Span<char>(_arena, _arenaLength, length);
+    }
+
+    private int Literal(string value) {
+        value.AsSpan().CopyTo(Arena(value.Length));
+        return value.Length;
     }
 
     // Skips whitespace between JSON Lines values; false when only whitespace remains.
@@ -120,115 +233,6 @@ internal sealed class JsonEventReader : DataEventReader {
             if (_final) return false;
             Refill();
         }
-    }
-
-    private bool ReadToken(out DataTokenType type, out DataScalarKind kind, out int length) {
-        if (_jsonLines && _atBoundary) {
-            _atBoundary = false;
-            if (!SkipToNextValue()) {
-                type = DataTokenType.None;
-                kind = default;
-                length = 0;
-                return false;
-            }
-        }
-
-        while (true) {
-            var reader = new Utf8JsonReader(new ReadOnlySpan<byte>(_buffer, _start, _end - _start), _final, _state);
-            bool read;
-            try {
-                read = reader.Read();
-            } catch (JsonException error) {
-                throw new InvalidDataException("The JSON input is invalid near byte "
-                    + (_offset + _start + reader.BytesConsumed).ToString(CultureInfo.InvariantCulture) + ": " + error.Message, error);
-            }
-
-            if (read) {
-                _tokenOffset = _offset + _start + reader.TokenStartIndex;
-                try {
-                    Extract(ref reader, out type, out kind, out length);
-                } catch (InvalidOperationException error) {
-                    throw new InvalidDataException("The JSON input has invalid text at byte " + _tokenOffset.ToString(CultureInfo.InvariantCulture) + ": " + error.Message, error);
-                }
-
-                _state = reader.CurrentState;
-                _start += (int)reader.BytesConsumed;
-                return true;
-            }
-
-            _state = reader.CurrentState;
-            _start += (int)reader.BytesConsumed;
-            if (_final) {
-                type = DataTokenType.None;
-                kind = default;
-                length = 0;
-                return false;
-            }
-
-            Refill();
-        }
-    }
-
-    private void Extract(ref Utf8JsonReader reader, out DataTokenType type, out DataScalarKind kind, out int length) {
-        kind = default;
-        length = 0;
-        switch (reader.TokenType) {
-            case JsonTokenType.StartObject: type = DataTokenType.StartObject; return;
-            case JsonTokenType.EndObject: type = DataTokenType.EndObject; return;
-            case JsonTokenType.StartArray: type = DataTokenType.StartArray; return;
-            case JsonTokenType.EndArray: type = DataTokenType.EndArray; return;
-            case JsonTokenType.PropertyName:
-                type = DataTokenType.PropertyName;
-                length = reader.CopyString(GetTextBuffer(reader.ValueSpan.Length));
-                return;
-            case JsonTokenType.String:
-                type = DataTokenType.Scalar;
-                kind = DataScalarKind.String;
-                length = reader.CopyString(GetTextBuffer(reader.ValueSpan.Length));
-                return;
-            case JsonTokenType.Number: {
-                type = DataTokenType.Scalar;
-                ReadOnlySpan<byte> raw = reader.ValueSpan;
-                Span<char> text = GetTextBuffer(raw.Length);
-                bool integer = true;
-                for (int i = 0; i < raw.Length; i++) {
-                    byte b = raw[i];
-                    if (b == (byte)'.' || b == (byte)'e' || b == (byte)'E') integer = false;
-                    text[i] = (char)b;
-                }
-
-                length = raw.Length;
-                kind = integer ? DataScalarKind.Integer : DataScalarKind.Float;
-                return;
-            }
-            case JsonTokenType.True:
-                type = DataTokenType.Scalar;
-                kind = DataScalarKind.Boolean;
-                length = Write("true");
-                return;
-            case JsonTokenType.False:
-                type = DataTokenType.Scalar;
-                kind = DataScalarKind.Boolean;
-                length = Write("false");
-                return;
-            case JsonTokenType.Null:
-                type = DataTokenType.Scalar;
-                kind = DataScalarKind.Null;
-                return;
-            case JsonTokenType.Comment: {
-                type = DataTokenType.Comment;
-                string comment = reader.GetComment();
-                length = Write(comment);
-                return;
-            }
-            default:
-                throw new InvalidDataException("Unexpected JSON token " + reader.TokenType + ".");
-        }
-    }
-
-    private int Write(string value) {
-        value.AsSpan().CopyTo(GetTextBuffer(value.Length));
-        return value.Length;
     }
 
     private void Refill() {
@@ -250,13 +254,13 @@ internal sealed class JsonEventReader : DataEventReader {
         int read = _stream.Read(_buffer, _end, _buffer.Length - _end);
         if (read == 0) _final = true;
         else _end += read;
-        if (_offset == 0 && _end >= 3 && _buffer[0] == 0xEF && _buffer[1] == 0xBB && _buffer[2] == 0xBF && _start == 0 && !_bomSkipped) {
-            _bomSkipped = true;
-            _start = 3;
+        if (!_bomChecked && _end >= 3) {
+            _bomChecked = true;
+            if (_offset == 0 && _start == 0 && _buffer[0] == 0xEF && _buffer[1] == 0xBB && _buffer[2] == 0xBF) _start = 3;
+        } else if (_final) {
+            _bomChecked = true;
         }
     }
-
-    private bool _bomSkipped;
 
     public override void Dispose() {
         if (_buffer.Length > 0) {
