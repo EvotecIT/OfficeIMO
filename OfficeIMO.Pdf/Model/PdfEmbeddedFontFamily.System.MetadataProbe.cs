@@ -122,9 +122,7 @@ public sealed partial class PdfEmbeddedFontFamily {
                 throw new System.NotSupportedException(
                     "TrueType collection name-table metadata exceeds supported limits.");
             }
-            byte[] table = length <= SystemFontProbeNameTableBufferBytes
-                ? _systemFontProbeNameTable ??= new byte[SystemFontProbeNameTableBufferBytes]
-                : new byte[length];
+            byte[] table = GetProbeNameTableBuffer(length);
             reader.ReadInto(tableOffset, length, table);
             bool parsed = TryReadTrueTypeNameTable(table, length, 0, length, out metadata);
             (nameTables ??= new System.Collections.Generic.Dictionary<long, SystemFontNameTableCacheEntry>())
@@ -134,6 +132,117 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
 
         return false;
+    }
+
+    private static byte[] GetProbeNameTableBuffer(int length) =>
+        length <= SystemFontProbeNameTableBufferBytes
+            ? _systemFontProbeNameTable ??= new byte[SystemFontProbeNameTableBufferBytes]
+            : new byte[length];
+
+    /// <summary>
+    /// Scores the only face of a non-collection font file from its name and OS/2 tables, giving the kind
+    /// and score that reading and classifying the whole file would. Returns false when the file needs the
+    /// whole read to decide: collections, duplicate or out-of-range tables, or unreadable names.
+    /// </summary>
+    private static bool TryScoreSingleSystemFontFace(string path, string normalizedMetadataFamily,
+        out bool hasCandidate, out FontFaceKind kind, out int score) {
+        hasCandidate = false;
+        kind = FontFaceKind.Regular;
+        score = 0;
+        try {
+            var fileInfo = new System.IO.FileInfo(path);
+            if (!fileInfo.Exists ||
+                (fileInfo.Attributes & System.IO.FileAttributes.ReparsePoint) != 0 ||
+                fileInfo.Length > MaxSystemFontFileBytes) {
+                return false;
+            }
+
+            using var stream = new System.IO.FileStream(path, System.IO.FileMode.Open,
+                System.IO.FileAccess.Read,
+                System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete,
+                bufferSize: 1);
+            long fileLength = stream.Length;
+            if (fileLength < 12 || fileLength > MaxSystemFontFileBytes) {
+                return false;
+            }
+
+            var reader = new SystemFontProbeReader(stream);
+            int headerStart = reader.Read(0, 12, out byte[] header);
+            if (header[headerStart] == (byte)'t' && header[headerStart + 1] == (byte)'t' &&
+                header[headerStart + 2] == (byte)'c' && header[headerStart + 3] == (byte)'f') {
+                return false;
+            }
+
+            int tableCount = ReadUInt16(header, headerStart + 4);
+            if (tableCount == 0 || tableCount > MaxSystemFontTableCountToInspect) {
+                return false;
+            }
+
+            int directoryStart = reader.Read(12, checked(tableCount * 16), out byte[] directory);
+            long nameOffset = 0L, os2Offset = 0L;
+            int nameLength = 0, os2Length = 0, nameRecords = 0, os2Records = 0;
+            for (int index = 0; index < tableCount; index++) {
+                int record = directoryStart + index * 16;
+                uint tableOffset = ReadUInt32(directory, record + 8);
+                uint tableLength = ReadUInt32(directory, record + 12);
+                // The whole-file directory read rejects these ranges; leave such files to it.
+                if (tableOffset > int.MaxValue || tableLength > int.MaxValue ||
+                    tableOffset > fileLength - tableLength) {
+                    return false;
+                }
+
+                if (directory[record] == (byte)'n' && directory[record + 1] == (byte)'a' &&
+                    directory[record + 2] == (byte)'m' && directory[record + 3] == (byte)'e') {
+                    nameRecords++;
+                    nameOffset = tableOffset;
+                    nameLength = (int)tableLength;
+                } else if (directory[record] == (byte)'O' && directory[record + 1] == (byte)'S' &&
+                    directory[record + 2] == (byte)'/' && directory[record + 3] == (byte)'2') {
+                    os2Records++;
+                    os2Offset = tableOffset;
+                    os2Length = (int)tableLength;
+                }
+            }
+
+            if (nameRecords != 1 || os2Records > 1 || nameLength == 0 || nameLength > MaxSystemFontNameTableBytes) {
+                return false;
+            }
+
+            byte[] table = GetProbeNameTableBuffer(nameLength);
+            reader.ReadInto(nameOffset, nameLength, table);
+            if (!TryReadTrueTypeNameTable(table, nameLength, 0, nameLength, out TrueTypeNameMetadata? metadata) || metadata == null) {
+                return false;
+            }
+
+            int familyScore = GetMetadataFamilyMatchScore(metadata, normalizedMetadataFamily);
+            if (familyScore < 0) {
+                // The whole-file path rejects it on the same names without reading it.
+                return true;
+            }
+
+            bool hasStyleFlags = false;
+            int weight = 0;
+            bool bold = false, italic = false, oblique = false;
+            if (os2Records == 1 && os2Length >= 64) {
+                int os2Start = reader.Read(os2Offset, 64, out byte[] os2);
+                hasStyleFlags = TryReadSystemFontStyleFlags(os2, os2Start, out weight, out bold, out italic, out oblique);
+            }
+
+            kind = ClassifyMetadataFace(metadata, hasStyleFlags, weight, bold, italic, oblique, out int metadataScore);
+            score = metadataScore + familyScore;
+            hasCandidate = true;
+            return true;
+        } catch (System.Exception exception) when (
+            exception is System.IO.IOException ||
+            exception is System.UnauthorizedAccessException ||
+            exception is System.NotSupportedException ||
+            exception is System.ArgumentException ||
+            exception is System.ArithmeticException ||
+            exception is System.FormatException ||
+            exception is System.IndexOutOfRangeException ||
+            exception is System.InvalidOperationException) {
+            return false;
+        }
     }
 
     private static byte[] ReadFontFileRange(System.IO.FileStream stream,
