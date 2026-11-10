@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests {
         public void WorksheetCompression_PropagatesWorkerFailureWithoutReplay() {
             using var destination = new PartiallyFailingXlsbRecordStream(rejectSecondWrite: true);
             using var pipeline = new WorksheetCompressionPipeline(destination);
-            byte[] payload = new byte[4 * 64 * 1024];
+            byte[] payload = new byte[4 * WorksheetCompressionPipeline.ChunkSize];
             IOException error = Assert.Throws<IOException>(() => {
                 pipeline.Write(payload, 0, payload.Length);
                 pipeline.Complete();
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             try {
                 Exception error = Assert.Throws<InvalidOperationException>((Action)(() => {
                     using var pipeline = new WorksheetCompressionPipeline(destination);
-                    byte[] payload = new byte[64 * 1024];
+                    byte[] payload = new byte[WorksheetCompressionPipeline.ChunkSize];
                     pipeline.Write(payload, 0, payload.Length);
                     Assert.True(destination.Entered.Wait(TimeSpan.FromSeconds(10)));
                     producerFailed.Set();

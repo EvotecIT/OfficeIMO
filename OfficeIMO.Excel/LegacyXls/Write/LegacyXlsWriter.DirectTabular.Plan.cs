@@ -1,4 +1,3 @@
-using System.Buffers;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {
@@ -29,12 +28,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ulong[] rowFingerprints = cachedCellSlotCount == 0
                 ? new ulong[totalRows]
                 : Array.Empty<ulong>();
-            byte[] cellKinds = cachedCellSlotCount == 0
-                ? Array.Empty<byte>()
-                : ArrayPool<byte>.Shared.Rent(cachedCellSlotCount);
-            ulong[] cellPayloads = cachedCellSlotCount == 0
-                ? Array.Empty<ulong>()
-                : ArrayPool<ulong>.Shared.Rent(cachedCellSlotCount);
+            byte[] cellKinds = Array.Empty<byte>();
+            ulong[] cellPayloads = Array.Empty<ulong>();
+            if (cachedCellSlotCount != 0) RentDirectCellCaches(cachedCellSlotCount, out cellKinds, out cellPayloads);
             bool returnCellCache = cachedCellSlotCount != 0;
             object?[]? flatValues = rows.TryGetFlatValues(out object?[] candidateValues, out int flatColumnCount)
                 && flatColumnCount == columnCount
@@ -179,22 +175,40 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return true;
             } finally {
                 if (returnCellCache) {
-                    ClearAndReturnDirectCellCaches(cellKinds, cellPayloads);
+                    ReturnDirectCellCaches(cellKinds, cellPayloads, cachedCellSlotCount);
                 }
             }
         }
 
-        internal static void ClearAndReturnDirectCellCaches(
-            byte[] cellKinds,
-            ulong[] cellPayloads,
-            ArrayPool<byte>? cellKindPool = null,
-            ArrayPool<ulong>? cellPayloadPool = null) {
-            Array.Clear(cellKinds, 0, cellKinds.Length);
-            Array.Clear(cellPayloads, 0, cellPayloads.Length);
-            (cellKindPool ?? ArrayPool<byte>.Shared).Return(cellKinds);
-            (cellPayloadPool ?? ArrayPool<ulong>.Shared).Return(cellPayloads);
+        // One cleared set of cell caches is kept for the next save. The shared array pool would release arrays
+        // this large under memory pressure and trim them on the finalizer thread, so every save would allocate
+        // them again; caches above the bound are left to the garbage collector instead of being retained.
+        private const int MaximumRetainedCellSlots = 262_144;
+        private static DirectCellCaches? _retainedCellCaches;
+
+        private sealed class DirectCellCaches(byte[] kinds, ulong[] payloads) {
+            internal byte[] Kinds { get; } = kinds;
+            internal ulong[] Payloads { get; } = payloads;
         }
 
+        private static void RentDirectCellCaches(int slots, out byte[] kinds, out ulong[] payloads) {
+            DirectCellCaches? retained = Interlocked.Exchange(ref _retainedCellCaches, null);
+            if (retained != null && retained.Kinds.Length >= slots) {
+                kinds = retained.Kinds;
+                payloads = retained.Payloads;
+                return;
+            }
+            kinds = new byte[slots];
+            payloads = new ulong[slots];
+        }
+
+        /// <summary>Clears the slots a save used, then keeps the caches for the next save when they are within the bound.</summary>
+        private static void ReturnDirectCellCaches(byte[] kinds, ulong[] payloads, int usedSlots) {
+            if (kinds.Length == 0 || kinds.Length > MaximumRetainedCellSlots) return;
+            Array.Clear(kinds, 0, usedSlots);
+            Array.Clear(payloads, 0, usedSlots);
+            Interlocked.CompareExchange(ref _retainedCellCaches, new DirectCellCaches(kinds, payloads), null);
+        }
         private static void IncludeDirectCell(
             ushort[] firstColumns,
             ushort[] lastColumns,
@@ -307,7 +321,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             public void Dispose() {
                 if (CellSlotCount == 0 || Interlocked.Exchange(ref _disposed, 1) != 0) return;
-                ClearAndReturnDirectCellCaches(CellKinds, CellPayloads);
+                ReturnDirectCellCaches(CellKinds, CellPayloads, CellSlotCount);
             }
         }
 

@@ -2,7 +2,8 @@ namespace OfficeIMO.Excel;
 
 /// <summary>Defers the bounded worksheet compression handoff until a streamed sheet is large enough.</summary>
 internal sealed class StreamingWorksheetCompression(Stream destination) : Stream {
-    private const int SynchronousPrefixLength = 1024 * 1024;
+    // Smaller sheets stay on the caller; past this the compressor thread costs less than serial deflate.
+    private const int SynchronousPrefixLength = 256 * 1024;
     private WorksheetCompressionPipeline? _pipeline;
     private int _prefixBytes;
     private bool _disposed;

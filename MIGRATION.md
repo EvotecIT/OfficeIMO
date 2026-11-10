@@ -9652,6 +9652,7 @@ PDF paragraph font sizes, indents, spacing and tab positions/widths now use `Off
 - Header-only tables, such as `AddTable` with an empty `DataTable` or a range like `A1:B1`, get a blank data row, so `GetTableRange` reports `A1:B2`. The row below the header must not belong to another table; stacking header-only tables directly on top of each other now throws `InvalidOperationException` for the overlap. Leave a free row between them.
 - File-backed documents (`ExcelLoadOptions.FileBacked`) read through a private copy of their temporary package, so reads can use about twice the temporary disk space of the workbook. Size temporary storage for that.
 - `ExcelDocument.CreateWriter` and `ExcelWriterOptions.RequireStreaming` accept `AutoFit = true` instead of throwing `ArgumentException`. The writer spools each worksheet's rows to a temporary file to measure the columns before writing them, so it needs temporary disk space for the largest sheet.
+- `ExcelDocument.CreateWriter(ExcelFileFormat.Xls, ...)` with `UseSharedStrings = false`, which is the default when you pass no options, writes text of up to 255 characters as inline BIFF8 `LABEL` records instead of shared-string entries. Readers get the same values, but a sheet that repeats the same strings many times can be larger. Pass `new ExcelWriterOptions { UseSharedStrings = true }` to keep the shared-string table.
 
 ## PowerPoint text formatting and line breaks
 
