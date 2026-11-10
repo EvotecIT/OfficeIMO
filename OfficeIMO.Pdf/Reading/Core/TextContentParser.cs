@@ -402,6 +402,8 @@ internal static partial class TextContentParser {
 
         // Plain string extraction never exposes encoded glyphs or paint identities.
         bool retainGlyphAndPaintEvidence = retainEditingEvidence || !useLogicalTextFilters;
+        byte[]?[]? kernedRunBytes = null;
+        double[]?[]? kernedRunKerning = null;
         // Runs without glyph evidence never add to these lists, so one empty set serves every run.
         List<double>? noEvidenceAdvances = retainGlyphAndPaintEvidence ? null : new List<double>(0);
         List<int>? noEvidenceCharacterLengths = retainGlyphAndPaintEvidence ? null : new List<int>(0);
@@ -1672,8 +1674,19 @@ internal static partial class TextContentParser {
                 }
             }
             if (strings < 2) return false;
-            var bytes = new byte[totalBytes];
-            var kerning = new double[totalBytes];
+            // The joined run is read only while it is shown, so arrays of one length are reused.
+            byte[] bytes;
+            double[] kerning;
+            if (totalBytes < KernedRunScratchLengths) {
+                kernedRunBytes ??= new byte[KernedRunScratchLengths][];
+                kernedRunKerning ??= new double[KernedRunScratchLengths][];
+                bytes = kernedRunBytes[totalBytes] ??= new byte[totalBytes];
+                kerning = kernedRunKerning[totalBytes] ??= new double[totalBytes];
+                Array.Clear(kerning, 0, kerning.Length);
+            } else {
+                bytes = new byte[totalBytes];
+                kerning = new double[totalBytes];
+            }
             int offset = 0;
             double pending = 0D;
             for (int index = first; index <= last; index++) {
@@ -1974,8 +1987,15 @@ internal static partial class TextContentParser {
         }
     }
 
-    private static bool IsNullOrEmptyDecodedGlyph(string? value) =>
-        string.IsNullOrEmpty(value) || value.All(static character => character == '\0');
+    private const int KernedRunScratchLengths = 512;
+
+    private static bool IsNullOrEmptyDecodedGlyph(string? value) {
+        if (string.IsNullOrEmpty(value)) return true;
+        for (int index = 0; index < value!.Length; index++) {
+            if (value[index] != '\0') return false;
+        }
+        return true;
+    }
 
     public static List<FormInvocation> ExtractFormInvocations(
         string content,

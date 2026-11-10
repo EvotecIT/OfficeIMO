@@ -47,8 +47,14 @@ internal static class PdfMacRomanEncoding {
             throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxOutputCharacters, bytes.LongLength);
         }
         if (bytes.Length == 1) return SingleCodeStrings[bytes[0]];
+#if NET8_0_OR_GREATER
+        return string.Create(bytes.Length, bytes, static (destination, source) => {
+            for (int i = 0; i < source.Length; i++) destination[i] = Map[source[i]];
+        });
+#else
         var chars = new char[bytes.Length];
         for (int i = 0; i < bytes.Length; i++) chars[i] = Map[bytes[i]];
         return new string(chars);
+#endif
     }
 }

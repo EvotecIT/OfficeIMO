@@ -19,9 +19,13 @@ internal static class PdfSymbolicFontEncoding {
             }
         }
         if (bytes.Length == 1) return map[bytes[0]];
+#if NET8_0_OR_GREATER
+        return PdfEncoding.ConcatCodeStrings(map, bytes, (int)decodedLength);
+#else
         var builder = new System.Text.StringBuilder((int)decodedLength);
         for (int i = 0; i < bytes.Length; i++) builder.Append(map[bytes[i]]);
         return builder.ToString();
+#endif
     }
 
     private static string[] BuildMap(string encoding) {

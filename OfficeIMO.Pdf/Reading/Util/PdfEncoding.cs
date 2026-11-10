@@ -79,6 +79,21 @@ internal static class PdfEncoding {
 #endif
     }
 
+#if NET8_0_OR_GREATER
+    /// <summary>Concatenates the per-code strings of <paramref name="codes"/> whose total length is already known.</summary>
+    internal static string ConcatCodeStrings(string[] map, byte[] codes, int length) {
+        if (length == 0) return string.Empty;
+        return string.Create(length, (Map: map, Codes: codes), static (destination, state) => {
+            int offset = 0;
+            foreach (byte code in state.Codes) {
+                string value = state.Map[code];
+                value.AsSpan().CopyTo(destination.Slice(offset));
+                offset += value.Length;
+            }
+        });
+    }
+#endif
+
     internal static string[] CreateSingleCharacterStrings(char[] map) {
         var strings = new string[map.Length];
         for (int index = 0; index < map.Length; index++) strings[index] = map[index].ToString();

@@ -196,11 +196,18 @@ internal static partial class ResourceResolver {
             return single;
         }
         var builder = new System.Text.StringBuilder(bytes.Length);
+        byte[]? singleCode = null;
         for (int i = 0; i < bytes.Length; i++) {
             int code = bytes[i];
-            string value = differences.TryGetValue(code, out string? difference)
-                ? difference!
-                : baseDecoder(new[] { bytes[i] });
+            string value;
+            if (differences.TryGetValue(code, out string? difference)) {
+                value = difference!;
+            } else {
+                // Base decoders read the code without retaining it.
+                singleCode ??= new byte[1];
+                singleCode[0] = bytes[i];
+                value = baseDecoder(singleCode);
+            }
             long nextLength = (long)builder.Length + value.Length;
             if (nextLength > maxDecodedTextCharacters) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxDecodedTextCharacters, nextLength);

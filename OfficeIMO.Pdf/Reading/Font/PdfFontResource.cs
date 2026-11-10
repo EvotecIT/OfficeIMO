@@ -7,6 +7,8 @@ namespace OfficeIMO.Pdf;
 #pragma warning disable CA1850 // Static HashData is unavailable on netstandard2.0 and net472.
 
 internal sealed partial class PdfFontResource {
+    // Shared immutable decoding evidence for runs without unmapped bytes, indexed by source.
+    internal PdfTextDecodingEvidence?[]? DecodingEvidenceBySource;
     public string ResourceName { get; }
     public string BaseFont { get; }
     public string Encoding { get; }
