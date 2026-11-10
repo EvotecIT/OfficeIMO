@@ -7,8 +7,9 @@ namespace OfficeIMO.Yaml;
 public sealed class YamlSaveOptions {
     /// <summary>
     /// Gets or sets whether to write the whole document anew through the emitter instead of copying untouched text, to
-    /// normalize indentation and quoting. Values, anchors, tags and comments are kept; blank lines inside the document,
-    /// the original spelling of scalars (<c>TRUE</c>, <c>0x1F</c>) and comments inside flow collections are not.
+    /// normalize indentation. Values, scalar spellings and styles, anchors, tags, comments and the blank lines above
+    /// entries are kept; multi-line plain and folded scalars are laid out again, and comments inside flow collections
+    /// are dropped.
     /// Defaults to <see langword="false"/>.
     /// </summary>
     public bool Reformat { get; set; }
