@@ -6,40 +6,58 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private const int DiagnosticGlyphCacheEntryLimit = 512;
         private const int DiagnosticGlyphCachePointLimit = 65536;
-        // Shared glyph-paint font resolution uses owned private font snapshots;
-        // caller-provided outline providers never enter this per-writer cache.
-        private readonly Dictionary<(IOfficeBoundedFontProgram Font, int Glyph, double Size),
-            (List<List<OfficePoint>> Contours, DiagnosticPaintBounds Bounds)>
-            _diagnosticGlyphContours = new();
-        private int _diagnosticGlyphPointCount;
 
-        /// <summary>Releases retained font programs with their cached outlines.</summary>
-        private void ClearDiagnosticGlyphCache() {
-            _diagnosticGlyphContours.Clear();
-            _diagnosticGlyphPointCount = 0;
-            ClearDiagnosticGlyphWorkspace();
+        /// <summary>Bounded outlines of one shared glyph-paint font, reused by every document that paints with it.</summary>
+        /// <remarks>
+        /// Glyph-paint fonts are library-owned programs shared through their font bytes, so their outlines are pure
+        /// functions of glyph and size. Entries are never mutated; placement always works on a copy.
+        /// </remarks>
+        private sealed class SharedDiagnosticGlyphOutlines {
+            internal readonly Dictionary<(int Glyph, double Size), (List<List<OfficePoint>> Contours, DiagnosticPaintBounds Bounds)> Entries = new();
+            internal int PointCount;
+        }
+
+        // Keyed weakly by the shared font program, so outlines live exactly as long as the parsed font they describe.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IOfficeBoundedFontProgram, SharedDiagnosticGlyphOutlines>
+            SharedGlyphOutlines = new();
+
+        /// <summary>Releases this writer's borrowed placement storage; shared outlines stay with their font program.</summary>
+        private void ClearDiagnosticGlyphCache() => ClearDiagnosticGlyphWorkspace();
+
+        private (List<List<OfficePoint>> Contours, DiagnosticPaintBounds Bounds) GetDiagnosticGlyphOutline(
+            IOfficeBoundedFontProgram font, int glyphId, double size) {
+            SharedDiagnosticGlyphOutlines shared = SharedGlyphOutlines.GetValue(font, static _ => new SharedDiagnosticGlyphOutlines());
+            var key = (glyphId, size);
+            lock (shared) {
+                if (shared.Entries.TryGetValue(key, out var found)) return found;
+            }
+            var shaped = new OfficeTextShapingResult(new[] { new OfficeShapedGlyph(glyphId, "x", 0) });
+            double ascent = ((IOfficeFontBaselineMetrics)font).BaselineOffset(size);
+            List<List<OfficePoint>> contours = font.GetShapedTextContoursBounded("x", shaped, 0D, -ascent, size,
+                DiagnosticGlyphCachePointLimit, cancellationToken);
+            int points = 0;
+            foreach (List<OfficePoint> contour in contours) points += contour.Count;
+            var cached = (contours, MeasureDiagnosticPaintBounds(contours));
+            lock (shared) {
+                if (shared.Entries.TryGetValue(key, out var raced)) return raced;
+                if (shared.Entries.Count >= DiagnosticGlyphCacheEntryLimit
+                    || points > DiagnosticGlyphCachePointLimit - shared.PointCount) {
+                    shared.Entries.Clear();
+                    shared.PointCount = 0;
+                }
+                if (points <= DiagnosticGlyphCachePointLimit) {
+                    shared.Entries.Add(key, cached);
+                    shared.PointCount += points;
+                }
+            }
+            return cached;
         }
 
         /// <summary>Reuses exact bounded outlines, borrowing placement storage only when paint still needs inspection.</summary>
         private List<List<OfficePoint>>? DiagnosticGlyphOutline(IOfficeBoundedFontProgram font, int glyphId, double size,
             GlyphPaintPlacement placement, Func<DiagnosticPaintBounds, bool>? contained) {
             cancellationToken.ThrowIfCancellationRequested();
-            var key = (font, glyphId, size);
-            if (!_diagnosticGlyphContours.TryGetValue(key, out var cached)) {
-                var shaped = new OfficeTextShapingResult(new[] { new OfficeShapedGlyph(glyphId, "x", 0) });
-                double ascent = ((IOfficeFontBaselineMetrics)font).BaselineOffset(size);
-                List<List<OfficePoint>> contours = font.GetShapedTextContoursBounded("x", shaped, 0D, -ascent, size,
-                    DiagnosticGlyphCachePointLimit, cancellationToken);
-                int points = 0;
-                foreach (List<OfficePoint> contour in contours) points += contour.Count;
-                if (_diagnosticGlyphContours.Count >= DiagnosticGlyphCacheEntryLimit
-                    || points > DiagnosticGlyphCachePointLimit - _diagnosticGlyphPointCount) {
-                    ClearDiagnosticGlyphCache();
-                }
-                cached = (contours, MeasureDiagnosticPaintBounds(contours));
-                _diagnosticGlyphContours.Add(key, cached);
-                _diagnosticGlyphPointCount += points;
-            }
+            var cached = GetDiagnosticGlyphOutline(font, glyphId, size);
             // A glyph without outline points paints no ink, so no clip can remove any. Its inspection would
             // measure only the clips; they also bound every inked glyph of the run, which reports them.
             if (contained != null && HasNoOutlinePoints(cached.Contours)) return null;
