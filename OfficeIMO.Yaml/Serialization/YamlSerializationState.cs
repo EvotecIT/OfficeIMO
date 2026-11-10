@@ -18,7 +18,7 @@ internal sealed class YamlReadState {
         public int Index;
     }
 
-    private PathStep[] _path = new PathStep[16];
+    private PathStep[] _path = new PathStep[4];
     private int _depth;
     private Dictionary<string, object?>? _references;
 
