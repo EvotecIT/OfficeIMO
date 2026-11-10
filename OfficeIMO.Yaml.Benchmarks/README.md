@@ -1,6 +1,6 @@
 # OfficeIMO YAML Benchmarks
 
-This opt-in project measures reference YAML libraries, YamlDotNet 18.0.0 and SharpYaml 3.17.0, against the same conformance data and workloads that the OfficeIMO YAML engine will be held to. The libraries are referenced here only; OfficeIMO runtime projects do not depend on this project.
+This opt-in project measures OfficeIMO.Yaml and the reference YAML libraries, YamlDotNet 18.0.0 and SharpYaml 3.17.0, against the same conformance data and workloads. The libraries are referenced here only; OfficeIMO runtime projects do not depend on this project.
 
 ## Conformance comparison
 
@@ -34,7 +34,7 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --filt
 
 Four benchmark classes cover the operations, each with YamlDotNet as the baseline:
 
-- `YamlParseEventsBenchmarks`: parse to events without building a tree.
+- `YamlParseEventsBenchmarks`: parse to events without building a tree. The OfficeIMO.Yaml lane reads every scalar value, alias name, anchor and tag as a string, matching the reference parsers' events, which carry them.
 - `YamlLoadTreeBenchmarks`: load the representation tree.
 - `YamlLoadAndSaveBenchmarks`: load and save without edits.
 - `YamlEmitBenchmarks`: emit a new document from events captured before timing.
