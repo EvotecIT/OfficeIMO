@@ -6,6 +6,7 @@ public sealed partial class PdfDocument {
     private PdfCreateOptions OptionsToChange {
         get {
             Volatile.Write(ref _completedOutput, null);
+            DiscardPassedTextPreflight();
             return _options;
         }
     }

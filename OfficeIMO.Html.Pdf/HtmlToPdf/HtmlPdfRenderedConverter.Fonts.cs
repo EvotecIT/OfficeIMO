@@ -481,21 +481,26 @@ internal static partial class HtmlPdfRenderedConverter {
     private static bool RequiresUnicodeFont(string text) =>
         PdfCore.PdfTextDiagnostics.RequiresEmbeddedUnicodeFont(text);
 
-    internal static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered) =>
-        CollectRenderedTextForFontFallbackSelection(rendered, webFonts: null);
-
     /// <summary>
-    /// Collects the text that may reach a run fallback. A run that its own family stack already
-    /// covers is painted with that family, so it can neither select nor use a fallback face.
+    /// Collects the text that fallback selection must cover and reports whether any of it can reach a
+    /// run fallback. A run that its own family stack already covers is painted with that family, so it
+    /// can neither select nor use a fallback face.
     /// </summary>
-    private static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered, RegisteredWebFonts? webFonts) {
+    private static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered, RegisteredWebFonts webFonts,
+        out bool runFallbackReachable) {
         var text = new System.Text.StringBuilder();
+        runFallbackReachable = false;
         foreach (HtmlRenderVisual visual in EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))) {
-            if (visual is HtmlRenderText renderedText
-                && (webFonts == null || !IsCoveredByOwnFamily(renderedText, webFonts))) {
+            if (visual is HtmlRenderText renderedText) {
                 text.Append(renderedText.Text);
+                // Coverage checks may resolve faces and report their failures, so every run keeps its check.
+                if (!IsCoveredByOwnFamily(renderedText, webFonts) && renderedText.Text.Length > 0) runFallbackReachable = true;
             }
-            if (visual is HtmlRenderDrawing drawing) AppendDrawingText(drawing.Drawing.Elements, text);
+            if (visual is HtmlRenderDrawing drawing) {
+                int length = text.Length;
+                AppendDrawingText(drawing.Drawing.Elements, text);
+                if (text.Length > length) runFallbackReachable = true;
+            }
         }
         return text.ToString();
     }

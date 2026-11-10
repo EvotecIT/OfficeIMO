@@ -387,7 +387,8 @@ internal static partial class HtmlPdfRenderedConverter {
             // Selecting an installed run fallback reads the whole font. When every run's own
             // faces hold a glyph for each of its characters, the writer never consults a run
             // fallback, so only document-font selection remains.
-            if (CollectRenderedTextForFontFallbackSelection(rendered, webFonts).Length == 0) {
+            string requiredText = CollectRenderedTextForFontFallbackSelection(rendered, webFonts, out bool runFallbackReachable);
+            if (!runFallbackReachable) {
                 activeTextFallbacks &= ~(PdfCore.PdfTextFallbackFeatures.MultilingualFonts
                     | PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts);
             }
@@ -396,7 +397,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 reservedFontSlots,
                 options.ResourcePolicy.AllowSystemFontEmbedding,
                 preserveConfiguredFontSlots: options.FontFamily != null,
-                requiredText: CollectRenderedTextForFontFallbackSelection(rendered));
+                requiredText: requiredText);
         }
         pdf.UseTextShaping(options.TextShapingMode, options.TextShapingProvider);
         var headingDocumentOrder = rendered.Headings
@@ -434,7 +435,7 @@ internal static partial class HtmlPdfRenderedConverter {
             });
         }
 
-        IReadOnlyList<PdfCore.PdfTextEncodingDiagnostic> encodingDiagnostics = pdf.AnalyzeTextEncoding(cancellationToken);
+        IReadOnlyList<PdfCore.PdfTextEncodingDiagnostic> encodingDiagnostics = pdf.AnalyzeTextEncodingForNextOutput(cancellationToken);
         if (encodingDiagnostics.Count > 0) {
             throw new HtmlConversionException(diagnostics.Concat(encodingDiagnostics.Select(
                 diagnostic => new HtmlDiagnostic(
