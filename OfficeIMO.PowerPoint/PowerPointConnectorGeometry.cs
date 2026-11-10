@@ -55,6 +55,12 @@ namespace OfficeIMO.PowerPoint {
         internal static bool TryGetSites(PowerPointShape shape, out List<PowerPointConnectionSite> sites) {
             sites = new List<PowerPointConnectionSite>();
             if (shape is PowerPointConnectionShape) return false;
+            // A shape that follows a layout placeholder has no local position, so its sites cannot be placed.
+            if (!shape.TryGetBoundsPoints(out _, out _, out double boundsWidth, out double boundsHeight)
+                || (boundsWidth <= 0D && boundsHeight <= 0D)) {
+                return false;
+            }
+
             ShapeProperties? properties = GetShapeProperties(shape.Element);
             IReadOnlyList<LocalSite>? local = null;
             A.CustomGeometry? custom = properties?.GetFirstChild<A.CustomGeometry>();
@@ -94,7 +100,19 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
+        internal static bool TryGetSite(PowerPointShape shape, int index, out PowerPointConnectionSite site) {
+            site = default;
+            if (!TryGetSites(shape, out List<PowerPointConnectionSite> sites) || index < 0 || index >= sites.Count) return false;
+            site = sites[index];
+            return true;
+        }
+
         internal static PowerPointConnectionSite GetSite(PowerPointShape shape, int index, string parameterName) {
+            if (!shape.TryGetBoundsPoints(out _, out _, out _, out _)) {
+                throw new NotSupportedException("Shape '" + shape.Name + "' has no position of its own (it follows a layout "
+                    + "placeholder), so connectors cannot be glued to it.");
+            }
+
             if (!TryGetSites(shape, out List<PowerPointConnectionSite> sites)) {
                 throw new NotSupportedException("Shape '" + shape.Name + "' has no known connection sites. Glue connectors to "
                     + "rectangles, rounded rectangles, ellipses, triangles, diamonds, common flowchart shapes, pictures, "

@@ -99,6 +99,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("The replacement layout must belong to the same presentation.", nameof(replacement));
             }
 
+            Document.EnsureLayoutCanBeRemoved(this);
             foreach (PowerPointSlide slide in Slides) {
                 slide.SetLayout(replacement);
             }

@@ -54,7 +54,15 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        internal void RouteGlued(PowerPointConnectorKind kind) {
+        internal void RouteGlued(PowerPointConnectorKind kind) => RouteGlued(kind, strict: true);
+
+        /// <summary>
+        ///     Reroutes after a glued shape changed. A glued end whose sites cannot be resolved (for example a preset
+        ///     without known sites in a loaded deck) leaves the connector as stored instead of failing the edit.
+        /// </summary>
+        internal void RerouteAfterShapeChange() => RouteGlued(Kind ?? PowerPointConnectorKind.Straight, strict: false);
+
+        private void RouteGlued(PowerPointConnectorKind kind, bool strict) {
             PowerPointShape? start = StartShape, end = EndShape;
             if (start == null && end == null) return;
 
@@ -62,20 +70,30 @@ namespace OfficeIMO.PowerPoint {
             GetEndPoints(out long startX, out long startY, out long endX, out long endY);
             double? startAngle = null, endAngle = null;
             if (start != null && StartSite is int startIndex) {
-                PowerPointConnectionSite site = PowerPointConnectorGeometry.GetSite(start, startIndex, nameof(StartSite));
+                if (!TryResolveSite(start, startIndex, nameof(StartSite), strict, out PowerPointConnectionSite site)) return;
                 startX = site.X.ToEmus();
                 startY = site.Y.ToEmus();
                 startAngle = site.Angle;
             }
 
             if (end != null && EndSite is int endIndex) {
-                PowerPointConnectionSite site = PowerPointConnectorGeometry.GetSite(end, endIndex, nameof(EndSite));
+                if (!TryResolveSite(end, endIndex, nameof(EndSite), strict, out PowerPointConnectionSite site)) return;
                 endX = site.X.ToEmus();
                 endY = site.Y.ToEmus();
                 endAngle = site.Angle;
             }
 
             PowerPointConnectorGeometry.Route(Shape, kind, startX, startY, endX, endY, startAngle, endAngle);
+        }
+
+        private static bool TryResolveSite(PowerPointShape shape, int index, string parameterName, bool strict,
+            out PowerPointConnectionSite site) {
+            if (strict) {
+                site = PowerPointConnectorGeometry.GetSite(shape, index, parameterName);
+                return true;
+            }
+
+            return PowerPointConnectorGeometry.TryGetSite(shape, index, out site);
         }
 
         private void GetEndPoints(out long startX, out long startY, out long endX, out long endY) {

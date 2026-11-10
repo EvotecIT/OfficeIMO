@@ -92,6 +92,7 @@ their shapes when the shapes move.
 
 ```csharp
 using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 
 using var deck = PowerPointDocument.Create("Flow.pptx");

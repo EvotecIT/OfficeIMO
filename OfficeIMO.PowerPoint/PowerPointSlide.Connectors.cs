@@ -55,7 +55,7 @@ namespace OfficeIMO.PowerPoint {
                 .Any(p => p.StartConnection != null || p.EndConnection != null) == true;
             if (_hasGluedConnectors != true || shape.Id is not uint id) return;
             foreach (PowerPointConnectionShape connector in ShapeList.OfType<PowerPointConnectionShape>()) {
-                if (connector.StartShapeId == id || connector.EndShapeId == id) connector.Reroute();
+                if (connector.StartShapeId == id || connector.EndShapeId == id) connector.RerouteAfterShapeChange();
             }
         }
 

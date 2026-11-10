@@ -111,7 +111,9 @@ namespace OfficeIMO.Tests {
 
                 PowerPointShape picture = slide.AddImage(imagePath).BindToPlaceholder(PowerPointPlaceholderType.Picture);
                 slide.AddTable(2, 2).BindToPlaceholder(PowerPointPlaceholderType.Object);
-                slide.AddTextBox("Review").BindToPlaceholder(PowerPointPlaceholderType.Title);
+                PowerPointShape title = slide.AddTextBox("Review").BindToPlaceholder(PowerPointPlaceholderType.Title);
+                Assert.Empty(title.ConnectionSites);
+                Assert.Throws<NotSupportedException>(() => slide.AddConnector(title, picture, PowerPointConnectorKind.Straight));
                 // The bound title has no local geometry, so moving the layout placeholder moves it.
                 layoutTitle.Top = OfficeLength.Points(350);
                 Assert.True(slide.GetPlaceholder(PowerPointPlaceholderType.Title)!.TryGetExportBoundsPoints(out _, out double titleTop, out _, out _));
@@ -177,6 +179,46 @@ namespace OfficeIMO.Tests {
                 right.Left = OfficeLength.Points(300);
                 AssertEnds(elbow, elbow.StartShape!.ConnectionSites[3], right.ConnectionSites[0]);
             }
+        }
+
+        [Fact]
+        public void MovingAShapeGluedWithoutKnownSites_LeavesTheConnectorAsStored() {
+            using var stream = new MemoryStream();
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape left = slide.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(40), OfficeLength.Points(80), OfficeLength.Points(40));
+                PowerPointAutoShape right = slide.AddRectangle(OfficeLength.Points(260), OfficeLength.Points(180), OfficeLength.Points(80), OfficeLength.Points(60));
+                slide.AddConnector(left, 3, right, 1, PowerPointConnectorKind.Elbow);
+                // Another producer glued the connector to a preset whose sites this library does not know.
+                ((Shape)right.Element).ShapeProperties!.GetFirstChild<A.PresetGeometry>()!.Preset = A.ShapeTypeValues.Hexagon;
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
+            PowerPointSlide reloaded = reopened.Slides[0];
+            PowerPointConnectionShape connector = reloaded.Shapes.OfType<PowerPointConnectionShape>().Single();
+            string before = connector.Element.OuterXml;
+            PowerPointShape hexagon = connector.EndShape!;
+
+            hexagon.Bounds = new PowerPointLayoutBox(OfficeLength.Points(300), OfficeLength.Points(200), OfficeLength.Points(90), OfficeLength.Points(70));
+
+            Assert.Equal(OfficeLength.Points(90).ToEmus(), hexagon.Width.ToEmus());
+            Assert.Equal(before, connector.Element.OuterXml);
+            Assert.Throws<NotSupportedException>(() => connector.Reroute());
+        }
+
+        [Fact]
+        public void RemovingTheLastLayoutOfAMaster_FailsWithoutMovingItsSlides() {
+            using var stream = new MemoryStream();
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            PowerPointSlideMaster second = presentation.AddSlideMaster("Second");
+            foreach (PowerPointSlideLayout extra in second.Layouts.Skip(1).ToList()) extra.Remove();
+            PowerPointSlideLayout only = Assert.Single(second.Layouts);
+            PowerPointSlide slide = presentation.AddSlide(only);
+
+            Assert.Throws<InvalidOperationException>(() => only.Remove(presentation.SlideMasters[0].Layouts[0]));
+            Assert.Same(only, slide.Layout);
         }
 
         private static void AssertEnds(PowerPointConnectionShape connector, PowerPointConnectionSite start, PowerPointConnectionSite end) {

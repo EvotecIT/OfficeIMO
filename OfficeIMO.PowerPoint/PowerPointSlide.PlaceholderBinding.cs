@@ -56,12 +56,13 @@ namespace OfficeIMO.PowerPoint {
                 // A slide-level override of the placeholder's position wins over the layout.
                 bounds = GetLayoutElementBounds(instance.Element) ?? bounds;
                 overrideTransform = (instance.Element as Shape)?.ShapeProperties?.Transform2D?.CloneNode(true) as A.Transform2D;
-                RemoveShape(instance);
             }
 
             if (!bounds.HasValue || bounds.Value.Width.ToEmus() <= 0 || bounds.Value.Height.ToEmus() <= 0) {
                 throw new InvalidOperationException("The " + placeholderType + " placeholder has no usable bounds.");
             }
+
+            if (instance != null) RemoveShape(instance);
 
             var binding = new PlaceholderShape();
             if (layoutPlaceholder.Type != null) binding.Type = layoutPlaceholder.Type.Value;

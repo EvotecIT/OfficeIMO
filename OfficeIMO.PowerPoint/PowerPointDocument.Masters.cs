@@ -92,11 +92,16 @@ namespace OfficeIMO.PowerPoint {
             master.MarkRemoved();
         }
 
-        internal void RemoveLayout(PowerPointSlideLayout layout) {
+        internal void EnsureLayoutCanBeRemoved(PowerPointSlideLayout layout) {
             PowerPointSlideMaster master = layout.Master;
             if (master.MasterPart.SlideLayoutParts.Count() <= 1) {
                 throw new InvalidOperationException("Slide master '" + master.Name + "' must keep at least one layout.");
             }
+        }
+
+        internal void RemoveLayout(PowerPointSlideLayout layout) {
+            EnsureLayoutCanBeRemoved(layout);
+            PowerPointSlideMaster master = layout.Master;
 
             string relationshipId = master.MasterPart.GetIdOfPart(layout.LayoutPart);
             master.Root.SlideLayoutIdList?.Elements<SlideLayoutId>()
