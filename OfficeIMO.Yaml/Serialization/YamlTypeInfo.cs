@@ -13,6 +13,15 @@ public abstract class YamlTypeInfo {
     private readonly object _gate = new object();
     private volatile bool _configured;
 
+    /// <summary>
+    /// The length of the text last serialized from this type as a root, up to <see cref="MaxOutputLengthHint"/>. The
+    /// next serialization starts its buffer at that size instead of growing to it; a stale or racing value only
+    /// changes how often the buffer grows.
+    /// </summary>
+    internal int OutputLengthHint;
+
+    internal const int MaxOutputLengthHint = 1 << 20;
+
     private protected YamlTypeInfo(Type type, YamlSerializerOptions options) {
         Type = type;
         Options = options;

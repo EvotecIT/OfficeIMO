@@ -50,7 +50,12 @@ internal sealed class YamlEmitter {
     private readonly YamlCharBuffer? _buffer;
     private readonly YamlWriterOptions _options;
     private readonly string _newLine;
+    private const int LineStartCacheSize = 64;
+    // Line break plus indentation per indentation, shared by every emitter with the same line break.
+    private static readonly string?[] s_lfLineStarts = new string?[LineStartCacheSize];
+    private static readonly string?[] s_crlfLineStarts = new string?[LineStartCacheSize];
     private Frame[] _frames = new Frame[16];
+    private readonly string?[]? _lineStarts;
     private int _depth;
     private int _column;
     private int _documents;
@@ -69,6 +74,7 @@ internal sealed class YamlEmitter {
         _buffer = output as YamlCharBuffer;
         _options = options;
         _newLine = options.NewLine;
+        _lineStarts = _newLine == "\n" ? s_lfLineStarts : _newLine == "\r\n" ? s_crlfLineStarts : null;
         options.Validate();
     }
 
@@ -370,8 +376,7 @@ internal sealed class YamlEmitter {
                     return top.Indent;
                 }
             } else if (simpleKey && top.Padding < 0) {
-                EnsureLineStart();
-                WriteSpaces(top.Indent);
+                StartLine(top.Indent);
                 top.AtValue = true;
                 top.ExplicitKey = false;
                 top.PendingColon = true;
@@ -541,8 +546,7 @@ internal sealed class YamlEmitter {
             WriteSpaces(top.Padding);
             top.Padding = -1;
         } else {
-            EnsureLineStart();
-            WriteSpaces(top.Indent);
+            StartLine(top.Indent);
         }
     }
 
@@ -750,6 +754,22 @@ internal sealed class YamlEmitter {
 
     private void EnsureLineStart() {
         if (_column > 0 || _trailingComment is not null) NewLine();
+    }
+
+    /// <summary>
+    /// Ends the current line, if any, and indents the next one. Into the char buffer, the line break and the
+    /// indentation go as one run cached per indentation.
+    /// </summary>
+    private void StartLine(int indent) {
+        string?[]? cache = _lineStarts;
+        if (_column > 0 && _trailingComment is null && _buffer is not null && cache is not null && (uint)indent < LineStartCacheSize) {
+            string text = cache[indent] ??= _newLine + new string(' ', indent);
+            _buffer.Append(text.AsSpan());
+            _column = indent;
+            return;
+        }
+        EnsureLineStart();
+        WriteSpaces(indent);
     }
 
     private void NewLine() {

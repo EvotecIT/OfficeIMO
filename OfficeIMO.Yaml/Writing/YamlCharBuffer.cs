@@ -16,8 +16,11 @@ internal sealed class YamlCharBuffer : TextWriter {
     private int _length;
 
     public YamlCharBuffer(int capacity = 4096) {
-        _buffer = ArrayPool<char>.Shared.Rent(capacity);
+        _buffer = ArrayPool<char>.Shared.Rent(Math.Max(capacity, 4096));
     }
+
+    /// <summary>Gets the number of characters written to a string buffer.</summary>
+    public int Length => _length;
 
     /// <summary>Creates a buffer that writes UTF-8 without a byte-order mark to a caller-owned stream.</summary>
     public YamlCharBuffer(Stream stream) {
