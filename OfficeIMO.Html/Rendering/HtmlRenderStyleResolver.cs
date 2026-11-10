@@ -971,15 +971,14 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.MarginRightAuto = false;
         style.MarginBottomAuto = false;
         style.MarginLeftAuto = false;
-        OverrideAutoMargin(computed.GetValue("margin-top"), ref style.MarginTopAuto);
-        OverrideAutoMargin(computed.GetValue("margin-right"), ref style.MarginRightAuto);
-        OverrideAutoMargin(computed.GetValue("margin-bottom"), ref style.MarginBottomAuto);
-        OverrideAutoMargin(computed.GetValue("margin-left"), ref style.MarginLeftAuto);
+        style.MarginTopAuto = OverrideAutoMargin(computed.GetValue("margin-top"), style.MarginTopAuto);
+        style.MarginRightAuto = OverrideAutoMargin(computed.GetValue("margin-right"), style.MarginRightAuto);
+        style.MarginBottomAuto = OverrideAutoMargin(computed.GetValue("margin-bottom"), style.MarginBottomAuto);
+        style.MarginLeftAuto = OverrideAutoMargin(computed.GetValue("margin-left"), style.MarginLeftAuto);
     }
 
-    private static void OverrideAutoMargin(string value, ref bool target) {
-        if (!string.IsNullOrWhiteSpace(value)) target = string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool OverrideAutoMargin(string value, bool current) =>
+        string.IsNullOrWhiteSpace(value) ? current : string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase);
 
     private void ApplyDimensions(
         IElement element,
