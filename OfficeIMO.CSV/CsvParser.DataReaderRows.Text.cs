@@ -264,6 +264,7 @@ internal static partial class CsvParser
         private readonly int[] _starts;
         private readonly int[] _lengths;
         private readonly string?[] _materialized;
+        private int[]? _escapedLengths;
 
         internal CsvDataReaderTextRowVisitor(string text, int sourceColumnCount)
         {
@@ -271,6 +272,7 @@ internal static partial class CsvParser
             _starts = new int[sourceColumnCount];
             _lengths = new int[sourceColumnCount];
             _materialized = new string?[sourceColumnCount];
+            _escapedLengths = null;
         }
 
         internal int SourceColumnCount => _starts.Length;
@@ -314,26 +316,11 @@ internal static partial class CsvParser
             ref char valueStart = ref MemoryMarshal.GetReference(escapedValue);
             var byteOffset = Unsafe.ByteOffset(ref textStart, ref valueStart);
             var sourceStart = checked((int)(byteOffset / 2));
-            _starts[fieldIndex] = -1;
+            // Negative starts retain an escaped span in the immutable input until a getter needs it.
+            _starts[fieldIndex] = ~sourceStart;
             _lengths[fieldIndex] = unescapedLength;
-            _materialized[fieldIndex] = string.Create(
-                unescapedLength,
-                (Text: _text, Start: sourceStart, Length: escapedValue.Length),
-                static (destination, state) =>
-                {
-                    var source = state.Text.AsSpan(state.Start, state.Length);
-                    var sourceIndex = 0;
-                    var destinationIndex = 0;
-                    while (sourceIndex < source.Length)
-                    {
-                        var value = source[sourceIndex++];
-                        destination[destinationIndex++] = value;
-                        if (value == '"' && sourceIndex < source.Length && source[sourceIndex] == '"')
-                        {
-                            sourceIndex++;
-                        }
-                    }
-                });
+            (_escapedLengths ??= new int[_starts.Length])[fieldIndex] = escapedValue.Length;
+            _materialized[fieldIndex] = null;
             return true;
         }
 
@@ -376,9 +363,9 @@ internal static partial class CsvParser
             }
 
             var materialized = _materialized[ordinal];
-            return materialized is not null
-                ? materialized.AsSpan()
-                : _text.AsSpan(_starts[ordinal], _lengths[ordinal]);
+            if (materialized is not null) return materialized.AsSpan();
+            int start = _starts[ordinal];
+            return start < 0 ? GetString(ordinal).AsSpan() : _text.AsSpan(start, _lengths[ordinal]);
         }
 
         internal bool IsMissing(int ordinal)
@@ -409,7 +396,26 @@ internal static partial class CsvParser
                 return materialized;
             }
 
-            materialized = _text.Substring(_starts[ordinal], _lengths[ordinal]);
+            int start = _starts[ordinal];
+            materialized = start >= 0
+                ? _text.Substring(start, _lengths[ordinal])
+                : string.Create(_lengths[ordinal],
+                    (Text: _text, Start: ~start, Length: _escapedLengths![ordinal]),
+                    static (destination, state) =>
+                    {
+                        var source = state.Text.AsSpan(state.Start, state.Length);
+                        var sourceIndex = 0;
+                        var destinationIndex = 0;
+                        while (sourceIndex < source.Length)
+                        {
+                            var value = source[sourceIndex++];
+                            destination[destinationIndex++] = value;
+                            if (value == '"' && sourceIndex < source.Length && source[sourceIndex] == '"')
+                            {
+                                sourceIndex++;
+                            }
+                        }
+                    });
             _materialized[ordinal] = materialized;
             return materialized;
         }
