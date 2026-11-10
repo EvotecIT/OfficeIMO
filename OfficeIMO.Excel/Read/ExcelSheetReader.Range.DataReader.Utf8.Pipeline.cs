@@ -29,7 +29,8 @@ namespace OfficeIMO.Excel {
                             candidate?.Dispose();
                             candidate = new ExcelUtf8RangeRowSource(owner, bytes, total) {
                                 _ownsBuffer = false,
-                                _inflation = progress
+                                _inflation = progress,
+                                _expectedLength = total
                             };
                             candidate._length = progress.WaitForMore(0, ct);
                             candidate.ValidateProducedCanonicalText(ct);

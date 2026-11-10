@@ -457,6 +457,7 @@ namespace OfficeIMO.Excel {
                 ReturnRowArray(ref _formulaStarts);
                 ReturnRowArray(ref _formulaLengths);
                 ReturnImplicitCellTagCache();
+                ReturnDecodedValues();
                 if (_cellKinds != null) {
                     ArrayPool<byte>.Shared.Return(_cellKinds);
                     _cellKinds = null;
@@ -508,6 +509,15 @@ namespace OfficeIMO.Excel {
             }
 
             private bool TryIndexRows(int firstRow, int lastRow, CancellationToken ct) {
+                try {
+                    return TryIndexRowsCore(firstRow, lastRow, ct);
+                } finally {
+                    // Helpers read the shared buffer; join them before any caller can release it.
+                    StopParallelIndex();
+                }
+            }
+
+            private bool TryIndexRowsCore(int firstRow, int lastRow, CancellationToken ct) {
                 ct.ThrowIfCancellationRequested();
                 if (!HasSupportedUtf8Encoding()) {
                     return false;
@@ -560,6 +570,11 @@ namespace OfficeIMO.Excel {
                 bool repeatedRowShapeValidated = false;
                 while (position < _length || TryAdvanceInflation(ct)) {
                     ct.ThrowIfCancellationRequested();
+                    if (_parallelIndex != null && position >= _parallelIndex.NextBoundary
+                        && TryStitchParallelChunk(ref position, ref previousRow, ct)) {
+                        nextImplicitRow = previousRow + 1;
+                        continue;
+                    }
                     int tagSearchStart = position;
                     Utf8Tag tag = default;
                     int rowIndex = 0;
@@ -677,6 +692,9 @@ namespace OfficeIMO.Excel {
                         _rowCount++;
                     }
 
+                    if (repeatedRowShapeValidated && !_parallelIndexAttempted) {
+                        TryStartParallelIndex(firstRow, lastRow, position);
+                    }
                 }
 
                 return false;
@@ -1099,7 +1117,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                int nextCapacity = Math.Min(ExcelA1.MaxRows, checked(currentCapacity * 2));
+                int nextCapacity = Math.Min(ExcelA1.MaxRows, Math.Max(required, checked(currentCapacity * 2)));
                 if (_unknownRowExtent) {
                     nextCapacity = (int)Math.Min(nextCapacity,
                         Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells) / _fieldCount);
@@ -1116,6 +1134,7 @@ namespace OfficeIMO.Excel {
                     GrowRowArray(ref _formulaLengths, nextCellCapacity, currentCellCount);
                 }
                 GrowCellKindArray(nextCellCapacity, currentCellCount);
+                GrowDecodedValues(nextCellCapacity, currentCellCount);
             }
 
             // Preserve an already indexed prefix when only absent trailing cells need clearing.
