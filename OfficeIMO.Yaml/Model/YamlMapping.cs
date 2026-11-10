@@ -31,8 +31,8 @@ public readonly struct YamlMappingEntry {
 /// <remarks>
 /// String-key lookups (the indexer, <see cref="TryGetValue"/>, <see cref="ContainsKey"/> and paths) are the mapping's
 /// typed view. They match scalar keys, including keys reached through an alias, by decoded text, so <c>"a"</c> and
-/// <c>a</c> are the same key, and they are O(1) after the first lookup builds an index. Under the YAML 1.1 schema they
-/// also see the entries of <c>&lt;&lt;</c> merge keys: the mapping's own keys win, then merged mappings in order.
+/// <c>a</c> are the same key, and they are O(1) after the first lookup builds an index. Under the YAML 1.1 schema, and
+/// under the core schema unless the load is strict, they also see the entries of <c>&lt;&lt;</c> merge keys: the mapping's own keys win, then merged mappings in order.
 /// Enumeration and <see cref="Count"/> show the tree as written; merges are never flattened into it.
 /// </remarks>
 public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
@@ -191,14 +191,14 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
     /// <summary>Drops the key lookup index after keys change.</summary>
     internal void ResetIndex() => _keyIndex = null;
 
-    /// <summary>Gets the value of the key with the given text, looking through merge keys under the YAML 1.1 schema.</summary>
+    /// <summary>Gets the value of the key with the given text, looking through merge keys where they apply (see the remarks).</summary>
     /// <exception cref="ArgumentNullException"><paramref name="key"/> is null.</exception>
     public bool TryGetValue(string key, out YamlNode? value) {
         if (key is null) throw new ArgumentNullException(nameof(key));
         return TryGetValueCore(key, out value);
     }
 
-    /// <summary>Returns whether a key has the given text, including merged keys under the YAML 1.1 schema.</summary>
+    /// <summary>Returns whether a key has the given text, including merged keys where they apply.</summary>
     /// <exception cref="ArgumentNullException"><paramref name="key"/> is null.</exception>
     public bool ContainsKey(string key) => TryGetValue(key, out _);
 

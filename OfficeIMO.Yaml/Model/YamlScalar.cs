@@ -101,7 +101,7 @@ public sealed class YamlScalar : YamlNode {
 
     /// <summary>
     /// Gets what the scalar resolves to under its document's schema: null, boolean, integer, float, string, timestamp, a
-    /// YAML 1.1 merge or value key, or <see cref="YamlScalarKind.Custom"/> for a tag no schema resolves. Use it to pick
+    /// merge key or YAML 1.1 value key, or <see cref="YamlScalarKind.Custom"/> for a tag no schema resolves. Use it to pick
     /// the <see cref="YamlNode.GetValue{T}"/> type without trying each one.
     /// </summary>
     public YamlScalarKind Kind => TryGetKind(out YamlScalarKind kind) ? kind : YamlScalarKind.Custom;
@@ -125,7 +125,10 @@ public sealed class YamlScalar : YamlNode {
     internal bool TryGetKind(out YamlScalarKind kind) {
         string? tag = Tag;
         bool plain = tag is null && _style == YamlStyle.Plain;
-        return YamlSchemaResolver.TryGetKind(tag, _style == YamlStyle.None ? YamlStyle.DoubleQuoted : _style, plain ? ValueSpan : default, Schema, out kind);
+        bool resolved = YamlSchemaResolver.TryGetKind(tag, _style == YamlStyle.None ? YamlStyle.DoubleQuoted : _style, plain ? ValueSpan : default, Schema, out kind);
+        // Outside strict mode the core schema reads '<<' as a merge key too, as YAML 1.1 does.
+        if (plain && kind == YamlScalarKind.String && Schema == YamlSchema.Core && (_part?.MergeKeys ?? false) && IsMergeKey()) kind = YamlScalarKind.Merge;
+        return resolved;
     }
 
     /// <summary>The schema used to parse numbers and booleans once the kind is known; failsafe text still parses with tags.</summary>
@@ -136,11 +139,11 @@ public sealed class YamlScalar : YamlNode {
         return Tag is null || YamlSchemaResolver.IsNull(ValueSpan, NumericSchema);
     }
 
-    /// <summary>Returns whether the scalar is the YAML 1.1 merge key <c>&lt;&lt;</c> in its document.</summary>
+    /// <summary>Returns whether the scalar is the merge key <c>&lt;&lt;</c> in its document (see <see cref="YamlDocumentPart.MergeKeys"/>).</summary>
     internal bool IsMergeKey() {
         string? tag = Tag;
         if (tag is not null) return tag == YamlSchemaResolver.TagPrefix + "merge";
-        if (_style != YamlStyle.Plain || Schema != YamlSchema.Yaml11) return false;
+        if (_style != YamlStyle.Plain || !(_part?.MergeKeys ?? false)) return false;
         if (!HasSourceSpan) return _value == "<<";
         string source = Document!._source;
         return _valueEnd - _valueStart == 2 && source[_valueStart] == '<' && source[_valueStart + 1] == '<';

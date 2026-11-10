@@ -14,6 +14,7 @@ internal ref partial struct YamlScanner {
         int end = start, endLine = line, endColumn = column;
         int lineContentStart = start;
         bool multiLine = false;
+        bool underIndented = false;
 
         while (true) {
             bool stop = false;
@@ -86,7 +87,12 @@ internal ref partial struct YamlScanner {
                 if (ch == '\0' && !HasChar(p)) break;
                 if (col == 0 && IsDocumentMarkerAt(p)) break;
                 if (ch == '#') break;
-                if (spaces < indentLimit) break;
+                if (spaces < indentLimit) {
+                    // Outside strict mode a flow scalar continues on a line indented with spaces no deeper than the
+                    // enclosing block collection, as other YAML libraries read it.
+                    if (!flow || c.Strict || col != spaces) break;
+                    underIndented = true;
+                }
                 if (ch == ':') {
                     char next = At(p + 1);
                     if (YamlChars.IsBlankOrBreakOrNul(next) || (flow && YamlChars.IsFlowIndicator(next))) break;
@@ -96,6 +102,10 @@ internal ref partial struct YamlScanner {
                 break;
             }
             if (!continues) break;
+            if (underIndented) {
+                ReportFlowLine(Absolute(p), l, col);
+                underIndented = false;
+            }
             multiLine = true;
             pos = p;
             line = l;
@@ -117,12 +127,14 @@ internal ref partial struct YamlScanner {
 
     /// <summary>
     /// Scans a single- or double-quoted scalar and validates its escapes, so decoding later cannot fail.
-    /// Continuation lines must be indented more than the enclosing block collection.
+    /// Continuation lines must be indented more than the enclosing block collection; outside strict mode a shallower
+    /// line is accepted and recorded once per scalar.
     /// </summary>
     private YamlToken ScanFlowScalar(bool single) {
         YamlScanContext c = _c;
         int start = c.Pos, startLine = c.Line, startColumn = c.Column;
         int minIndent = c.Indent + 1;
+        bool quotedReported = false;
         YamlTokenFlags flags = YamlTokenFlags.None;
         Advance(1);
         int valueStart = c.Pos;
@@ -156,6 +168,7 @@ internal ref partial struct YamlScanner {
                 while (true) {
                     int spaces = 0;
                     while (At(c.Pos) == ' ') { Advance(1); spaces++; }
+                    int indentEnd = c.Pos;
                     while (YamlChars.IsBlank(At(c.Pos))) Advance(1);
                     char next = At(c.Pos);
                     if (YamlChars.IsBreak(next)) {
@@ -169,7 +182,14 @@ internal ref partial struct YamlScanner {
                         throw Error(YamlErrorCodes.InvalidDocument, "A document marker cannot appear inside a quoted scalar.");
                     }
                     if (spaces < minIndent) {
-                        throw Error(YamlErrorCodes.InvalidIndentation, "A quoted scalar's continuation line must be indented more than the enclosing block collection.");
+                        // Outside strict mode a line indented with spaces only is accepted; a tab in the indentation is not.
+                        if (c.Strict || c.Pos != indentEnd) throw Error(YamlErrorCodes.InvalidIndentation, "A quoted scalar's continuation line must be indented more than the enclosing block collection.");
+                        if (c.FlowLevel > 0) {
+                            ReportFlowLine(Absolute(c.Pos), c.Line, c.Column);
+                        } else if (!quotedReported) {
+                            quotedReported = true;
+                            c.AddFinding(YamlLenientKind.QuotedLine, Absolute(c.Pos), c.Line, c.Column);
+                        }
                     }
                     break;
                 }

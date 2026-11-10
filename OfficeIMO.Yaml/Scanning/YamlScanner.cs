@@ -224,7 +224,11 @@ internal ref partial struct YamlScanner {
 
         bool firstOnLine = c.LastLine != c.Line;
         if (c.FlowLevel > 0 && firstOnLine && c.Column <= c.Indent) {
-            throw Error(YamlErrorCodes.InvalidIndentation, "Flow content must be indented more than the enclosing block collection.");
+            // Real files close flow collections under their key; outside strict mode that is accepted and reported.
+            if (c.Strict || (c.Column == 0 && IsDocumentMarkerAt(p))) {
+                throw Error(YamlErrorCodes.InvalidIndentation, "Flow content must be indented more than the enclosing block collection.");
+            }
+            ReportFlowLine(Absolute(p), c.Line, c.Column);
         }
 
         if (c.Column == 0) {
@@ -488,6 +492,15 @@ internal ref partial struct YamlScanner {
     private void DecreaseFlowLevel() {
         YamlScanContext c = _c;
         if (c.FlowLevel > 0) c.FlowLevel--;
+        if (c.FlowLevel == 0) c.FlowLenientReported = false;
+    }
+
+    /// <summary>Records the first under-indented line of the outermost flow collection; later lines of it are not repeated.</summary>
+    private void ReportFlowLine(int offset, int line, int column) {
+        YamlScanContext c = _c;
+        if (c.FlowLenientReported) return;
+        c.FlowLenientReported = true;
+        c.AddFinding(YamlLenientKind.FlowLine, offset, line, column);
     }
 
     private readonly void ThrowDepth() {

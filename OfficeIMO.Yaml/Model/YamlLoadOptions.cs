@@ -11,8 +11,8 @@ public enum YamlDuplicateKeyPolicy : byte {
 }
 
 /// <summary>
-/// Settings for loading a <see cref="YamlDocument"/>. The defaults follow YAML 1.2 and bound resource use for untrusted
-/// input. An instance can be shared by loads on several threads as long as it is not modified while they run.
+/// Settings for loading a <see cref="YamlDocument"/>. The defaults read YAML 1.2 as real files use it (see
+/// <see cref="Strict"/>) and bound resource use for untrusted input. An instance can be shared by loads on several threads as long as it is not modified while they run.
 /// </summary>
 public sealed class YamlLoadOptions {
     private readonly YamlReaderOptions _reader = new YamlReaderOptions();
@@ -35,6 +35,7 @@ public sealed class YamlLoadOptions {
     /// <summary>Returns a copy, so a caller's options can be adjusted without changing them.</summary>
     internal YamlLoadOptions Clone() => new YamlLoadOptions {
         Schema = Schema,
+        Strict = Strict,
         DuplicateKeys = DuplicateKeys,
         MaxDepth = MaxDepth,
         MaxNodes = MaxNodes,
@@ -54,6 +55,21 @@ public sealed class YamlLoadOptions {
     public YamlSchema? Schema {
         get => _reader.Schema;
         set => _reader.Schema = value;
+    }
+
+    /// <summary>
+    /// Gets or sets whether loading follows the YAML 1.2.2 specification exactly. Off by default, loading accepts what
+    /// real files rely on and libyaml and SharpYaml accept: flow-collection lines (such as a closing <c>]</c>
+    /// under its key) and quoted-scalar continuation lines indented no deeper than the enclosing block collection, and
+    /// <c>&lt;&lt;</c> merge keys under the YAML 1.2 core schema as under YAML 1.1, so repeated <c>&lt;&lt;</c> keys
+    /// (common in docker-compose and GitLab CI files) are one merge list rather than duplicate keys. Each accepted
+    /// indentation and each document part that uses merge keys without a <c>%YAML 1.1</c> directive is reported in
+    /// <see cref="YamlDocument.Diagnostics"/>. When on, both indentation forms are syntax errors and <c>&lt;&lt;</c> is an
+    /// ordinary key unless the YAML 1.1 schema applies. Saving never writes the accepted indentation for new or edited text.
+    /// </summary>
+    public bool Strict {
+        get => _reader.Strict;
+        set => _reader.Strict = value;
     }
 
     /// <summary>Gets or sets how a mapping with equal keys loads. Defaults to <see cref="YamlDuplicateKeyPolicy.Error"/>.</summary>

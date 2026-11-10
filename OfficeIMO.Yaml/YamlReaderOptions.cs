@@ -1,7 +1,8 @@
 namespace OfficeIMO.Yaml;
 
 /// <summary>
-/// Settings for <see cref="YamlReader"/>. The defaults follow YAML 1.2 and bound resource use for untrusted input.
+/// Settings for <see cref="YamlReader"/>. The defaults read YAML 1.2 as real files use it (see <see cref="Strict"/>) and
+/// bound resource use for untrusted input.
 /// An instance can be shared by readers on several threads as long as it is not modified while they run.
 /// </summary>
 public sealed class YamlReaderOptions {
@@ -20,6 +21,15 @@ public sealed class YamlReaderOptions {
     /// Set it to force one schema for ecosystems that assume YAML 1.1 without declaring it.
     /// </summary>
     public YamlSchema? Schema { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the reader follows the YAML 1.2.2 specification exactly. Off by default, the reader also
+    /// accepts the indentation that libyaml and SharpYaml accept and real files rely on: lines inside a flow
+    /// collection (such as a closing <c>]</c> under its key) and quoted-scalar continuation lines indented no deeper than
+    /// the enclosing block collection. Each accepted occurrence is reported in <see cref="YamlReader.Diagnostics"/>.
+    /// When on, both forms are syntax errors, as the specification requires.
+    /// </summary>
+    public bool Strict { get; set; }
 
     /// <summary>
     /// Gets or sets whether the reader reports <see cref="YamlTokenType.Comment"/> events, in source order.
