@@ -10,9 +10,12 @@ using OfficeIMO.Excel;
 //   read  - load the workbook and enumerate every cell of its first sheet
 //   edit  - load the workbook, add one cell below its data and save it to memory
 //   write - create 100,000 rows of mixed values through the editable model and save them
+// Reports time, allocation, managed heap held by an open workbook ("retained"), managed heap left once no workbook is
+// open, right after the work and after six idle seconds ("held after", "held idle"), and the process peak working set.
 // Run one mode per process: the peak working set then belongs to that workload alone.
 internal static class Program {
     private const int WriteRows = 100_000;
+    private const int IdleMilliseconds = 6_000;
 
     private static int Main(string[] args) {
         if (args.Length < 2) {
@@ -23,6 +26,7 @@ internal static class Program {
         string mode = args[0];
         int iterations = int.Parse(args[1], CultureInfo.InvariantCulture);
         byte[] input = mode == "write" ? Array.Empty<byte>() : File.ReadAllBytes(args[2]);
+        long startup = GC.GetTotalMemory(forceFullCollection: true);
         Func<long> run = mode switch {
             "read" => () => Read(input),
             "edit" => () => Edit(input),
@@ -45,13 +49,23 @@ internal static class Program {
             times.Add(watch.Elapsed.TotalMilliseconds);
         }
         double allocated = (AllocatedBytes() - allocatedBefore) / (double)iterations / 1048576;
+        // What the process keeps once no workbook is open: pooled buffers and caches that outlive the work.
+        System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        long heldAfter = GC.GetTotalMemory(forceFullCollection: true) - startup;
+        // Pools may keep large arrays for the next operation of a batch; an idle process should give them up.
+        Thread.Sleep(IdleMilliseconds);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        long heldIdle = GC.GetTotalMemory(forceFullCollection: true) - startup;
 
         times.Sort();
         using Process process = Process.GetCurrentProcess();
         process.Refresh();
         Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-            "{0} {1}: median {2:F1} ms, min {3:F1} ms, allocated {4:F1} MB/op, retained {5:F1} MB, peak working set {6:F1} MB, check {7}",
-            Runtime(), mode, times[times.Count / 2], times[0], allocated, retained / 1048576.0, process.PeakWorkingSet64 / 1048576.0, check));
+            "{0} {1}: median {2:F1} ms, min {3:F1} ms, allocated {4:F1} MB/op, retained {5:F1} MB, held after {6:F1} MB, held idle {7:F1} MB, peak working set {8:F1} MB, check {9}",
+            Runtime(), mode, times[times.Count / 2], times[0], allocated, retained / 1048576.0, heldAfter / 1048576.0, heldIdle / 1048576.0, process.PeakWorkingSet64 / 1048576.0, check));
         return 0;
     }
 
