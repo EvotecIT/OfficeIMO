@@ -16,6 +16,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The independent-reader check reads the same pinned suites as the tests. -->
+    <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
+    <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlTestSuite.cs" Link="Shared\Yaml\YamlTestSuite.cs" />
+    <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlJsonReader.cs" Link="Shared\Yaml\YamlJsonReader.cs" />
+    <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlConformanceNode.cs" Link="Shared\Yaml\YamlConformanceNode.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Data.Conversions\OfficeIMO.Data.Conversions.csproj" />
   </ItemGroup>
 </Project>
