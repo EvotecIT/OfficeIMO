@@ -38,6 +38,18 @@ public partial class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_AdvancesMultiCharacterBfRangeDestinationsByTheirLastUnit() {
+        // Destinations wider than 32 bits, such as Adobe's bracketed numbers <005b00310035005d> ("[15]"),
+        // previously discarded the whole CMap.
+        byte[] pdf = BuildExternalToUnicodePdf("<0102030405>",
+            "<01> <02> <0041>\n<03> <03> <005b00310035005d>\n<04> <05> <0066006900780079>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("AB[15]fixyfixz", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExtractTextByPage_UsesCompactType0ToUnicodeBfRangeCMap() {
         byte[] pdf = BuildExternalCompactType0ToUnicodePdf();
 
