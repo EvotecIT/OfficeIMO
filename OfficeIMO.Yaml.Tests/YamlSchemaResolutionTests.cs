@@ -78,6 +78,7 @@ public class YamlSchemaResolutionTests {
     [InlineData("1.0e+3", YamlSchema.Yaml11, "float:1000")]
     [InlineData("1.0e3", YamlSchema.Yaml11, "str")]
     [InlineData("190:20:30.15", YamlSchema.Yaml11, "float:685230.15")]
+    [InlineData("1.29.2", YamlSchema.Yaml11, "str")]
     [InlineData("2001-12-14", YamlSchema.Yaml11, "str")]
     public void PlainScalarsResolvePerSchema(string scalar, YamlSchema? schema, string expected) {
         Assert.Equal(expected, Kind(scalar, schema));

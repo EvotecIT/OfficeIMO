@@ -328,9 +328,61 @@ internal static class YamlSchemaResolver {
         }
         if (i >= s.Length || s[i] != '.') return false;
         i++;
-        while (i < s.Length && (IsDigit(s[i]) || s[i] == '.')) { anyDigit |= s[i] != '.'; i++; }
+        // The fraction is [0-9_]*, as PyYAML reads it; the type repository's [0-9.]* would make versions such as 1.29.2 floats.
+        while (i < s.Length && (IsDigit(s[i]) || s[i] == '_')) { anyDigit |= s[i] != '_'; i++; }
         if (!anyDigit || i == start) return false;
         return MatchExponent(s, i, signRequired: true);
+    }
+
+    /// <summary>
+    /// Returns whether a YAML 1.1 reader in common use (PyYAML and libyaml, go-yaml v2, Ruby Psych) reads the plain text as
+    /// something other than a string. It follows those resolvers rather than the type repository's float pattern, whose
+    /// <c>[0-9.]*</c> fraction matches versions such as <c>1.29.2</c> that every one of them reads as a string. Psych's
+    /// integers and floats with thousands separators (<c>1,000</c>) count as numbers.
+    /// </summary>
+    public static bool ReadsAsNonString11(ReadOnlySpan<char> s) {
+        YamlScalarKind kind = Resolve(s, YamlSchema.Yaml11);
+        if (kind == YamlScalarKind.Float) return IsReaderFloat11(s);
+        if (kind != YamlScalarKind.String) return true;
+        return IsReaderFloat11(s) || IsSeparatedInteger(s);
+    }
+
+    /// <summary>
+    /// The union of the 1.1 float patterns the readers implement: <c>[-+]?[0-9][0-9_,]*\.[0-9_]*</c> with an optional
+    /// exponent, <c>[-+]?\.[0-9][0-9_]*</c>, sexagesimal floats, and the infinities and NaNs.
+    /// </summary>
+    private static bool IsReaderFloat11(ReadOnlySpan<char> s) {
+        if (IsNaN(s)) return true;
+        int i = s.Length > 0 && (s[0] == '-' || s[0] == '+') ? 1 : 0;
+        if (IsInfinity(s.Slice(i))) return true;
+        int colon = s.IndexOf(':');
+        if (colon >= 0) {
+            if (i >= s.Length || !IsDigit(s[i]) || !AllDigitsOrUnderscore(s.Slice(i, colon - i))) return false;
+            int dot = s.Slice(colon).IndexOf('.');
+            return dot >= 0 && IsSexagesimalTail(s.Slice(colon), allowFraction: true);
+        }
+        int digits = 0;
+        while (i < s.Length && (IsDigit(s[i]) || s[i] == '_' || (s[i] == ',' && digits > 0))) {
+            if (IsDigit(s[i])) digits++;
+            i++;
+        }
+        if (i >= s.Length || s[i] != '.') return false;
+        i++;
+        while (i < s.Length && (IsDigit(s[i]) || s[i] == '_')) {
+            if (IsDigit(s[i])) digits++;
+            i++;
+        }
+        return digits > 0 && MatchExponent(s, i, signRequired: false);
+    }
+
+    /// <summary>Psych's decimal integers with separators: <c>[-+]?[1-9][0-9_,]*</c> containing a comma.</summary>
+    private static bool IsSeparatedInteger(ReadOnlySpan<char> s) {
+        int i = s.Length > 0 && (s[0] == '-' || s[0] == '+') ? 1 : 0;
+        if (i >= s.Length || s[i] < '1' || s[i] > '9' || s.IndexOf(',') < 0) return false;
+        for (i++; i < s.Length; i++) {
+            if (!IsDigit(s[i]) && s[i] != '_' && s[i] != ',') return false;
+        }
+        return true;
     }
 
     private static bool MatchExponent(ReadOnlySpan<char> s, int i, bool signRequired) {

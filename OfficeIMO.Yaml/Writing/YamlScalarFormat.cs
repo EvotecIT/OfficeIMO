@@ -68,11 +68,13 @@ internal static class YamlScalarFormat {
 
     /// <summary>
     /// Returns whether a plain spelling of the text would be read as anything other than a string by the YAML 1.2 core
-    /// schema or the YAML 1.1 types (<c>yes</c>, <c>on</c>, <c>~</c>, <c>012</c>, <c>1:20</c>, <c>2001-12-14</c>, <c>&lt;&lt;</c>...).
+    /// schema or by the YAML 1.1 readers in common use (<c>yes</c>, <c>on</c>, <c>~</c>, <c>1.5</c>, <c>012</c>,
+    /// <c>1:20</c>, <c>2001-12-14</c>, <c>&lt;&lt;</c>...). Versions such as <c>1.29.2</c> stay plain: those readers take
+    /// them as strings.
     /// </summary>
     public static bool IsSchemaAmbiguous(ReadOnlySpan<char> value) =>
         YamlSchemaResolver.Resolve(value, YamlSchema.Core) != YamlScalarKind.String
-        || YamlSchemaResolver.Resolve(value, YamlSchema.Yaml11) != YamlScalarKind.String;
+        || YamlSchemaResolver.ReadsAsNonString11(value);
 
     /// <summary>Returns whether the value fits single quotes on one line: printable text without line breaks.</summary>
     public static bool CanBeSingleQuoted(ReadOnlySpan<char> value) {

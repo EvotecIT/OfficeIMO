@@ -26,6 +26,17 @@ public class YamlWriterQuotingTests {
         }
     }
 
+    [Theory]
+    [InlineData("1.29.2", "tag: 1.29.2\n")] [InlineData("10.0.0.1", "tag: 10.0.0.1\n")]
+    [InlineData("1.5", "tag: '1.5'\n")] [InlineData("yes", "tag: 'yes'\n")] [InlineData("on", "tag: 'on'\n")]
+    [InlineData("012", "tag: '012'\n")] [InlineData("1:20", "tag: '1:20'\n")] [InlineData("1,000", "tag: '1,000'\n")]
+    public void AssignedStringsAreQuotedOnlyWhenAYaml11ReaderInUseWouldReadAnotherType(string value, string expected) {
+        // PyYAML, ruamel.yaml in 1.1 mode, Ruby Psych and go-yaml v2 read versions and addresses as strings.
+        YamlDocument document = YamlDocument.Parse("tag: 1.29.1\n");
+        document.Root!.AsMapping()["tag"] = value;
+        Assert.Equal(expected, document.ToString());
+    }
+
     [Fact]
     public void PlainSafeStringsStayPlain() {
         Assert.Equal("name: web-01\n", Write(w => {

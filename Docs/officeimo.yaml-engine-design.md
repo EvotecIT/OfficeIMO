@@ -182,7 +182,7 @@ baseDoc.Save("values.merged.yaml");
   The writer always writes block style unless a flow collection is requested, never folds lines, and ends the stream with a line break.
 
   Each option exists because a real convention needs it (Kubernetes, Actions, compose and Helm differ in sequence indentation). Don't add an option without a corpus file that needs it.
-- **Quoting safety:** by default a new string scalar is quoted when *any* supported schema (1.2 Core or 1.1) would read it as something other than a string. That covers `yes`, `no`, `on`, `off`, `y`, `n`, `~`, `null`, `1e3`, `0o17`, `012`, `1:20` and `.inf`. A file written by OfficeIMO therefore means the same thing to YAML 1.1 readers such as PyYAML, Ruby's Psych and older Go libraries. That is the most common real-world YAML bug, and we avoid it by default.
+- **Quoting safety:** by default a new string scalar is quoted when *any* supported schema (1.2 Core or 1.1) would read it as something other than a string. That covers `yes`, `no`, `on`, `off`, `y`, `n`, `~`, `null`, `1e3`, `0o17`, `012`, `1:20` and `.inf`. A file written by OfficeIMO therefore means the same thing to YAML 1.1 readers such as PyYAML, Ruby's Psych and older Go libraries. The 1.1 rules are the ones those readers implement (PyYAML and libyaml, go-yaml v2, Psych), not the type repository's looser float pattern, so versions such as `1.29.2` and addresses such as `10.0.0.1` stay plain. That is the most common real-world YAML bug, and we avoid it by default.
 
 ### Schemas and versions
 
