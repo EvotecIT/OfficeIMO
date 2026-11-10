@@ -64,7 +64,8 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
-                        DirectDataSetWorkbookWriter.WriteExtendedWorksheet(archive, directWritePlan, directSheetModel, part.Path, tableRelationshipId, ct);
+                        DirectDataSetWorkbookWriter.WriteExtendedWorksheet(archive, directWritePlan, directSheetModel, part.Path, tableRelationshipId, ct,
+                            allowBackgroundCompression: execution?.AllowsBackgroundProcessing == true);
                         ReportTiming("Save.ExtendedPackage.WriteDirectWorksheet");
                     } else if (part.CopyRawPart) {
                         WriteRawPartEntry(archive, part.Path, part.Part);
