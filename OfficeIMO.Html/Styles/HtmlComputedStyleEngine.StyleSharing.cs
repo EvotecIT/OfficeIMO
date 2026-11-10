@@ -37,8 +37,8 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         /// <summary>Gets the cascade result, before per-element sizing, of an element with the same key.</summary>
-        internal bool TryGet(SharedStyleKey key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out HtmlComputedStyle? template) =>
-            _styles.TryGetValue(key, out template);
+        internal bool TryGet(SharedStyleKey key, out HtmlComputedStyle template) =>
+            _styles.TryGetValue(key, out template!);
 
         internal void Add(SharedStyleKey key, HtmlComputedStyle template) {
             if (_styles.Count < MaximumEntries) _styles[key] = template;

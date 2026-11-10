@@ -541,7 +541,7 @@ public static partial class HtmlComputedStyleEngine {
         SharedStyleKey? sharedKey = rules.StyleSharing.CreateKey(element, parent, includeCascadeTraces,
             containerContexts, containingWidth, containingHeight);
         HtmlComputedStyle style;
-        if (sharedKey != null && rules.StyleSharing.TryGet(sharedKey, out HtmlComputedStyle? shared)) {
+        if (sharedKey != null && rules.StyleSharing.TryGet(sharedKey, out HtmlComputedStyle shared)) {
             // Matching still runs so the selector budget counts exactly what an unshared element counts.
             foreach (StyleRule _ in MatchElementRules(element, rules, budget, environment, containerContexts)) { }
             style = shared.CreateElementSnapshot();
