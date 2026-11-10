@@ -8,9 +8,56 @@
 2. **Complete YAML 1.2.2 syntax.** The [yaml-test-suite](https://github.com/yaml/yaml-test-suite) is the oracle. Every case with a known exception is listed in a checked-in exception file with its reason. That list only shrinks.
 3. **Performance from the first commit.** Low allocation and a single pass over the input. The pull reader allocates nothing per event, and each layer can be used without paying for the layers above it.
 4. **Safe on hostile input.** The engine has bounded depth, node counts, alias expansion and scalar sizes, plus cancellation. Tags never activate .NET types.
-5. **One OfficeIMO vocabulary.** The API uses `Load`, `Parse`, `Save` and `LoadAsync`/`SaveAsync` shapes matching `CsvDocument`. Diagnostics use `OfficeDiagnostic` with source positions.
+5. **One OfficeIMO vocabulary.** The package follows the [unified API design](officeimo.api-design.md) from its first release; see [Public API](#public-api). The package is new, so its API is shaped for that contract now. Earlier YAML behavior in `OfficeIMO.Reader.Yaml` changes where the new design is better, and `MIGRATION.md` records the upgrade actions.
 
 Replacing YamlDotNet in `OfficeIMO.Reader.Yaml` is an outcome of this design, not a constraint on it. The Reader adapter adapts to the engine, never the other way round.
+
+## Public API
+
+The C# rules and PowerShell rules in the [API design](officeimo.api-design.md) apply as written. For YAML they mean:
+
+- **Lifecycle:**
+  ```csharp
+  using var doc = YamlDocument.Create();
+  using var doc = YamlDocument.Load("values.yaml", YamlLoadOptions.UntrustedDefaults);
+  await using var doc = await YamlDocument.LoadAsync(stream, options);
+  YamlDocument doc = YamlDocument.Parse(text);
+  doc.Save();                 // to the path it was loaded from
+  doc.Save("copy.yaml");
+  await doc.SaveAsync(stream);
+  ```
+  - `YamlDocument` implements `IDisposable`, so `using` works as it does for every format.
+  - Options are `YamlLoadOptions` (with `UntrustedDefaults`), `YamlSaveOptions`, `YamlReaderOptions` and `YamlWriterOptions`.
+- **Authoring:** one object model.
+  - `Add*` and `Insert*` methods return the node they create.
+  - Mutators that configure a node return that node, so calls chain naturally: `mapping.Add("image", "nginx").SetComment("pinned by CI")`.
+
+  A separate fluent builder is a thin wrapper over these same names, never a second model.
+- **Conversion grammar:** when routes are added, they follow the shared `To{Target}`/`SaveAs{Target}` forms. Examples are `ToJson()` and the JSON-to-YAML route on the JSON side, plus the Markdown front matter integration. YAML has no format-engine dependencies of its own.
+- **Diagnostics:** recoverable findings are `OfficeDiagnostic` values whose codes come from the Core diagnostic catalog. Exceptions keep their stable `YamlErrorCodes` for syntax and limit failures.
+- **Positions:** C# indexes are 0-based like every .NET collection; PowerShell positions are 1-based like every PSWriteOffice command.
+- **Visibility:** public only what the README and examples use. The package adopts the public API analyzer baseline (`Build/ApiMap/PublicApi.targets`) before its first release, so later surface changes are deliberate.
+- **AOT:** `IsAotCompatible` and the trimming analyzers are on for net8.0 and net10.0.
+
+PSWriteOffice gets YAML commands built on the same public API, with `Yaml` as the format name:
+
+| Command | Job |
+|---|---|
+| `New-OfficeYaml` / `Open-OfficeYaml` / `Save-OfficeYaml` / `Close-OfficeYaml` | The standard document lifecycle, including the content-block form that saves on exit |
+| `Get-OfficeYamlNode -Select` / `Set-OfficeYamlNode -Select -Value` / `Remove-OfficeYamlNode -Select` | Read and edit by path inside a live document. `-Select` uses the C# path grammar; `-Path` stays the file, as everywhere |
+| `Import-OfficeYaml -Path` / `Export-OfficeYaml -InputObject -Path` | Objects from and to files through the serializer |
+| `ConvertFrom-OfficeYaml` / `ConvertTo-OfficeYaml` | Text to objects and objects to text, following PowerShell's `ConvertFrom-Json`/`ConvertTo-Json` pattern |
+| `Test-OfficeYaml` | Validate without changing the file, reporting diagnostics |
+
+Typical script:
+
+```powershell
+Open-OfficeYaml -Path .\deployment.yaml {
+    Set-OfficeYamlNode -Select 'spec.replicas' -Value 3
+}
+```
+
+The PowerShell commands follow the C# API. Any capability they need that the library lacks becomes a library feature.
 
 ## Non-goals
 
