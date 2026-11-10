@@ -29,6 +29,9 @@ public sealed partial class CsvDocument
             throw new ArgumentOutOfRangeException(nameof(options), "Schema sample size must be greater than zero.");
         }
 
+        // Detect the delimiter from a sample first so the detected file can still stream.
+        options = ResolveReaderOptions(() => CsvFile.OpenTextReader(path, options, FileBufferSize), options);
+
 #if NET8_0_OR_GREATER
         if (CanUseStreamSpanDataReader(options)
             && CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
@@ -163,6 +166,17 @@ public sealed partial class CsvDocument
         }
 
         long startPosition = stream.Position;
+        if (options.DetectDelimiter)
+        {
+            // Detect from a sample, then read the stream again from where it started.
+            options = ResolveReaderOptions(() =>
+            {
+                stream.Position = startPosition;
+                return CsvFile.OpenTextReader(stream, options, leaveOpen: true, FileBufferSize);
+            }, options);
+            stream.Position = startPosition;
+        }
+
         if (!CanUseSinglePassFileDataReader(options)
 #if NET8_0_OR_GREATER
             && !CanUseStreamSpanDataReader(options)
