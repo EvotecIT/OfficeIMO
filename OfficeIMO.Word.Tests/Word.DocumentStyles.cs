@@ -118,6 +118,23 @@ public partial class Word {
     }
 
     [Fact]
+    public void DocumentStyles_ImportNeverRenamesOntoTheIdentifierOfAnotherImportedStyle() {
+        using WordDocument source = WordDocument.Create();
+        source.Styles.AddParagraphStyle("Note", "Note");
+        source.Styles.AddParagraphStyle("Note_1", "Other").Italic = true;
+
+        using WordDocument target = WordDocument.Create();
+        target.Styles.AddCharacterStyle("NoteCharacter", "Note");
+
+        WordStyleImportReport report = target.Styles.Import(source, WordStyleConflictMode.KeepTarget, new[] { "Note", "Note_1" });
+
+        Assert.Equal("Note_2", report.Renamed["Note"]);
+        Assert.Contains("Note_1", report.Added);
+        Assert.True(target.Styles["Note_1"].Italic);
+        Assert.Equal(target.Styles.Count, target.Styles.Select(style => style.StyleId).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
     public void DocumentStyles_RemovingAStyleRebasesDependentsAndClearsReferences() {
         using WordDocument document = WordDocument.Create();
         WordStyle parent = document.Styles.AddParagraphStyle("Parent");

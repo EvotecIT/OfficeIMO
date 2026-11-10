@@ -116,6 +116,8 @@ public sealed partial class WordStyleCollection {
             }
 
             var targetIds = new HashSet<string>(_target.Elements<Style>().Select(style => style.StyleId?.Value).OfType<string>(), StringComparer.Ordinal);
+            // Selected source styles keep their identifiers when added, so a renamed copy must not take one of them.
+            targetIds.UnionWith(selected);
             var targetNames = new HashSet<string>(_target.Elements<Style>().Select(style => style.StyleName?.Val?.Value?.Trim()).OfType<string>(), StringComparer.OrdinalIgnoreCase);
             foreach (Style style in _source!.Elements<Style>()) {
                 string id = style.StyleId?.Value ?? string.Empty;
