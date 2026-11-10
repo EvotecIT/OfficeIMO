@@ -70,15 +70,39 @@ internal sealed class YamlScanContext {
     /// <summary>Absolute offset before which the current <see cref="YamlReader.Read"/> no longer needs the text, or -1.</summary>
     public int RetainMark = -1;
 
+    /// <summary>
+    /// The structure arrays of the last released context on this thread. Reading many small documents otherwise spends
+    /// a noticeable share of each read renting and returning them; arrays that grew past <see cref="SpareLimit"/> go
+    /// back to the pool instead.
+    /// </summary>
+    [ThreadStatic] private static ScanArrays? t_spare;
+    private const int SpareLimit = 64;
+    private ScanArrays? _arrays;
+
+    private sealed class ScanArrays {
+        public int[] Indents = Array.Empty<int>();
+        public YamlSimpleKey[] SimpleKeys = Array.Empty<YamlSimpleKey>();
+        public YamlToken[] Tokens = Array.Empty<YamlToken>();
+    }
+
     public YamlScanContext(YamlReaderOptions options, CancellationToken cancellationToken) {
         MaxDepth = options.MaxDepth;
         MaxScalarLength = options.MaxScalarLength;
         IncludeComments = options.IncludeComments;
         Strict = options.Strict;
         Cancellation = cancellationToken;
-        Indents = ArrayPool<int>.Shared.Rent(16);
-        SimpleKeys = ArrayPool<YamlSimpleKey>.Shared.Rent(8);
-        Tokens = ArrayPool<YamlToken>.Shared.Rent(16);
+        ScanArrays? spare = t_spare;
+        if (spare is not null) {
+            t_spare = null;
+            _arrays = spare;
+            Indents = spare.Indents;
+            SimpleKeys = spare.SimpleKeys;
+            Tokens = spare.Tokens;
+        } else {
+            Indents = ArrayPool<int>.Shared.Rent(16);
+            SimpleKeys = ArrayPool<YamlSimpleKey>.Shared.Rent(8);
+            Tokens = ArrayPool<YamlToken>.Shared.Rent(16);
+        }
         Comments = options.IncludeComments ? ArrayPool<YamlComment>.Shared.Rent(8) : Array.Empty<YamlComment>();
     }
 
@@ -146,6 +170,18 @@ internal sealed class YamlScanContext {
     public void Release() {
         Source?.Release();
         if (Buffer is not null) { ArrayPool<char>.Shared.Return(Buffer); Buffer = null; }
+        if (Indents.Length > 0 && Indents.Length <= SpareLimit && SimpleKeys.Length <= SpareLimit && Tokens.Length <= SpareLimit && t_spare is null) {
+            // The arrays hold only offsets and flags, so the next reader on this thread takes them as they are.
+            ScanArrays spare = _arrays ?? new ScanArrays();
+            spare.Indents = Indents;
+            spare.SimpleKeys = SimpleKeys;
+            spare.Tokens = Tokens;
+            t_spare = spare;
+            _arrays = null;
+            Indents = Array.Empty<int>();
+            SimpleKeys = Array.Empty<YamlSimpleKey>();
+            Tokens = Array.Empty<YamlToken>();
+        }
         if (Indents.Length > 0) { ArrayPool<int>.Shared.Return(Indents); Indents = Array.Empty<int>(); }
         if (SimpleKeys.Length > 0) { ArrayPool<YamlSimpleKey>.Shared.Return(SimpleKeys); SimpleKeys = Array.Empty<YamlSimpleKey>(); }
         if (Tokens.Length > 0) { ArrayPool<YamlToken>.Shared.Return(Tokens); Tokens = Array.Empty<YamlToken>(); }
