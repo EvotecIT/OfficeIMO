@@ -91,6 +91,7 @@ internal static class PdfContentStreamInterpreter {
         private string?[]? _rawNames;
         private string?[]? _decodedNames;
         private object?[]? _boxedNumbers;
+        private List<object>?[]? _arrayScratch;
 
         internal Reader(
             string content,
@@ -424,7 +425,12 @@ internal static class PdfContentStreamInterpreter {
 
         private object ReadArray(int nestingDepth) {
             _index++;
-            var values = new List<object>();
+            // Each nesting level collects into its own reusable list; the result is sized exactly.
+            if (_arrayScratch == null || _arrayScratch.Length <= nestingDepth) {
+                Array.Resize(ref _arrayScratch, Math.Max(4, nestingDepth + 1));
+            }
+            List<object> values = _arrayScratch[nestingDepth] ??= new List<object>();
+            values.Clear();
             bool terminated = false;
             while (_index < _content.Length) {
                 SkipWhitespaceAndComments();
@@ -464,11 +470,18 @@ internal static class PdfContentStreamInterpreter {
             }
             if (!terminated) _hasInvalidOperand = true;
 
-            if (values.All(value => value is double)) {
-                return values.Cast<double>().ToArray();
+            bool allNumbers = true;
+            for (int index = 0; index < values.Count && allNumbers; index++) allNumbers = values[index] is double;
+            object result;
+            if (allNumbers) {
+                var numbers = new double[values.Count];
+                for (int index = 0; index < numbers.Length; index++) numbers[index] = (double)values[index];
+                result = numbers;
+            } else {
+                result = new List<object>(values);
             }
-
-            return values;
+            values.Clear();
+            return result;
         }
 
         private static bool TryReadReferencePart(object value, out int result) {
