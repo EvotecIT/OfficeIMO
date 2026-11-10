@@ -173,6 +173,26 @@ internal static partial class PdfSyntax {
     private static bool TryParseClassicXrefTable(string text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
         bool requireComplete, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
+        ClassicXrefSectionMemo? memo = ClassicXrefSectionMemo.Current;
+        if (memo is null || !ReferenceEquals(memo.Text, text)) {
+            return ParseClassicXrefTable(text, offset, out entries, out previousOffset, out trailerRaw, out xrefStreamOffset, requireComplete, cancellationToken);
+        }
+
+        if (!memo.TryGet(offset, requireComplete, out ClassicXrefSection section)) {
+            bool parsed = ParseClassicXrefTable(text, offset, out entries, out previousOffset, out trailerRaw, out xrefStreamOffset, requireComplete, cancellationToken);
+            section = new ClassicXrefSection(parsed, entries, previousOffset, trailerRaw, xrefStreamOffset);
+            memo.Add(offset, requireComplete, section);
+        }
+
+        entries = section.Entries;
+        previousOffset = section.PreviousOffset;
+        trailerRaw = section.TrailerRaw;
+        xrefStreamOffset = section.XrefStreamOffset;
+        return section.Parsed;
+    }
+
+    private static bool ParseClassicXrefTable(string text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
+        bool requireComplete, System.Threading.CancellationToken cancellationToken) {
         entries = Array.Empty<(int ObjectNumber, int Offset, int Generation, bool InUse)>();
         previousOffset = null;
         trailerRaw = string.Empty;
@@ -200,7 +220,7 @@ internal static partial class PdfSyntax {
         bool hasEmptySubsection = false;
         while (TryReadXrefLine(text, ref position, sectionEnd, out int lineStart, out int lineEnd, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (string.IsNullOrWhiteSpace(text.Substring(lineStart, lineEnd - lineStart))) continue;
+            if (IsWhiteSpaceRange(text, lineStart, lineEnd)) continue;
             int tokenPosition = lineStart;
             if (!TryReadXrefToken(text, ref tokenPosition, lineEnd, out int firstStart, out int firstLength, cancellationToken) ||
                 !TryReadXrefToken(text, ref tokenPosition, lineEnd, out int countStart, out int countLength, cancellationToken) ||
@@ -878,5 +898,59 @@ internal static partial class PdfSyntax {
             throw error.InnerException!;
         }
         cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private static bool IsWhiteSpaceRange(string text, int start, int end) {
+        for (int index = start; index < end; index++) {
+            if (!char.IsWhiteSpace(text[index])) return false;
+        }
+        return true;
+    }
+
+    private readonly struct ClassicXrefSection {
+        internal ClassicXrefSection(bool parsed, (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, int? previousOffset, string trailerRaw, int? xrefStreamOffset) {
+            Parsed = parsed;
+            Entries = entries;
+            PreviousOffset = previousOffset;
+            TrailerRaw = trailerRaw;
+            XrefStreamOffset = xrefStreamOffset;
+        }
+
+        internal bool Parsed { get; }
+        internal (int ObjectNumber, int Offset, int Generation, bool InUse)[] Entries { get; }
+        internal int? PreviousOffset { get; }
+        internal string TrailerRaw { get; }
+        internal int? XrefStreamOffset { get; }
+    }
+
+    /// <summary>
+    /// Shares parsed classic xref sections among the validation, recovery, trailer and revision passes of one
+    /// object parse. The memo is scoped to that parse's text and thread, so no result outlives the parse.
+    /// </summary>
+    private sealed class ClassicXrefSectionMemo : IDisposable {
+        [ThreadStatic] private static ClassicXrefSectionMemo? _current;
+        private readonly ClassicXrefSectionMemo? _previous;
+        private readonly Dictionary<(int Offset, bool RequireComplete), ClassicXrefSection> _sections = new();
+
+        private ClassicXrefSectionMemo(string text, ClassicXrefSectionMemo? previous) {
+            Text = text;
+            _previous = previous;
+        }
+
+        internal static ClassicXrefSectionMemo? Current => _current;
+
+        internal string Text { get; }
+
+        internal static ClassicXrefSectionMemo Enter(string text) => _current = new ClassicXrefSectionMemo(text, _current);
+
+        internal bool TryGet(int offset, bool requireComplete, out ClassicXrefSection section) =>
+            _sections.TryGetValue((offset, requireComplete), out section);
+
+        internal void Add(int offset, bool requireComplete, ClassicXrefSection section) =>
+            _sections[(offset, requireComplete)] = section;
+
+        public void Dispose() {
+            if (ReferenceEquals(_current, this)) _current = _previous;
+        }
     }
 }
