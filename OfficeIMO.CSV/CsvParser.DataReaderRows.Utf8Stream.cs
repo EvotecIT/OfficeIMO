@@ -188,9 +188,15 @@ internal static partial class CsvParser
 
                 int recordStart = _position;
                 int recordLineNumber = _physicalLineSeparatorsConsumed + 1;
-                if (_buffer[recordStart] == _commentCharacter)
+                if (_buffer[recordStart] == _commentCharacter && ShouldSkipCommentRecord(ref recordStart, cancellationToken))
                 {
-                    return StartFallback(recordStart, recordLineNumber, cancellationToken);
+                    if (!TrySkipCommentLine(ref recordStart, cancellationToken))
+                    {
+                        // A skipped comment line with a quote can continue on later lines.
+                        return StartFallback(recordStart, recordLineNumber, cancellationToken);
+                    }
+
+                    continue;
                 }
 
                 RecordScanResult result;
@@ -1068,6 +1074,85 @@ internal static partial class CsvParser
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// Applies the canonical comment rules to a record that starts with the comment character:
+        /// it is skipped when comment rows are skipped, or before the header row, unless it is a W3C
+        /// <c>#Fields:</c> header. Otherwise it is an ordinary record.
+        /// </summary>
+        private bool ShouldSkipCommentRecord(ref int recordStart, CancellationToken cancellationToken)
+        {
+            CsvParsingSettings options = _options;
+            bool beforeHeader = _emittedRecordCount <= GetParserInitialRecordsToSkip(options) &&
+                options.HasHeaderRow && options.Header is null;
+            if (!options.SkipCommentRows && !(beforeHeader && options.SkipCommentRowsBeforeHeader))
+            {
+                return false;
+            }
+
+            if (!beforeHeader || !options.RecognizeW3CFieldsHeader)
+            {
+                return true;
+            }
+
+            ReadOnlySpan<byte> marker = "#Fields:"u8;
+            while (_length - recordStart < marker.Length && !_endOfStream && FillForCurrentRecord(ref recordStart, cancellationToken))
+            {
+            }
+
+            _position = recordStart;
+            ReadOnlySpan<byte> start = _buffer.AsSpan(recordStart, Math.Min(marker.Length, _length - recordStart));
+            return !(start.Length == marker.Length && Ascii.EqualsIgnoreCase(start, marker));
+        }
+
+        /// <summary>
+        /// Skips a comment record that is one physical line without quotes. Returns false, leaving the
+        /// record unread, when the line contains a quote.
+        /// </summary>
+        private bool TrySkipCommentLine(ref int recordStart, CancellationToken cancellationToken)
+        {
+            int searched = recordStart;
+            while (true)
+            {
+                int found = _buffer.AsSpan(searched, _length - searched).IndexOfAny((byte)'"', (byte)'\r', (byte)'\n');
+                if (found >= 0)
+                {
+                    int end = searched + found;
+                    if (_buffer[end] == (byte)'"')
+                    {
+                        _position = recordStart;
+                        return false;
+                    }
+
+                    if (_buffer[end] == (byte)'\r')
+                    {
+                        _skipLineFeedAfterCarriageReturn = true;
+                    }
+
+                    _position = end + 1;
+                    _physicalLineSeparatorsConsumed++;
+                    return true;
+                }
+
+                if (_endOfStream)
+                {
+                    _position = _length;
+                    return true;
+                }
+
+                int scannedLength = _length - recordStart;
+                if (!FillForCurrentRecord(ref recordStart, cancellationToken))
+                {
+                    if (!_endOfStream)
+                    {
+                        _position = recordStart;
+                        return false;
+                    }
+                }
+
+                searched = recordStart + scannedLength;
+            }
         }
 
         /// <summary>Skips an invalid record through the end of the physical line that contains the error.</summary>

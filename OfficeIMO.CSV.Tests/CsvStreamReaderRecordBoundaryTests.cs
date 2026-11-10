@@ -10,21 +10,24 @@ namespace OfficeIMO.CSV.Tests;
 /// multiline quoted records, whichever decoding route the encoding selects.
 /// </summary>
 public sealed class CsvStreamReaderRecordBoundaryTests {
-    public static TheoryData<string, string, bool, string> Cases => new() {
-        { "x,y\ra,b", "x|y@1/1 a|b@2/2", false, "" },
-        { "\ra,b", "a|b@2/2", false, "" },
-        { "\n\nab,cd", "ab|cd@3/3", false, "" },
-        { "\nbc", "bc@2/2", true, "" },
-        { "\n  bc ,d", "bc|d@2/2", true, "" },
-        { "bc,\"x\"\r\n \r\ra,,\"\"\nbca\r\nbc", "bc|x@1/1  |@2/2 a|@4/4 bca|@5/5 bc|@6/6", false, "" },
-        { "a,1\n\"q\r\nr\",2\n\"x\"y,3\nb,4", "a|1@1/1 q\r\nr|2@2/2 b|4@5/5", false, "4" },
-        { "\"q\nr\",1\n\"s\nt\",2\n\"u", "q\nr|1@1/1 s\nt|2@3/3", false, "5" },
-        { "\né,é", "é|é@2/2", false, "" }
+    public static TheoryData<string, string, bool, string, bool> Cases => new() {
+        { "x,y\ra,b", "x|y@1/1 a|b@2/2", false, "", false },
+        { "\ra,b", "a|b@2/2", false, "", false },
+        { "\n\nab,cd", "ab|cd@3/3", false, "", false },
+        { "\nbc", "bc@2/2", true, "", false },
+        { "\n  bc ,d", "bc|d@2/2", true, "", false },
+        { "bc,\"x\"\r\n \r\ra,,\"\"\nbca\r\nbc", "bc|x@1/1  |@2/2 a|@4/4 bca|@5/5 bc|@6/6", false, "", false },
+        { "a,1\n\"q\r\nr\",2\n\"x\"y,3\nb,4", "a|1@1/1 q\r\nr|2@2/2 b|4@5/5", false, "4", false },
+        { "\"q\nr\",1\n\"s\nt\",2\n\"u", "q\nr|1@1/1 s\nt|2@3/3", false, "5", false },
+        { "\né,é", "é|é@2/2", false, "", false },
+        { "#a,b\nc,d", "#a|b@1/1 c|d@2/2", false, "", false },
+        { "a,b\n#x\r\nc,d", "a|b@1/1 c|d@3/3", false, "", true },
+        { "a,b\n#x \"y\nz\"\nc,d", "a|b@1/1 c|d@4/4", false, "", true }
     };
 
     [Theory]
     [MemberData(nameof(Cases))]
-    public void FinalRecordsKeepTheirFieldsAndLines(string input, string expectedRows, bool trim, string expectedErrorLines) {
+    public void FinalRecordsKeepTheirFieldsAndLines(string input, string expectedRows, bool trim, string expectedErrorLines, bool skipComments) {
         // Latin-1 and a non-U+FFFD UTF-8 fallback select the decoded text route; default UTF-8 the byte route.
         var encodings = new List<(Encoding? Encoding, byte[] Bytes)> {
             (null, Encoding.UTF8.GetBytes(input)),
@@ -41,6 +44,7 @@ public sealed class CsvStreamReaderRecordBoundaryTests {
                     DetectDelimiter = false,
                     Encoding = encoding,
                     TrimWhitespace = trim,
+                    SkipCommentRows = skipComments,
                     QuoteParsingMode = CsvQuoteParsingMode.Strict,
                     ParseErrorAction = CsvParseErrorAction.SkipRow,
                     CollectParseErrors = true,
