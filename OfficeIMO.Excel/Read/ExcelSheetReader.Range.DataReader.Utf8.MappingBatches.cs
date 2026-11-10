@@ -44,6 +44,8 @@ internal sealed partial class ExcelSheetReader {
                 }
             } catch (ArgumentException) { return false; }
             finally { _currentRowOffset = savedOffset; }
+            if (TryShareMappingRows(owner, firstRow, count, firstPhysical,
+                firstOrdinal, fieldCount, ct, out copy)) return true;
             int lengthToCopy = maximum > minimum ? maximum - minimum : 0;
             // Worker batches need concurrent leases of the same size.
             byte[] buffer = ArrayPool<byte>.Shared.Rent(lengthToCopy);

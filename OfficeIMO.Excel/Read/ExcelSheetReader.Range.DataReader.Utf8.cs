@@ -235,7 +235,7 @@ namespace OfficeIMO.Excel {
 
                 _currentRowOffset = UsesCellWindow
                     ? SelectCellWindowRow(_rowCursor, lifetimeCt, readCt)
-                    : checked(_rowCursor * _fieldCount);
+                    : checked(_rowCursor * _fieldCount + _mappingMetadataOffset);
                 _selectedPhysicalRow = _rowCursor;
                 _rowCursor++;
                 return true;
@@ -440,6 +440,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 _disposed = true;
+                ReleaseSharedMappingStorage();
                 if (_buffer != null) {
                     if (_ownsBuffer) {
                         if (_mappingBufferFromSharedPool) ArrayPool<byte>.Shared.Return(_buffer, clearArray: true);
