@@ -87,7 +87,9 @@ internal sealed class YamlScanContext {
         if (IsFinal) return false;
         char[] buffer = Buffer!;
         if (Length == buffer.Length) {
-            if ((long)buffer.Length * 2 > (long)MaxScalarLength * 2 + InitialBufferSize * 4 && buffer.Length >= InitialBufferSize * 4) {
+            // The window only grows while one token (or the lookahead behind it) is longer than the buffer, so a window
+            // past twice the scalar limit means a scalar beyond the limit is still being scanned.
+            if (buffer.Length >= (long)MaxScalarLength * 2 + InitialBufferSize * 4) {
                 throw new YamlLimitExceededException(nameof(YamlReaderOptions.MaxScalarLength), MaxScalarLength, new YamlPosition((long)Base + Pos, Line + 1, Column + 1));
             }
             char[] larger = ArrayPool<char>.Shared.Rent(buffer.Length * 2);

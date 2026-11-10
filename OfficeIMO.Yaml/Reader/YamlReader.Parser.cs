@@ -579,17 +579,19 @@ public sealed partial class YamlReader {
     /// <summary>Decodes %XX escapes (UTF-8 bytes) in tag text.</summary>
     internal static string DecodePercent(ReadOnlySpan<char> text) {
         if (text.IndexOf('%') < 0) return text.ToString();
-        byte[] bytes = new byte[text.Length * 3];
-        int n = 0;
-        for (int i = 0; i < text.Length; i++) {
-            char ch = text[i];
-            if (ch == '%' && i + 2 < text.Length) {
-                bytes[n++] = (byte)(YamlChars.HexValue(text[i + 1]) * 16 + YamlChars.HexValue(text[i + 2]));
-                i += 2;
-            } else {
-                n += Encoding.UTF8.GetBytes(new[] { ch }, 0, 1, bytes, n);
+        var bytes = new List<byte>(text.Length);
+        int i = 0;
+        while (i < text.Length) {
+            if (text[i] == '%' && i + 2 < text.Length) {
+                bytes.Add((byte)(YamlChars.HexValue(text[i + 1]) * 16 + YamlChars.HexValue(text[i + 2])));
+                i += 3;
+                continue;
             }
+            int run = text.Slice(i).IndexOf('%');
+            int length = run < 0 ? text.Length - i : Math.Max(run, 1);
+            bytes.AddRange(Encoding.UTF8.GetBytes(text.Slice(i, length).ToString()));
+            i += length;
         }
-        return Encoding.UTF8.GetString(bytes, 0, n);
+        return Encoding.UTF8.GetString(bytes.ToArray());
     }
 }

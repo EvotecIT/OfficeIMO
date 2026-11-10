@@ -2,7 +2,7 @@
 
 OfficeIMO's own YAML 1.2 engine. It has no runtime dependencies beyond `OfficeIMO.Core` and targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10.
 
-This release contains the forward-only `YamlReader`. The editable document model, writer and serializer are planned.
+The package provides `YamlReader`, a forward-only pull reader over YAML 1.2 text.
 
 ## Reading events
 
