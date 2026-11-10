@@ -35,8 +35,8 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --filt
 Four benchmark classes cover the operations, each with YamlDotNet as the baseline:
 
 - `YamlParseEventsBenchmarks`: parse to events without building a tree. The OfficeIMO.Yaml lane reads every scalar value, alias name, anchor and tag as a string, matching the reference parsers' events, which carry them.
-- `YamlLoadTreeBenchmarks`: load the representation tree.
-- `YamlLoadAndSaveBenchmarks`: load and save without edits.
+- `YamlLoadTreeBenchmarks`: load the representation tree. OfficeIMO.Yaml decodes scalar values on first use, so its tree lane leaves them undecoded; the `OfficeIMOYamlWithValues` lane also reads every scalar value as a string, which the reference trees do while loading.
+- `YamlLoadAndSaveBenchmarks`: load and save without edits. OfficeIMO.Yaml saves an unchanged document by copying its retained source, and setup checks that its output equals the input.
 - `YamlEmitBenchmarks`: emit a new document from events captured before timing.
 
 Every class runs these workloads:

@@ -6,6 +6,10 @@ using DotNetScalarStyle = YamlDotNet.Core.ScalarStyle;
 
 namespace OfficeIMO.Yaml.Benchmarks.Adapters;
 
+// Inside the namespace so these win over the OfficeIMO.Yaml model types of the same name.
+using YamlDocument = YamlDotNet.RepresentationModel.YamlDocument;
+using YamlNode = YamlDotNet.RepresentationModel.YamlNode;
+
 /// <summary>YamlDotNet through its parser and representation model (<see cref="YamlStream"/>).</summary>
 internal sealed class YamlDotNetConformanceEngine : IYamlConformanceEngine {
     public string Name => "YamlDotNet";
