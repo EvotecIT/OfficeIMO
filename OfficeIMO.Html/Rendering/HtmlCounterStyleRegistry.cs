@@ -27,7 +27,7 @@ internal sealed class HtmlCounterStyleRegistry {
                 options.CssMediaHeight,
                 options.MediaFeatures)) continue;
 
-            string css = styleElement.TextContent;
+            string css = HtmlStyleElementText.Read(styleElement);
             IReadOnlyDictionary<int, int> closures = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(null));
             registry.Collect(css, 0, css.Length, closures, options, layers, currentLayer: null, ref sourceOrder);
         }

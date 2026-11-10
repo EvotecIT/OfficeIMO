@@ -154,7 +154,7 @@ public sealed partial class PdfEmbeddedFontFamily {
             return false;
         }
 
-        fontFamily = new PdfEmbeddedFontFamily(
+        fontFamily = FromOwnedFaces(
             string.IsNullOrWhiteSpace(pdfFamilyName) ? familyName : pdfFamilyName!,
             regularFace.Data,
             boldFace?.Data,

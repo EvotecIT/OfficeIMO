@@ -33,7 +33,7 @@ public static partial class HtmlComputedStyleEngine {
                 continue;
             }
 
-            string css = styleElement.TextContent;
+            string css = HtmlStyleElementText.Read(styleElement);
             if (string.IsNullOrWhiteSpace(css)) {
                 continue;
             }
@@ -576,6 +576,8 @@ public static partial class HtmlComputedStyleEngine {
 
     private static string PreserveRevertLayerDeclarations(string css) {
         const string keyword = "revert-layer";
+        // Only a keyword occurrence is rewritten; without one the text is returned as is.
+        if (css.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0) return css;
         var result = new System.Text.StringBuilder(css.Length);
         char quote = '\0';
         for (int index = 0; index < css.Length;) {
