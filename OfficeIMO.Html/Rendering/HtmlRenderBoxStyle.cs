@@ -3,43 +3,22 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderBoxStyle {
-    internal bool IntrinsicWidthsResolved;
-    internal HtmlRenderIntrinsicWidth? IntrinsicWidth;
-    internal HtmlRenderIntrinsicWidth? IntrinsicMinWidth;
-    internal HtmlRenderIntrinsicWidth? IntrinsicMaxWidth;
     internal bool HasIntrinsicWidths => IntrinsicWidth.HasValue || IntrinsicMinWidth.HasValue || IntrinsicMaxWidth.HasValue;
     internal string Display = "block";
     internal string TableVerticalAlignment = "baseline";
     internal bool DisplayWasSpecified;
     internal bool PaintVisible = true;
-    internal string Position = "static";
-    internal string FloatSide = "none";
-    internal string ClearSide = "none";
     internal string CaptionSide = "top";
     internal string TableLayout = "auto";
     internal string BorderCollapse = "separate";
     internal double BorderSpacingX;
     internal double BorderSpacingY;
-    internal string Top = "auto";
-    internal string Right = "auto";
-    internal string Bottom = "auto";
-    internal string Left = "auto";
-    internal string ZIndex = "auto";
-    internal string ContainerType = "normal";
     internal double? ContainerUnitWidth;
     internal double? ContainerUnitHeight;
-    internal bool MarginTopAuto;
-    internal bool MarginRightAuto;
-    internal bool MarginBottomAuto;
-    internal bool MarginLeftAuto;
     internal double MarginTop;
     internal double MarginRight;
     internal double MarginBottom;
     internal double MarginLeft;
-    // Keep computed auto-margin space separate from float-avoidance offsets
-    // so table measurement can replace that space after resolving its used width.
-    internal double HorizontalAutoMarginLeftShare;
-    internal double HorizontalAutoMarginRightShare;
     internal double PaddingTop;
     internal double PaddingRight;
     internal double PaddingBottom;
@@ -68,26 +47,15 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool BorderDeclared;
     internal OfficeColor? BackgroundColor;
     internal OfficeFontInfo Font;
-    internal HtmlFontSizeContext? FontSizeContext;
     internal OfficeFontFaceDescriptor FontDescriptor = OfficeFontFaceDescriptor.Regular;
-    internal OfficeTextDecorationStyle UnderlineStyle;
-    internal OfficeTextDecorationStyle StrikethroughStyle;
     internal OfficeColor DecorationColor = OfficeColor.Black;
-    internal OfficeTextBaseline Baseline;
-    internal int BaselineLevel;
-    internal double BaselineScale = 1D;
-    internal double BaselineOffset;
     internal OfficeColor Color = OfficeColor.Black;
     internal OfficeTextAlignment Alignment;
-    internal HtmlRenderTextIndent? TextIndent;
-    internal double CharacterAdvance = double.NaN;
     internal double LineHeight;
     internal bool UsesNaturalLineHeight;
     // Keep the used alignment height separate from ordinary text paint and the
     // computed CSS value. Cloned styles retain the originating length's units.
     internal double? InlineAlignmentLineHeight;
-    internal double LetterSpacing;
-    internal double WordSpacing;
     internal double? ExplicitWidth;
     internal bool ExplicitWidthUsesPercentage;
     internal double? ExplicitHeight;
@@ -104,31 +72,12 @@ internal sealed class HtmlRenderBoxStyle {
     internal string TablePercentageHeight = string.Empty;
     // Flex/grid stretching supplies a used height without changing the authored auto-height contract.
     internal bool AutoHeightLayoutStretch;
-    // A flex/grid allocation equal to the intrinsic column height still needs
-    // its definite percentage basis, but may fragment at physical page bands.
-    internal bool IntrinsicColumnHeightAllocation;
-    internal double? MinWidth;
-    internal double? MinWidthWithIndefiniteReference;
-    internal double? MaxWidth;
-    internal bool MaxWidthUsesPercentage;
-    internal double? MinHeight;
-    internal double? MaxHeight;
-    // Horizontal page-margin block-axis keywords use the laid-out content height.
-    // Ordinary element sizing retains its separate intrinsic-height contract.
-    internal bool PageMarginIntrinsicHeight;
-    internal bool PageMarginIntrinsicMinHeight;
-    internal bool PageMarginIntrinsicMaxHeight;
     internal bool HasPageMarginIntrinsicHeights => PageMarginIntrinsicHeight
         || PageMarginIntrinsicMinHeight || PageMarginIntrinsicMaxHeight;
     internal bool BorderBox;
     internal bool PreserveWhitespace;
     internal bool PreventTextWrapping;
-    internal OfficeTextFeatureSettings TextFeatureSettings = OfficeTextFeatureSettings.Default;
     internal string Language = string.Empty;
-    internal string Direction = "ltr";
-    internal string WritingMode = "horizontal-tb";
-    internal string OverflowX = "visible";
-    internal string OverflowY = "visible";
     // Resolved box applicability survives positioning/float clones that reset
     // their original boxifying fields. Synthetic styles carry no declarations.
     internal string UsedTransform => TransformAppliesToBox ? Transform : "none";
@@ -139,7 +88,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal double VerticalInsets => BorderTopWidth + BorderBottomWidth + PaddingTop + PaddingBottom;
 
     internal HtmlRenderBoxStyle Clone() {
-        _shared = 255;
+        _shared = -1;
         return (HtmlRenderBoxStyle)MemberwiseClone();
     }
 
@@ -149,9 +98,79 @@ internal sealed class HtmlRenderBoxStyle {
         ? right.HasValue && SameValue(left.Value, right.Value)
         : !right.HasValue;
 
+    private static bool SameValue(HtmlFontSizeContext? left, HtmlFontSizeContext? right) => left.HasValue
+        ? right.HasValue && SameValue(left.Value.Pixels, right.Value.Pixels)
+            && left.Value.IsAbsolute == right.Value.IsAbsolute
+            && string.Equals(left.Value.AbsoluteKeyword, right.Value.AbsoluteKeyword, StringComparison.Ordinal)
+            && left.Value.SoleGenericMonospace == right.Value.SoleGenericMonospace
+        : !right.HasValue;
+
     // Rarely set computed values live in groups that copies share until one of them writes.
     // A bit in _shared means the group may be referenced by another style and is copied on write.
-    private int _shared = 255;
+    private int _shared = -1;
+    private PositionValues _position = PositionValues.Default;
+    private PositionValues MutablePosition() {
+        if ((_shared & 256) == 0) return _position;
+        _shared &= ~256;
+        return _position = _position.Copy();
+    }
+    internal string Position { get => _position.Position; set { if (!(string.Equals(_position.Position, value, StringComparison.Ordinal))) MutablePosition().Position = value; } }
+    internal string FloatSide { get => _position.FloatSide; set { if (!(string.Equals(_position.FloatSide, value, StringComparison.Ordinal))) MutablePosition().FloatSide = value; } }
+    internal string ClearSide { get => _position.ClearSide; set { if (!(string.Equals(_position.ClearSide, value, StringComparison.Ordinal))) MutablePosition().ClearSide = value; } }
+    internal string Top { get => _position.Top; set { if (!(string.Equals(_position.Top, value, StringComparison.Ordinal))) MutablePosition().Top = value; } }
+    internal string Right { get => _position.Right; set { if (!(string.Equals(_position.Right, value, StringComparison.Ordinal))) MutablePosition().Right = value; } }
+    internal string Bottom { get => _position.Bottom; set { if (!(string.Equals(_position.Bottom, value, StringComparison.Ordinal))) MutablePosition().Bottom = value; } }
+    internal string Left { get => _position.Left; set { if (!(string.Equals(_position.Left, value, StringComparison.Ordinal))) MutablePosition().Left = value; } }
+    internal string ZIndex { get => _position.ZIndex; set { if (!(string.Equals(_position.ZIndex, value, StringComparison.Ordinal))) MutablePosition().ZIndex = value; } }
+    internal string ContainerType { get => _position.ContainerType; set { if (!(string.Equals(_position.ContainerType, value, StringComparison.Ordinal))) MutablePosition().ContainerType = value; } }
+    internal string OverflowX { get => _position.OverflowX; set { if (!(string.Equals(_position.OverflowX, value, StringComparison.Ordinal))) MutablePosition().OverflowX = value; } }
+    internal string OverflowY { get => _position.OverflowY; set { if (!(string.Equals(_position.OverflowY, value, StringComparison.Ordinal))) MutablePosition().OverflowY = value; } }
+    internal bool MarginTopAuto { get => _position.MarginTopAuto; set { if (!(_position.MarginTopAuto == value)) MutablePosition().MarginTopAuto = value; } }
+    internal bool MarginRightAuto { get => _position.MarginRightAuto; set { if (!(_position.MarginRightAuto == value)) MutablePosition().MarginRightAuto = value; } }
+    internal bool MarginBottomAuto { get => _position.MarginBottomAuto; set { if (!(_position.MarginBottomAuto == value)) MutablePosition().MarginBottomAuto = value; } }
+    internal bool MarginLeftAuto { get => _position.MarginLeftAuto; set { if (!(_position.MarginLeftAuto == value)) MutablePosition().MarginLeftAuto = value; } }
+    internal double HorizontalAutoMarginLeftShare { get => _position.HorizontalAutoMarginLeftShare; set { if (!(SameValue(_position.HorizontalAutoMarginLeftShare, value))) MutablePosition().HorizontalAutoMarginLeftShare = value; } }
+    internal double HorizontalAutoMarginRightShare { get => _position.HorizontalAutoMarginRightShare; set { if (!(SameValue(_position.HorizontalAutoMarginRightShare, value))) MutablePosition().HorizontalAutoMarginRightShare = value; } }
+    private SizingValues _sizing = SizingValues.Default;
+    private SizingValues MutableSizing() {
+        if ((_shared & 1024) == 0) return _sizing;
+        _shared &= ~1024;
+        return _sizing = _sizing.Copy();
+    }
+    internal bool IntrinsicWidthsResolved { get => _sizing.IntrinsicWidthsResolved; set { if (!(_sizing.IntrinsicWidthsResolved == value)) MutableSizing().IntrinsicWidthsResolved = value; } }
+    internal HtmlRenderIntrinsicWidth? IntrinsicWidth { get => _sizing.IntrinsicWidth; set { if (!(_sizing.IntrinsicWidth == value)) MutableSizing().IntrinsicWidth = value; } }
+    internal HtmlRenderIntrinsicWidth? IntrinsicMinWidth { get => _sizing.IntrinsicMinWidth; set { if (!(_sizing.IntrinsicMinWidth == value)) MutableSizing().IntrinsicMinWidth = value; } }
+    internal HtmlRenderIntrinsicWidth? IntrinsicMaxWidth { get => _sizing.IntrinsicMaxWidth; set { if (!(_sizing.IntrinsicMaxWidth == value)) MutableSizing().IntrinsicMaxWidth = value; } }
+    internal double? MinWidth { get => _sizing.MinWidth; set { if (!(SameValue(_sizing.MinWidth, value))) MutableSizing().MinWidth = value; } }
+    internal double? MinWidthWithIndefiniteReference { get => _sizing.MinWidthWithIndefiniteReference; set { if (!(SameValue(_sizing.MinWidthWithIndefiniteReference, value))) MutableSizing().MinWidthWithIndefiniteReference = value; } }
+    internal double? MaxWidth { get => _sizing.MaxWidth; set { if (!(SameValue(_sizing.MaxWidth, value))) MutableSizing().MaxWidth = value; } }
+    internal bool MaxWidthUsesPercentage { get => _sizing.MaxWidthUsesPercentage; set { if (!(_sizing.MaxWidthUsesPercentage == value)) MutableSizing().MaxWidthUsesPercentage = value; } }
+    internal double? MinHeight { get => _sizing.MinHeight; set { if (!(SameValue(_sizing.MinHeight, value))) MutableSizing().MinHeight = value; } }
+    internal double? MaxHeight { get => _sizing.MaxHeight; set { if (!(SameValue(_sizing.MaxHeight, value))) MutableSizing().MaxHeight = value; } }
+    internal bool PageMarginIntrinsicHeight { get => _sizing.PageMarginIntrinsicHeight; set { if (!(_sizing.PageMarginIntrinsicHeight == value)) MutableSizing().PageMarginIntrinsicHeight = value; } }
+    internal bool PageMarginIntrinsicMinHeight { get => _sizing.PageMarginIntrinsicMinHeight; set { if (!(_sizing.PageMarginIntrinsicMinHeight == value)) MutableSizing().PageMarginIntrinsicMinHeight = value; } }
+    internal bool PageMarginIntrinsicMaxHeight { get => _sizing.PageMarginIntrinsicMaxHeight; set { if (!(_sizing.PageMarginIntrinsicMaxHeight == value)) MutableSizing().PageMarginIntrinsicMaxHeight = value; } }
+    internal bool IntrinsicColumnHeightAllocation { get => _sizing.IntrinsicColumnHeightAllocation; set { if (!(_sizing.IntrinsicColumnHeightAllocation == value)) MutableSizing().IntrinsicColumnHeightAllocation = value; } }
+    private TextValues _text = TextValues.Default;
+    private TextValues MutableText() {
+        if ((_shared & 2048) == 0) return _text;
+        _shared &= ~2048;
+        return _text = _text.Copy();
+    }
+    internal HtmlFontSizeContext? FontSizeContext { get => _text.FontSizeContext; set { if (!(SameValue(_text.FontSizeContext, value))) MutableText().FontSizeContext = value; } }
+    internal OfficeTextDecorationStyle UnderlineStyle { get => _text.UnderlineStyle; set { if (!(_text.UnderlineStyle == value)) MutableText().UnderlineStyle = value; } }
+    internal OfficeTextDecorationStyle StrikethroughStyle { get => _text.StrikethroughStyle; set { if (!(_text.StrikethroughStyle == value)) MutableText().StrikethroughStyle = value; } }
+    internal OfficeTextBaseline Baseline { get => _text.Baseline; set { if (!(_text.Baseline == value)) MutableText().Baseline = value; } }
+    internal int BaselineLevel { get => _text.BaselineLevel; set { if (!(_text.BaselineLevel == value)) MutableText().BaselineLevel = value; } }
+    internal double BaselineScale { get => _text.BaselineScale; set { if (!(SameValue(_text.BaselineScale, value))) MutableText().BaselineScale = value; } }
+    internal double BaselineOffset { get => _text.BaselineOffset; set { if (!(SameValue(_text.BaselineOffset, value))) MutableText().BaselineOffset = value; } }
+    internal HtmlRenderTextIndent? TextIndent { get => _text.TextIndent; set { if (!(ReferenceEquals(_text.TextIndent, value))) MutableText().TextIndent = value; } }
+    internal double CharacterAdvance { get => _text.CharacterAdvance; set { if (!(SameValue(_text.CharacterAdvance, value))) MutableText().CharacterAdvance = value; } }
+    internal double LetterSpacing { get => _text.LetterSpacing; set { if (!(SameValue(_text.LetterSpacing, value))) MutableText().LetterSpacing = value; } }
+    internal double WordSpacing { get => _text.WordSpacing; set { if (!(SameValue(_text.WordSpacing, value))) MutableText().WordSpacing = value; } }
+    internal OfficeTextFeatureSettings TextFeatureSettings { get => _text.TextFeatureSettings; set { if (!(ReferenceEquals(_text.TextFeatureSettings, value))) MutableText().TextFeatureSettings = value; } }
+    internal string Direction { get => _text.Direction; set { if (!(string.Equals(_text.Direction, value, StringComparison.Ordinal))) MutableText().Direction = value; } }
+    internal string WritingMode { get => _text.WritingMode; set { if (!(string.Equals(_text.WritingMode, value, StringComparison.Ordinal))) MutableText().WritingMode = value; } }
     private TypographyValues _typography = TypographyValues.Default;
     private TypographyValues MutableTypography() {
         if ((_shared & 1) == 0) return _typography;
@@ -344,6 +363,72 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedColumnBreaks { get => _diagnostics.UnsupportedColumnBreaks; set { if (!(string.Equals(_diagnostics.UnsupportedColumnBreaks, value, StringComparison.Ordinal))) MutableDiagnostics().UnsupportedColumnBreaks = value; } }
     internal string UnsupportedSemanticTag { get => _diagnostics.UnsupportedSemanticTag; set { if (!(string.Equals(_diagnostics.UnsupportedSemanticTag, value, StringComparison.Ordinal))) MutableDiagnostics().UnsupportedSemanticTag = value; } }
     internal string UnsupportedBookmark { get => _diagnostics.UnsupportedBookmark; set { if (!(string.Equals(_diagnostics.UnsupportedBookmark, value, StringComparison.Ordinal))) MutableDiagnostics().UnsupportedBookmark = value; } }
+
+    private sealed class PositionValues {
+        internal static readonly PositionValues Default = new PositionValues();
+        internal string Position = "static";
+        internal string FloatSide = "none";
+        internal string ClearSide = "none";
+        internal string Top = "auto";
+        internal string Right = "auto";
+        internal string Bottom = "auto";
+        internal string Left = "auto";
+        internal string ZIndex = "auto";
+        internal string ContainerType = "normal";
+        internal string OverflowX = "visible";
+        internal string OverflowY = "visible";
+        internal bool MarginTopAuto;
+        internal bool MarginRightAuto;
+        internal bool MarginBottomAuto;
+        internal bool MarginLeftAuto;
+        // Keep computed auto-margin space separate from float-avoidance offsets
+        // so table measurement can replace that space after resolving its used width.
+        internal double HorizontalAutoMarginLeftShare;
+        internal double HorizontalAutoMarginRightShare;
+        internal PositionValues Copy() => (PositionValues)MemberwiseClone();
+    }
+
+    private sealed class SizingValues {
+        internal static readonly SizingValues Default = new SizingValues();
+        internal bool IntrinsicWidthsResolved;
+        internal HtmlRenderIntrinsicWidth? IntrinsicWidth;
+        internal HtmlRenderIntrinsicWidth? IntrinsicMinWidth;
+        internal HtmlRenderIntrinsicWidth? IntrinsicMaxWidth;
+        internal double? MinWidth;
+        internal double? MinWidthWithIndefiniteReference;
+        internal double? MaxWidth;
+        internal bool MaxWidthUsesPercentage;
+        internal double? MinHeight;
+        internal double? MaxHeight;
+        // Horizontal page-margin block-axis keywords use the laid-out content height.
+        // Ordinary element sizing retains its separate intrinsic-height contract.
+        internal bool PageMarginIntrinsicHeight;
+        internal bool PageMarginIntrinsicMinHeight;
+        internal bool PageMarginIntrinsicMaxHeight;
+        // A flex/grid allocation equal to the intrinsic column height still needs
+        // its definite percentage basis, but may fragment at physical page bands.
+        internal bool IntrinsicColumnHeightAllocation;
+        internal SizingValues Copy() => (SizingValues)MemberwiseClone();
+    }
+
+    private sealed class TextValues {
+        internal static readonly TextValues Default = new TextValues();
+        internal HtmlFontSizeContext? FontSizeContext;
+        internal OfficeTextDecorationStyle UnderlineStyle;
+        internal OfficeTextDecorationStyle StrikethroughStyle;
+        internal OfficeTextBaseline Baseline;
+        internal int BaselineLevel;
+        internal double BaselineScale = 1D;
+        internal double BaselineOffset;
+        internal HtmlRenderTextIndent? TextIndent;
+        internal double CharacterAdvance = double.NaN;
+        internal double LetterSpacing;
+        internal double WordSpacing;
+        internal OfficeTextFeatureSettings TextFeatureSettings = OfficeTextFeatureSettings.Default;
+        internal string Direction = "ltr";
+        internal string WritingMode = "horizontal-tb";
+        internal TextValues Copy() => (TextValues)MemberwiseClone();
+    }
 
     private sealed class TypographyValues {
         internal static readonly TypographyValues Default = new TypographyValues();
