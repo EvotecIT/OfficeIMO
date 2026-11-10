@@ -77,7 +77,7 @@ public partial class ExcelDocument {
         private readonly Stream? _stagedDestination;
         private readonly string? _stagedPath;
         private readonly ExcelPositionReportingWriteStream? _position;
-        private ZipArchive? _archive;
+        private ExcelPackageArchive? _archive;
         private readonly ExcelFileFormat _format;
         private BinaryStreamingWorkbook? _binary;
         private readonly ExcelWriterOptions _options;
@@ -155,7 +155,9 @@ public partial class ExcelDocument {
                 var model = DirectDataSetWorkbookModel.CreateStreaming(new[] { sheet }, _options.DateSystem, styles);
                 if (_archive == null && _format != ExcelFileFormat.Xls) {
                     if (_output.CanSeek) PrepareDestinationStreamForWrite(_output);
-                    _archive = new ZipArchive(_position ?? _output, ZipArchiveMode.Create, leaveOpen: true);
+                    // XLSB parts keep the reproducible 1980 timestamp; XLSX parts are stamped with the creation time.
+                    _archive = ExcelPackageArchive.Create(_position ?? _output,
+                        _format == ExcelFileFormat.Xlsb ? new DateTime(1980, 1, 1) : null);
                 }
                 int rowCount;
                 if (_format == ExcelFileFormat.Xlsx) {

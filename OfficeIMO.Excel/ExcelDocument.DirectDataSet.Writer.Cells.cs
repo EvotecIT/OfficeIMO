@@ -761,9 +761,8 @@ namespace OfficeIMO.Excel {
                 writer.Write(value.ToString(CultureInfo.InvariantCulture));
             }
 
-            private static void WriteTextEntry(ZipArchive archive, string path, string text) {
-                var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
-                using var stream = entry.Open();
+            private static void WriteTextEntry(ExcelPackageArchive archive, string path, string text) {
+                using var stream = archive.OpenEntry(path, CompressionLevel.Fastest);
 #if NET6_0_OR_GREATER
                 int byteCount = Utf8NoBom.GetByteCount(text);
                 if (byteCount <= StackallocTextEntryByteLimit) {

@@ -8,13 +8,13 @@ public partial class ExcelDocument {
     /// <summary>Shares the public row callback across the native binary record writers.</summary>
     private sealed class BinaryStreamingWorkbook : IDisposable {
         private readonly ExcelFileFormat _format;
-        private readonly ZipArchive? _archive;
+        private readonly ExcelPackageArchive? _archive;
         private readonly ExcelWriterOptions _options;
         private readonly BinaryStreamingStyles _styles;
         private readonly LegacyXlsWriter.StreamingWorkbook? _legacy;
         private int _sheetCount;
 
-        internal BinaryStreamingWorkbook(ExcelFileFormat format, ZipArchive? archive, ExcelWriterOptions options, BinaryStreamingStyles styles) {
+        internal BinaryStreamingWorkbook(ExcelFileFormat format, ExcelPackageArchive? archive, ExcelWriterOptions options, BinaryStreamingStyles styles) {
             _format = format; _archive = archive; _options = options; _styles = styles;
             if (format == ExcelFileFormat.Xls) _legacy = new LegacyXlsWriter.StreamingWorkbook(options.DateSystem, styles.Xls, options.UseSharedStrings);
         }
@@ -28,9 +28,7 @@ public partial class ExcelDocument {
             try {
                 if (_legacy != null) sink = _legacy.AddSheet(name, headers.Length);
                 else {
-                    var entry = _archive!.CreateEntry("xl/worksheets/sheet" + (++_sheetCount).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin", CompressionLevel.Fastest);
-                    entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
-                    output = entry.Open();
+                    output = _archive!.OpenEntry("xl/worksheets/sheet" + (++_sheetCount).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin", CompressionLevel.Fastest);
                     Stream records = output;
                     if (ExcelExecutionPolicy.SupportsBackgroundProcessing) {
                         compression = new StreamingWorksheetCompression(output);

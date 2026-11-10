@@ -15,7 +15,8 @@ namespace OfficeIMO.Excel {
                     ? null
                     : new ExcelPositionReportingWriteStream(stream);
                 Stream packageDestination = positionReportingDestination ?? stream;
-                using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
+                using var zip = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
+                ExcelPackageArchive archive = ExcelPackageArchive.Wrap(zip);
                 WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: false, themeXml: System.Text.Encoding.UTF8.GetString(DefaultThemeBytes.Value));
                 DirectDataSetSheetModel sheet = model.Sheets[0];
                 int rowCount = WriteDataReaderWorksheet(
@@ -48,7 +49,7 @@ namespace OfficeIMO.Excel {
             }
 
             private static int WriteDataReaderWorksheet(
-                ZipArchive archive,
+                ExcelPackageArchive archive,
                 DirectDataSetSheetModel sheet,
                 IDataReader reader,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
@@ -56,8 +57,7 @@ namespace OfficeIMO.Excel {
                 DirectColumnWritePlan columnWritePlan,
                 ExcelTabularStylePlan? declaredStyles,
                 CancellationToken ct) {
-                var entry = archive.CreateEntry("xl/worksheets/sheet1.xml", CompressionLevel.Fastest);
-                using var stream = entry.Open();
+                using var stream = archive.OpenEntry("xl/worksheets/sheet1.xml", CompressionLevel.Fastest);
                 using var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
 
                 writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
