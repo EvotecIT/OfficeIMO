@@ -158,9 +158,19 @@ internal sealed class YamlEventCursor {
             return false;
         }
         _live = true;
+        YamlReader reader = _reader;
+        YamlTokenType type;
         while (true) {
-            if (!_reader.Read()) return false;
-            if (_reader.TokenType != YamlTokenType.Comment) break;
+            if (!reader.Read()) return false;
+            type = reader.TokenType;
+            if (type != YamlTokenType.Comment) break;
+        }
+        // Most events define no anchor and arrive while nothing records: only the depth changes.
+        if (type != YamlTokenType.DocumentStart && !reader.HasAnchor && _open is not { Count: > 0 } && _captures is not { Count: > 0 }) {
+            _currentLogIndex = -1;
+            if (type is YamlTokenType.MappingStart or YamlTokenType.SequenceStart) _depth++;
+            else if (type is YamlTokenType.MappingEnd or YamlTokenType.SequenceEnd) _depth--;
+            return true;
         }
         OnLiveEvent();
         return true;
