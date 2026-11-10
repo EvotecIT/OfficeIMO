@@ -13,7 +13,7 @@ internal static partial class PdfSyntax {
         byte[] pdf,
         PdfLoadOptions? options,
         bool includeParsedDetails,
-        out string decodedText,
+        out string? decodedText,
         CancellationToken cancellationToken) {
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
@@ -23,31 +23,31 @@ internal static partial class PdfSyntax {
             throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, pdf.LongLength);
         }
 
-        string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
-        decodedText = text;
-        cancellationToken.ThrowIfCancellationRequested();
-        int? encryptObjectNumber = TryReadLastReferenceObjectNumber(text, "Encrypt", cancellationToken);
+        // The raw marker phase scans bytes directly. Latin-1 maps every byte to the code unit with the same value,
+        // so these scans match the decoded text without materializing a second copy of the file.
+        decodedText = null;
+        int? encryptObjectNumber = TryReadLastReferenceObjectNumber(pdf, "Encrypt", cancellationToken);
         bool hasEncryption = encryptObjectNumber.HasValue;
         // The detailed path below already parses the object graph and derives signature
         // fields and values from it. Keep this initial fallback marker scan raw so a
         // cancellation-aware caller does not pay for a second, tokenless parse.
-        RawSecurityMarkers markers = ScanRawSecurityMarkers(text, cancellationToken);
+        RawSecurityMarkers markers = ScanRawSecurityMarkers(pdf, cancellationToken);
         bool hasSignatures = markers.HasSignatures;
         bool hasByteRange = markers.HasByteRange;
-        IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text, limits.MaxRevisions, cancellationToken);
+        IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(pdf, limits.MaxRevisions, cancellationToken);
         int startXrefCount = startXrefOffsets.Count;
         int? lastStartXrefOffset = startXrefOffsets.Count == 0 ? null : startXrefOffsets[startXrefOffsets.Count - 1];
-        IReadOnlyList<int> previousXrefOffsets = ReadIntegerNameValues(text, "Prev", limits.MaxRevisions, cancellationToken);
+        IReadOnlyList<int> previousXrefOffsets = ReadIntegerNameValues(pdf, "Prev", limits.MaxRevisions, cancellationToken);
         bool hasPreviousRevision = previousXrefOffsets.Count > 0;
         IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
         bool hasXrefStreams = markers.HasXrefStreams;
         bool hasObjectStreams = markers.HasObjectStreams;
         bool hasTrailerId = markers.HasTrailerId;
 
-        PdfReference? rootReference = TryReadLastReference(text, "Root", cancellationToken);
+        PdfReference? rootReference = TryReadLastReference(pdf, "Root", cancellationToken);
         int? rootObjectNumber = rootReference?.ObjectNumber;
         int? rootObjectGeneration = rootReference?.Generation;
-        PdfReference? infoReference = TryReadLastReference(text, "Info", cancellationToken);
+        PdfReference? infoReference = TryReadLastReference(pdf, "Info", cancellationToken);
         int? infoObjectNumber = infoReference?.ObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation;
         string? encryptionFilter = null;
@@ -60,7 +60,7 @@ internal static partial class PdfSyntax {
         PdfPasswordAuthenticationRole passwordAuthenticationRole = PdfPasswordAuthenticationRole.None;
 
         if (encryptObjectNumber.HasValue &&
-            TryReadObjectDictionary(text, encryptObjectNumber.Value, out PdfDictionary? encryptionDictionary, cancellationToken) &&
+            TryReadObjectDictionary(decodedText = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken), encryptObjectNumber.Value, out PdfDictionary? encryptionDictionary, cancellationToken) &&
             encryptionDictionary is not null) {
             encryptionFilter = TryReadName(encryptionDictionary, "Filter");
             encryptionSubFilter = TryReadName(encryptionDictionary, "SubFilter");
@@ -578,10 +578,10 @@ internal static partial class PdfSyntax {
             (!char.IsLetterOrDigit(text[afterObjectKeyword]) && text[afterObjectKeyword] != '_');
     }
 
-    private static IReadOnlyList<int> ReadStartXrefOffsets(string text, int maxRevisions, CancellationToken cancellationToken = default) {
+    private static IReadOnlyList<int> ReadStartXrefOffsets(byte[] pdf, int maxRevisions, CancellationToken cancellationToken = default) {
         var offsets = new List<int>();
         int cursor = 0;
-        while (TryReadNextStartXrefOffset(text, ref cursor, out int offset, cancellationToken)) {
+        while (TryReadNextStartXrefOffset(pdf, ref cursor, out int offset, cancellationToken)) {
             offsets.Add(offset);
             if (offsets.Count > maxRevisions) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxRevisions, offsets.Count);
@@ -592,26 +592,28 @@ internal static partial class PdfSyntax {
     }
 
     /// <summary>Reads the same bounded decimal revision markers used by raw security inspection.</summary>
-    private static bool TryReadNextStartXrefOffset(string text, ref int cursor, out int offset, CancellationToken cancellationToken = default) {
-        const string marker = "startxref";
-        while (cursor < text.Length) {
-            int markerIndex = IndexOfSecurityMarker(text, marker, cursor, cancellationToken);
+    private static readonly byte[] StartXrefMarker = AsciiMarker("startxref");
+
+    private static bool TryReadNextStartXrefOffset(byte[] pdf, ref int cursor, out int offset, CancellationToken cancellationToken = default) {
+        byte[] marker = StartXrefMarker;
+        while (cursor < pdf.Length) {
+            int markerIndex = IndexOfSecurityMarker(pdf, marker, cursor, cancellationToken);
             if (markerIndex < 0) break;
 
             cursor = markerIndex + 1;
             int digitIndex = markerIndex + marker.Length;
-            if (digitIndex >= text.Length || !char.IsWhiteSpace(text[digitIndex])) continue;
+            if (digitIndex >= pdf.Length || !char.IsWhiteSpace((char)pdf[digitIndex])) continue;
             do {
                 if ((digitIndex & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 digitIndex++;
-            } while (digitIndex < text.Length && char.IsWhiteSpace(text[digitIndex]));
+            } while (digitIndex < pdf.Length && char.IsWhiteSpace((char)pdf[digitIndex]));
 
             int value = 0;
             bool overflow = false;
             int end = digitIndex;
-            while (end < text.Length && text[end] >= '0' && text[end] <= '9') {
+            while (end < pdf.Length && pdf[end] >= '0' && pdf[end] <= '9') {
                 if ((end & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-                int digit = text[end] - '0';
+                int digit = pdf[end] - '0';
                 if (!overflow) {
                     if (value > (int.MaxValue - digit) / 10) overflow = true;
                     else value = value * 10 + digit;
@@ -626,20 +628,20 @@ internal static partial class PdfSyntax {
             return true;
         }
 
-        cursor = text.Length;
+        cursor = pdf.Length;
         offset = 0;
         return false;
     }
 
-    private static IReadOnlyList<int> ReadIntegerNameValues(string text, string key, int maxValues, CancellationToken cancellationToken = default) {
+    private static IReadOnlyList<int> ReadIntegerNameValues(byte[] pdf, string key, int maxValues, CancellationToken cancellationToken = default) {
         var values = new List<int>();
-        string token = "/" + key;
+        byte[] token = AsciiMarker("/" + key);
         int searchIndex = 0;
-        while (TryFindIntegerNameValue(text, token, searchIndex, out int value, out int nextIndex, cancellationToken)) {
+        while (TryFindIntegerNameValue(pdf, token, searchIndex, out int value, out int nextIndex, cancellationToken)) {
             searchIndex = nextIndex;
             // A trailer's value is a direct integer. The same key as an indirect reference, such as an outline item's
             // /Prev 8 0 R, belongs to another dictionary and is not a revision link.
-            if (IsReferenceTail(text, nextIndex, cancellationToken)) continue;
+            if (IsReferenceTail(pdf, nextIndex, cancellationToken)) continue;
             values.Add(value);
             if (values.Count > maxValues) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxValues, values.Count);
@@ -669,8 +671,8 @@ internal static partial class PdfSyntax {
         return revisions.AsReadOnly();
     }
 
-    private static int? TryReadLastReferenceObjectNumber(string text, string key, CancellationToken cancellationToken = default) {
-        return TryReadLastReference(text, key, cancellationToken)?.ObjectNumber;
+    private static int? TryReadLastReferenceObjectNumber(byte[] pdf, string key, CancellationToken cancellationToken = default) {
+        return TryReadLastReference(pdf, key, cancellationToken)?.ObjectNumber;
     }
 
     private static int? TryReadFirstReferenceObjectNumber(string text, string key) {
@@ -683,11 +685,11 @@ internal static partial class PdfSyntax {
             : null;
     }
 
-    private static PdfReference? TryReadLastReference(string text, string key, CancellationToken cancellationToken = default) {
+    private static PdfReference? TryReadLastReference(byte[] pdf, string key, CancellationToken cancellationToken = default) {
         PdfReference? reference = null;
-        string token = "/" + key;
+        byte[] token = AsciiMarker("/" + key);
         int searchIndex = 0;
-        while (TryFindReference(text, token, searchIndex, out PdfReference? candidate, out int nextIndex, cancellationToken)) {
+        while (TryFindReference(pdf, token, searchIndex, out PdfReference? candidate, out int nextIndex, cancellationToken)) {
             reference = candidate;
             searchIndex = nextIndex;
         }
@@ -696,30 +698,62 @@ internal static partial class PdfSyntax {
     }
 
     /// <summary>Whether a generation number and R follow an integer, making it an indirect reference.</summary>
-    private static bool IsReferenceTail(string text, int cursor, CancellationToken cancellationToken) =>
-        TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) &&
-        TryReadNonNegativeInteger(text, ref cursor, out _, cancellationToken) &&
-        TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) &&
-        cursor < text.Length && text[cursor] == 'R' &&
-        (cursor + 1 == text.Length || !char.IsLetterOrDigit(text[cursor + 1]));
+    private static bool IsReferenceTail(byte[] pdf, int cursor, CancellationToken cancellationToken) =>
+        TrySkipRequiredWhitespace(pdf, ref cursor, cancellationToken) &&
+        TryReadNonNegativeInteger(pdf, ref cursor, out _, cancellationToken) &&
+        TrySkipRequiredWhitespace(pdf, ref cursor, cancellationToken) &&
+        cursor < pdf.Length && pdf[cursor] == 'R' &&
+        (cursor + 1 == pdf.Length || !char.IsLetterOrDigit((char)pdf[cursor + 1]));
 
     private static bool TryFindIntegerNameValue(
-        string text,
-        string token,
+        byte[] pdf,
+        byte[] token,
         int searchIndex,
         out int value,
         out int nextIndex,
         CancellationToken cancellationToken = default) {
         value = 0;
-        nextIndex = text.Length;
-        while (searchIndex < text.Length) {
-            int tokenIndex = IndexOfSecurityMarker(text, token, searchIndex, cancellationToken);
+        nextIndex = pdf.Length;
+        while (searchIndex < pdf.Length) {
+            int tokenIndex = IndexOfSecurityMarker(pdf, token, searchIndex, cancellationToken);
             if (tokenIndex < 0) return false;
 
             int cursor = tokenIndex + token.Length;
-            if (TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) &&
-                TryReadNonNegativeInteger(text, ref cursor, out value, cancellationToken)) {
+            if (TrySkipRequiredWhitespace(pdf, ref cursor, cancellationToken) &&
+                TryReadNonNegativeInteger(pdf, ref cursor, out value, cancellationToken)) {
                 nextIndex = cursor;
+                return true;
+            }
+
+            searchIndex = tokenIndex + token.Length;
+        }
+
+        return false;
+    }
+
+    private static bool TryFindReference(
+        byte[] pdf,
+        byte[] token,
+        int searchIndex,
+        out PdfReference? reference,
+        out int nextIndex,
+        CancellationToken cancellationToken = default) {
+        reference = null;
+        nextIndex = pdf.Length;
+        while (searchIndex < pdf.Length) {
+            int tokenIndex = IndexOfSecurityMarker(pdf, token, searchIndex, cancellationToken);
+            if (tokenIndex < 0) return false;
+
+            int cursor = tokenIndex + token.Length;
+            if (TrySkipRequiredWhitespace(pdf, ref cursor, cancellationToken) &&
+                TryReadNonNegativeInteger(pdf, ref cursor, out int objectNumber, cancellationToken) &&
+                TrySkipRequiredWhitespace(pdf, ref cursor, cancellationToken) &&
+                TryReadNonNegativeInteger(pdf, ref cursor, out int generation, cancellationToken) &&
+                TrySkipRequiredWhitespace(pdf, ref cursor, cancellationToken) &&
+                cursor < pdf.Length &&
+                pdf[cursor] == 'R') {
+                reference = new PdfReference(objectNumber, generation);
+                nextIndex = cursor + 1;
                 return true;
             }
 
@@ -774,6 +808,42 @@ internal static partial class PdfSyntax {
         return -1;
     }
 
+    /// <summary>Finds an ASCII marker in raw PDF bytes in windows that observe cancellation.</summary>
+    private static int IndexOfSecurityMarker(byte[] pdf, byte[] marker, int startIndex, CancellationToken cancellationToken) {
+        const int window = 65536;
+        for (int index = startIndex; index < pdf.Length; index += window) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int end = (int)Math.Min(pdf.Length, (long)index + window + marker.Length - 1);
+            int found = IndexOfAscii(pdf, marker, index, end);
+            if (found >= 0) return found;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return -1;
+    }
+
+    // Returns the first match that lies completely inside [start, end).
+    private static int IndexOfAscii(byte[] pdf, byte[] marker, int start, int end) {
+        if (end - start < marker.Length) return -1;
+#if NET8_0_OR_GREATER
+        int relative = pdf.AsSpan(start, end - start).IndexOf(marker);
+        return relative < 0 ? -1 : start + relative;
+#else
+        int lastStart = end - marker.Length;
+        int index = start;
+        while (index <= lastStart) {
+            index = Array.IndexOf(pdf, marker[0], index, lastStart - index + 1);
+            if (index < 0) return -1;
+            int matched = 1;
+            while (matched < marker.Length && pdf[index + matched] == marker[matched]) matched++;
+            if (matched == marker.Length) return index;
+            index++;
+        }
+        return -1;
+#endif
+    }
+
+    private static byte[] AsciiMarker(string marker) => System.Text.Encoding.ASCII.GetBytes(marker);
+
     private static int FindSecurityDictionaryEnd(string text, int start, int limit, CancellationToken cancellationToken) {
         int depth = 0;
         for (int index = start; index + 1 < limit; index++) {
@@ -818,6 +888,37 @@ internal static partial class PdfSyntax {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             index++;
         }
+        return index > start;
+    }
+
+    private static bool TrySkipRequiredWhitespace(byte[] pdf, ref int index, CancellationToken cancellationToken = default) {
+        int start = index;
+        while (index < pdf.Length && char.IsWhiteSpace((char)pdf[index])) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            index++;
+        }
+        return index > start;
+    }
+
+    private static bool TryReadNonNegativeInteger(byte[] pdf, ref int index, out int value, CancellationToken cancellationToken = default) {
+        value = 0;
+        int start = index;
+        while (index < pdf.Length) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            int digit = pdf[index] - '0';
+            if ((uint)digit > 9U) break;
+            if (value > (int.MaxValue - digit) / 10) {
+                while (index < pdf.Length && pdf[index] >= '0' && pdf[index] <= '9') {
+                    if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    index++;
+                }
+                return false;
+            }
+
+            value = (value * 10) + digit;
+            index++;
+        }
+
         return index > start;
     }
 

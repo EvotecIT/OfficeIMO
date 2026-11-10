@@ -40,7 +40,7 @@ internal sealed partial class PdfReadDocument {
             pdf,
             effectiveOptions,
             includeParsedDetails: false,
-            out string decodedText,
+            out string? decodedText,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfRepairReport repairReport;

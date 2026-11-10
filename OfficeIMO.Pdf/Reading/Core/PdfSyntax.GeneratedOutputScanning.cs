@@ -65,7 +65,7 @@ internal static partial class PdfSyntax {
 
         int startXrefMarkers = 0;
         int startXrefCursor = 0;
-        while (TryReadNextStartXrefOffset(text, ref startXrefCursor, out _)) {
+        while (TryReadNextStartXrefOffset(pdf, ref startXrefCursor, out _)) {
             startXrefMarkers = checked(startXrefMarkers + 1);
         }
 
