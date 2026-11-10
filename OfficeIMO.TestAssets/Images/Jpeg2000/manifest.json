@@ -1,0 +1,129 @@
+{
+  "source": "https://github.com/SerenityOS/serenity/tree/e70c5343579db8c952c6092e16610e6886dadb24/Tests/LibGfx/test-inputs/jpeg2000",
+  "license": "BSD-2-Clause",
+  "reference": "opj_decompress (OpenJPEG 2.5.4), eight-bit interleaved samples",
+  "files": [
+    {
+      "file": "jasper-rgba-u8-cbstyle-01-bypass-layers.jp2",
+      "sha256": "dedbac363844996c8efbe54fef9df5136d3c71fc9066b05724ec237d97435167",
+      "feature": "Selective arithmetic-coding bypass with several quality layers",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "jasper-rgba-u8-cbstyle-63-all.jp2",
+      "sha256": "b93baa5b803aaa1715e97ef6e80a5c1d257fbd7e37caa82b8a50c3cbfe1858e0",
+      "feature": "Every code-block style: bypass, context reset, termination per pass, vertically causal contexts, predictable termination, segmentation symbols",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "jasper-tile4x2-res5.jp2",
+      "sha256": "2dae037d750440519fa26180b9af02575a1f26ede631e92f4c779099c49285aa",
+      "feature": "Eight tiles and five resolution levels",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "openjpeg-lossless-rgba-u8-prog0-tile4x2-cblk4x16-tp3-layers3-res2.jp2",
+      "sha256": "09c6e58df8ed0803e73f43f00e4cf111bdd06db1f06781ea1517b9271b42599d",
+      "feature": "LRCP progression, tiles, three tile-parts, three layers, 4x16 code-blocks",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "openjpeg-lossless-rgba-u8-prog1-tile4x2-cblk4x16-tp3-layers3-res2.jp2",
+      "sha256": "055696180fbf16c1bbbcb277fcaab2e27c5e0c429b96e89c60ab472f772c5535",
+      "feature": "RLCP progression",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "openjpeg-lossless-rgba-u8-prog2-tile4x2-cblk4x16-tp3-layers3-res2.jp2",
+      "sha256": "73242c6509a040c92af5bbfce2275b9017d4cdc35e35bf4dd7938636efef5106",
+      "feature": "RPCL progression",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "openjpeg-lossless-rgba-u8-prog3-tile4x2-cblk4x16-tp3-layers3-res2.jp2",
+      "sha256": "b500cbc195eb11693d2a5b668c2d10768e071ddfcc74845c0312ee8f2e40dad8",
+      "feature": "PCRL progression",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "openjpeg-lossless-rgba-u8-prog4-tile4x2-cblk4x16-tp3-layers3-res2.jp2",
+      "sha256": "437d170ec66af6d26a4ee54394af84574f2ab3e64e2ba867554b39746929d922",
+      "feature": "CPRL progression",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "openjpeg-lossless-rgba-u8-prog0-EPH-SOP.jp2",
+      "sha256": "e183c2693ef8dcc4a07ad51b7ab74e9e5d523dd675358f218bf42a20660a47fd",
+      "feature": "SOP and EPH packet markers",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "openjpeg-lossless-RGN.jp2",
+      "sha256": "da7191285d026b1f02543808b68ac4ed0329b0f3e789a2ac54aaf749863c9341",
+      "feature": "ROI max-shift (RGN marker)",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "openjpeg-lossless-bgra-u8.jp2",
+      "sha256": "353a32f6e4655dcb013930d1190ff25372400190622ba2c76796d2bae636fa60",
+      "feature": "Channel definition box that reorders BGRA components",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "kakadu-lossless-rgba-u8-prog1-layers1-res6-mct.jp2",
+      "sha256": "811f0758386154815ea03e737be8f39b010aa2cec68e65e8c6b27146a4dbd39f",
+      "feature": "Reversible component transform (RCT) with alpha",
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
+    },
+    {
+      "file": "kakadu-lossless-rgba-u16-prog1-layers1-res6.jp2",
+      "sha256": "aa15a3b392ed8ede862d8d5bade14eda0e82a00471297af6d4a6be1c9e56af29",
+      "feature": "16-bit components scaled to eight bits",
+      "samplesSha256": "7d60f8cf2adc3c87020fb8d2df66f033ca126732351399c19bce4aaf28f6b75f"
+    },
+    {
+      "file": "openjpeg-lossless-rgba-u4.jp2",
+      "sha256": "c664448db2fc3260e8c90dd759db65fb2d7a1f34d39b4dfbf1dedfbceafdeb21",
+      "feature": "4-bit components",
+      "samplesSha256": "9e2ff80658bb6451d9a8f577e9d2b2e31d6a9c4d36c31c028edd4a9f4d796cbb"
+    },
+    {
+      "file": "openjpeg-lossless-indexed-u8-rgb-u8.jp2",
+      "sha256": "64acf80fa7bf279aea1894546aa4e2cc0408c809347b1a3266d346e83ecc7758",
+      "feature": "Palette and component-mapping boxes",
+      "samplesSha256": "b83e616691e779d67d4dd20442e89be92293a8257cffb120e37510e43c3605c6"
+    },
+    {
+      "file": "kakadu-lossless-rgb-u8-prog1-layers1-res6-mct.jp2",
+      "sha256": "15049ee285c002acd9f7d152749c59c1f3fbe9e19c71f15a9923404b302c00f7",
+      "feature": "RGB with RCT",
+      "samplesSha256": "9dd4394b70a86b2f860064050261fe25cc7e7d2405a721df1a527fc2ddf2dd00"
+    },
+    {
+      "file": "kakadu-lossless-gray-alpha-u8-prog1-layers1-res6.jp2",
+      "sha256": "fbefeeb6421683be545a016f8d58f4330b0c83d45fe4cd0f10cc304a3b288f83",
+      "feature": "Gray with an opacity channel",
+      "samplesSha256": "0d7ddda92f3a4593c7ac421736ce20de3df4e5465ed9b1a49b9711c75f085384"
+    },
+    {
+      "file": "kakadu-lossless-gray-u8-prog1-layers1-res6.jp2",
+      "sha256": "87bf0c10f0d5a23474e62001b82d6bdb0caa6b926586de131e6b26cf5d843d29",
+      "feature": "Gray",
+      "samplesSha256": "a2a1e41412986b1ba944463dae6c5af6bbcc9621fb3ebb67d3f32cbcab67df20"
+    },
+    {
+      "file": "kakadu-lossy-rgba-u8-prog0-layers1-res6-mct.jp2",
+      "sha256": "f6856bcb083f522b4d6766ede4221582282d253a125afdf8433b3514d3594606",
+      "feature": "Irreversible 9/7 wavelet with ICT and expounded quantization",
+      "lossyOf": "kakadu-lossless-rgba-u8-prog1-layers1-res6-mct.jp2",
+      "maximumDifference": 3
+    },
+    {
+      "file": "openjpeg-lossy-quantization-scalar-derived.jp2",
+      "sha256": "c7de2f197f8e5e043b7619417790036dc242e0c9d3a0361bda21b44d3ab3743f",
+      "feature": "Irreversible 9/7 wavelet with scalar-derived quantization",
+      "lossyOf": "kakadu-lossless-rgba-u8-prog1-layers1-res6-mct.jp2",
+      "maximumDifference": 3
+    }
+  ]
+}

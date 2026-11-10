@@ -88,6 +88,7 @@ internal static partial class OfficeJpeg2000Decoder {
                 break;
             }
             if (marker < 0xFF30) throw new Jpeg2000Exception("The JPEG 2000 main header contains invalid data.");
+            if (marker <= 0xFF3F) continue; // reserved markers without parameters (A.1.3)
             int segmentStart = reader.Position;
             int length = reader.ReadUInt16();
             if (length < 2 || length - 2 > reader.Remaining) throw new Jpeg2000Exception("A JPEG 2000 marker segment is truncated.");
@@ -329,7 +330,7 @@ internal static partial class OfficeJpeg2000Decoder {
             }
             bool first = tile.TileParts == 0;
             tile.TileParts++;
-            if (tile.TileParts > 255) throw new Jpeg2000Exception("A JPEG 2000 tile has too many tile-parts.");
+            if (tile.TileParts > 65535) throw new Jpeg2000Exception("A JPEG 2000 tile has too many tile-parts.");
             bool sawData = false;
             while (reader.Position + 2 <= partEnd) {
                 int headerMarker = reader.ReadUInt16();
@@ -342,6 +343,7 @@ internal static partial class OfficeJpeg2000Decoder {
                     sawData = true;
                     break;
                 }
+                if (headerMarker >= 0xFF30 && headerMarker <= 0xFF3F) continue;
                 int segmentStart = reader.Position;
                 if (partEnd - segmentStart < 2) break;
                 int length = reader.ReadUInt16();

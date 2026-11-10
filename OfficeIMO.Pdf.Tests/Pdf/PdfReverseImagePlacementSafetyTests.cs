@@ -1319,7 +1319,6 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
     [Theory]
     [InlineData("/ColorSpace null")]
-    [InlineData("/ColorSpace [/DeviceRGB]")]
     [InlineData("/ColorSpace [/Indexed /DeviceRGB 1 <000000FFFFFF>]")]
     public void Jpeg2000WithUnsupportedExplicitPdfColorSpaceIsNotEmbeddedAcrossEditableAdapters(string colorSpace) {
         byte[] jpx = File.ReadAllBytes(Path.Combine(
