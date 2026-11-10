@@ -6283,6 +6283,14 @@ XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the cu
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## TOML Reader identity and transport
+
+Register `.AddTomlHandler()` from `OfficeIMO.Reader.Toml`, or use `AddAllOfficeIMOHandlers()`, to ingest `.toml` files as path, type and value rows.
+Reader results use `ReaderInputKind.Toml` (`31`), which requires document transport schema version 15.
+Update exhaustive input-kind switches and transport bindings. Schemas 5 through 14 remain readable but cannot carry TOML input kinds.
+Without the handler, `.toml` files are detected as `application/toml` and read as plain text.
+Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current artifact.
+
 ## Publisher Reader identity and transport
 
 `ReaderInputKind.Publisher` (`30`) requires document transport schema version 14.
