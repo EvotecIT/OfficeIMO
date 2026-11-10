@@ -322,6 +322,7 @@
       "OfficeIMO.Reader.Tests",
       "OfficeIMO.Shared.Tests",
       "OfficeIMO.Tests",
+      "OfficeIMO.Toml.Tests",
       "OfficeIMO.Tool.Tests",
       "OfficeIMO.VerifyTests",
       "OfficeIMO.Visio.Tests",
@@ -464,6 +465,10 @@
     {
       "name": "Shared",
       "project": "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj"
+    },
+    {
+      "name": "Toml",
+      "project": "OfficeIMO.Toml.Tests/OfficeIMO.Toml.Tests.csproj"
     },
     {
       "name": "Visio",
