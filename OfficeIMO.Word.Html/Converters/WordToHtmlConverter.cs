@@ -703,7 +703,8 @@ namespace OfficeIMO.Word.Html {
                     if (options.IncludeRunColorStyles || options.IncludeRunHighlightStyles) {
                         var inlineStyles = new List<string>();
                         if (options.IncludeRunColorStyles) {
-                            var colorHex = run.RunColorValue;
+                            // A theme colour follows the document theme; the stored RGB is only its cached fallback.
+                            var colorHex = WordRunFormatting.ResolveColorHex(run.ScopedRunProperties?.Color, run._document);
                             if (!string.IsNullOrEmpty(colorHex) &&
                                 !string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
                                 string? normalized = NormalizeSixDigitHexColor(colorHex);
