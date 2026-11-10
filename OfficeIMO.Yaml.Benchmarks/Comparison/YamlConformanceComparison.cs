@@ -28,7 +28,7 @@ internal static class YamlConformanceComparison {
 
         YamlTestSuite suite = YamlTestSuite.Load();
         IReadOnlyList<YamlCorpusFile> corpus = YamlCorpus.Load();
-        IYamlConformanceEngine[] engines = { new YamlDotNetConformanceEngine(), new SharpYamlConformanceEngine(), new SharpYamlSyntaxConformanceEngine() };
+        IYamlConformanceEngine[] engines = { new OfficeIMOYamlConformanceEngine(), new YamlDotNetConformanceEngine(), new SharpYamlConformanceEngine(), new SharpYamlSyntaxConformanceEngine() };
 
         var runs = new List<EngineRun>();
         foreach (IYamlConformanceEngine engine in engines) {

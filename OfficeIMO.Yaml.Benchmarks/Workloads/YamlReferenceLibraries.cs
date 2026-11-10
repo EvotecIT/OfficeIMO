@@ -33,6 +33,51 @@ internal static class YamlReferenceLibraries {
 
     public static IYamlReferenceLibrary SharpYaml { get; } = new SharpYamlLibrary();
 
+    /// <summary>OfficeIMO.Yaml; only parse-to-events exists until the document model and writer land.</summary>
+    public static IYamlReferenceLibrary OfficeIMOYaml { get; } = new OfficeIMOYamlLibrary();
+
+    private sealed class OfficeIMOYamlLibrary : IYamlReferenceLibrary {
+        public string Name => "OfficeIMO.Yaml";
+
+        public IYamlConformanceEngine Conformance { get; } = new OfficeIMOYamlConformanceEngine();
+
+        // Equivalent work to the reference parsers, whose events carry materialized values: every scalar value,
+        // alias name, anchor and tag is produced as a string.
+        public int ParseEvents(string yaml) {
+            using var reader = new global::OfficeIMO.Yaml.YamlReader(yaml);
+            int count = 0;
+            while (reader.Read()) {
+                switch (reader.TokenType) {
+                    case global::OfficeIMO.Yaml.YamlTokenType.Scalar:
+                        _ = reader.GetString();
+                        _ = reader.Anchor;
+                        _ = reader.Tag;
+                        break;
+                    case global::OfficeIMO.Yaml.YamlTokenType.MappingStart:
+                    case global::OfficeIMO.Yaml.YamlTokenType.SequenceStart:
+                        _ = reader.Anchor;
+                        _ = reader.Tag;
+                        break;
+                    case global::OfficeIMO.Yaml.YamlTokenType.Alias:
+                        _ = reader.GetString();
+                        break;
+                }
+
+                count++;
+            }
+
+            return count;
+        }
+
+        public int LoadTree(string yaml) => throw new NotSupportedException("OfficeIMO.Yaml has no document model yet.");
+
+        public string LoadAndSave(string yaml) => throw new NotSupportedException("OfficeIMO.Yaml has no document model yet.");
+
+        public object CaptureEvents(string yaml) => throw new NotSupportedException("OfficeIMO.Yaml has no writer yet.");
+
+        public string Emit(object events) => throw new NotSupportedException("OfficeIMO.Yaml has no writer yet.");
+    }
+
     private sealed class YamlDotNetLibrary : IYamlReferenceLibrary {
         public string Name => "YamlDotNet";
 

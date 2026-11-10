@@ -15,6 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Yaml\OfficeIMO.Yaml.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- One conformance harness: compiled here by link so the comparison and the tests read the same code. -->
     <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\**\*.cs" Link="Conformance\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
