@@ -438,47 +438,45 @@ internal static partial class CsvParser
                 LoadBlockMasks(ref data, position, out ulong delimiters, out ulong quotes,
                     out ulong carriageReturns, out ulong lineFeeds, out ulong high);
                 ulong lineSeparators = carriageReturns | lineFeeds;
+                ulong inside = insideQuotes;
+                if (quotes != 0)
                 {
-                    ulong inside = insideQuotes;
-                    if (quotes != 0)
-                    {
-                        inside = PrefixXor(quotes) ^ insideQuotes;
-                        insideQuotes = (ulong)((long)inside >> 63);
-                    }
-
-                    innerLineBreaks |= (lineSeparators & inside) != 0;
-                    ulong structural = (delimiters | lineSeparators) & ~inside;
-                    while (structural != 0)
-                    {
-                        int bit = BitOperations.TrailingZeroCount(structural);
-                        ulong before = (1UL << bit) - 1UL;
-                        fieldQuotes += BitOperations.PopCount(quotes & before);
-                        quotes &= ~before;
-                        int end = position + bit;
-                        if (fieldQuotes == 0)
-                        {
-                            VisitUnquotedField(fieldIndex, fieldStart, end);
-                        }
-                        else if (!TryVisitQuotedField(fieldIndex, fieldStart, end, fieldQuotes, innerLineBreaks, ref lineBreaks))
-                        {
-                            return RecordScanResult.Irregular;
-                        }
-
-                        fieldQuotes = 0;
-                        if ((lineSeparators & (1UL << bit)) != 0)
-                        {
-                            return CompleteBlockRecord(end, fieldStart: -1, fieldIndex, lineBreaks, (nonAscii | (high & before)) == 0, out scan);
-                        }
-
-                        fieldIndex++;
-                        fieldStart = end + 1;
-                        structural &= structural - 1UL;
-                    }
-
-                    fieldQuotes += BitOperations.PopCount(quotes);
-                    nonAscii |= high;
-                    position += BlockSize;
+                    inside = PrefixXor(quotes) ^ insideQuotes;
+                    insideQuotes = (ulong)((long)inside >> 63);
                 }
+
+                innerLineBreaks |= (lineSeparators & inside) != 0;
+                ulong structural = (delimiters | lineSeparators) & ~inside;
+                while (structural != 0)
+                {
+                    int bit = BitOperations.TrailingZeroCount(structural);
+                    ulong before = (1UL << bit) - 1UL;
+                    fieldQuotes += BitOperations.PopCount(quotes & before);
+                    quotes &= ~before;
+                    int end = position + bit;
+                    if (fieldQuotes == 0)
+                    {
+                        VisitUnquotedField(fieldIndex, fieldStart, end);
+                    }
+                    else if (!TryVisitQuotedField(fieldIndex, fieldStart, end, fieldQuotes, innerLineBreaks, ref lineBreaks))
+                    {
+                        return RecordScanResult.Irregular;
+                    }
+
+                    fieldQuotes = 0;
+                    if ((lineSeparators & (1UL << bit)) != 0)
+                    {
+                        return CompleteBlockRecord(end, fieldStart: -1, fieldIndex, lineBreaks, (nonAscii | (high & before)) == 0, out scan);
+                    }
+
+                    fieldIndex++;
+                    fieldStart = end + 1;
+                    structural &= structural - 1UL;
+                }
+
+                fieldQuotes += BitOperations.PopCount(quotes);
+                nonAscii |= high;
+                position += BlockSize;
 
                 if (position >= cancellationCheckPosition)
                 {
