@@ -10,6 +10,7 @@ namespace OfficeIMO.Yaml;
 internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConverter<TCollection> where TCollection : IEnumerable<TElement> {
     private readonly Func<List<TElement>, TCollection> _finish;
     private readonly bool _listIsResult;
+    private readonly bool _stringElements = typeof(TElement) == typeof(string);
     private YamlTypeInfo<TElement>? _element;
 
     public YamlCollectionConverter(Func<List<TElement>, TCollection> finish) {
@@ -43,7 +44,16 @@ internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConve
         if (value is TElement[] array) {
             for (int i = 0; i < array.Length; i++) element.Write(writer, array[i], state);
         } else if (value is List<TElement> list) {
-            for (int i = 0; i < list.Count; i++) element.Write(writer, list[i], state);
+            if (_stringElements) {
+                // String items that need no quotes go out in one step, as the element metadata would write them.
+                for (int i = 0; i < list.Count; i++) {
+                    TElement item = list[i];
+                    if (Unsafe.As<TElement, string?>(ref item) is string text && writer.TryWritePlainItem(text)) continue;
+                    element.Write(writer, item, state);
+                }
+            } else {
+                for (int i = 0; i < list.Count; i++) element.Write(writer, list[i], state);
+            }
         } else {
             foreach (TElement item in value) element.Write(writer, item, state);
         }

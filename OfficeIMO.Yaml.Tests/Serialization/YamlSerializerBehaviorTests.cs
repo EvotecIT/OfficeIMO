@@ -298,9 +298,9 @@ public class YamlSerializerBehaviorTests {
         Assert.Contains("YamlSerializerContext", missing.Message, StringComparison.Ordinal);
         Assert.Null(Context.GetTypeInfo(typeof(Version)));
     }
-    // Properties with a plain name and string dictionaries write string, integer and boolean entries in one step. The
-    // text must be what the writer produces for the key and the value written one by one, at the root, nested and as a
-    // compact sequence item.
+    // Properties with a plain name, string dictionaries and string lists write string, integer and boolean entries and
+    // items in one step. The text must be what the writer produces for the keys and values written one by one, at the
+    // root, nested and as a compact sequence item.
     [Fact]
     public void OneStepEntriesMatchKeyThenValueWrites() {
         string[] texts = {
@@ -314,6 +314,7 @@ public class YamlSerializerBehaviorTests {
                 Text = texts[i], Number = i * 7 - 50, Name = texts[(i + 5) % texts.Length], Big = long.MinValue + i, Flag = i % 2 == 0,
                 Inner = new EntryLeaf { Value = texts[(i + 11) % texts.Length], Count = i },
                 Labels = { [texts[i]] = texts[(i + 3) % texts.Length], ["k" + i] = texts[(i + 7) % texts.Length] },
+                Tags = { texts[i], texts[(i + 13) % texts.Length] },
                 Items = { new EntryShapes { Text = texts[texts.Length - 1 - i], Number = i, Flag = i % 3 == 0 } }
             });
         }
@@ -355,6 +356,10 @@ public class YamlSerializerBehaviorTests {
                 writer.WriteScalar(label.Value);
             }
             writer.WriteEndMapping();
+            writer.WriteKey("tags");
+            writer.WriteStartSequence();
+            foreach (string tag in value.Tags) writer.WriteScalar(tag);
+            writer.WriteEndSequence();
             writer.WriteKey("items");
             writer.WriteStartSequence();
             foreach (EntryShapes item in value.Items) Write(writer, item);
@@ -371,6 +376,7 @@ public class YamlSerializerBehaviorTests {
         public bool Flag { get; set; }
         public EntryLeaf Inner { get; set; } = new EntryLeaf();
         public Dictionary<string, string> Labels { get; set; } = new Dictionary<string, string>();
+        public List<string> Tags { get; set; } = new List<string>();
         public List<EntryShapes> Items { get; set; } = new List<EntryShapes>();
     }
 

@@ -396,6 +396,33 @@ internal sealed class YamlEmitter {
         top.Count++;
     }
 
+    /// <summary>Whether the next node is an item of a block sequence, including the first of one just started, with no anchor or tag set for it.</summary>
+    public bool AtBlockItem {
+        get {
+            if (_depth == 0 || _anchor is not null || _tag is not null) return false;
+            return _frames[_depth - 1].Kind == FrameKind.BlockSequence;
+        }
+    }
+
+    /// <summary>
+    /// Writes a block sequence item at <see cref="AtBlockItem"/> whose text the caller knows is plain on one line, with
+    /// the same text and sequence state as <see cref="WriteSingleLine"/> leaves.
+    /// </summary>
+    public void WriteItem(ReadOnlySpan<char> value) {
+        ref Frame top = ref _frames[_depth - 1];
+        if (top.Pending) {
+            ResolvePending(empty: false);
+            top = ref _frames[_depth - 1];
+        }
+        StartEntry(ref top);
+        Write('-');
+        top.Count++;
+        if (value.Length > 0) {
+            WriteSpaces(_options.ItemPadding);
+            WriteSpan(value);
+        }
+    }
+
     // ------------------------------------------------------------------ layout
 
     /// <summary>

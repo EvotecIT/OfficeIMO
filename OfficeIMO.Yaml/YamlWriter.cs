@@ -226,6 +226,19 @@ public sealed class YamlWriter : IDisposable {
         return true;
     }
 
+    /// <summary>
+    /// Writes a block sequence item for a string in its default style, as <see cref="WriteScalar(string?, YamlStyle)"/>
+    /// would, in one step. Returns false, having written nothing, when the position or the value needs the general path.
+    /// </summary>
+    internal bool TryWritePlainItem(string value) {
+        CheckDisposed();
+        if (_builder is not null || !_emitter.AtBlockItem) return false;
+        ReadOnlySpan<char> text = value.AsSpan();
+        if (!YamlScalarFormat.CanBePlain(text, flow: false) || YamlScalarFormat.IsSchemaAmbiguous(text)) return false;
+        _emitter.WriteItem(text);
+        return true;
+    }
+
     /// <summary>Writes a block mapping entry with a plain-safe key and an integer value in one step; see <see cref="TryWritePlainEntry(string, string, bool)"/>.</summary>
     internal bool TryWritePlainEntry(string key, long value) {
         CheckDisposed();
