@@ -90,7 +90,18 @@ internal static class YamlChars {
     /// <summary>Finds the next character that may end or interrupt a plain scalar line: ':', '#', a line break, a control character, or (in flow context) a flow indicator.</summary>
     public static int IndexOfPlainStop(ReadOnlySpan<char> s, bool flow) {
 #if NET8_0_OR_GREATER
-        return s.IndexOfAny(flow ? s_plainFlow : s_plainBlock);
+        // Most plain scalars are short keys and values; a table lookup over the first characters finds their end
+        // without the setup of a vectorized search, which takes over for longer text.
+        int mask = Control | Break | PlainStop | (flow ? FlowIndicator : 0);
+        byte[] table = s_table;
+        int head = Math.Min(s.Length, 16);
+        for (int i = 0; i < head; i++) {
+            char c = s[i];
+            if (c < 128 && (table[c] & mask) != 0) return i;
+        }
+        if (head == s.Length) return -1;
+        int index = s.Slice(head).IndexOfAny(flow ? s_plainFlow : s_plainBlock);
+        return index < 0 ? -1 : head + index;
 #else
         int mask = Control | Break | PlainStop | (flow ? FlowIndicator : 0);
         return IndexOfClass(s, (byte)mask);
