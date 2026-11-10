@@ -29,6 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Yaml\OfficeIMO.Yaml.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The suite and corpus are read from the source checkout so their bytes stay manifest-bound. -->
     <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
   </ItemGroup>

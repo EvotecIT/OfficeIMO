@@ -4,6 +4,7 @@ using SharpYaml.Events;
 using SharpYaml.Model;
 using SharpYamlScalar = SharpYaml.Events.Scalar;
 using SharpYamlScalarStyle = SharpYaml.ScalarStyle;
+using SharpYamlStyle = SharpYaml.YamlStyle;
 
 namespace OfficeIMO.Yaml.Benchmarks.Adapters;
 
@@ -45,9 +46,9 @@ internal sealed class SharpYamlConformanceEngine : IYamlConformanceEngine {
         StreamEnd => YamlTestEvent.StreamEnd(),
         DocumentStart start => YamlTestEvent.DocumentStart(!start.IsImplicit),
         DocumentEnd end => YamlTestEvent.DocumentEnd(!end.IsImplicit),
-        MappingStart map => YamlTestEvent.MappingStart(map.Style == YamlStyle.Flow, map.Anchor, map.Tag),
+        MappingStart map => YamlTestEvent.MappingStart(map.Style == SharpYamlStyle.Flow, map.Anchor, map.Tag),
         MappingEnd => YamlTestEvent.MappingEnd(),
-        SequenceStart sequence => YamlTestEvent.SequenceStart(sequence.Style == YamlStyle.Flow, sequence.Anchor, sequence.Tag),
+        SequenceStart sequence => YamlTestEvent.SequenceStart(sequence.Style == SharpYamlStyle.Flow, sequence.Anchor, sequence.Tag),
         SequenceEnd => YamlTestEvent.SequenceEnd(),
         SharpYamlScalar scalar => YamlTestEvent.Scalar(scalar.Value, Style(scalar.Style), scalar.Anchor, scalar.Tag),
         AnchorAlias alias => YamlTestEvent.Alias(alias.Value),

@@ -14,6 +14,9 @@ internal static class YamlWorkloadCheck {
                 failures += Check(library.Name + " load-and-save", () => YamlWorkloadValidation.ValidateLoadAndSave(library, workload, inputs));
                 failures += Check(library.Name + " emit", () => YamlWorkloadValidation.ValidateEmit(library, workload, inputs, inputs.Select(library.CaptureEvents).ToArray()));
             }
+
+            IYamlReferenceLibrary officeImo = YamlReferenceLibraries.OfficeIMOYaml;
+            failures += Check(officeImo.Name + " parse", () => YamlWorkloadValidation.ValidateParse(officeImo, workload, inputs));
         }
 
         return failures == 0 ? 0 : 1;

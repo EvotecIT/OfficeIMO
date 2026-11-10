@@ -17,11 +17,17 @@ public class YamlParseEventsBenchmarks {
     [GlobalSetup(Target = nameof(SharpYaml))]
     public void SetupSharpYaml() => Setup(YamlReferenceLibraries.SharpYaml);
 
+    [GlobalSetup(Target = nameof(OfficeIMOYaml))]
+    public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
+
     [Benchmark(Baseline = true)]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
+
+    [Benchmark]
+    public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
 
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);
