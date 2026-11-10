@@ -134,6 +134,22 @@ internal sealed class YamlEventCursor {
         return true;
     }
 
+    /// <summary>
+    /// Gets the current live event's scalar text and the schema to resolve it with, as <see cref="ScalarSpan"/> and
+    /// <see cref="Schema"/> return them, when it is a scalar that is not null.
+    /// </summary>
+    public bool TryGetLiveScalar(out ReadOnlySpan<char> text, out YamlSchema schema) {
+        text = default;
+        schema = YamlSchema.Core;
+        if (!_live) return false;
+        YamlReader reader = _reader!;
+        if (reader.TokenType != YamlTokenType.Scalar || reader.IsNullScalar()) return false;
+        text = reader.ScalarValueSpan;
+        YamlSchema documentSchema = reader.DocumentSchema;
+        if (documentSchema != YamlSchema.Failsafe) schema = documentSchema;
+        return true;
+    }
+
     public bool IsNullScalar => _live ? _reader!.IsNullScalar() : _current.Type == YamlTokenType.Scalar && _current.IsNull;
 
     /// <summary>Gets whether the current scalar is the merge key <c>&lt;&lt;</c> where merge keys apply.</summary>

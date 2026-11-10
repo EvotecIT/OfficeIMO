@@ -368,6 +368,46 @@ public class YamlSerializerBehaviorTests {
         }
     }
 
+    // String and number properties read live scalars without their converters' dispatch unless references are
+    // preserved. Both routes must give the same value, or fail the same way, for every spelling in both schemas.
+    [Fact]
+    public void DirectScalarReadsMatchConverterReads() {
+        string[] spellings = {
+            "1", "-1", "+1", "0x1F", "0o17", "017", "0b101", "1_000", "1:20", "2147483648", "-2147483649", "9223372036854775808",
+            "1.5", "1.50", ".5", "1.", "1e3", "1.0e+3", "6.8523e-05", ".inf", "-.Inf", ".nan", "true", "True", "yes", "on", "off",
+            "~", "null", "", "'5'", "\"5\"", "!!str 5", "!!int 5", "!custom 3", "abc", "1,000", "0.0", "-0.0", "&a 7", "|\n  12\n"
+        };
+        var direct = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+        var converters = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase, ReferenceHandling = YamlReferenceHandling.Preserve };
+        foreach (string header in new[] { "", "%YAML 1.1\n---\n" }) {
+            foreach (string property in new[] { "text", "number", "big", "flag", "ratio", "amount" }) {
+                foreach (string spelling in spellings) {
+                    string yaml = header + property + ": " + spelling + "\n";
+                    Assert.True(Read(yaml, direct) == Read(yaml, converters), yaml);
+                }
+            }
+        }
+
+        static string Read(string yaml, YamlSerializerOptions options) {
+            try {
+                ScalarShapes value = YamlSerializer.Deserialize<ScalarShapes>(yaml, options)!;
+                return (value.Text ?? "<null>") + "|" + value.Number + "|" + value.Big + "|" + value.Flag + "|"
+                    + BitConverter.DoubleToInt64Bits(value.Ratio) + "|" + string.Join(",", decimal.GetBits(value.Amount));
+            } catch (YamlException exception) {
+                return exception.GetType().Name + ": " + exception.Message;
+            }
+        }
+    }
+
+    public sealed class ScalarShapes {
+        public string? Text { get; set; } = "unset";
+        public int Number { get; set; }
+        public long Big { get; set; }
+        public bool Flag { get; set; }
+        public double Ratio { get; set; }
+        public decimal Amount { get; set; }
+    }
+
     public sealed class EntryShapes {
         public string Text { get; set; } = string.Empty;
         public int Number { get; set; }
