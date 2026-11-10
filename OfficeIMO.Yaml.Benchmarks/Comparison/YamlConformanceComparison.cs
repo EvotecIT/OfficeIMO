@@ -9,16 +9,16 @@ namespace OfficeIMO.Yaml.Benchmarks.Comparison;
 
 /// <summary>
 /// Runs the reference libraries through the conformance harness and the corpus and writes a compact Markdown report.
-/// Usage: <c>--conformance [--output report.md] [--details] [--timeout seconds]</c>.
+/// Usage: <c>--conformance [--output report.md] [--details] [--timeout seconds] [--python path]</c>.
 /// </summary>
 internal static class YamlConformanceComparison {
     private static readonly YamlConformanceCheck[] SuiteChecks = {
-        YamlConformanceCheck.Events, YamlConformanceCheck.ErrorCase, YamlConformanceCheck.Json,
-        YamlConformanceCheck.RoundTrip, YamlConformanceCheck.RoundTripContent
+        YamlConformanceCheck.Events, YamlConformanceCheck.EventContent, YamlConformanceCheck.ErrorCase, YamlConformanceCheck.Json,
+        YamlConformanceCheck.RoundTrip, YamlConformanceCheck.RoundTripContent, YamlConformanceCheck.Emit
     };
 
     private static readonly YamlConformanceCheck[] CorpusChecks = {
-        YamlConformanceCheck.Accepts, YamlConformanceCheck.RoundTrip, YamlConformanceCheck.RoundTripContent
+        YamlConformanceCheck.Accepts, YamlConformanceCheck.RoundTrip, YamlConformanceCheck.RoundTripContent, YamlConformanceCheck.Emit
     };
 
     public static int Run(string[] args) {
@@ -28,18 +28,20 @@ internal static class YamlConformanceComparison {
 
         YamlTestSuite suite = YamlTestSuite.Load();
         IReadOnlyList<YamlCorpusFile> corpus = YamlCorpus.Load();
-        IYamlConformanceEngine[] engines = { new OfficeIMOYamlConformanceEngine(), new YamlDotNetConformanceEngine(), new SharpYamlConformanceEngine(), new SharpYamlSyntaxConformanceEngine() };
+        IYamlConformanceEngine[] engines = { new OfficeIMOYamlConformanceEngine(), new YamlDotNetConformanceEngine(), new SharpYamlConformanceEngine(), new SharpYamlSyntaxConformanceEngine(), new VYamlConformanceEngine() };
 
         var runs = new List<EngineRun>();
         foreach (IYamlConformanceEngine engine in engines) {
             var checks = new YamlConformanceChecks(engine, TimeSpan.FromSeconds(seconds));
-            var suiteResults = suite.Cases.SelectMany(checks.CheckSuiteCase).ToList();
+            var suiteResults = suite.Cases.SelectMany(checks.CheckSuiteCase).Concat(suite.Cases.Select(checks.CheckEventContent)).ToList();
             var corpusResults = corpus.SelectMany(checks.CheckCorpusFile).ToList();
             runs.Add(new EngineRun(engine, suiteResults, corpusResults));
             Console.Error.WriteLine("Checked " + engine.Name + ".");
         }
 
-        string report = Write(suite, corpus, runs, details);
+        IReadOnlyList<YamlIndependentReaders.Outcome> readers = YamlIndependentReaders.Run(suite, corpus, Option(args, "--python"));
+        Console.Error.WriteLine("Checked independent readers.");
+        string report = Write(suite, corpus, runs, details) + WriteReaders(readers, details);
         Console.WriteLine(report);
         if (outputPath != null) {
             File.WriteAllText(outputPath, report, new UTF8Encoding(false));
@@ -57,14 +59,14 @@ internal static class YamlConformanceComparison {
         text.AppendLine();
         text.AppendLine("- yaml-test-suite " + suite.Commit.Substring(0, 12) + ": " + suite.Cases.Count + " cases (" + (suite.Cases.Count - errorCases) + " valid, " + errorCases + " error, " + jsonCases + " with JSON)");
         text.AppendLine("- Corpus: " + corpus.Count + " files, " + corpus.Sum(f => (long)f.Bytes.Length).ToString("N0", CultureInfo.InvariantCulture) + " bytes");
-        text.AppendLine("- YamlDotNet " + Version(typeof(YamlDotNet.Core.Parser)) + ", SharpYaml " + Version(typeof(SharpYaml.Parser)) + ", " + RuntimeInformation.FrameworkDescription + ", " + RuntimeInformation.OSDescription);
+        text.AppendLine("- YamlDotNet " + Version(typeof(YamlDotNet.Core.Parser)) + ", SharpYaml " + Version(typeof(SharpYaml.Parser)) + ", VYaml " + VYamlConformanceEngine.PackageVersion + ", " + RuntimeInformation.FrameworkDescription + ", " + RuntimeInformation.OSDescription);
         text.AppendLine("- Cells are pass/applicable; failures (F) are wrong output or accepted invalid input, errors (E) are exceptions or timeouts on input the check expects to work.");
         text.AppendLine();
 
         text.AppendLine("## yaml-test-suite");
         text.AppendLine();
-        text.AppendLine("| Engine | Events | Error cases | JSON | Round-trip bytes | Round-trip content |");
-        text.AppendLine("|---|---|---|---|---|---|");
+        text.AppendLine("| Engine | Events | Event content | Error cases | JSON | Round-trip bytes | Round-trip content | Emit |");
+        text.AppendLine("|---|---|---|---|---|---|---|---|");
         foreach (EngineRun run in runs) {
             text.Append("| ").Append(run.Engine.Name).Append(Lossless(run.Engine));
             foreach (YamlConformanceCheck check in SuiteChecks) text.Append(" | ").Append(Cell(run.Suite, check));
@@ -74,7 +76,7 @@ internal static class YamlConformanceComparison {
         text.AppendLine();
         text.AppendLine("## Corpus round-trip");
         text.AppendLine();
-        text.AppendLine("Each cell is accepts / bytes identical / content kept.");
+        text.AppendLine("Each cell is accepts / bytes identical / content kept / emitted events re-parse.");
         text.AppendLine();
         text.Append("| File |");
         foreach (EngineRun run in runs) text.Append(' ').Append(run.Engine.Name).Append(" |");
@@ -100,6 +102,29 @@ internal static class YamlConformanceComparison {
 
         text.AppendLine();
         if (details) AppendDetails(text, runs);
+        return text.ToString();
+    }
+
+    private static string WriteReaders(IReadOnlyList<YamlIndependentReaders.Outcome> outcomes, bool details) {
+        var text = new StringBuilder();
+        text.AppendLine();
+        text.AppendLine("## Independent readers on OfficeIMO.Yaml output");
+        text.AppendLine();
+        text.AppendLine("New documents are every valid suite case and corpus file emitted through `YamlWriter`; edited documents are the scripted-edit outputs. A reader counts for an input only when it reads the input as OfficeIMO.Yaml does.");
+        text.AppendLine();
+        text.AppendLine("| Reader | Output | Same data |");
+        text.AppendLine("|---|---|---|");
+        foreach (YamlIndependentReaders.Outcome outcome in outcomes) {
+            string cell = outcome.Failures.Count > 0 && outcome.Failures[0].StartsWith("unavailable", StringComparison.Ordinal)
+                ? outcome.Failures[0]
+                : outcome.Agreed + "/" + outcome.Applicable;
+            text.Append("| ").Append(outcome.Reader).Append(" | ").Append(outcome.Output).Append(" | ").Append(cell).AppendLine(" |");
+        }
+        if (details) {
+            foreach (YamlIndependentReaders.Outcome outcome in outcomes) {
+                foreach (string failure in outcome.Failures.Take(20)) text.Append("- ").Append(outcome.Reader).Append(' ').Append(outcome.Output).Append(": ").AppendLine(failure.Replace("\n", "\\n"));
+            }
+        }
         return text.ToString();
     }
 

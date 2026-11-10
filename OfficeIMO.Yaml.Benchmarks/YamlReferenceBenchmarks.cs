@@ -20,6 +20,9 @@ public class YamlParseEventsBenchmarks {
     [GlobalSetup(Target = nameof(OfficeIMOYaml))]
     public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
 
+    [GlobalSetup(Target = nameof(VYaml))]
+    public void SetupVYaml() => Setup(VYamlLibrary.Instance);
+
     [Benchmark(Baseline = true)]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
@@ -28,6 +31,10 @@ public class YamlParseEventsBenchmarks {
 
     [Benchmark]
     public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
+
+    /// <summary>VYaml reads UTF-8 bytes encoded once during setup.</summary>
+    [Benchmark]
+    public long VYaml() => Run(VYamlLibrary.Instance);
 
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);
@@ -57,6 +64,13 @@ public class YamlLoadTreeBenchmarks {
 
     [GlobalSetup(Targets = new[] { nameof(OfficeIMOYaml), nameof(OfficeIMOYamlWithValues) })]
     public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
+
+    [GlobalSetup(Target = nameof(VYaml))]
+    public void SetupVYaml() => Setup(VYamlLibrary.Instance);
+
+    /// <summary>VYaml has no representation tree; this is its dynamic deserialization into dictionaries and lists.</summary>
+    [Benchmark]
+    public long VYaml() => Run(VYamlLibrary.Instance);
 
     [Benchmark(Baseline = true)]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
@@ -125,6 +139,44 @@ public class YamlLoadAndSaveBenchmarks {
     }
 }
 
+/// <summary>Load a stream, change one value and save it.</summary>
+[MemoryDiagnoser]
+public class YamlEditAndSaveBenchmarks {
+    private string[] _inputs = Array.Empty<string>();
+
+    [ParamsAllValues]
+    public YamlWorkload Workload { get; set; }
+
+    [GlobalSetup(Target = nameof(YamlDotNet))]
+    public void SetupYamlDotNet() => Setup(YamlReferenceLibraries.YamlDotNet);
+
+    [GlobalSetup(Target = nameof(SharpYaml))]
+    public void SetupSharpYaml() => Setup(YamlReferenceLibraries.SharpYaml);
+
+    [GlobalSetup(Target = nameof(OfficeIMOYaml))]
+    public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
+
+    [Benchmark(Baseline = true)]
+    public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
+
+    [Benchmark]
+    public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
+
+    [Benchmark]
+    public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
+
+    private void Setup(IYamlReferenceLibrary library) {
+        _inputs = YamlWorkloads.Get(Workload);
+        YamlWorkloadValidation.ValidateEditAndSave(library, Workload, _inputs);
+    }
+
+    private long Run(IYamlReferenceLibrary library) {
+        long total = 0;
+        foreach (string input in _inputs) total += library.EditAndSave(input).Length;
+        return total;
+    }
+}
+
 /// <summary>Emit a new document from events captured outside timing.</summary>
 [MemoryDiagnoser]
 public class YamlEmitBenchmarks {
@@ -139,11 +191,17 @@ public class YamlEmitBenchmarks {
     [GlobalSetup(Target = nameof(SharpYaml))]
     public void SetupSharpYaml() => Setup(YamlReferenceLibraries.SharpYaml);
 
+    [GlobalSetup(Target = nameof(OfficeIMOYaml))]
+    public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
+
     [Benchmark(Baseline = true)]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
+
+    [Benchmark]
+    public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
 
     private void Setup(IYamlReferenceLibrary library) {
         string[] inputs = YamlWorkloads.Get(Workload);

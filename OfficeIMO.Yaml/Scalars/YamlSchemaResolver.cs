@@ -1,15 +1,26 @@
 namespace OfficeIMO.Yaml;
 
 /// <summary>The type an untagged plain scalar resolves to under a schema.</summary>
-internal enum YamlScalarKind : byte {
+/// <summary>What a scalar resolves to under its document's schema, as <see cref="YamlScalar.Kind"/> reports it.</summary>
+public enum YamlScalarKind : byte {
+    /// <summary>A string: quoted and block scalars, <c>!!str</c>, and plain text no schema rule matches.</summary>
     String = 0,
+    /// <summary>Null: <c>null</c>, <c>~</c>, an empty node, or <c>!!null</c>.</summary>
     Null,
+    /// <summary>A boolean: <c>true</c>/<c>false</c> in three casings, and under YAML 1.1 also <c>yes</c>, <c>no</c>, <c>on</c>, <c>off</c>, <c>y</c>, <c>n</c>.</summary>
     Boolean,
+    /// <summary>An integer, in any base the schema allows.</summary>
     Integer,
+    /// <summary>A floating-point number, including <c>.inf</c> and <c>.nan</c>.</summary>
     Float,
+    /// <summary>A YAML 1.1 timestamp such as <c>2001-12-14</c>, or a scalar tagged <c>!!timestamp</c>.</summary>
     Timestamp,
+    /// <summary>The YAML 1.1 merge key <c>&lt;&lt;</c>.</summary>
     Merge,
-    Value
+    /// <summary>The YAML 1.1 value key <c>=</c>.</summary>
+    Value,
+    /// <summary>A scalar whose tag no schema resolves, such as <c>!Ref</c>; its text is kept as written.</summary>
+    Custom
 }
 
 /// <summary>

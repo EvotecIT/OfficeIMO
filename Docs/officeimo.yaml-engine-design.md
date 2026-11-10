@@ -118,17 +118,25 @@ doc.Save("deployment.yaml");
   - `YamlSequence`.
   - `YamlScalar` holds raw text, style and a lazily decoded, cached value.
   - `YamlAlias` points to its anchor. Aliases stay aliases in the model; resolution is a view.
-- Nodes store spans into the retained source. Trivia (comments, blank lines, indentation) stay in the source gaps and aren't materialized unless asked for: `node.LeadingComments` and `node.TrailingComment` read the gaps lazily. The model allocates about one object per node, with nothing for trivia.
+- Nodes store spans into the retained source. Trivia (comments, blank lines, indentation) stay in the source gaps and aren't materialized unless asked for: `node.CommentBefore`, `node.Comment` and `node.SpaceBefore` read the gaps lazily, and `YamlDocumentPart.CommentBefore`/`CommentAfter` hold a document's header and footer. The model allocates about one object per node, with nothing for trivia.
 - Typed reads go through the schema: `scalar.GetValue<T>()`, `TryGetValue<T>`, `AsString()`. Reading never changes raw text.
 - **Assigning a value:**
   - If the new value equals the old one under the active schema, the raw text is kept, so assigning `true` to a scalar spelled `TRUE` changes nothing.
   - Otherwise the scalar is re-rendered. It keeps the old style if that style can represent the new value; otherwise it uses the most conservative style that round-trips.
-- **Inserting a new node:** the node takes its style from its siblings: indentation width, block or flow, sequence indentation style ("- " under a key or indented), and the quoting convention.
-- **Saving:** untouched nodes are written as copies of their source text, and only dirty subtrees are emitted. That is the whole minimal-diff mechanism. There is no reformat pass unless the caller asks for one (`YamlSaveOptions.Reformat`).
-- **Path addressing** for configuration edits: `doc.Root.Select("spec.template.spec.containers[0].image")`. It returns nodes and doesn't evaluate expressions. It shares its grammar with the paths `OfficeIMO.Reader.Yaml` reports, so a Reader chunk path can be fed back to edit the same node.
+- **Inserting a new node:** the node takes its style from its siblings: indentation width, block or flow, sequence indentation style ("- " under a key or indented), and the quoting convention. The document's mapping indent, sequence indent and dash offset (the writer's three numbers) and its dominant line break are read once, from a bounded sample, when the first edit needs them.
+- **Saving:** untouched nodes are written as copies of their source text, and only dirty subtrees are emitted through the same emitter core as `YamlWriter`. That is the whole minimal-diff mechanism. There is no reformat pass unless the caller asks for one (`YamlSaveOptions.Reformat`). Editing never re-parses, and the save walk descends only into nodes that contain an edit.
+- **Trivia ownership.** Every edit owns an exact region of the source:
+  - Comment lines and blank lines above an entry belong to the line where the entry starts. Its owner is the outermost node starting there: a mapping value shares its key's lines, and the first entry of a block collection without properties that is a sequence item or the root shares the collection's.
+  - Above the first entry of a document without `---`, comment lines that a blank line separates from it are the document's header. Comment lines before `---` are also the header; comment lines after the root's last line are the footer.
+  - A changed scalar, alias or flow collection that stays on its line owns its own span, properties included; its trailing comment stays.
+  - A mapping value that changes between inline and block layout owns the text from the key's `:` to the end of its last line, and the comment on the key's line is written again after the new value or on the key line. A block collection replacing a sequence item or root drops the replaced value's trailing comment, because it has no line of its own.
+  - Removing a block entry removes its blank lines, comment lines, its lines and its trailing comment; neighbors keep theirs. Below a document header the blank lines stay, so the header stays a header. A removed first entry that shares its line with a dash takes the text up to the next entry, which moves onto the dash line. A removed flow item takes the separator before it, or after it when it is first.
+  - An inserted block entry goes above the blank lines and comments of the entry it precedes, or after the last entry's last line. A collection left with none of its loaded children is written whole in place of its own span, and an empty block collection becomes `[]` or `{}`.
+- **Never** (bugs seen in other tools, made structurally impossible by copying source text): no `!!merge` tag is added to `<<` keys, untouched sequence indentation is never normalized, and a comment never moves to a different node on save. The scripted corpus edits check all three on every saved result.
+- **Path addressing** for configuration edits: `doc.Select("spec.template.spec.containers[0].image")` returns a node, `doc.Set(path, value)` creates missing mappings on the way, `doc.Add(path, value)` appends to a sequence, and `doc.Remove(path)` returns `false` when nothing is there; traversing a scalar throws. Paths don't evaluate expressions. They share their grammar with the paths `OfficeIMO.Reader.Yaml` reports, so a Reader chunk path can be fed back to edit the same node. Steps match key text, so values under collection keys are reached by enumerating the mapping.
 - Anchors and aliases:
   - Renaming an anchor updates its aliases.
-  - Editing through an alias edits the anchored node and is reported.
+  - Editing through an alias edits the anchored node and is reported once per anchored node (`yaml-aliased-node-edited`). Setting a key that only a merge provides adds an own entry; merged mappings are never edited.
   - `<<` merge keys (YAML 1.1 schema) are resolved in the typed view, never flattened in the tree.
 
 ### Merging
@@ -161,13 +169,12 @@ baseDoc.Save("values.merged.yaml");
 
 - `YamlWriter` is the forward-only emitter, modeled on `Utf8JsonWriter`. It has `WriteStartMapping`/`WriteEndMapping`, `WriteStartSequence`, `WriteKey`, `WriteScalar(value, style)`, `WriteComment`, `WriteAlias`, anchors, tags and document markers. It writes UTF-8 through the shared `PooledUtf8TextWriter` or to a `TextWriter`.
 - Its output is deterministic: the same calls always produce the same bytes.
-- `YamlWriterOptions` defaults:
-  - indentation 2;
-  - block style;
-  - compact sequences under keys (`key:\n- a`), matching the most common real-world convention;
-  - no line folding;
-  - LF line endings;
-  - final newline.
+- `YamlWriterOptions` uses ruamel.yaml's three indentation numbers, which cover Kubernetes, Actions and compose styles:
+  - mapping indent 2;
+  - sequence indent 2 and dash offset 0, the compact `key:\n- a` most real files use (4 and 2 write `key:\n  - a`);
+  - LF line endings (or CRLF).
+
+  The writer always writes block style unless a flow collection is requested, never folds lines, and ends the stream with a line break.
 
   Each option exists because a real convention needs it (Kubernetes, Actions, compose and Helm differ in sequence indentation). Don't add an option without a corpus file that needs it.
 - **Quoting safety:** by default a new string scalar is quoted when *any* supported schema (1.2 Core or 1.1) would read it as something other than a string. That covers `yes`, `no`, `on`, `off`, `y`, `n`, `~`, `null`, `1e3`, `0o17`, `012`, `1:20` and `.inf`. A file written by OfficeIMO therefore means the same thing to YAML 1.1 readers such as PyYAML, Ruby's Psych and older Go libraries. That is the most common real-world YAML bug, and we avoid it by default.

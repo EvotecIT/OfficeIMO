@@ -860,10 +860,14 @@ public static partial class OfficeDiagnosticCodes {
     public const string XmlSiblingOrderChanged = "xml-sibling-order-changed";
     /// <summary>Stable code: <c>yaml-alias-expanded</c>.</summary>
     public const string YamlAliasExpanded = "yaml-alias-expanded";
+    /// <summary>Stable code: <c>yaml-aliased-node-edited</c>.</summary>
+    public const string YamlAliasedNodeEdited = "yaml-aliased-node-edited";
     /// <summary>Stable code: <c>yaml-complex-key</c>.</summary>
     public const string YamlComplexKey = "yaml-complex-key";
     /// <summary>Stable code: <c>yaml-documents-combined</c>.</summary>
     public const string YamlDocumentsCombined = "yaml-documents-combined";
+    /// <summary>Stable code: <c>yaml-duplicate-key</c>.</summary>
+    public const string YamlDuplicateKey = "yaml-duplicate-key";
     /// <summary>Stable code: <c>yaml-tag-dropped</c>.</summary>
     public const string YamlTagDropped = "yaml-tag-dropped";
 }

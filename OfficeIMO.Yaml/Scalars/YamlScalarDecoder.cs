@@ -17,21 +17,24 @@ internal static class YamlScalarDecoder {
             case YamlStyle.Folded:
                 return DecodeBlock(raw, style == YamlStyle.Folded, chomping, indent, destination);
             case YamlStyle.DoubleQuoted:
-                return DecodeFlow(raw, doubleQuoted: true, destination);
+                return DecodeFlow(raw, doubleQuoted: true, singleQuoted: false, destination);
+            case YamlStyle.SingleQuoted:
+                return DecodeFlow(raw, doubleQuoted: false, singleQuoted: true, destination);
             default:
-                return DecodeFlow(raw, doubleQuoted: false, destination);
+                // Plain scalars have no escapes: '' stays two characters.
+                return DecodeFlow(raw, doubleQuoted: false, singleQuoted: false, destination);
         }
     }
 
     /// <summary>Folds plain and quoted scalars and expands escapes (<c>''</c> in single quotes, backslash escapes in double quotes).</summary>
-    private static int DecodeFlow(ReadOnlySpan<char> raw, bool doubleQuoted, Span<char> o) {
+    private static int DecodeFlow(ReadOnlySpan<char> raw, bool doubleQuoted, bool singleQuoted, Span<char> o) {
         int n = raw.Length;
         int w = 0;
         int keep = 0;
         int i = 0;
         while (i < n) {
             char ch = raw[i];
-            if (ch == '\'' && !doubleQuoted && i + 1 < n && raw[i + 1] == '\'') {
+            if (ch == '\'' && singleQuoted && i + 1 < n && raw[i + 1] == '\'') {
                 o[w++] = '\'';
                 keep = w;
                 i += 2;
@@ -157,10 +160,15 @@ internal static class YamlScalarDecoder {
             leadingBreak = false;
             leadingBlank = trailingBlank;
             first = false;
-            while (i < n && raw[i] != '\r' && raw[i] != '\n') o[w++] = raw[i++];
-            // The end of input terminates the last line like a line break.
+            bool blankLine = true;
+            while (i < n && raw[i] != '\r' && raw[i] != '\n') {
+                if (raw[i] != ' ' && raw[i] != '\t') blankLine = false;
+                o[w++] = raw[i++];
+            }
+            // A last content line that ends at the end of input has no line break to keep (YAML 1.2.2 section 8.1.1.2);
+            // a last line of only white space still counts as ended, as the reference parsers read it (suite L24T).
+            leadingBreak = i < n || blankLine;
             if (i < n) i += raw[i] == '\r' && i + 1 < n && raw[i + 1] == '\n' ? 2 : 1;
-            leadingBreak = true;
         }
         if (chomping != YamlChomping.Strip && leadingBreak) o[w++] = '\n';
         if (chomping == YamlChomping.Keep) {

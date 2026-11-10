@@ -82,6 +82,10 @@ internal sealed class YamlModelEventReader : DataEventReader {
             _schema = part.Schema;
             _inPart = true;
             _pending.Enqueue(new Pending(DataTokenType.StartDocument));
+            if (part.CommentBefore is { } header) {
+                foreach (string line in header.Split('\n')) _pending.Enqueue(new Pending(DataTokenType.Comment, text: line.TrimEnd('\r')));
+            }
+
             Begin(part.Root, viaAlias: false);
             return true;
         }
@@ -163,12 +167,9 @@ internal sealed class YamlModelEventReader : DataEventReader {
     }
 
     private void Comments(YamlNode node, bool leading) {
-        if (leading) {
-            IReadOnlyList<string> comments = node.LeadingComments;
-            for (int i = 0; i < comments.Count; i++) _pending.Enqueue(new Pending(DataTokenType.Comment, text: comments[i]));
-        } else if (node.TrailingComment is { } trailing) {
-            _pending.Enqueue(new Pending(DataTokenType.Comment, text: trailing));
-        }
+        string? text = leading ? node.CommentBefore : node.Comment;
+        if (text == null) return;
+        foreach (string line in text.Split('\n')) _pending.Enqueue(new Pending(DataTokenType.Comment, text: line.TrimEnd('\r')));
     }
 
     private string KeyText(YamlNode key) {

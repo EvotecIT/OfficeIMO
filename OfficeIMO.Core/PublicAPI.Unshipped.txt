@@ -165,3 +165,5 @@ const OfficeIMO.OfficeDiagnosticCodes.XmlArrayShape = "xml-array-shape" -> strin
 const OfficeIMO.OfficeDiagnosticCodes.EmptyCollectionDropped = "empty-collection-dropped" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.XmlCharacterReplaced = "xml-character-replaced" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.XmlNameChanged = "xml-name-changed" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlAliasedNodeEdited = "yaml-aliased-node-edited" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlDuplicateKey = "yaml-duplicate-key" -> string!

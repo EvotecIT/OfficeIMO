@@ -11,7 +11,7 @@ public sealed class OfficeIMOYamlConformanceEngine : IYamlConformanceEngine {
     public string Name => "OfficeIMO.Yaml";
 
     /// <inheritdoc />
-    public YamlEngineFeatures Features => YamlEngineFeatures.Events | YamlEngineFeatures.Load | YamlEngineFeatures.RoundTrip | YamlEngineFeatures.Lossless;
+    public YamlEngineFeatures Features => YamlEngineFeatures.Events | YamlEngineFeatures.Load | YamlEngineFeatures.RoundTrip | YamlEngineFeatures.Lossless | YamlEngineFeatures.Emit;
 
     /// <inheritdoc />
     public IReadOnlyList<YamlTestEvent> Parse(byte[] yaml) {
@@ -43,6 +43,53 @@ public sealed class OfficeIMOYamlConformanceEngine : IYamlConformanceEngine {
         document.Save(output);
         return output.ToArray();
     }
+
+    /// <summary>Replays the events through <see cref="YamlWriter"/>, keeping each scalar's style as a request.</summary>
+    public byte[] Emit(IReadOnlyList<YamlTestEvent> events) {
+        var output = new MemoryStream();
+        using (var writer = new YamlWriter(output)) Replay(events, writer);
+        return output.ToArray();
+    }
+
+    /// <summary>Writes suite events through a writer: document markers, collections, scalars with their style, anchors, tags and aliases.</summary>
+    public static void Replay(IReadOnlyList<YamlTestEvent> events, YamlWriter writer) {
+        foreach (YamlTestEvent item in events) {
+            switch (item.Kind) {
+                case YamlTestEventKind.DocumentStart:
+                    if (item.IsExplicit) writer.WriteDocumentStart();
+                    break;
+                case YamlTestEventKind.DocumentEnd:
+                    if (item.IsExplicit) writer.WriteDocumentEnd();
+                    break;
+                case YamlTestEventKind.MappingStart:
+                case YamlTestEventKind.SequenceStart:
+                case YamlTestEventKind.Scalar:
+                    if (item.Anchor != null) writer.WriteAnchor(item.Anchor);
+                    if (item.Tag != null) writer.WriteTag(item.Tag);
+                    if (item.Kind == YamlTestEventKind.MappingStart) writer.WriteStartMapping(item.IsFlow ? YamlStyle.Flow : YamlStyle.Block);
+                    else if (item.Kind == YamlTestEventKind.SequenceStart) writer.WriteStartSequence(item.IsFlow ? YamlStyle.Flow : YamlStyle.Block);
+                    else writer.WriteScalar(item.Value ?? string.Empty, ToStyle(item.Style));
+                    break;
+                case YamlTestEventKind.MappingEnd:
+                    writer.WriteEndMapping();
+                    break;
+                case YamlTestEventKind.SequenceEnd:
+                    writer.WriteEndSequence();
+                    break;
+                case YamlTestEventKind.Alias:
+                    writer.WriteAlias(item.Value!);
+                    break;
+            }
+        }
+    }
+
+    private static YamlStyle ToStyle(YamlTestScalarStyle style) => style switch {
+        YamlTestScalarStyle.SingleQuoted => YamlStyle.SingleQuoted,
+        YamlTestScalarStyle.DoubleQuoted => YamlStyle.DoubleQuoted,
+        YamlTestScalarStyle.Literal => YamlStyle.Literal,
+        YamlTestScalarStyle.Folded => YamlStyle.Folded,
+        _ => YamlStyle.Plain
+    };
 
     private static readonly YamlLoadOptions LenientKeys = new() { DuplicateKeys = YamlDuplicateKeyPolicy.LastWins };
 

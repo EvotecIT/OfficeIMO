@@ -31,7 +31,7 @@ public class YamlJsonOracleTests {
         DataConversionEngine.Convert(new MemoryStream(testCase.Input), DataFormat.Yaml, output, DataFormat.Json, null);
         string? streaming = YamlJsonEquivalence.FindDifference(expected, Documents(output.ToArray(), expected.Count));
 
-        YamlDocument document = YamlDocument.Load(new MemoryStream(testCase.Input));
+        using YamlDocument document = YamlDocument.Load(new MemoryStream(testCase.Input));
         using var modelOutput = new MemoryStream();
         document.SaveAsJson(modelOutput);
         string? model = YamlJsonEquivalence.FindDifference(expected, Documents(modelOutput.ToArray(), expected.Count));

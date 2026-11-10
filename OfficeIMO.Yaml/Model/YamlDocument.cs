@@ -11,13 +11,20 @@ namespace OfficeIMO.Yaml;
 /// <para>Loading enforces the limits in <see cref="YamlLoadOptions"/>, including the alias-expansion bound that stops
 /// "billion laughs" inputs, and resolves every alias to its anchor. Malformed input throws <see cref="YamlException"/>.</para>
 /// </remarks>
-public sealed partial class YamlDocument {
+public sealed partial class YamlDocument : IDisposable {
     internal readonly string _source;
     internal readonly YamlTextEncoding _encoding;
     internal readonly bool _byteOrderMark;
     private readonly List<YamlDocumentPart> _parts = new List<YamlDocumentPart>();
     private List<OfficeDiagnostic>? _diagnostics;
     private int[]? _lineStarts;
+    private YamlLayoutProfile? _layout;
+    private YamlWriterOptions? _writerOptions;
+    private HashSet<YamlNode>? _sharedEdits;
+    /// <summary>Set by any edit; an unedited document saves as one copy of its source.</summary>
+    internal bool _partsDirty;
+    /// <summary>The file the document was loaded from, which <see cref="Save()"/> writes back to.</summary>
+    internal string? _path;
 
     private YamlDocument(string source, YamlTextEncoding encoding, bool byteOrderMark, YamlDuplicateKeyPolicy duplicateKeys) {
         _source = source;
@@ -26,18 +33,44 @@ public sealed partial class YamlDocument {
         DuplicateKeys = duplicateKeys;
     }
 
+    /// <summary>
+    /// Creates an empty document in memory, with no YAML documents in its stream. Set <see cref="Root"/>, call
+    /// <see cref="Set"/> with a path, or <see cref="AddDocument"/> to give it content; saving writes UTF-8 without a
+    /// byte-order mark.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// using var doc = YamlDocument.Create();
+    /// doc.Set("name", "web");
+    /// doc.Set("spec.replicas", 3);
+    /// doc.Add("spec.ports", 80);
+    /// doc.Save("service.yaml");
+    /// </code>
+    /// </example>
+    public static YamlDocument Create() => new YamlDocument(string.Empty, YamlTextEncoding.Utf8, byteOrderMark: false, YamlDuplicateKeyPolicy.Error);
+
     /// <summary>Gets the policy the document was loaded with; lookups among equal keys follow it.</summary>
     internal YamlDuplicateKeyPolicy DuplicateKeys { get; }
 
     /// <summary>Gets the documents of the stream in source order. An empty or comment-only stream has none.</summary>
     public IReadOnlyList<YamlDocumentPart> Documents => _parts;
 
-    /// <summary>Gets the root node of the first document, or <see langword="null"/> when the stream has no documents.</summary>
-    public YamlNode? Root => _parts.Count == 0 ? null : _parts[0].Root;
+    /// <summary>
+    /// Gets the root node of the first document, or <see langword="null"/> when the stream has no documents. Setting it
+    /// replaces that root, or adds a first document to an empty stream.
+    /// </summary>
+    public YamlNode? Root {
+        get => _parts.Count == 0 ? null : _parts[0].Root;
+        set {
+            if (_parts.Count == 0) AddDocument(value ?? new YamlScalar((string?)null));
+            else _parts[0].Root = value!;
+        }
+    }
 
     /// <summary>
-    /// Gets findings recorded while loading, such as each duplicate key a lenient <see cref="YamlDuplicateKeyPolicy"/>
-    /// admitted (code <see cref="YamlErrorCodes.DuplicateKey"/>, with its line and column as the location).
+    /// Gets findings recorded while loading and editing: each duplicate key a lenient <see cref="YamlDuplicateKeyPolicy"/>
+    /// admitted (<see cref="OfficeDiagnosticCodes.YamlDuplicateKey"/>) and each edit of a node that aliases share
+    /// (<see cref="OfficeDiagnosticCodes.YamlAliasedNodeEdited"/>), with a line and column as the location.
     /// </summary>
     public IReadOnlyList<OfficeDiagnostic> Diagnostics => (IReadOnlyList<OfficeDiagnostic>?)_diagnostics ?? Array.Empty<OfficeDiagnostic>();
 
@@ -50,6 +83,61 @@ public sealed partial class YamlDocument {
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="path"/> is malformed.</exception>
     public YamlNode? Select(string path) => YamlPath.Select(this, path);
+
+    /// <summary>
+    /// Sets the value at a path, creating missing mappings on the way (and a sequence where the next step is an index),
+    /// in the layout of their neighbors. The last step sets a mapping value as <see cref="YamlMapping.Set"/> does, replaces
+    /// a sequence item, or appends when the index equals the sequence's count. <c>$</c> or an empty path sets the root.
+    /// </summary>
+    /// <returns>The node now at the path.</returns>
+    /// <exception cref="ArgumentException">The path is malformed.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">An index is past the end of its sequence.</exception>
+    /// <exception cref="InvalidOperationException">The path goes through a scalar, or a key step meets a sequence or an index step a mapping.</exception>
+    public YamlNode Set(string path, YamlNode? value) => YamlPath.Set(this, path, value ?? new YamlScalar((string?)null));
+
+    /// <summary>
+    /// Appends a value to the sequence at a path, creating the sequence and missing mappings on the way.
+    /// </summary>
+    /// <returns>The added node.</returns>
+    /// <exception cref="InvalidOperationException">The path addresses something other than a sequence, or goes through a scalar.</exception>
+    public YamlNode Add(string path, YamlNode? value) => YamlPath.Add(this, path, value ?? new YamlScalar((string?)null));
+
+    /// <summary>
+    /// Removes the mapping entry or sequence item a path addresses, with its comment lines and its line.
+    /// </summary>
+    /// <returns><see langword="true"/> when something was removed; <see langword="false"/> when nothing is at the path.</returns>
+    /// <exception cref="ArgumentException">The path is malformed or addresses a document root.</exception>
+    /// <exception cref="InvalidOperationException">The path goes through a scalar, or aliases refer to an anchor inside the removed node.</exception>
+    public bool Remove(string path) => YamlPath.Remove(this, path);
+
+    /// <summary>Adds a document with the given root at the end of the stream, after a <c>---</c> marker when it is not the first.</summary>
+    /// <returns>The new document part.</returns>
+    public YamlDocumentPart AddDocument(YamlNode root) {
+        if (root is null) throw new ArgumentNullException(nameof(root));
+        var part = new YamlDocumentPart(this, YamlSchema.Core, hasStartMarker: _parts.Count > 0);
+        _parts.Add(part);
+        try {
+            YamlEdit.ReplaceRoot(part, root);
+        } catch {
+            _parts.Remove(part);
+            throw;
+        }
+        _partsDirty = true;
+        return part;
+    }
+
+    /// <summary>Releases nothing: the document holds only managed memory. It is disposable so <c>using</c> works as for every OfficeIMO document.</summary>
+    public void Dispose() {
+    }
+
+    /// <summary>The layout conventions new nodes follow, read from the source on first use.</summary>
+    internal YamlLayoutProfile Layout => _layout ??= YamlLayoutProfile.Infer(this);
+
+    /// <summary>Writer settings that reproduce the document's layout for new text.</summary>
+    internal YamlWriterOptions WriterOptions => _writerOptions ??= Layout.ToWriterOptions();
+
+    /// <summary>Returns true the first time an edit of a shared anchored node is noted.</summary>
+    internal bool NoteSharedEdit(YamlNode anchored) => (_sharedEdits ??= new HashSet<YamlNode>()).Add(anchored);
 
     internal void AddPart(YamlDocumentPart part) => _parts.Add(part);
 

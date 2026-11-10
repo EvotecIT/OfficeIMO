@@ -32,7 +32,7 @@ public class YamlDocumentKeyTests {
         Assert.Equal(padding + 4, root.Count);
         Assert.Equal(policy == YamlDuplicateKeyPolicy.FirstWins ? "1" : "4", root["a"].AsString());
         Assert.Equal(2, document.Diagnostics.Count);
-        Assert.All(document.Diagnostics, d => Assert.Equal(YamlErrorCodes.DuplicateKey, d.Code));
+        Assert.All(document.Diagnostics, d => Assert.Equal(OfficeDiagnosticCodes.YamlDuplicateKey, d.Code));
         Assert.Equal((padding + 3) + ":1", document.Diagnostics[0].Location);
         Assert.Equal(yaml, document.ToString());
     }

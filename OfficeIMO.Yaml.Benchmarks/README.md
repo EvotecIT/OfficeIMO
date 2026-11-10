@@ -1,6 +1,6 @@
 # OfficeIMO YAML Benchmarks
 
-This opt-in project measures OfficeIMO.Yaml and the reference YAML libraries, YamlDotNet 18.0.0 and SharpYaml 3.17.0, against the same conformance data and workloads. The libraries are referenced here only; OfficeIMO runtime projects do not depend on this project.
+This opt-in project measures OfficeIMO.Yaml and the reference YAML libraries, YamlDotNet 18.0.0, SharpYaml 3.17.0 and VYaml 1.6.1, against the same conformance data and workloads. The libraries are referenced here only; OfficeIMO runtime projects do not depend on this project.
 
 ## Conformance comparison
 
@@ -23,6 +23,8 @@ Inputs are the pinned [yaml-test-suite](../OfficeIMO.TestAssets/Yaml/yaml-test-s
 
 Failures (F) are wrong output or accepted invalid input. Errors (E) are exceptions or timeouts on input the check expects to work.
 
+The Event content column compares only kinds, values, tags, anchors and alias names. It is the only event column for VYaml, whose parser does not expose scalar styles, flow markers or explicit document markers. VYaml's JSON column uses its dynamic deserialization and therefore its own scalar resolution, because its parser cannot tell a quoted scalar from a plain one. VYaml has no document model, so it has no round-trip rows, and its adapter raises the parser depth limit from 64 to OfficeIMO.Yaml's 256.
+
 Each adapter decodes bytes with YAML byte order mark and null-pattern detection and re-encodes saved text the same way, because both libraries read text rather than bytes. JSON loading uses each library's tree loader with one shared YAML 1.2 core-schema scalar resolver, so the JSON column compares structure loading rather than resolver choices. The SharpYaml syntax tree row reports only round-trips: the library documents it as reproducing its source text, and it has no event or value view.
 
 ## Throughput workloads
@@ -39,6 +41,8 @@ Four benchmark classes cover the operations, each with YamlDotNet as the baselin
 - `YamlLoadAndSaveBenchmarks`: load and save without edits. OfficeIMO.Yaml saves an unchanged document by copying its retained source, and setup checks that its output equals the input.
 - `YamlEmitBenchmarks`: emit a new document from events captured before timing.
 
+VYaml runs in the parse and load classes only. It reads UTF-8, so each input is encoded once during setup. Its load lane is dynamic deserialization into dictionaries, lists and resolved scalars, because VYaml has no representation tree; setup checks those values against YamlDotNet. It has no load-and-save lane because it has no document model, and no emit lane because its emitter writes values rather than replaying parser events with their anchors and tags.
+
 Every class runs these workloads:
 
 | Workload | Input |
@@ -54,3 +58,19 @@ Every class runs these workloads:
 Generated inputs are built at run time and never committed. Setup validates each operation before timing, with the conformance adapters as an independent view: parsed events agree with the other library, loaded values agree with the other library, saved output loads to the same values, and emitted output parses back to the same events. A validation failure stops that benchmark instead of measuring broken work. `--validate-workloads` runs the same checks without timing.
 
 Compare rows within one class and workload. Ratios use YamlDotNet as the baseline; allocation columns come from the memory diagnoser. Runs depend on the host, so keep them as opt-in evidence rather than pull-request gates.
+
+## Large real-world corpus
+
+The committed corpus is small enough for every test run. A larger corpus of about 13,000 files from CI systems, Kubernetes and Helm, Compose, OpenAPI, Ansible, CloudFormation and SAM, Home Assistant, documentation front matter and application configuration is pinned in [`sources.json`](../OfficeIMO.TestAssets/Yaml/LargeCorpus/sources.json) and fetched into a local cache:
+
+```sh
+pwsh ./OfficeIMO.TestAssets/Yaml/LargeCorpus/Update-YamlLargeCorpus.ps1
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --large-corpus
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --mutations --seed 20261110
+```
+
+The fetcher checks out only the selected files of each source at its pinned commit, records each file's size and SHA-256 in `index.json` and records templated files (Helm Go templates, conda Jinja recipes), Markdown without YAML front matter and out-of-bounds files as excluded with a reason. The cache is `OFFICEIMO_YAML_CORPUS_CACHE` or `yaml-corpus` under the temporary folder; `--cache` overrides it for both runs, and nothing from it is committed.
+
+`--large-corpus` parses, loads and round-trips every indexed file with each library. It classifies each file by acceptance: a file OfficeIMO.Yaml rejects is invalid when YamlDotNet and SharpYaml also reject it, and a file to investigate when either accepts it. It compares events and loaded YAML 1.2 core values with each reference, counts how many files a YAML 1.1 loader would read differently, and totals throughput. It writes `large-corpus.md` and `large-corpus-failures.tsv` to `reports` in the cache, or to `--output-dir`.
+
+`--mutations` truncates, flips bytes, edits lines and indentation, injects deep nesting, alias bombs, huge scalars, node floods, invalid UTF-8, control characters and encoding changes in a seeded sample of corpus files. It runs each mutant through the reader and the model with a per-stage timeout. A mutant passes when only `YamlException`, `YamlLimitExceededException` or `OperationCanceledException` escapes, nothing hangs and allocation stays within budget. Mutants depend only on the seed, file, kind and variant, so `--file` and `--kind` reproduce one exactly. Failing mutants are saved next to `mutations.md`.

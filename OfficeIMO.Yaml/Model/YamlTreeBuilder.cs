@@ -96,6 +96,7 @@ internal sealed class YamlTreeBuilder {
             for (int i = 0; i < entries.Length; i++) entries[i] = new YamlMappingEntry(_nodes[frame.First + 2 * i], _nodes[frame.First + 2 * i + 1]);
             mapping._entries = entries;
             mapping._count = entries.Length;
+            mapping.Renumber(0);
             CheckDuplicates(mapping);
         } else {
             var sequence = (YamlSequence)node;
@@ -103,6 +104,7 @@ internal sealed class YamlTreeBuilder {
             Array.Copy(_nodes, frame.First, items, 0, count);
             sequence._items = items;
             sequence._count = count;
+            sequence.Renumber(0);
         }
         Array.Clear(_nodes, frame.First, count);
         _nodeCount = frame.First;
@@ -122,11 +124,14 @@ internal sealed class YamlTreeBuilder {
         }
         int limit = _options.MaxAliasExpansion;
         // An alias inside the collection it refers to makes the resolved graph infinite.
-        if ((target._state & YamlNodeState.Open) != 0) throw new YamlLimitExceededException(nameof(YamlLoadOptions.MaxAliasExpansion), limit, position);
+        if ((target._state & YamlNodeState.Open) != 0) {
+            throw new YamlException(YamlErrorCodes.RecursiveAlias, "The alias *" + name + " is inside the collection its anchor names, which would make the document infinite.", position);
+        }
         long size = target._properties!.ExpandedSize;
         _expansion = Saturate(_expansion + size);
         if (_expansion > limit) throw new YamlLimitExceededException(nameof(YamlLoadOptions.MaxAliasExpansion), limit, position);
         Count(in ev);
+        target._state |= YamlNodeState.Aliased;
         Push(new YamlAlias(_part!, ev.Start, ev.End, name, target), size);
     }
 
@@ -213,6 +218,7 @@ internal sealed class YamlTreeBuilder {
         YamlPosition position = _document.GetPosition(key._start);
         string message = "The mapping key '" + text + "' at " + position + " repeats the key at " + _document.GetPosition(first._start) + ".";
         if (_options.DuplicateKeys == YamlDuplicateKeyPolicy.Error) throw new YamlException(YamlErrorCodes.DuplicateKey, message, position);
-        _document.AddDiagnostic(new OfficeDiagnostic(YamlErrorCodes.DuplicateKey, OfficeDiagnosticSeverity.Warning, message, position.ToString(), "YAML"));
+        _document.AddDiagnostic(new OfficeDiagnostic(OfficeDiagnosticCodes.YamlDuplicateKey, OfficeDiagnosticSeverity.Warning,
+            message + YamlExcerpt.Format(_document._source, key._start), position.ToString(), "YAML"));
     }
 }
