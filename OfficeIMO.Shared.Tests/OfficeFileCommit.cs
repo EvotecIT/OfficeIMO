@@ -440,10 +440,12 @@ namespace OfficeIMO.Shared.Tests {
 
                 var copied = new FileInfo(staging).GetAccessControl();
                 Assert.True(copied.AreAccessRulesProtected);
-                Assert.Contains(
-                    copied.GetAccessRules(true, true, typeof(System.Security.Principal.SecurityIdentifier))
-                        .Cast<System.Security.AccessControl.FileSystemAccessRule>(),
-                    rule => networkService.Equals(rule.IdentityReference));
+                bool keptNetworkServiceRule = false;
+                foreach (System.Security.AccessControl.FileSystemAccessRule rule in
+                    copied.GetAccessRules(true, true, typeof(System.Security.Principal.SecurityIdentifier))) {
+                    keptNetworkServiceRule |= networkService.Equals(rule.IdentityReference);
+                }
+                Assert.True(keptNetworkServiceRule);
             } finally {
                 if (Directory.Exists(root)) Directory.Delete(root, true);
             }
