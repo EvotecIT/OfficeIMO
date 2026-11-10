@@ -2340,24 +2340,79 @@ public sealed partial class PdfReadPage {
 
     private PageContentStreamSequence GetContentStreamSequence(PageContentBudget? pageContentBudget = null) {
         pageContentBudget ??= new PageContentBudget(this);
+        // A fresh budget decodes the page streams first, so a sequence decoded under the same limits
+        // can be charged to it instead of being inflated again.
+        bool freshBudget = pageContentBudget.IsUnused;
+        PageContentStreamSequence? reusable = freshBudget ? GetReusableContentSequence() : null;
+        if (reusable is not null) {
+            pageContentBudget.ChargeReusedDecodes(reusable.DecodedStreams);
+            return reusable;
+        }
+
         List<PageContentStreamEntry> streams = GetContentStreamObjects();
+        var decodedStreams = new KeyValuePair<PdfStream, byte[]>[streams.Count];
+        PageContentStreamSequence sequence;
         if (streams.Count == 1) {
             PageContentStreamEntry entry = streams[0];
-            string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(entry.Stream));
-            return new PageContentStreamSequence(content, new[] { new PageContentStreamOffset(0, entry.ObjectNumber) });
+            byte[] decoded = pageContentBudget.Decode(entry.Stream);
+            decodedStreams[0] = new KeyValuePair<PdfStream, byte[]>(entry.Stream, decoded);
+            sequence = new PageContentStreamSequence(PdfEncoding.Latin1GetString(decoded),
+                new[] { new PageContentStreamOffset(0, entry.ObjectNumber) }, decodedStreams);
+        } else {
+            var builder = new System.Text.StringBuilder();
+            var entries = new List<PageContentStreamOffset>();
+            for (int index = 0; index < streams.Count; index++) {
+                PageContentStreamEntry entry = streams[index];
+                // ISO 32000-2 Table 31 separates content-array streams with whitespace. Keep
+                // operator identities in the same logical sequence used by content mutation.
+                if (entries.Count > 0) builder.Append(PdfContentStreamSequenceDecoder.Separator);
+                entries.Add(new PageContentStreamOffset(builder.Length, entry.ObjectNumber));
+                byte[] decoded = pageContentBudget.Decode(entry.Stream);
+                decodedStreams[index] = new KeyValuePair<PdfStream, byte[]>(entry.Stream, decoded);
+                builder.Append(PdfEncoding.Latin1GetString(decoded));
+            }
+            sequence = new PageContentStreamSequence(builder.ToString(), entries.ToArray(), decodedStreams);
         }
 
-        var builder = new System.Text.StringBuilder();
-        var entries = new List<PageContentStreamOffset>();
-        foreach (PageContentStreamEntry entry in streams) {
-            // ISO 32000-2 Table 31 separates content-array streams with whitespace. Keep
-            // operator identities in the same logical sequence used by content mutation.
-            if (entries.Count > 0) builder.Append(PdfContentStreamSequenceDecoder.Separator);
-            entries.Add(new PageContentStreamOffset(builder.Length, entry.ObjectNumber));
-            builder.Append(PdfEncoding.Latin1GetString(pageContentBudget.Decode(entry.Stream)));
-        }
+        if (freshBudget) OfferReusableContentSequence(sequence);
+        return sequence;
+    }
 
-        return new PageContentStreamSequence(builder.ToString(), entries.ToArray());
+    /// <summary>
+    /// Keeps the decoded page content while the returned scope is open, so the passes of one page
+    /// stage decode it once. Each pass is still charged for the content it reads.
+    /// </summary>
+    internal DecodedContentReuseScope ReuseDecodedContent() {
+        lock (_decodedContentReuseSync) _decodedContentReuseDepth++;
+        return new DecodedContentReuseScope(this);
+    }
+
+    private PageContentStreamSequence? GetReusableContentSequence() {
+        lock (_decodedContentReuseSync) return _decodedContentReuseDepth > 0 ? _reusableContentSequence : null;
+    }
+
+    private void OfferReusableContentSequence(PageContentStreamSequence sequence) {
+        lock (_decodedContentReuseSync) {
+            if (_decodedContentReuseDepth > 0) _reusableContentSequence ??= sequence;
+        }
+    }
+
+    private void EndDecodedContentReuse() {
+        lock (_decodedContentReuseSync) {
+            if (_decodedContentReuseDepth > 0 && --_decodedContentReuseDepth == 0) _reusableContentSequence = null;
+        }
+    }
+
+    private readonly object _decodedContentReuseSync = new();
+    private int _decodedContentReuseDepth;
+    private PageContentStreamSequence? _reusableContentSequence;
+
+    internal readonly struct DecodedContentReuseScope : IDisposable {
+        private readonly PdfReadPage? _page;
+
+        internal DecodedContentReuseScope(PdfReadPage page) => _page = page;
+
+        public void Dispose() => _page?.EndDecodedContentReuse();
     }
 
     private List<PageContentStreamEntry> GetContentStreamObjects() {
@@ -2429,12 +2484,17 @@ public sealed partial class PdfReadPage {
     private sealed class PageContentStreamSequence {
         private readonly PageContentStreamOffset[] _offsets;
 
-        internal PageContentStreamSequence(string content, PageContentStreamOffset[] offsets) {
+        internal PageContentStreamSequence(string content, PageContentStreamOffset[] offsets,
+            KeyValuePair<PdfStream, byte[]>[] decodedStreams) {
             Content = content;
             _offsets = offsets;
+            DecodedStreams = decodedStreams;
         }
 
         internal string Content { get; }
+
+        /// <summary>The page streams in processing order with their decoded bytes.</summary>
+        internal KeyValuePair<PdfStream, byte[]>[] DecodedStreams { get; }
 
         internal int? GetObjectNumber(int operatorOffset) {
             int low = 0;
@@ -2624,6 +2684,22 @@ public sealed partial class PdfReadPage {
                     (long)_page._limits.MaxPageContentBytes + 1L);
             }
             Charge(decodedLength);
+        }
+
+        /// <summary>True until this budget decodes or validates a stream.</summary>
+        internal bool IsUnused => _decodedBytes == 0L && _decodedStreams is null;
+
+        /// <summary>
+        /// Charges page streams that another pass decoded under the same fresh-budget limits, in the
+        /// order and amounts <see cref="Decode"/> would have charged them.
+        /// </summary>
+        internal void ChargeReusedDecodes(KeyValuePair<PdfStream, byte[]>[] decodedStreams) {
+            for (int index = 0; index < decodedStreams.Length; index++) {
+                CancellationToken.ThrowIfCancellationRequested();
+                KeyValuePair<PdfStream, byte[]> decoded = decodedStreams[index];
+                Charge(decoded.Value.LongLength);
+                (_decodedStreams ??= new Dictionary<PdfStream, byte[]>())[decoded.Key] = decoded.Value;
+            }
         }
 
         private void Charge(long decodedBytes) {
