@@ -29,7 +29,16 @@ public sealed class MathInline : MarkdownInline, IRenderableMarkdownInline, IPla
 
     // TeX ignores spaces at the edges of math, while the Markdown reader requires non-space characters
     // next to a single $, so the edges are trimmed to keep projected math reparsable.
-    string IRenderableMarkdownInline.RenderMarkdown() => Delimiter + Source.Trim() + Delimiter;
+    string IRenderableMarkdownInline.RenderMarkdown() => Delimiter + TrimEdges(Source) + Delimiter;
+
+    private static string TrimEdges(string source) {
+        string trimmed = source.Trim();
+        int backslashes = 0;
+        while (backslashes < trimmed.Length && trimmed[trimmed.Length - 1 - backslashes] == '\\') backslashes++;
+        // Trimming the space of a trailing control space (\ ) would leave \ to escape the closing $.
+        // An empty group keeps the explicit space and gives the closing delimiter a non-space neighbour.
+        return backslashes % 2 == 1 && trimmed.Length < source.TrimStart().Length ? trimmed + " {}" : trimmed;
+    }
 
     string IRenderableMarkdownInline.RenderHtml() {
         string source = HtmlTextEncoder.Encode(Source, HtmlRenderContext.Options);

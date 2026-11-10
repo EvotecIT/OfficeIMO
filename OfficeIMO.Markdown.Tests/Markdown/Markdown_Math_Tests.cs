@@ -69,6 +69,18 @@ public class Markdown_Math_Tests {
         Assert.Equal("x^2", Assert.Single(((ParagraphBlock)reparsed.Blocks[0]).Inlines.Nodes.OfType<MathInline>()).Source);
     }
 
+    [Fact]
+    public void Math_Writer_Keeps_A_Trailing_Control_Space_So_Inline_Math_Reparses() {
+        var document = MarkdownDocument.Create();
+        var paragraph = new ParagraphBlock(new InlineSequence());
+        paragraph.Inlines.AddRaw(new MathInline(@"x\ "));
+        document.Add(paragraph);
+
+        var reparsed = MarkdownDocument.Parse(document.ToMarkdown(), new MarkdownLoadOptions { Math = true });
+
+        Assert.Equal(@"x\ {}", Assert.Single(((ParagraphBlock)reparsed.Blocks[0]).Inlines.Nodes.OfType<MathInline>()).Source);
+    }
+
     [Theory]
     [InlineData("Pay $5 and $10 today.")]
     [InlineData("A lone $ sign.")]
