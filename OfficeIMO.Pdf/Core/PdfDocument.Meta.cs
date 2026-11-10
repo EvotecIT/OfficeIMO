@@ -468,8 +468,7 @@ public sealed partial class PdfDocument : IDisposable {
         Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
-        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
-            readOptions ?? ReadOptions, inputBytes, pdf);
+        PdfLoadOptions effectiveReadOptions = ForGeneratedOutput(readOptions ?? ReadOptions, inputBytes, pdf);
         PdfReadDocument? readDocument = validatedReadDocument;
         PdfArtifactInfo output = readDocument is null
             ? PdfArtifactInfo.CaptureOwned(pdf, effectiveReadOptions, out readDocument, cancellationToken)
@@ -496,8 +495,7 @@ public sealed partial class PdfDocument : IDisposable {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentOutOfRangeException.ThrowIfNegative(outputPageCount);
 
-        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
-            readOptions ?? ReadOptions, inputBytes, pdf);
+        PdfLoadOptions effectiveReadOptions = ForGeneratedOutput(readOptions ?? ReadOptions, inputBytes, pdf);
         PdfArtifactInfo output = PdfArtifactInfo.CaptureOwnedKnownPageCount(pdf, outputPageCount);
         cancellationToken.ThrowIfCancellationRequested();
         return WithBytes(
@@ -508,6 +506,17 @@ public sealed partial class PdfDocument : IDisposable {
             effectiveReadOptions,
             operationName,
             canonicalRewrittenOutput: true);
+    }
+
+    /// <summary>Sizes output read limits, reusing this source's marker scan when the input is its own bytes.</summary>
+    private PdfLoadOptions ForGeneratedOutput(PdfLoadOptions sourceOptions, byte[] inputBytes, byte[] pdf) {
+        PdfDocumentSource? source = _source;
+        if (source is null || !ReferenceEquals(inputBytes, source.Bytes)) {
+            return PdfLoadOptions.ForGeneratedOutput(sourceOptions, inputBytes, pdf);
+        }
+
+        PdfLoadOptions resolved = PdfLoadOptions.Resolve(sourceOptions);
+        return PdfLoadOptions.ForGeneratedOutput(resolved, source.GetStructuralMarkers(resolved.Limits), pdf);
     }
 
     private PdfDocument WithBytes(
