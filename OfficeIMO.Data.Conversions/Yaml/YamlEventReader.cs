@@ -9,7 +9,10 @@ namespace OfficeIMO.Data.Conversions;
 /// </summary>
 internal sealed class YamlEventReader : DataEventReader {
     private readonly YamlReader _reader;
-    private readonly bool _yaml11;
+    private bool _yaml11;
+    private bool _mergeKeys;
+    private readonly bool _strict;
+    private int _forwardedFindings;
     private readonly int _maxAliasExpansion;
     private readonly Stack<Frame> _frames = new();
     private readonly Dictionary<string, DataNode> _anchors = new(StringComparer.Ordinal);
@@ -51,9 +54,10 @@ internal sealed class YamlEventReader : DataEventReader {
             options.MaxAliasExpansion = source.MaxAliasExpansion;
             options.MaxScalarLength = source.MaxScalarLength;
             options.MaxInputBytes = source.MaxInputBytes;
+            options.Strict = source.Strict;
         }
 
-        _yaml11 = options.Schema == YamlSchema.Yaml11;
+        _strict = options.Strict;
         _maxAliasExpansion = options.MaxAliasExpansion;
         _reader = new YamlReader(stream, options, context.CancellationToken);
         TrackDuplicateKeys = true;
@@ -86,9 +90,16 @@ internal sealed class YamlEventReader : DataEventReader {
                 continue;
             }
 
-            if (!_reader.Read()) return false;
+            if (!_reader.Read()) {
+                ForwardFindings();
+                return false;
+            }
+
             switch (_reader.TokenType) {
                 case YamlTokenType.DocumentStart:
+                    // Each document resolves with its own schema, as YamlDocument does: %YAML 1.1 selects 1.1.
+                    _yaml11 = _reader.Schema == YamlSchema.Yaml11;
+                    _mergeKeys = _yaml11 || (_reader.Schema == YamlSchema.Core && !_strict);
                     _anchors.Clear();
                     Emit(DataTokenType.StartDocument, default, default);
                     return true;
@@ -216,7 +227,16 @@ internal sealed class YamlEventReader : DataEventReader {
     private bool IsMergeKey(ref YamlReaderScalar key) {
         string? tag = key.Tag;
         if (tag != null) return tag == YamlScalarClassifier.TagPrefix + "merge";
-        return _yaml11 && key.Style == YamlStyle.Plain && key.Text.SequenceEqual("<<".AsSpan());
+        return _mergeKeys && key.Style == YamlStyle.Plain && key.Text.SequenceEqual("<<".AsSpan());
+    }
+
+    // The engine's own findings (lenient indentation) belong in the conversion report too.
+    private void ForwardFindings() {
+        IReadOnlyList<OfficeDiagnostic> findings = _reader.Diagnostics;
+        for (; _forwardedFindings < findings.Count; _forwardedFindings++) {
+            OfficeDiagnostic finding = findings[_forwardedFindings];
+            Context.Report(finding.Code, finding.LossKind, finding.Message, finding.Location);
+        }
     }
 
     /// <summary>

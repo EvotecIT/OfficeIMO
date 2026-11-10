@@ -167,3 +167,5 @@ const OfficeIMO.OfficeDiagnosticCodes.XmlCharacterReplaced = "xml-character-repl
 const OfficeIMO.OfficeDiagnosticCodes.XmlNameChanged = "xml-name-changed" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.YamlAliasedNodeEdited = "yaml-aliased-node-edited" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.YamlDuplicateKey = "yaml-duplicate-key" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlLenientIndentation = "yaml-lenient-indentation" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective = "yaml-merge-key-without-directive" -> string!

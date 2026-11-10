@@ -28,6 +28,7 @@ public sealed partial class YamlReader : IDisposable {
     private bool _disposed;
     private string? _stringValue;
     private char[]? _scratch;
+    private List<OfficeDiagnostic>? _diagnostics;
 
     /// <summary>Creates a reader over YAML text.</summary>
     /// <param name="yaml">The YAML text. A leading U+FEFF byte-order mark is skipped.</param>
@@ -122,6 +123,33 @@ public sealed partial class YamlReader : IDisposable {
             }
         }
     }
+
+    /// <summary>
+    /// Gets the schema the current document resolves untagged plain scalars with: <see cref="YamlReaderOptions.Schema"/>
+    /// when set; otherwise <see cref="YamlSchema.Yaml11"/> for a document that declares <c>%YAML 1.1</c> and
+    /// <see cref="YamlSchema.Core"/> for any other. It changes at each <see cref="YamlTokenType.DocumentStart"/>, so a
+    /// streaming consumer resolves values exactly as a loaded <see cref="YamlDocument"/> does.
+    /// </summary>
+    public YamlSchema Schema => _documentSchema;
+
+    /// <summary>
+    /// Gets the findings so far, in source order: each indentation the specification rejects that the reader accepted
+    /// because <see cref="YamlReaderOptions.Strict"/> is off (<see cref="OfficeDiagnosticCodes.YamlLenientIndentation"/>),
+    /// once per outermost flow collection and once per quoted scalar, with a line and column as the location. Empty, and
+    /// free, while there are none; the list grows as reading continues.
+    /// </summary>
+    public IReadOnlyList<OfficeDiagnostic> Diagnostics {
+        get {
+            List<YamlLenientFinding>? findings = _c.Findings;
+            if (findings is null) return Array.Empty<OfficeDiagnostic>();
+            List<OfficeDiagnostic> diagnostics = _diagnostics ??= new List<OfficeDiagnostic>(findings.Count);
+            for (int i = diagnostics.Count; i < findings.Count; i++) diagnostics.Add(findings[i].ToDiagnostic(null));
+            return diagnostics;
+        }
+    }
+
+    /// <summary>Gets the raw lenient-indentation findings so far, or <see langword="null"/>, for the document model.</summary>
+    internal List<YamlLenientFinding>? LenientFindings => _c.Findings;
 
     /// <summary>
     /// Advances to the next event. Returns <see langword="false"/> after <see cref="YamlTokenType.StreamEnd"/> has been read.

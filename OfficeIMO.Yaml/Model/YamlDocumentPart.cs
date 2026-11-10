@@ -57,6 +57,12 @@ public sealed class YamlDocumentPart {
     /// </summary>
     public YamlSchema Schema { get; }
 
+    /// <summary>
+    /// Whether <c>&lt;&lt;</c> keys merge in this document: always under <see cref="YamlSchema.Yaml11"/>, and under
+    /// <see cref="YamlSchema.Core"/> unless the document was loaded with <see cref="YamlLoadOptions.Strict"/>.
+    /// </summary>
+    internal bool MergeKeys => Schema == YamlSchema.Yaml11 || (Schema == YamlSchema.Core && !_document.Strict);
+
     /// <summary>Gets the version a <c>%YAML</c> directive declares, such as <c>1.1</c>, or <see langword="null"/> without one.</summary>
     public string? Version { get; }
 

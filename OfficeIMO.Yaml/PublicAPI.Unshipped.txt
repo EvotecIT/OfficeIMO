@@ -1,1 +1,7 @@
 #nullable enable
+OfficeIMO.Yaml.YamlLoadOptions.Strict.get -> bool
+OfficeIMO.Yaml.YamlLoadOptions.Strict.set -> void
+OfficeIMO.Yaml.YamlReader.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
+OfficeIMO.Yaml.YamlReaderOptions.Strict.get -> bool
+OfficeIMO.Yaml.YamlReaderOptions.Strict.set -> void
+OfficeIMO.Yaml.YamlReader.Schema.get -> OfficeIMO.Yaml.YamlSchema

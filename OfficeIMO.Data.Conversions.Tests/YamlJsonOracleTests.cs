@@ -62,6 +62,26 @@ public class YamlJsonOracleTests {
         Assert.True(difference == null, id + " " + difference + "\n" + System.Text.Encoding.UTF8.GetString(yaml.ToArray()));
     }
 
+    // A %YAML 1.1 document resolves the same through the streaming reader and the loaded document: 1.1 booleans,
+    // timestamps and merge keys alike.
+    [Fact]
+    public void StreamingAndModelRoutesAgreeOnYaml11Documents() {
+        const string yaml = "%YAML 1.1\n---\nbase: &b {size: 1, shared: yes}\nderived:\n  <<: *b\n  size: 2\nwhen: 2001-12-14 21:59:43.10 -5\nflag: off\n";
+        using var streamed = new MemoryStream();
+        DataConversionEngine.Convert(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(yaml)), DataFormat.Yaml, streamed, DataFormat.Json, null);
+        using YamlDocument document = YamlDocument.Parse(yaml);
+        using var modelled = new MemoryStream();
+        document.SaveAsJson(modelled);
+        string json = System.Text.Encoding.UTF8.GetString(streamed.ToArray());
+        Assert.Equal(json, System.Text.Encoding.UTF8.GetString(modelled.ToArray()));
+        using System.Text.Json.JsonDocument parsed = System.Text.Json.JsonDocument.Parse(json);
+        System.Text.Json.JsonElement root = parsed.RootElement;
+        Assert.Equal(2, root.GetProperty("derived").GetProperty("size").GetInt32());
+        Assert.True(root.GetProperty("derived").GetProperty("shared").GetBoolean());
+        Assert.False(root.GetProperty("flag").GetBoolean());
+        Assert.Equal("2001-12-14T21:59:43.10-05:00", root.GetProperty("when").GetString());
+    }
+
     // One document is the JSON value itself; several are the items of one array; none is null.
     private static IReadOnlyList<YamlConformanceNode> Documents(byte[] json, int expectedCount) {
         YamlConformanceNode value = YamlJsonReader.Read(System.Text.Encoding.UTF8.GetString(json));

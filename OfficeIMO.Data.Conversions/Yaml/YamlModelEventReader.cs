@@ -7,7 +7,6 @@ namespace OfficeIMO.Data.Conversions;
 /// (so <c>%YAML 1.1</c> documents resolve 1.1 timestamps and merge keys), its duplicate-key policy and its comments.
 /// </summary>
 internal sealed class YamlModelEventReader : DataEventReader {
-    private const string MergeTag = YamlScalarClassifier.TagPrefix + "merge";
     private readonly YamlDocument _document;
     private readonly bool _hasDuplicates;
     private readonly int _maxAliasExpansion;
@@ -48,6 +47,7 @@ internal sealed class YamlModelEventReader : DataEventReader {
         _maxAliasExpansion = context.Options.YamlReader?.MaxAliasExpansion ?? 100_000;
         foreach (OfficeDiagnostic diagnostic in document.Diagnostics) {
             if (diagnostic.Code == OfficeDiagnosticCodes.YamlDuplicateKey) _hasDuplicates = true;
+            else context.Report(diagnostic.Code, diagnostic.LossKind, diagnostic.Message, diagnostic.Location);
         }
 
         TrackDuplicateKeys = true;
@@ -202,11 +202,8 @@ internal sealed class YamlModelEventReader : DataEventReader {
         return builder.ToString();
     }
 
-    private bool IsMergeKey(YamlNode key) {
-        if (key is not YamlScalar scalar) return false;
-        if (scalar.Tag is { } tag) return tag == MergeTag;
-        return Yaml11 && scalar.Style == YamlStyle.Plain && scalar.AsString() == "<<";
-    }
+    // The document decides: YAML 1.1, or the core schema unless the document was loaded strictly.
+    private static bool IsMergeKey(YamlNode key) => key is YamlScalar scalar && scalar.Kind == YamlScalarKind.Merge;
 
     /// <summary>
     /// The entries a reader sees: merge keys replaced by the merged mappings' entries that are not set explicitly, and,
