@@ -846,4 +846,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string YamlAliasedNodeEdited = "yaml-aliased-node-edited";
     /// <summary>Stable code: <c>yaml-duplicate-key</c>.</summary>
     public const string YamlDuplicateKey = "yaml-duplicate-key";
+    /// <summary>Stable code: <c>yaml-lenient-indentation</c>.</summary>
+    public const string YamlLenientIndentation = "yaml-lenient-indentation";
+    /// <summary>Stable code: <c>yaml-merge-key-without-directive</c>.</summary>
+    public const string YamlMergeKeyWithoutDirective = "yaml-merge-key-without-directive";
 }
