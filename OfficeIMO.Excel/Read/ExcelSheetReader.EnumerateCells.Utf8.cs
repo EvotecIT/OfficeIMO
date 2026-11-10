@@ -28,17 +28,44 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!source!.CellsFitWithinRange
-                || !source.TryGetUsedBounds(out firstRow, out int firstColumn, out lastRow, out int lastColumn)
-                || firstColumn < declaredFirstColumn) {
+            if (!source!.TryGetUsedBounds(out firstRow, out int firstColumn, out lastRow, out int lastColumn)) {
                 source.Dispose();
                 source = null;
                 return false;
             }
 
+            if (!source.CellsFitWithinRange || firstColumn < declaredFirstColumn) {
+                // A worksheet without a dimension is proposed from its first row; a later row that starts further
+                // left falls outside it. The scan still found the real bounds, so index exactly those.
+                source.Dispose();
+                source = null;
+                if (!TryCreateEnumerateCellsUtf8Source(firstRow, lastRow, firstColumn, lastColumn, ct, out source)) return false;
+                declaredFirstColumn = firstColumn;
+            }
+
             firstOrdinal = firstColumn - declaredFirstColumn;
             lastOrdinal = lastColumn - declaredFirstColumn;
             return true;
+        }
+
+        private bool TryCreateEnumerateCellsUtf8Source(
+            int firstRow,
+            int lastRow,
+            int firstColumn,
+            int lastColumn,
+            CancellationToken ct,
+            out ExcelUtf8RangeRowSource? source) {
+            source = null;
+            try {
+                if (!ExcelUtf8RangeRowSource.TryCreate(this, firstRow, lastRow, firstColumn, lastColumn - firstColumn + 1, ct, out source)) return false;
+            } catch (Exception ex) when (ex is NotSupportedException or InvalidDataException or System.Xml.XmlException or FormatException) {
+                source = null;
+                return false;
+            }
+            if (source!.CellsFitWithinRange) return true;
+            source.Dispose();
+            source = null;
+            return false;
         }
 
         private static IEnumerable<ExcelCellValueInfo> EnumerateCellsUtf8(

@@ -60,7 +60,8 @@ namespace OfficeIMO.Excel {
                         return TryIndexSimpleInlineStringCell(ref position, tag, cellIndex);
                     }
 
-                    if (tag.IsEnd || !IsIndexedTag(tag) || (!LocalNameEquals(tag, "v") && !LocalNameEquals(tag, "f"))) {
+                    bool selfBound = !tag.IsEnd && !IsIndexedTag(tag) && IsSelfBoundSpreadsheetTag(tag);
+                    if (tag.IsEnd || (!IsIndexedTag(tag) && !selfBound) || (!LocalNameEquals(tag, "v") && !LocalNameEquals(tag, "f"))) {
                         return false;
                     }
 
@@ -87,7 +88,9 @@ namespace OfficeIMO.Excel {
 
                     if (!TryReadNextTag(ref position, _length, out Utf8Tag endTag)
                         || !endTag.IsEnd
-                        || !IsIndexedTag(endTag)
+                        || (selfBound
+                            ? !ByteRangesEqual(tag.NameStart, tag.NameEnd - tag.NameStart, endTag.NameStart, endTag.NameEnd - endTag.NameStart)
+                            : !IsIndexedTag(endTag))
                         || !LocalNamesEqual(tag, endTag)
                         || ContainsByte(tag.End + 1, endTag.Start, (byte)'<')) {
                         return false;

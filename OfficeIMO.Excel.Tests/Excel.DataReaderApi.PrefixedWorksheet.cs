@@ -93,6 +93,40 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData("self-bound-formula")]
+    [InlineData("undeclared-range-widens")]
+    public void EnumerateCells_ReturnsEveryCellForWriterShapesOutsideTheCompactLayout(string shape) {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.EnumerateShapes.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                document.AddSheet("Data").Cell(1, 1).SetValue(1);
+                document.Save();
+            }
+            const string main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            string rows = shape == "self-bound-formula"
+                // The Open XML SDK writes a formula created in code this way under a default-namespace root.
+                ? $"<row r=\"1\"><c r=\"A1\"><v>2</v></c><c r=\"B1\" t=\"n\"><x:f ca=\"0\" xmlns:x=\"{main}\">A1*3</x:f><v>6</v></c></row>"
+                // No dimension, and the second row starts left of the first.
+                : "<row r=\"1\"><c r=\"B1\"><v>2</v></c><c r=\"C1\"><v>3</v></c></row><row r=\"2\"><c r=\"A2\"><v>1</v></c><c r=\"C2\"><v>4</v></c></row>";
+            string worksheet = $"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"{main}\"><sheetData>{rows}</sheetData></worksheet>";
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(worksheet));
+
+            using var loaded = ExcelDocument.Load(new MemoryStream(File.ReadAllBytes(path)));
+            string[] Read(bool cachedFormulaResults) => loaded.Sheets[0]
+                .EnumerateCells(new ExcelReaderOptions { UseCachedFormulaResult = cachedFormulaResults })
+                .Select(cell => $"{ExcelA1.CellReference(cell.Row, cell.Column)}={cell.Value}").ToArray();
+            if (shape == "self-bound-formula") {
+                Assert.Equal(new[] { "A1=2", "B1=6" }, Read(cachedFormulaResults: true));
+                Assert.Equal(new[] { "A1=2", "B1=A1*3" }, Read(cachedFormulaResults: false));
+            } else {
+                Assert.Equal(new[] { "B1=2", "C1=3", "A2=1", "C2=4" }, Read(cachedFormulaResults: true));
+            }
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void DataReader_PrefixedWorksheetRetainsFallbackForMixedElementPrefixes() {
         string path = CreateCompactFastPathWorkbook();
