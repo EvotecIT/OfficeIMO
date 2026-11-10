@@ -635,3 +635,23 @@ OfficeIMO.Word.WordStyle.SuppressAutoHyphens.get -> bool?
 OfficeIMO.Word.WordStyle.SuppressAutoHyphens.set -> void
 OfficeIMO.Word.WordStyle.MirrorIndents.get -> bool?
 OfficeIMO.Word.WordStyle.MirrorIndents.set -> void
+OfficeIMO.Word.WordBookmark.GetRange() -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordBookmark.Text.get -> string!
+OfficeIMO.Word.WordBookmark.Text.set -> void
+OfficeIMO.Word.WordDocument.ReplaceAll(System.Text.RegularExpressions.Regex! pattern, System.Action<System.Text.RegularExpressions.Match!, OfficeIMO.Word.WordParagraph!>! content) -> int
+OfficeIMO.Word.WordDocument.ReplaceAll(System.Text.RegularExpressions.Regex! pattern, System.Text.RegularExpressions.MatchEvaluator! evaluator) -> int
+OfficeIMO.Word.WordDocument.ReplaceAll(System.Text.RegularExpressions.Regex! pattern, string! replacement) -> int
+OfficeIMO.Word.WordParagraph.GetRange() -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordParagraph.GetRange(int start, int length) -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordRange
+OfficeIMO.Word.WordRange.AddBookmark(string! name) -> OfficeIMO.Word.WordBookmark!
+OfficeIMO.Word.WordRange.AddComment(string! author, string! initials, System.Action<OfficeIMO.Word.WordParagraph!>! content) -> OfficeIMO.Word.WordComment!
+OfficeIMO.Word.WordRange.AddComment(string! author, string! initials, string! text) -> OfficeIMO.Word.WordComment!
+OfficeIMO.Word.WordRange.AddHyperLink(System.Uri! uri) -> OfficeIMO.Word.WordHyperLink!
+OfficeIMO.Word.WordRange.AddHyperLink(string! anchor) -> OfficeIMO.Word.WordHyperLink!
+OfficeIMO.Word.WordRange.ExtendTo(OfficeIMO.Word.WordRange! end) -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordRange.Format(System.Action<OfficeIMO.Word.WordParagraph!>! format) -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordRange.Replace(System.Action<OfficeIMO.Word.WordParagraph!>! content) -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordRange.Replace(string! text) -> OfficeIMO.Word.WordRange!
+OfficeIMO.Word.WordRange.Text.get -> string!
+OfficeIMO.Word.WordSearchResult.Ranges.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordRange!>!

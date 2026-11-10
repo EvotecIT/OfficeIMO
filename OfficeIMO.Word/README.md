@@ -111,7 +111,35 @@ document.AddParagraph($"Updated on {DateTime.Today:d}; {replaced} replacements."
 document.Save("Status-updated.docx");
 ```
 
-`Find` and `ReplaceAll` match ordinally and ignore case by default; pass `new OfficeTextSearchOptions { MatchCase = true }` or `WholeWords = true` to change that. `Find` returns a `WordSearchResult` with the matching paragraphs per document part and the match count, for both literal text and a `Regex`.
+`Find` and `ReplaceAll` match ordinally and ignore case by default; pass `new OfficeTextSearchOptions { MatchCase = true }` or `WholeWords = true` to change that. `Find` returns a `WordSearchResult` with the matching paragraphs per document part, the match count and each match as a `WordRange`, for both literal text and a `Regex`.
+
+### Text ranges
+
+A `WordRange` is a span of text that can start and end inside runs and cross paragraphs, in the body, tables, headers, footers, footnotes and endnotes. Get one from a search hit, a bookmark (`bookmark.GetRange()`) or a paragraph (`paragraph.GetRange(start, length)`, extended with `ExtendTo`). Read `Text`, then replace, format, bookmark, comment on or link it:
+
+```csharp
+using System.Text.RegularExpressions;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("Contract.docx");
+
+// Regex replace with group substitution, a callback, or formatted content.
+document.ReplaceAll(new Regex(@"(\d{2})/(\d{2})/(\d{4})"), "$3-$2-$1");
+document.ReplaceAll(new Regex(@"\bTBD\b"), match => "to be confirmed");
+document.ReplaceAll(new Regex(@"\[(.+?)\]\((.+?)\)"),
+    (match, p) => p.AddHyperLink(match.Groups[1].Value, new Uri(match.Groups[2].Value), addStyle: true));
+
+WordRange amount = document.Find("1,000 EUR").Ranges[0];
+amount.AddBookmark("Amount");                   // spans exactly "1,000 EUR"; REF fields show it
+amount.AddComment("Przemysław", "PK", c => c.AddText("Confirm with ").AddText("finance").SetBold());
+document.Bookmarks.First(b => b.Name == "Amount").Text = "2,500 EUR";
+
+foreach (WordRange hit in document.Find("OfficeIMO").Ranges) hit.Format(run => run.SetBold());
+document.Find("officeimo.com").Ranges[0].AddHyperLink(new Uri("https://officeimo.com"));
+document.Save();
+```
+
+`Replace(string)` gives the new text the formatting of the first replaced character; `Replace(p => ...)` inserts formatted text, hyperlinks, images or fields. Replacing a range moves the ranges after it, so search hits can be replaced in order. Edits that could damage the document throw `InvalidOperationException` and change nothing: field results, tracked changes, equations, drawings, footnote references, part of a content control, paragraph joins across a table or section break, and comments in headers or footers. Regex `ReplaceAll` checks every match before replacing any.
 
 `Save()` writes to the path the document was created or loaded with; `Save(path)` writes a copy and keeps working on it. For files from outside your organization, load with `WordLoadOptions.UntrustedDefaults`, which rejects macros, embedded objects, ActiveX and external relationships before parsing.
 
