@@ -22,10 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="YamlDotNet" Version="18.0.0" />
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Yaml\OfficeIMO.Yaml.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,9 +36,7 @@
   <ItemGroup>
     <Using Include="System.Globalization" />
     <Using Include="System.Text" />
-    <Using Include="YamlDotNet.Core" />
-    <Using Include="YamlDotNet.Core.Events" />
-    <Using Include="YamlDotNet.RepresentationModel" />
+    <Using Include="OfficeIMO.Yaml" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />

@@ -4,10 +4,10 @@ namespace OfficeIMO.Reader.Yaml;
 /// YAML ingestion helpers for <see cref="OfficeDocumentReader"/>.
 /// </summary>
 internal static class YamlReaderAdapter {
-    private const int MaxKeyTextLength = 512;
+    private static readonly string[] Columns = { "Path", "Type", "Value" };
 
     /// <summary>
-    /// Reads YAML content from a path with representation-model-aware chunking.
+    /// Reads YAML content from a path into path/type/value chunks.
     /// </summary>
     public static IEnumerable<ReaderChunk> Read(string path, ReaderOptions? readerOptions = null, YamlReadOptions? yamlOptions = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(path);
@@ -25,615 +25,257 @@ internal static class YamlReaderAdapter {
     }
 
     /// <summary>
-    /// Reads YAML content from a stream with representation-model-aware chunking.
+    /// Reads YAML content from a stream into path/type/value chunks.
     /// </summary>
     public static IEnumerable<ReaderChunk> Read(Stream stream, string? sourceName = null, ReaderOptions? readerOptions = null, YamlReadOptions? yamlOptions = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
-        var options = Normalize(yamlOptions);
         var sourcePath = BuildLogicalSourcePath(sourceName, "document.yaml");
-        return Read(stream, BuildSourceMetadataFromLogicalStream(sourcePath), effectiveReaderOptions, options, cancellationToken);
+        return Read(stream, BuildSourceMetadataFromLogicalStream(sourcePath), effectiveReaderOptions, yamlOptions, cancellationToken);
     }
 
     private static IEnumerable<ReaderChunk> Read(Stream stream, SourceMetadata source, ReaderOptions effectiveReaderOptions, YamlReadOptions? yamlOptions, CancellationToken cancellationToken) {
-        var options = Normalize(yamlOptions);
+        int chunkRows = Math.Max(1, yamlOptions?.ChunkRows ?? new YamlReadOptions().ChunkRows);
+        bool includeMarkdown = yamlOptions?.IncludeMarkdown ?? true;
         var sourcePath = source.Path;
+        bool computeHashes = effectiveReaderOptions.ComputeHashes;
 
+        YamlDocument? document = null;
+        string? parseError = null;
         var parseStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
             effectiveReaderOptions.MaxInputBytes,
             cancellationToken,
             out var ownsParseStream);
-        UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes);
-        long parseStartPosition = parseStream.CanSeek ? parseStream.Position : 0;
-
-        YamlStream? yaml = null;
-        string? parseError = null;
         try {
-            try {
-                parseStream.Position = parseStartPosition;
-                using var reader = new StreamReader(parseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
-                var parser = new LimitingParser(new Parser(reader), options);
-                yaml = new YamlStream();
-                yaml.Load(parser);
-            } catch (YamlLimitException ex) {
-                parseError = ex.Message;
-            } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
-                parseError = "YAML parse error: " + ex.GetType().Name + ".";
-            }
-
-            if (parseError != null) {
-                yield return EnrichChunk(BuildWarningChunk(sourcePath, "yaml-warning-0000", parseError), source, effectiveReaderOptions.ComputeHashes);
-                yield break;
-            }
-
-            if (yaml == null || yaml.Documents.Count == 0) {
-                yield return EnrichChunk(BuildWarningChunk(sourcePath, "yaml-warning-0001", "YAML stream does not contain any documents."), source, effectiveReaderOptions.ComputeHashes);
-                yield break;
-            }
-
-            var rows = new List<StructuredRow>(capacity: 1024);
-            var state = new TraversalState();
-            var useDocumentPrefix = yaml.Documents.Count > 1;
-            for (int documentIndex = 0; documentIndex < yaml.Documents.Count; documentIndex++) {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var document = yaml.Documents[documentIndex];
-                var rootPath = useDocumentPrefix
-                    ? "$[" + documentIndex.ToString(CultureInfo.InvariantCulture) + "]"
-                    : "$";
-
-                if (document.RootNode == null) {
-                    rows.Add(new StructuredRow(rootPath, "null", "null"));
-                    continue;
-                }
-
-                TraverseYaml(document.RootNode, rootPath, depth: 0, options, rows, state, cancellationToken);
-                if (state.NodeLimitEmitted) {
-                    break;
-                }
-            }
-
-            foreach (var chunk in BuildStructuredChunks(source, rows, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
-                yield return chunk;
-            }
+            UpdateSourceMetadataFromSeekableStream(source, parseStream, computeHashes);
+            cancellationToken.ThrowIfCancellationRequested();
+            document = YamlDocument.Load(parseStream, BuildLoadOptions(yamlOptions?.LoadOptions, effectiveReaderOptions.MaxInputBytes));
+        } catch (YamlException ex) {
+            parseError = "YAML parse error (" + ex.Code + "): " + ex.Message;
         } finally {
             if (ownsParseStream) {
                 parseStream.Dispose();
             }
         }
-    }
 
-    private sealed class LimitingParser : IParser {
-        private readonly IParser _inner;
-        private readonly YamlReadOptions _options;
-        private int _events;
-        private int _nodes;
-        private int _containerDepth;
-
-        public LimitingParser(IParser inner, YamlReadOptions options) {
-            _inner = inner;
-            _options = options;
-        }
-
-        public ParsingEvent? Current => _inner.Current;
-
-        public bool MoveNext() {
-            if (!_inner.MoveNext()) {
-                return false;
-            }
-
-            _events++;
-            if (_events > _options.MaxParseEvents) {
-                throw new YamlLimitException("YAML parse limit exceeded: maximum parse event count reached.");
-            }
-
-            switch (_inner.Current) {
-                case MappingStart:
-                case SequenceStart:
-                    _nodes++;
-                    _containerDepth++;
-                    if (_containerDepth > _options.MaxDepth + 1) {
-                        throw new YamlLimitException("YAML parse limit exceeded: maximum depth reached.");
-                    }
-                    break;
-                case MappingEnd:
-                case SequenceEnd:
-                    _containerDepth = Math.Max(0, _containerDepth - 1);
-                    break;
-                case Scalar:
-                case AnchorAlias:
-                    _nodes++;
-                    if (_containerDepth > _options.MaxDepth) {
-                        throw new YamlLimitException("YAML parse limit exceeded: maximum depth reached.");
-                    }
-                    break;
-            }
-
-            if (_nodes > _options.MaxNodes) {
-                throw new YamlLimitException("YAML parse limit exceeded: maximum node count reached.");
-            }
-
-            if (_inner.Current is Scalar scalar &&
-                scalar.Value != null &&
-                scalar.Value.Length > _options.MaxScalarLength) {
-                throw new YamlLimitException("YAML parse limit exceeded: scalar length exceeds maximum.");
-            }
-
-            return true;
-        }
-    }
-
-    private sealed class YamlLimitException : Exception {
-        public YamlLimitException(string message) : base(message) { }
-    }
-
-    private static IEnumerable<ReaderChunk> BuildStructuredChunks(
-        SourceMetadata source,
-        IReadOnlyList<StructuredRow> rows,
-        YamlReadOptions options,
-        bool computeHashes,
-        CancellationToken cancellationToken) {
-        if (rows.Count == 0) {
+        if (parseError != null) {
+            yield return EnrichChunk(BuildWarningChunk(sourcePath, "yaml-warning-0000", parseError), source, computeHashes);
             yield break;
         }
 
-        var path = source.Path;
-        int index = 0;
+        if (document!.Documents.Count == 0) {
+            yield return EnrichChunk(BuildWarningChunk(sourcePath, "yaml-warning-0001", "YAML stream does not contain any documents."), source, computeHashes);
+            yield break;
+        }
+
+        string[]? loadWarnings = null;
+        if (document.Diagnostics.Count > 0) {
+            loadWarnings = new string[document.Diagnostics.Count];
+            for (int i = 0; i < loadWarnings.Length; i++) {
+                var diagnostic = document.Diagnostics[i];
+                loadWarnings[i] = "YAML warning (" + diagnostic.Code + "): " + diagnostic.Message;
+            }
+        }
+
+        var rows = new List<StructuredRow>(Math.Min(chunkRows, 1024));
+        var stack = new Stack<PendingNode>();
+        bool useDocumentPrefix = document.Documents.Count > 1;
         int chunkIndex = 0;
-        while (index < rows.Count) {
-            cancellationToken.ThrowIfCancellationRequested();
+        int rowIndex = 0;
+        for (int documentIndex = 0; documentIndex < document.Documents.Count; documentIndex++) {
+            var rootPath = useDocumentPrefix
+                ? "$[" + documentIndex.ToString(CultureInfo.InvariantCulture) + "]"
+                : "$";
+            var root = document.Documents[documentIndex].Root;
+            stack.Push(new PendingNode(root, rootPath, root));
 
-            int take = Math.Min(options.ChunkRows, rows.Count - index);
-            var slice = new List<StructuredRow>(take);
-            for (int i = 0; i < take; i++) {
-                slice.Add(rows[index + i]);
+            while (stack.Count > 0) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var pending = stack.Pop();
+                AddRows(pending, rows, stack, document.Diagnostics.Count > 0);
+
+                if (rows.Count == chunkRows) {
+                    yield return BuildChunk(source, rows, chunkIndex, rowIndex, includeMarkdown, computeHashes, chunkIndex == 0 ? loadWarnings : null);
+                    rowIndex += rows.Count;
+                    rows.Clear();
+                    chunkIndex++;
+                }
             }
 
-            var tableRows = slice
-                .Select(static r => (IReadOnlyList<string>)new[] { r.Path, r.Type, r.Value })
-                .ToArray();
-            var columns = new[] { "Path", "Type", "Value" };
-
-            var table = new ReaderTable {
-                Title = Path.GetFileName(path),
-                Columns = columns,
-                ColumnProfiles = ReaderTableProfiler.CreateProfiles(columns, tableRows),
-                Rows = tableRows,
-                TotalRowCount = slice.Count,
-                Truncated = false
-            };
-
-            yield return EnrichChunk(new ReaderChunk {
-                Id = "yaml-" + chunkIndex.ToString("D4", CultureInfo.InvariantCulture),
-                Kind = ReaderInputKind.Yaml,
-                Location = new ReaderLocation {
-                    Path = path,
-                    BlockIndex = chunkIndex,
-                    SourceBlockIndex = index
-                },
-                Text = BuildPlain(slice),
-                Markdown = options.IncludeMarkdown ? BuildMarkdown(slice) : null,
-                Tables = new[] { table }
-            }, source, computeHashes);
-
-            index += take;
-            chunkIndex++;
+            // Each document of a multi-document stream starts a new chunk.
+            if (rows.Count > 0) {
+                yield return BuildChunk(source, rows, chunkIndex, rowIndex, includeMarkdown, computeHashes, chunkIndex == 0 ? loadWarnings : null);
+                rowIndex += rows.Count;
+                rows.Clear();
+                chunkIndex++;
+            }
         }
     }
 
-    private static void TraverseYaml(
-        YamlNode node,
-        string path,
-        int depth,
-        YamlReadOptions options,
-        List<StructuredRow> rows,
-        TraversalState state,
-        CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (state.NodeLimitEmitted) {
-            return;
-        }
-
-        if (!TryVisitNode(path, options, rows, state)) {
-            return;
-        }
-
-        if (depth > options.MaxDepth) {
-            rows.Add(new StructuredRow(path, "depth-limit", "(max depth reached)"));
-            return;
-        }
-
+    /// <summary>
+    /// Emits the row for a scalar or empty collection, or queues the entries of a collection in document order.
+    /// Aliases expand to their anchored node; their rows keep the alias's source lines.
+    /// </summary>
+    private static void AddRows(PendingNode pending, List<StructuredRow> rows, Stack<PendingNode> stack, bool hasDuplicateKeys) {
+        var node = pending.Node is YamlAlias alias ? alias.Target : pending.Node;
+        // Inside an alias expansion every row reports the alias's lines rather than the anchored node's.
+        bool expanded = pending.Node is YamlAlias || !ReferenceEquals(pending.Location, pending.Node);
         switch (node) {
-            case YamlScalarNode scalar:
-                rows.Add(new StructuredRow(path, ClassifyScalar(scalar), NormalizeScalarValue(scalar)));
+            case YamlScalar scalar:
+                rows.Add(new StructuredRow(pending.Path, Classify(scalar, out var value), value, pending.Location));
                 break;
-            case YamlSequenceNode sequence:
-                if (sequence.Children.Count == 0) {
-                    rows.Add(new StructuredRow(path, "sequence", "[]"));
+            case YamlSequence sequence:
+                if (sequence.Count == 0) {
+                    rows.Add(new StructuredRow(pending.Path, "sequence", "[]", pending.Location));
                     break;
                 }
 
-                for (int i = 0; i < sequence.Children.Count; i++) {
-                    TraverseYaml(
-                        sequence.Children[i],
-                        path + "[" + i.ToString(CultureInfo.InvariantCulture) + "]",
-                        depth + 1,
-                        options,
-                        rows,
-                        state,
-                        cancellationToken);
-
-                    if (state.NodeLimitEmitted) {
-                        break;
-                    }
+                for (int i = sequence.Count - 1; i >= 0; i--) {
+                    var item = sequence[i];
+                    stack.Push(new PendingNode(
+                        item,
+                        pending.Path + "[" + i.ToString(CultureInfo.InvariantCulture) + "]",
+                        expanded ? pending.Location : item));
                 }
 
                 break;
-            case YamlMappingNode mapping:
-                if (mapping.Children.Count == 0) {
-                    rows.Add(new StructuredRow(path, "mapping", "{}"));
+            case YamlMapping mapping:
+                if (mapping.Count == 0) {
+                    rows.Add(new StructuredRow(pending.Path, "mapping", "{}", pending.Location));
                     break;
                 }
 
-                foreach (var child in mapping.Children) {
-                    if (!TryAppendKeyPath(path, child.Key, depth + 1, options, rows, state, cancellationToken, out var childPath)) {
-                        break;
+                for (int i = mapping.Count - 1; i >= 0; i--) {
+                    var entry = mapping[i];
+                    var keyText = GetKeyText(entry.Key, out bool scalarKey);
+                    // Under a lenient duplicate-key policy only the entry a lookup returns is reported, so every path selects its node.
+                    if (hasDuplicateKeys && scalarKey && mapping.TryGetValue(keyText, out var winner) && !ReferenceEquals(winner, entry.Value)) {
+                        continue;
                     }
 
-                    TraverseYaml(
-                        child.Value,
-                        childPath,
-                        depth + 1,
-                        options,
-                        rows,
-                        state,
-                        cancellationToken);
-
-                    if (state.NodeLimitEmitted) {
-                        break;
-                    }
+                    stack.Push(new PendingNode(
+                        entry.Value,
+                        AppendKeyPath(pending.Path, keyText),
+                        expanded ? pending.Location : entry.Value));
                 }
 
-                break;
-            default:
-                rows.Add(new StructuredRow(path, node.NodeType.ToString().ToLowerInvariant(), NormalizeText(node.ToString())));
                 break;
         }
     }
 
-    private static bool TryVisitNode(string path, YamlReadOptions options, List<StructuredRow> rows, TraversalState state) {
-        if (state.NodesVisited >= options.MaxNodes) {
-            if (!state.NodeLimitEmitted) {
-                rows.Add(new StructuredRow(path, "node-limit", "(max nodes reached)"));
-                state.NodeLimitEmitted = true;
-            }
-
-            return false;
+    /// <summary>
+    /// Returns the exact text a key is addressed by: the decoded value of a scalar key (through an alias), or the
+    /// source text of a collection key.
+    /// </summary>
+    private static string GetKeyText(YamlNode key, out bool scalarKey) {
+        var resolved = key is YamlAlias alias ? alias.Target : key;
+        if (resolved is YamlScalar scalar) {
+            scalarKey = true;
+            return scalar.AsString();
         }
 
-        state.NodesVisited++;
-        return true;
+        scalarKey = false;
+        return resolved.ToString();
     }
 
-    private static bool TryAppendKeyPath(
-        string path,
-        YamlNode key,
-        int depth,
-        YamlReadOptions options,
-        List<StructuredRow> rows,
-        TraversalState state,
-        CancellationToken cancellationToken,
-        out string childPath) {
-        childPath = path;
-        if (!TryGetKeyText(key, path + "[key]", depth, options, rows, state, cancellationToken, out var keyText)) {
-            return false;
-        }
-
+    private static string AppendKeyPath(string path, string keyText) {
         if (IsSimplePathIdentifier(keyText)) {
-            childPath = path + "." + keyText;
-            return true;
+            return path + "." + keyText;
         }
 
-        childPath = path + "[\"" + EscapePathString(keyText) + "\"]";
-        return true;
+        return path + "[\"" + EscapePathString(keyText) + "\"]";
     }
 
-    private static bool TryGetKeyText(
-        YamlNode key,
-        string path,
-        int depth,
-        YamlReadOptions options,
-        List<StructuredRow> rows,
-        TraversalState state,
-        CancellationToken cancellationToken,
-        out string keyText) {
-        cancellationToken.ThrowIfCancellationRequested();
-        keyText = string.Empty;
-
-        if (!TryVisitNode(path, options, rows, state)) {
-            return false;
+    /// <summary>
+    /// Classifies a scalar through its document's schema (YAML 1.2 core, or YAML 1.1 for <c>%YAML 1.1</c> documents) and
+    /// explicit tags, and returns its decoded value.
+    /// </summary>
+    private static string Classify(YamlScalar scalar, out string value) {
+        if (scalar.IsNull) {
+            value = "null";
+            return "null";
         }
 
-        if (depth > options.MaxDepth) {
-            rows.Add(new StructuredRow(path, "depth-limit", "(max depth reached)"));
-            keyText = "(max depth reached)";
-            return true;
+        value = scalar.AsString();
+        if (scalar.TryGetValue<bool>(out _)) {
+            return "boolean";
         }
 
-        if (key is YamlScalarNode scalar) {
-            keyText = LimitKeyText(NormalizeText(scalar.Value ?? string.Empty));
-            return true;
-        }
-
-        var sb = new StringBuilder();
-        AppendKeyText(key, path, depth, options, rows, state, cancellationToken, sb);
-        keyText = sb.ToString();
-        return true;
-    }
-
-    private static void AppendKeyText(
-        YamlNode key,
-        string path,
-        int depth,
-        YamlReadOptions options,
-        List<StructuredRow> rows,
-        TraversalState state,
-        CancellationToken cancellationToken,
-        StringBuilder sb) {
-        if (state.NodeLimitEmitted || sb.Length >= MaxKeyTextLength) {
-            return;
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        switch (key) {
-            case YamlScalarNode scalar:
-                AppendKeyTextFragment(sb, NormalizeText(scalar.Value ?? string.Empty));
-                break;
-            case YamlSequenceNode sequence:
-                AppendKeyTextFragment(sb, "[");
-                for (int i = 0; i < sequence.Children.Count; i++) {
-                    if (i > 0) AppendKeyTextFragment(sb, ",");
-                    if (!TryGetKeyText(sequence.Children[i], path + "[" + i.ToString(CultureInfo.InvariantCulture) + "]", depth + 1, options, rows, state, cancellationToken, out var childText)) {
-                        break;
-                    }
-
-                    AppendKeyTextFragment(sb, childText);
-                    if (state.NodeLimitEmitted || sb.Length >= MaxKeyTextLength) break;
-                }
-
-                AppendKeyTextFragment(sb, "]");
-                break;
-            case YamlMappingNode mapping:
-                AppendKeyTextFragment(sb, "{");
-                var index = 0;
-                foreach (var child in mapping.Children) {
-                    if (index > 0) AppendKeyTextFragment(sb, ",");
-                    if (!TryGetKeyText(child.Key, path + ".key" + index.ToString(CultureInfo.InvariantCulture), depth + 1, options, rows, state, cancellationToken, out var childKeyText)) {
-                        break;
-                    }
-
-                    AppendKeyTextFragment(sb, childKeyText);
-                    AppendKeyTextFragment(sb, ":");
-                    if (!TryGetKeyText(child.Value, path + ".value" + index.ToString(CultureInfo.InvariantCulture), depth + 1, options, rows, state, cancellationToken, out var childValueText)) {
-                        break;
-                    }
-
-                    AppendKeyTextFragment(sb, childValueText);
-                    index++;
-                    if (state.NodeLimitEmitted || sb.Length >= MaxKeyTextLength) break;
-                }
-
-                AppendKeyTextFragment(sb, "}");
-                break;
-            default:
-                AppendKeyTextFragment(sb, NormalizeText(key.NodeType.ToString()));
-                break;
-        }
-    }
-
-    private static void AppendKeyTextFragment(StringBuilder sb, string value) {
-        if (sb.Length >= MaxKeyTextLength) {
-            return;
-        }
-
-        var remaining = MaxKeyTextLength - sb.Length;
-        if (value.Length <= remaining) {
-            sb.Append(value);
-            return;
-        }
-
-        if (remaining > 1) {
-            sb.Append(value, 0, remaining - 1);
-        }
-
-        sb.Append("...");
-    }
-
-    private static string LimitKeyText(string value) {
-        if (value.Length <= MaxKeyTextLength) {
-            return value;
-        }
-
-        return value.Substring(0, MaxKeyTextLength - 3) + "...";
-    }
-
-    private static string ClassifyScalar(YamlScalarNode scalar) {
-        var value = scalar.Value;
-        if (TryClassifyExplicitTag(scalar, out var explicitKind)) {
-            return explicitKind;
-        }
-
-        if (scalar.Style == ScalarStyle.Plain && !HasExplicitStringTag(scalar)) {
-            if (IsYamlNull(value)) {
-                return "null";
-            }
-
-            if (IsYamlBoolean(value)) {
-                return "boolean";
-            }
-
-            if (IsYamlNumber(value)) {
-                return "number";
-            }
+        if (scalar.TryGetValue<double>(out _)) {
+            return "number";
         }
 
         return "string";
     }
 
-    private static string NormalizeScalarValue(YamlScalarNode scalar) {
-        var value = scalar.Value;
-        if ((TryClassifyExplicitTag(scalar, out var explicitKind) && explicitKind == "null") ||
-            (scalar.Style == ScalarStyle.Plain && !HasExplicitStringTag(scalar) && IsYamlNull(value))) {
-            return "null";
+    private static YamlLoadOptions BuildLoadOptions(YamlLoadOptions? configured, long? maxInputBytes) {
+        var options = CopyLoadOptions(configured) ?? new YamlLoadOptions();
+        if (maxInputBytes is > 0 && (options.MaxInputBytes is null || options.MaxInputBytes > maxInputBytes)) {
+            options.MaxInputBytes = maxInputBytes;
         }
 
-        if (scalar.Style == ScalarStyle.Literal || scalar.Style == ScalarStyle.Folded) {
-            return NormalizeBlockScalarValue(value ?? string.Empty);
-        }
-
-        if (scalar.Style == ScalarStyle.SingleQuoted ||
-            scalar.Style == ScalarStyle.DoubleQuoted ||
-            HasExplicitStringTag(scalar)) {
-            return value ?? string.Empty;
-        }
-
-        return NormalizeText(value ?? string.Empty);
+        return options;
     }
 
-    private static bool HasExplicitStringTag(YamlScalarNode scalar) {
-        var tag = scalar.Tag.ToString();
-        return string.Equals(tag, "tag:yaml.org,2002:str", StringComparison.Ordinal) ||
-               string.Equals(tag, "!!str", StringComparison.Ordinal);
+    internal static YamlLoadOptions? CopyLoadOptions(YamlLoadOptions? options) {
+        if (options == null) return null;
+
+        return new YamlLoadOptions {
+            Schema = options.Schema,
+            DuplicateKeys = options.DuplicateKeys,
+            MaxDepth = options.MaxDepth,
+            MaxNodes = options.MaxNodes,
+            MaxAliasExpansion = options.MaxAliasExpansion,
+            MaxScalarLength = options.MaxScalarLength,
+            MaxInputBytes = options.MaxInputBytes
+        };
     }
 
-    private static bool TryClassifyExplicitTag(YamlScalarNode scalar, out string kind) {
-        var tag = scalar.Tag.ToString();
-        if (string.Equals(tag, "tag:yaml.org,2002:str", StringComparison.Ordinal) ||
-            string.Equals(tag, "!!str", StringComparison.Ordinal)) {
-            kind = "string";
-            return true;
+    private static ReaderChunk BuildChunk(
+        SourceMetadata source,
+        List<StructuredRow> rows,
+        int chunkIndex,
+        int rowIndex,
+        bool includeMarkdown,
+        bool computeHashes,
+        string[]? warnings) {
+        var tableRows = new IReadOnlyList<string>[rows.Count];
+        int startLine = int.MaxValue;
+        int endLine = 0;
+        for (int i = 0; i < rows.Count; i++) {
+            var row = rows[i];
+            tableRows[i] = new[] { row.Path, row.Type, row.Value };
+            startLine = Math.Min(startLine, row.Location.Start.Line);
+            endLine = Math.Max(endLine, row.Location.End.Line);
         }
 
-        if (string.Equals(tag, "tag:yaml.org,2002:null", StringComparison.Ordinal) ||
-            string.Equals(tag, "!!null", StringComparison.Ordinal)) {
-            kind = "null";
-            return true;
-        }
+        var table = new ReaderTable {
+            Title = Path.GetFileName(source.Path),
+            Columns = Columns,
+            ColumnProfiles = ReaderTableProfiler.CreateProfiles(Columns, tableRows),
+            Rows = tableRows,
+            TotalRowCount = rows.Count,
+            Truncated = false
+        };
 
-        if (string.Equals(tag, "tag:yaml.org,2002:bool", StringComparison.Ordinal) ||
-            string.Equals(tag, "!!bool", StringComparison.Ordinal)) {
-            kind = "boolean";
-            return true;
-        }
-
-        if (string.Equals(tag, "tag:yaml.org,2002:int", StringComparison.Ordinal) ||
-            string.Equals(tag, "tag:yaml.org,2002:float", StringComparison.Ordinal) ||
-            string.Equals(tag, "!!int", StringComparison.Ordinal) ||
-            string.Equals(tag, "!!float", StringComparison.Ordinal)) {
-            kind = "number";
-            return true;
-        }
-
-        kind = string.Empty;
-        return false;
-    }
-
-    private static string NormalizeBlockScalarValue(string value) {
-        if (value.Length == 0) return string.Empty;
-
-        var normalized = value.Replace("\r\n", "\n").Replace('\r', '\n');
-
-        return normalized;
-    }
-
-    private static bool IsYamlNull(string? value) {
-        if (value == null) return true;
-
-        var trimmed = value!.Trim();
-        return trimmed.Length == 0 ||
-               string.Equals(trimmed, "~", StringComparison.Ordinal) ||
-               string.Equals(trimmed, "null", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsYamlBoolean(string? value) {
-        if (value == null) return false;
-
-        var trimmed = value!.Trim();
-        return string.Equals(trimmed, "true", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(trimmed, "false", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsYamlNumber(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) return false;
-
-        var trimmed = value!.Trim();
-        if (trimmed.Equals(".", StringComparison.Ordinal) ||
-            trimmed.Equals("+", StringComparison.Ordinal) ||
-            trimmed.Equals("-", StringComparison.Ordinal)) {
-            return false;
-        }
-
-        if (IsYamlPrefixedInteger(trimmed)) {
-            return true;
-        }
-
-        var normalized = trimmed.Replace("_", string.Empty);
-        return double.TryParse(
-            normalized,
-            NumberStyles.Float,
-            CultureInfo.InvariantCulture,
-            out var number) &&
-            !double.IsNaN(number) &&
-            !double.IsInfinity(number);
-    }
-
-    private static bool IsYamlPrefixedInteger(string value) {
-        var offset = value.StartsWith("+", StringComparison.Ordinal) || value.StartsWith("-", StringComparison.Ordinal)
-            ? 1
-            : 0;
-        if (value.Length <= offset + 2 || value[offset] != '0') {
-            return false;
-        }
-
-        var prefix = value[offset + 1];
-        if (prefix == 'x' || prefix == 'X') {
-            return HasOnlyDigits(value, offset + 2, IsHexDigit);
-        }
-
-        if (prefix == 'o' || prefix == 'O') {
-            return HasOnlyDigits(value, offset + 2, static c => c is >= '0' and <= '7');
-        }
-
-        return false;
-    }
-
-    private static bool HasOnlyDigits(string value, int start, Func<char, bool> isDigit) {
-        var sawDigit = false;
-        for (var i = start; i < value.Length; i++) {
-            var c = value[i];
-            if (c == '_') {
-                continue;
-            }
-
-            if (!isDigit(c)) {
-                return false;
-            }
-
-            sawDigit = true;
-        }
-
-        return sawDigit;
-    }
-
-    private static bool IsHexDigit(char c) {
-        return c is >= '0' and <= '9' ||
-               c is >= 'a' and <= 'f' ||
-               c is >= 'A' and <= 'F';
+        return EnrichChunk(new ReaderChunk {
+            Id = "yaml-" + chunkIndex.ToString("D4", CultureInfo.InvariantCulture),
+            Kind = ReaderInputKind.Yaml,
+            Location = new ReaderLocation {
+                Path = source.Path,
+                BlockIndex = chunkIndex,
+                SourceBlockIndex = rowIndex,
+                StartLine = startLine,
+                EndLine = endLine
+            },
+            Text = BuildPlain(rows),
+            Markdown = includeMarkdown ? BuildMarkdown(rows) : null,
+            Tables = new[] { table },
+            Warnings = warnings
+        }, source, computeHashes);
     }
 
     private static ReaderChunk BuildWarningChunk(string path, string id, string warning) {
@@ -707,40 +349,6 @@ internal static class YamlReaderAdapter {
         return sb.ToString();
     }
 
-    private static string NormalizeText(string value) {
-        if (value.Length == 0) return string.Empty;
-
-        var containsWhitespace = false;
-        for (int index = 0; index < value.Length; index++) {
-            if (char.IsWhiteSpace(value[index])) {
-                containsWhitespace = true;
-                break;
-            }
-        }
-
-        if (!containsWhitespace) {
-            return value;
-        }
-
-        var sb = new StringBuilder(value.Length);
-        bool previousWhitespace = false;
-        foreach (var ch in value) {
-            if (char.IsWhiteSpace(ch)) {
-                if (!previousWhitespace) {
-                    sb.Append(' ');
-                    previousWhitespace = true;
-                }
-            } else {
-                sb.Append(ch);
-                previousWhitespace = false;
-            }
-        }
-
-        var normalized = sb.ToString().Trim();
-
-        return normalized;
-    }
-
     private static bool IsSimplePathIdentifier(string value) {
         if (string.IsNullOrEmpty(value)) return false;
 
@@ -803,27 +411,6 @@ internal static class YamlReaderAdapter {
         }
 
         return sb.ToString();
-    }
-
-    private static YamlReadOptions Normalize(YamlReadOptions? options) {
-        var source = options ?? new YamlReadOptions();
-
-        var normalized = new YamlReadOptions {
-            ChunkRows = source.ChunkRows,
-            MaxDepth = source.MaxDepth,
-            MaxNodes = source.MaxNodes,
-            MaxParseEvents = source.MaxParseEvents,
-            MaxScalarLength = source.MaxScalarLength,
-            IncludeMarkdown = source.IncludeMarkdown
-        };
-
-        if (normalized.ChunkRows < 1) normalized.ChunkRows = 1;
-        if (normalized.MaxDepth < 1) normalized.MaxDepth = 1;
-        if (normalized.MaxNodes < 1) normalized.MaxNodes = 1;
-        if (normalized.MaxParseEvents < 1) normalized.MaxParseEvents = 1;
-        if (normalized.MaxScalarLength < 1) normalized.MaxScalarLength = 1;
-
-        return normalized;
     }
 
     private static string BuildLogicalSourcePath(string? sourceName, string defaultName) {
@@ -991,17 +578,26 @@ internal static class YamlReaderAdapter {
         return fullPath.Replace('\\', '/');
     }
 
-    private sealed class TraversalState {
-        public int NodesVisited { get; set; }
+    private readonly struct PendingNode {
+        public PendingNode(YamlNode node, string path, YamlNode location) {
+            Node = node;
+            Path = path;
+            Location = location;
+        }
 
-        public bool NodeLimitEmitted { get; set; }
+        public YamlNode Node { get; }
+
+        public string Path { get; }
+
+        public YamlNode Location { get; }
     }
 
     private sealed class StructuredRow {
-        public StructuredRow(string path, string type, string value) {
+        public StructuredRow(string path, string type, string value, YamlNode location) {
             Path = path;
             Type = type;
             Value = value;
+            Location = location;
         }
 
         public string Path { get; }
@@ -1009,6 +605,8 @@ internal static class YamlReaderAdapter {
         public string Type { get; }
 
         public string Value { get; }
+
+        public YamlNode Location { get; }
     }
 
     private sealed class SourceMetadata {
