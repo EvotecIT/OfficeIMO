@@ -28,6 +28,7 @@ public sealed partial class PdfLogicalPage {
         IReadOnlyList<PdfLinkAnnotation> linkAnnotations,
         IReadOnlyList<PdfLogicalFormWidget> formWidgets,
         IReadOnlyList<PdfPageAction> pageActions,
+        bool hasOptionalContentUsage,
         PdfUnderstandingPageResult analysis,
         bool includesImages = true,
         bool includesFormWidgets = true) {
@@ -50,6 +51,7 @@ public sealed partial class PdfLogicalPage {
         LinkAnnotations = linkAnnotations;
         FormWidgets = formWidgets;
         PageActions = pageActions;
+        HasOptionalContentUsage = hasOptionalContentUsage;
         Analysis = analysis;
     }
 
@@ -303,18 +305,7 @@ public sealed partial class PdfLogicalPage {
     public bool HasPageActions => PageActionCount > 0;
 
     /// <summary>True when the page content, an invoked resource, or a page annotation uses optional-content membership.</summary>
-    /// <remarks>The source page is inspected on first use, so a damaged page can report its read error here.</remarks>
-    public bool HasOptionalContentUsage => GetHasOptionalContentUsage(CancellationToken.None);
-
-    internal bool GetHasOptionalContentUsage(CancellationToken cancellationToken) =>
-        _optionalContentUsage.GetOrCreate(this, static (page, token) => {
-            bool usesOptionalContent = page._optionalContentUsageSource?.Invoke(token) == true;
-            page._optionalContentUsageSource = null;
-            return usesOptionalContent;
-        }, cancellationToken);
-
-    private readonly PdfReadCache<bool> _optionalContentUsage = new();
-    private Func<CancellationToken, bool>? _optionalContentUsageSource;
+    public bool HasOptionalContentUsage { get; }
 
     /// <summary>Visible artifact-marked text spans (running headers, footers, page numbers) left out of this page.</summary>
     /// <remarks>Only editable converters report this count, so it reparses the page on first use instead of during the read.</remarks>

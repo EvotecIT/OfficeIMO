@@ -155,7 +155,7 @@ public sealed partial class PdfLogicalPage {
             pageActions.Add(readPageActions[i].WithPageNumber(pageNumber));
         }
 
-        // Visual primitive counts, optional-content usage, artifact counts and vector figures serve converters
+        // Visual primitive counts, artifact counts and vector figures serve converters
         // and table-scope reports, not the logical projection. Each reparses page content, so they run on first
         // use. A page whose table styling already parsed its primitives keeps them in this read.
         List<PdfStructuredTable> detectedTables = structured.TablesDetailed;
@@ -197,10 +197,11 @@ public sealed partial class PdfLogicalPage {
             linkAnnotations.AsReadOnly(),
             formWidgets.AsReadOnly(),
             pageActions.AsReadOnly(),
+            // Also decodes annotation appearances, so the read keeps enforcing their stream limits.
+            page.HasOptionalContentUsage(cancellationToken),
             pageAnalysis,
             includesImages: includeImages, includesFormWidgets: includeFormWidgets);
         logicalPage._visualPrimitiveCountsSource = visualCountsSource;
-        logicalPage._optionalContentUsageSource = page.HasOptionalContentUsage;
         logicalPage._omittedArtifactTextSpanCountSource = deferredCancellationToken =>
             page.CountOmittedArtifactTextSpans(deferredCancellationToken, recoverDecodableText);
         logicalPage._vectorFiguresSource = vectorFiguresSource ?? (includeImages
