@@ -18,6 +18,8 @@ public class OfficeConverterRouteTests {
                 Assert.Equal(2, json.RootElement.GetProperty("items").GetArrayLength());
             }
 
+            OfficeConverter.Convert(Path.Combine(directory, "out.json"), Path.Combine(directory, "back.yaml"));
+            Assert.StartsWith("items:", File.ReadAllText(Path.Combine(directory, "back.yaml")));
             OfficeConverter.Convert(Path.Combine(directory, "out.json"), Path.Combine(directory, "out.xlsx"));
             OfficeConverter.Convert(Path.Combine(directory, "out.xlsx"), Path.Combine(directory, "back.jsonl"));
             Assert.Equal(2, File.ReadAllLines(Path.Combine(directory, "back.jsonl")).Length);

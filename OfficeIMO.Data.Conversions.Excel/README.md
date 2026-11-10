@@ -1,6 +1,6 @@
 # OfficeIMO.Data.Conversions.Excel
 
-Worksheets in OfficeIMO structured-data conversions: worksheets and workbooks to JSON, JSON Lines and XML, and the rows of JSON, YAML and XML data to workbooks through the streaming writer.
+Worksheets in OfficeIMO structured-data conversions: worksheets and workbooks to JSON, JSON Lines, YAML and XML, and the rows of JSON, YAML and XML data to workbooks through the streaming writer.
 
 ## Install
 
@@ -34,7 +34,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Convert | 0 | 7 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 8 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Data.Conversions.Excel` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

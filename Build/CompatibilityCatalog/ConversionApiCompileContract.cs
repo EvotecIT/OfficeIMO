@@ -199,6 +199,7 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Data.Conversions.YamlDataConversions.SaveAsJson(OfficeIMO.Yaml.YamlDocument.Load(stream), stream, dataOptions);
         _ = OfficeIMO.Data.Conversions.XmlDataConversions.SaveAsCsv(System.Xml.Linq.XDocument.Load(stream), stream, dataOptions);
         _ = OfficeIMO.Data.Conversions.CsvDataConversions.SaveAsXml(csv, stream, dataOptions);
+        _ = OfficeIMO.Data.Conversions.JsonDataConversions.SaveAsYaml(System.Text.Json.Nodes.JsonNode.Parse(stream), stream, dataOptions);
         _ = OfficeIMO.Data.Conversions.JsonDataConversions.SaveAsCsv(System.Text.Json.Nodes.JsonNode.Parse(stream), stream, dataOptions);
         _ = OfficeIMO.Data.Conversions.ExcelDataConversions.SaveAsExcel(System.Text.Json.Nodes.JsonNode.Parse(stream), stream, dataOptions);
         _ = OfficeIMO.Data.Conversions.ExcelDataConversions.SaveAsJson(excel, stream, dataOptions);

@@ -66,6 +66,14 @@ internal static class DataConversionPublishing {
         return document;
     }
 
+    public static OfficeIMO.Yaml.YamlDocument ToYaml(ReaderFactory open, long? documents, DataFormat source, DataConversionOptions? options,
+        out OfficeConversionReport report) {
+        using var buffer = new MemoryStream();
+        report = Save(open, documents, source, DataFormat.Yaml, buffer, options);
+        buffer.Position = 0;
+        return OfficeIMO.Yaml.YamlDocument.Load(buffer);
+    }
+
     /// <summary>Writes a source to a target file, routing tables through the CSV writer.</summary>
     public static OfficeConversionReport SaveAs(ReaderFactory open, long? documents, DataFormat source, DataFormat target, string path, DataConversionOptions? options) {
         if (target == DataFormat.Json && DataFormats.FromExtension(path) == DataFormat.JsonLines) target = DataFormat.JsonLines;

@@ -343,7 +343,7 @@ Windows, Linux and macOS evidence, as for the YAML engine.
 | D0 | Hub package, event contract, scalar struct, loss collector and catalog codes, `DataConversionOptions`, catalog routes, benchmark and oracle harness | – | M |
 | D1 | YAML → JSON (reader and model), JSON source, the yaml-test-suite `in.json` oracle | – (Y1/Y2 shipped) | M |
 | D2 | Tree → table and table → tree: CSV ⇄ JSON, CSV/Excel → JSON, JSON → Excel, `Select`, flattening and inference; the Excel adapter; removal of Excel's `ToJson`/`FromJson` | – | L |
-| D3 | JSON → YAML, CSV/Excel ⇄ YAML | Y3 `YamlWriter` | S–M |
+| D3 | JSON → YAML, CSV/Excel ⇄ YAML (done: the YAML sink writes through `YamlWriter`) | Y3 `YamlWriter` | S–M |
 | D4 | XML ⇄ JSON/YAML/tables | – (can run in parallel with D3) | M |
 | D5 | TOML ⇄ everything, toml-test oracle | `OfficeIMO.Toml` reader and writer | S–M |
 | D6 | TSV routes | The strict TSV profile in `OfficeIMO.CSV` | S |

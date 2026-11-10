@@ -25,6 +25,7 @@ public class LossReportingTests {
         { "[{\"id\":\"42\"}]", "Json", "Csv", OfficeDiagnosticCodes.ScalarTypeDropped },
         { "[{\"app.version\":\"1\"}]", "Json", "Csv", OfficeDiagnosticCodes.HeaderPathAmbiguous },
         { "[{\"tags\":[]}]", "Json", "Csv", OfficeDiagnosticCodes.EmptyCollectionDropped },
+        { "day\n2026-11-10\n", "Csv", "Yaml", OfficeDiagnosticCodes.DatetimeAsString },
     };
 
     [Theory]
@@ -41,6 +42,12 @@ public class LossReportingTests {
         (string json, OfficeConversionReport report) = Convert.Run("a: &x 1\nb: *x\n", DataFormat.Yaml, DataFormat.Json, strict);
         Assert.False(report.HasLoss);
         Assert.Contains("\"b\": 1", json);
+    }
+
+    [Fact]
+    public void YamlOutputKeepsStringsThatYaml11WouldRetype() {
+        (string yaml, _) = Convert.Run("{\"answer\":\"yes\",\"zip\":\"012\",\"time\":\"1:20\",\"n\":1e3}", DataFormat.Json, DataFormat.Yaml);
+        Assert.Equal("answer: \"yes\"\nzip: \"012\"\ntime: \"1:20\"\n\"n\": 1.0e+3\n", yaml.Replace("'", "\""));
     }
 
     [Fact]

@@ -58,6 +58,22 @@ public static class ExcelDataConversions {
     public static OfficeConversionReport SaveAsXml(this ExcelDocument document, string path, DataConversionOptions? options = null) =>
         Excel(DataConversionPublishing.SaveAs(Open(document, options), 1, DataFormat.Csv, DataFormat.Xml, path, options));
 
+    /// <summary>Returns the worksheet's rows as a YAML sequence of mappings.</summary>
+    public static YamlDocument ToYaml(this ExcelSheet sheet, DataConversionOptions? options = null) =>
+        DataConversionPublishing.ToYaml(Open(sheet), 1, DataFormat.Csv, options, out _);
+
+    /// <summary>Writes the worksheet's rows as YAML.</summary>
+    public static OfficeConversionReport SaveAsYaml(this ExcelSheet sheet, string path, DataConversionOptions? options = null) =>
+        Excel(DataConversionPublishing.SaveAs(Open(sheet), 1, DataFormat.Csv, DataFormat.Yaml, path, options));
+
+    /// <summary>Returns the workbook as YAML: a sequence of rows for one sheet, or a mapping of sequences keyed by sheet name.</summary>
+    public static YamlDocument ToYaml(this ExcelDocument document, DataConversionOptions? options = null) =>
+        DataConversionPublishing.ToYaml(Open(document, options), 1, DataFormat.Csv, options, out _);
+
+    /// <summary>Writes the workbook as YAML.</summary>
+    public static OfficeConversionReport SaveAsYaml(this ExcelDocument document, string path, DataConversionOptions? options = null) =>
+        Excel(DataConversionPublishing.SaveAs(Open(document, options), 1, DataFormat.Csv, DataFormat.Yaml, path, options));
+
     // ------------------------------------------------------------------ data to workbooks
 
     /// <summary>Returns the rows of a JSON value as a workbook: one sheet, or one per member when every root member is an array.</summary>

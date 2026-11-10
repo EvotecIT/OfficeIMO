@@ -24,6 +24,7 @@ JsonNode? json = values.ToJson();
 OfficeConversionReport report = values.SaveAsJson("values.json");
 
 XDocument.Load("orders.xml").SaveAsJson("orders.json");
+JsonNode.Parse(File.ReadAllText("app.json"))!.SaveAsYaml("app.yaml");   // strings YAML 1.1 would retype are quoted
 CsvDocument.Load("people.csv").SaveAsJson("people.jsonl");     // JSON Lines from the extension
 
 JsonNode response = JsonNode.Parse(File.ReadAllText("response.json"))!;
@@ -64,7 +65,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Convert | 0 | 16 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 20 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Data.Conversions` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

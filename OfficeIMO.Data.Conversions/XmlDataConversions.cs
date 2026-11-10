@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.CSV;
+using OfficeIMO.Yaml;
 
 namespace OfficeIMO.Data.Conversions;
 
@@ -40,6 +41,21 @@ public static class XmlDataConversions {
     /// <summary>Writes the rows of the document as CSV to a stream, which stays open.</summary>
     public static OfficeConversionReport SaveAsCsv(this XDocument document, Stream stream, DataConversionOptions? options = null) =>
         DataConversionPublishing.SaveAs(Open(document), 1, DataFormat.Xml, DataFormat.Csv, stream, options);
+
+    /// <summary>Returns the document as a YAML document. Strings that a YAML 1.1 reader could take for another type are quoted.</summary>
+    public static YamlDocument ToYaml(this XDocument document, DataConversionOptions? options = null) => ToYaml(document, options, out _);
+
+    /// <summary>Returns the document as a YAML document, with the conversion report.</summary>
+    public static YamlDocument ToYaml(this XDocument document, DataConversionOptions? options, out OfficeConversionReport report) =>
+        DataConversionPublishing.ToYaml(Open(document), 1, DataFormat.Xml, options, out report);
+
+    /// <summary>Writes the document as YAML.</summary>
+    public static OfficeConversionReport SaveAsYaml(this XDocument document, string path, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(document), 1, DataFormat.Xml, DataFormat.Yaml, path, options);
+
+    /// <summary>Writes the document as UTF-8 YAML to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsYaml(this XDocument document, Stream stream, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(document), 1, DataFormat.Xml, DataFormat.Yaml, stream, options);
 
     internal static DataConversionPublishing.ReaderFactory Open(XDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));

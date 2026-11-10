@@ -137,6 +137,7 @@ internal static class DataConversionEngine {
     internal static DataEventWriter CreateWriter(Stream output, DataFormat format, DataConversionContext context, long? documents, DataFormat source) => format switch {
         DataFormat.Json or DataFormat.JsonLines => new JsonEventWriter(output, documents, context, reportCombined: source == DataFormat.Yaml),
         DataFormat.Xml => XmlEventWriter.Create(output, documents, rootIsNamed: source == DataFormat.Xml, context),
+        DataFormat.Yaml => new YamlEventWriter(output, context),
         _ => throw new NotSupportedException("Writing " + format + " is not supported.")
     };
 

@@ -45,6 +45,23 @@ public class YamlJsonOracleTests {
         Assert.True(failure == null, id + " " + failure + "\n" + System.Text.Encoding.UTF8.GetString(output.ToArray()));
     }
 
+    // YAML output re-reads to the suite's data: every in.json case goes YAML -> JSON -> YAML -> JSON through the writer.
+    [Theory]
+    [MemberData(nameof(JsonCaseIds))]
+    public void YamlWrittenFromJsonReadsBackToInJson(string id) {
+        YamlTestSuiteCase testCase = Suite.Value.Cases.Single(c => c.Id == id);
+        IReadOnlyList<YamlConformanceNode> expected = YamlJsonReader.ReadStream(testCase.Json!);
+        if (expected.Count > 1) return;
+        using var json = new MemoryStream();
+        DataConversionEngine.Convert(new MemoryStream(testCase.Input), DataFormat.Yaml, json, DataFormat.Json, null);
+        using var yaml = new MemoryStream();
+        DataConversionEngine.Convert(new MemoryStream(json.ToArray()), DataFormat.Json, yaml, DataFormat.Yaml, null);
+        using var back = new MemoryStream();
+        DataConversionEngine.Convert(new MemoryStream(yaml.ToArray()), DataFormat.Yaml, back, DataFormat.Json, null);
+        string? difference = YamlJsonEquivalence.FindDifference(expected, Documents(back.ToArray(), expected.Count));
+        Assert.True(difference == null, id + " " + difference + "\n" + System.Text.Encoding.UTF8.GetString(yaml.ToArray()));
+    }
+
     // One document is the JSON value itself; several are the items of one array; none is null.
     private static IReadOnlyList<YamlConformanceNode> Documents(byte[] json, int expectedCount) {
         YamlConformanceNode value = YamlJsonReader.Read(System.Text.Encoding.UTF8.GetString(json));

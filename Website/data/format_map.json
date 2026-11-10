@@ -909,6 +909,18 @@
       ]
     },
     {
+      "id": "csv-yaml",
+      "source": "CSV",
+      "target": "YAML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "CsvDocument.Load(stream).SaveAsYaml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "dbf-csv",
       "source": "DBF/xBase",
       "target": "CSV",
@@ -1820,6 +1832,18 @@
       ]
     },
     {
+      "id": "json-yaml",
+      "source": "JSON",
+      "target": "YAML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "JsonNode.Parse(stream).SaveAsYaml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "jsonl-csv",
       "source": "JSON Lines",
       "target": "CSV",
@@ -1859,6 +1883,18 @@
       "id": "jsonl-xml",
       "source": "JSON Lines",
       "target": "XML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(inputPath, outputPath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "jsonl-yaml",
+      "source": "JSON Lines",
+      "target": "YAML",
       "package": "OfficeIMO.Data.Conversions",
       "support": "Targeted",
       "fidelity": "Semantic",
@@ -3972,6 +4008,18 @@
       ]
     },
     {
+      "id": "xlsx-yaml",
+      "source": "XLSX",
+      "target": "YAML",
+      "package": "OfficeIMO.Data.Conversions.Excel",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ExcelDocument.Load(stream).SaveAsYaml(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "xml-csv",
       "source": "XML",
       "target": "CSV",
@@ -4015,6 +4063,18 @@
       "support": "Targeted",
       "fidelity": "Semantic",
       "api": "XDocument.Load(stream).SaveAsExcel(output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xml-yaml",
+      "source": "XML",
+      "target": "YAML",
+      "package": "OfficeIMO.Data.Conversions",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "XDocument.Load(stream).SaveAsYaml(output, options)",
       "surfaces": [
         "dotnet"
       ]

@@ -82,6 +82,9 @@ public sealed class DataConversionOptions {
     /// <summary>YAML parsing settings, including the schema and limits. Null uses the YAML 1.2 core schema.</summary>
     public OfficeIMO.Yaml.YamlReaderOptions? YamlReader { get; set; }
 
+    /// <summary>YAML output layout (indentation, sequence style, line endings). Null uses the YAML writer's defaults.</summary>
+    public OfficeIMO.Yaml.YamlWriterOptions? YamlWriter { get; set; }
+
     /// <summary>CSV parsing settings. Null uses the strict profile with a header row.</summary>
     public OfficeIMO.CSV.CsvReaderOptions? CsvReader { get; set; }
 

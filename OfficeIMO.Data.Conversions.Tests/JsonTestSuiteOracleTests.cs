@@ -64,24 +64,41 @@ public class JsonTestSuiteOracleTests {
         System.Xml.Linq.XDocument.Load(output);
     }
 
-    internal static bool Equal(JsonElement left, JsonElement right) {
+    // Every accepted document survives JSON -> YAML -> JSON with equal data; numbers compare by value.
+    [Theory]
+    [MemberData(nameof(Cases))]
+    public void AcceptedJsonRoundTripsThroughYaml(string name) {
+        if (!name.StartsWith("y_", StringComparison.Ordinal) || Exceptions.ContainsKey(name)) return;
+        byte[] input = File.ReadAllBytes(Path.Combine(Directory, name));
+        using var yaml = new MemoryStream();
+        DataConversionEngine.Convert(new MemoryStream(input), DataFormat.Json, yaml, DataFormat.Yaml, null);
+        using var back = new MemoryStream();
+        DataConversionEngine.Convert(new MemoryStream(yaml.ToArray()), DataFormat.Yaml, back, DataFormat.Json, null);
+        using JsonDocument expected = JsonDocument.Parse(input);
+        using JsonDocument actual = JsonDocument.Parse(back.ToArray());
+        Assert.True(Equal(expected.RootElement, actual.RootElement, numbersByValue: true), name + ":\n" + System.Text.Encoding.UTF8.GetString(yaml.ToArray()));
+    }
+
+    internal static bool Equal(JsonElement left, JsonElement right, bool numbersByValue = false) {
         if (left.ValueKind != right.ValueKind) return false;
         switch (left.ValueKind) {
             case JsonValueKind.Object:
                 List<JsonProperty> a = left.EnumerateObject().ToList(), b = right.EnumerateObject().ToList();
                 if (a.Count != b.Count) return false;
                 for (int i = 0; i < a.Count; i++) {
-                    if (a[i].Name != b[i].Name || !Equal(a[i].Value, b[i].Value)) return false;
+                    if (a[i].Name != b[i].Name || !Equal(a[i].Value, b[i].Value, numbersByValue)) return false;
                 }
 
                 return true;
             case JsonValueKind.Array:
                 List<JsonElement> x = left.EnumerateArray().ToList(), y = right.EnumerateArray().ToList();
-                return x.Count == y.Count && x.Zip(y, Equal).All(e => e);
+                return x.Count == y.Count && x.Zip(y, (l, r) => Equal(l, r, numbersByValue)).All(e => e);
             case JsonValueKind.String:
                 return left.GetString() == right.GetString();
             case JsonValueKind.Number:
-                return left.GetRawText() == right.GetRawText();
+                if (left.GetRawText() == right.GetRawText()) return true;
+                return numbersByValue && double.Parse(left.GetRawText(), System.Globalization.CultureInfo.InvariantCulture)
+                    == double.Parse(right.GetRawText(), System.Globalization.CultureInfo.InvariantCulture);
             default:
                 return true;
         }

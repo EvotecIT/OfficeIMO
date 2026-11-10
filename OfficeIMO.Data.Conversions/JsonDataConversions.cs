@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using OfficeIMO.CSV;
+using OfficeIMO.Yaml;
 
 namespace OfficeIMO.Data.Conversions;
 
@@ -43,6 +44,21 @@ public static class JsonDataConversions {
     /// <summary>Writes the value as UTF-8 XML to a stream, which stays open.</summary>
     public static OfficeConversionReport SaveAsXml(this JsonNode? node, Stream stream, DataConversionOptions? options = null) =>
         DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Xml, stream, options);
+
+    /// <summary>Returns the value as a YAML document. Strings that a YAML 1.1 reader could take for another type are quoted.</summary>
+    public static YamlDocument ToYaml(this JsonNode? node, DataConversionOptions? options = null) => ToYaml(node, options, out _);
+
+    /// <summary>Returns the value as a YAML document, with the conversion report.</summary>
+    public static YamlDocument ToYaml(this JsonNode? node, DataConversionOptions? options, out OfficeConversionReport report) =>
+        DataConversionPublishing.ToYaml(Open(node), 1, DataFormat.Json, options, out report);
+
+    /// <summary>Writes the value as YAML.</summary>
+    public static OfficeConversionReport SaveAsYaml(this JsonNode? node, string path, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Yaml, path, options);
+
+    /// <summary>Writes the value as UTF-8 YAML to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsYaml(this JsonNode? node, Stream stream, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Yaml, stream, options);
 
     internal static DataConversionPublishing.ReaderFactory Open(JsonNode? node) =>
         context => new JsonEventReader(DataConversionPublishing.Serialize(node), jsonLines: false, context, leaveOpen: false);
