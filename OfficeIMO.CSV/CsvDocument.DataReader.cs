@@ -33,6 +33,12 @@ public sealed partial class CsvDocument
         options = ResolveReaderOptions(() => CsvFile.OpenTextReader(path, options, FileBufferSize), options);
 
 #if NET8_0_OR_GREATER
+        if (CanInferSchemaWhileStreaming(options) &&
+            CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
+        {
+            options = InferSchemaFromSample(sampling => OpenReader(path, sampling), options);
+        }
+
         if (CanUseStreamSpanDataReader(options)
             && CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
         {
@@ -176,6 +182,18 @@ public sealed partial class CsvDocument
             }, options);
             stream.Position = startPosition;
         }
+
+#if NET8_0_OR_GREATER
+        if (CanInferSchemaWhileStreaming(options))
+        {
+            options = InferSchemaFromSample(sampling =>
+            {
+                stream.Position = startPosition;
+                return OpenReader(stream, sampling);
+            }, options);
+            stream.Position = startPosition;
+        }
+#endif
 
         if (!CanUseSinglePassFileDataReader(options)
 #if NET8_0_OR_GREATER
@@ -451,7 +469,6 @@ public sealed partial class CsvDocument
                 && (options.Header is not null || !options.HasHeaderRow)
                 && options.SkipInitialRecords == 0
                 && !options.DetectDelimiter))
-        && options.Schema is null
         && !options.InferSchema
         && options.StaticColumns is null
         && string.IsNullOrEmpty(options.DelimiterText)
@@ -460,6 +477,56 @@ public sealed partial class CsvDocument
         // Canonical interning reports progress after yielding the current record.
         && (!options.InternStrings || options.ProgressCallback is null || options.ProgressReportInterval <= 0)
         && !options.NormalizeQuotes;
+
+    /// <summary>Whether an inferred schema can come from a streamed sample of the input.</summary>
+    private static bool CanInferSchemaWhileStreaming(CsvReaderOptions options)
+    {
+        if (!options.InferSchema || options.Schema is not null)
+        {
+            return false;
+        }
+
+        CsvReaderOptions sampling = options.Clone();
+        sampling.InferSchema = false;
+        return CanUseStreamSpanDataReader(sampling);
+    }
+
+    /// <summary>
+    /// Infers the schema from the first <see cref="CsvReaderOptions.SchemaSampleRows"/> rows of a
+    /// string reader opened by <paramref name="open"/>; the caller then reads the input again with it.
+    /// </summary>
+    private static CsvReaderOptions InferSchemaFromSample(Func<CsvReaderOptions, CsvDataReader> open, CsvReaderOptions options)
+    {
+        CsvReaderOptions sampling = options.Clone();
+        sampling.InferSchema = false;
+        sampling.ParallelProcessing = null;
+        var columns = new List<InferredColumn>();
+        int sampledRows = 0;
+        using (CsvDataReader reader = open(sampling))
+        {
+            for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++)
+            {
+                columns.Add(new InferredColumn(reader.GetName(ordinal)));
+            }
+
+            while (sampledRows < options.SchemaSampleRows && reader.Read())
+            {
+                options.CancellationToken.ThrowIfCancellationRequested();
+                for (int ordinal = 0; ordinal < columns.Count; ordinal++)
+                {
+                    columns[ordinal].Observe(reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal),
+                        options.Culture, options.DateTimeFormats);
+                }
+
+                sampledRows++;
+            }
+        }
+
+        CsvReaderOptions resolved = options.Clone();
+        resolved.Schema = new CsvSchema(columns.Select(column => column.ToSchemaColumn(sampledRows)).ToList());
+        resolved.InferSchema = false;
+        return resolved;
+    }
 
     private static bool CanUseUtf8StreamDataReader(CsvReaderOptions options)
     {

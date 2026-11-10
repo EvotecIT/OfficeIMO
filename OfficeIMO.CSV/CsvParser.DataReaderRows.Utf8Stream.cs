@@ -1195,7 +1195,7 @@ internal static partial class CsvParser
 
         public ReadOnlySpan<char> GetSpan(int ordinal) => _fallback is not null
             ? _fallback.GetSpan(ordinal)
-            : _visitor.GetString(ordinal).AsSpan();
+            : _visitor.GetSpan(ordinal);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string GetString(int ordinal) => _fallback?.GetString(ordinal) ?? _visitor.GetString(ordinal);

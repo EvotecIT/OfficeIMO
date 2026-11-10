@@ -36,6 +36,7 @@ internal static partial class CsvParser
         private const int MaterializedStart = -2;
         private bool _allFieldsAscii;
         private bool _mayHaveEscapedQuotes;
+        private char[]? _spanScratch;
 
         internal CsvUtf8DataReaderRowVisitor(byte[] buffer, Encoding encoding)
         {
@@ -253,6 +254,34 @@ internal static partial class CsvParser
             }
 
             return string.Equals(GetString(ordinal), value, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Returns a field's text for immediate conversion. ASCII text is widened into a reused
+        /// buffer, so the span is valid only until the next call; other text uses its string.
+        /// </summary>
+        internal ReadOnlySpan<char> GetSpan(int ordinal)
+        {
+            ValidateOrdinal(ordinal);
+            if (!TryResolveText(ordinal, out int start, out int length, out bool escaped))
+            {
+                return (uint)ordinal < (uint)FieldCount ? GetString(ordinal).AsSpan() : default;
+            }
+
+            ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
+            if (escaped || _fields[ordinal].Materialized is not null || !(_allFieldsAscii || Ascii.IsValid(bytes)))
+            {
+                return GetString(ordinal).AsSpan();
+            }
+
+            if (_spanScratch is null || _spanScratch.Length < length)
+            {
+                _spanScratch = new char[Math.Max(length, 256)];
+            }
+
+            Span<char> characters = _spanScratch.AsSpan(0, length);
+            Encoding.Latin1.GetChars(bytes, characters);
+            return characters;
         }
 
         private readonly string DecodeString(int start, int length)
