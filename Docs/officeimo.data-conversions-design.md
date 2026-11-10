@@ -53,7 +53,7 @@ Each buffer is bounded by a limit and reported in the README:
 | YAML aliases expanded for non-YAML targets | The anchored subtree | `MaxAliasExpansion` from `YamlReaderOptions` |
 | TOML sink | Within a table, scalars must precede sub-tables, so object members are held until the table's scalars are written | One table's subtree; TOML files are small configuration |
 | XML root children | A first pass reads only the root's child names; interleaved names (`a, b, a`) buffer the root to group them, otherwise records stream | One record, or the root when its children interleave |
-| Tree → table column discovery | Pass 1 scans events for column paths and type evidence; pass 2 writes rows | The column set only. The input is re-read; `OfficeConverter` already captures input to re-readable bounded storage. An explicit `Columns` list fixes the columns, but pass 1 still decides the shape |
+| Tree → table column discovery | Pass 1 scans events for column paths and type evidence; pass 2 writes rows. CSV output, which needs only the column set, scans the first `SampleRows` rows (1,000); a later row with a value at a new path fails with its name, as Miller does on a CSV schema change. Typed outputs (Excel, `StructuredDataReader`) scan every row for column types | The column set only. The input is re-read; `OfficeConverter` already captures input to re-readable bounded storage |
 | CSV/TSV type inference | Pass 1 decides each column's type | Per-column state only |
 
 ### Performance rules
@@ -274,6 +274,7 @@ One type, because the routes share one mapping. Each property exists for a named
 | `Select` | API responses and nested documents whose rows sit below the root |
 | `Sheet` | One worksheet out of a workbook |
 | `Columns` | A fixed column order or subset |
+| `SampleRows` | Sparse data whose columns appear late: 0 reads every row before writing CSV |
 | `Range` | Part of a worksheet, such as an Excel table's range |
 | `ArrayColumns` (`Indexed`, `Join`), `ArraySeparator` | Human-readable sheets of tags and lists |
 | `InferTypes` | Keep CSV as strings, or type XML values |
@@ -313,6 +314,7 @@ No new `ConvertTo-`/`ConvertFrom-` file-conversion commands are added, as the AP
 **Targets:**
 
 - Lead every lane in elapsed time and allocation.
+- The opt-in `--verify` mode of the benchmark project has YamlDotNet read our YAML, Newtonsoft.Json read our JSON and XML, and CsvHelper read our CSV, over the JSONTestSuite accept cases, the yaml-test-suite values and awkward-text records.
 - Streaming routes keep peak managed memory flat as input grows from 10 MB to 1 GB (measured, with a fixed ceiling recorded per route).
 - Small-file batches are bound by I/O, not converter setup.
 
@@ -367,6 +369,6 @@ Decided on 2026-11-10 under the direction to follow best practices:
 
 1. **Package names:** `OfficeIMO.Data.Conversions` and `OfficeIMO.Data.Conversions.Excel`, next to `OfficeIMO.Data.Arrow`. The exception to pairwise adapters is recorded in the [API design](officeimo.api-design.md#packages).
 2. **Front door:** the `OfficeIMO` package references both and runs the routes as built-ins.
-3. **YAML timestamps:** follow the schema, with no conversion-specific override (see the loss table).
+3. **YAML timestamps:** follow the schema, with no conversion-specific override (see the loss table). `YamlReader.Schema` exposes each document's effective schema, so the streaming route resolves `%YAML 1.1` documents exactly as a loaded `YamlDocument` does, and merge keys resolve under the core schema unless the reader is strict.
 4. **JSON Lines:** supported as a JSON variant (`.jsonl`, `.ndjson`) in D1 and D2. Several documents written as JSON Lines are one line each, and a single array document is one line per item.
 5. **`StructuredDataReader`** is public, for DbaClientX bulk copy and `OfficeIMO.Data.Arrow`.
