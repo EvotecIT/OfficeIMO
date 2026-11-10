@@ -31,11 +31,14 @@ internal ref partial struct YamlScanner {
     /// <summary>Returns the next token, scanning ahead as far as implicit keys require.</summary>
     public ref YamlToken Peek() {
         YamlScanContext c = _c;
-        // The common case answers NeedMoreTokens inline: a queued token in block context, already checked for stale
-        // candidates at this position, that the one implicit-key candidate does not wait on.
-        if (c.TokenCount > 0 && c.FlowLevel == 0 && c.StaleCheckedAt == c.Base + c.Pos) {
+        // The common case answers NeedMoreTokens inline: a queued token in block context that the one implicit-key
+        // candidate does not wait on. Without a candidate nothing can go stale; with one, it must already have been
+        // checked at this position, because a stale required key is an error.
+        if (c.TokenCount > 0 && c.FlowLevel == 0) {
             ref YamlSimpleKey key = ref c.SimpleKeys[0];
-            if (c.StreamEndProduced || !key.Possible || key.TokenNumber != c.TokensParsed) return ref c.Tokens[c.TokenHead];
+            if (c.StreamEndProduced || !key.Possible || (key.TokenNumber != c.TokensParsed && c.StaleCheckedAt == c.Base + c.Pos)) {
+                return ref c.Tokens[c.TokenHead];
+            }
         }
         while (NeedMoreTokens()) FetchNextToken();
         return ref c.Tokens[c.TokenHead];
@@ -223,8 +226,11 @@ internal ref partial struct YamlScanner {
         ScanToNextToken();
         // In block context with no implicit-key candidate there is nothing to go stale, and nothing to close unless the
         // line is indented less than the open collection.
-        if (c.FlowLevel > 0 || c.SimpleKeys[0].Possible) StaleSimpleKeys();
-        else c.StaleCheckedAt = c.Base + c.Pos;
+        if (c.FlowLevel > 0 || c.SimpleKeys[0].Possible) {
+            if (c.StaleCheckedAt != c.Base + c.Pos) StaleSimpleKeys();
+        } else {
+            c.StaleCheckedAt = c.Base + c.Pos;
+        }
         if (c.FlowLevel == 0 && c.Indent > c.Column) UnrollIndent(c.Column);
 
         int p = c.Pos;
