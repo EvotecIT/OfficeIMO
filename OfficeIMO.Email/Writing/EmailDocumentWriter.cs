@@ -103,7 +103,7 @@ public sealed class EmailDocumentWriter {
             result = preparation.CreateBlockedResult();
             return Array.Empty<byte>();
         }
-        using (var output = new MemoryStream()) {
+        using (var output = new MemoryStream(preparation.InitialCapacity)) {
             result = WritePrepared(preparation, output);
             return output.ToArray();
         }
@@ -136,9 +136,14 @@ public sealed class EmailDocumentWriter {
                 hasPotentialDataLoss: conversion.HasPotentialDataLoss, canWrite: false);
         }
 
-        EmailOutputPreflight.EnsurePayloadsFit(document, format, _options.MaxOutputBytes);
+        long retainedBytes = EmailOutputPreflight.EnsurePayloadsFit(document, format, _options.MaxOutputBytes);
+        // Reuse the preflight count to avoid repeatedly growing the in-memory result.
+        // Cap the hint: large source-backed messages must not reserve their entire output upfront.
+        int capacity = 256;
+        while (capacity < retainedBytes && capacity < 1024 * 1024) capacity *= 2;
+        capacity = (int)Math.Min(capacity, _options.MaxOutputBytes);
         return new WritePreparation(document, format, diagnostics, preservedSource: null,
-            hasPotentialDataLoss: conversion.HasPotentialDataLoss);
+            hasPotentialDataLoss: conversion.HasPotentialDataLoss, initialCapacity: capacity);
     }
 
     private EmailWriteResult WritePrepared(WritePreparation preparation, Stream output) {
@@ -216,13 +221,14 @@ public sealed class EmailDocumentWriter {
     private sealed class WritePreparation {
         internal WritePreparation(EmailDocument document, EmailFileFormat format,
             List<EmailDiagnostic> diagnostics, byte[]? preservedSource,
-            bool hasPotentialDataLoss = false, bool canWrite = true) {
+            bool hasPotentialDataLoss = false, bool canWrite = true, int initialCapacity = 0) {
             Document = document;
             Format = format;
             Diagnostics = diagnostics;
             PreservedSource = preservedSource;
             HasPotentialDataLoss = hasPotentialDataLoss;
             CanWrite = canWrite;
+            InitialCapacity = initialCapacity;
         }
 
         internal EmailDocument Document { get; }
@@ -231,6 +237,7 @@ public sealed class EmailDocumentWriter {
         internal byte[]? PreservedSource { get; }
         internal bool HasPotentialDataLoss { get; }
         internal bool CanWrite { get; }
+        internal int InitialCapacity { get; }
 
         internal EmailWriteResult CreateBlockedResult() => new EmailWriteResult(
             0, Document.Format, Format, Diagnostics.AsReadOnly(), EmailArtifactSourceSelection.None,

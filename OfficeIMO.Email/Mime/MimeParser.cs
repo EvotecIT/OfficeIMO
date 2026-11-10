@@ -476,7 +476,12 @@ internal static partial class MimeParser {
         while (lineStart < end) {
             state.ThrowIfCancellationRequested();
             int lineEnd = lineStart;
+#if NET8_0_OR_GREATER
+            int newline = data.AsSpan(lineStart, end - lineStart).IndexOfAny((byte)'\r', (byte)'\n');
+            lineEnd = newline < 0 ? end : lineStart + newline;
+#else
             while (lineEnd < end && data[lineEnd] != '\r' && data[lineEnd] != '\n') lineEnd++;
+#endif
             if (IsBoundaryLine(data, lineStart, lineEnd, marker, out bool closing)) {
                 if (partStart >= 0) {
                     int partEnd = TrimLineEndingBefore(data, partStart, lineStart);

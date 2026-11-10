@@ -20,7 +20,7 @@ public static partial class OfficeImageReader {
         // Four encoded characters represent at most three bytes, with up to two padding bytes.
         if ((payloadLength + 3L) / 4L * 3L - 2L > maximumImageBytes) return false;
         try {
-            bytes = Convert.FromBase64String(source.Substring(comma + 1));
+            bytes = OfficeIMO.Core.Internal.OfficeBase64.FromBase64String(source, comma + 1);
         } catch (FormatException) {
             return false;
         }
