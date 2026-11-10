@@ -52,19 +52,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 column = FindAvailableColumn(occupancy, column, requestedSpan);
                 if (column >= columnCount) break;
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
-                // Column contributions only read the cell style; its used border insets are resolved
-                // here as ApplyTableCellFallbackInsets and the collapsed border layout would set them.
+                // Intrinsic measurement reads the cell's used border insets, including the vertical ones
+                // behind a border-box height. A cell whose fallback or collapsed insets change its style gets
+                // its own copy with them applied; any other cell is measured with its unchanged shared style.
                 HtmlRenderBoxStyle cellStyle = ReadFormattingCellStyle(cell, contentWidth);
-                HtmlRenderBorderInsets borderInsets = collapsedBorders?.CellInsets.TryGetValue(cell, out HtmlRenderBorderInsets collapsedInsets) == true
-                    ? collapsedInsets
-                    : ResolveTableCellFallbackBorders(cellStyle, legacyBorderWidth).Insets;
-                double horizontalInsets = borderInsets.Left + borderInsets.Right + cellStyle.PaddingLeft + cellStyle.PaddingRight;
+                HtmlRenderBorderInsets collapsedInsets = default;
+                bool hasCollapsedInsets = collapsedBorders != null && collapsedBorders.CellInsets.TryGetValue(cell, out collapsedInsets);
+                if (hasCollapsedInsets || !cellStyle.HasBorderLayout && !cellStyle.BorderDeclared) {
+                    cellStyle = cellStyle.Clone();
+                    ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
+                    if (hasCollapsedInsets) cellStyle.TableCollapsedBorderInsets = collapsedInsets;
+                }
                 if (span == 1 && cellStyle.ExplicitWidth.HasValue) {
                     if (cellStyle.ExplicitWidthUsesPercentage) {
                         percentages[column] = Math.Max(percentages[column], cellStyle.ExplicitWidth.Value / Math.Max(0.01D, contentWidth));
                     } else authoredWidths[column] = true;
                 }
-                ResolveTableCellIntrinsicWidths(cell, cellStyle, horizontalInsets, contentWidth, depth,
+                ResolveTableCellIntrinsicWidths(cell, cellStyle, contentWidth, depth,
                     out double minimum, out double maximum, out double contentMinimum, out double contentMaximum);
                 if (span == 1) {
                     minimums[column] = Math.Max(minimums[column], minimum);
@@ -185,7 +189,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private void ResolveTableCellIntrinsicWidths(TableFormattingCell cell, HtmlRenderBoxStyle style, double insets, double containingWidth,
+    private void ResolveTableCellIntrinsicWidths(TableFormattingCell cell, HtmlRenderBoxStyle style, double containingWidth,
         int depth, out double minimum, out double preferred, out double contentMinimum, out double contentPreferred) {
         IReadOnlyList<IntrinsicTextRun> runs;
         if (cell.Nodes == null) {
@@ -200,6 +204,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (cell.GeneratedAfter) AppendGeneratedIntrinsicText(cell.Element, HtmlPseudoElementKind.After, style, containingWidth, rawRuns);
             runs = NormalizeIntrinsicTextRuns(rawRuns);
         }
+        double insets = style.HorizontalInsets;
         // Empty content contributes only its authored edges, not a synthetic pixel.
         minimum = Math.Max(0D, (runs.Count == 0 ? 0D : MeasureMinContentRuns(runs)) + insets);
         contentMinimum = minimum;
