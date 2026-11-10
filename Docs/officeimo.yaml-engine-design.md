@@ -48,6 +48,7 @@ PSWriteOffice gets YAML commands built on the same public API, with `Yaml` as th
 | `Import-OfficeYaml -Path` / `Export-OfficeYaml -InputObject -Path` | Objects from and to files through the serializer |
 | `ConvertFrom-OfficeYaml` / `ConvertTo-OfficeYaml` | Text to objects and objects to text, following PowerShell's `ConvertFrom-Json`/`ConvertTo-Json` pattern |
 | `Test-OfficeYaml` | Validate without changing the file, reporting diagnostics |
+| `Merge-OfficeDocument` | The shared cross-format command; for YAML it overlays files with the [merge](#merging) rules |
 
 Typical script:
 
@@ -129,6 +130,32 @@ doc.Save("deployment.yaml");
   - Renaming an anchor updates its aliases.
   - Editing through an alias edits the anchored node and is reported.
   - `<<` merge keys (YAML 1.1 schema) are resolved in the typed view, never flattened in the tree.
+
+### Merging
+
+Layered configuration is a common YAML job: Helm values overlays, per-environment settings, and defaults plus overrides. Today people do it with `yq` and lose formatting. The engine merges an overlay into a base document through the editing API, so the result is a minimal diff of the base file.
+
+```csharp
+using var baseDoc = YamlDocument.Load("values.yaml");
+using var prod = YamlDocument.Load("values.prod.yaml");
+YamlMergeReport report = baseDoc.Merge(prod);
+baseDoc.Save("values.merged.yaml");
+```
+
+- `YamlDocument.Merge(overlay, options)` merges each document part by position. `YamlMapping.Merge(overlay, options)` merges any subtree, for example after `Select`.
+- **Mappings** merge key by key, recursively.
+- **Scalars:** overlay scalars replace base scalars through the normal assignment rule, so an equal value keeps the base spelling.
+- **New keys** from the overlay are appended with the overlay's comments and in the base document's inferred style.
+- **Sequences** follow `YamlMergeOptions.Sequences`:
+  - `Replace` is the default and matches Helm and `yq`'s `*` operator.
+  - `Append` appends the overlay's items.
+  - `MergeByKey(keyName)` merges items whose mapping has the same key value (for example containers by `name`) and appends the rest.
+- **Null in the overlay:**
+  - With `NullRemovesKey` (Helm's convention), an explicit null removes the base key.
+  - By default a null is an ordinary value that replaces.
+- **Kind conflicts:** when one side is a mapping and the other a scalar, or similar, the overlay wins, and the conflict is reported.
+- **Aliases and anchors:** overlay values that land on an alias edit the anchored node, as any edit through an alias does, and are reported. Anchors and aliases from the overlay are copied with their names, and a name that collides with a base anchor is renamed and reported.
+- **`YamlMergeReport`** lists every added, replaced and removed path, plus diagnostics for conflicts and alias edits. `Merge-OfficeDocument` writes it to the pipeline.
 
 ### Writer
 

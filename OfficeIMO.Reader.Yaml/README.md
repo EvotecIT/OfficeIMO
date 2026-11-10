@@ -29,13 +29,16 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Yaml;
+using OfficeIMO.Yaml;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddYamlHandler(new YamlReadOptions {
         ChunkRows = 100,
-        MaxDepth = 16,
-        MaxNodes = 10_000,
-        IncludeMarkdown = true
+        IncludeMarkdown = true,
+        LoadOptions = new YamlLoadOptions {
+            MaxDepth = 16,
+            MaxNodes = 10_000
+        }
     })
     .Build();
 
@@ -64,12 +67,16 @@ var chunks = reader.Enumerate(stream, "values.yaml", new ReaderOptions {
 
 ## What it emits
 
-- YAML representation traversal through `YamlDotNet`.
-- Path/type/value rows.
-- Multi-document YAML stream support.
-- Chunked structured output with optional Markdown tables.
+- Path/type/value rows for every scalar and empty collection, in document order. Aliases expand at the alias's path.
+- Paths use exact key text (`$.metadata.name`, `$["app.kubernetes.io/name"]`, `$[1].spec` in multi-document streams), so `YamlDocument.Select(path)` returns the node a row came from.
+- Types follow the document's schema: YAML 1.2 core by default, YAML 1.1 for `%YAML 1.1` documents, and explicit tags such as `!!str`.
+- Chunks of `ChunkRows` rows with source `StartLine`/`EndLine`; each document of a multi-document stream starts a new chunk.
 - Path and stream dispatch.
-- Warning chunks for malformed YAML.
+- A warning chunk with the engine's error code, message, line and column for malformed YAML or an exceeded limit, and chunk warnings for duplicate keys admitted by a lenient `YamlDuplicateKeyPolicy`.
+
+## Limits
+
+`YamlReadOptions.LoadOptions` takes the engine's `YamlLoadOptions`: `MaxDepth`, `MaxNodes` (per document), `MaxAliasExpansion`, `MaxScalarLength`, `MaxInputBytes`, `DuplicateKeys` and `Schema`. Without it the engine defaults apply. `ReaderOptions.MaxInputBytes` is applied as well, and the lower value wins.
 
 ## Boundaries
 
@@ -84,7 +91,7 @@ var chunks = reader.Enumerate(stream, "values.yaml", new ReaderOptions {
 
 ## Dependency footprint
 
-- **External:** YamlDotNet for YAML representation parsing.
-- **OfficeIMO:** `OfficeIMO.Reader.Core` owns traversal projection, chunking, limits, locations, and warnings.
+- **External:** none.
+- **OfficeIMO:** `OfficeIMO.Yaml` parses and loads YAML and enforces its limits; `OfficeIMO.Reader.Core` owns chunk contracts, locations, and warnings.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
