@@ -108,76 +108,6 @@ internal static partial class PdfPageExtractor {
         }
     }
     
-    private static bool IsSupportedOutlineGraph(
-        Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfObject value,
-        HashSet<int> visitedReferences,
-        CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        switch (value) {
-            case PdfNumber:
-            case PdfBoolean:
-            case PdfName:
-            case PdfStringObj:
-            case PdfNull:
-                return true;
-            case PdfReference reference:
-                if (!visitedReferences.Add(reference.ObjectNumber)) {
-                    return true;
-                }
-    
-                if (!PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
-                    return false;
-                }
-    
-                return IsPageDictionary(indirect.Value) ||
-                    IsSupportedOutlineGraph(sourceObjects, indirect.Value, visitedReferences, cancellationToken);
-            case PdfArray array:
-                foreach (var item in array.Items) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!IsSupportedOutlineGraph(sourceObjects, item, visitedReferences, cancellationToken)) {
-                        return false;
-                    }
-                }
-    
-                return true;
-            case PdfDictionary dictionary:
-                if (IsPageDictionary(dictionary)) {
-                    return true;
-                }
-    
-                if (dictionary.Items.ContainsKey("AA")) {
-                    return false;
-                }
-    
-                if (dictionary.Items.TryGetValue("A", out var action) &&
-                    !IsSupportedOutlineAction(sourceObjects, action, cancellationToken)) {
-                    return false;
-                }
-    
-                foreach (var item in dictionary.Items.Values) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!IsSupportedOutlineGraph(sourceObjects, item, visitedReferences, cancellationToken)) {
-                        return false;
-                    }
-                }
-    
-                return true;
-            default:
-                return false;
-        }
-    }
-    
-    private static bool IsSupportedOutlineAction(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject action,
-        CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        return ResolveDictionary(sourceObjects, action) is PdfDictionary dictionary &&
-            dictionary.Items.Count == 2 &&
-            dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
-            dictionary.Items.TryGetValue("D", out var destination) &&
-            IsDestinationForKnownPage(sourceObjects, destination, cancellationToken);
-    }
-    
     private static bool OutlineDestinationsReferenceOnlyCopiedPages(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject value,
@@ -220,9 +150,15 @@ internal static partial class PdfPageExtractor {
                     return false;
                 }
     
-                foreach (var item in dictionary.Items.Values) {
+                foreach (var item in dictionary.Items) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (!OutlineDestinationsReferenceOnlyCopiedPages(sourceObjects, item, copiedPageObjectIds, visitedReferences, cancellationToken)) {
+                    // Structure elements are rewritten with the tagged structure tree, not as outline destinations.
+                    if (item.Key == "SE" && dictionary.Items.ContainsKey("Title") &&
+                        PdfSyntax.IsStructureElementReference(sourceObjects, item.Value)) {
+                        continue;
+                    }
+
+                    if (!OutlineDestinationsReferenceOnlyCopiedPages(sourceObjects, item.Value, copiedPageObjectIds, visitedReferences, cancellationToken)) {
                         return false;
                     }
                 }

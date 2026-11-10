@@ -58,7 +58,8 @@ internal static partial class PdfSyntax {
                 return false;
             }
 
-            return !IsSupportedOutlineGraph(objects, outlines, new HashSet<int>(), cancellationToken);
+            return !IsSupportedOutlineGraph(objects, outlines, new HashSet<int>(),
+                catalog.Items.ContainsKey("StructTreeRoot"), cancellationToken);
         } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
