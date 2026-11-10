@@ -154,8 +154,8 @@ public sealed class CsvFieldLimitAndTextDelimiterParityTests {
 
         public override int Read(byte[] buffer, int offset, int count) =>
             base.Read(buffer, offset, _chunk > 0 ? Math.Min(count, _chunk) : count);
-#if NETCOREAPP
 
+#if NETCOREAPP
         public override int Read(Span<byte> buffer) =>
             base.Read(_chunk > 0 && buffer.Length > _chunk ? buffer.Slice(0, _chunk) : buffer);
 #endif
