@@ -60,7 +60,8 @@ try {
         '--property:EnableOfficeIMOPdfTestingPackageSmoke=true',
         "--property:OfficeIMOPdfTestingPackageVersion=$Version"
     )
-    $frameworks = if ($IsWindows) { @('net8.0', 'net10.0', 'net472') } else { @('net8.0', 'net10.0') }
+    $onWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+    $frameworks = if ($onWindows) { @('net8.0', 'net10.0', 'net472') } else { @('net8.0', 'net10.0') }
 
     foreach ($consumer in $consumers) {
         $consumerPath = Join-Path $smokeRoot $consumer
