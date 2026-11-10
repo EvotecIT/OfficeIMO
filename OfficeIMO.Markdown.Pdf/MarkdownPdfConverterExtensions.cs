@@ -241,7 +241,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static string? GetFrontMatterMetadata(FrontMatterBlock frontMatter, string key) {
         FrontMatterBlock.Entry? entry = frontMatter.FindEntry(key);
-        return entry == null ? null : NormalizeMetadata(ConvertMetadataValue(entry.Value));
+        return entry == null ? null : NormalizeMetadata(FrontMatterBlock.FormatValue(entry.Value));
     }
 
     private static string? GetPromotedFrontMatterTitle(MarkdownDocument document, MarkdownPdfExportOptions options) {
@@ -250,28 +250,5 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         return GetFrontMatterMetadata(document.DocumentHeader, "title");
-    }
-
-    private static string? ConvertMetadataValue(object? value) {
-        switch (value) {
-            case null:
-                return null;
-            case string text:
-                return text;
-            case IEnumerable<string> values:
-                return string.Join(", ", values.Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item.Trim()));
-            case System.Collections.IEnumerable values:
-                var items = new List<string>();
-                foreach (object? item in values) {
-                    string? normalized = NormalizeMetadata(Convert.ToString(item, CultureInfo.InvariantCulture));
-                    if (normalized != null) {
-                        items.Add(normalized);
-                    }
-                }
-
-                return items.Count == 0 ? null : string.Join(", ", items);
-            default:
-                return Convert.ToString(value, CultureInfo.InvariantCulture);
-        }
     }
 }

@@ -272,7 +272,11 @@ public partial class MarkdownDocument : MarkdownObject {
     public bool HasFrontMatterEntry(string key, StringComparison comparison = StringComparison.OrdinalIgnoreCase) =>
         DocumentHeader?.HasEntry(key, comparison) == true;
 
-    /// <summary>Gets a typed front matter value by key when the document header is present.</summary>
+    /// <summary>
+    /// Reads a top-level front matter scalar as <typeparamref name="T"/> through the YAML schema; see
+    /// <see cref="FrontMatterBlock.TryGetValue{T}(string, out T)"/> for the supported types.
+    /// </summary>
+    /// <exception cref="NotSupportedException"><typeparamref name="T"/> is not a supported type.</exception>
     public bool TryGetFrontMatterValue<T>(string key, out T? value) {
         if (DocumentHeader != null && DocumentHeader.TryGetValue<T>(key, out value)) {
             return true;
@@ -345,7 +349,10 @@ public partial class MarkdownDocument : MarkdownObject {
         }
     }
 
-    /// <summary>Sets YAML front matter from an anonymous object or dictionary.</summary>
+    /// <summary>
+    /// Sets YAML front matter from an anonymous object, a dictionary or another object's public properties; nested
+    /// values become YAML mappings and sequences. See <see cref="FrontMatterBlock.FromObject(object)"/>.
+    /// </summary>
     [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over an arbitrary runtime type. For NativeAOT, call FrontMatter<T> or pass a dictionary.")]
     public MarkdownDocument FrontMatter(object data) {
         _frontMatter = FrontMatterBlock.FromObject(data);
@@ -353,7 +360,7 @@ public partial class MarkdownDocument : MarkdownObject {
         return this;
     }
 
-    /// <summary>Sets YAML front matter from a type known at publish time.</summary>
+    /// <summary>Sets YAML front matter from a type known at publish time. See <see cref="FrontMatterBlock.FromObject{T}(T)"/>.</summary>
     public MarkdownDocument FrontMatter<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data) {
         _frontMatter = FrontMatterBlock.FromObject(data);
@@ -599,7 +606,10 @@ public partial class MarkdownDocument : MarkdownObject {
         }
 
         return options.FrontMatterRendering switch {
-            MarkdownFrontMatterRenderingMode.Preserve => frontMatter.RenderFrontMatter(),
+            // The block's text uses LF; match the platform line ending the rest of the document uses when none is set.
+            MarkdownFrontMatterRenderingMode.Preserve => options.OutputLineEnding == null && Environment.NewLine != "\n"
+                ? frontMatter.RenderFrontMatter().Replace("\n", Environment.NewLine)
+                : frontMatter.RenderFrontMatter(),
             MarkdownFrontMatterRenderingMode.Omit => null,
             _ => throw new ArgumentOutOfRangeException(nameof(options.FrontMatterRendering), options.FrontMatterRendering, "Unknown front matter rendering mode.")
         };

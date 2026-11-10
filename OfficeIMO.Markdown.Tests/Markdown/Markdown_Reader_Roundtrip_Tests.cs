@@ -182,27 +182,26 @@ tags: [a, b]
                 frontMatter.Entries,
                 entry => {
                     Assert.Equal("title", entry.Key);
-                    Assert.Equal("Doc", Assert.IsType<string>(entry.Value));
+                    Assert.Equal("Doc", entry.Value.AsString());
                     Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), entry.KeySourceSpan);
                     Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 10), entry.ValueSourceSpan);
                 },
                 entry => {
                     Assert.Equal("published", entry.Key);
-                    Assert.True(Assert.IsType<bool>(entry.Value));
+                    Assert.True(entry.Value.GetValue<bool>());
                     Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 9), entry.KeySourceSpan);
                     Assert.Equal(new MarkdownSourceSpan(3, 12, 3, 15), entry.ValueSourceSpan);
                 },
                 entry => {
                     Assert.Equal("tags", entry.Key);
-                    var tags = Assert.IsAssignableFrom<IEnumerable<string>>(entry.Value);
-                    Assert.Equal(new[] { "a", "b" }, tags.ToArray());
+                    Assert.Equal(new[] { "a", "b" }, entry.Value.AsSequence().Select(item => item.AsString()).ToArray());
                     Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 4), entry.KeySourceSpan);
                     Assert.Equal(new MarkdownSourceSpan(4, 7, 4, 12), entry.ValueSourceSpan);
                 });
 
             var published = frontMatter.FindEntry("published");
             Assert.NotNull(published);
-            Assert.True(Assert.IsType<bool>(published!.Value));
+            Assert.True(published!.Value.GetValue<bool>());
 
             Assert.True(frontMatter.TryGetValue<string>("title", out var title));
             Assert.Equal("Doc", title);
@@ -210,8 +209,7 @@ tags: [a, b]
             Assert.True(frontMatter.TryGetValue<bool>("published", out var isPublished));
             Assert.True(isPublished);
 
-            Assert.True(frontMatter.TryGetValue<IEnumerable<string>>("tags", out var tagValues));
-            Assert.Equal(new[] { "a", "b" }, tagValues!.ToArray());
+            Assert.Equal("b", frontMatter.Select("tags[1]")!.AsString());
 
             Assert.True(frontMatter.HasEntry("published"));
             Assert.True(frontMatter.HasEntry("Published"));
@@ -308,7 +306,7 @@ Paragraph
 
             Assert.Collection(
                 parsed.TopLevelBlocksOfType<FrontMatterBlock>(),
-                block => Assert.Equal("Doc", block.Entries[0].Value));
+                block => Assert.Equal("Doc", block.Entries[0].Value.AsString()));
 
             var topLevelHeading = parsed.FindFirstTopLevelBlockOfType<HeadingBlock>();
             Assert.NotNull(topLevelHeading);

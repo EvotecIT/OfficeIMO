@@ -2708,6 +2708,14 @@
       ]
     },
     {
+      "oldCode": "markdown-front-matter-invalid-yaml",
+      "catalogCode": "markdown-front-matter-invalid-yaml",
+      "member": "MarkdownFrontMatterInvalidYaml",
+      "origins": [
+        "OfficeIMO.Markdown/Reader/MarkdownReader.Blocks.FrontMatter.cs"
+      ]
+    },
+    {
       "oldCode": "MarkdownToWordWarning",
       "catalogCode": "markdown-to-word-warning",
       "member": "MarkdownToWordWarning",

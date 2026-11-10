@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Yaml;
 using PdfCore = OfficeIMO.Pdf;
 using PdfTextRun = OfficeIMO.Pdf.PdfTextRun;
 
@@ -95,11 +96,25 @@ public static partial class MarkdownPdfConverterExtensions {
     private static void RenderFrontMatterTable(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownPdfStyle visualTheme) {
         var rows = new List<PdfCore.PdfKeyValueRow>();
         for (int i = 0; i < frontMatter.Entries.Count; i++) {
-            rows.Add(PdfCore.PdfKeyValueRow.Text(frontMatter.Entries[i].Key, ConvertMetadataValue(frontMatter.Entries[i].Value)));
+            AddFrontMatterRows(rows, frontMatter.Entries[i].Key, frontMatter.Entries[i].Value);
         }
 
         PdfCore.PdfTableStyle style = visualTheme.FrontMatterTableStyleSnapshot;
         pdf.KeyValueTable(rows, style: style, includeHeader: true);
+    }
+
+    /// <summary>Lists nested mappings as dotted keys (<c>author.name</c>) so each scalar gets its own row.</summary>
+    private static void AddFrontMatterRows(List<PdfCore.PdfKeyValueRow> rows, string key, YamlNode value) {
+        if (((value as YamlAlias)?.Target ?? value) is YamlMapping mapping && mapping.Count > 0) {
+            for (int i = 0; i < mapping.Count; i++) {
+                YamlMappingEntry entry = mapping[i];
+                AddFrontMatterRows(rows, key + "." + FrontMatterBlock.KeyText(entry.Key), entry.Value);
+            }
+
+            return;
+        }
+
+        rows.Add(PdfCore.PdfKeyValueRow.Text(key, FrontMatterBlock.FormatValue(value)));
     }
 
     private static string? BuildFrontMatterMetadataLine(FrontMatterBlock frontMatter) {

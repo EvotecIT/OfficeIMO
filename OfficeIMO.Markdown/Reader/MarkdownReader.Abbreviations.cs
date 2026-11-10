@@ -120,23 +120,8 @@ internal static partial class MarkdownReader {
         }
     }
 
-    private static int GetAbbreviationPreScanStartIndex(string[] lines, MarkdownLoadOptions options) {
-        if (options?.FrontMatter != true || lines == null || lines.Length == 0) {
-            return 0;
-        }
-
-        if (!string.Equals(lines[0]?.Trim(), "---", StringComparison.Ordinal)) {
-            return 0;
-        }
-
-        for (int idx = 1; idx < lines.Length; idx++) {
-            if (string.Equals(lines[idx]?.Trim(), "---", StringComparison.Ordinal)) {
-                return idx + 1;
-            }
-        }
-
-        return 0;
-    }
+    private static int GetAbbreviationPreScanStartIndex(string[] lines, MarkdownLoadOptions options) =>
+        options?.FrontMatter == true && lines != null && TryLocateFrontMatter(lines, out int closingIndex) ? closingIndex + 1 : 0;
 
     private static bool TryParseAbbreviationDefinition(
         string line,
