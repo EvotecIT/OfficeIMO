@@ -44,7 +44,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="System.Buffers" Version="4.5.1" />
+    <!-- The version DocumentFormat.OpenXml brings on these targets, so bundles carry one copy. -->
+    <PackageReference Include="System.Memory" Version="4.6.3" />
   </ItemGroup>
 
   <ItemGroup>

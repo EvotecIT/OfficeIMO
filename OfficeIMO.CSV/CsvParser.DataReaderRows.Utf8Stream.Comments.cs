@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
@@ -96,4 +95,3 @@ internal static partial class CsvParser
             line.IndexOf(delimiter) >= 0 || line.IndexOfAny(DelimitedCommentBytes) >= 0;
     }
 }
-#endif

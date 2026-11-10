@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using System.Buffers;
 
 namespace OfficeIMO.CSV;
@@ -445,4 +444,3 @@ internal static partial class CsvParser
         private static readonly SearchValues<byte> DelimitedCommentBytes = SearchValues.Create(new[] { (byte)',', (byte)';', (byte)'|', (byte)'\t' });
     }
 }
-#endif

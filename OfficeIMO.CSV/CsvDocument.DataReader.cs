@@ -83,6 +83,29 @@ public sealed partial class CsvDocument
                 options.CancellationToken);
             return ParseText(text, options.Parsing).CreateDataReader(options);
         }
+#else
+        if (CanInferSchemaWhileStreaming(options) &&
+            CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
+        {
+            options = InferSchemaFromSample(sampling => OpenReader(path, sampling), options);
+        }
+
+        if (CanUseStreamSpanDataReader(options) && CanUseUtf8StreamDataReader(options)
+            && CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
+        {
+            Stream utf8Stream = CsvFile.OpenReadStream(path, options, Utf8StreamingDataReaderFileBufferSize, useAsync: false);
+            if (CsvParser.CsvUtf8StreamDataReaderRowSource.TryCreate(utf8Stream, options, out var utf8Rows))
+            {
+                if (TryCreateStreamSpanDataReader(utf8Rows!, options, out CsvDataReader? utf8DataReader))
+                {
+                    return CsvParallelDataReader.Apply(utf8DataReader!, options);
+                }
+            }
+            else
+            {
+                utf8Stream.Dispose();
+            }
+        }
 #endif
 
         if (!CanUseSinglePassFileDataReader(options))
@@ -186,7 +209,6 @@ public sealed partial class CsvDocument
             stream.Position = startPosition;
         }
 
-#if NET8_0_OR_GREATER
         if (CanInferSchemaWhileStreaming(options))
         {
             options = InferSchemaFromSample(sampling =>
@@ -194,6 +216,25 @@ public sealed partial class CsvDocument
                 stream.Position = startPosition;
                 return OpenReader(stream, sampling);
             }, options);
+            stream.Position = startPosition;
+        }
+
+#if !NET8_0_OR_GREATER
+        if (CanUseStreamSpanDataReader(options) && CanUseUtf8StreamDataReader(options))
+        {
+            Stream utf8Stream = CsvFile.OpenReadStream(stream, options, leaveOpen: true);
+            if (CsvParser.CsvUtf8StreamDataReaderRowSource.TryCreate(utf8Stream, options, out var utf8Rows))
+            {
+                if (TryCreateStreamSpanDataReader(utf8Rows!, options, out CsvDataReader? utf8DataReader))
+                {
+                    return CsvParallelDataReader.Apply(utf8DataReader!, options);
+                }
+            }
+            else
+            {
+                utf8Stream.Dispose();
+            }
+
             stream.Position = startPosition;
         }
 #endif
@@ -473,6 +514,8 @@ public sealed partial class CsvDocument
         return true;
     }
 
+#endif
+
     private static bool CanUseStreamSpanDataReader(
         CsvReaderOptions options) =>
         (CanUseSinglePassFileDataReader(options)
@@ -498,7 +541,12 @@ public sealed partial class CsvDocument
 
         CsvReaderOptions sampling = options.Clone();
         sampling.InferSchema = false;
-        return CanUseStreamSpanDataReader(sampling);
+        return CanUseStreamSpanDataReader(sampling)
+#if !NET8_0_OR_GREATER
+            // Older targets stream through the UTF-8 reader only.
+            && CanUseUtf8StreamDataReader(sampling)
+#endif
+            ;
     }
 
     /// <summary>
@@ -633,6 +681,7 @@ public sealed partial class CsvDocument
         }
     }
 
+#if NET8_0_OR_GREATER
     private static bool CanUseMemoryBackedFileDataReader(
         string path,
         CsvReaderOptions options)

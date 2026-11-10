@@ -29,12 +29,13 @@ public sealed class CsvStreamReaderRecordBoundaryTests {
     [Theory]
     [MemberData(nameof(Cases))]
     public void FinalRecordsKeepTheirFieldsAndLines(string input, string expectedRows, bool trim, string expectedErrorLines, bool skipComments) {
-        // Latin-1 and a non-U+FFFD UTF-8 fallback select the decoded text route; default UTF-8 the byte route.
-        var encodings = new List<(Encoding? Encoding, byte[] Bytes)> {
-            (null, Encoding.UTF8.GetBytes(input)),
-            (Encoding.GetEncoding("utf-8", EncoderFallback.ReplacementFallback, new DecoderReplacementFallback("?")), Encoding.UTF8.GetBytes(input))
-        };
+        // Default UTF-8 selects the byte reader. On .NET 8 and later, Latin-1 and a non-U+FFFD UTF-8
+        // fallback select the decoded text reader; older targets read those through the document parser.
+        var encodings = new List<(Encoding? Encoding, byte[] Bytes)> { (null, Encoding.UTF8.GetBytes(input)) };
+#if NETCOREAPP
+        encodings.Add((Encoding.GetEncoding("utf-8", EncoderFallback.ReplacementFallback, new DecoderReplacementFallback("?")), Encoding.UTF8.GetBytes(input)));
         if (input.All(character => character < 256)) encodings.Add((Encoding.Latin1, Encoding.Latin1.GetBytes(input)));
+#endif
 
         foreach ((Encoding? encoding, byte[] bytes) in encodings) {
             foreach (int chunk in new[] { 0, 1, 3 }) {
@@ -79,8 +80,10 @@ public sealed class CsvStreamReaderRecordBoundaryTests {
 
         public override int Read(byte[] buffer, int offset, int count) =>
             base.Read(buffer, offset, _chunk > 0 ? Math.Min(count, _chunk) : count);
+#if NETCOREAPP
 
         public override int Read(Span<byte> buffer) =>
             base.Read(_chunk > 0 && buffer.Length > _chunk ? buffer.Slice(0, _chunk) : buffer);
+#endif
     }
 }

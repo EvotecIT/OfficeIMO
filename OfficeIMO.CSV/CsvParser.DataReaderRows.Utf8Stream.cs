@@ -1,11 +1,12 @@
-#if NET8_0_OR_GREATER
 using System.Buffers;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+#if NET8_0_OR_GREATER
+using System.Numerics;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Text;
+#endif
 
 namespace OfficeIMO.CSV;
 
@@ -146,7 +147,11 @@ internal static partial class CsvParser
 
         internal void SetSourceColumnCount(int sourceColumnCount)
         {
+#if NET8_0_OR_GREATER
             ArgumentOutOfRangeException.ThrowIfNegative(sourceColumnCount);
+#else
+            if (sourceColumnCount < 0) throw new ArgumentOutOfRangeException(nameof(sourceColumnCount));
+#endif
 
             _sourceColumnCount = sourceColumnCount;
             _visitor.SetSourceColumnCount(sourceColumnCount);
@@ -167,7 +172,11 @@ internal static partial class CsvParser
 
         private bool ReadCore(CancellationToken cancellationToken)
         {
+#if NET8_0_OR_GREATER
             ObjectDisposedException.ThrowIf(_disposed, this);
+#else
+            if (_disposed) throw new ObjectDisposedException(GetType().FullName);
+#endif
             if (_fallback is not null)
             {
                 return _fallback.Read(cancellationToken);
@@ -304,6 +313,7 @@ internal static partial class CsvParser
         /// </summary>
         private RecordScanResult ScanRecord(int recordStart, CancellationToken cancellationToken, out RecordScan scan)
         {
+#if NET8_0_OR_GREATER
             if (Vector128.IsHardwareAccelerated && BitConverter.IsLittleEndian)
             {
                 RecordScanResult result = ScanRecordBlocks(recordStart, cancellationToken, out scan);
@@ -312,10 +322,21 @@ internal static partial class CsvParser
                     return result;
                 }
             }
+#else
+            if (!_trim && BitConverter.IsLittleEndian)
+            {
+                RecordScanResult result = ScanRecordWords(recordStart, out scan);
+                if (result != RecordScanResult.Irregular)
+                {
+                    return result;
+                }
+            }
+#endif
 
             return ScanRecordExact(recordStart, cancellationToken, out scan);
         }
 
+#if NET8_0_OR_GREATER
         /// <summary>
         /// Scans 64-byte blocks of a well-formed record. Quote parity is a prefix XOR of the quote
         /// mask, so delimiters and line separators inside quotes drop out of the structural mask and
@@ -637,6 +658,7 @@ internal static partial class CsvParser
             mask ^= mask << 32;
             return mask;
         }
+#endif
 
         /// <summary>
         /// Exact byte-by-byte RFC 4180 record scan used for irregular records and input tails. It
@@ -959,7 +981,7 @@ internal static partial class CsvParser
             ReadOnlySpan<byte> bytes = _flexibleFieldBytes.AsSpan(0, fieldLength);
             string value = fieldLength == 0
                 ? string.Empty
-                : Ascii.IsValid(bytes) ? Encoding.Latin1.GetString(bytes) : _encoding.GetString(bytes);
+                : Ascii.IsValid(bytes) ? CsvAsciiText.GetString(bytes) : _encoding.GetString(bytes);
             _visitor.VisitMaterializedField(fieldIndex, _trim && !fieldWasQuoted ? value.Trim() : value);
         }
 
@@ -1043,7 +1065,7 @@ internal static partial class CsvParser
             ReadOnlySpan<byte> text = buffer.AsSpan(start, end - start);
             if (!text.IsEmpty &&
                 ((text[0] >= 0x80 && Rune.DecodeFromUtf8(text, out Rune first, out _) == OperationStatus.Done && Rune.IsWhiteSpace(first)) ||
-                 (text[^1] >= 0x80 && Rune.DecodeLastFromUtf8(text, out Rune last, out _) == OperationStatus.Done && Rune.IsWhiteSpace(last))))
+                 (text[text.Length - 1] >= 0x80 && Rune.DecodeLastFromUtf8(text, out Rune last, out _) == OperationStatus.Done && Rune.IsWhiteSpace(last))))
             {
                 // Non-ASCII whitespace at an edge: trim the decoded text exactly as string.Trim does.
                 _visitor.VisitMaterializedField(fieldIndex, _encoding.GetString(text).Trim());
@@ -1480,6 +1502,21 @@ internal static partial class CsvParser
                 set => throw new NotSupportedException();
             }
 
+#if !NET8_0_OR_GREATER
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                int prefixRemaining = _prefix.Length - _position;
+                if (prefixRemaining > 0)
+                {
+                    int copied = Math.Min(prefixRemaining, count);
+                    Buffer.BlockCopy(_prefix, _position, buffer, offset, copied);
+                    _position += copied;
+                    return copied;
+                }
+
+                return _remainder.Read(buffer, offset, count);
+            }
+#else
             public override int Read(byte[] buffer, int offset, int count) =>
                 Read(buffer.AsSpan(offset, count));
 
@@ -1496,6 +1533,7 @@ internal static partial class CsvParser
 
                 return _remainder.Read(buffer);
             }
+#endif
 
             public override void Flush() { }
             public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
@@ -1515,4 +1553,3 @@ internal static partial class CsvParser
     }
 
 }
-#endif

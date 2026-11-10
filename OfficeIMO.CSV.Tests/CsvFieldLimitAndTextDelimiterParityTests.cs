@@ -33,8 +33,12 @@ public sealed class CsvFieldLimitAndTextDelimiterParityTests {
             string input = text.ToString();
             CsvReaderOptions options = CreateOptions(delimiter, quoting, errors, random);
             string expected = ObserveCanonical(input, options);
-            // Only a one-character delimiter has a decoded text reader to compare.
+            // Only a one-character delimiter on .NET 8 and later has a decoded text reader to compare.
+#if NETCOREAPP
             bool decoded = delimiter.Length == 1 && random.Next(3) == 0;
+#else
+            bool decoded = false;
+#endif
             int chunk = random.Next(0, 6);
             // With a one-character delimiter, the streaming readers report a strict-mode invalid quote on
             // its own line where the canonical parser first joins the next line; those inputs are not
@@ -71,7 +75,9 @@ public sealed class CsvFieldLimitAndTextDelimiterParityTests {
             ParseErrorAction = CsvParseErrorAction.SkipRow, CollectParseErrors = true, ParseErrors = new List<CsvParseError>()
         };
         Assert.Equal(ObserveCanonical(input, options), ObserveStream(input, options, chunk: 0, decoded: false));
+#if NETCOREAPP
         Assert.Equal(ObserveCanonical(input, options), ObserveStream(input, options, chunk: 0, decoded: true));
+#endif
     }
 
     private static CsvReaderOptions CreateOptions(string delimiter, CsvQuoteParsingMode quoting, CsvParseErrorAction errors, Random random) =>
@@ -148,8 +154,10 @@ public sealed class CsvFieldLimitAndTextDelimiterParityTests {
 
         public override int Read(byte[] buffer, int offset, int count) =>
             base.Read(buffer, offset, _chunk > 0 ? Math.Min(count, _chunk) : count);
+#if NETCOREAPP
 
         public override int Read(Span<byte> buffer) =>
             base.Read(_chunk > 0 && buffer.Length > _chunk ? buffer.Slice(0, _chunk) : buffer);
+#endif
     }
 }

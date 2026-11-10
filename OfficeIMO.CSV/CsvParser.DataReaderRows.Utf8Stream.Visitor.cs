@@ -1,10 +1,11 @@
-#if NET8_0_OR_GREATER
 using System.Buffers;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using System.Text;
+#if NET8_0_OR_GREATER
+using System.Numerics;
+using System.Runtime.Intrinsics;
+#endif
 
 namespace OfficeIMO.CSV;
 
@@ -128,6 +129,7 @@ internal static partial class CsvParser
             field.Materialized = null;
         }
 
+#if NET8_0_OR_GREATER
         /// <summary>Publishes the fields in one 64-byte block after reserving their complete span.</summary>
         internal void VisitDelimiterMask(
             ulong delimiterMask,
@@ -158,6 +160,7 @@ internal static partial class CsvParser
             fieldIndex = completedFieldCount;
             FieldCount = completedFieldCount;
         }
+#endif
 
 
         internal void Complete(
@@ -316,7 +319,7 @@ internal static partial class CsvParser
             }
 
             Span<char> characters = _spanScratch.AsSpan(0, length);
-            Encoding.Latin1.GetChars(bytes, characters);
+            CsvAsciiText.Widen(bytes, characters);
             return characters;
         }
 
@@ -353,7 +356,7 @@ internal static partial class CsvParser
 
             ReadOnlySpan<byte> unescaped = bytes.Slice(0, written);
             string value = _allFieldsAscii || Ascii.IsValid(unescaped)
-                ? Encoding.Latin1.GetString(unescaped)
+                ? CsvAsciiText.GetString(unescaped)
                 : _encoding.GetString(unescaped);
             if (rented is not null)
             {
@@ -368,6 +371,9 @@ internal static partial class CsvParser
         // load stays inside the source span and every store inside the new string.
         private static string CreateAsciiString(byte[] buffer, int start, int length)
         {
+#if !NET8_0_OR_GREATER
+            return CsvAsciiText.GetString(buffer, start, length);
+#else
             if (!BitConverter.IsLittleEndian || !Vector128.IsHardwareAccelerated || length < 2)
             {
                 return Encoding.Latin1.GetString(buffer.AsSpan(start, length));
@@ -400,7 +406,10 @@ internal static partial class CsvParser
             }
 
             return value;
+#endif
         }
+
+#if NET8_0_OR_GREATER
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WidenSixteen(ref byte source, ref byte destination)
@@ -458,6 +467,7 @@ internal static partial class CsvParser
             uint word = Unsafe.ReadUnaligned<ushort>(ref source);
             Unsafe.WriteUnaligned(ref destination, (word | (word << 8)) & 0x00ff00ffU);
         }
+#endif
 
         /// <summary>Completes requested per-read string sharing before exposing the row.</summary>
         internal void InternFields(CsvStringCache? cache)
@@ -506,6 +516,7 @@ internal static partial class CsvParser
             return _fields[ordinal].Start == MissingStart;
         }
 
+#if NET8_0_OR_GREATER
         internal bool TryGetUtf8Text(int ordinal, out ReadOnlySpan<byte> text)
         {
             ValidateOrdinal(ordinal);
@@ -528,6 +539,7 @@ internal static partial class CsvParser
             text = bytes;
             return true;
         }
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly void ValidateOrdinal(int ordinal)
@@ -567,4 +579,69 @@ internal static partial class CsvParser
         }
     }
 }
+
+/// <summary>Turns validated ASCII bytes into characters, one byte per character.</summary>
+internal static class CsvAsciiText
+{
+#if NET8_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static string GetString(ReadOnlySpan<byte> ascii) => Encoding.Latin1.GetString(ascii);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void Widen(ReadOnlySpan<byte> ascii, Span<char> characters) => Encoding.Latin1.GetChars(ascii, characters);
+#else
+    internal static string GetString(ReadOnlySpan<byte> ascii)
+    {
+        if (ascii.IsEmpty)
+        {
+            return string.Empty;
+        }
+
+        string value = new string('\0', ascii.Length);
+        Widen(ref MemoryMarshal.GetReference(ascii), ref MemoryMarshal.GetReference(value.AsSpan()), ascii.Length);
+        return value;
+    }
+
+    internal static string GetString(byte[] buffer, int start, int length)
+    {
+        if (length == 0)
+        {
+            return string.Empty;
+        }
+
+        // A new string is not shared until it is returned, so it can be filled in place.
+        string value = new string('\0', length);
+        Widen(ref buffer[start], ref MemoryMarshal.GetReference(value.AsSpan()), length);
+        return value;
+    }
+
+    /// <summary>Widens four bytes at a time into a word of four characters.</summary>
+    private static void Widen(ref byte source, ref char destination, int length)
+    {
+        int index = 0;
+        if (BitConverter.IsLittleEndian)
+        {
+            for (; index <= length - 4; index += 4)
+            {
+                ulong word = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref source, index));
+                word = (word | (word << 16)) & 0x0000ffff0000ffffUL;
+                word = (word | (word << 8)) & 0x00ff00ff00ff00ffUL;
+                Unsafe.WriteUnaligned(ref Unsafe.As<char, byte>(ref Unsafe.Add(ref destination, index)), word);
+            }
+        }
+
+        for (; index < length; index++)
+        {
+            Unsafe.Add(ref destination, index) = (char)Unsafe.Add(ref source, index);
+        }
+    }
+
+    internal static void Widen(ReadOnlySpan<byte> ascii, Span<char> characters)
+    {
+        for (int index = 0; index < ascii.Length; index++)
+        {
+            characters[index] = (char)ascii[index];
+        }
+    }
 #endif
+}
