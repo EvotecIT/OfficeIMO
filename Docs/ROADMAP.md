@@ -849,6 +849,7 @@ Build `OfficeIMO.Yaml` as an owned, dependency-free YAML 1.2 engine with lossles
 - [ ] Y2: `YamlDocument` model with Failsafe, JSON, Core and 1.1 schemas, anchors, aliases, merge keys, tags, multi-document streams and duplicate-key policy. Match `in.json` across the suite and save every suite and corpus input byte for byte.
 - [ ] Y5a: rebuild `OfficeIMO.Reader.Yaml` on the engine, preserve its chunk/path contract and remove YamlDotNet.
 - [ ] Y3: minimal-diff editing, sibling-style inference, `YamlWriter` and new-document emission with YAML 1.1-safe quoting; independent readers accept our output. Move Markdown front matter to the engine.
+- [ ] Y3b: deep merge of an overlay into a base document or subtree with replace, append and merge-by-key sequence rules, Helm-style null removal and a `YamlMergeReport`. Qualify on Helm values and per-environment configuration overlays: the merged file must be a minimal diff of the base, and its data must match the same merge done on the loaded data.
 - [ ] Y4: `YamlSerializer` with a packaged source generator for trimming and NativeAOT and a reflection fallback.
 - [ ] Lead YamlDotNet and SharpYaml on parse-to-events and load-to-model elapsed time and allocation across the benchmark workloads, with Windows, Linux and macOS evidence.
 
