@@ -82,6 +82,7 @@ public sealed partial class PdfCreateOptions {
     /// <returns>True when the normalized font family slot has embedded font data.</returns>
     public bool HasEmbeddedStandardFontFamily(PdfStandardFont font) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
+        ResolvePendingDefaultFontFamilies(font);
         return _embeddedFonts != null && _embeddedFonts.ContainsKey(PdfStandardFontMapper.GetFontFamily(font));
     }
 
@@ -138,6 +139,7 @@ public sealed partial class PdfCreateOptions {
 
     /// <summary>Finds an embedded family in its actual logical slot, independent of its usual standard alias.</summary>
     internal bool TryResolveEmbeddedFontFamilySlot(string familyName, out PdfStandardFont fontFamily) {
+        ResolvePendingDefaultFontFamilies();
         if (_embeddedFonts != null) {
             foreach (PdfStandardFont slot in _embeddedFonts.Keys) {
                 if (!EmbeddedFontFamilySlotMatches(slot, familyName)) continue;
@@ -151,6 +153,7 @@ public sealed partial class PdfCreateOptions {
 
     internal string? GetEmbeddedFontFamilyName(PdfStandardFont slot) {
         PdfStandardFont normalizedSlot = PdfStandardFontMapper.GetFontFamily(slot);
+        ResolvePendingDefaultFontFamilies(normalizedSlot);
         if (_embeddedFonts == null ||
             !_embeddedFonts.TryGetValue(normalizedSlot, out PdfEmbeddedFont? embedded) ||
             string.IsNullOrWhiteSpace(embedded.FontName)) {
@@ -304,6 +307,7 @@ public sealed partial class PdfCreateOptions {
     }
 
     private string CaptureEmbeddedFontState() {
+        ResolvePendingDefaultFontFamilies();
         if (_embeddedFonts == null || _embeddedFonts.Count == 0) {
             return string.Empty;
         }
