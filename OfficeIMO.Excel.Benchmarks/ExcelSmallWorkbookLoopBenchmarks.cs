@@ -73,8 +73,8 @@ public class ExcelSmallWorkbookLoopBenchmarks {
         foreach (byte[] workbook in _workbooks) {
             using var document = SpreadsheetDocument.Open(new MemoryStream(workbook, writable: false), false);
             WorkbookPart part = document.WorkbookPart!;
-            string[] shared = part.SharedStringTablePart?.SharedStringTable.Elements<SharedStringItem>().Select(item => item.InnerText).ToArray() ?? [];
-            foreach (Cell cell in part.WorksheetParts.Single().Worksheet.Descendants<Cell>()) {
+            string[] shared = part.SharedStringTablePart?.SharedStringTable!.Elements<SharedStringItem>().Select(item => item.InnerText).ToArray() ?? [];
+            foreach (Cell cell in part.WorksheetParts.Single().Worksheet!.Descendants<Cell>()) {
                 string text = cell.CellValue?.Text ?? cell.InlineString?.InnerText ?? string.Empty;
                 checksum += cell.DataType?.Value == CellValues.SharedString ? shared[int.Parse(text, CultureInfo.InvariantCulture)].Length
                     : cell.DataType?.Value == CellValues.InlineString || cell.DataType?.Value == CellValues.String ? text.Length

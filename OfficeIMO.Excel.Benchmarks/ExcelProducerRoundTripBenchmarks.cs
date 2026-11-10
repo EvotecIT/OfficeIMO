@@ -111,7 +111,7 @@ public class ExcelProducerRoundTripBenchmarks {
         if (RowCount(package) != _rowCount + 1) throw new InvalidDataException("The save lost or added rows.");
         Cell cell = FirstWorksheet(document).Descendants<Row>().Last().Elements<Cell>().Single();
         string text = cell.DataType?.Value == CellValues.SharedString
-            ? document.WorkbookPart!.SharedStringTablePart!.SharedStringTable.Elements<SharedStringItem>()
+            ? document.WorkbookPart!.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>()
                 .ElementAt(int.Parse(cell.CellValue!.Text)).InnerText
             : cell.InlineString?.InnerText ?? cell.CellValue?.Text ?? string.Empty;
         if (text != EditedText) throw new InvalidDataException($"The edited cell holds '{text}'.");
@@ -119,7 +119,7 @@ public class ExcelProducerRoundTripBenchmarks {
 
     private static Worksheet FirstWorksheet(SpreadsheetDocument document) {
         WorkbookPart workbook = document.WorkbookPart!;
-        Sheet sheet = workbook.Workbook.Sheets!.Elements<Sheet>().First();
-        return ((WorksheetPart)workbook.GetPartById(sheet.Id!.Value!)).Worksheet;
+        Sheet sheet = workbook.Workbook!.Sheets!.Elements<Sheet>().First();
+        return ((WorksheetPart)workbook.GetPartById(sheet.Id!.Value!)).Worksheet!;
     }
 }

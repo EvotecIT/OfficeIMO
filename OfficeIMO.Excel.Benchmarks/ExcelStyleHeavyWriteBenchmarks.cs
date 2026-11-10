@@ -73,9 +73,9 @@ public class ExcelStyleHeavyWriteBenchmarks {
     private void Validate(byte[] package) {
         using var document = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
         WorkbookPart workbook = document.WorkbookPart!;
-        int cells = workbook.WorksheetParts.Single().Worksheet.Descendants<Cell>().Count(cell => cell.StyleIndex != null);
+        int cells = workbook.WorksheetParts.Single().Worksheet!.Descendants<Cell>().Count(cell => cell.StyleIndex != null);
         if (cells != RowCount * Columns) throw new InvalidDataException($"Expected {RowCount * Columns} styled cells, found {cells}.");
-        int formats = workbook.WorkbookStylesPart!.Stylesheet.CellFormats!.Elements<CellFormat>().Count();
+        int formats = workbook.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<CellFormat>().Count();
         if (formats < 240) throw new InvalidDataException($"Expected at least 240 cell formats, found {formats}.");
     }
 }
