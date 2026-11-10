@@ -341,5 +341,6 @@
   <Project Path="OfficeIMO.Xps.Pdf/OfficeIMO.Xps.Pdf.csproj" />
   <Project Path="OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj" />
   <Project Path="OfficeIMO.Xps/OfficeIMO.Xps.csproj" />
+  <Project Path="OfficeIMO.Yaml.Tests/OfficeIMO.Yaml.Tests.csproj" />
   <Project Path="OfficeIMO/OfficeIMO.csproj" />
 </Solution>
