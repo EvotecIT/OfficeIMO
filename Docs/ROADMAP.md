@@ -843,6 +843,18 @@ Acceptance: installed/packed consumers exercise the advertised native workflows 
 
 Acceptance: every adopted baseline criterion has decisive evidence, no validated in-scope correctness defect remains, and current source/API/package/host documentation agrees. Earlier bounded milestones may ship, but they cannot be reported as completion of OfficeIMO.Access. Source readiness, PR merge, package publication and installed/live proof remain separate gates.
 
+## TOML engine
+
+`OfficeIMO.Toml` reads, edits and writes TOML 1.1 losslessly and passes the whole toml-test 1.1.0 suite; `OfficeIMO.Reader.Toml` ingests TOML files. The [TOML engine design](officeimo.toml-engine-design.md) owns the architecture. Open work:
+
+- [ ] Markdown `+++` front matter: read and write Hugo-style TOML front matter in `OfficeIMO.Markdown` through `TomlDocument`, after Markdown's YAML front matter moves onto `OfficeIMO.Yaml`, so both front matter kinds share one integration shape.
+- [ ] `TomlSerializer`: object mapping with a source generator for trimming and NativeAOT, following the YAML serializer's design once that lands, so both formats share attributes, naming policies and options.
+- [ ] Stream and `TextReader` input for `TomlReader` with a pooled sliding buffer, as `YamlReader` has, for very large lock files.
+- [ ] `OfficeDocumentFormat.Toml` in `OfficeIMO.Core`, so Reader results map TOML to a format instead of `Unknown` in the neutral document model.
+- [ ] PSWriteOffice commands on the same API (`New-`/`Open-`/`Save-OfficeToml`, `Get-`/`Set-`/`Remove-OfficeTomlNode -Select`, `ConvertFrom-`/`ConvertTo-OfficeToml`), following the YAML command set.
+- [ ] An opt-in large corpus run over thousands of pinned real-world TOML files (crates.io manifests, PyPI `pyproject.toml`, lock files, Hugo sites), checking parse, byte-exact round-trip and scripted edits, plus a mutation run for hostile input.
+- [ ] Lead Tomlyn on parse and load elapsed time and allocation on every benchmark workload, with Windows and Linux evidence alongside macOS.
+
 ## Additional formats and product boundaries
 
 - [ ] Establish independent application/producer validation for each adopted legacy generation before claiming its read, edit, or write operation.
