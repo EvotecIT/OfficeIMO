@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace OfficeIMO.Yaml;
 
 /// <summary>
@@ -63,6 +65,7 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
     where TKey : notnull {
     private readonly Func<Dictionary<TKey, TValue>, TDictionary> _finish;
     private readonly bool _dictionaryIsResult;
+    private readonly bool _stringValues = typeof(TValue) == typeof(string);
     private YamlTypeInfo<TKey>? _key;
     private YamlTypeInfo<TValue>? _value;
 
@@ -143,7 +146,16 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
         YamlTypeInfo<TValue> valueInfo = _value!;
         writer.WriteStartMapping();
         if (value is Dictionary<TKey, TValue> dictionary) {
-            foreach (KeyValuePair<TKey, TValue> entry in dictionary) WriteEntry(writer, keyInfo, valueInfo, entry, state);
+            if (_stringValues) {
+                // String entries that need no quotes go out in one step, as WriteEntry would write them.
+                foreach (KeyValuePair<TKey, TValue> entry in dictionary) {
+                    TValue item = entry.Value;
+                    if (entry.Key is string key && Unsafe.As<TValue, string?>(ref item) is string text && writer.TryWritePlainEntry(key, text, checkKey: true)) continue;
+                    WriteEntry(writer, keyInfo, valueInfo, entry, state);
+                }
+            } else {
+                foreach (KeyValuePair<TKey, TValue> entry in dictionary) WriteEntry(writer, keyInfo, valueInfo, entry, state);
+            }
         } else {
             foreach (KeyValuePair<TKey, TValue> entry in value) WriteEntry(writer, keyInfo, valueInfo, entry, state);
         }

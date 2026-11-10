@@ -298,8 +298,9 @@ public class YamlSerializerBehaviorTests {
         Assert.Contains("YamlSerializerContext", missing.Message, StringComparison.Ordinal);
         Assert.Null(Context.GetTypeInfo(typeof(Version)));
     }
-    // Properties with a plain name write string, integer and boolean entries in one step. The text must be what the
-    // writer produces for the key and the value written one by one, at the root, nested and as a compact sequence item.
+    // Properties with a plain name and string dictionaries write string, integer and boolean entries in one step. The
+    // text must be what the writer produces for the key and the value written one by one, at the root, nested and as a
+    // compact sequence item.
     [Fact]
     public void OneStepEntriesMatchKeyThenValueWrites() {
         string[] texts = {
@@ -312,6 +313,7 @@ public class YamlSerializerBehaviorTests {
             root.Add(new EntryShapes {
                 Text = texts[i], Number = i * 7 - 50, Name = texts[(i + 5) % texts.Length], Big = long.MinValue + i, Flag = i % 2 == 0,
                 Inner = new EntryLeaf { Value = texts[(i + 11) % texts.Length], Count = i },
+                Labels = { [texts[i]] = texts[(i + 3) % texts.Length], ["k" + i] = texts[(i + 7) % texts.Length] },
                 Items = { new EntryShapes { Text = texts[texts.Length - 1 - i], Number = i, Flag = i % 3 == 0 } }
             });
         }
@@ -346,6 +348,13 @@ public class YamlSerializerBehaviorTests {
             writer.WriteKey("count");
             writer.WriteScalar(value.Inner.Count);
             writer.WriteEndMapping();
+            writer.WriteKey("labels");
+            writer.WriteStartMapping();
+            foreach (KeyValuePair<string, string> label in value.Labels) {
+                writer.WriteKey(label.Key);
+                writer.WriteScalar(label.Value);
+            }
+            writer.WriteEndMapping();
             writer.WriteKey("items");
             writer.WriteStartSequence();
             foreach (EntryShapes item in value.Items) Write(writer, item);
@@ -361,6 +370,7 @@ public class YamlSerializerBehaviorTests {
         public long Big { get; set; }
         public bool Flag { get; set; }
         public EntryLeaf Inner { get; set; } = new EntryLeaf();
+        public Dictionary<string, string> Labels { get; set; } = new Dictionary<string, string>();
         public List<EntryShapes> Items { get; set; } = new List<EntryShapes>();
     }
 
