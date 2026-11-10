@@ -81,6 +81,15 @@ public sealed partial class YamlReader {
         return new string(_scratch, 0, length);
     }
 
+    /// <summary>Gets the current scalar's decoded value as a span, without allocating when the source holds it verbatim.</summary>
+    internal ReadOnlySpan<char> ScalarValueSpan => ScalarText();
+
+    /// <summary>Gets whether the current node defines an anchor, without creating its name.</summary>
+    internal bool HasAnchor => _event.AnchorStart >= 0 && _event.Type is YamlTokenType.Scalar or YamlTokenType.SequenceStart or YamlTokenType.MappingStart;
+
+    /// <summary>Gets the options the reader runs with.</summary>
+    internal YamlReaderOptions Options => _options;
+
     /// <summary>Decodes the current scalar into a span when it needs decoding; otherwise returns the raw value span.</summary>
     private ReadOnlySpan<char> ScalarText() {
         ReadOnlySpan<char> raw = Slice(_event.ValueStart, _event.ValueEnd);

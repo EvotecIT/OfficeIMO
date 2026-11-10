@@ -30,6 +30,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Yaml\OfficeIMO.Yaml.csproj" />
+    <!-- The serializer's generator: an analyzer for the test contexts, and a reference for the diagnostic tests. -->
+    <ProjectReference Include="..\OfficeIMO.Yaml.SourceGeneration\OfficeIMO.Yaml.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
   </ItemGroup>
 
   <!-- Independent readers for the merge qualification: test-only, never referenced by OfficeIMO runtime projects. -->

@@ -102,4 +102,18 @@ public static class YamlErrorCodes {
     public const string RecursiveAlias = "Yaml.Load.RecursiveAlias";
     /// <summary>A limit from <see cref="YamlReaderOptions"/> or <see cref="YamlLoadOptions"/> was exceeded; see <see cref="YamlLimitExceededException"/>.</summary>
     public const string LimitExceeded = "Yaml.Limit.Exceeded";
+    /// <summary>
+    /// <see cref="YamlSerializer"/> found a node that cannot become the requested .NET type: a mapping where a list is
+    /// expected, text that is not a number, a null for a non-nullable value type, or a value out of range.
+    /// </summary>
+    public const string TypeMismatch = "Yaml.Serialization.TypeMismatch";
+    /// <summary>A mapping read by <see cref="YamlSerializer"/> lacks a key for a required member or constructor parameter.</summary>
+    public const string MissingRequiredMember = "Yaml.Serialization.MissingRequiredMember";
+    /// <summary>A polymorphic value has no discriminator its type accepts, or one that no derived type registers.</summary>
+    public const string UnknownDiscriminator = "Yaml.Serialization.UnknownDiscriminator";
+    /// <summary>
+    /// <see cref="YamlSerializer"/> reached an object that contains itself while
+    /// <see cref="YamlSerializerOptions.ReferenceHandling"/> is <see cref="YamlReferenceHandling.None"/>.
+    /// </summary>
+    public const string ReferenceCycle = "Yaml.Serialization.ReferenceCycle";
 }

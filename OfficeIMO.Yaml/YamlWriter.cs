@@ -24,6 +24,7 @@ public sealed class YamlWriter : IDisposable {
     private readonly TextWriter _text;
     private readonly bool _ownsText;
     private readonly YamlEmitter _emitter;
+    private readonly YamlNodeBuilder? _builder;
     private readonly char[] _number = new char[48];
     private bool _disposed;
 
@@ -46,10 +47,18 @@ public sealed class YamlWriter : IDisposable {
         _emitter = new YamlEmitter(_text, options ?? YamlWriterOptions.Default);
     }
 
+    /// <summary>Creates a writer that builds a detached node tree instead of text, for the serializer's node output.</summary>
+    internal YamlWriter(YamlNodeBuilder builder) {
+        _builder = builder;
+        _text = TextWriter.Null;
+        _emitter = new YamlEmitter(_text, YamlWriterOptions.Default);
+    }
+
     /// <summary>Starts a document with an explicit <c>---</c> marker. The first document needs no call: writing its root starts it.</summary>
     /// <exception cref="InvalidOperationException">A collection is open, or the current document has no root yet.</exception>
     public void WriteDocumentStart() {
         CheckDisposed();
+        if (_builder is not null) return;
         _emitter.StartDocument(explicitMarker: true);
     }
 
@@ -57,6 +66,7 @@ public sealed class YamlWriter : IDisposable {
     /// <exception cref="InvalidOperationException">No complete document is open.</exception>
     public void WriteDocumentEnd() {
         CheckDisposed();
+        if (_builder is not null) return;
         _emitter.EndDocument();
     }
 
@@ -64,28 +74,32 @@ public sealed class YamlWriter : IDisposable {
     /// <param name="style"><see cref="YamlStyle.Block"/> (the default) or <see cref="YamlStyle.Flow"/>; inside a flow collection every collection is flow.</param>
     public void WriteStartMapping(YamlStyle style = YamlStyle.Block) {
         CheckDisposed();
-        _emitter.StartCollection(mapping: true, CollectionStyle(style));
+        if (_builder is not null) _builder.StartCollection(mapping: true, CollectionStyle(style));
+        else _emitter.StartCollection(mapping: true, CollectionStyle(style));
     }
 
     /// <summary>Ends the innermost mapping.</summary>
     /// <exception cref="InvalidOperationException">The innermost open collection is not a mapping, or its last key has no value.</exception>
     public void WriteEndMapping() {
         CheckDisposed();
-        _emitter.EndCollection(mapping: true);
+        if (_builder is not null) _builder.EndCollection(mapping: true);
+        else _emitter.EndCollection(mapping: true);
     }
 
     /// <summary>Starts a sequence.</summary>
     /// <param name="style"><see cref="YamlStyle.Block"/> (the default) or <see cref="YamlStyle.Flow"/>; inside a flow collection every collection is flow.</param>
     public void WriteStartSequence(YamlStyle style = YamlStyle.Block) {
         CheckDisposed();
-        _emitter.StartCollection(mapping: false, CollectionStyle(style));
+        if (_builder is not null) _builder.StartCollection(mapping: false, CollectionStyle(style));
+        else _emitter.StartCollection(mapping: false, CollectionStyle(style));
     }
 
     /// <summary>Ends the innermost sequence.</summary>
     /// <exception cref="InvalidOperationException">The innermost open collection is not a sequence.</exception>
     public void WriteEndSequence() {
         CheckDisposed();
-        _emitter.EndCollection(mapping: false);
+        if (_builder is not null) _builder.EndCollection(mapping: false);
+        else _emitter.EndCollection(mapping: false);
     }
 
     /// <summary>Writes a string mapping key with the default style. Complex keys are written with the node methods at a key position.</summary>
@@ -93,6 +107,11 @@ public sealed class YamlWriter : IDisposable {
     public void WriteKey(string key) {
         if (key is null) throw new ArgumentNullException(nameof(key));
         CheckDisposed();
+        if (_builder is not null) {
+            if (!_builder.AtKey) throw new InvalidOperationException("WriteKey is valid only where a mapping expects a key.");
+            _builder.Scalar(new YamlScalar(key));
+            return;
+        }
         if (!_emitter.AtKey) throw new InvalidOperationException("WriteKey is valid only where a mapping expects a key.");
         _emitter.WriteScalar(key, _emitter.ChooseStyle(key, YamlStyle.None));
     }
@@ -105,6 +124,10 @@ public sealed class YamlWriter : IDisposable {
     /// </summary>
     public void WriteScalar(string? value, YamlStyle style = YamlStyle.None) {
         CheckDisposed();
+        if (_builder is not null) {
+            _builder.Scalar(value is null ? new YamlScalar((string?)null) : style == YamlStyle.None ? new YamlScalar(value) : new YamlScalar(value, ScalarStyle(style)));
+            return;
+        }
         if (value is null) {
             _emitter.WritePlain("null".AsSpan());
             return;
@@ -115,6 +138,10 @@ public sealed class YamlWriter : IDisposable {
     /// <summary>Writes an integer as a plain scalar.</summary>
     public void WriteScalar(long value) {
         CheckDisposed();
+        if (_builder is not null) {
+            _builder.Scalar(new YamlScalar(value));
+            return;
+        }
         int length = YamlScalarFormat.Format(value, _number);
         _emitter.WritePlain(_number.AsSpan(0, length));
     }
@@ -125,6 +152,10 @@ public sealed class YamlWriter : IDisposable {
     /// </summary>
     public void WriteScalar(double value) {
         CheckDisposed();
+        if (_builder is not null) {
+            _builder.Scalar(new YamlScalar(value));
+            return;
+        }
 #if NET8_0_OR_GREATER
         int length = YamlScalarFormat.Format(value, _number);
         _emitter.WritePlain(_number.AsSpan(0, length));
@@ -136,7 +167,41 @@ public sealed class YamlWriter : IDisposable {
     /// <summary>Writes <c>true</c> or <c>false</c>.</summary>
     public void WriteScalar(bool value) {
         CheckDisposed();
+        if (_builder is not null) {
+            _builder.Scalar(new YamlScalar(value));
+            return;
+        }
         _emitter.WritePlain(YamlScalarFormat.Format(value).AsSpan());
+    }
+
+    /// <summary>Writes a null scalar (<c>null</c>).</summary>
+    internal void WriteNull() {
+        CheckDisposed();
+        if (_builder is not null) {
+            _builder.Scalar(new YamlScalar((string?)null));
+            return;
+        }
+        _emitter.WritePlain("null".AsSpan());
+    }
+
+    /// <summary>Writes a mapping key known to be safe as a plain scalar in every context, skipping the style choice.</summary>
+    internal void WritePlainKey(string key) {
+        CheckDisposed();
+        if (_builder is not null) {
+            _builder.Scalar(new YamlScalar(key, YamlStyle.Plain));
+            return;
+        }
+        _emitter.WriteScalar(key, YamlStyle.Plain);
+    }
+
+    /// <summary>Writes text already in a canonical plain spelling, such as a formatted number or timestamp.</summary>
+    internal void WritePlainValue(ReadOnlySpan<char> value) {
+        CheckDisposed();
+        if (_builder is not null) {
+            _builder.Scalar(new YamlScalar(value.ToString(), YamlStyle.Plain));
+            return;
+        }
+        _emitter.WritePlain(value);
     }
 
     /// <summary>Writes an alias (<c>*name</c>) to an anchor written earlier in the document.</summary>
@@ -144,7 +209,8 @@ public sealed class YamlWriter : IDisposable {
     public void WriteAlias(string anchor) {
         if (anchor is null) throw new ArgumentNullException(nameof(anchor));
         CheckDisposed();
-        _emitter.WriteAlias(anchor);
+        if (_builder is not null) _builder.Alias(anchor);
+        else _emitter.WriteAlias(anchor);
     }
 
     /// <summary>Sets the anchor (<c>&amp;name</c>) of the next node.</summary>
@@ -152,7 +218,8 @@ public sealed class YamlWriter : IDisposable {
     public void WriteAnchor(string name) {
         if (name is null) throw new ArgumentNullException(nameof(name));
         CheckDisposed();
-        _emitter.SetAnchor(name);
+        if (_builder is not null) _builder.SetAnchor(name);
+        else _emitter.SetAnchor(name);
     }
 
     /// <summary>
@@ -162,7 +229,8 @@ public sealed class YamlWriter : IDisposable {
     public void WriteTag(string tag) {
         if (tag is null) throw new ArgumentNullException(nameof(tag));
         CheckDisposed();
-        _emitter.SetTag(tag);
+        if (_builder is not null) _builder.SetTag(tag);
+        else _emitter.SetTag(tag);
     }
 
     /// <summary>
@@ -172,6 +240,7 @@ public sealed class YamlWriter : IDisposable {
     public void WriteComment(string text) {
         if (text is null) throw new ArgumentNullException(nameof(text));
         CheckDisposed();
+        if (_builder is not null) return;
         _emitter.WriteCommentLines(text);
     }
 
