@@ -681,7 +681,11 @@ namespace OfficeIMO.Excel {
                     if (!tag.IsEmpty && !rowAlreadyIndexed) {
                         int rowContentStart = position;
                         bool indexedCanonicalRow = rowOffset >= 0
+#if NET8_0_OR_GREATER
                             && TryIndexCanonicalDenseRow(ref position, rowIndex, rowOffset, ct);
+#else
+                            && TryIndexDenseRowDownLevel(ref position, rowIndex, rowOffset, ct);
+#endif
                         if (!indexedCanonicalRow) {
                             position = rowContentStart;
                             if (rowOffset >= 0) {

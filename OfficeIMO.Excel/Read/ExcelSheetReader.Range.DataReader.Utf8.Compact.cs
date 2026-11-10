@@ -519,12 +519,14 @@ namespace OfficeIMO.Excel {
                 if (cursor < _length && _buffer![cursor] == (byte)'<') position = cursor;
             }
 
+#if NET8_0_OR_GREATER
             // Static UTF-8 literals allow fixed-width comparisons of the canonical
             // tags while retaining the bounds checks needed for truncated documents.
             private bool MatchesUtf8(int start, ReadOnlySpan<byte> value) =>
                 start >= 0
                 && start <= _length - value.Length
                 && _buffer!.AsSpan(start, value.Length).SequenceEqual(value);
+#endif
         }
     }
 }
