@@ -18,4 +18,19 @@ public sealed class HtmlCssStyleSharingTests {
         Assert.NotEqual("rgba(255, 0, 0, 1)", styles[cells[1]].GetValue("color"));
         Assert.Equal(styles[cells[1]].GetValue("color"), styles[cells[2]].GetValue("color"));
     }
+
+    [Fact]
+    public void CousinsWithEqualParentsKeepTheirAncestorSelectors() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse("""
+            <style>.warm td { color: red; } .cool td { color: blue; } td { padding: 2px; }</style>
+            <table class="warm"><tr><td>A</td></tr></table>
+            <table class="cool"><tr><td>B</td></tr></table>
+            """);
+
+        var styles = HtmlComputedStyleEngine.Compute(document);
+        var cells = document.Document.QuerySelectorAll("td");
+
+        Assert.Equal("rgba(255, 0, 0, 1)", styles[cells[0]].GetValue("color"));
+        Assert.Equal("rgba(0, 0, 255, 1)", styles[cells[1]].GetValue("color"));
+    }
 }

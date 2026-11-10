@@ -4,7 +4,7 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
     /// <summary>
-    /// Shares one cascade among elements that selectors cannot tell apart, as browsers do for siblings.
+    /// Shares one cascade among siblings and cousins that selectors cannot tell apart, as browsers do.
     /// </summary>
     /// <remarks>
     /// Each element gets a token for its namespace, tag and complete attribute list together with its parent's
@@ -103,17 +103,41 @@ public static partial class HtmlComputedStyleEngine {
         public bool Equals(SharedStyleKey? other) => other != null
             && ReferenceEquals(_token, other._token)
             && ReferenceEquals(_parentDeclarations, other._parentDeclarations)
-            && ReferenceEquals(_containerContexts, other._containerContexts)
+            && ContainerContextsEqual(_containerContexts, other._containerContexts)
             && _containingWidth.Equals(other._containingWidth)
             && Nullable.Equals(_containingHeight, other._containingHeight);
 
         public override bool Equals(object? obj) => Equals(obj as SharedStyleKey);
 
+        // Every element starts its own context list, so cousins compare the contexts by value: names,
+        // container geometry, font sizes and the same computed declarations, everything a query reads.
+        private static bool ContainerContextsEqual(IReadOnlyList<ContainerQueryContext> left, IReadOnlyList<ContainerQueryContext> right) {
+            if (ReferenceEquals(left, right)) return true;
+            if (left.Count != right.Count) return false;
+            for (int index = 0; index < left.Count; index++) {
+                ContainerQueryContext a = left[index], b = right[index];
+                if (ReferenceEquals(a, b)) continue;
+                if (!ReferenceEquals(a.Properties, b.Properties) || !string.Equals(a.Type, b.Type, StringComparison.Ordinal)
+                    || !a.Width.Equals(b.Width) || !Nullable.Equals(a.Height, b.Height) || !a.FontSize.Equals(b.FontSize)
+                    || !a.InheritedFontSize.Equals(b.InheritedFontSize) || !a.RootFontSize.Equals(b.RootFontSize)
+                    || !Nullable.Equals(a.FontSizeContext, b.FontSizeContext) || a.Names.Count != b.Names.Count) return false;
+                for (int name = 0; name < a.Names.Count; name++) {
+                    if (!string.Equals(a.Names[name], b.Names[name], StringComparison.Ordinal)) return false;
+                }
+            }
+            return true;
+        }
+
         public override int GetHashCode() {
             unchecked {
                 int hash = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_token);
                 hash = hash * 31 + (_parentDeclarations == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_parentDeclarations));
-                hash = hash * 31 + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_containerContexts);
+                hash = hash * 31 + _containerContexts.Count;
+                if (_containerContexts.Count > 0) {
+                    ContainerQueryContext last = _containerContexts[_containerContexts.Count - 1];
+                    hash = hash * 31 + last.Width.GetHashCode();
+                    hash = hash * 31 + last.FontSize.GetHashCode();
+                }
                 hash = hash * 31 + _containingWidth.GetHashCode();
                 return hash * 31 + _containingHeight.GetHashCode();
             }
