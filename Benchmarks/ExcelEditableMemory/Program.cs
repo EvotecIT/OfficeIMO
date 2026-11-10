@@ -18,13 +18,14 @@ internal static class Program {
     private const int IdleMilliseconds = 6_000;
 
     private static int Main(string[] args) {
-        if (args.Length < 2) {
+        string mode = args.Length > 0 ? args[0] : string.Empty;
+        bool needsWorkbook = mode is "read" or "edit";
+        if (!(needsWorkbook || mode == "write") || args.Length < (needsWorkbook ? 3 : 2)
+            || !int.TryParse(args[1], NumberStyles.None, CultureInfo.InvariantCulture, out int iterations) || iterations < 1) {
             Console.Error.WriteLine("Usage: ExcelEditableMemory <read|edit|write> <iterations> [workbook.xlsx]");
             return 2;
         }
 
-        string mode = args[0];
-        int iterations = int.Parse(args[1], CultureInfo.InvariantCulture);
         byte[] input = mode == "write" ? Array.Empty<byte>() : File.ReadAllBytes(args[2]);
         long startup = GC.GetTotalMemory(forceFullCollection: true);
         Func<long> run = mode switch {

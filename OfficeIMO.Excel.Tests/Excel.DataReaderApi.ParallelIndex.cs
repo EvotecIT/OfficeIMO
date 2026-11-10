@@ -175,6 +175,45 @@ public partial class Excel {
         }
     }
 
+    /// <summary>Disposing a streamed part stops inflation instead of reading the rest of the worksheet.</summary>
+    [Fact]
+    public void StreamedWorksheetPartStopsInflatingWhenDisposed() {
+        const int length = 8 * 1024 * 1024;
+        var input = new SlowRowStream();
+        byte[] buffer = OpenXmlPartBufferPool.Rent(length);
+        var part = new OpenXmlPackagePartBufferReader.StreamedWorksheetPart(buffer, length, input, "xl/worksheets/sheet1.xml",
+            CancellationToken.None);
+        Assert.True(part.Progress.WaitForMore(0, CancellationToken.None) > 0);
+        part.Dispose();
+        Assert.True(input.Consumed < length - 256, $"Inflation read {input.Consumed} of {length - 256} bytes before disposal returned.");
+    }
+
+    /// <summary>Endless row markup returned in small, slow reads, so a full read takes far longer than one chunk.</summary>
+    private sealed class SlowRowStream : Stream {
+        private static readonly byte[] Row = Encoding.ASCII.GetBytes("<row r=\"1\"></row>");
+        private long _consumed;
+
+        internal long Consumed => Interlocked.Read(ref _consumed);
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            if (Interlocked.Read(ref _consumed) > 0) Thread.Sleep(1);
+            count = Math.Min(count, 16 * 1024);
+            for (int index = 0; index < count; index++) buffer[offset + index] = Row[(int)((_consumed + index) % Row.Length)];
+            Interlocked.Add(ref _consumed, count);
+            return count;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
     private static void ReadFirstParallelIndexRow(byte[] workbook, bool sequential) {
         using DbDataReader reader = OpenParallelIndexReader(workbook, numericAsDecimal: true, sequential);
         reader.Read();

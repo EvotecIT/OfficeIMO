@@ -72,6 +72,24 @@ public sealed class CsvStreamReaderRecordBoundaryTests {
         }
     }
 
+    // The W3C header check must not decode a cut-off prefix: a strict decoder rejects the split 'é'.
+    [Fact]
+    public void CommentBeforeTheHeaderWithAMultiCharacterDelimiterReadsUnderAStrictDecoder() {
+        string input = "#" + new string('x', 30) + "é\nName||Value\nA||1\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(input));
+        using CsvDataReader reader = CsvDocument.OpenReader(stream, new CsvReaderOptions {
+            DelimiterText = "||",
+            DetectDelimiter = false,
+            Encoding = new UTF8Encoding(false, throwOnInvalidBytes: true)
+        });
+        Assert.Equal("Name", reader.GetName(0));
+        Assert.Equal("Value", reader.GetName(1));
+        Assert.True(reader.Read());
+        Assert.Equal("A", reader.GetString(0));
+        Assert.Equal("1", reader.GetString(1));
+        Assert.False(reader.Read());
+    }
+
     /// <summary>Seekable input whose reads return at most a few bytes.</summary>
     private sealed class ShortReadStream : MemoryStream {
         private readonly int _chunk;

@@ -82,8 +82,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Requests shared-string storage. XLSX and XLSB row writers reject this setting; use an editable
-        /// workbook for shared-string planning. Defaults to false (inline text). XLS always uses its
-        /// format-required shared-string table.
+        /// workbook for shared-string planning. Defaults to false (inline text). XLS then writes text up to
+        /// 255 characters as inline labels and longer text to the shared-string table, which holds all
+        /// text when this is true.
         /// </summary>
         public bool UseSharedStrings { get; set; }
 
