@@ -7,6 +7,8 @@ param(
 # structure diff and an HTML review gallery.
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+# Consumers are expected to fail before approval, so a non-zero dotnet test exit is checked, not thrown.
+$PSNativeCommandUseErrorActionPreference = $false
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $workingPath = Join-Path ([System.IO.Path]::GetTempPath()) ('officeimo-pdf-testing-package-smoke-' + [Guid]::NewGuid().ToString('N'))
 $feedPath = Join-Path $workingPath 'feed'

@@ -79,6 +79,11 @@ $nativeDrivers = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.Pdf.Testing'
+        classification = 'managed-cross-platform'
+        evidence = 'The PDF snapshot assertions run inside test hosts; packed xUnit, NUnit and MSTest consumers on .NET 8 and 10 validate them. Test projects are not published as NativeAOT applications.'
+    }
+    [ordered]@{
         name = 'PSWriteOffice'
         classification = 'managed-cross-platform'
         evidence = 'The compiled PowerShell module is qualified through packaged PowerShell 7 and Windows PowerShell 5.1 contracts. It runs inside the managed PowerShell host and does not claim NativeAOT support.'
