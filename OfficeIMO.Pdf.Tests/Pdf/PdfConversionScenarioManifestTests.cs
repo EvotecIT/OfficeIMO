@@ -105,10 +105,10 @@ public sealed class PdfConversionScenarioManifestTests {
 
         Assert.Contains("AsciiDoc direct PDF proof", text, StringComparison.Ordinal);
         Assert.Contains("Semantic route marker", text, StringComparison.Ordinal);
-        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD103");
+        Assert.DoesNotContain(projection.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD103");
         Assert.DoesNotContain(result.Warnings, warning =>
             warning.Details.TryGetValue("stage", out string? stage) && stage == "semantic-projection");
-        Assert.True(result.HasLoss);
+        Assert.False(result.HasLoss);
 
         WriteReviewArtifact("asciidoc-direct-semantic-document.pdf", pdf);
     }
@@ -133,7 +133,6 @@ public sealed class PdfConversionScenarioManifestTests {
 
         Assert.Contains("LaTeX direct PDF proof", text, StringComparison.Ordinal);
         Assert.Contains("Semantic route marker", text, StringComparison.Ordinal);
-        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
         Assert.True(result.HasLoss);
 
