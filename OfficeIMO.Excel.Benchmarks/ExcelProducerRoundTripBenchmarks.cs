@@ -53,8 +53,9 @@ public class ExcelProducerRoundTripBenchmarks {
         _lastRow = LastRowIndex(_input);
         _rowCount = RowCount(_input);
         Validate(OfficeIMO_Open_Edit_Save());
-        // A competitor whose output fails the same check reports that error instead of an unvalidated time.
-        try { Validate(ClosedXML_Open_Edit_Save()); } catch (InvalidDataException exception) { _closedXmlProblem = exception.Message; }
+        // A competitor that cannot open the file, or whose output fails the same check, reports that error
+        // instead of an unvalidated time.
+        try { Validate(ClosedXML_Open_Edit_Save()); } catch (Exception exception) { _closedXmlProblem = exception.GetType().Name + ": " + exception.Message; }
     }
 
     [Benchmark(Baseline = true)]
@@ -69,7 +70,7 @@ public class ExcelProducerRoundTripBenchmarks {
 
     [Benchmark]
     public byte[] ClosedXML_Open_Edit_Save() {
-        if (_closedXmlProblem != null) throw new InvalidDataException("ClosedXML output failed validation: " + _closedXmlProblem);
+        if (_closedXmlProblem != null) throw new InvalidDataException("ClosedXML failed this workbook in setup: " + _closedXmlProblem);
         using var output = new MemoryStream();
         using (var workbook = new XLWorkbook(new MemoryStream(_input, writable: false))) {
             workbook.Worksheet(1).Cell(_lastRow + 1, 1).Value = EditedText;
