@@ -64,6 +64,7 @@ public abstract class YamlTypeInfo {
 public sealed class YamlTypeInfo<T> : YamlTypeInfo {
     private static readonly bool CanBeNull = default(T) is null;
     private static readonly bool IsReferenceType = !typeof(T).IsValueType;
+    private static readonly bool IsString = typeof(T) == typeof(string);
     private readonly YamlConverter<T> _converter;
     private readonly YamlTypeInfo? _nonPolymorphic;
     // Read once: these are asked for every value written.
@@ -110,6 +111,30 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
 
     /// <summary>Writes a value at the writer's position: an alias for a value already written under Preserve, otherwise the node.</summary>
     internal void Write(YamlWriter writer, T value, YamlWriteState state) {
+        // The common scalars go straight to the writer, as their built-in converters would: the JIT folds these checks
+        // for value types, and strings use a flag because shared generic code cannot fold them.
+        if (typeof(T) == typeof(int)) {
+            writer.WriteScalar((long)(int)(object)value!);
+            return;
+        }
+        if (typeof(T) == typeof(long)) {
+            writer.WriteScalar((long)(object)value!);
+            return;
+        }
+        if (typeof(T) == typeof(bool)) {
+            writer.WriteScalar((bool)(object)value!);
+            return;
+        }
+        if (typeof(T) == typeof(double)) {
+            writer.WriteScalar((double)(object)value!);
+            return;
+        }
+        if (IsString) {
+            string? text = Unsafe.As<T, string?>(ref value);
+            if (text is null) writer.WriteNull();
+            else writer.WriteScalar(text);
+            return;
+        }
         EnsureConfigured();
         if (value is null) {
             writer.WriteNull();
@@ -253,7 +278,6 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
     private static readonly bool IsValueTypeValue = typeof(T).IsValueType;
     private readonly Func<object, T>? _getter;
     private readonly Action<object, T>? _setter;
-    private static readonly bool _isString = typeof(T) == typeof(string);
     private YamlTypeInfo<T>? _typeInfo;
 
     public YamlPropertyInfo(YamlPropertyInfoValues<T> values)
@@ -282,19 +306,7 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
         }
         if (NameIsPlain) writer.WritePlainKey(Name);
         else writer.WriteKey(Name);
-        // The common scalars go straight to the writer: the JIT folds these checks for value types, and strings use a
-        // flag because shared generic code cannot fold them. Everything else goes through the type's metadata.
-        if (typeof(T) == typeof(int)) writer.WriteScalar((long)(int)(object)value!);
-        else if (typeof(T) == typeof(long)) writer.WriteScalar((long)(object)value!);
-        else if (typeof(T) == typeof(bool)) writer.WriteScalar((bool)(object)value!);
-        else if (typeof(T) == typeof(double)) writer.WriteScalar((double)(object)value!);
-        else if (_isString) {
-            string? text = Unsafe.As<T, string?>(ref value);
-            if (text is null) writer.WriteNull();
-            else writer.WriteScalar(text);
-        } else {
-            TypeInfo.Write(writer, value, state);
-        }
+        TypeInfo.Write(writer, value, state);
     }
 
     internal override void ReadAndSet(YamlEventCursor cursor, YamlReadState state, object owner) {

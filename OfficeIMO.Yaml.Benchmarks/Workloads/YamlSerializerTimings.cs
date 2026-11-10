@@ -26,8 +26,8 @@ internal static class YamlSerializerTimings {
         DotNet.ISerializer dotNetWriter = new DotNet.SerializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
         DotNet.IDeserializer dotNetReader = new DotNet.DeserializerBuilder().WithNamingConvention(DotNet.NamingConventions.CamelCaseNamingConvention.Instance).Build();
 
-        Console.WriteLine("| Operation | Workload | Lane | Median | Allocated/op |");
-        Console.WriteLine("| --- | --- | --- | ---: | ---: |");
+        Console.WriteLine("| Operation | Workload | Lane | Median | CPU median | Allocated/op |");
+        Console.WriteLine("| --- | --- | --- | ---: | ---: | ---: |");
         foreach (string workload in new[] { "SmallConfig", "LargeRecords", "KubernetesNested" }) {
             if (onlyWorkload is not null && workload != onlyWorkload) continue;
             object value = YamlSerializerWorkloads.Create(workload);
@@ -62,12 +62,12 @@ internal static class YamlSerializerTimings {
             };
             lanes.RemoveAll(entry => (only is not null && !entry.Lane.Contains(only, StringComparison.OrdinalIgnoreCase))
                 || (onlyOperation is not null && entry.Operation != onlyOperation));
-            (double[] Samples, long Allocated, int Iterations)[] results = Measure(lanes.Select(entry => entry.Action).ToArray(), rounds);
+            (double[] Samples, double[] Cpu, long Allocated, int Iterations)[] results = Measure(lanes.Select(entry => entry.Action).ToArray(), rounds);
             for (int i = 0; i < lanes.Count; i++) {
-                double[] samples = results[i].Samples;
-                Array.Sort(samples);
-                Console.WriteLine("| " + lanes[i].Operation + " | " + workload + " | " + lanes[i].Lane + " | " + Format(samples[rounds / 2]) + " | "
-                    + results[i].Allocated.ToString("N0", CultureInfo.InvariantCulture) + " B |");
+                Array.Sort(results[i].Samples);
+                Array.Sort(results[i].Cpu);
+                Console.WriteLine("| " + lanes[i].Operation + " | " + workload + " | " + lanes[i].Lane + " | " + Format(results[i].Samples[rounds / 2]) + " | "
+                    + Format(results[i].Cpu[rounds / 2]) + " | " + results[i].Allocated.ToString("N0", CultureInfo.InvariantCulture) + " B |");
             }
         }
         return 0;
@@ -75,11 +75,13 @@ internal static class YamlSerializerTimings {
 
     /// <summary>
     /// Times the lanes round-robin, so load changes on a busy host affect every lane alike: each round runs every lane
-    /// for about 50 ms. Every lane first warms up for a second, so tiered compilation and dynamic PGO finish before
+    /// for about 50 ms. Besides elapsed time it records the process's processor time, which excludes the time the
+    /// thread waits for a core, so a crowded host shifts it far less. Every lane first warms up for a second, so tiered compilation and dynamic PGO finish before
     /// timing, as BenchmarkDotNet's warmup does.
     /// </summary>
-    private static (double[] Samples, long Allocated, int Iterations)[] Measure(Func<object>[] actions, int rounds) {
-        var results = new (double[] Samples, long Allocated, int Iterations)[actions.Length];
+    private static (double[] Samples, double[] Cpu, long Allocated, int Iterations)[] Measure(Func<object>[] actions, int rounds) {
+        var results = new (double[] Samples, double[] Cpu, long Allocated, int Iterations)[actions.Length];
+        Process process = Process.GetCurrentProcess();
         var watch = new Stopwatch();
         for (int lane = 0; lane < actions.Length; lane++) {
             watch.Restart();
@@ -90,15 +92,19 @@ internal static class YamlSerializerTimings {
                 actions[lane]();
                 iterations++;
             }
-            results[lane] = (new double[rounds], 0, iterations);
+            results[lane] = (new double[rounds], new double[rounds], 0, iterations);
         }
         for (int round = 0; round < rounds; round++) {
             for (int lane = 0; lane < actions.Length; lane++) {
                 int iterations = results[lane].Iterations;
                 long before = GC.GetAllocatedBytesForCurrentThread();
+                process.Refresh();
+                TimeSpan cpu = process.TotalProcessorTime;
                 watch.Restart();
                 for (int i = 0; i < iterations; i++) actions[lane]();
                 results[lane].Samples[round] = watch.Elapsed.TotalMilliseconds * 1000 / iterations;
+                process.Refresh();
+                results[lane].Cpu[round] = (process.TotalProcessorTime - cpu).TotalMilliseconds * 1000 / iterations;
                 results[lane].Allocated = (GC.GetAllocatedBytesForCurrentThread() - before) / iterations;
             }
         }

@@ -88,15 +88,43 @@ internal static class YamlScalarFormat {
             || YamlSchemaResolver.ReadsAsNonString11(value));
 
     /// <summary>
-    /// Whether the text is a string in every schema by its first character alone: numbers, timestamps, merge keys and
-    /// <c>~</c> start with a digit, a sign, a dot or a symbol, and the null and boolean words (<c>null</c>, <c>yes</c>,
-    /// <c>on</c>, <c>true</c>, <c>false</c> and their 1.1 variants) start with one of <c>n y o t f</c> and have at most
-    /// five letters. Most names and values in real files pass, which skips the full resolution.
+    /// Whether the text is a string in every schema without the full resolution. Numbers, timestamps, merge keys and
+    /// <c>~</c> start with a digit, a dot, a symbol, or a sign followed by a digit or a dot; the null and boolean words
+    /// are the 1.1 spellings of <c>null</c>, <c>true</c>, <c>false</c>, <c>yes</c>, <c>no</c>, <c>on</c>,
+    /// <c>off</c>, <c>y</c> and <c>n</c>. Most names and values in real files pass, so only text that starts like a
+    /// number is resolved.
     /// </summary>
     private static bool StartsAsText(ReadOnlySpan<char> value) {
         if (value.Length == 0) return false;
-        char c = (char)(value[0] | 0x20);
-        return c >= 'a' && c <= 'z' && (value.Length > 5 || c is not ('n' or 'y' or 'o' or 't' or 'f'));
+        char first = value[0];
+        if (first is '-' or '+') return value.Length > 1 && !IsDigit(value[1]) && value[1] != '.';
+        char c = (char)(first | 0x20);
+        if (c < 'a' || c > 'z') return false;
+        return value.Length > 5 || c is not ('n' or 'y' or 'o' or 't' or 'f') || !IsNullOrBooleanWord(value);
+    }
+
+    private static bool IsDigit(char c) => c >= '0' && c <= '9';
+
+    /// <summary>The null and boolean words of the YAML 1.2 core and 1.1 schemas, in their three casings.</summary>
+    private static bool IsNullOrBooleanWord(ReadOnlySpan<char> value) => value.Length switch {
+        1 => value[0] is 'y' or 'Y' or 'n' or 'N',
+        2 => IsWord(value, "no") || IsWord(value, "on"),
+        3 => IsWord(value, "yes") || IsWord(value, "off"),
+        4 => IsWord(value, "null") || IsWord(value, "true"),
+        5 => IsWord(value, "false"),
+        _ => false
+    };
+
+    /// <summary>Whether the text is the lower-case word, the word capitalized, or the word in capitals.</summary>
+    private static bool IsWord(ReadOnlySpan<char> value, string lower) {
+        if (char.ToLowerInvariant(value[0]) != lower[0]) return false;
+        bool upper = value.Length > 1 && value[1] >= 'A' && value[1] <= 'Z';
+        if (upper && value[0] != char.ToUpperInvariant(lower[0])) return false;
+        for (int i = 1; i < value.Length; i++) {
+            char expected = upper ? char.ToUpperInvariant(lower[i]) : lower[i];
+            if (value[i] != expected) return false;
+        }
+        return true;
     }
 
     /// <summary>Returns whether the value fits single quotes on one line: printable text without line breaks.</summary>

@@ -161,7 +161,8 @@ public static class YamlSerializer {
     public static void Serialize<T>(Stream utf8Yaml, T value, YamlTypeInfo<T> typeInfo) {
         if (utf8Yaml is null) throw new ArgumentNullException(nameof(utf8Yaml));
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        using var writer = new YamlWriter(utf8Yaml, typeInfo.Options.EffectiveWriterOptions);
+        using var output = new YamlCharBuffer(utf8Yaml);
+        using var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions);
         Write(writer, value, typeInfo);
     }
 
@@ -318,7 +319,8 @@ public static class YamlSerializer {
 
     private static void SerializeBoxed(Stream utf8Yaml, object? value, YamlTypeInfo typeInfo) {
         if (utf8Yaml is null) throw new ArgumentNullException(nameof(utf8Yaml));
-        using var writer = new YamlWriter(utf8Yaml, typeInfo.Options.EffectiveWriterOptions);
+        using var output = new YamlCharBuffer(utf8Yaml);
+        using var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions);
         WriteBoxed(writer, value, typeInfo);
     }
 

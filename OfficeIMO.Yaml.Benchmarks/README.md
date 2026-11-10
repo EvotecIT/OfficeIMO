@@ -81,6 +81,17 @@ Setup checks every lane before timing:
 
 `--validate-workloads` runs the same checks.
 
+On a busy machine, separate BenchmarkDotNet processes see different load. As a cross-check, `--serializer-timings` times every lane in one process:
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --serializer-timings --rounds 15
+```
+
+- Each lane warms up for a second first, so tiered compilation finishes before timing.
+- Lanes then run round-robin in rounds of about 50 ms, so a load change affects all of them alike.
+- It reports the median elapsed time, the median process processor time and the allocation per operation.
+- `--workload`, `--operation` and `--lane` select a subset; use them to profile one lane.
+
 ## Merge
 
 ```sh

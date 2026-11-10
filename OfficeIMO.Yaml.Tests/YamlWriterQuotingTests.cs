@@ -1,3 +1,4 @@
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Yaml.Tests;
@@ -35,6 +36,40 @@ public class YamlWriterQuotingTests {
         YamlDocument document = YamlDocument.Parse("tag: 1.29.1\n");
         document.Root!.AsMapping()["tag"] = value;
         Assert.Equal(expected, document.ToString());
+    }
+
+    // The writer decides quoting with shortcuts for text that starts like a word; this sweeps the shapes the shortcuts
+    // separate (letters, signs, digits, dots, the null and boolean words in every casing) through both schemas.
+    [Fact]
+    public void ShortStringsOfEveryLeadingShapeReadBackAsStrings() {
+        string[] parts = { "", "n", "N", "y", "Y", "o", "O", "t", "T", "f", "F", "a", "-", "+", ".", "0", "1", "e", "_", ":", "~", "<", "=" };
+        var values = new List<string>();
+        foreach (string a in parts) {
+            foreach (string b in parts) {
+                foreach (string c in parts) values.Add(a + b + c);
+            }
+        }
+        foreach (string word in new[] { "null", "true", "false", "yes", "no", "on", "off", "nan", "inf" }) {
+            values.Add(word);
+            values.Add(char.ToUpperInvariant(word[0]) + word.Substring(1));
+            values.Add(word.ToUpperInvariant());
+            values.Add(word + "s");
+            values.Add("-" + word);
+            values.Add("-." + word);
+            values.Add("." + word);
+        }
+        var text = new StringBuilder();
+        using (var writer = new YamlWriter(new StringWriter(text))) {
+            writer.WriteStartSequence();
+            foreach (string value in values) writer.WriteScalar(value);
+            writer.WriteEndSequence();
+        }
+        foreach (YamlSchema schema in new[] { YamlSchema.Core, YamlSchema.Yaml11 }) {
+            YamlSequence items = YamlDocument.Parse(text.ToString(), new YamlLoadOptions { Schema = schema }).Root!.AsSequence();
+            for (int i = 0; i < values.Count; i++) {
+                Assert.True(items[i].AsScalar().Kind == YamlScalarKind.String && items[i].AsString() == values[i], "'" + values[i] + "' under " + schema);
+            }
+        }
     }
 
     [Fact]
