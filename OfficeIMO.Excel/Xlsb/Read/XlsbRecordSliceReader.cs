@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     /// </summary>
     internal sealed class XlsbRecordSliceReader {
         private readonly byte[] _bytes;
-        private readonly int _length;
+        private int _length;
         private readonly int _maxRecordBytes;
         private readonly XlsbRecordReadBudget _budget;
         private readonly bool _consumeRecordBudget;
@@ -35,6 +35,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         internal byte[] Buffer => _bytes;
 
         internal int Length => _length;
+
+        /// <summary>Extends the readable prefix after single-pass validation proved more records.</summary>
+        internal void ExtendTo(int length) {
+            if (length < _length || length > _bytes.Length) throw new ArgumentOutOfRangeException(nameof(length));
+            _length = length;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool TryRead(out XlsbRecordSlice record) {
