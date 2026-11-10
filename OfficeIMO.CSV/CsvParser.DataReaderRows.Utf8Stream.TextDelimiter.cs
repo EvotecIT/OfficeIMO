@@ -118,7 +118,7 @@ internal static partial class CsvParser
             }
 
             ReadOnlySpan<byte> firstLine = _buffer.AsSpan(recordStart, firstEnd - recordStart);
-            bool hasQuote = firstLine.Contains((byte)'"');
+            bool hasQuote = !_quotesAreData && firstLine.Contains((byte)'"');
             int firstSeparators = firstNext > firstEnd ? 1 : 0;
             if (!firstLine.IsEmpty && firstLine[0] == _commentCharacter && ShouldSkipTextDelimitedComment(firstLine))
             {

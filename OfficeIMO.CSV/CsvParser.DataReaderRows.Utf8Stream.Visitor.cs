@@ -45,12 +45,15 @@ internal static partial class CsvParser
         private int _indexFirst;
         private bool _indexed;
         private bool _mayHaveEscapedQuotes;
+        // Quote-free dialects store every field as plain text, including one that starts with a quote.
+        private readonly bool _quotesAreData;
         private char[]? _spanScratch;
 
-        internal CsvUtf8DataReaderRowVisitor(byte[] buffer, Encoding encoding)
+        internal CsvUtf8DataReaderRowVisitor(byte[] buffer, Encoding encoding, bool quotesAreData)
         {
             _buffer = buffer;
             _encoding = encoding;
+            _quotesAreData = quotesAreData;
             _fields = new Field[32];
             FieldCount = 0;
             SourceColumnCount = 0;
@@ -166,7 +169,7 @@ internal static partial class CsvParser
                 length = ~length;
                 escaped = true;
             }
-            else if (length >= 2 && _buffer[start] == (byte)'"')
+            else if (length >= 2 && _buffer[start] == (byte)'"' && !_quotesAreData)
             {
                 start++;
                 length -= 2;
@@ -322,7 +325,7 @@ internal static partial class CsvParser
             if (length > 0)
             {
                 byte first = _buffer[start];
-                if (first == (byte)'"' && length >= 2)
+                if (first == (byte)'"' && length >= 2 && !_quotesAreData)
                 {
                     return GetQuotedString(start + 1, length - 2);
                 }

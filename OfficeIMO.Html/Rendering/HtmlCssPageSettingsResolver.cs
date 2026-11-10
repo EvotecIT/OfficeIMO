@@ -16,7 +16,7 @@ internal static partial class HtmlCssPageSettingsResolver {
         var layers = new CascadeLayerRegistry();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !IsApplicablePageMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
-            ApplyRawPageRules(styleElement.TextContent, options, diagnostics, pageRules, layers, fontBudget, cancellationToken);
+            ApplyRawPageRules(HtmlStyleElementText.Read(styleElement), options, diagnostics, pageRules, layers, fontBudget, cancellationToken);
         }
         pageRules.ApplyGenericGeometry(options);
         return pageRules;

@@ -6,8 +6,8 @@ namespace OfficeIMO.CSV.Tests;
 
 /// <summary>
 /// The UTF-8 stream reader parses quoted records from bytes. Its rows, physical lines, progress and
-/// parse errors must follow the RFC 4180 rules, the lenient fallback and the error policy for any
-/// mix of quoting, line separators and short stream reads.
+/// parse errors must follow the RFC 4180 rules, the lenient fallback, the quote-free (TSV) rule and
+/// the error policy for any mix of quoting, line separators and short stream reads.
 /// </summary>
 public sealed class CsvUtf8QuotedRecordParityTests {
     private static readonly string[] Pieces = {
@@ -20,13 +20,15 @@ public sealed class CsvUtf8QuotedRecordParityTests {
     [InlineData(CsvQuoteParsingMode.Strict, CsvParseErrorAction.SkipRow, false)]
     [InlineData(CsvQuoteParsingMode.Lenient, CsvParseErrorAction.Throw, true)]
     [InlineData(CsvQuoteParsingMode.Strict, CsvParseErrorAction.SkipRow, true)]
+    [InlineData(CsvQuoteParsingMode.None, CsvParseErrorAction.Throw, false)]
+    [InlineData(CsvQuoteParsingMode.None, CsvParseErrorAction.Throw, true)]
     public void StreamReaderFollowsQuotingRulesForRandomInput(CsvQuoteParsingMode quoting, CsvParseErrorAction errors, bool trim) {
         var random = new Random(20261110 + (int)quoting * 7 + (int)errors + (trim ? 3 : 0));
         for (int sample = 0; sample < 1000; sample++) {
             string input = sample % 2 == 0 ? RandomPieces(random) : RandomRecords(random);
             bool allowEmpty = random.Next(2) == 0;
             string expected = new QuotingModel(input, quoting == CsvQuoteParsingMode.Strict,
-                errors == CsvParseErrorAction.SkipRow, allowEmpty, trim).Run();
+                errors == CsvParseErrorAction.SkipRow, allowEmpty, trim, quoting == CsvQuoteParsingMode.None).Run();
             string actual = Observe(input, quoting, errors, allowEmpty, trim, random.Next(0, 8));
             if (expected != actual) {
                 Assert.Fail($"Input {Escape(input)} (allowEmpty {allowEmpty}, trim {trim}):\nexpected\n{Escape(expected)}\nactual\n{Escape(actual)}");
@@ -46,10 +48,13 @@ public sealed class CsvUtf8QuotedRecordParityTests {
             Observe(input, CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 0));
     }
 
-    [Fact]
-    public void SingleLineRecordsCrossingBatchesAndRefillsKeepTheirText() {
+    [Theory]
+    [InlineData(CsvQuoteParsingMode.Strict)]
+    [InlineData(CsvQuoteParsingMode.None)]
+    public void SingleLineRecordsCrossingBatchesAndRefillsKeepTheirText(CsvQuoteParsingMode quoting) {
         // Single-line records are read from a batch index; they cross index windows and buffer
-        // refills, split CRLF pairs, and include records longer than a window.
+        // refills, split CRLF pairs, and include records longer than a window. Without quoting,
+        // the quoted-looking fields are plain text whose comma splits them.
         var random = new Random(20261111);
         string[] separators = { "\n", "\r\n", "\r" };
         var text = new StringBuilder();
@@ -68,9 +73,10 @@ public sealed class CsvUtf8QuotedRecordParityTests {
             text.Append(separators[random.Next(separators.Length)]);
         }
         string input = text.ToString();
-        string expected = new QuotingModel(input, strict: true, skip: false, allowEmpty: false, trim: false).Run();
-        Assert.Equal(expected, Observe(input, CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 0));
-        Assert.Equal(expected, Observe(input, CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 4_093));
+        string expected = new QuotingModel(input, strict: true, skip: false, allowEmpty: false, trim: false,
+            quotesAreData: quoting == CsvQuoteParsingMode.None).Run();
+        Assert.Equal(expected, Observe(input, quoting, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 0));
+        Assert.Equal(expected, Observe(input, quoting, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 4_093));
     }
 
     private static string RandomPieces(Random random) {
@@ -161,7 +167,8 @@ public sealed class CsvUtf8QuotedRecordParityTests {
     /// <summary>
     /// Reference reading of the documented quoting rules: an RFC 4180 record, else in lenient mode a
     /// flexible record in which any quote opens a quoted section and a quote right after a closing
-    /// quote is literal. Lines are physical lines; CR, LF and CRLF each end one line.
+    /// quote is literal. Without quoting every quote is text and each physical line is a record.
+    /// Lines are physical lines; CR, LF and CRLF each end one line.
     /// </summary>
     private sealed class QuotingModel {
         private readonly string _input;
@@ -169,6 +176,7 @@ public sealed class CsvUtf8QuotedRecordParityTests {
         private readonly bool _skip;
         private readonly bool _allowEmpty;
         private readonly bool _trim;
+        private readonly bool _quotesAreData;
         private readonly StringBuilder _result = new();
         private readonly StringBuilder _collected = new();
         private int _position;
@@ -176,12 +184,13 @@ public sealed class CsvUtf8QuotedRecordParityTests {
         private int _records;
         private int _fieldCount = -1;
 
-        internal QuotingModel(string input, bool strict, bool skip, bool allowEmpty, bool trim) {
+        internal QuotingModel(string input, bool strict, bool skip, bool allowEmpty, bool trim, bool quotesAreData = false) {
             _input = input;
             _strict = strict;
             _skip = skip;
             _allowEmpty = allowEmpty;
             _trim = trim;
+            _quotesAreData = quotesAreData;
         }
 
         private string Unquoted(int start, int end) {
@@ -274,7 +283,7 @@ public sealed class CsvUtf8QuotedRecordParityTests {
                     fieldStart = ++position;
                     continue;
                 }
-                if (value != '"') {
+                if (value != '"' || _quotesAreData) {
                     position++;
                     continue;
                 }

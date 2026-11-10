@@ -74,7 +74,7 @@ internal static class HtmlCssRuleBlockScanner {
         var budget = new HtmlCssProcessingBudget(limits);
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement)) continue;
-            string css = styleElement.TextContent;
+            string css = HtmlStyleElementText.Read(styleElement);
             if (!string.IsNullOrWhiteSpace(css)) {
                 Scan(css, budget);
             }

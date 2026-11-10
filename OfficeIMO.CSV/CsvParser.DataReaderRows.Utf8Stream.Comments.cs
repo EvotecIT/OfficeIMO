@@ -45,7 +45,8 @@ internal static partial class CsvParser
             next = firstNext;
             separators = firstNext > firstEnd ? 1 : 0;
             var state = new TextQuoteState();
-            if (ParseTextDelimitedQuotes(recordStart, firstEnd, delimiter, strict: false, visit: false, ref state) != TextQuoteResult.InQuotes)
+            if (_quotesAreData ||
+                ParseTextDelimitedQuotes(recordStart, firstEnd, delimiter, strict: false, visit: false, ref state) != TextQuoteResult.InQuotes)
             {
                 return true;
             }

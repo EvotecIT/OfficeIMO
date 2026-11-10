@@ -455,19 +455,19 @@ public static partial class HtmlContentSafety {
 
     private static bool HasUnmodeledCompositingStyles(IHtmlDocument document) =>
         document.QuerySelectorAll("style").Any(style =>
-            HtmlResourcePipeline.HasUnmodeledCompositingDeclaration(style.TextContent ?? string.Empty))
+            HtmlResourcePipeline.HasUnmodeledCompositingDeclaration(HtmlStyleElementText.Read(style) ?? string.Empty))
         || document.QuerySelectorAll("[style]").Any(element =>
             HtmlResourcePipeline.HasUnmodeledCompositingDeclaration(element.GetAttribute("style") ?? string.Empty));
 
     private static bool HasUnmodeledGlyphScalingStyles(IHtmlDocument document) =>
         document.QuerySelectorAll("style").Any(style =>
-            HtmlResourcePipeline.HasUnmodeledGlyphScalingDeclaration(style.TextContent ?? string.Empty))
+            HtmlResourcePipeline.HasUnmodeledGlyphScalingDeclaration(HtmlStyleElementText.Read(style) ?? string.Empty))
         || document.QuerySelectorAll("[style]").Any(element =>
             HtmlResourcePipeline.HasUnmodeledGlyphScalingDeclaration(element.GetAttribute("style") ?? string.Empty));
 
     private static bool HasUnmodeledCascadeResetStyles(IHtmlDocument document) =>
         document.QuerySelectorAll("style").Any(style =>
-            HtmlResourcePipeline.HasUnmodeledCascadeResetDeclaration(style.TextContent ?? string.Empty))
+            HtmlResourcePipeline.HasUnmodeledCascadeResetDeclaration(HtmlStyleElementText.Read(style) ?? string.Empty))
         || document.QuerySelectorAll("[style]").Any(element =>
             HtmlResourcePipeline.HasUnmodeledCascadeResetDeclaration(element.GetAttribute("style") ?? string.Empty));
 

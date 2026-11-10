@@ -303,11 +303,13 @@ namespace OfficeIMO.CSV
                 int fieldIndex = 0;
                 ulong high = 0;
                 ulong delimiters = _delimiter * RepeatedOnes;
+                // When quotes are data the quote pattern repeats the delimiter, so no quote is flagged.
+                ulong quotes = (_quotesAreData ? _delimiter : (byte)'"') * RepeatedOnes;
                 ref byte data = ref buffer[0];
                 while (length - position >= 8)
                 {
                     ulong word = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref data, position));
-                    ulong special = MatchingBytes(word ^ delimiters) | MatchingBytes(word ^ ((byte)'"' * RepeatedOnes)) |
+                    ulong special = MatchingBytes(word ^ delimiters) | MatchingBytes(word ^ quotes) |
                         MatchingBytes(word ^ ((byte)'\r' * RepeatedOnes)) | MatchingBytes(word ^ ((byte)'\n' * RepeatedOnes));
                     while (special != 0)
                     {
@@ -319,7 +321,7 @@ namespace OfficeIMO.CSV
                             _visitor.VisitFieldRange(fieldIndex++, fieldStart, index - fieldStart);
                             fieldStart = index + 1;
                         }
-                        else if (value == (byte)'"')
+                        else if (value == (byte)'"' && !_quotesAreData)
                         {
                             return RecordScanResult.Irregular;
                         }

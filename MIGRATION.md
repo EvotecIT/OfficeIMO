@@ -5253,6 +5253,29 @@ that already failed with `PdfUnsupportedTextMappingException` continue to fail.
 Search redaction cannot use omitted or unmapped paint as proof that searched text is
 absent.
 
+## CSV reads .tsv files as tab-separated values
+
+TSV has no quoting: a quote character is ordinary data and every line is one record.
+`CsvProfile.Tsv` applies that rule, and these entry points now use it:
+
+- `CsvDocument.Load`, `LoadAsync`, `OpenReader`, `OpenReaderAsync`, `Save`, `SaveAsync`,
+  `WriteDataReader`, `WriteDataReaderParallel`, `SaveObjects` and `CsvRowWriter.CreateFile`
+  when the path ends in `.tsv` or `.tab` (optionally compressed, such as `.tsv.gz`) and you
+  pass no options. Previously these used comma-separated CSV defaults for any extension.
+- The `OfficeIMO.Reader.Csv` adapter for `.tsv` files and streams.
+- `ImportCsvFile` and `SaveAsCsv` in `OfficeIMO.Excel.Csv` for `.tsv` paths without options,
+  and `officeimo tabular` for `.tsv` input or output without `--delimiter`.
+
+A TSV field that starts with `"` used to be parsed as a quoted CSV field, which could merge
+lines. It is now read literally. To keep CSV quoting for a tab-delimited file, pass options:
+`new CsvLoadOptions { Delimiter = '\t' }`. The profile also rejects rows whose field count
+differs from the header; set `ColumnCountMismatchPolicy` to pad or ignore instead.
+
+Writing with `CsvQuoteMode.Never` now throws `CsvException` when a field contains the delimiter,
+a carriage return or a line feed, instead of writing output that cannot be read back. Use
+`CsvQuoteMode.AsNeeded`, or set `EscapeMode = CsvEscapeMode.Backslash` to write `\t`, `\n`, `\r`
+and `\\` escapes. PSWriteOffice's `-UseQuotes Never` keeps PowerShell's literal output.
+
 ## Excel tables reject captions
 
 `ExcelSheet.AddTable` with `OfficeTableOptions.Caption` now throws `NotSupportedException`, as PowerPoint and

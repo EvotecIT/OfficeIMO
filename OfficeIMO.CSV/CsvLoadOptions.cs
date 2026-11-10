@@ -93,6 +93,12 @@ public sealed class CsvLoadOptions
     public CsvQuoteParsingMode QuoteParsingMode { get => Parsing.QuoteParsingMode; set => Parsing.QuoteParsingMode = value; }
 
     /// <summary>
+    /// Gets or sets escape decoding for unquoted fields. Default is <see cref="CsvEscapeMode.None"/>.
+    /// <see cref="CsvEscapeMode.Backslash"/> requires <see cref="QuoteParsingMode"/> to be <see cref="CsvQuoteParsingMode.None"/>.
+    /// </summary>
+    public CsvEscapeMode EscapeMode { get => Parsing.EscapeMode; set => Parsing.EscapeMode = value; }
+
+    /// <summary>
     /// Gets or sets columns appended to every loaded row, useful for source file names, import timestamps, or batch metadata.
     /// </summary>
     public IReadOnlyDictionary<string, object?>? StaticColumns { get => Parsing.StaticColumns; set => Parsing.StaticColumns = value; }

@@ -12,7 +12,7 @@ public class CsvRowWriterUtf8Tests
     {
         new object[] { new CsvSaveOptions { NewLine = "\n" } },
         new object[] { new CsvSaveOptions { NewLine = "\r\n", QuoteMode = CsvQuoteMode.Always } },
-        new object[] { new CsvSaveOptions { QuoteMode = CsvQuoteMode.Never, QuoteFields = new[] { "Missing", "Empty" } } },
+        new object[] { new CsvSaveOptions { Delimiter = '\t', QuoteMode = CsvQuoteMode.Never, EscapeMode = CsvEscapeMode.Backslash, QuoteFields = new[] { "Missing", "Empty" } } },
         new object[] { new CsvSaveOptions { QuoteFields = new[] { "Missing", "Empty", "Text" } } },
         new object[] { new CsvSaveOptions { DelimiterText = "|λ|", NewLine = "\n", IncludeHeader = false } },
         new object[] { new CsvSaveOptions { Delimiter = ';', NullValue = "=NULL;", FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape } },

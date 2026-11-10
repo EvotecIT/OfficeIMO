@@ -406,7 +406,7 @@ internal static partial class CsvParser
                 nonAscii |= values;
                 Vector512<byte> delimiterBytes = Vector512.Equals(values, delimiterValue);
                 Vector512<byte> lineSeparatorBytes = Vector512.Equals(values, carriageReturnValue) | Vector512.Equals(values, lineFeedValue);
-                ulong quotes = Vector512.Equals(values, quoteValue).ExtractMostSignificantBits();
+                ulong quotes = Vector512.Equals(values, quoteValue).ExtractMostSignificantBits() & _quoteMask;
                 ulong lineSeparators = lineSeparatorBytes.ExtractMostSignificantBits();
                 Vector512<byte> selected;
                 ulong structural;

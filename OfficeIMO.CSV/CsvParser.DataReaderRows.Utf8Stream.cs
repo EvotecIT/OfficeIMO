@@ -33,6 +33,10 @@ internal static partial class CsvParser
         private const int BlockSize = 64;
         private readonly bool _allowEmpty;
         private readonly bool _strictQuotes;
+        // TSV-style dialects: quotes are ordinary data, so every line break ends a record.
+        private readonly bool _quotesAreData;
+        // All bits when quotes delimit fields; zero when they are data, which empties every quote mask.
+        private readonly ulong _quoteMask;
         private readonly bool _trim;
         private readonly bool _checkFieldLengths;
         private Stream _stream;
@@ -68,7 +72,11 @@ internal static partial class CsvParser
             _commentCharacter = checked((byte)options.CommentCharacter);
             _delimiterText = UsesTextDelimiter(options) ? Encoding.ASCII.GetBytes(options.DelimiterText!) : null;
             _delimiterByte = new[] { _delimiter };
-            _specialBytes = SearchValues.Create(new[] { _delimiter, (byte)'"', (byte)'\r', (byte)'\n' });
+            _quotesAreData = options.QuotesAreData;
+            _quoteMask = _quotesAreData ? 0UL : ulong.MaxValue;
+            _specialBytes = SearchValues.Create(_quotesAreData
+                ? new[] { _delimiter, (byte)'\r', (byte)'\n' }
+                : new[] { _delimiter, (byte)'"', (byte)'\r', (byte)'\n' });
             _allowEmpty = options.AllowEmptyLines;
             _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
             _trim = options.TrimWhitespace;
@@ -81,7 +89,7 @@ internal static partial class CsvParser
             _buffer = buffer;
             _length = length;
             _position = position;
-            _visitor = new CsvUtf8DataReaderRowVisitor(buffer, encoding);
+            _visitor = new CsvUtf8DataReaderRowVisitor(buffer, encoding, _quotesAreData);
             _stringCache = RentStringCacheWorkspace(options);
         }
 
@@ -657,6 +665,7 @@ internal static partial class CsvParser
                     lineFeeds |= (ulong)Vector128.Equals(values, Vector128.Create((byte)'\n')).ExtractMostSignificantBits() << offset;
                 }
             }
+            quotes &= _quoteMask;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1179,11 +1188,13 @@ internal static partial class CsvParser
             int searched = recordStart;
             while (true)
             {
-                int found = _buffer.AsSpan(searched, _length - searched).IndexOfAny((byte)'"', (byte)'\r', (byte)'\n');
+                int found = _quotesAreData
+                    ? _buffer.AsSpan(searched, _length - searched).IndexOfAny((byte)'\r', (byte)'\n')
+                    : _buffer.AsSpan(searched, _length - searched).IndexOfAny((byte)'"', (byte)'\r', (byte)'\n');
                 if (found >= 0)
                 {
                     int end = searched + found;
-                    if (_buffer[end] == (byte)'"')
+                    if (_buffer[end] == (byte)'"' && !_quotesAreData)
                     {
                         _position = recordStart;
                         return false;
@@ -1443,7 +1454,8 @@ internal static partial class CsvParser
         [MethodImpl(MethodImplOptions.NoInlining)]
         private bool FieldLengthsWithinLimits(int recordStart, int recordLength, int lineNumber, bool isAscii)
         {
-            bool quotedRecord = _options.MaxQuotedFieldLength.HasValue &&
+            // Records of a quote-free dialect are never quoted, as the canonical parser treats them.
+            bool quotedRecord = _options.MaxQuotedFieldLength.HasValue && !_quotesAreData &&
                 _buffer.AsSpan(recordStart, recordLength).Contains((byte)'"');
             if (_visitor.FindFieldLongerThan(
                     _scan.FieldCount,

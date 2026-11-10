@@ -80,7 +80,7 @@ internal static partial class PdfWriter {
             static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
         }
 
-        private readonly struct DiagnosticPaintBounds {
+        internal readonly struct DiagnosticPaintBounds {
             internal DiagnosticPaintBounds(double left, double top, double right, double bottom) {
                 Left = left; Top = top; Right = right; Bottom = bottom;
                 IsFinite = left <= right && top <= bottom && !double.IsInfinity(left) && !double.IsInfinity(top)

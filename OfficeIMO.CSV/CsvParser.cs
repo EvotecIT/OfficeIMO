@@ -123,7 +123,7 @@ internal static partial class CsvParser
             throw new ArgumentOutOfRangeException(nameof(recordsToSkip), "SkipInitialRecords cannot be negative.");
         }
 
-        if (HasFieldLengthLimits(options))
+        if (RequiresFieldMaterialization(options))
         {
             ReadFieldSpansMaterialized(reader, options, recordsToSkip, ref fieldVisitor);
             return;
@@ -137,6 +137,10 @@ internal static partial class CsvParser
 
         ReadFieldSpansLineOrQuoted(reader, options, recordsToSkip, ref fieldVisitor);
     }
+
+    // Span visitors receive source text directly; limits and escape decoding need materialized fields.
+    private static bool RequiresFieldMaterialization(CsvParsingSettings options) =>
+        options.MaxFieldLength.HasValue || options.MaxQuotedFieldLength.HasValue || options.DecodesBackslashEscapes;
 
     private static bool NeedsLogicalCommentSkipping(CsvParsingSettings options) =>
         options.SkipCommentRows ||
@@ -185,7 +189,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, out var record))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
@@ -272,7 +276,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, out var record))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
@@ -395,7 +399,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, reusableRecord))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, reusableRecord))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(reusableRecord, allowEmpty))
@@ -517,7 +521,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, reusableRecord))
+            if (TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, reusableRecord))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(reusableRecord, allowEmpty))
@@ -663,7 +667,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (line.IndexOf('"') < 0 && TrySplitUnquotedRecord(line, delimiter, trim, out var record))
+            if ((options.QuotesAreData || line.IndexOf('"') < 0) && TrySplitUnquotedRecord(line, delimiter, trim, options.QuotesAreData, out var record))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
@@ -749,13 +753,13 @@ internal static partial class CsvParser
     }
 #endif
 
-    private static bool TrySplitUnquotedRecord(string line, char delimiter, bool trim, out string[] fields)
+    private static bool TrySplitUnquotedRecord(string line, char delimiter, bool trim, bool quotesAreData, out string[] fields)
     {
         var fieldCount = 1;
         for (var i = 0; i < line.Length; i++)
         {
             var value = line[i];
-            if (value == '"')
+            if (value == '"' && !quotesAreData)
             {
                 fields = Array.Empty<string>();
                 return false;
@@ -786,14 +790,14 @@ internal static partial class CsvParser
         return true;
     }
 
-    private static bool TrySplitUnquotedRecord(string line, char delimiter, bool trim, List<string> fields)
+    private static bool TrySplitUnquotedRecord(string line, char delimiter, bool trim, bool quotesAreData, List<string> fields)
     {
         fields.Clear();
         var start = 0;
         for (var i = 0; i < line.Length; i++)
         {
             var value = line[i];
-            if (value == '"')
+            if (value == '"' && !quotesAreData)
             {
                 fields.Clear();
                 return false;
@@ -861,7 +865,7 @@ internal static partial class CsvParser
         }
 
         var delimiter = GetDelimiterChar(options);
-        if (TryParseQuotedRecordLenient(firstLine, delimiter, options.TrimWhitespace, out _))
+        if (options.QuotesAreData || TryParseQuotedRecordLenient(firstLine, delimiter, options.TrimWhitespace, out _))
         {
             return true;
         }
@@ -1109,6 +1113,11 @@ internal static partial class CsvParser
 
     private static string PrepareParsedField(string value, CsvParsingSettings options, int lineNumber, bool quotedField, CsvStringCache? stringCache)
     {
+        if (options.DecodesBackslashEscapes)
+        {
+            value = CsvBackslashEscapes.Decode(value);
+        }
+
         if (HasFieldLengthLimits(options) && value.Length > GetFieldLengthLimit(options, quotedField))
         {
             throw CreateFieldLengthException(options, value.Length, lineNumber);

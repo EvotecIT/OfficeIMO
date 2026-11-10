@@ -20,7 +20,7 @@ public sealed partial class CsvDocument
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        options = options?.Clone() ?? new CsvReaderOptions();
+        options = options?.Clone() ?? CsvProfiles.CreateDefaultReaderOptions(path);
         // OpenReader is the forward-only entry point. Reader routing remains
         // internal so callers cannot accidentally request streaming through Load.
         options.Mode = CsvLoadMode.Stream;
@@ -529,7 +529,8 @@ public sealed partial class CsvDocument
         && (!CsvParser.UsesTextDelimiter(options) || CanUseUtf8StreamDataReader(options))
         // Canonical interning reports progress after yielding the current record.
         && (!options.InternStrings || options.ProgressCallback is null || options.ProgressReportInterval <= 0)
-        && !options.NormalizeQuotes;
+        && !options.NormalizeQuotes
+        && !options.Parsing.DecodesBackslashEscapes;
 
     /// <summary>Whether an inferred schema can come from a streamed sample of the input.</summary>
     private static bool CanInferSchemaWhileStreaming(CsvReaderOptions options)

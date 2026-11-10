@@ -146,6 +146,7 @@ Shared and cross-format packages:
 | Read, search and chunk any format for indexing and AI ingestion | [OfficeIMO.Reader.All](OfficeIMO.Reader.All/README.md), or one `OfficeIMO.Reader.{Format}` |
 | OCR for scanned pages and images | [OfficeIMO.Ocr](OfficeIMO.Ocr/README.md), [OfficeIMO.Ocr.Tesseract](OfficeIMO.Ocr.Tesseract/README.md), [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md) |
 | Certificate signatures for Word, PDF and email | [OfficeIMO.Security](OfficeIMO.Security/README.md) |
+| Snapshot tests for generated PDFs | [OfficeIMO.Pdf.Testing](OfficeIMO.Pdf.Testing/README.md) |
 | ZIP, CAB and MSI extraction | [OfficeIMO.Archives](OfficeIMO.Archives/README.md) |
 | Google Docs, Sheets, Slides and Drive | [OfficeIMO.GoogleWorkspace](OfficeIMO.GoogleWorkspace/README.md) |
 | Confluence pages | [OfficeIMO.Confluence](OfficeIMO.Confluence/README.md) |
