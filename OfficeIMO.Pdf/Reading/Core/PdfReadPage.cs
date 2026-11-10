@@ -119,6 +119,10 @@ public sealed partial class PdfReadPage {
     internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>
         PdfVisualCoordinateMapper.TransformBounds(GetPageBoundaryBox(), GetRotationDegrees(), left, bottom, right, top, GetEffectiveUserUnit());
 
+    /// <summary>Reads the page box, rotation and user unit once for callers that map many bounds.</summary>
+    internal (PdfPageBox Box, int RotationDegrees, double UserUnit) GetVisualMapping() =>
+        (GetPageBoundaryBox(), GetRotationDegrees(), GetEffectiveUserUnit());
+
     internal PdfVisualBounds TransformVisualBoundsToUser(double left, double top, double right, double bottom) =>
         PdfVisualCoordinateMapper.TransformVisualBoundsToUser(GetPageBoundaryBox(), GetRotationDegrees(), left, top, right, bottom, GetEffectiveUserUnit());
 
