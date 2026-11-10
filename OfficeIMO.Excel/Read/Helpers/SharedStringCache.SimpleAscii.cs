@@ -20,7 +20,8 @@ namespace OfficeIMO.Excel {
         private bool TryIndexSimpleAsciiItems(OpenXmlPooledPartStream stream, out IndexedAsciiItems? items) {
             items = null;
             byte[] bytes = stream.BorrowBuffer(out int length);
-            if (!TryReadSimpleAsciiHeader(bytes, length, out int position, out int declaredUniqueCount)) {
+            if (!TryReadSimpleAsciiHeader(bytes, length, out int position, out int declaredUniqueCount,
+                    out int prefixStart, out int prefixLength)) {
                 return false;
             }
 
@@ -46,11 +47,15 @@ namespace OfficeIMO.Excel {
             bool transferred = false;
             try {
                 long totalCharacters = 0;
-                while (!Consume(bytes, length, ref position, "</sst>")) {
+                while (!ConsumeQualified(bytes, length, ref position, "</", prefixStart, prefixLength, "sst>")) {
                     _cancellationToken.ThrowIfCancellationRequested();
                     bool preservesWhitespace = false;
-                    if (!Consume(bytes, length, ref position, "<si><t>")) {
-                        if (!Consume(bytes, length, ref position, "<si><t xml:space=\"preserve\">")) {
+                    if (!ConsumeQualified(bytes, length, ref position, "<", prefixStart, prefixLength, "si>")
+                        || !ConsumeQualified(bytes, length, ref position, "<", prefixStart, prefixLength, "t")) {
+                        return false;
+                    }
+                    if (!Consume(bytes, length, ref position, ">")) {
+                        if (!Consume(bytes, length, ref position, " xml:space=\"preserve\">")) {
                             return false;
                         }
                         preservesWhitespace = true;
@@ -91,7 +96,8 @@ namespace OfficeIMO.Excel {
 #endif
                         if (onlyWhitespace) return false;
                     }
-                    if (!Consume(bytes, length, ref position, "</t></si>")) {
+                    if (!ConsumeQualified(bytes, length, ref position, "</", prefixStart, prefixLength, "t>")
+                        || !ConsumeQualified(bytes, length, ref position, "</", prefixStart, prefixLength, "si>")) {
                         return false;
                     }
 
@@ -158,20 +164,83 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Limits large-part buffering to the simple table header handled by this scanner.</summary>
         internal static bool CanIndexSimpleAsciiPrefix(byte[] bytes, int length) =>
-            TryReadSimpleAsciiHeader(bytes, length, out _, out _);
+            TryReadSimpleAsciiHeader(bytes, length, out _, out _, out _, out _);
 
-        private static bool TryReadSimpleAsciiHeader(byte[] bytes, int length, out int position, out int declaredUniqueCount) {
+        /// <summary>
+        /// Accepts the declarations Excel and the Open XML SDK write: an unprefixed table bound by
+        /// the default namespace, or one prefix bound on the root and used by every element.
+        /// </summary>
+        private static bool TryReadSimpleAsciiHeader(
+            byte[] bytes,
+            int length,
+            out int position,
+            out int declaredUniqueCount,
+            out int prefixStart,
+            out int prefixLength) {
             position = 0;
             declaredUniqueCount = 0;
-            if (!Consume(bytes, length, ref position, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>")) return false;
+            prefixStart = prefixLength = 0;
+            if (!Consume(bytes, length, ref position, "<?xml version=\"1.0\" encoding=\"")
+                || !ConsumeIgnoreCase(bytes, length, ref position, "utf-8")
+                || !Consume(bytes, length, ref position, "\"")) return false;
+            Consume(bytes, length, ref position, " standalone=\"yes\"");
+            if (!Consume(bytes, length, ref position, "?>")) return false;
             SkipWhitespace(bytes, length, ref position);
-            return Consume(bytes, length, ref position,
-                    "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"")
-                && ReadUnsignedDecimal(bytes, length, ref position, out _)
-                && Consume(bytes, length, ref position, "\" uniqueCount=\"")
-                && ReadUnsignedDecimal(bytes, length, ref position, out declaredUniqueCount)
-                && Consume(bytes, length, ref position, "\">");
+            if (!Consume(bytes, length, ref position, "<")) return false;
+
+            if (!Consume(bytes, length, ref position, "sst ")) {
+                prefixStart = position;
+                if (position >= length || !IsAsciiNameStart(bytes[position])) return false;
+                while (position < length && IsAsciiNameCharacter(bytes[position])) position++;
+                if (!Consume(bytes, length, ref position, ":")) return false;
+                prefixLength = position - prefixStart;
+                if (!Consume(bytes, length, ref position, "sst xmlns:")
+                    || !ConsumeBytes(bytes, length, ref position, prefixStart, prefixLength - 1)
+                    || !Consume(bytes, length, ref position, "=\"")) return false;
+            } else if (!Consume(bytes, length, ref position, "xmlns=\"")) {
+                return false;
+            }
+
+            if (!Consume(bytes, length, ref position, "http://schemas.openxmlformats.org/spreadsheetml/2006/main\"")) return false;
+            if (Consume(bytes, length, ref position, " count=\"")
+                && (!ReadUnsignedDecimal(bytes, length, ref position, out _) || !Consume(bytes, length, ref position, "\""))) return false;
+            if (Consume(bytes, length, ref position, " uniqueCount=\"")
+                && (!ReadUnsignedDecimal(bytes, length, ref position, out declaredUniqueCount) || !Consume(bytes, length, ref position, "\""))) return false;
+            if (declaredUniqueCount == 0) declaredUniqueCount = length / 16;
+            return Consume(bytes, length, ref position, ">");
         }
+
+        private static bool ConsumeQualified(byte[] bytes, int length, ref int position, string lead, int prefixStart, int prefixLength, string localName) {
+            int start = position;
+            if (Consume(bytes, length, ref position, lead)
+                && ConsumeBytes(bytes, length, ref position, prefixStart, prefixLength)
+                && Consume(bytes, length, ref position, localName)) return true;
+            position = start;
+            return false;
+        }
+
+        private static bool ConsumeBytes(byte[] bytes, int length, ref int position, int start, int count) {
+            if (count > length - position || !bytes.AsSpan(position, count).SequenceEqual(bytes.AsSpan(start, count))) return false;
+            position += count;
+            return true;
+        }
+
+        private static bool ConsumeIgnoreCase(byte[] bytes, int length, ref int position, string value) {
+            if (value.Length > length - position) return false;
+            for (int index = 0; index < value.Length; index++) {
+                int current = bytes[position + index];
+                if (current is >= 'A' and <= 'Z') current += 'a' - 'A';
+                if (current != value[index]) return false;
+            }
+            position += value.Length;
+            return true;
+        }
+
+        private static bool IsAsciiNameStart(byte value) =>
+            value is >= (byte)'A' and <= (byte)'Z' or >= (byte)'a' and <= (byte)'z' or (byte)'_';
+
+        private static bool IsAsciiNameCharacter(byte value) =>
+            IsAsciiNameStart(value) || value is >= (byte)'0' and <= (byte)'9' or (byte)'.' or (byte)'-';
 
         private static bool Consume(byte[] bytes, int length, ref int position, string value) {
             if (value.Length > length - position) return false;
