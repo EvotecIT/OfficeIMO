@@ -842,4 +842,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string XlsbStyleGradientPreserved = "xlsb-style-gradient-preserved";
     /// <summary>Stable code: <c>xlsb-unprojected-record</c>.</summary>
     public const string XlsbUnprojectedRecord = "xlsb-unprojected-record";
+    /// <summary>Stable code: <c>yaml-aliased-node-edited</c>.</summary>
+    public const string YamlAliasedNodeEdited = "yaml-aliased-node-edited";
+    /// <summary>Stable code: <c>yaml-duplicate-key</c>.</summary>
+    public const string YamlDuplicateKey = "yaml-duplicate-key";
 }

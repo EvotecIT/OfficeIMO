@@ -314,36 +314,9 @@ internal sealed class YamlEmitter {
         _depth--;
     }
 
-    /// <summary>
-    /// Picks the style for a string value: the requested style when it can represent the value here, otherwise the most
-    /// conservative one that does. <see cref="YamlStyle.None"/> asks for the default: plain when the text cannot be read
-    /// as anything but a string by the core or YAML 1.1 schema, a literal block for multi-line text in block context,
-    /// otherwise quotes (<paramref name="quote"/>, or double quotes when the text needs escapes).
-    /// </summary>
-    public YamlStyle ChooseStyle(string value, YamlStyle requested, YamlStyle quote = YamlStyle.SingleQuoted) {
-        bool flow = InFlow;
-        bool key = AtKey;
-        switch (requested) {
-            case YamlStyle.Plain:
-                if (value.Length == 0 || YamlScalarFormat.CanBePlain(value.AsSpan(), flow, key)) return YamlStyle.Plain;
-                if (!key && YamlScalarFormat.CanBePlainMultiLine(value.AsSpan(), flow)) return YamlStyle.Plain;
-                break;
-            case YamlStyle.SingleQuoted:
-                return YamlScalarFormat.CanBeSingleQuoted(value.AsSpan()) ? YamlStyle.SingleQuoted : YamlStyle.DoubleQuoted;
-            case YamlStyle.DoubleQuoted:
-                return YamlStyle.DoubleQuoted;
-            case YamlStyle.Literal:
-            case YamlStyle.Folded:
-                if (!flow && !key && YamlScalarFormat.CanBeBlock(value.AsSpan())) return requested;
-                break;
-            default:
-                if (YamlScalarFormat.CanBePlain(value.AsSpan(), flow, key) && !YamlScalarFormat.IsSchemaAmbiguous(value.AsSpan())) return YamlStyle.Plain;
-                if (!flow && !key && value.IndexOf('\n') >= 0 && YamlScalarFormat.CanBeBlock(value.AsSpan())) return YamlStyle.Literal;
-                break;
-        }
-        if (quote == YamlStyle.SingleQuoted && YamlScalarFormat.CanBeSingleQuoted(value.AsSpan())) return YamlStyle.SingleQuoted;
-        return YamlStyle.DoubleQuoted;
-    }
+    /// <summary>Picks a string's style for the next node's position; see <see cref="YamlScalarFormat.Choose"/>.</summary>
+    public YamlStyle ChooseStyle(string value, YamlStyle requested, YamlStyle quote = YamlStyle.SingleQuoted) =>
+        YamlScalarFormat.Choose(value, requested, InFlow, AtKey, quote);
 
     // ------------------------------------------------------------------ layout
 

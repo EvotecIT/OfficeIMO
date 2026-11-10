@@ -61,6 +61,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Yaml.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Yaml" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

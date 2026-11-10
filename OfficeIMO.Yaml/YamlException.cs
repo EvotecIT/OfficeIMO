@@ -23,6 +23,20 @@ public class YamlException : Exception {
     /// <summary>Gets the one-based column where the problem was detected.</summary>
     public int Column => Position.Column;
 
+    private string? _excerpt;
+
+    /// <summary>
+    /// Gets the message, followed by the offending source line with a caret under the column when the source text was
+    /// available (input given as a string, memory or file loaded by <see cref="YamlDocument"/>).
+    /// </summary>
+    public override string Message => _excerpt is null ? base.Message : base.Message + _excerpt;
+
+    /// <summary>Adds the source excerpt; returns false so it can run in an exception filter without catching.</summary>
+    internal bool AttachSource(string source) {
+        if (_excerpt is null && source.Length > 0 && Position.Line > 0 && Position.Offset <= source.Length) _excerpt = YamlExcerpt.Format(source, (int)Position.Offset);
+        return false;
+    }
+
     private static string FormatMessage(string message, YamlPosition position) =>
         position.Line > 0
             ? message + " (line " + position.Line.ToString(CultureInfo.InvariantCulture) + ", column " + position.Column.ToString(CultureInfo.InvariantCulture) + ")"
@@ -84,6 +98,8 @@ public static class YamlErrorCodes {
     /// and reports it as a warning diagnostic under the other policies.
     /// </summary>
     public const string DuplicateKey = "Yaml.Load.DuplicateKey";
+    /// <summary>An alias inside the collection its anchor names (<c>&amp;a [*a]</c>), which would make the document infinite.</summary>
+    public const string RecursiveAlias = "Yaml.Load.RecursiveAlias";
     /// <summary>A limit from <see cref="YamlReaderOptions"/> or <see cref="YamlLoadOptions"/> was exceeded; see <see cref="YamlLimitExceededException"/>.</summary>
     public const string LimitExceeded = "Yaml.Limit.Exceeded";
 }

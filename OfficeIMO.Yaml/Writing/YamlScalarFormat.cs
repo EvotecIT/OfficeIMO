@@ -91,6 +91,36 @@ internal static class YamlScalarFormat {
         return true;
     }
 
+    /// <summary>
+    /// Picks the style for a string: the requested style when it can represent the value in this context, otherwise the
+    /// most conservative one that can. <see cref="YamlStyle.None"/> asks for the default: plain when no core or YAML 1.1
+    /// reader could take the text for anything but a string, a literal block for multi-line text in block context,
+    /// otherwise <paramref name="quote"/> quotes, or double quotes when the text needs escapes.
+    /// </summary>
+    public static YamlStyle Choose(string value, YamlStyle requested, bool flow, bool key, YamlStyle quote) {
+        ReadOnlySpan<char> text = value.AsSpan();
+        switch (requested) {
+            case YamlStyle.Plain:
+                if (text.Length == 0 || CanBePlain(text, flow, key)) return YamlStyle.Plain;
+                if (!key && CanBePlainMultiLine(text, flow)) return YamlStyle.Plain;
+                break;
+            case YamlStyle.SingleQuoted:
+                return CanBeSingleQuoted(text) ? YamlStyle.SingleQuoted : YamlStyle.DoubleQuoted;
+            case YamlStyle.DoubleQuoted:
+                return YamlStyle.DoubleQuoted;
+            case YamlStyle.Literal:
+            case YamlStyle.Folded:
+                if (!flow && !key && CanBeBlock(text)) return requested;
+                break;
+            default:
+                if (CanBePlain(text, flow, key) && !IsSchemaAmbiguous(text)) return YamlStyle.Plain;
+                if (!flow && !key && text.IndexOf('\n') >= 0 && CanBeBlock(text)) return YamlStyle.Literal;
+                break;
+        }
+        if (quote == YamlStyle.SingleQuoted && CanBeSingleQuoted(text)) return YamlStyle.SingleQuoted;
+        return YamlStyle.DoubleQuoted;
+    }
+
     /// <summary>Returns whether the value contains a line break.</summary>
     public static bool IsMultiLine(ReadOnlySpan<char> value) => value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0;
 

@@ -17,14 +17,26 @@ public sealed partial class YamlDocument {
     private const int EncodeChunk = 8192;
 
     /// <summary>
+    /// Saves the document back to the file it was loaded from, in the encoding it was loaded with. Untouched text is
+    /// copied from the source; only edited nodes are written anew.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The document was not loaded from a file path.</exception>
+    public void Save() {
+        if (_path is null) throw new InvalidOperationException("The document was not loaded from a file; use Save(path) or Save(stream).");
+        Save(_path);
+    }
+
+    /// <summary>
     /// Saves the document to a file in the encoding it was loaded with, writing its byte-order mark when the input had one.
-    /// An unchanged document reproduces the loaded bytes exactly.
+    /// An unchanged document reproduces the loaded bytes exactly; an edited one changes only the edited nodes' text.
     /// </summary>
     /// <param name="path">The file to create or overwrite.</param>
-    public void Save(string path) {
+    /// <param name="options">Save settings, or <see langword="null"/> for a minimal-change save.</param>
+    public void Save(string path, YamlSaveOptions? options = null) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        List<YamlTextSegment> segments = CollectSegments(options);
         using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, FileBufferSize);
-        Save(stream);
+        Write(stream, segments);
     }
 
     /// <summary>
@@ -32,9 +44,81 @@ public sealed partial class YamlDocument {
     /// The stream is not disposed.
     /// </summary>
     /// <param name="stream">A writable stream.</param>
-    public void Save(Stream stream) {
+    /// <param name="options">Save settings, or <see langword="null"/> for a minimal-change save.</param>
+    public void Save(Stream stream, YamlSaveOptions? options = null) {
         RequireWritable(stream);
-        List<YamlTextSegment> segments = CollectSegments();
+        Write(stream, CollectSegments(options));
+    }
+
+    /// <summary>Saves the document back to the file it was loaded from asynchronously; see <see cref="Save()"/>.</summary>
+    /// <param name="cancellationToken">Observed between writes.</param>
+    public Task SaveAsync(CancellationToken cancellationToken = default) {
+        if (_path is null) throw new InvalidOperationException("The document was not loaded from a file; use SaveAsync(path) or SaveAsync(stream).");
+        return SaveAsync(_path, null, cancellationToken);
+    }
+
+    /// <summary>Saves the document to a file asynchronously; see <see cref="Save(string, YamlSaveOptions?)"/>.</summary>
+    /// <param name="path">The file to create or overwrite.</param>
+    /// <param name="options">Save settings, or <see langword="null"/> for a minimal-change save.</param>
+    /// <param name="cancellationToken">Observed between writes.</param>
+    public async Task SaveAsync(string path, YamlSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        List<YamlTextSegment> segments = CollectSegments(options);
+        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, FileBufferSize, FileOptions.Asynchronous);
+        await WriteAsync(stream, segments, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Saves the document to a caller-owned stream asynchronously; see <see cref="Save(Stream, YamlSaveOptions?)"/>.</summary>
+    /// <param name="stream">A writable stream. It is not disposed.</param>
+    /// <param name="options">Save settings, or <see langword="null"/> for a minimal-change save.</param>
+    /// <param name="cancellationToken">Observed between writes.</param>
+    public Task SaveAsync(Stream stream, YamlSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        RequireWritable(stream);
+        return WriteAsync(stream, CollectSegments(options), cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the document as YAML text, as <see cref="Save(Stream, YamlSaveOptions?)"/> would write it. An unchanged
+    /// document returns its source text: the string passed to <see cref="Parse"/>, or the decoded file or stream without
+    /// its byte-order mark.
+    /// </summary>
+    public override string ToString() => ToString(null);
+
+    /// <summary>Returns the document as YAML text with save settings; see <see cref="ToString()"/>.</summary>
+    public string ToString(YamlSaveOptions? options) {
+        List<YamlTextSegment> segments = CollectSegments(options);
+        if (segments.Count == 1 && segments[0].Start == 0 && segments[0].Length == segments[0].Text.Length) return segments[0].Text;
+        int length = 0;
+        for (int i = 0; i < segments.Count; i++) length += segments[i].Length;
+        var text = new StringBuilder(length);
+        for (int i = 0; i < segments.Count; i++) text.Append(segments[i].Text, segments[i].Start, segments[i].Length);
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// Lists the output text: source ranges for everything clean, and emitted text for edits. An unchanged document is
+    /// one range covering the whole source; a reformat writes everything through the emitter.
+    /// </summary>
+    internal List<YamlTextSegment> CollectSegments(YamlSaveOptions? options) {
+        if (options?.Reformat == true) return Reformat(options.WriterOptions ?? WriterOptions);
+        if (!_partsDirty) {
+            var whole = new List<YamlTextSegment>(1);
+            if (_source.Length > 0) whole.Add(new YamlTextSegment(_source, 0, _source.Length));
+            return whole;
+        }
+        return new YamlSaveWalk(this).Run();
+    }
+
+    private List<YamlTextSegment> Reformat(YamlWriterOptions options) {
+        var text = new StringWriter(CultureInfo.InvariantCulture);
+        var emitter = new YamlEmitter(text, options);
+        for (int i = 0; i < _parts.Count; i++) YamlModelWriter.WritePart(emitter, _parts[i], marker: _parts[i].HasStartMarker || i > 0);
+        if (_parts.Count > 0) emitter.Finish();
+        string output = text.ToString();
+        return new List<YamlTextSegment>(1) { new YamlTextSegment(output, 0, output.Length) };
+    }
+
+    private void Write(Stream stream, List<YamlTextSegment> segments) {
         Encoder encoder = YamlEncodingDetector.CreateEncoding(_encoding).GetEncoder();
         char[] chars = ArrayPool<char>.Shared.Rent(EncodeChunk);
         byte[] bytes = ArrayPool<byte>.Shared.Rent(EncodeChunk * 4 + 8);
@@ -58,21 +142,7 @@ public sealed partial class YamlDocument {
         }
     }
 
-    /// <summary>Saves the document to a file asynchronously; see <see cref="Save(string)"/>.</summary>
-    /// <param name="path">The file to create or overwrite.</param>
-    /// <param name="cancellationToken">Observed between writes.</param>
-    public async Task SaveAsync(string path, CancellationToken cancellationToken = default) {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, FileBufferSize, FileOptions.Asynchronous);
-        await SaveAsync(stream, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>Saves the document to a caller-owned stream asynchronously; see <see cref="Save(Stream)"/>.</summary>
-    /// <param name="stream">A writable stream. It is not disposed.</param>
-    /// <param name="cancellationToken">Observed between writes.</param>
-    public async Task SaveAsync(Stream stream, CancellationToken cancellationToken = default) {
-        RequireWritable(stream);
-        List<YamlTextSegment> segments = CollectSegments();
+    private async Task WriteAsync(Stream stream, List<YamlTextSegment> segments, CancellationToken cancellationToken) {
         Encoder encoder = YamlEncodingDetector.CreateEncoding(_encoding).GetEncoder();
         char[] chars = ArrayPool<char>.Shared.Rent(EncodeChunk);
         byte[] bytes = ArrayPool<byte>.Shared.Rent(EncodeChunk * 4 + 8);
@@ -94,52 +164,6 @@ public sealed partial class YamlDocument {
             ArrayPool<char>.Shared.Return(chars);
             ArrayPool<byte>.Shared.Return(bytes);
         }
-    }
-
-    /// <summary>
-    /// Returns the document as YAML text. An unchanged document returns its source text: the string passed to
-    /// <see cref="Parse"/>, or the decoded file or stream without its byte-order mark.
-    /// </summary>
-    public override string ToString() {
-        List<YamlTextSegment> segments = CollectSegments();
-        if (segments.Count == 1 && segments[0].Start == 0 && segments[0].Length == segments[0].Text.Length) return segments[0].Text;
-        var text = new StringBuilder(_source.Length);
-        for (int i = 0; i < segments.Count; i++) text.Append(segments[i].Text, segments[i].Start, segments[i].Length);
-        return text.ToString();
-    }
-
-    /// <summary>
-    /// Lists the output text: source ranges for everything clean, and emitted text for dirty nodes. The walk descends only
-    /// into nodes that contain a dirty descendant, so an unchanged document is one range covering the whole source.
-    /// </summary>
-    internal List<YamlTextSegment> CollectSegments() {
-        var segments = new List<YamlTextSegment>(1);
-        int cursor = 0;
-        for (int i = 0; i < _parts.Count; i++) CollectChanges(_parts[i].Root, segments, ref cursor);
-        AddSource(segments, cursor, _source.Length);
-        return segments;
-    }
-
-    private void CollectChanges(YamlNode node, List<YamlTextSegment> segments, ref int cursor) {
-        if ((node._state & YamlNodeState.Dirty) != 0) {
-            AddSource(segments, cursor, node._start);
-            node.WriteChanged(segments);
-            cursor = node._end;
-            return;
-        }
-        if ((node._state & YamlNodeState.ContainsDirty) == 0) return;
-        if (node is YamlMapping mapping) {
-            for (int i = 0; i < mapping._count; i++) {
-                CollectChanges(mapping._entries[i].Key, segments, ref cursor);
-                CollectChanges(mapping._entries[i].Value, segments, ref cursor);
-            }
-        } else if (node is YamlSequence sequence) {
-            for (int i = 0; i < sequence._count; i++) CollectChanges(sequence._items[i], segments, ref cursor);
-        }
-    }
-
-    private void AddSource(List<YamlTextSegment> segments, int start, int end) {
-        if (end > start) segments.Add(new YamlTextSegment(_source, start, end - start));
     }
 
     private static int Encode(Encoder encoder, YamlTextSegment segment, int offset, char[] chars, byte[] bytes, bool flush) {
