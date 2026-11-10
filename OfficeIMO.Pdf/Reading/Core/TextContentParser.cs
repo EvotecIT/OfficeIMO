@@ -219,6 +219,37 @@ internal static partial class TextContentParser {
         }
     }
 
+    /// <summary>Collects form XObject invocations from operations supplied by a caller-owned tokenizer pass.</summary>
+    internal sealed class FormInvocationCollector {
+        private readonly Action<PdfContentOperation> _visit;
+
+        internal FormInvocationCollector(List<FormInvocation> invocations, List<object> operands, Action<PdfContentOperation> visit) {
+            Invocations = invocations;
+            Operands = operands;
+            _visit = visit;
+        }
+
+        internal List<FormInvocation> Invocations { get; }
+
+        /// <summary>Operand buffer the state machine reads; a tokenizer may lend it directly.</summary>
+        internal List<object> Operands { get; }
+
+        /// <summary>Visits an operation whose operands are already in <see cref="Operands"/>.</summary>
+        internal void VisitBorrowed(PdfContentOperation operation) => _visit(operation);
+
+        /// <summary>Visits an operation from another visitor's pass, copying its operands first.</summary>
+        internal void Visit(PdfContentOperation operation) {
+            Operands.Clear();
+            for (int index = 0; index < operation.Operands.Count; index++) Operands.Add(operation.Operands[index]);
+            try {
+                _visit(new PdfContentOperation(operation.Name, Operands, operation.OperatorOffset,
+                    operation.InlineImage, operation.HasInvalidOperands));
+            } finally {
+                Operands.Clear();
+            }
+        }
+    }
+
     internal readonly struct FormInvocation {
         public string Name { get; }
         public Matrix2D Transform { get; }
@@ -361,7 +392,8 @@ internal static partial class TextContentParser {
         Func<string, PdfFontResource?>? twoByteFontForResource = null,
         int initialStrokeLineCap = 0,
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
-        bool retainEditingEvidence = true) {
+        bool retainEditingEvidence = true,
+        FormInvocationCollector? formInvocations = null) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
 
@@ -447,7 +479,17 @@ internal static partial class TextContentParser {
         double pendingGapPt = 0;
         int pendingLineBreaks = 0;
         bool emittedTextInTextObject = false;
-        PdfContentOrderKey? currentContentOrderKey = null;
+        // Keys are built on demand: most operations never emit a span or open a scope.
+        int currentOperatorOffset = 0;
+        bool currentContentOrderKeyResolved = false;
+        PdfContentOrderKey? currentContentOrderKeyValue = null;
+        PdfContentOrderKey? CurrentContentOrderKey() {
+            if (!currentContentOrderKeyResolved) {
+                currentContentOrderKeyValue = contentOrderPrefix?.Append(currentOperatorOffset + contentOrderOffset);
+                currentContentOrderKeyResolved = true;
+            }
+            return currentContentOrderKeyValue;
+        }
         PdfContentOrderKey? currentTextObjectOrderKey = null;
         int textObjectFirstSpanIndex = 0;
         PersistentGraphicsStateFlags textObjectPersistentState = PersistentGraphicsStateFlags.None;
@@ -458,15 +500,18 @@ internal static partial class TextContentParser {
         int? currentContentStreamObjectNumber = contentStreamObjectNumber;
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
             cancellationCheck?.Invoke();
+            // The form collector reads this operation's operands before the text visitor consumes them.
+            formInvocations?.Visit(operation);
             currentContentStreamObjectNumber = contentStreamObjectNumberAtOffset?.Invoke(operation.OperatorOffset)
                 ?? contentStreamObjectNumber;
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
-            currentContentOrderKey = contentOrderPrefix?.Append(operation.OperatorOffset + contentOrderOffset);
+            currentOperatorOffset = operation.OperatorOffset;
+            currentContentOrderKeyResolved = false;
             string op = operation.Name;
             if (onCompletedDrawingActualText != null && !HasActiveHiddenContent() && IsDrawingPaintOperator(op))
                 GetActiveDrawingActualTextState()?.ObserveDrawingPaint();
             if (string.Equals(op, "BT", StringComparison.Ordinal)) {
-                currentTextObjectOrderKey = currentContentOrderKey;
+                currentTextObjectOrderKey = CurrentContentOrderKey();
                 textObjectFirstSpanIndex = spans.Count;
                 textObjectPersistentState = PersistentGraphicsStateFlags.None;
                 textObjectHasCollateralVisual = false;
@@ -820,7 +865,7 @@ internal static partial class TextContentParser {
                     if (markedState.HasActualText) GetActiveActualTextState()?.RejectLogicalLayoutEvidence();
                     if (onCompletedDrawingActualText != null && markedState.HasActualText) {
                         var origin = ctm.Transform(0D, 0D);
-                        markedState.BeginDrawingScope(currentContentOrderKey, GetActiveDrawingActualTextState(),
+                        markedState.BeginDrawingScope(CurrentContentOrderKey(), GetActiveDrawingActualTextState(),
                             markedState.IsHidden || HasActiveHiddenContent() || markedState.IsArtifact ||
                                 initialArtifactContent || HasActiveArtifact(), origin.X, pageHeight - origin.Y);
                     }
@@ -840,7 +885,7 @@ internal static partial class TextContentParser {
                         MarkedContentState completed = markedContentStack.Pop();
                         completed.CompleteLogicalPaintExtent(spans);
                         completed.CompleteLogicalBaseline(spans);
-                        completed.CompleteDrawingScope(currentContentOrderKey, textOutputBudget, onCompletedDrawingActualText);
+                        completed.CompleteDrawingScope(CurrentContentOrderKey(), textOutputBudget, onCompletedDrawingActualText);
                     }
 
                     args.Clear();
@@ -1049,11 +1094,16 @@ internal static partial class TextContentParser {
                     (firstByteWidth <= 0 && secondByteWidth <= 0 && pairWidth > 0);
             }
             var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
-            var decodedAdvances = new List<double>();
-            var decodedGlyphCharacterLengths = new List<int>();
-            var decodedGlyphBytes = new List<byte[]>();
-            var decodedGlyphPaintedAdvances = new List<double>();
-            var decodedGlyphLogicalTexts = new List<string>();
+            // Per-glyph evidence feeds spans that expose glyphs, paint or visual trimming. Plain
+            // logical text reads none of it, so those runs skip the lists and reuse code buffers.
+            int glyphCapacity = retainGlyphAndPaintEvidence ? (twoByte ? (bytes.Length + 1) / 2 : bytes.Length) : 0;
+            var decodedAdvances = new List<double>(glyphCapacity);
+            var decodedGlyphCharacterLengths = new List<int>(glyphCapacity);
+            var decodedGlyphBytes = new List<byte[]>(glyphCapacity);
+            var decodedGlyphPaintedAdvances = new List<double>(glyphCapacity);
+            var decodedGlyphLogicalTexts = new List<string>(glyphCapacity);
+            byte[]? reusableSingleByteCode = null;
+            byte[]? reusableTwoByteCode = null;
             bool hasUndecodableGlyph = false;
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
@@ -1069,7 +1119,17 @@ internal static partial class TextContentParser {
             for (int idx = 0; idx < bytes.Length;) {
                 cancellationCheck?.Invoke();
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
-                byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
+                byte[] g;
+                if (retainGlyphAndPaintEvidence) {
+                    g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
+                } else if (step == 1) {
+                    g = reusableSingleByteCode ??= new byte[1];
+                    g[0] = bytes[idx];
+                } else {
+                    g = reusableTwoByteCode ??= new byte[2];
+                    g[0] = bytes[idx];
+                    g[1] = bytes[idx + 1];
+                }
                 int remainingGlyphCharacters = textOutputBudget.GetRemainingDecodedTextCharacters() - decodedGlyphCharacters;
                 if (remainingGlyphCharacters <= 0) {
                     textOutputBudget.ThrowDecodedTextLimitExceeded();
@@ -1103,12 +1163,14 @@ internal static partial class TextContentParser {
                     decodedGlyphCount++;
                     eachDecodedGlyphIsOneTextElement &= t.Length == 1 || OfficeTextElements.Enumerate(t).Count() == 1;
                     sbOut.Append(t);
-                    decodedGlyphCharacterLengths.Add(t.Length);
-                    decodedGlyphBytes.Add(g);
-                    decodedGlyphPaintedAdvances.Add(Math.Abs((w1000 / 1000D) * size * hScale));
-                    decodedGlyphLogicalTexts.Add(logicalGlyphText);
-                    double perCharacterAdvance = advGlyph / Math.Max(1, t.Length);
-                    for (int characterIndex = 0; characterIndex < t.Length; characterIndex++) decodedAdvances.Add(perCharacterAdvance);
+                    if (retainGlyphAndPaintEvidence) {
+                        decodedGlyphCharacterLengths.Add(t.Length);
+                        decodedGlyphBytes.Add(g);
+                        decodedGlyphPaintedAdvances.Add(Math.Abs((w1000 / 1000D) * size * hScale));
+                        decodedGlyphLogicalTexts.Add(logicalGlyphText);
+                        double perCharacterAdvance = advGlyph / Math.Max(1, t.Length);
+                        for (int characterIndex = 0; characterIndex < t.Length; characterIndex++) decodedAdvances.Add(perCharacterAdvance);
+                    }
                 } else {
                     hasUndecodableGlyph = true;
                 }
@@ -1238,7 +1300,7 @@ internal static partial class TextContentParser {
                 }
                 if (!replaceInvisibleAnchor) onTextSpan?.Invoke(normalizedText.Length);
                 string paintedText = paintedRun;
-                bool visibleGlyphsMatchLogicalText = string.Equals(
+                bool visibleGlyphsMatchLogicalText = ReferenceEquals(paintedText, rawText) || string.Equals(
                     NormalizeShatteredSpan(paintedText),
                     normalizedText,
                     StringComparison.Ordinal);
@@ -1318,7 +1380,7 @@ internal static partial class TextContentParser {
                     pendingLineBreaks,
                     logicalLeadingSpace,
                     logicalTrailingSpace,
-                    currentContentOrderKey,
+                    CurrentContentOrderKey(),
                     spanCharacterAdvances,
                     textRenderingMode,
                     canRestamp && visibleGlyphsMatchLogicalText && !hasUndecodableGlyph,
@@ -1857,9 +1919,8 @@ internal static partial class TextContentParser {
 
         static string NormalizeShatteredSpan(string s) {
             if (string.IsNullOrEmpty(s)) return s;
-            string normalized = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ");
-            string trimmed = normalized.Trim();
-            return trimmed.Length == 0 && normalized.Length > 0 ? " " : trimmed;
+            string collapsed = TextLayoutEngine.CollapseWhitespace(s);
+            return collapsed.Length == 0 ? " " : collapsed;
         }
 
         static IReadOnlyList<int>? GetEmbeddedLineBreakCounts(string source, int normalizedLength) {
@@ -1898,6 +1959,85 @@ internal static partial class TextContentParser {
 
     public static List<FormInvocation> ExtractFormInvocations(
         string content,
+        PdfPageOptionalContentVisibility? optionalContentVisibility = null,
+        double paintOrderBase = 0D,
+        double paintOrderScale = 1D,
+        double paintOrderOffset = 0D,
+        IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
+        IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
+        double pageHeight = 0D,
+        OfficeColor? initialFillColor = null,
+        PdfPageColorSpace initialFillColorSpace = default,
+        OfficeColor? initialStrokeColor = null,
+        PdfPageColorSpace initialStrokeColorSpace = default,
+        double? initialFillOpacity = null,
+        double? initialStrokeOpacity = null,
+        int initialTextRenderingMode = 0,
+        PdfPageClipPath? initialClipPath = null,
+        bool initialUnsupportedEffect = false,
+        System.Func<string, int?>? mcidForProperty = null,
+        int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        PdfTextClippingBudget? textClippingBudget = null,
+        OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PdfPaintColorSelection? initialFillColorSelection = null,
+        PdfPaintColorSelection? initialStrokeColorSelection = null,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<string, int>? inlineImageComponentCount = null,
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null,
+        Action? cancellationCheck = null,
+        PdfTextStateSnapshot? initialTextState = null,
+        double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0", int initialStrokeLineCap = 0) {
+        FormInvocationCollector collector = CreateFormInvocationCollector(
+            optionalContentVisibility: optionalContentVisibility,
+            paintOrderBase: paintOrderBase,
+            paintOrderScale: paintOrderScale,
+            paintOrderOffset: paintOrderOffset,
+            graphicsStates: graphicsStates,
+            colorSpaces: colorSpaces,
+            pageHeight: pageHeight,
+            initialFillColor: initialFillColor,
+            initialFillColorSpace: initialFillColorSpace,
+            initialStrokeColor: initialStrokeColor,
+            initialStrokeColorSpace: initialStrokeColorSpace,
+            initialFillOpacity: initialFillOpacity,
+            initialStrokeOpacity: initialStrokeOpacity,
+            initialTextRenderingMode: initialTextRenderingMode,
+            initialClipPath: initialClipPath,
+            initialUnsupportedEffect: initialUnsupportedEffect,
+            mcidForProperty: mcidForProperty,
+            maxOperations: maxOperations,
+            maxNestingDepth: maxNestingDepth,
+            maxOperands: maxOperands,
+            textClippingBudget: textClippingBudget,
+            initialRenderingIntent: initialRenderingIntent,
+            initialFillColorSelection: initialFillColorSelection,
+            initialStrokeColorSelection: initialStrokeColorSelection,
+            outputIntentColorTransform: outputIntentColorTransform,
+            inlineImageComponentCount: inlineImageComponentCount,
+            inlineImageArrayComponentCount: inlineImageArrayComponentCount,
+            cancellationCheck: cancellationCheck,
+            initialTextState: initialTextState,
+            initialStrokeWidth: initialStrokeWidth,
+            initialStrokeLineJoin: initialStrokeLineJoin,
+            initialMiterLimit: initialMiterLimit,
+            initialFillColorResolved: initialFillColorResolved,
+            initialStrokeColorResolved: initialStrokeColorResolved,
+            initialStrokeDashIdentity: initialStrokeDashIdentity,
+            initialStrokeLineCap: initialStrokeLineCap);
+        PdfContentStreamInterpreter.Interpret(content, maxOperations, collector.VisitBorrowed,
+            inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands,
+            inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: collector.Operands);
+        return collector.Invocations;
+    }
+
+    /// <summary>
+    /// Creates the form-invocation state machine without driving a tokenizer, so text interpretation
+    /// can feed it the operations of its own pass instead of tokenizing the content a second time.
+    /// </summary>
+    internal static FormInvocationCollector CreateFormInvocationCollector(
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
@@ -1990,7 +2130,7 @@ internal static partial class TextContentParser {
         var artifactContentStack = new Stack<bool>();
         var args = new List<object>(8);
 
-        PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
+        Action<PdfContentOperation> visit = operation => {
             cancellationCheck?.Invoke();
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
@@ -2377,9 +2517,9 @@ internal static partial class TextContentParser {
                     args.Clear();
                     break;
             }
-        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: args);
+        };
 
-        return invocations;
+        return new FormInvocationCollector(invocations, args, visit);
 
         double GetPaintOrder(int operatorIndex) => paintOrderBase + ((operatorIndex + paintOrderOffset) * paintOrderScale);
 
