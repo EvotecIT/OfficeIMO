@@ -42,54 +42,63 @@ public class YamlDocumentCommentTests {
     }
 
     [Theory]
-    [InlineData("apiVersion", " file header")]
-    [InlineData("metadata", " above metadata")]
-    [InlineData("metadata.name", " above name")]
-    [InlineData("empty", " after the script")]
+    [InlineData("apiVersion", "file header")]
+    [InlineData("metadata", "above metadata")]
+    [InlineData("metadata.name", "above name")]
+    [InlineData("empty", "after the script")]
     public void CommentsOnTheirOwnLinesLeadTheNextKey(string key, string comment) {
-        Assert.Equal(new[] { comment }, Key(key).LeadingComments);
+        Assert.Equal(comment, Key(key).CommentBefore);
+        Assert.Equal(comment, Document.Select(key)!.CommentBefore);
     }
 
     [Fact]
-    public void BlockCollectionsWithoutPropertiesLeaveLeadingCommentsToTheirFirstChild() {
-        Assert.Empty(Document.Root!.LeadingComments);
-        Assert.Empty(Document.Select("items")!.LeadingComments);
-        Assert.Equal(new[] { " above first item" }, Document.Select("items[0]")!.LeadingComments);
-        Assert.Equal(new[] { " above three" }, Document.Select("items[2]")!.LeadingComments);
-        Assert.Empty(Document.Select("items[1]")!.LeadingComments);
+    public void FirstEntriesShareCommentsWithTheirSequenceItemOrRoot() {
+        Assert.Equal("file header", Document.Root!.CommentBefore);
+        Assert.Null(Document.Select("items")!.CommentBefore);
+        Assert.Equal("above first item", Document.Select("items[0]")!.CommentBefore);
+        Assert.Equal("above three", Document.Select("items[2]")!.CommentBefore);
+        Assert.Null(Document.Select("items[1]")!.CommentBefore);
     }
 
     [Theory]
-    [InlineData("apiVersion", " trailing on value")]
-    [InlineData("items[1]", " after two")]
-    [InlineData("script", " header comment")]
-    [InlineData("empty", " on empty value")]
-    [InlineData("flow[0]", " after a")]
+    [InlineData("apiVersion", "trailing on value")]
+    [InlineData("items[1]", "after two")]
+    [InlineData("script", "header comment")]
+    [InlineData("empty", "on empty value")]
+    [InlineData("flow[0]", "after a")]
+    [InlineData("metadata.labels", "on labels key")]
     public void TrailingCommentsBelongToTheNodeEndingOnTheirLine(string path, string comment) {
-        Assert.Equal(comment, Document.Select(path)!.TrailingComment);
+        Assert.Equal(comment, Document.Select(path)!.Comment);
     }
 
     [Fact]
     public void KeysKeepTrailingCommentsOnlyWhenTheirValueStartsLater() {
-        Assert.Equal(" on labels key", Key("metadata.labels").TrailingComment);
-        Assert.Null(Key("empty").TrailingComment);
-        Assert.Null(Document.Select("metadata.labels")!.TrailingComment);
-        Assert.Null(Document.Select("flow[1]")!.TrailingComment);
-        Assert.Empty(Document.Select("flow[1]")!.LeadingComments);
+        Assert.Equal("on labels key", Key("metadata.labels").Comment);
+        Assert.Null(Key("empty").Comment);
+        Assert.Null(Document.Select("flow[1]")!.Comment);
+        Assert.Null(Document.Select("flow[1]")!.CommentBefore);
     }
 
     [Fact]
-    public void DocumentMarkersBoundTheRootsLeadingComments() {
+    public void DocumentMarkersBoundTheRootsComments() {
         YamlDocument document = YamlDocument.Parse("# before marker\n--- # on marker\n# above root\nkey: v\n");
         YamlNode key = document.Root!.AsMapping()[0].Key;
-        Assert.Equal(new[] { " on marker", " above root" }, key.LeadingComments);
+        Assert.Equal("above root", key.CommentBefore);
+        Assert.Equal("before marker", document.Documents[0].CommentBefore);
     }
 
     [Fact]
-    public void AnchoredBlockCollectionsOwnTheCommentsBeforeTheirProperties() {
+    public void BlankLineSeparatesTheDocumentHeaderFromTheFirstEntry() {
+        YamlDocument document = YamlDocument.Parse("# license\n# text\n\n# about a\na: 1\nb: 2\n# footer\n");
+        Assert.Equal("license\ntext", document.Documents[0].CommentBefore);
+        Assert.Equal("about a", document.Select("a")!.CommentBefore);
+        Assert.True(document.Select("a")!.SpaceBefore);
+        Assert.Equal("footer", document.Documents[0].CommentAfter);
+    }
+
+    [Fact]
+    public void AnchoredBlockCollectionsKeepTheirFirstEntrysComments() {
         YamlDocument document = YamlDocument.Parse("base:\n  # about base\n  &b\n  # first\n  x: 1\n");
-        YamlNode value = document.Select("base")!;
-        Assert.Equal(new[] { " about base" }, value.LeadingComments);
-        Assert.Equal(new[] { " first" }, value.AsMapping()[0].Key.LeadingComments);
+        Assert.Equal("first", document.Select("base")!.AsMapping()[0].Key.CommentBefore);
     }
 }

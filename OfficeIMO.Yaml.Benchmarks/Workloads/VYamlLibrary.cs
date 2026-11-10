@@ -63,6 +63,8 @@ internal sealed class VYamlLibrary : IYamlReferenceLibrary {
 
     public string LoadAndSave(string yaml) => throw new NotSupportedException("VYaml has no document model to save.");
 
+    public string EditAndSave(string yaml) => throw new NotSupportedException("VYaml has no document model to save.");
+
     public object CaptureEvents(string yaml) => throw new NotSupportedException("VYaml's emitter does not replay parser events.");
 
     public string Emit(object events) => throw new NotSupportedException("VYaml's emitter does not replay parser events.");

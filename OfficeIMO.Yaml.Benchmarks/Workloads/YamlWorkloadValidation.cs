@@ -48,6 +48,50 @@ internal static class YamlWorkloadValidation {
         }
     }
 
+    /// <summary>
+    /// The edited output loads to the input's structure and values, except scalars that now read <c>edited</c>: the
+    /// edited value and, when it sits under an anchor, its copies seen through aliases.
+    /// </summary>
+    public static void ValidateEditAndSave(IYamlReferenceLibrary library, YamlWorkload workload, string[] inputs) {
+        int edited = 0;
+        foreach (string input in Distinct(inputs)) {
+            string saved = library.EditAndSave(input);
+            IReadOnlyList<YamlConformanceNode> before = library.Conformance.Load(Utf8.GetBytes(input));
+            IReadOnlyList<YamlConformanceNode> after = library.Conformance.Load(Utf8.GetBytes(saved));
+            Require(before.Count == after.Count, library, workload, "the edited output has " + after.Count + " documents instead of " + before.Count);
+            for (int i = 0; i < before.Count; i++) {
+                string? difference = CompareEdited(before[i], after[i], "$[" + i + "]", ref edited);
+                Require(difference == null, library, workload, "edited output loads differently: " + difference);
+            }
+        }
+
+        // Some small files have no mapping to edit; the workload as a whole must have edited something.
+        Require(edited > 0, library, workload, "no value was edited");
+    }
+
+    private static string? CompareEdited(YamlConformanceNode before, YamlConformanceNode after, string path, ref int edited) {
+        if (before.Kind is YamlConformanceNodeKind.Mapping or YamlConformanceNodeKind.Sequence || after.Kind is YamlConformanceNodeKind.Mapping or YamlConformanceNodeKind.Sequence) {
+            if (before.Kind != after.Kind || before.Items.Count != after.Items.Count || before.Entries.Count != after.Entries.Count) return path + ": structure changed";
+            for (int i = 0; i < before.Items.Count; i++) {
+                string? item = CompareEdited(before.Items[i], after.Items[i], path + "[" + i + "]", ref edited);
+                if (item != null) return item;
+            }
+            for (int i = 0; i < before.Entries.Count; i++) {
+                string? key = CompareEdited(before.Entries[i].Key, after.Entries[i].Key, path + ".key", ref edited);
+                if (key != null) return key;
+                string? value = CompareEdited(before.Entries[i].Value, after.Entries[i].Value, path + "." + before.Entries[i].Key.Scalar, ref edited);
+                if (value != null) return value;
+            }
+            return null;
+        }
+        if (before.Kind == after.Kind && before.Scalar == after.Scalar) return null;
+        if (after.Kind == YamlConformanceNodeKind.String && after.Scalar == "edited") {
+            edited++;
+            return null;
+        }
+        return path + ": " + before + " became " + after;
+    }
+
     /// <summary>Emitted output parses back to the same content, anchors and aliases included.</summary>
     public static void ValidateEmit(IYamlReferenceLibrary library, YamlWorkload workload, string[] inputs, object[] captured) {
         string[] distinct = Distinct(inputs).ToArray();

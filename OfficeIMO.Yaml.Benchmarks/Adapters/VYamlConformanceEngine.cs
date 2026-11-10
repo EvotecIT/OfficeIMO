@@ -41,6 +41,9 @@ internal sealed class VYamlConformanceEngine : IYamlConformanceEngine {
 
     public byte[] RoundTrip(byte[] yaml) => throw new NotSupportedException("VYaml has no document model to save.");
 
+    /// <inheritdoc />
+    public byte[] Emit(IReadOnlyList<YamlTestEvent> events) => throw new NotSupportedException();
+
     private static YamlTestEvent Convert(ref YamlParser parser) {
         switch (parser.CurrentEventType) {
             case ParseEventType.StreamStart: return YamlTestEvent.StreamStart();

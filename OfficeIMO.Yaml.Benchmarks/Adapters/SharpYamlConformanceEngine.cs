@@ -38,6 +38,9 @@ internal sealed class SharpYamlConformanceEngine : IYamlConformanceEngine {
         return documents;
     }
 
+    /// <inheritdoc />
+    public byte[] Emit(IReadOnlyList<YamlTestEvent> events) => throw new NotSupportedException();
+
     public byte[] RoundTrip(byte[] yaml) {
         string text = YamlTextEncoding.Decode(yaml, out YamlTextEncoding encoding);
         SharpYaml.Model.YamlStream stream = SharpYaml.Model.YamlStream.Load(new StringReader(text));

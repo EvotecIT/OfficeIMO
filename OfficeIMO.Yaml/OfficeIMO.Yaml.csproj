@@ -25,6 +25,13 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="..\\Assets\\OfficeIMO.png">
       <Pack>True</Pack>
@@ -48,11 +55,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\IO\PooledUtf8TextWriter*.cs" Link="SharedSource\IO\%(Filename)%(Extension)" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Yaml.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Yaml" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

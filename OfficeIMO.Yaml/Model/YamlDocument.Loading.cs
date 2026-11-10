@@ -5,25 +5,29 @@ public sealed partial class YamlDocument {
 
     /// <summary>
     /// Loads a YAML file. The encoding (UTF-8, UTF-16 or UTF-32, either byte order) is detected from a byte-order mark or
-    /// the first bytes as the YAML specification requires, and recorded so <see cref="Save(string)"/> reproduces it.
+    /// the first bytes as the YAML specification requires, and recorded so <see cref="Save(string, YamlSaveOptions?)"/> reproduces it.
     /// </summary>
     /// <param name="path">The file to read.</param>
     /// <param name="options">Load settings, or <see langword="null"/> for the defaults.</param>
     /// <exception cref="YamlException">The input is malformed, not valid in its encoding, or exceeds a limit.</exception>
-    public static YamlDocument Load(string path, YamlLoadOptions? options = null) {
+    /// <param name="cancellationToken">Observed while reading and, at bounded intervals, while parsing.</param>
+    public static YamlDocument Load(string path, YamlLoadOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferSize, FileOptions.SequentialScan);
-        return Load(stream, options);
+        YamlDocument document = Load(stream, options, cancellationToken);
+        document._path = path;
+        return document;
     }
 
     /// <summary>
     /// Loads YAML from a caller-owned stream, reading from its current position to the end. The encoding is detected as
-    /// for <see cref="Load(string, YamlLoadOptions?)"/>. The stream is not disposed.
+    /// for <see cref="Load(string, YamlLoadOptions?, CancellationToken)"/>. The stream is not disposed.
     /// </summary>
     /// <param name="stream">A readable stream.</param>
     /// <param name="options">Load settings, or <see langword="null"/> for the defaults.</param>
     /// <exception cref="YamlException">The input is malformed, not valid in its encoding, or exceeds a limit.</exception>
-    public static YamlDocument Load(Stream stream, YamlLoadOptions? options = null) {
+    /// <param name="cancellationToken">Observed between reads and, at bounded intervals, while parsing.</param>
+    public static YamlDocument Load(Stream stream, YamlLoadOptions? options = null, CancellationToken cancellationToken = default) {
         RequireReadable(stream);
         options ??= YamlLoadOptions.Default;
         byte[] buffer = ArrayPool<byte>.Shared.Rent(InitialCapacity(stream));
@@ -31,18 +35,19 @@ public sealed partial class YamlDocument {
             int count = 0;
             while (true) {
                 if (count == buffer.Length) buffer = Grow(buffer, count);
+                cancellationToken.ThrowIfCancellationRequested();
                 int read = stream.Read(buffer, count, buffer.Length - count);
                 if (read <= 0) break;
                 count += read;
                 CheckInputSize(count, options);
             }
-            return FromBytes(buffer, count, options, CancellationToken.None);
+            return FromBytes(buffer, count, options, cancellationToken);
         } finally {
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 
-    /// <summary>Loads a YAML file asynchronously; see <see cref="Load(string, YamlLoadOptions?)"/>.</summary>
+    /// <summary>Loads a YAML file asynchronously; see <see cref="Load(string, YamlLoadOptions?, CancellationToken)"/>.</summary>
     /// <param name="path">The file to read.</param>
     /// <param name="options">Load settings, or <see langword="null"/> for the defaults.</param>
     /// <param name="cancellationToken">Observed while reading and, at bounded intervals, while parsing.</param>
@@ -50,10 +55,12 @@ public sealed partial class YamlDocument {
     public static async Task<YamlDocument> LoadAsync(string path, YamlLoadOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
-        return await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
+        YamlDocument document = await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
+        document._path = path;
+        return document;
     }
 
-    /// <summary>Loads YAML from a caller-owned stream asynchronously; see <see cref="Load(Stream, YamlLoadOptions?)"/>.</summary>
+    /// <summary>Loads YAML from a caller-owned stream asynchronously; see <see cref="Load(Stream, YamlLoadOptions?, CancellationToken)"/>.</summary>
     /// <param name="stream">A readable stream. It is not disposed.</param>
     /// <param name="options">Load settings, or <see langword="null"/> for the defaults.</param>
     /// <param name="cancellationToken">Observed while reading and, at bounded intervals, while parsing.</param>
@@ -78,15 +85,16 @@ public sealed partial class YamlDocument {
     }
 
     /// <summary>
-    /// Parses YAML text. The text is retained as is, so <see cref="ToString"/> returns it unchanged and
-    /// <see cref="Save(Stream)"/> writes it as UTF-8 without adding a byte-order mark.
+    /// Parses YAML text. The text is retained as is, so <see cref="ToString()"/> returns it unchanged and
+    /// <see cref="Save(Stream, YamlSaveOptions?)"/> writes it as UTF-8 without adding a byte-order mark.
     /// </summary>
     /// <param name="yaml">The YAML text.</param>
     /// <param name="options">Load settings, or <see langword="null"/> for the defaults.</param>
     /// <exception cref="YamlException">The input is malformed or exceeds a limit.</exception>
-    public static YamlDocument Parse(string yaml, YamlLoadOptions? options = null) {
+    /// <param name="cancellationToken">Checked at bounded intervals while parsing.</param>
+    public static YamlDocument Parse(string yaml, YamlLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (yaml is null) throw new ArgumentNullException(nameof(yaml));
-        return Build(yaml, YamlTextEncoding.Utf8, byteOrderMark: false, options ?? YamlLoadOptions.Default, CancellationToken.None);
+        return Build(yaml, YamlTextEncoding.Utf8, byteOrderMark: false, options ?? YamlLoadOptions.Default, cancellationToken);
     }
 
     private static YamlDocument FromBytes(byte[] buffer, int count, YamlLoadOptions options, CancellationToken cancellationToken) {
@@ -97,8 +105,12 @@ public sealed partial class YamlDocument {
 
     private static YamlDocument Build(string text, YamlTextEncoding encoding, bool byteOrderMark, YamlLoadOptions options, CancellationToken cancellationToken) {
         var document = new YamlDocument(text, encoding, byteOrderMark, options.DuplicateKeys);
-        using var reader = new YamlReader(text.AsMemory(), options.ReaderOptions, cancellationToken);
-        new YamlTreeBuilder(document, options).Run(reader);
+        try {
+            using var reader = new YamlReader(text.AsMemory(), options.ReaderOptions, cancellationToken);
+            new YamlTreeBuilder(document, options).Run(reader);
+        } catch (YamlException exception) when (exception.AttachSource(text)) {
+            throw;
+        }
         return document;
     }
 

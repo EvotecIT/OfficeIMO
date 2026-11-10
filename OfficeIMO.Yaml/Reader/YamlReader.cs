@@ -138,6 +138,8 @@ public sealed partial class YamlReader : IDisposable {
         }
         try {
             ReadCore();
+        } catch (YamlException exception) when (_streamSource is null && exception.AttachSource(_memory.ToString())) {
+            throw;
         } catch (Exception) {
             _faulted = true;
             throw;

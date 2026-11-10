@@ -41,9 +41,9 @@ public class YamlDocumentLimitTests {
     }
 
     [Fact]
-    public void AliasInsideItsOwnAnchorIsRejectedAsInfiniteExpansion() {
-        YamlLimitExceededException error = Assert.Throws<YamlLimitExceededException>(() => YamlDocument.Parse("&a [x, *a]\n"));
-        Assert.Equal(nameof(YamlLoadOptions.MaxAliasExpansion), error.LimitName);
+    public void AliasInsideItsOwnAnchorIsRejectedAsRecursive() {
+        YamlException error = Assert.Throws<YamlException>(() => YamlDocument.Parse("&a [x, *a]\n"));
+        Assert.Equal(YamlErrorCodes.RecursiveAlias, error.Code);
     }
 
     [Theory]

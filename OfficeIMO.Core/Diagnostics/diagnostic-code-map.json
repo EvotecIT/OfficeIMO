@@ -10997,6 +10997,22 @@
       "origins": [
         "OfficeIMO.Core/Raster/OfficeRasterImageCodecs.cs"
       ]
+    },
+    {
+      "oldCode": "Yaml.Load.DuplicateKey",
+      "catalogCode": "yaml-duplicate-key",
+      "member": "YamlDuplicateKey",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlTreeBuilder.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-aliased-node-edited",
+      "catalogCode": "yaml-aliased-node-edited",
+      "member": "YamlAliasedNodeEdited",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlEdit.cs"
+      ]
     }
   ],
   "dynamicPatterns": [

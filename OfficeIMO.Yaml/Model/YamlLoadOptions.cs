@@ -20,6 +20,29 @@ public sealed class YamlLoadOptions {
     /// <summary>Gets the default options. The returned instance is shared and must not be modified.</summary>
     internal static YamlLoadOptions Default { get; } = new YamlLoadOptions();
 
+    /// <summary>
+    /// Gets new options for files from outside: input up to 16 MiB, nesting up to 64, 200,000 nodes per document, alias
+    /// expansion up to 10,000 nodes and scalars up to 1 MiB of characters. Each call returns a new instance.
+    /// </summary>
+    public static YamlLoadOptions UntrustedDefaults => new YamlLoadOptions {
+        MaxInputBytes = 16 * 1024 * 1024,
+        MaxDepth = 64,
+        MaxNodes = 200_000,
+        MaxAliasExpansion = 10_000,
+        MaxScalarLength = 1024 * 1024
+    };
+
+    /// <summary>Returns a copy, so a caller's options can be adjusted without changing them.</summary>
+    internal YamlLoadOptions Clone() => new YamlLoadOptions {
+        Schema = Schema,
+        DuplicateKeys = DuplicateKeys,
+        MaxDepth = MaxDepth,
+        MaxNodes = MaxNodes,
+        MaxAliasExpansion = MaxAliasExpansion,
+        MaxScalarLength = MaxScalarLength,
+        MaxInputBytes = MaxInputBytes
+    };
+
     /// <summary>Gets the reader settings the load runs with. Comments are never requested; the model reads them from the source.</summary>
     internal YamlReaderOptions ReaderOptions => _reader;
 
@@ -73,7 +96,7 @@ public sealed class YamlLoadOptions {
 
     /// <summary>
     /// Gets or sets the maximum input size, or <see langword="null"/> (the default) for no limit. File and stream input
-    /// counts bytes; <see cref="YamlDocument.Parse(string, YamlLoadOptions?)"/> counts UTF-16 code units.
+    /// counts bytes; <see cref="YamlDocument.Parse(string, YamlLoadOptions?, CancellationToken)"/> counts UTF-16 code units.
     /// </summary>
     public long? MaxInputBytes {
         get => _reader.MaxInputBytes;

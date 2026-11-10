@@ -13,6 +13,7 @@ internal static class YamlWorkloadCheck {
                 failures += Check(library.Name + " load", () => YamlWorkloadValidation.ValidateLoad(library, workload, inputs));
                 failures += Check(library.Name + " load-and-save", () => YamlWorkloadValidation.ValidateLoadAndSave(library, workload, inputs));
                 failures += Check(library.Name + " emit", () => YamlWorkloadValidation.ValidateEmit(library, workload, inputs, inputs.Select(library.CaptureEvents).ToArray()));
+                failures += Check(library.Name + " edit-and-save", () => YamlWorkloadValidation.ValidateEditAndSave(library, workload, inputs));
             }
 
             IYamlReferenceLibrary vyaml = VYamlLibrary.Instance;
@@ -23,6 +24,8 @@ internal static class YamlWorkloadCheck {
             failures += Check(officeImo.Name + " parse", () => YamlWorkloadValidation.ValidateParse(officeImo, workload, inputs));
             failures += Check(officeImo.Name + " load", () => YamlWorkloadValidation.ValidateLoad(officeImo, workload, inputs));
             failures += Check(officeImo.Name + " load-and-save", () => YamlWorkloadValidation.ValidateLoadAndSave(officeImo, workload, inputs));
+            failures += Check(officeImo.Name + " emit", () => YamlWorkloadValidation.ValidateEmit(officeImo, workload, inputs, inputs.Select(officeImo.CaptureEvents).ToArray()));
+            failures += Check(officeImo.Name + " edit-and-save", () => YamlWorkloadValidation.ValidateEditAndSave(officeImo, workload, inputs));
         }
 
         return failures == 0 ? 0 : 1;

@@ -142,3 +142,5 @@ OfficeIMO.OfficeValidationReport.OfficeValidationReport(System.Collections.Gener
 OfficeIMO.OfficeValidationReport.ThrowIfFailed() -> void
 OfficeIMO.OfficeValidationReport.ToMarkdown() -> string!
 OfficeIMO.OfficeFormatEncoding.StandaloneXml = 3 -> OfficeIMO.OfficeFormatEncoding
+const OfficeIMO.OfficeDiagnosticCodes.YamlAliasedNodeEdited = "yaml-aliased-node-edited" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.YamlDuplicateKey = "yaml-duplicate-key" -> string!
