@@ -72,6 +72,59 @@ public class YamlWriterQuotingTests {
         }
     }
 
+    // The quoting decision skips the resolver for text that starts like a word or like a number. Every string of up to
+    // three characters over the characters those shortcuts examine, every four-character string over the ones that
+    // shape numbers, and each one-character change of longer numbers and timestamps must get the full resolution's answer.
+    [Fact]
+    public void QuotingShortcutsAgreeWithFullResolution() {
+        const string all = "0123456789+-._,: \tabcdefABCDEFxXoOtTZzinINmMyYsSlLuUrRhH~<=#!";
+        const string numeric = "019+-._,: xobeEZTinm";
+        var buffer = new char[32];
+        var failures = new List<string>();
+        int checkedCount = 0;
+        void Check(int length) {
+            ReadOnlySpan<char> text = buffer.AsSpan(0, length);
+            bool expected = YamlScalarFormat.IsSchemaAmbiguousResolved(text);
+            if (YamlScalarFormat.IsSchemaAmbiguous(text) != expected && failures.Count < 20) {
+                failures.Add("'" + text.ToString() + "' should " + (expected ? "" : "not ") + "need quotes.");
+            }
+            checkedCount++;
+        }
+        void Sweep(string alphabet, int length, int position) {
+            if (position == length) {
+                Check(length);
+                return;
+            }
+            foreach (char c in alphabet) {
+                buffer[position] = c;
+                Sweep(alphabet, length, position + 1);
+            }
+        }
+        for (int length = 1; length <= 3; length++) Sweep(all, length, 0);
+        Sweep(numeric, 4, 0);
+        string[] longer = {
+            "1_000", "0x1F_FF", "0o17", "0b1010_0111", "1,000.5", "+.inf", "-.NaN", "1.29.2", "100m", "128Mi", "1e+10", "1.5E-3",
+            "190:20:30.15", "-1:20", ".5", "+12.5e-07", "2001-12-14", "2001-12-14t21:59:43.10-05:00", "2001-12-14 21:59:43.10 Z",
+            "2001-12-14T21:59:43Z", "10.0.0.1", "8080", "007", "1__2", "+0x_1", "1:2:3:4"
+        };
+        foreach (string value in longer) {
+            for (int i = 0; i <= value.Length; i++) {
+                foreach (char c in all) {
+                    value.CopyTo(0, buffer, 0, value.Length);
+                    if (i < value.Length) {
+                        buffer[i] = c;
+                        Check(value.Length);
+                    } else {
+                        buffer[i] = c;
+                        Check(value.Length + 1);
+                    }
+                }
+            }
+        }
+        Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
+        Assert.True(checkedCount > 400_000);
+    }
+
     [Fact]
     public void PlainSafeStringsStayPlain() {
         Assert.Equal("name: web-01\n", Write(w => {
