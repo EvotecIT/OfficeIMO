@@ -839,6 +839,18 @@ Acceptance: installed/packed consumers exercise the advertised native workflows 
 
 Acceptance: every adopted baseline criterion has decisive evidence, no validated in-scope correctness defect remains, and current source/API/package/host documentation agrees. Earlier bounded milestones may ship, but they cannot be reported as completion of OfficeIMO.Access. Source readiness, PR merge, package publication and installed/live proof remain separate gates.
 
+## YAML engine
+
+Build `OfficeIMO.Yaml` as an owned, dependency-free YAML 1.2 engine with lossless read, edit and write, following the [YAML engine design](officeimo.yaml-engine-design.md). Third-party YAML libraries stay in tests and benchmarks.
+
+- [ ] Y0: pin yaml-test-suite data and a provenance-recorded real-world corpus; add the engine-neutral conformance harness and the opt-in benchmark and comparison runners with YamlDotNet and SharpYaml baselines.
+- [ ] Y1: scanner, parser and `YamlReader` covering YAML 1.2.2 syntax with zero per-event allocation, resource limits, cancellation and positioned errors. Match `test.event` for every valid suite case and reject every error case, apart from documented exceptions.
+- [ ] Y2: `YamlDocument` model with Failsafe, JSON, Core and 1.1 schemas, anchors, aliases, merge keys, tags, multi-document streams and duplicate-key policy. Match `in.json` across the suite and save every suite and corpus input byte for byte.
+- [ ] Y5a: rebuild `OfficeIMO.Reader.Yaml` on the engine, preserve its chunk/path contract and remove YamlDotNet.
+- [ ] Y3: minimal-diff editing, sibling-style inference, `YamlWriter` and new-document emission with YAML 1.1-safe quoting; independent readers accept our output. Move Markdown front matter to the engine.
+- [ ] Y4: `YamlSerializer` with a packaged source generator for trimming and NativeAOT and a reflection fallback.
+- [ ] Lead YamlDotNet and SharpYaml on parse-to-events and load-to-model elapsed time and allocation across the benchmark workloads, with Windows, Linux and macOS evidence.
+
 ## Additional formats and product boundaries
 
 - [ ] Establish independent application/producer validation for each adopted legacy generation before claiming its read, edit, or write operation.
