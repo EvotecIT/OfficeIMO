@@ -505,7 +505,7 @@ internal static partial class PdfCorpusRunner {
             case "generated":
                 return GenerateArtifact(entry, repositoryRoot, filesDirectory);
             case "download":
-                return await ResolveDownloadedArtifactAsync(entry, filesDirectory, download, client)
+                return await ResolveDownloadedArtifactAsync(entry, repositoryRoot, filesDirectory, download, client)
                     .ConfigureAwait(false);
             default:
                 throw new InvalidDataException($"Unknown PDF corpus source kind '{entry.SourceKind}'.");
@@ -514,9 +514,23 @@ internal static partial class PdfCorpusRunner {
 
     private static async Task<string> ResolveDownloadedArtifactAsync(
         PdfCorpusEntry entry,
+        string repositoryRoot,
         string filesDirectory,
         bool download,
         HttpClient client) {
+        if (entry.SourcePath is not null) {
+            string committed = Path.GetFullPath(Path.Combine(repositoryRoot, entry.SourcePath));
+            if (File.Exists(committed)) {
+                string? committedError = GetDownloadValidationError(
+                    entry,
+                    await File.ReadAllBytesAsync(committed).ConfigureAwait(false));
+                if (committedError is not null) {
+                    throw new InvalidDataException($"Committed corpus artifact {entry.Id} is invalid: {committedError}");
+                }
+                return committed;
+            }
+        }
+
         string target = GetEntryOutputPath(filesDirectory, entry.Id, ".pdf");
         if (File.Exists(target)) {
             byte[] cachedPayload = await File.ReadAllBytesAsync(target).ConfigureAwait(false);
