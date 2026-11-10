@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 /// <summary>Complete in-memory packages from the same generated typed rows, with independent output validation.</summary>
 [MemoryDiagnoser]
 public class ExcelReaderGeneratedWriteBenchmarks {
-    [Params(ExcelFileFormat.Xlsb, ExcelFileFormat.Xls)]
+    [Params(ExcelFileFormat.Xlsx, ExcelFileFormat.Xlsb, ExcelFileFormat.Xls)]
     public ExcelFileFormat Format { get; set; }
 
     [Params(50_000)]
