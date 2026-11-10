@@ -72,10 +72,12 @@ namespace OfficeIMO.Excel {
         /// Problems found only by the final XML check are raised by the last <c>Read</c>. A valid
         /// worksheet whose later content the fast reader cannot index, which the default mode reads
         /// through its general XML parser, raises <see cref="NotSupportedException"/> instead. The option
-        /// applies on .NET 8 and later, when the execution policy allows background work, to XLSX
-        /// worksheets of 1 MB or more that declare their dimension. On .NET Framework and .NET Standard,
-        /// with a sequential execution policy, for other worksheets and in the XLS and XLSB readers,
-        /// the reader always validates before the first row.
+        /// applies on .NET 8 and later to XLSX worksheets of 1 MB or more that declare their dimension, when
+        /// <see cref="A1Range"/> and <see cref="CellValueConverter"/> are not set and the execution policy
+        /// allows background work: no diagnostics or diagnostic callbacks are requested and parallelism
+        /// is not capped at one. On .NET Framework and .NET Standard, with a sequential execution policy,
+        /// for other worksheets and in the XLS and XLSB readers, the reader always validates before the
+        /// first row.
         /// </remarks>
         public bool EnableSinglePassReading { get; set; }
 

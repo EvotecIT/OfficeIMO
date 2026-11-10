@@ -747,8 +747,10 @@ validated. A malformed cell later in the sheet raises the same exception as the 
 reader, but only when `Read` reaches it, after the rows before it have been returned; issues
 found by the final XML check are raised by the last `Read`. Use it when the caller can handle a
 failure part-way through, such as a stream into a staging table that is discarded on error.
-It applies on .NET 8 and later, when the execution policy allows background work, to XLSX
-worksheets of 1 MB or more that declare their dimension. On .NET Framework and .NET Standard,
+It applies on .NET 8 and later to XLSX worksheets of 1 MB or more that declare their dimension,
+when `A1Range` and `CellValueConverter` are unset and the execution policy allows background
+work: no diagnostics or diagnostic callbacks are requested and parallelism is not capped at
+one. On .NET Framework and .NET Standard,
 with a sequential execution policy, for other worksheets and in the XLS and XLSB readers, the
 reader always validates before the first row.
 

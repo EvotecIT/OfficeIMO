@@ -378,7 +378,10 @@ internal static partial class CsvParser
             CsvParsingSettings options = _options;
             bool canReadW3CFieldsHeader = _emittedRecordCount <= GetParserInitialRecordsToSkip(options) &&
                 options.HasHeaderRow && options.Header is null && options.RecognizeW3CFieldsHeader;
-            if (canReadW3CFieldsHeader && IsW3CFieldsLine(DecodeLinePrefix(firstLine), options))
+            // Compare the marker as bytes: decoding a fixed-length prefix can split a character.
+            ReadOnlySpan<byte> marker = "#Fields:"u8;
+            if (canReadW3CFieldsHeader && firstLine.Length >= marker.Length &&
+                Ascii.EqualsIgnoreCase(firstLine.Slice(0, marker.Length), marker))
             {
                 return false;
             }
@@ -387,9 +390,6 @@ internal static partial class CsvParser
                 (options.HasHeaderRow && options.Header is null && options.SkipCommentRowsBeforeHeader &&
                     _emittedRecordCount <= GetParserInitialRecordsToSkip(options));
         }
-
-        // "#Fields:" is eight UTF-16 characters, which never take more than 32 UTF-8 bytes.
-        private string DecodeLinePrefix(ReadOnlySpan<byte> line) => _encoding.GetString(line.Slice(0, Math.Min(line.Length, 32)));
 
         /// <summary>
         /// Skips a comment record. One with a quote that leaves a quote open and looks delimited

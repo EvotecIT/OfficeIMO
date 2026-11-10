@@ -44,6 +44,7 @@ namespace OfficeIMO.Excel {
             private readonly Task _producer;
             private byte[]? _buffer;
             private Exception? _fault;
+            private volatile bool _stopped;
 
             internal StreamedWorksheetPart(byte[] buffer, int length, Stream input, string normalizedPartName,
                 CancellationToken ct) {
@@ -52,8 +53,12 @@ namespace OfficeIMO.Excel {
                 Progress = new WorksheetInflationProgress();
                 _producer = Task.Run(() => {
                     try {
-                        ReadPartContents(input, buffer, length, normalizedPartName, ct, 256,
-                            written => Progress.PublishRows(buffer, written));
+                        // Disposal stops inflation at the next published chunk instead of waiting for the
+                        // rest of the worksheet. The caller's token keeps the uncancellable copy path.
+                        ReadPartContents(input, buffer, length, normalizedPartName, ct, 256, written => {
+                            if (_stopped) throw new OperationCanceledException();
+                            Progress.PublishRows(buffer, written);
+                        });
                         Progress.Complete(length);
                     } catch (Exception exception) {
                         _fault = exception;
@@ -75,6 +80,7 @@ namespace OfficeIMO.Excel {
             internal Exception? Fault => Volatile.Read(ref _fault);
 
             public void Dispose() {
+                _stopped = true;
                 try { _producer.GetAwaiter().GetResult(); } catch (Exception) { }
                 byte[]? buffer = Interlocked.Exchange(ref _buffer, null);
                 if (buffer != null) OpenXmlPartBufferPool.Return(buffer);
