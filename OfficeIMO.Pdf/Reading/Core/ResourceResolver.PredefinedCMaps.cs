@@ -32,6 +32,9 @@ namespace OfficeIMO.Pdf {
             if (bytes == null || bytes.Length < 2 || bytes.Length % 2 != 0) return 0D;
             double sum = 0D;
             PdfPredefinedCMap mapping = predefined.Value;
+            // An embedded CMap this reader cannot use selects no CIDs. Measure as an unmapped composite font does,
+            // not as CID 0 for every code, so text decoded through ToUnicode keeps its positions.
+            if (ReferenceEquals(mapping, PdfPredefinedCMap.Empty)) return widths != null ? SumWidthsCid(bytes, widths) : bytes.Length / 2D * 1000D;
             for (int index = 0; index < bytes.Length; index += 2) {
                 if (!mapping.TryGetPaintedCid(bytes, index, out ushort cid)) throw new PdfUnsupportedTextMappingException(font);
                 sum += widths?.GetWidth(cid) ?? 1000D;
