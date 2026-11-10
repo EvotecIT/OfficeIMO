@@ -6,7 +6,7 @@ namespace OfficeIMO.Core.Internal {
             string sourcePath,
             string targetPath,
             bool waitForClaim = false,
-            bool applyDefaultUnixPermissions = true) {
+            bool applyDefaultPermissions = true) {
             OfficeFileCommitClaim? claim = null;
             for (int attempt = 0; ; attempt++) {
                 try {
@@ -27,7 +27,7 @@ namespace OfficeIMO.Core.Internal {
 
             using (claim) {
                 if (File.Exists(targetPath)) return false;
-                if (applyDefaultUnixPermissions) OfficeTemporaryFile.ApplyDefaultUnixCreationMode(sourcePath);
+                if (applyDefaultPermissions) OfficeTemporaryFile.ApplyDefaultCreationPermissions(sourcePath);
                 try {
                     ExecuteWithRetry(() => File.Move(sourcePath, targetPath));
                     return true;
