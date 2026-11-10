@@ -1049,11 +1049,16 @@ internal static partial class TextContentParser {
                     (firstByteWidth <= 0 && secondByteWidth <= 0 && pairWidth > 0);
             }
             var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
-            var decodedAdvances = new List<double>();
-            var decodedGlyphCharacterLengths = new List<int>();
-            var decodedGlyphBytes = new List<byte[]>();
-            var decodedGlyphPaintedAdvances = new List<double>();
-            var decodedGlyphLogicalTexts = new List<string>();
+            // Per-glyph evidence feeds spans that expose glyphs, paint or visual trimming. Plain
+            // logical text reads none of it, so those runs skip the lists and reuse code buffers.
+            int glyphCapacity = retainGlyphAndPaintEvidence ? (twoByte ? (bytes.Length + 1) / 2 : bytes.Length) : 0;
+            var decodedAdvances = new List<double>(glyphCapacity);
+            var decodedGlyphCharacterLengths = new List<int>(glyphCapacity);
+            var decodedGlyphBytes = new List<byte[]>(glyphCapacity);
+            var decodedGlyphPaintedAdvances = new List<double>(glyphCapacity);
+            var decodedGlyphLogicalTexts = new List<string>(glyphCapacity);
+            byte[]? reusableSingleByteCode = null;
+            byte[]? reusableTwoByteCode = null;
             bool hasUndecodableGlyph = false;
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
@@ -1069,7 +1074,17 @@ internal static partial class TextContentParser {
             for (int idx = 0; idx < bytes.Length;) {
                 cancellationCheck?.Invoke();
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
-                byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
+                byte[] g;
+                if (retainGlyphAndPaintEvidence) {
+                    g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
+                } else if (step == 1) {
+                    g = reusableSingleByteCode ??= new byte[1];
+                    g[0] = bytes[idx];
+                } else {
+                    g = reusableTwoByteCode ??= new byte[2];
+                    g[0] = bytes[idx];
+                    g[1] = bytes[idx + 1];
+                }
                 int remainingGlyphCharacters = textOutputBudget.GetRemainingDecodedTextCharacters() - decodedGlyphCharacters;
                 if (remainingGlyphCharacters <= 0) {
                     textOutputBudget.ThrowDecodedTextLimitExceeded();
@@ -1103,12 +1118,14 @@ internal static partial class TextContentParser {
                     decodedGlyphCount++;
                     eachDecodedGlyphIsOneTextElement &= t.Length == 1 || OfficeTextElements.Enumerate(t).Count() == 1;
                     sbOut.Append(t);
-                    decodedGlyphCharacterLengths.Add(t.Length);
-                    decodedGlyphBytes.Add(g);
-                    decodedGlyphPaintedAdvances.Add(Math.Abs((w1000 / 1000D) * size * hScale));
-                    decodedGlyphLogicalTexts.Add(logicalGlyphText);
-                    double perCharacterAdvance = advGlyph / Math.Max(1, t.Length);
-                    for (int characterIndex = 0; characterIndex < t.Length; characterIndex++) decodedAdvances.Add(perCharacterAdvance);
+                    if (retainGlyphAndPaintEvidence) {
+                        decodedGlyphCharacterLengths.Add(t.Length);
+                        decodedGlyphBytes.Add(g);
+                        decodedGlyphPaintedAdvances.Add(Math.Abs((w1000 / 1000D) * size * hScale));
+                        decodedGlyphLogicalTexts.Add(logicalGlyphText);
+                        double perCharacterAdvance = advGlyph / Math.Max(1, t.Length);
+                        for (int characterIndex = 0; characterIndex < t.Length; characterIndex++) decodedAdvances.Add(perCharacterAdvance);
+                    }
                 } else {
                     hasUndecodableGlyph = true;
                 }
@@ -1238,7 +1255,7 @@ internal static partial class TextContentParser {
                 }
                 if (!replaceInvisibleAnchor) onTextSpan?.Invoke(normalizedText.Length);
                 string paintedText = paintedRun;
-                bool visibleGlyphsMatchLogicalText = string.Equals(
+                bool visibleGlyphsMatchLogicalText = ReferenceEquals(paintedText, rawText) || string.Equals(
                     NormalizeShatteredSpan(paintedText),
                     normalizedText,
                     StringComparison.Ordinal);
@@ -1857,9 +1874,8 @@ internal static partial class TextContentParser {
 
         static string NormalizeShatteredSpan(string s) {
             if (string.IsNullOrEmpty(s)) return s;
-            string normalized = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ");
-            string trimmed = normalized.Trim();
-            return trimmed.Length == 0 && normalized.Length > 0 ? " " : trimmed;
+            string collapsed = TextLayoutEngine.CollapseWhitespace(s);
+            return collapsed.Length == 0 ? " " : collapsed;
         }
 
         static IReadOnlyList<int>? GetEmbeddedLineBreakCounts(string source, int normalizedLength) {
