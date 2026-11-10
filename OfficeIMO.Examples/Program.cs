@@ -298,6 +298,13 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--document-inspector")) {
+                Word.DocumentInspector.Example_PrepareForSharing(folderPath, HasArgument(args, "--open-word"));
+                Excel.DocumentInspector.Example_PrepareForSharing(folderPath, false);
+                PowerPoint.DocumentInspector.Example_PrepareForSharing(folderPath, false);
+                return;
+            }
+
             if (HasArgument(args, "--word-review-reports")) {
                 Word.ReviewReports.Example_ReviewReportWorkflow(folderPath, HasArgument(args, "--open-word"));
                 return;

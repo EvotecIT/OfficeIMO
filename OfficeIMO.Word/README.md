@@ -138,6 +138,25 @@ document.SaveAsPdf("Notes-styled.pdf");
 
 `ApplyTheme` changes typography, paragraph rhythm and table decoration on the loaded model. It preserves content, semantic emphasis, code and symbol fonts, section geometry, table widths and merged cells. Table headers follow declared header rows. Word uses light-page theme defaults, including for `Dark`: an existing solid page background becomes white, while background images remain attached. Changed fonts, sizes and padding can change wrapping and pagination. The same themed model can use the existing PDF, HTML and image exporters.
 
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("Proposal.docx");
+OfficeHiddenDataReport removed = document.RemoveHiddenData(new OfficeHiddenDataOptions {
+    TrackedChanges = OfficeTrackedChangesAction.AcceptAll
+});
+WordAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions {
+    Title = "Proposal", Language = "en-US", MarkTableHeaderRows = true
+});
+foreach (WordAccessibilityFinding finding in accessibility.Findings) Console.WriteLine($"{finding.Severity} {finding.Code} at {finding.Location}");
+document.Save("Proposal-shared.docx");
+```
+
+`InspectHiddenData()` reports properties, comments, tracked changes, reviewer names, hidden text, variables, custom XML, image GPS and other metadata without changing anything; `RemoveHiddenData` removes the selected categories and reports what happened to each item. Hidden text and tracked changes are only changed when you ask. `InspectAccessibility()` checks alternative text, headings, tables, links, contrast, floating objects, blank-paragraph spacing, title and language. The [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md) and the [Word guide](../Docs/officeimo.word-guide.md#accessibility-checks) list every rule.
+
 ## Convert
 
 Conversions are called on the document and return an `OfficeConversionReport` that lists anything the target could not carry:

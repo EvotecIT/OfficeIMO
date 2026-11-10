@@ -3,6 +3,8 @@ using System.Collections;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 
+HiddenDataSmoke.Run();
+
 string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-AotSmoke-" + Guid.NewGuid().ToString("N") + ".pptx");
 try {
     using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {

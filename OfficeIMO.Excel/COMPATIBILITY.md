@@ -35,6 +35,7 @@ XML Spreadsheet column widths use point units. Automatic conversion uses whole-p
 | Comments and collaboration | Partial | Legacy comments and common threaded-comment read/update/resolve/remove workflows are supported; complete collaboration authoring semantics are not claimed |
 | Macros and embedded payloads | Inspect/preserve/manage | VBA, package, OLE, and ActiveX payloads can be inventoried, hashed, extracted, attached/replaced/removed through bounded package operations; OfficeIMO does not execute VBA or provide a full OLE/ActiveX editor |
 | Protection and encryption | Broad | OOXML password encryption plus supported legacy password import are separate from worksheet/workbook protection; permission fidelity remains format-specific |
+| Hidden data and personal information | Supported | `InspectHiddenData` and `RemoveHiddenData` cover properties, notes, threaded comments and persons, hidden sheets, rows, columns and names (opt-in), cached external-link values, custom XML, image metadata and printer settings. External workbook and pivot source paths are reported and retained; see the [hidden data support matrix](../Docs/officeimo.hidden-data-support-matrix.md) |
 | Feature inspection and preflight | Supported | `InspectFeatures()`, `Can`, `EnsureCan`, capability diagnostics, repair hints, and preservation reports route reads, calculation, edits, templates, rendering, and save workflows explicitly |
 
 ## Formula evaluator

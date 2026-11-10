@@ -42,6 +42,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 - [Provenance support matrix](officeimo.provenance-support-matrix.md) — exact carrier, package-owner, removal, verification, and resource-limit contracts.
 - [Content safety support matrix](officeimo.content-safety-support-matrix.md) — concealed-content, Unicode, cleanup, and format-specific ingestion-security boundaries.
+- [Hidden data and personal information](officeimo.hidden-data-support-matrix.md) — Document Inspector-style metadata, comment, identity and hidden-content removal for Word, Excel and PowerPoint.
 - [Text formatting support matrix](officeimo.text-formatting-support-matrix.md) — native font, decoration, script, casing, rendering, and compatibility contracts across formats.
 
 ### Office formats and interoperability
