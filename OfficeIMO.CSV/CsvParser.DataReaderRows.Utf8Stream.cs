@@ -270,6 +270,8 @@ internal static partial class CsvParser
             internal bool EndsWithLineBreak;
             /// <summary>Whether the block scanner already established if the record is ASCII.</summary>
             internal AsciiState Ascii;
+            /// <summary>The block scanner found no escaped quote pair in the record.</summary>
+            internal bool NoEscapedQuotes;
         }
 
         private enum AsciiState : byte
@@ -307,6 +309,111 @@ internal static partial class CsvParser
         /// </summary>
         private RecordScanResult ScanRecordBlocks(int recordStart, CancellationToken cancellationToken, out RecordScan scan)
         {
+            if (_trim)
+            {
+                return ScanTrimmedRecordBlocks(recordStart, cancellationToken, out scan);
+            }
+
+            scan = default;
+            _visitor.Reset();
+            int length = _length;
+            int position = recordStart;
+            int fieldStart = recordStart;
+            int fieldIndex = 0;
+            int lineBreaks = 0;
+            ulong insideQuotes = 0;
+            ulong nonAscii = 0;
+            bool closingQuotePending = false;
+            bool openingQuoteAllowed = true;
+            bool escapedQuotes = false;
+            bool carriageReturnInside = false;
+            int cancellationCheckPosition = position + CancellationCheckInterval;
+            ref byte data = ref MemoryMarshal.GetArrayDataReference(_buffer);
+            while (true)
+            {
+                if (length - position < BlockSize)
+                {
+                    return _endOfStream ? RecordScanResult.Irregular : RecordScanResult.NeedMoreData;
+                }
+
+                LoadBlockMasks(ref data, position, out ulong delimiters, out ulong quotes,
+                    out ulong carriageReturns, out ulong lineFeeds, out ulong high);
+                ulong lineSeparators = carriageReturns | lineFeeds;
+                ulong structural, recordEnds, boundaries;
+                if ((quotes | insideQuotes) == 0 && !closingQuotePending)
+                {
+                    structural = delimiters | lineSeparators;
+                    recordEnds = lineSeparators;
+                    boundaries = structural;
+                    carriageReturnInside = false;
+                }
+                else
+                {
+                    // Quote parity marks bytes inside quotes. A closing quote must be followed by a
+                    // quote (an escaped pair), a delimiter or a line separator; an opening quote must
+                    // start a field or follow a closing quote. Anything else is left to the exact scan.
+                    ulong inside = PrefixXor(quotes) ^ insideQuotes;
+                    ulong opening = quotes & inside;
+                    ulong closing = quotes & ~inside;
+                    structural = (delimiters | lineSeparators) & ~inside;
+                    recordEnds = lineSeparators & ~inside;
+                    boundaries = structural | closing;
+                    ulong scope = recordEnds == 0 ? ulong.MaxValue : recordEnds ^ (recordEnds - 1UL);
+                    ulong followsClosing = quotes | delimiters | lineSeparators;
+                    ulong invalid = ((closing << 1) & ~followsClosing) |
+                        (opening & ~((boundaries << 1) | (openingQuoteAllowed ? 1UL : 0UL)));
+                    if ((invalid & scope) != 0 || (closingQuotePending && (followsClosing & 1UL) == 0))
+                    {
+                        return RecordScanResult.Irregular;
+                    }
+
+                    // The second quote of an escaped pair directly follows a closing quote.
+                    escapedQuotes |= ((((closing << 1) | (closingQuotePending ? 1UL : 0UL)) & quotes & scope) != 0);
+
+                    ulong innerCarriageReturns = carriageReturns & inside & scope;
+                    ulong innerLineFeeds = lineFeeds & inside & scope;
+                    if ((innerCarriageReturns | innerLineFeeds) != 0)
+                    {
+                        // CR, LF and CRLF inside quotes each end one physical line.
+                        lineBreaks += BitOperations.PopCount(innerCarriageReturns) + BitOperations.PopCount(
+                            innerLineFeeds & ~((innerCarriageReturns << 1) | (carriageReturnInside ? 1UL : 0UL)));
+                    }
+
+                    carriageReturnInside = (innerCarriageReturns >> 63) != 0;
+                    closingQuotePending = (closing >> 63) != 0;
+                    insideQuotes = (ulong)((long)inside >> 63);
+                }
+
+                if (recordEnds != 0)
+                {
+                    int end = BitOperations.TrailingZeroCount(recordEnds);
+                    ulong before = (1UL << end) - 1UL;
+                    _visitor.VisitDelimiterMask(structural & before, position, ref fieldStart, ref fieldIndex);
+                    RecordScanResult result = CompleteBlockRecord(position + end, fieldStart, fieldIndex, lineBreaks, (nonAscii | (high & before)) == 0, out scan);
+                    scan.NoEscapedQuotes = !escapedQuotes;
+                    return result;
+                }
+
+                // Quoted fields keep their quotes; the visitor removes them when the text is read.
+                _visitor.VisitDelimiterMask(structural, position, ref fieldStart, ref fieldIndex);
+                openingQuoteAllowed = (boundaries >> 63) != 0;
+                nonAscii |= high;
+                position += BlockSize;
+                if (position >= cancellationCheckPosition)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ThrowIfCancellationRequested(_options);
+                    cancellationCheckPosition = position + CancellationCheckInterval;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Block scan with trimming. Each field is visited on its own so whitespace around quoted
+        /// text can be removed before the quotes are checked.
+        /// </summary>
+        private RecordScanResult ScanTrimmedRecordBlocks(int recordStart, CancellationToken cancellationToken, out RecordScan scan)
+        {
             scan = default;
             _visitor.Reset();
             byte[] buffer = _buffer;
@@ -328,25 +435,9 @@ internal static partial class CsvParser
                     return _endOfStream ? RecordScanResult.Irregular : RecordScanResult.NeedMoreData;
                 }
 
-                LoadBlockMasks(ref data, position, out ulong delimiters, out ulong quotes, out ulong lineSeparators, out ulong high);
-                if ((quotes | insideQuotes) == 0 && fieldQuotes == 0 && !_trim)
-                {
-                    // Common unquoted block: publish delimiters up to the first line separator.
-                    if (lineSeparators == 0)
-                    {
-                        _visitor.VisitDelimiterMask(delimiters, position, ref fieldStart, ref fieldIndex);
-                        nonAscii |= high;
-                        position += BlockSize;
-                    }
-                    else
-                    {
-                        int end = BitOperations.TrailingZeroCount(lineSeparators);
-                        ulong before = (1UL << end) - 1UL;
-                        _visitor.VisitDelimiterMask(delimiters & before, position, ref fieldStart, ref fieldIndex);
-                        return CompleteBlockRecord(position + end, fieldStart, fieldIndex, lineBreaks, (nonAscii | (high & before)) == 0, out scan);
-                    }
-                }
-                else
+                LoadBlockMasks(ref data, position, out ulong delimiters, out ulong quotes,
+                    out ulong carriageReturns, out ulong lineFeeds, out ulong high);
+                ulong lineSeparators = carriageReturns | lineFeeds;
                 {
                     ulong inside = insideQuotes;
                     if (quotes != 0)
@@ -464,7 +555,8 @@ internal static partial class CsvParser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadBlockMasks(ref byte data, int position, out ulong delimiters, out ulong quotes, out ulong lineSeparators, out ulong high)
+        private void LoadBlockMasks(ref byte data, int position, out ulong delimiters, out ulong quotes,
+            out ulong carriageReturns, out ulong lineFeeds, out ulong high)
         {
             if (Vector512.IsHardwareAccelerated)
             {
@@ -472,43 +564,46 @@ internal static partial class CsvParser
                 high = values.ExtractMostSignificantBits();
                 delimiters = Vector512.Equals(values, Vector512.Create(_delimiter)).ExtractMostSignificantBits();
                 quotes = Vector512.Equals(values, Vector512.Create((byte)'"')).ExtractMostSignificantBits();
-                lineSeparators = (Vector512.Equals(values, Vector512.Create((byte)'\r'))
-                    | Vector512.Equals(values, Vector512.Create((byte)'\n'))).ExtractMostSignificantBits();
+                carriageReturns = Vector512.Equals(values, Vector512.Create((byte)'\r')).ExtractMostSignificantBits();
+                lineFeeds = Vector512.Equals(values, Vector512.Create((byte)'\n')).ExtractMostSignificantBits();
             }
             else if (Vector256.IsHardwareAccelerated)
             {
-                LoadMasks256(ref data, position, out uint lowDelimiters, out uint lowQuotes, out uint lowLines, out uint lowHigh);
-                LoadMasks256(ref data, position + 32, out uint highDelimiters, out uint highQuotes, out uint highLines, out uint highHigh);
+                LoadMasks256(ref data, position, out uint lowDelimiters, out uint lowQuotes, out uint lowReturns, out uint lowFeeds, out uint lowHigh);
+                LoadMasks256(ref data, position + 32, out uint highDelimiters, out uint highQuotes, out uint highReturns, out uint highFeeds, out uint highHigh);
                 high = lowHigh | ((ulong)highHigh << 32);
                 delimiters = lowDelimiters | ((ulong)highDelimiters << 32);
                 quotes = lowQuotes | ((ulong)highQuotes << 32);
-                lineSeparators = lowLines | ((ulong)highLines << 32);
+                carriageReturns = lowReturns | ((ulong)highReturns << 32);
+                lineFeeds = lowFeeds | ((ulong)highFeeds << 32);
             }
             else
             {
-                delimiters = quotes = lineSeparators = high = 0;
+                delimiters = quotes = carriageReturns = lineFeeds = high = 0;
                 for (int offset = 0; offset < BlockSize; offset += 16)
                 {
                     Vector128<byte> values = Vector128.LoadUnsafe(ref data, (nuint)(position + offset));
                     high |= (ulong)values.ExtractMostSignificantBits() << offset;
                     delimiters |= (ulong)Vector128.Equals(values, Vector128.Create(_delimiter)).ExtractMostSignificantBits() << offset;
                     quotes |= (ulong)Vector128.Equals(values, Vector128.Create((byte)'"')).ExtractMostSignificantBits() << offset;
-                    lineSeparators |= (ulong)(Vector128.Equals(values, Vector128.Create((byte)'\r'))
-                        | Vector128.Equals(values, Vector128.Create((byte)'\n'))).ExtractMostSignificantBits() << offset;
+                    carriageReturns |= (ulong)Vector128.Equals(values, Vector128.Create((byte)'\r')).ExtractMostSignificantBits() << offset;
+                    lineFeeds |= (ulong)Vector128.Equals(values, Vector128.Create((byte)'\n')).ExtractMostSignificantBits() << offset;
                 }
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadMasks256(ref byte data, int position, out uint delimiters, out uint quotes, out uint lineSeparators, out uint high)
+        private void LoadMasks256(ref byte data, int position, out uint delimiters, out uint quotes,
+            out uint carriageReturns, out uint lineFeeds, out uint high)
         {
             Vector256<byte> values = Vector256.LoadUnsafe(ref data, (nuint)position);
             high = values.ExtractMostSignificantBits();
             delimiters = Vector256.Equals(values, Vector256.Create(_delimiter)).ExtractMostSignificantBits();
             quotes = Vector256.Equals(values, Vector256.Create((byte)'"')).ExtractMostSignificantBits();
-            lineSeparators = (Vector256.Equals(values, Vector256.Create((byte)'\r'))
-                | Vector256.Equals(values, Vector256.Create((byte)'\n'))).ExtractMostSignificantBits();
+            carriageReturns = Vector256.Equals(values, Vector256.Create((byte)'\r')).ExtractMostSignificantBits();
+            lineFeeds = Vector256.Equals(values, Vector256.Create((byte)'\n')).ExtractMostSignificantBits();
         }
+
 
         /// <summary>Sets each bit to the parity of the quote bits at and below it.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1178,7 +1273,8 @@ internal static partial class CsvParser
             _visitor.Complete(
                 scan.FieldCount,
                 _options.ColumnCountMismatchPolicy,
-                isAscii);
+                isAscii,
+                mayHaveEscapedQuotes: !scan.NoEscapedQuotes);
             if (_stringCache is { } stringCache) _visitor.InternFields(stringCache);
             _emittedRecordCount++;
             ReportProgress(_options, _emittedRecordCount, recordLineNumber);

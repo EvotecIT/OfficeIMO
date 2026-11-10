@@ -22,7 +22,8 @@ internal static partial class CsvParser
         /// <see cref="MissingStart"/> for a column the row does not have, or
         /// <see cref="MaterializedStart"/> when only <see cref="Materialized"/> holds the value.
         /// A negative <see cref="Length"/> is the bitwise complement of a quoted field's inner
-        /// length when that text contains escaped quotes.
+        /// length when that text contains escaped quotes. A non-negative range that starts with a
+        /// quote is a whole quoted field from the block scanner; its quotes are removed on access.
         /// </summary>
         private struct Field
         {
@@ -34,6 +35,7 @@ internal static partial class CsvParser
         private const int MissingStart = -1;
         private const int MaterializedStart = -2;
         private bool _allFieldsAscii;
+        private bool _mayHaveEscapedQuotes;
 
         internal CsvUtf8DataReaderRowVisitor(byte[] buffer, Encoding encoding)
         {
@@ -72,7 +74,42 @@ internal static partial class CsvParser
         internal readonly bool IsEmpty(int ordinal)
         {
             ref Field field = ref _fields[ordinal];
-            return field.Length == 0 && (field.Materialized is null || field.Materialized.Length == 0);
+            if (field.Materialized is { } materialized)
+            {
+                return materialized.Length == 0;
+            }
+
+            return !TryResolveText(ordinal, out _, out int length, out _) || length == 0;
+        }
+
+        /// <summary>
+        /// Resolves a field's text bytes without its quotes. Returns false for a missing field or one
+        /// held only as a decoded string; <paramref name="escaped"/> reports escaped quote pairs.
+        /// </summary>
+        private readonly bool TryResolveText(int ordinal, out int start, out int length, out bool escaped)
+        {
+            ref Field field = ref _fields[ordinal];
+            start = field.Start;
+            length = field.Length;
+            escaped = false;
+            if (start < 0)
+            {
+                return false;
+            }
+
+            if (length < 0)
+            {
+                length = ~length;
+                escaped = true;
+            }
+            else if (length >= 2 && _buffer[start] == (byte)'"')
+            {
+                start++;
+                length -= 2;
+                escaped = _mayHaveEscapedQuotes && _buffer.AsSpan(start, length).Contains((byte)'"');
+            }
+
+            return true;
         }
 
         internal void VisitFieldRange(int fieldIndex, int start, int length)
@@ -154,7 +191,8 @@ internal static partial class CsvParser
         internal void Complete(
             int fieldCount,
             CsvColumnCountMismatchPolicy mismatchPolicy,
-            bool allFieldsAscii)
+            bool allFieldsAscii,
+            bool mayHaveEscapedQuotes)
         {
             EnsureCapacity(fieldCount);
             FieldCount = fieldCount;
@@ -167,6 +205,7 @@ internal static partial class CsvParser
             }
 
             _allFieldsAscii = allFieldsAscii;
+            _mayHaveEscapedQuotes = mayHaveEscapedQuotes;
 
             int expectedCount = SourceColumnCount > 0 ? SourceColumnCount : fieldCount;
             for (int index = fieldCount; index < expectedCount; index++)
@@ -193,9 +232,15 @@ internal static partial class CsvParser
             if (length > 0)
             {
                 int start = field.Start;
-                if (length == 1 && _buffer[start] < SingleCharacterStrings.Length)
+                byte first = _buffer[start];
+                if (first == (byte)'"' && length >= 2)
                 {
-                    return SingleCharacterStrings[_buffer[start]];
+                    return GetQuotedString(start + 1, length - 2);
+                }
+
+                if (length == 1 && first < SingleCharacterStrings.Length)
+                {
+                    return SingleCharacterStrings[first];
                 }
 
                 return _allFieldsAscii ? CreateAsciiString(_buffer, start, length) : DecodeString(start, length);
@@ -204,13 +249,32 @@ internal static partial class CsvParser
             return length == 0 ? string.Empty : CreateUnescapedString(field.Start, ~length);
         }
 
+        private readonly string GetQuotedString(int start, int length)
+        {
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            if (_mayHaveEscapedQuotes && _buffer.AsSpan(start, length).Contains((byte)'"'))
+            {
+                return CreateUnescapedString(start, length);
+            }
+
+            if (length == 1 && _buffer[start] < SingleCharacterStrings.Length)
+            {
+                return SingleCharacterStrings[_buffer[start]];
+            }
+
+            return _allFieldsAscii ? CreateAsciiString(_buffer, start, length) : DecodeString(start, length);
+        }
+
         /// <summary>Compares a field with text without creating a string for ASCII raw text.</summary>
         internal readonly bool TextEquals(int ordinal, string value)
         {
-            ref Field field = ref _fields[ordinal];
-            if (field.Materialized is null && field.Length >= 0)
+            if (_fields[ordinal].Materialized is null && TryResolveText(ordinal, out int start, out int length, out bool escaped) && !escaped)
             {
-                ReadOnlySpan<byte> bytes = _buffer.AsSpan(field.Start, field.Length);
+                ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
                 if (_allFieldsAscii || Ascii.IsValid(bytes))
                 {
                     return Ascii.Equals(bytes, value);
@@ -371,10 +435,10 @@ internal static partial class CsvParser
             for (int ordinal = 0; ordinal < count; ordinal++)
             {
 #if NET9_0_OR_GREATER
-                int length = _fields[ordinal].Length;
-                if (length > 0 && length <= characters.Length)
+                if (TryResolveText(ordinal, out int start, out int length, out bool escaped) && !escaped &&
+                    length > 0 && length <= characters.Length)
                 {
-                    ReadOnlySpan<byte> bytes = _buffer.AsSpan(_fields[ordinal].Start, length);
+                    ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
                     if (_allFieldsAscii || Ascii.IsValid(bytes))
                     {
                         if (length == 1)
@@ -409,15 +473,14 @@ internal static partial class CsvParser
         internal bool TryGetUtf8Text(int ordinal, out ReadOnlySpan<byte> text)
         {
             ValidateOrdinal(ordinal);
-            int length = _fields[ordinal].Length;
             // Missing, decoded and escaped fields have no borrowable raw UTF-8 text.
-            if (_fields[ordinal].Start < 0 || length < 0)
+            if (!TryResolveText(ordinal, out int start, out int length, out bool escaped) || escaped)
             {
                 text = default;
                 return false;
             }
 
-            ReadOnlySpan<byte> bytes = _buffer.AsSpan(_fields[ordinal].Start, length);
+            ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
             // A permissive decoder replaces malformed bytes. Such a raw segment would not
             // represent GetString's normalized text and cannot be borrowed as UTF-8.
             if (!_allFieldsAscii && !System.Text.Unicode.Utf8.IsValid(bytes))
