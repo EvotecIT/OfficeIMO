@@ -64,11 +64,16 @@ internal static partial class PdfWriter {
             // These are actual bounded contour extrema, never an unverified glyf header box.
             // Positive unsheared placement is monotone on each axis, including the Y reflection.
             if (contained != null && font is OfficeTrueTypeFont && cached.Bounds.IsFinite
-                && placement.Shear == 0D && !placement.SyntheticBold
+                && placement.Shear == 0D
                 && placement.HorizontalScale > 0D && !double.IsInfinity(placement.HorizontalScale)) {
                 OfficePoint first = placement.TransformPoint(new OfficePoint(cached.Bounds.Left, cached.Bounds.Bottom));
                 OfficePoint second = placement.TransformPoint(new OfficePoint(cached.Bounds.Right, cached.Bounds.Top));
-                var bounds = new DiagnosticPaintBounds(first.X, first.Y, second.X, second.Y);
+                // Synthetic bold adds a round-joined stroke along the placed outline. Every stroke vertex lies at
+                // most half the stroke width from an outline point, so the outline extrema widened by that half
+                // (with a margin far above rounding) enclose both the fill and the stroke.
+                double widen = placement.SyntheticBold
+                    ? ContentStreamBuilder.SyntheticBoldStrokeWidth(size) / 2D * (1D + 1E-9D) + 1E-9D : 0D;
+                var bounds = new DiagnosticPaintBounds(first.X - widen, first.Y - widen, second.X + widen, second.Y + widen);
                 if (bounds.IsFinite && contained(bounds)) return null;
             }
             return CopyDiagnosticGlyphForPlacement(cached.Contours);
