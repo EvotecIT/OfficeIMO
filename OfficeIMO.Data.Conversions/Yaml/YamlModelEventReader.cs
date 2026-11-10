@@ -47,7 +47,7 @@ internal sealed class YamlModelEventReader : DataEventReader {
         _document = document ?? throw new ArgumentNullException(nameof(document));
         _maxAliasExpansion = context.Options.YamlReader?.MaxAliasExpansion ?? 100_000;
         foreach (OfficeDiagnostic diagnostic in document.Diagnostics) {
-            if (diagnostic.Code == YamlErrorCodes.DuplicateKey) _hasDuplicates = true;
+            if (diagnostic.Code == OfficeDiagnosticCodes.YamlDuplicateKey) _hasDuplicates = true;
         }
 
         TrackDuplicateKeys = true;

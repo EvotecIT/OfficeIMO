@@ -51,6 +51,14 @@ public class LossReportingTests {
     }
 
     [Fact]
+    public void DuplicateKeysFollowTheDocumentPolicy() {
+        using var document = OfficeIMO.Yaml.YamlDocument.Parse("a: 1\na: 2\n", new OfficeIMO.Yaml.YamlLoadOptions { DuplicateKeys = OfficeIMO.Yaml.YamlDuplicateKeyPolicy.LastWins });
+        System.Text.Json.Nodes.JsonNode json = document.ToJson(null, out OfficeConversionReport report)!;
+        Assert.Equal(2, json["a"]!.GetValue<int>());
+        Assert.Contains(OfficeDiagnosticCodes.DuplicateKey, Convert.Codes(report));
+    }
+
+    [Fact]
     public void ArrayJoinIsReported() {
         var join = new DataConversionOptions { ArrayColumns = DataArrayColumns.Join };
         (string csv, OfficeConversionReport report) = Convert.Run("[{\"tags\":[\"a\",\"b\"]}]", DataFormat.Json, DataFormat.Csv, join);
