@@ -447,7 +447,17 @@ internal static partial class TextContentParser {
         double pendingGapPt = 0;
         int pendingLineBreaks = 0;
         bool emittedTextInTextObject = false;
-        PdfContentOrderKey? currentContentOrderKey = null;
+        // Keys are built on demand: most operations never emit a span or open a scope.
+        int currentOperatorOffset = 0;
+        bool currentContentOrderKeyResolved = false;
+        PdfContentOrderKey? currentContentOrderKeyValue = null;
+        PdfContentOrderKey? CurrentContentOrderKey() {
+            if (!currentContentOrderKeyResolved) {
+                currentContentOrderKeyValue = contentOrderPrefix?.Append(currentOperatorOffset + contentOrderOffset);
+                currentContentOrderKeyResolved = true;
+            }
+            return currentContentOrderKeyValue;
+        }
         PdfContentOrderKey? currentTextObjectOrderKey = null;
         int textObjectFirstSpanIndex = 0;
         PersistentGraphicsStateFlags textObjectPersistentState = PersistentGraphicsStateFlags.None;
@@ -461,12 +471,13 @@ internal static partial class TextContentParser {
             currentContentStreamObjectNumber = contentStreamObjectNumberAtOffset?.Invoke(operation.OperatorOffset)
                 ?? contentStreamObjectNumber;
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
-            currentContentOrderKey = contentOrderPrefix?.Append(operation.OperatorOffset + contentOrderOffset);
+            currentOperatorOffset = operation.OperatorOffset;
+            currentContentOrderKeyResolved = false;
             string op = operation.Name;
             if (onCompletedDrawingActualText != null && !HasActiveHiddenContent() && IsDrawingPaintOperator(op))
                 GetActiveDrawingActualTextState()?.ObserveDrawingPaint();
             if (string.Equals(op, "BT", StringComparison.Ordinal)) {
-                currentTextObjectOrderKey = currentContentOrderKey;
+                currentTextObjectOrderKey = CurrentContentOrderKey();
                 textObjectFirstSpanIndex = spans.Count;
                 textObjectPersistentState = PersistentGraphicsStateFlags.None;
                 textObjectHasCollateralVisual = false;
@@ -820,7 +831,7 @@ internal static partial class TextContentParser {
                     if (markedState.HasActualText) GetActiveActualTextState()?.RejectLogicalLayoutEvidence();
                     if (onCompletedDrawingActualText != null && markedState.HasActualText) {
                         var origin = ctm.Transform(0D, 0D);
-                        markedState.BeginDrawingScope(currentContentOrderKey, GetActiveDrawingActualTextState(),
+                        markedState.BeginDrawingScope(CurrentContentOrderKey(), GetActiveDrawingActualTextState(),
                             markedState.IsHidden || HasActiveHiddenContent() || markedState.IsArtifact ||
                                 initialArtifactContent || HasActiveArtifact(), origin.X, pageHeight - origin.Y);
                     }
@@ -840,7 +851,7 @@ internal static partial class TextContentParser {
                         MarkedContentState completed = markedContentStack.Pop();
                         completed.CompleteLogicalPaintExtent(spans);
                         completed.CompleteLogicalBaseline(spans);
-                        completed.CompleteDrawingScope(currentContentOrderKey, textOutputBudget, onCompletedDrawingActualText);
+                        completed.CompleteDrawingScope(CurrentContentOrderKey(), textOutputBudget, onCompletedDrawingActualText);
                     }
 
                     args.Clear();
@@ -1335,7 +1346,7 @@ internal static partial class TextContentParser {
                     pendingLineBreaks,
                     logicalLeadingSpace,
                     logicalTrailingSpace,
-                    currentContentOrderKey,
+                    CurrentContentOrderKey(),
                     spanCharacterAdvances,
                     textRenderingMode,
                     canRestamp && visibleGlyphsMatchLogicalText && !hasUndecodableGlyph,
