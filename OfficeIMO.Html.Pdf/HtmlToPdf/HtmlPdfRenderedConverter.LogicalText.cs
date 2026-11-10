@@ -43,7 +43,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 AddVisual(target, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned: true, pagePaint: pagePaint);
             }
         }
-        if (!group.Visuals.Any(child => ContainsPdfRenderableVisual(child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken))) {
+        if (!ContainsPdfRenderableChild(group.Visuals, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)) {
             AddChildren(canvas);
             return;
         }

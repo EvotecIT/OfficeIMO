@@ -23,7 +23,7 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned, HtmlPdfPagePaintContext? pagePaint) {
-        if (!group.Visuals.Any(child => ContainsPdfRenderableVisual(child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken))) {
+        if (!ContainsPdfRenderableChild(group.Visuals, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)) {
             // Navigation-only groups still carry named destinations. They cannot create
             // an empty structure element. The same path handles groups whose paint is
             // entirely outside the page, while non-painting children still reach the

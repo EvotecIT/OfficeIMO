@@ -168,6 +168,14 @@ internal static partial class HtmlPdfRenderedConverter {
         return retained?.ToString() ?? logicalText;
     }
 
+    private static bool ContainsPdfRenderableChild(IReadOnlyList<HtmlRenderVisual> children, RegisteredWebFonts webFonts,
+        double surfaceWidth, double surfaceHeight, ClipBounds? activeClip, CancellationToken cancellationToken) {
+        for (int index = 0; index < children.Count; index++) {
+            if (ContainsPdfRenderableVisual(children[index], webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)) return true;
+        }
+        return false;
+    }
+
     private static bool ContainsPdfRenderableVisual(
         HtmlRenderVisual visual,
         RegisteredWebFonts webFonts,

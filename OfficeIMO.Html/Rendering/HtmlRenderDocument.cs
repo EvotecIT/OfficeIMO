@@ -247,7 +247,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
         }
     }
 
-    private static IEnumerable<HtmlRenderVisual>? ChildVisuals(HtmlRenderVisual visual) => visual is HtmlRenderClipGroup clipGroup
+    private static IReadOnlyList<HtmlRenderVisual>? ChildVisuals(HtmlRenderVisual visual) => visual is HtmlRenderClipGroup clipGroup
         ? clipGroup.Visuals
         : visual is HtmlRenderPathClipGroup pathClipGroup
             ? pathClipGroup.Visuals
@@ -311,14 +311,15 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
 
     // Collected into one list rather than nested iterators: every page visual is visited.
     private static void CollectBookmarkAnchors(
-        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform,
+        IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform,
         List<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)> anchors) {
-        foreach (HtmlRenderVisual visual in visuals) {
+        for (int index = 0; index < visuals.Count; index++) {
+            HtmlRenderVisual visual = visuals[index];
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
             if (visual is HtmlRenderBookmarkAnchor anchor) {
                 anchors.Add((anchor, transform.TransformPoint(new OfficePoint(anchor.X, anchor.Y))));
             }
-            IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
+            IReadOnlyList<HtmlRenderVisual>? children = ChildVisuals(visual);
             if (children == null) continue;
             OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
                 ? effect.Transform.Then(transform) : transform;
@@ -327,8 +328,10 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
     }
 
     private static void CollectTextFragments(
-        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform, List<HtmlRenderTextFragment> fragments) {
-        foreach (HtmlRenderVisual visual in InPaintOrder(visuals)) {
+        IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform, List<HtmlRenderTextFragment> fragments) {
+        IReadOnlyList<HtmlRenderVisual> ordered = InPaintOrder(visuals);
+        for (int index = 0; index < ordered.Count; index++) {
+            HtmlRenderVisual visual = ordered[index];
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
                 continue;
             }
@@ -353,7 +356,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
                 continue;
             }
 
-            IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
+            IReadOnlyList<HtmlRenderVisual>? children = ChildVisuals(visual);
             if (children == null) continue;
             OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
                 ? effect.Transform.Then(transform) : transform;
@@ -362,13 +365,10 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
     }
 
     // Child lists are normally already in paint order; OrderBy is stable, so skip it then.
-    private static IEnumerable<HtmlRenderVisual> InPaintOrder(IEnumerable<HtmlRenderVisual> visuals) {
-        if (visuals is IReadOnlyList<HtmlRenderVisual> list) {
-            bool ordered = true;
-            for (int index = 1; index < list.Count && ordered; index++) ordered = list[index - 1].PaintOrder <= list[index].PaintOrder;
-            if (ordered) return list;
-        }
-        return visuals.OrderBy(item => item.PaintOrder);
+    private static IReadOnlyList<HtmlRenderVisual> InPaintOrder(IReadOnlyList<HtmlRenderVisual> visuals) {
+        bool ordered = true;
+        for (int index = 1; index < visuals.Count && ordered; index++) ordered = visuals[index - 1].PaintOrder <= visuals[index].PaintOrder;
+        return ordered ? visuals : visuals.OrderBy(item => item.PaintOrder).ToArray();
     }
 
     private readonly struct HtmlRenderTextFragment {
