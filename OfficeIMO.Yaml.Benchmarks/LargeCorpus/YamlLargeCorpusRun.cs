@@ -16,6 +16,7 @@ namespace OfficeIMO.Yaml.Benchmarks.LargeCorpus;
 /// </summary>
 internal static class YamlLargeCorpusRun {
     private static readonly YamlLoadOptions Yaml11 = new() { Schema = YamlSchema.Yaml11 };
+    private static readonly YamlReaderOptions StrictReader = new() { Strict = true };
 
     private enum Engine { OfficeIMO, YamlDotNet, SharpYaml, SharpYamlSyntax, VYaml }
 
@@ -80,6 +81,7 @@ internal static class YamlLargeCorpusRun {
         ClassifyAcceptance(result);
         CompareWithReferences(result);
         CompareSchemas(result, yaml, run);
+        CompareStrict(result, yaml, run);
         return result;
     }
 
@@ -151,6 +153,45 @@ internal static class YamlLargeCorpusRun {
         result.SchemaDifferences = YamlDataComparison.All(core, yaml11.Value, 1000);
     }
 
+    // What the default mode accepts beyond the specification: files only it parses, its warnings and notes, and whether
+    // each merge key it resolves without a directive names a mapping or a list of mappings.
+    private static void CompareStrict(FileResult result, byte[] yaml, RunState run) {
+        if (result.Events[Engine.OfficeIMO].Value == null) return;
+        Outcome<object> strict = run.Invoke<object>(() => {
+            using var reader = new YamlReader(new MemoryStream(yaml, writable: false), StrictReader);
+            while (reader.Read()) { }
+            return reader;
+        });
+        result.StrictRejects = strict.Value == null;
+        if (result.Data[Engine.OfficeIMO].Value == null) return;
+        run.Invoke<object>(() => {
+            YamlDocument document = YamlDocument.Load(new MemoryStream(yaml, writable: false));
+            result.LenientWarnings = document.Diagnostics.Count(d => d.Code == OfficeDiagnosticCodes.YamlLenientIndentation);
+            result.MergeNotes = document.Diagnostics.Count(d => d.Code == OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective);
+            if (result.MergeNotes == 0) return document;
+            foreach (YamlDocumentPart part in document.Documents) {
+                if (part.Schema != YamlSchema.Core) continue;
+                foreach (YamlNode node in part.Root.Descendants()) {
+                    if (node is not YamlMapping mapping) continue;
+                    foreach (YamlMappingEntry entry in mapping) {
+                        if (entry.Key is not YamlScalar { Kind: YamlScalarKind.Merge }) continue;
+                        if (Merges(entry.Value)) result.MergeKeysResolved++;
+                        else result.MergeKeysUnresolved++;
+                    }
+                }
+            }
+            return document;
+        });
+    }
+
+    private static bool Merges(YamlNode value) => Target(value) switch {
+        YamlMapping => true,
+        YamlSequence list => list.All(item => Target(item) is YamlMapping),
+        _ => false
+    };
+
+    private static YamlNode Target(YamlNode node) => node is YamlAlias alias ? alias.Target : node;
+
     // Labels a YAML 1.2 core versus 1.1 scalar difference by the 1.1 rule that caused it.
     private static string SchemaRule(YamlDataDifference difference) {
         YamlConformanceNode? core = difference.Left;
@@ -209,6 +250,7 @@ internal static class YamlLargeCorpusRun {
         AppendGroups(text, "Categories", "Category", results, r => r.File.Category, null);
         AppendDifferences(text, results);
         AppendSchemaDifferences(text, results);
+        AppendStrict(text, results);
         AppendExclusions(text, corpus, files);
         AppendThroughput(text, run);
         return text.ToString();
@@ -294,6 +336,34 @@ internal static class YamlLargeCorpusRun {
         text.AppendLine("|---|---|");
         foreach (var group in affected.GroupBy(r => r.File.Category).OrderByDescending(g => g.Count())) text.AppendLine("| " + group.Key + " | " + group.Count() + " |");
         text.AppendLine();
+    }
+
+    private static void AppendStrict(StringBuilder text, IReadOnlyList<FileResult> results) {
+        var onlyDefault = results.Where(r => r.StrictRejects).ToList();
+        var merged = results.Where(r => r.MergeNotes > 0).ToList();
+        text.AppendLine("## Default mode and Strict");
+        text.AppendLine();
+        text.AppendLine("The runs above use the default mode. Strict follows the YAML 1.2.2 specification exactly.");
+        text.AppendLine();
+        text.AppendLine("| Measure | Count |");
+        text.AppendLine("|---|---|");
+        text.AppendLine("| Files Strict rejects and the default mode parses | " + onlyDefault.Count + " |");
+        text.AppendLine("| of those, loaded data agrees with YamlDotNet | " + onlyDefault.Count(r => r.DataDifference.TryGetValue(Engine.YamlDotNet, out YamlDataDifference? d) && d == null) + "/" + onlyDefault.Count(r => r.DataDifference.ContainsKey(Engine.YamlDotNet)) + " |");
+        text.AppendLine("| of those, loaded data agrees with SharpYaml | " + onlyDefault.Count(r => r.DataDifference.TryGetValue(Engine.SharpYaml, out YamlDataDifference? d) && d == null) + "/" + onlyDefault.Count(r => r.DataDifference.ContainsKey(Engine.SharpYaml)) + " |");
+        text.AppendLine("| of those, round-trip exact | " + onlyDefault.Count(r => r.RoundTrip.TryGetValue(Engine.OfficeIMO, out bool? exact) && exact == true) + "/" + onlyDefault.Count + " |");
+        text.AppendLine("| Files with yaml-lenient-indentation warnings (warnings) | " + results.Count(r => r.LenientWarnings > 0) + " (" + results.Sum(r => r.LenientWarnings) + ") |");
+        text.AppendLine("| Files with yaml-merge-key-without-directive notes (notes) | " + merged.Count + " (" + merged.Sum(r => r.MergeNotes) + ") |");
+        text.AppendLine("| Merge keys resolving to a mapping or list of mappings | " + merged.Sum(r => r.MergeKeysResolved) + "/" + merged.Sum(r => r.MergeKeysResolved + r.MergeKeysUnresolved) + " |");
+        text.AppendLine();
+        if (onlyDefault.Count > 0) {
+            text.AppendLine("| Source | Files Strict rejects | Merge-key files |");
+            text.AppendLine("|---|---|---|");
+            foreach (var group in results.Where(r => r.StrictRejects || r.MergeNotes > 0).GroupBy(r => r.File.Source).OrderBy(g => g.Key, StringComparer.Ordinal)) {
+                text.AppendLine("| " + group.Key + " | " + group.Count(r => r.StrictRejects) + " | " + group.Count(r => r.MergeNotes > 0) + " |");
+            }
+
+            text.AppendLine();
+        }
     }
 
     private static void AppendExclusions(StringBuilder text, YamlLargeCorpus corpus, IReadOnlyList<YamlLargeCorpusFile> files) {
@@ -492,6 +562,16 @@ internal static class YamlLargeCorpusRun {
         public Dictionary<Engine, YamlDataDifference?> DataDifference { get; } = new();
 
         public IReadOnlyList<YamlDataDifference> SchemaDifferences { get; set; } = Array.Empty<YamlDataDifference>();
+
+        public bool StrictRejects { get; set; }
+
+        public int LenientWarnings { get; set; }
+
+        public int MergeNotes { get; set; }
+
+        public int MergeKeysResolved { get; set; }
+
+        public int MergeKeysUnresolved { get; set; }
 
         public List<Failure> Failures { get; } = new();
     }
