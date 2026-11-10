@@ -46,6 +46,33 @@ public sealed class CsvUtf8QuotedRecordParityTests {
             Observe(input, CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 0));
     }
 
+    [Fact]
+    public void SingleLineRecordsCrossingBatchesAndRefillsKeepTheirText() {
+        // Single-line records are read from a batch index; they cross index windows and buffer
+        // refills, split CRLF pairs, and include records longer than a window.
+        var random = new Random(20261111);
+        string[] separators = { "\n", "\r\n", "\r" };
+        var text = new StringBuilder();
+        for (int row = 0; row < 20_000; row++) {
+            int fields = random.Next(10) == 0 ? random.Next(1, 80) : 9;
+            for (int field = 0; field < fields; field++) {
+                if (field > 0) text.Append(',');
+                switch (random.Next(12)) {
+                    case 0: text.Append("\"q,").Append(row).Append(" \"\"x\"\"\""); break;
+                    case 1: text.Append("é").Append(field); break;
+                    case 2: break;
+                    case 3 when random.Next(200) == 0: text.Append('w', random.Next(5_000, 9_000)); break;
+                    default: text.Append((char)('a' + field % 26), random.Next(1, 14)); break;
+                }
+            }
+            text.Append(separators[random.Next(separators.Length)]);
+        }
+        string input = text.ToString();
+        string expected = new QuotingModel(input, strict: true, skip: false, allowEmpty: false, trim: false).Run();
+        Assert.Equal(expected, Observe(input, CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 0));
+        Assert.Equal(expected, Observe(input, CsvQuoteParsingMode.Strict, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 4_093));
+    }
+
     private static string RandomPieces(Random random) {
         var text = new StringBuilder();
         int pieces = random.Next(1, 120);

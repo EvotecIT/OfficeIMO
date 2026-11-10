@@ -36,6 +36,14 @@ internal static partial class CsvParser
         private const int MissingStart = -1;
         private const int MaterializedStart = -2;
         private bool _allFieldsAscii;
+        /// <summary>
+        /// When set, the current record's fields are read from a batch index of separator offsets
+        /// instead of <see cref="_fields"/>: field <c>i</c> spans from after entry
+        /// <c>_indexFirst + i - 1</c> to entry <c>_indexFirst + i</c>.
+        /// </summary>
+        private int[]? _indexEnds;
+        private int _indexFirst;
+        private bool _indexed;
         private bool _mayHaveEscapedQuotes;
         private char[]? _spanScratch;
 
@@ -58,7 +66,62 @@ internal static partial class CsvParser
             SourceColumnCount = sourceColumnCount;
         }
 
-        internal void Reset() => FieldCount = 0;
+        internal void Reset()
+        {
+            FieldCount = 0;
+            _indexed = false;
+        }
+
+        /// <summary>Sets the batch index that indexed records read; it is kept for the reader's lifetime.</summary>
+        internal void SetBatchIndex(int[] ends) => _indexEnds = ends;
+
+        /// <summary>Publishes a record whose fields end at <paramref name="count"/> consecutive batch index entries.</summary>
+        internal void SetIndexedRecord(int first, int count)
+        {
+            _indexed = true;
+            _indexFirst = first;
+            FieldCount = count;
+        }
+
+        /// <summary>Reads a field's stored range; an indexed record has no decoded values.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private readonly void GetRange(int ordinal, out int start, out int length, out string? materialized)
+        {
+#if NET8_0_OR_GREATER
+            if (_indexed)
+            {
+                int[] ends = _indexEnds!;
+                // Indexed records are complete: every valid ordinal is below the record's field count.
+                ref int end = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(ends), _indexFirst + ordinal);
+                start = Unsafe.Add(ref end, -1) + 1;
+                length = end - start;
+                materialized = null;
+                return;
+            }
+#endif
+
+            ref Field field = ref _fields[ordinal];
+            start = field.Start;
+            length = field.Length;
+            materialized = field.Materialized;
+        }
+
+        /// <summary>Copies an indexed record into the field table before values are added to it.</summary>
+        private void MaterializeIndexedFields()
+        {
+            int count = FieldCount;
+            EnsureCapacity(count);
+            for (int ordinal = 0; ordinal < count; ordinal++)
+            {
+                GetRange(ordinal, out int start, out int length, out _);
+                ref Field field = ref _fields[ordinal];
+                field.Start = start;
+                field.Length = length;
+                field.Materialized = null;
+            }
+
+            _indexed = false;
+        }
 
         internal void SetBuffer(byte[] buffer) => _buffer = buffer;
 
@@ -75,8 +138,8 @@ internal static partial class CsvParser
 
         internal readonly bool IsEmpty(int ordinal)
         {
-            ref Field field = ref _fields[ordinal];
-            if (field.Materialized is { } materialized)
+            GetRange(ordinal, out _, out _, out string? materialized);
+            if (materialized is not null)
             {
                 return materialized.Length == 0;
             }
@@ -91,9 +154,7 @@ internal static partial class CsvParser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly bool TryResolveText(int ordinal, out int start, out int length, out bool escaped)
         {
-            ref Field field = ref _fields[ordinal];
-            start = field.Start;
-            length = field.Length;
+            GetRange(ordinal, out start, out length, out _);
             escaped = false;
             if (start < 0)
             {
@@ -162,27 +223,46 @@ internal static partial class CsvParser
         }
 #endif
 
-
         internal void Complete(
             int fieldCount,
             CsvColumnCountMismatchPolicy mismatchPolicy,
             bool allFieldsAscii,
             bool mayHaveEscapedQuotes)
         {
-            EnsureCapacity(fieldCount);
-            FieldCount = fieldCount;
-            if (SourceColumnCount > 0 &&
-                mismatchPolicy == CsvColumnCountMismatchPolicy.Strict &&
-                fieldCount != SourceColumnCount)
+            if (!_indexed)
             {
-                throw new CsvException(
-                    $"Row contains {fieldCount} values but header defines {SourceColumnCount} columns.");
+                EnsureCapacity(fieldCount);
+            }
+
+            FieldCount = fieldCount;
+            int sourceColumnCount = SourceColumnCount;
+            if (sourceColumnCount > 0 &&
+                mismatchPolicy == CsvColumnCountMismatchPolicy.Strict &&
+                fieldCount != sourceColumnCount)
+            {
+                ThrowColumnCountMismatch(fieldCount, sourceColumnCount);
             }
 
             _allFieldsAscii = allFieldsAscii;
             _mayHaveEscapedQuotes = mayHaveEscapedQuotes;
+            if (sourceColumnCount > fieldCount)
+            {
+                MarkMissingFields(fieldCount, sourceColumnCount);
+            }
+        }
 
-            int expectedCount = SourceColumnCount > 0 ? SourceColumnCount : fieldCount;
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowColumnCountMismatch(int fieldCount, int sourceColumnCount) =>
+            throw new CsvException($"Row contains {fieldCount} values but header defines {sourceColumnCount} columns.");
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void MarkMissingFields(int fieldCount, int expectedCount)
+        {
+            if (_indexed)
+            {
+                MaterializeIndexedFields();
+            }
+
             for (int index = fieldCount; index < expectedCount; index++)
             {
                 _fields[index].Start = MissingStart;
@@ -231,18 +311,16 @@ internal static partial class CsvParser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly string GetFieldString(int ordinal)
         {
-            ref Field field = ref _fields[ordinal];
+            GetRange(ordinal, out int start, out int length, out string? materialized);
             // Raw text becomes a new string on every call. Only interned and already decoded values
             // are stored, so ordinary reads write no string references back into the field table.
-            if (field.Materialized is { } materialized)
+            if (materialized is not null)
             {
                 return materialized;
             }
 
-            int length = field.Length;
             if (length > 0)
             {
-                int start = field.Start;
                 byte first = _buffer[start];
                 if (first == (byte)'"' && length >= 2)
                 {
@@ -257,7 +335,7 @@ internal static partial class CsvParser
                 return _allFieldsAscii ? CreateAsciiString(_buffer, start, length) : DecodeString(start, length);
             }
 
-            return length == 0 ? string.Empty : CreateUnescapedString(field.Start, ~length);
+            return length == 0 ? string.Empty : CreateUnescapedString(start, ~length);
         }
 
         private readonly string GetQuotedString(int start, int length)
@@ -283,7 +361,7 @@ internal static partial class CsvParser
         /// <summary>Compares a field with text without creating a string for ASCII raw text.</summary>
         internal readonly bool TextEquals(int ordinal, string value)
         {
-            if (_fields[ordinal].Materialized is null && TryResolveText(ordinal, out int start, out int length, out bool escaped) && !escaped)
+            if (!HasMaterializedValue(ordinal) && TryResolveText(ordinal, out int start, out int length, out bool escaped) && !escaped)
             {
                 ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
                 if (_allFieldsAscii || Ascii.IsValid(bytes))
@@ -308,7 +386,7 @@ internal static partial class CsvParser
             }
 
             ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
-            if (escaped || _fields[ordinal].Materialized is not null || !(_allFieldsAscii || Ascii.IsValid(bytes)))
+            if (escaped || HasMaterializedValue(ordinal) || !(_allFieldsAscii || Ascii.IsValid(bytes)))
             {
                 return GetString(ordinal).AsSpan();
             }
@@ -473,6 +551,7 @@ internal static partial class CsvParser
         internal void InternFields(CsvStringCache? cache)
         {
             if (cache is null) return;
+            if (_indexed) MaterializeIndexedFields();
             int count = SourceColumnCount > 0 ? Math.Min(FieldCount, SourceColumnCount) : FieldCount;
 #if NET9_0_OR_GREATER
             var lookup = cache.GetAlternateLookup<ReadOnlySpan<char>>();
@@ -513,8 +592,11 @@ internal static partial class CsvParser
         internal bool IsMissing(int ordinal)
         {
             ValidateOrdinal(ordinal);
-            return _fields[ordinal].Start == MissingStart;
+            return !_indexed && _fields[ordinal].Start == MissingStart;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private readonly bool HasMaterializedValue(int ordinal) => !_indexed && _fields[ordinal].Materialized is not null;
 
 #if NET8_0_OR_GREATER
         internal bool TryGetUtf8Text(int ordinal, out ReadOnlySpan<byte> text)

@@ -73,6 +73,11 @@ internal static partial class CsvParser
             _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
             _trim = options.TrimWhitespace;
             _checkFieldLengths = HasFieldLengthLimits(options);
+#if NET8_0_OR_GREATER
+            // The batch index handles single-character delimiters without per-field trimming or limits.
+            _batchable = !_trim && !_checkFieldLengths && _delimiterText is null &&
+                BitConverter.IsLittleEndian && Vector128.IsHardwareAccelerated;
+#endif
             _buffer = buffer;
             _length = length;
             _position = position;
@@ -167,6 +172,14 @@ internal static partial class CsvParser
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfCancellationRequested(_options);
+#if NET8_0_OR_GREATER
+            // Records of an indexed batch need none of the record scanner's state.
+            if (_batchRow < _batchRowCount && !_disposed && TryCompleteBatchRecord(out bool emitted) && emitted)
+            {
+                return true;
+            }
+#endif
+
             return ReadCore(cancellationToken);
         }
 
@@ -199,10 +212,29 @@ internal static partial class CsvParser
                 }
 
                 checkCancellation = true;
+#if NET8_0_OR_GREATER
+                if (_batchRow < _batchRowCount && TryCompleteBatchRecord(out bool emitted))
+                {
+                    if (emitted)
+                    {
+                        return true;
+                    }
+
+                    continue;
+                }
+#endif
+
                 if (!PrepareRecordStart(cancellationToken))
                 {
                     return false;
                 }
+
+#if NET8_0_OR_GREATER
+                if (TryIndexBatch(cancellationToken))
+                {
+                    continue;
+                }
+#endif
 
                 int recordStart = _position;
                 int recordLineNumber = _physicalLineSeparatorsConsumed + 1;
