@@ -30,7 +30,7 @@ public static partial class HtmlComputedStyleEngine {
     // with parser-collapsed ordinary declarations loses their relative order.
     // A colour-only override must not reset the authored width and style.
     private static string PreserveManagedDeclarations(string css, OfficeIMO.Html.Css.HtmlCssStyleSheet sheet) {
-        var result = new System.Text.StringBuilder(css.Length);
+        System.Text.StringBuilder? result = null;
         int copied = 0;
         int declarationId = 0;
         // The owned parser already distinguishes declaration names from URL,
@@ -49,10 +49,10 @@ public static partial class HtmlComputedStyleEngine {
                 : name == "box-shadow" ? BoxShadowDeclarationSentinelPrefix
                 : name == "background" || BackgroundLonghands.Contains(name) ? BackgroundDeclarationSentinelPrefix : null;
             if (prefix == null) continue;
-            result.Append(css, copied, index - copied).Append(prefix).Append(declarationId++).Append('-').Append(name);
+            (result ??= new System.Text.StringBuilder(css.Length)).Append(css, copied, index - copied).Append(prefix).Append(declarationId++).Append('-').Append(name);
             copied = endName;
         }
-        if (copied == 0) return css;
+        if (result == null) return css;
         result.Append(css, copied, css.Length - copied);
         return result.ToString();
     }

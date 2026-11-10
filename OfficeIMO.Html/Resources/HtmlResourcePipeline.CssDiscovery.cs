@@ -16,7 +16,7 @@ public static partial class HtmlResourcePipeline {
                 continue;
             }
 
-            AddCssReferences(manifest, styleElement, "css", styleElement.TextContent, documentCustomPropertyDefinitions, inlineSourceOrders, computedStyles, sourceOrderBase: 0, includeLocalDefinitions: false, baseUri, options, document);
+            AddCssReferences(manifest, styleElement, "css", HtmlStyleElementText.Read(styleElement), documentCustomPropertyDefinitions, inlineSourceOrders, computedStyles, sourceOrderBase: 0, includeLocalDefinitions: false, baseUri, options, document);
         }
 
         foreach (IElement element in document.QuerySelectorAll("[style]")) {

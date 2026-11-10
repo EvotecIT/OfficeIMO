@@ -14,7 +14,7 @@ internal static class HtmlRenderStylesheetApplier {
         string? preferredSet = FindPreferredStylesheetSet(document, options);
         foreach (IElement style in document.QuerySelectorAll("style")) {
             if (!IsApplicableStyleElement(style, options, preferredSet)) continue;
-            budget.ReserveOrThrow(style.TextContent ?? string.Empty);
+            budget.ReserveOrThrow(HtmlStyleElementText.Read(style) ?? string.Empty);
         }
 
         return budget;
@@ -33,7 +33,7 @@ internal static class HtmlRenderStylesheetApplier {
         if (documentBaseUri != null) {
             foreach (IElement inlineStyle in document.QuerySelectorAll("style")) {
                 if (!IsApplicableStyleElement(inlineStyle, options, preferredSet)) continue;
-                string css = inlineStyle.TextContent ?? string.Empty;
+                string css = HtmlStyleElementText.Read(inlineStyle) ?? string.Empty;
                 if (!HtmlResourcePipeline.HasCssImportAtRule(css)) continue;
                 inlineStyle.TextContent = ExpandImports(
                     css,
