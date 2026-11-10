@@ -1,74 +1,99 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel.LegacyXls.Write;
 
 internal static partial class LegacyXlsWriter {
-    /// <summary>Stages BIFF records and the format-required SST, without retaining source rows.</summary>
+    /// <summary>The BIFF8 font, format, XF and style records derived once from generated workbook styles.</summary>
+    internal sealed class StreamingStyles {
+        private StreamingStyles(byte[][] fonts, byte[][] formats, byte[][] cellFormats, byte[][] styles, ushort[] cellStyles) {
+            Fonts = fonts; Formats = formats; CellFormats = cellFormats; Styles = styles; CellStyles = cellStyles;
+        }
+
+        internal byte[][] Fonts { get; }
+        internal byte[][] Formats { get; }
+        internal byte[][] CellFormats { get; }
+        internal byte[][] Styles { get; }
+        /// <summary>BIFF XF indexes for the five generated tabular cell styles.</summary>
+        internal ushort[] CellStyles { get; }
+
+        /// <summary>Converts the generated stylesheet through the workbook style tables used by every XLS save.</summary>
+        internal static StreamingStyles Create(string stylesXml, OfficeTheme theme) {
+            using var document = ExcelDocument.Create(new ExcelCreateOptions { Theme = theme });
+            var styles = new Stylesheet(stylesXml);
+            // The generated font already names the resolved theme family. BIFF8 stores
+            // that literal font, not the OOXML minor/major theme selection.
+            foreach (var font in styles.Fonts!.Elements<Font>()) font.RemoveAllChildren<FontScheme>();
+            document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet = styles;
+            var fonts = LegacyXlsFontTable.Create(document);
+            var table = LegacyXlsStyleTable.Create(document, Array.Empty<ExcelSheet>(), fonts, new uint[] { 0, 1, 2, 3, 4 });
+            return new StreamingStyles(fonts.FontRecords.ToArray(), table.FormatRecords.ToArray(), table.CellFormatRecords.ToArray(),
+                table.StyleRecords.ToArray(), Enumerable.Range(0, 5).Select(index => table.GetBiffStyleIndex((uint)index)).ToArray());
+        }
+    }
+
+    /// <summary>Stages BIFF records without retaining source rows. Shared strings are used when requested or for text over 255 characters.</summary>
     internal sealed class StreamingWorkbook : IDisposable {
-        private readonly ExcelDocument _document;
-        private readonly LegacyXlsFontTable _fonts;
-        private readonly LegacyXlsStyleTable _styles;
-        private readonly ushort[] _cellStyles;
+        private readonly ExcelDateSystem _dateSystem;
+        private readonly StreamingStyles _styles;
+        private readonly bool _inlineText;
         private static LegacyXlsDirectSharedStringBuilder? _cachedStrings;
         private LegacyXlsDirectSharedStringBuilder? _leasedStrings;
         private readonly LegacyXlsDirectSharedStringBuilder _strings;
         private readonly List<StreamingSheet> _sheets = new();
-        private readonly List<ExcelSheet> _metadata = new();
+        private readonly List<string> _names = new();
 
-        /// <summary>Creates the workbook metadata and exclusively leases a cleared shared-string workspace.</summary>
-        internal StreamingWorkbook(ExcelDateSystem dateSystem, Stylesheet styles, OfficeTheme theme) {
-            _document = ExcelDocument.Create(new ExcelCreateOptions { Theme = theme });
-            try {
-                _leasedStrings = Interlocked.Exchange(ref _cachedStrings, null)
-                    ?? new LegacyXlsDirectSharedStringBuilder();
-                _strings = _leasedStrings;
-                _document.DateSystem = dateSystem;
-                // The generated font already names the resolved theme family. BIFF8 stores
-                // that literal font, not the OOXML minor/major theme selection.
-                foreach (var font in styles.Fonts!.Elements<Font>()) font.RemoveAllChildren<FontScheme>();
-                _document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet = styles;
-                _fonts = LegacyXlsFontTable.Create(_document);
-                _styles = LegacyXlsStyleTable.Create(_document, Array.Empty<ExcelSheet>(), _fonts, new uint[] { 0, 1, 2, 3, 4 });
-                _cellStyles = Enumerable.Range(0, 5).Select(index => _styles.GetBiffStyleIndex((uint)index)).ToArray();
-            } catch {
-                try { _document.Dispose(); }
-                finally { ReleaseSharedStrings(); }
-                throw;
-            }
+        /// <summary>Exclusively leases a cleared shared-string workspace.</summary>
+        internal StreamingWorkbook(ExcelDateSystem dateSystem, StreamingStyles styles, bool useSharedStrings) {
+            _dateSystem = dateSystem; _styles = styles; _inlineText = !useSharedStrings;
+            _leasedStrings = Interlocked.Exchange(ref _cachedStrings, null) ?? new LegacyXlsDirectSharedStringBuilder();
+            _strings = _leasedStrings;
         }
 
         internal ExcelTabularRowSink AddSheet(string name, int columns) {
             // The facade has already resolved and registered this exact name.
-            _metadata.Add(_document.AddSheet(name, ExcelSheetNameValidationMode.None));
-            var sheet = new StreamingSheet(columns, _cellStyles, _strings);
+            if (name.Length > 31) throw new NotSupportedException("Native XLS saving supports worksheet names up to 31 characters.");
+            _names.Add(name);
+            var sheet = new StreamingSheet(columns, _styles.CellStyles, _strings, _inlineText);
             _sheets.Add(sheet);
             return sheet;
         }
 
+        /// <summary>Writes the globals, then publishes them and each sheet's owned buffers straight into the compound file.</summary>
         internal void Complete(Stream destination) {
-            long capacity = 16_384L + _strings.EstimatedSerializedBytes + _sheets.Sum(sheet => sheet.Length + 16_384L);
+            long capacity = 16_384L + _strings.EstimatedSerializedBytes;
             if (capacity > int.MaxValue) throw new NotSupportedException("The native XLS workbook exceeds 2 GiB.");
-            using var workbook = new DirectTabularWorkbookStream((int)capacity);
-            var positions = new List<long>(_sheets.Count);
-            WriteDirectWorkbookGlobals(workbook, _document, _metadata[0], _fonts, _styles,
-                LegacyXlsExternSheetTable.Create(_document, _metadata), _strings.Build(reuseEntries: true), _document.DateSystem,
-                CancellationToken.None, _metadata, positions);
+            using var globals = new DirectTabularWorkbookStream((int)capacity);
+            var boundSheets = new List<long>(_sheets.Count);
+            byte[] tabIds = new byte[_names.Count * 2];
+            for (int index = 0; index < _names.Count; index++) WriteUInt16(tabIds, index * 2, checked((ushort)(index + 1)));
+            WriteWorkbookGlobals(globals, tabIds, _names.Select(name => BuildBoundSheetPayload(0, name, 0)).ToList(),
+                _styles.Fonts, _styles.Formats, _styles.CellFormats, _styles.Styles,
+                LegacyXlsExternSheetTable.CreateStreaming(_names), _strings.Build(reuseEntries: true), _dateSystem,
+                CancellationToken.None, boundSheets);
+            byte[] globalsBuffer = globals.Buffer;
+            var segments = new List<ArraySegment<byte>> { new(globalsBuffer, 0, checked((int)globals.Length)) };
+            long position = globals.Length;
             for (int index = 0; index < _sheets.Count; index++) {
-                long sheetPosition = workbook.Position;
-                _sheets[index].WriteTo(workbook);
-                long end = workbook.Position;
-                workbook.Position = positions[index] + 4;
-                WriteUInt32(workbook, checked((uint)sheetPosition));
-                workbook.Position = end;
+                if (position > uint.MaxValue) throw new NotSupportedException("The native XLS workbook exceeds 4 GiB.");
+                WriteUInt32(globalsBuffer, checked((int)boundSheets[index] + 4), checked((uint)position));
+                position = _sheets[index].AddSegments(segments, position);
             }
-            WriteDirectCompoundFile(_document, workbook, destination);
+            var streams = new List<OfficeCompoundStream>(1) { new(GetWorkbookStreamName(null), segments) };
+            OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
+            long length = OfficeCompoundFileWriter.GetSerializedLength(layout);
+            ExcelDocument.PrepareDestinationStreamForWrite(destination);
+            if (destination.GetType() == typeof(MemoryStream) && ((MemoryStream)destination).Capacity < length) {
+                if (length > int.MaxValue) throw new NotSupportedException("A compound file returned as a byte array cannot exceed 2 GiB.");
+                ((MemoryStream)destination).Capacity = checked((int)length);
+            }
+            OfficeCompoundFileWriter.Write(destination, layout, rootClassId: null);
         }
 
-        /// <summary>Disposes workbook resources and releases the shared-string lease once.</summary>
+        /// <summary>Disposes sheet buffers and releases the shared-string lease once.</summary>
         public void Dispose() {
             try {
                 foreach (var sheet in _sheets) sheet.Dispose();
-                _document.Dispose();
             } finally {
                 ReleaseSharedStrings();
             }

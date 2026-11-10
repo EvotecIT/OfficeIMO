@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Write;
 using OfficeIMO.Excel.Xlsb.Write;
 
@@ -11,15 +10,13 @@ public partial class ExcelDocument {
         private readonly ExcelFileFormat _format;
         private readonly ZipArchive? _archive;
         private readonly ExcelWriterOptions _options;
-        private readonly Stylesheet _styles;
-        private readonly string _themeXml;
+        private readonly BinaryStreamingStyles _styles;
         private readonly LegacyXlsWriter.StreamingWorkbook? _legacy;
         private int _sheetCount;
 
-        internal BinaryStreamingWorkbook(ExcelFileFormat format, ZipArchive? archive, ExcelWriterOptions options,
-            Stylesheet styles, string themeXml, OfficeTheme theme) {
-            _format = format; _archive = archive; _options = options; _styles = styles; _themeXml = themeXml;
-            if (format == ExcelFileFormat.Xls) _legacy = new LegacyXlsWriter.StreamingWorkbook(options.DateSystem, styles, theme);
+        internal BinaryStreamingWorkbook(ExcelFileFormat format, ZipArchive? archive, ExcelWriterOptions options, BinaryStreamingStyles styles) {
+            _format = format; _archive = archive; _options = options; _styles = styles;
+            if (format == ExcelFileFormat.Xls) _legacy = new LegacyXlsWriter.StreamingWorkbook(options.DateSystem, styles.Xls, options.UseSharedStrings);
         }
 
         internal async Task<int> WriteTable<T>(string name, string[] headers, IAsyncEnumerable<T> rows,
@@ -74,8 +71,54 @@ public partial class ExcelDocument {
 
         internal void Complete(Stream output, IReadOnlyList<string> names) {
             if (_legacy != null) _legacy.Complete(output);
-            else XlsbNewPackageWriter.CompleteStreamingWorkbook(_archive!, names, _options.DateSystem, _styles, _themeXml);
+            else XlsbNewPackageWriter.CompleteStreamingWorkbook(_archive!, names, _options.DateSystem, _styles.XlsbStylesPart, _styles.ThemeXml);
         }
         public void Dispose() => _legacy?.Dispose();
+    }
+
+    /// <summary>Reuses native style parts converted from identical generated styles and theme XML.</summary>
+    /// <remarks>Binary row writers reject declared styles, so ordinary writes repeat one small set of inputs.
+    /// The cached parts are immutable after creation and are only read by later writes.</remarks>
+    private sealed class BinaryStreamingStyles {
+        private const int Capacity = 8;
+        private static readonly List<BinaryStreamingStyles> Cache = new();
+        private readonly string _stylesXml;
+        private readonly OfficeTheme _theme;
+        private readonly object _gate = new();
+        private byte[]? _xlsbStylesPart;
+        private LegacyXlsWriter.StreamingStyles? _xls;
+
+        private BinaryStreamingStyles(string stylesXml, string themeXml, OfficeTheme theme) {
+            _stylesXml = stylesXml; ThemeXml = themeXml; _theme = theme;
+        }
+
+        internal string ThemeXml { get; }
+
+        internal byte[] XlsbStylesPart {
+            get {
+                lock (_gate) return _xlsbStylesPart ??= XlsbStylesheetPartWriter.CreateForNewWorkbook(
+                    new DocumentFormat.OpenXml.Spreadsheet.Stylesheet(_stylesXml), out _);
+            }
+        }
+
+        internal LegacyXlsWriter.StreamingStyles Xls {
+            get {
+                lock (_gate) return _xls ??= LegacyXlsWriter.StreamingStyles.Create(_stylesXml, _theme);
+            }
+        }
+
+        internal static BinaryStreamingStyles Get(string stylesXml, string themeXml, OfficeTheme theme) {
+            lock (Cache) {
+                for (int index = 0; index < Cache.Count; index++) {
+                    BinaryStreamingStyles cached = Cache[index];
+                    if (string.Equals(cached._stylesXml, stylesXml, StringComparison.Ordinal)
+                        && string.Equals(cached.ThemeXml, themeXml, StringComparison.Ordinal)) return cached;
+                }
+                var created = new BinaryStreamingStyles(stylesXml, themeXml, theme);
+                if (Cache.Count == Capacity) Cache.RemoveAt(0);
+                Cache.Add(created);
+                return created;
+            }
+        }
     }
 }

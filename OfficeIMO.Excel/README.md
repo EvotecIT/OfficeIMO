@@ -230,7 +230,7 @@ using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsb, "Events.xls
 }
 ```
 
-Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records and its required shared-string table; `RequireStreaming=true` rejects that format. Binary row writers create plain worksheets and reject tables, AutoFit, freeze panes and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
+Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records in memory, so `RequireStreaming=true` rejects that format. With `UseSharedStrings=false` (the binary default) text up to 255 characters is written as inline BIFF8 labels; longer text, or `UseSharedStrings=true`, uses the shared-string table. Binary row writers create plain worksheets and reject tables, AutoFit, freeze panes and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
 
 XLS and XLSB numeric cells use IEEE-754 double precision, including when a callback supplies a `decimal`, `long` or `ulong`. Large integers and high-precision decimals may lose digits. Write identifiers or exact decimal text as strings when every digit matters.
 

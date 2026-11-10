@@ -10,7 +10,7 @@ public partial class ExcelDocument {
         CreateWriter(ExcelFileFormat.Xlsx, path, options, theme);
 
     /// <summary>Creates a row writer for the selected Excel format. Dispose publishes the file atomically.</summary>
-    /// <remarks>XLSX and XLSB stream rows. XLS stages native BIFF records and its required shared-string table.</remarks>
+    /// <remarks>XLSX and XLSB stream rows. XLS stages native BIFF records; text uses inline labels unless UseSharedStrings is set or it exceeds 255 characters.</remarks>
     public static ExcelWorkbookWriter CreateWriter(ExcelFileFormat format, string path, ExcelWriterOptions? options = null, OfficeTheme? theme = null) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string fullPath = Path.GetFullPath(path);
@@ -64,7 +64,7 @@ public partial class ExcelDocument {
             snapshot.DefaultRowStyle != null || snapshot.ColumnStyles?.Count > 0))
             throw new NotSupportedException("Binary row writers support plain worksheets at A1 without tables, sizing, titles, freeze panes, declared or column styles, document properties or final save policies.");
         if (format == ExcelFileFormat.Xls && snapshot.RequireStreaming)
-            throw new NotSupportedException("XLS requires native record and shared-string buffering. Use XLSX or XLSB for bounded row streaming.");
+            throw new NotSupportedException("XLS requires native record buffering. Use XLSX or XLSB for bounded row streaming.");
         snapshot.RequireStreaming = format != ExcelFileFormat.Xls;
         snapshot.Styles = snapshot.Styles?.ToDictionary(item => item.Key, item => item.Value.Snapshot(), StringComparer.Ordinal);
         snapshot.ColumnStyles = snapshot.ColumnStyles?.ToDictionary(item => item.Key, item => item.Value);
@@ -162,9 +162,9 @@ public partial class ExcelDocument {
                     rowCount = await DirectDataSetWorkbookWriter.WriteStreamingWorksheet(_archive!, model, rows, writeRow,
                         layout.AutoFitColumns.Any(enabled => enabled), _theme, cancellationToken).ConfigureAwait(false);
                 } else {
-                    _binary ??= new BinaryStreamingWorkbook(_format, _archive, _options,
-                        DirectDataSetWorkbookWriter.CreateNativeStreamingStyles(model, _theme),
-                        DirectDataSetWorkbookWriter.CreateNativeStreamingTheme(_theme), _theme);
+                    _binary ??= new BinaryStreamingWorkbook(_format, _archive, _options, BinaryStreamingStyles.Get(
+                        DirectDataSetWorkbookWriter.CreateNativeStreamingStylesXml(model, _theme),
+                        DirectDataSetWorkbookWriter.CreateNativeStreamingTheme(_theme), _theme));
                     rowCount = await _binary.WriteTable(sheetName, names, rows, writeRow, cancellationToken).ConfigureAwait(false);
                 }
                 _sheets.Add(sheet);

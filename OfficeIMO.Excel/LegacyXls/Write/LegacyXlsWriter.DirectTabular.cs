@@ -60,9 +60,28 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsExternSheetTable externSheetTable,
             LegacyXlsSharedStringTable sharedStrings,
             ExcelDateSystem dateSystem,
+            CancellationToken cancellationToken) {
+            var boundSheetPositions = new List<long>(1);
+            WriteWorkbookGlobals(stream, BuildSheetTabIdsPayload(document, [sheet]), [BuildBoundSheetPayload(0, sheet)],
+                fontTable.FontRecords, styleTable.FormatRecords, styleTable.CellFormatRecords, styleTable.StyleRecords,
+                externSheetTable, sharedStrings, dateSystem, cancellationToken, boundSheetPositions);
+            return boundSheetPositions[0];
+        }
+
+        /// <summary>Writes the workbook globals substream and records where each BOUNDSHEET record starts.</summary>
+        private static void WriteWorkbookGlobals(
+            Stream stream,
+            byte[] sheetTabIds,
+            IReadOnlyList<byte[]> boundSheets,
+            IReadOnlyList<byte[]> fontRecords,
+            IReadOnlyList<byte[]> formatRecords,
+            IReadOnlyList<byte[]> cellFormatRecords,
+            IReadOnlyList<byte[]> styleRecords,
+            LegacyXlsExternSheetTable externSheetTable,
+            LegacyXlsSharedStringTable sharedStrings,
+            ExcelDateSystem dateSystem,
             CancellationToken cancellationToken,
-            IReadOnlyList<ExcelSheet>? allSheets = null,
-            List<long>? boundSheetPositions = null) {
+            List<long> boundSheetPositions) {
             WriteRecord(stream, 0x0809, WorkbookGlobalsBof);
             WriteRecord(stream, 0x00e1, BuildUInt16Payload(1200));
             WriteRecord(stream, 0x00c1, BuildUInt16Payload(0));
@@ -70,7 +89,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteRecord(stream, 0x005c, BuildWriteAccessPayload("OfficeIMO"));
             WriteRecord(stream, 0x0042, BuildUInt16Payload(1200));
             WriteRecord(stream, 0x0161, BuildUInt16Payload(0));
-            WriteRecord(stream, 0x013d, BuildSheetTabIdsPayload(document, allSheets ?? [sheet]));
+            WriteRecord(stream, 0x013d, sheetTabIds);
             WriteRecord(stream, 0x009c, BuildUInt16Payload(14));
             WriteRecord(stream, 0x0019, BuildUInt16Payload(0));
             WriteRecord(stream, 0x0012, BuildUInt16Payload(0));
@@ -86,25 +105,23 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteRecord(stream, 0x01b7, BuildUInt16Payload(0));
             WriteRecord(stream, 0x00da, BuildUInt16Payload(0));
 
-            foreach (byte[] fontPayload in fontTable.FontRecords) {
+            foreach (byte[] fontPayload in fontRecords) {
                 WriteRecord(stream, 0x0031, fontPayload);
             }
-            foreach (byte[] formatPayload in styleTable.FormatRecords) {
+            foreach (byte[] formatPayload in formatRecords) {
                 WriteRecord(stream, 0x041e, formatPayload);
             }
-            foreach (byte[] cellFormatPayload in styleTable.CellFormatRecords) {
+            foreach (byte[] cellFormatPayload in cellFormatRecords) {
                 WriteRecord(stream, 0x00e0, cellFormatPayload);
             }
-            foreach (byte[] stylePayload in styleTable.StyleRecords) {
+            foreach (byte[] stylePayload in styleRecords) {
                 WriteRecord(stream, 0x0293, stylePayload);
             }
             WriteRecord(stream, 0x0160, BuildUInt16Payload(0));
 
-            long boundSheetPosition = stream.Position;
-            if (allSheets == null) WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, sheet));
-            else foreach (ExcelSheet current in allSheets) {
-                boundSheetPositions!.Add(stream.Position);
-                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, current));
+            foreach (byte[] boundSheet in boundSheets) {
+                boundSheetPositions.Add(stream.Position);
+                WriteRecord(stream, 0x0085, boundSheet);
             }
             WriteRecord(stream, 0x008c, BuildCountryPayload());
             foreach (LegacyXlsExternSheetTable.SupportingLinkRecord supportingLinkRecord in externSheetTable.SupportingLinkRecords) {
@@ -113,7 +130,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteRecord(stream, 0x0017, externSheetTable.Payload);
             sharedStrings.WriteRecords(stream, cancellationToken);
             WriteRecord(stream, 0x000a, Array.Empty<byte>());
-            return boundSheetPosition;
         }
 
         private static void WriteDirectTabularWorksheet(

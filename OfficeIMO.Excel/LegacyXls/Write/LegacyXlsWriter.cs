@@ -1117,8 +1117,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
-        private static byte[] BuildBoundSheetPayload(int streamOffset, ExcelSheet sheet) {
-            string sheetName = string.IsNullOrEmpty(sheet.Name) ? "Sheet1" : sheet.Name;
+        private static byte[] BuildBoundSheetPayload(int streamOffset, ExcelSheet sheet) =>
+            BuildBoundSheetPayload(streamOffset, sheet.Name, sheet.VeryHidden ? (byte)2 : sheet.Hidden ? (byte)1 : (byte)0);
+
+        private static byte[] BuildBoundSheetPayload(int streamOffset, string? name, byte visibility) {
+            string sheetName = string.IsNullOrEmpty(name) ? "Sheet1" : name!;
             if (sheetName.Length > 31) {
                 throw new NotSupportedException("Native XLS saving supports worksheet names up to 31 characters.");
             }
@@ -1126,7 +1129,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             byte[] nameBytes = EncodeShortUnicodeString(sheetName, out byte flags);
             byte[] payload = new byte[checked(8 + nameBytes.Length)];
             WriteUInt32(payload, 0, unchecked((uint)streamOffset));
-            payload[4] = sheet.VeryHidden ? (byte)2 : sheet.Hidden ? (byte)1 : (byte)0;
+            payload[4] = visibility;
             payload[5] = 0;
             payload[6] = checked((byte)sheetName.Length);
             payload[7] = flags;

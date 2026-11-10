@@ -26,8 +26,8 @@ public partial class ExcelDocument {
             return count;
         }
 
-        internal static DocumentFormat.OpenXml.Spreadsheet.Stylesheet CreateNativeStreamingStyles(DirectDataSetWorkbookModel model, OfficeTheme theme) =>
-            new(CreateStylesXml(DirectStylePlan.Create(model), theme));
+        internal static string CreateNativeStreamingStylesXml(DirectDataSetWorkbookModel model, OfficeTheme theme) =>
+            CreateStylesXml(DirectStylePlan.Create(model), theme);
 
         internal static string CreateNativeStreamingTheme(OfficeTheme theme) => CreateWorkbookThemeXml(theme);
 
