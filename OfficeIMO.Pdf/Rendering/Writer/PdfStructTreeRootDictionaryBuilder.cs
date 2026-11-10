@@ -57,19 +57,39 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
     }
 
     internal static string BuildFigureStructElement(int parentId, int pageId, int markedContentId, string alternativeText, int? contentStreamObjectId = null) {
+        var sb = new StringBuilder();
+        AppendFigureStructElementBody(sb, parentId, pageId, markedContentId, alternativeText, contentStreamObjectId);
+        return sb.Append(" >>\n").ToString();
+    }
+
+    /// <summary>Writes a figure element dictionary without its closing delimiter, so metadata can follow it.</summary>
+    internal static void AppendFigureStructElementBody(StringBuilder sb, int parentId, int pageId, int markedContentId, string alternativeText, int? contentStreamObjectId = null) {
         Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
-        return BuildStructElement(parentId, pageId, "Figure", markedContentId, alternativeText, contentStreamObjectId: contentStreamObjectId);
+        AppendStructElementBody(sb, parentId, pageId, "Figure", markedContentId, alternativeText, contentStreamObjectId: contentStreamObjectId);
     }
 
     internal static string BuildTextStructElement(int parentId, int pageId, string structureType, int markedContentId, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null, IReadOnlyList<string>? tableHeaders = null) {
+        var sb = new StringBuilder();
+        AppendTextStructElementBody(sb, parentId, pageId, structureType, markedContentId, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds, contentStreamObjectId, additionalContentStreamObjectIds, tableHeaders);
+        return sb.Append(" >>\n").ToString();
+    }
+
+    /// <summary>Writes a text element dictionary without its closing delimiter, so metadata can follow it.</summary>
+    internal static void AppendTextStructElementBody(StringBuilder sb, int parentId, int pageId, string structureType, int markedContentId, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null, IReadOnlyList<string>? tableHeaders = null) {
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
-        return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds, contentStreamObjectId, additionalContentStreamObjectIds, tableHeaders);
+        AppendStructElementBody(sb, parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds, contentStreamObjectId, additionalContentStreamObjectIds, tableHeaders);
     }
 
     internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, bool includePageReference = true, IReadOnlyList<int>? associatedFileIds = null, string? elementId = null, IReadOnlyList<string>? tableHeaders = null) {
+        var sb = new StringBuilder();
+        AppendContainerStructElementBody(sb, parentId, pageId, structureType, childElementIds, tableHeaderScope, tableColumnSpan, tableRowSpan, alternativeText, includePageReference, associatedFileIds, elementId, tableHeaders);
+        return sb.Append(" >>\n").ToString();
+    }
+
+    /// <summary>Writes a container element dictionary without its closing delimiter, so metadata can follow it.</summary>
+    internal static void AppendContainerStructElementBody(StringBuilder sb, int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, bool includePageReference = true, IReadOnlyList<int>? associatedFileIds = null, string? elementId = null, IReadOnlyList<string>? tableHeaders = null) {
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
         Guard.NotNull(childElementIds, nameof(childElementIds));
-        var sb = new StringBuilder();
         sb.Append("<< /Type /StructElem /S /")
             .Append(structureType)
             .Append(" /P ");
@@ -96,19 +116,22 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
             sb.Append(" /AF ");
             AppendReferenceArray(sb, associatedFileIds);
         }
-
-        sb.Append(" >>\n");
-        return sb.ToString();
     }
 
     internal static string BuildAnnotationStructElement(int parentId, int pageId, int annotationObjectId, int? markedContentId = null, IReadOnlyList<int>? additionalMarkedContentIds = null, IReadOnlyList<int>? additionalAnnotationObjectIds = null, string structureType = "Link", string? alternativeText = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null, IReadOnlyList<int>? childElementIds = null) {
+        var sb = new StringBuilder();
+        AppendAnnotationStructElementBody(sb, parentId, pageId, annotationObjectId, markedContentId, additionalMarkedContentIds, additionalAnnotationObjectIds, structureType, alternativeText, contentStreamObjectId, additionalContentStreamObjectIds, childElementIds);
+        return sb.Append(" >>\n").ToString();
+    }
+
+    /// <summary>Writes an annotation element dictionary without its closing delimiter, so metadata can follow it.</summary>
+    internal static void AppendAnnotationStructElementBody(StringBuilder sb, int parentId, int pageId, int annotationObjectId, int? markedContentId = null, IReadOnlyList<int>? additionalMarkedContentIds = null, IReadOnlyList<int>? additionalAnnotationObjectIds = null, string structureType = "Link", string? alternativeText = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null, IReadOnlyList<int>? childElementIds = null) {
         if (annotationObjectId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(annotationObjectId), annotationObjectId, "PDF annotation object id must be positive.");
         }
 
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
         bool hasAdditionalAnnotationObjects = additionalAnnotationObjectIds != null && additionalAnnotationObjectIds.Count > 0;
-        var sb = new StringBuilder();
         sb.Append("<< /Type /StructElem /S /")
             .Append(PdfSyntaxEscaper.Name(structureType))
             .Append(" /P ");
@@ -158,9 +181,6 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
             sb.Append(" /Alt ")
                 .Append(PdfSyntaxEscaper.TextString(alternativeText!));
         }
-
-        sb.Append(" >>\n");
-        return sb.ToString();
     }
 
     private static void AppendAdditionalObjectReferences(StringBuilder sb, IReadOnlyList<int>? additionalAnnotationObjectIds) {
@@ -197,8 +217,7 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
             .Append(" >>");
     }
 
-    private static string BuildStructElement(int parentId, int pageId, string structureType, int markedContentId, string? alternativeText, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null, IReadOnlyList<string>? tableHeaders = null) {
-        var sb = new StringBuilder();
+    private static void AppendStructElementBody(StringBuilder sb, int parentId, int pageId, string structureType, int markedContentId, string? alternativeText, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null, IReadOnlyList<string>? tableHeaders = null) {
         sb.Append("<< /Type /StructElem /S /")
             .Append(structureType)
             .Append(" /P ");
@@ -227,9 +246,6 @@ internal static partial class PdfStructTreeRootDictionaryBuilder {
         if (ShouldEmitTableAttributes(structureType, tableHeaderScope, tableColumnSpan, tableRowSpan, tableHeaders)) {
             AppendTableAttributes(sb, structureType, tableHeaderScope, tableColumnSpan, tableRowSpan, tableHeaders);
         }
-
-        sb.Append(" >>\n");
-        return sb.ToString();
     }
 
     private static int? ContentStreamAt(IReadOnlyList<int?>? contentStreamObjectIds, int index) {

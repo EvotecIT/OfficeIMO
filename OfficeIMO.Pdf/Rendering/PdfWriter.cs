@@ -1613,13 +1613,30 @@ internal static partial class PdfWriter {
     // whitespace or the end follows it. Collected once so a page's resource checks do not each rescan it.
     private static HashSet<string> CollectPdfResourceNames(byte[] content) {
         var names = new HashSet<string>(StringComparer.Ordinal);
+#if NET9_0_OR_GREATER
+        // Content repeats a few names many times; only a name not seen yet becomes a string.
+        HashSet<string>.AlternateLookup<ReadOnlySpan<char>> lookup = names.GetAlternateLookup<ReadOnlySpan<char>>();
+        Span<char> buffer = stackalloc char[128];
+#endif
         for (int index = 0; index < content.Length; index++) {
             index = Array.IndexOf(content, (byte)'/', index);
             if (index < 0) break;
             int end = index + 1;
             while (end < content.Length && content[end] != (byte)'/' && !char.IsWhiteSpace((char)content[end])) end++;
-            if (end == content.Length || char.IsWhiteSpace((char)content[end]))
-                names.Add(System.Text.Encoding.ASCII.GetString(content, index + 1, end - index - 1));
+            if (end == content.Length || char.IsWhiteSpace((char)content[end])) {
+                int length = end - index - 1;
+#if NET9_0_OR_GREATER
+                if (length <= buffer.Length) {
+                    Span<char> name = buffer.Slice(0, length);
+                    int decoded = System.Text.Encoding.ASCII.GetChars(content.AsSpan(index + 1, length), name);
+                    if (decoded == length && lookup.Contains(name)) {
+                        index = end - 1;
+                        continue;
+                    }
+                }
+#endif
+                names.Add(System.Text.Encoding.ASCII.GetString(content, index + 1, length));
+            }
             index = end - 1;
         }
         return names;

@@ -252,10 +252,17 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
     }
 
     /// <summary>Width-estimate provenance frozen before later frame fonts can change the collection.</summary>
-    internal bool? EstimatedFontMetrics { get; }
+    internal bool? EstimatedFontMetrics { get; private set; }
 
     internal HtmlRenderText WithEstimatedFontMetrics(bool estimated) => EstimatedFontMetrics == estimated
         ? this : CopyStackingContextTo(new HtmlRenderText(this, WrappedLines, PreparedShaping, estimated));
+
+    /// <summary>Records provenance on a visual its creator has not shared yet, instead of copying it.</summary>
+    internal HtmlRenderText FreezeEstimatedFontMetrics(bool estimated) {
+        if (EstimatedFontMetrics.HasValue) throw new InvalidOperationException("Font metric provenance is already recorded.");
+        EstimatedFontMetrics = estimated;
+        return this;
+    }
 
     /// <summary>Exact selected font and visual glyphs admitted during inline layout.</summary>
     internal OfficePreparedTextShaping? PreparedShaping { get; }

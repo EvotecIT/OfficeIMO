@@ -3,14 +3,17 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     // Block backgrounds paint below floats and in-flow content. Outlines paint
     // after normal-flow siblings, within the same existing stacking boundaries.
+    private static readonly HtmlRenderPaintPhase[] FlowPaintPhases = {
+        HtmlRenderPaintPhase.BlockBackground, HtmlRenderPaintPhase.Float, HtmlRenderPaintPhase.Content, HtmlRenderPaintPhase.Outline
+    };
+
     private static IEnumerable<HtmlRenderVisual> OrderFloatPaint(IReadOnlyList<HtmlRenderVisual> visuals) {
-        if (!visuals.Any(ContainsDeferredFlowPaint)) return visuals;
+        if (!HtmlRenderVisualLists.Any(visuals, ContainsDeferredFlowPaint)) return visuals;
         var result = new List<HtmlRenderVisual>();
         var normal = new List<HtmlRenderVisual>();
         var projectionIdentities = new Dictionary<HtmlRenderVisual, object>();
         void FlushNormal() {
-            foreach (HtmlRenderPaintPhase phase in new[] { HtmlRenderPaintPhase.BlockBackground,
-                HtmlRenderPaintPhase.Float, HtmlRenderPaintPhase.Content, HtmlRenderPaintPhase.Outline }) {
+            foreach (HtmlRenderPaintPhase phase in FlowPaintPhases) {
                 foreach (HtmlRenderVisual visual in normal) {
                     HtmlRenderVisual? fragment = FilterFlowPaint(visual, phase, projectionIdentities);
                     if (fragment != null) result.Add(fragment.WithPaintOrder(result.Count, owned: !ReferenceEquals(fragment, visual)));
@@ -18,7 +21,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             normal.Clear();
         }
-        foreach (HtmlRenderVisual visual in visuals) {
+        for (int index = 0; index < visuals.Count; index++) {
+            HtmlRenderVisual visual = visuals[index];
             // Existing positioned layers retain their order relative to normal
             // phases. A descendant context also keeps its enclosing clip intact.
             if (HasNestedStackingContext(visual) || ContainsPositionedFlowPaint(visual)) {
@@ -36,7 +40,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // Wrapping that paint does not make it a normal-flow content carrier.
     private static bool ContainsInFlowPaint(HtmlRenderVisual visual) =>
         !visual.IsOutOfFlowPaint && (visual.InvariantPaintChildren is not { Count: > 0 } children
-            || children.Any(ContainsInFlowPaint));
+            || HtmlRenderVisualLists.Any(children, ContainsInFlowPaint));
 
     // Local positioned layers already belong to their host's ordered bands.
     // Transparent envelopes retain those bands; independent boxes keep their
@@ -44,13 +48,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool ContainsPositionedFlowPaint(HtmlRenderVisual visual) =>
         visual.IsOutOfFlowPaint
         || visual.PaintPhase == HtmlRenderPaintPhase.Content
-            && GetFlowPaintChildren(visual, invariantOnly: true)?.Any(ContainsPositionedFlowPaint) == true;
+            && HtmlRenderVisualLists.Any(GetFlowPaintChildren(visual, invariantOnly: true), ContainsPositionedFlowPaint);
 
     private static bool ContainsDeferredFlowPaint(HtmlRenderVisual visual) =>
         visual.PaintPhase is HtmlRenderPaintPhase.BlockBackground or HtmlRenderPaintPhase.Float or HtmlRenderPaintPhase.Outline
         || visual is HtmlRenderShape { IsCollapsedTableBorder: true }
         || visual.PaintPhase == HtmlRenderPaintPhase.Content && visual.StackingContext == null
-            && GetFlowPaintChildren(visual, invariantOnly: true)?.Any(ContainsDeferredFlowPaint) == true;
+            && HtmlRenderVisualLists.Any(GetFlowPaintChildren(visual, invariantOnly: true), ContainsDeferredFlowPaint);
 
     private static IReadOnlyList<HtmlRenderVisual>? GetFlowPaintChildren(HtmlRenderVisual visual, bool invariantOnly = false) {
         IReadOnlyList<HtmlRenderVisual>? children = visual is HtmlRenderEffectGroup ? null
@@ -189,7 +193,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static List<HtmlRenderVisual> OrderPageFloatPaint(List<HtmlRenderVisual> visuals) {
-        if (!visuals.Any(ContainsDeferredFlowPaint)) return visuals;
+        if (!HtmlRenderVisualLists.Any(visuals, ContainsDeferredFlowPaint)) return visuals;
         var normal = visuals.Where(visual => visual.PaintOrder >= 0 && visual.PaintOrder < 1000000000).OrderBy(visual => visual.PaintOrder).ToList();
         return visuals.Where(visual => visual.PaintOrder < 0).OrderBy(visual => visual.PaintOrder)
             .Concat(OrderFloatPaint(normal))

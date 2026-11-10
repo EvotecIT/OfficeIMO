@@ -5,8 +5,10 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private void RecordNormalFlowPlacement(IElement element, IElement parent, double x, double y, HtmlRenderBoxStyle style) {
         if (!IsFirstColumnSourceFragment(element) && _normalFlowPlacements.ContainsKey(element)) return;
-        _normalFlowPlacements[element] = new NormalFlowPlacement(parent, x, y, style.Clone());
-        _layoutStyles[element] = style.Clone();
+        // Both records keep the same immutable snapshot; a later change clones it first.
+        HtmlRenderBoxStyle snapshot = style.Clone();
+        _normalFlowPlacements[element] = new NormalFlowPlacement(parent, x, y, snapshot);
+        _layoutStyles[element] = snapshot;
     }
 
     private void RemoveNormalFlowTopMargin(IElement element) {
@@ -14,7 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = placement.Style.Clone();
         style.MarginTop = 0D;
         _normalFlowPlacements[element] = new NormalFlowPlacement(placement.Parent, placement.X, placement.Y, style);
-        _layoutStyles[element] = style.Clone();
+        _layoutStyles[element] = style;
     }
 
     private PositionedPoint ResolvePositionedStaticPoint(

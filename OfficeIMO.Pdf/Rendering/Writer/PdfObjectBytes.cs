@@ -20,6 +20,28 @@ internal static class PdfObjectBytes {
         return result;
     }
 
+    /// <summary>Wraps a dictionary still held in a builder, encoding it straight into the object bytes.</summary>
+    internal static byte[] WrapIndirectObject(int objectNumber, System.Text.StringBuilder body) {
+        Guard.NotNull(body, nameof(body));
+#if NET6_0_OR_GREATER
+        if (objectNumber >= 1) {
+            string header = objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n";
+            int lastByte = body.Length == 0 ? -1 : body[body.Length - 1] & 0xFF;
+            string suffix = lastByte == '\n' || lastByte == '\r' ? "endobj\n" : "\nendobj\n";
+            var result = new byte[header.Length + body.Length + suffix.Length];
+            PdfEncoding.Latin1GetBytes(header, result, 0);
+            int position = header.Length;
+            foreach (ReadOnlyMemory<char> chunk in body.GetChunks()) {
+                ReadOnlySpan<char> span = chunk.Span;
+                for (int index = 0; index < span.Length; index++) result[position++] = (byte)(span[index] & 0xFF);
+            }
+            PdfEncoding.Latin1GetBytes(suffix, result, position);
+            return result;
+        }
+#endif
+        return WrapIndirectObject(objectNumber, body.ToString());
+    }
+
     internal static byte[] WrapIndirectObject(int objectNumber, byte[] body) {
         return WrapIndirectObject(objectNumber, 0, body);
     }
