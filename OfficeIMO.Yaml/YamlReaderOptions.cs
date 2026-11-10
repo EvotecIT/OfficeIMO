@@ -16,6 +16,19 @@ public sealed class YamlReaderOptions {
     internal static YamlReaderOptions Default { get; } = new YamlReaderOptions();
 
     /// <summary>
+    /// Gets new options for input from outside, with the limits of <see cref="YamlLoadOptions.UntrustedDefaults"/>: input
+    /// up to 16 MiB, nesting up to 64, alias expansion up to 10,000 nodes and scalars up to 1 MiB of characters. Each
+    /// call returns a new instance.
+    /// </summary>
+    public static YamlReaderOptions UntrustedDefaults => new YamlReaderOptions {
+        MaxInputBytes = 16 * 1024 * 1024,
+        MaxDepth = 64,
+        MaxNodes = 200_000,
+        MaxAliasExpansion = 10_000,
+        MaxScalarLength = 1024 * 1024
+    };
+
+    /// <summary>
     /// Gets or sets the schema used by the typed accessors. When <see langword="null"/> (the default), each document
     /// uses <see cref="YamlSchema.Core"/>, or <see cref="YamlSchema.Yaml11"/> when it declares <c>%YAML 1.1</c>.
     /// Set it to force one schema for ecosystems that assume YAML 1.1 without declaring it.

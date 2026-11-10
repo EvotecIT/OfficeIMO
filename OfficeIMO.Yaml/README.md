@@ -2,7 +2,7 @@
 
 OfficeIMO's own YAML 1.2 engine. It has no runtime dependencies beyond `OfficeIMO.Core` and targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10.
 
-The package provides `YamlDocument`, a lossless document model you can edit, `YamlReader`, a forward-only pull reader, and `YamlWriter`, a forward-only emitter.
+The package provides `YamlDocument`, a lossless document model you can edit, `YamlReader`, a forward-only pull reader, `YamlWriter`, a forward-only emitter, and `YamlSerializer`, which converts objects with generated or reflection metadata.
 
 ## Loading a document
 
@@ -104,6 +104,103 @@ writer.WriteEndMapping();
 ```
 
 `YamlWriter` writes to a stream through a pooled UTF-8 buffer or to a `TextWriter`, and allocates nothing per call beyond that buffer. It covers mappings, sequences, keys, scalars with a requested style, aliases, anchors, tags, comments and document markers, and its output is deterministic. `YamlWriterOptions` sets the mapping indent, sequence indent and dash offset (2, 2 and 0 write `key:\n- item`; 2, 4 and 2 write `key:\n  - item`) and the line break. Long lines are never folded, empty collections are written as `[]` and `{}`, and multi-line strings become literal block scalars.
+
+## Serializing objects
+
+`YamlSerializer` converts .NET objects to and from YAML. Its API follows `System.Text.Json`:
+
+```csharp
+using OfficeIMO.Yaml;
+
+var options = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+string yaml = YamlSerializer.Serialize(config, options);
+AppConfig? copy = YamlSerializer.Deserialize<AppConfig>(File.ReadAllText("app.yaml"), options);
+```
+
+These overloads create metadata by reflection. For trimmed and NativeAOT applications, declare a context and pass its generated metadata. The source generator ships in this package; nothing else is installed:
+
+```csharp
+[YamlSerializable(typeof(AppConfig))]
+internal partial class AppYamlContext : YamlSerializerContext { }
+
+var context = new AppYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase });
+string yaml = YamlSerializer.Serialize(config, context.AppConfig);
+AppConfig? copy = YamlSerializer.Deserialize(yaml, context.AppConfig);
+object? value = YamlSerializer.Deserialize(yaml, typeof(AppConfig), context);
+```
+
+`AppYamlContext.Default` uses default options. The context covers the root types and every type they reach. A shape the serializer cannot handle is a build error (`YAML001` to `YAML005`), not a runtime failure. In a `PublishAot` or `PublishTrimmed` application the reflection overloads are off. Without generated metadata they throw an exception that names the context to add. Set the `YamlSerializerIsReflectionEnabledByDefault` MSBuild property to change this.
+
+Serialization reads from `YamlReader` and writes to `YamlWriter` directly, without building a tree. Every method takes a string, a `Stream`, a `TextReader` or `TextWriter`, or a reader or writer:
+
+- `Deserialize(reader, ...)` reads the next document's root, so a loop reads a multi-document stream such as a Kubernetes manifest. On a node event it reads just that node.
+- `Serialize(writer, ...)` writes one node at the writer's position. String, stream and text-reader input must hold one document.
+
+### Supported types
+
+- **Objects:** classes, structs and records, with public properties that have a public getter. Base-class properties come first.
+  - Reading sets properties, including `init` ones.
+  - It uses the public parameterless constructor, the only public constructor, or the one marked `[YamlConstructor]`. Constructor parameters bind to properties of the same name and type, ignoring case.
+  - C# `required` members and `[YamlRequired]` properties must be present.
+  - Unknown keys are skipped.
+  - Read-only properties are written but not read.
+- **Collections:** arrays, `List<T>`, the list and set interfaces, `HashSet<T>`, and other collections with a parameterless constructor and `Add`, written as sequences.
+- **Dictionaries:** `Dictionary<TKey, TValue>`, `IDictionary<,>`, `IReadOnlyDictionary<,>`, and other dictionaries with a parameterless constructor, written as mappings. Keys are strings, numbers, enums or other scalars.
+- **Scalars**, read by their target type whatever their quoting, so `"8080"` reads into an `int`:
+
+  | Type | YAML |
+  | --- | --- |
+  | `string`, `char` | text, quoted only where a YAML 1.2 or 1.1 reader would see another type (`'yes'`, `'1.0'`) |
+  | `bool` | `true`, `false`; `yes`/`on` also read under YAML 1.1 |
+  | integers, `BigInteger` | decimal digits; `0x`/`0o` (and YAML 1.1 forms) also read |
+  | `float`, `double` | shortest round-trip digits with a decimal point: `0.1`, `1.0e+21`, `.inf`, `.nan` |
+  | `decimal` | invariant digits, keeping scale: `1.50` |
+  | `DateTime` | ISO 8601, plain like a YAML timestamp: `2024-05-01T08:30:00Z` (UTC), an offset (local) or no zone (unspecified) |
+  | `DateTimeOffset` | `2024-05-01T08:30:00.5+02:00` |
+  | `DateOnly`, `TimeOnly` | `2024-05-01`, `08:30:00` |
+  | `TimeSpan` | `1.02:03:04.5` (constant format), quoted where YAML 1.1 reads a sexagesimal number (`'12:30:00'`) |
+  | `Guid` | `0f8fad5b-d9cb-469f-a165-70867728950e` |
+  | `Uri` | its original string |
+  | `byte[]` | `!!binary` base64 |
+  | enums | member names, read ignoring case; numbers also read |
+  | `[Flags]` enums | one scalar `Read, Write`, as `Enum.ToString` writes it; YamlDotNet and SharpYaml read it too, and reading also accepts `[Read, Write]` |
+
+  A value no enum member names is written as its number.
+- **Nullable value types:** `null`, or the value.
+- **`object`:** values are written by their runtime type: dictionaries, lists, scalars and types the metadata source knows. Values read as plain .NET values. Mappings become `Dictionary<string, object?>` in file order, and sequences become `List<object?>`. Scalars resolve through the document's schema to `null`, `bool`, `long` (`BigInteger` beyond 64 bits), `double` or `string`. Timestamps and custom tags stay strings.
+- **Polymorphism** only through registrations on the base type. A tag in the input never names a .NET type by itself:
+
+  ```csharp
+  [YamlDerivedType(typeof(HttpProbe), "http")]
+  [YamlDerivedType(typeof(TcpProbe), "tcp")]
+  public abstract class Probe { }
+  ```
+
+  The discriminator is a local tag (`- !http {path: /health}`). With `[YamlPolymorphic(DiscriminatorPropertyName = "kind")]` it is written as the first key instead, and reading finds it anywhere in the mapping, as Kubernetes files place `kind` after `apiVersion`.
+
+`[YamlPropertyName]` sets a key and wins over the naming policy. The policies are `CamelCase`, `SnakeCaseLower` and `KebabCaseLower`. `[YamlIgnore]` leaves a property out. Its `Condition`, or `YamlSerializerOptions.DefaultIgnoreCondition`, skips only null or default values when writing.
+
+### Anchors, aliases and merge keys
+
+Reading expands an alias by replaying its anchored node, within `MaxAliasExpansion` of the reader options. `YamlReaderOptions.UntrustedDefaults` lowers every limit for input from outside. `<<` merge keys fill only the members a mapping does not set itself.
+
+Writing has no reference handling by default, and a cycle throws `YamlErrorCodes.ReferenceCycle`. With `ReferenceHandling = YamlReferenceHandling.Preserve`, an object reached again is written as an alias (`*id001`) to an anchor on its first occurrence. Reading then maps each alias back to the same instance, so shared references and cycles round-trip.
+
+### Typed sections in documents
+
+`SerializeToNode` returns a detached `YamlNode` tree, and `Deserialize(YamlNode, ...)` reads one. Together they mix typed sections with lossless edits:
+
+```csharp
+using YamlDocument document = YamlDocument.Load("values.yaml");
+var resources = YamlSerializer.Deserialize(document.Select("resources")!, context.Resources)!;
+resources.Limits["memory"] = "512Mi";
+document.Set("resources", YamlSerializer.SerializeToNode(resources, context.Resources));
+document.Save();   // only the resources section is rewritten; comments elsewhere stay
+```
+
+### Errors
+
+Input that does not fit the model throws `YamlException` with code `TypeMismatch`, `MissingRequiredMember`, `DuplicateKey` or `UnknownDiscriminator`. The position points at the node. The message names its path (`at spec.containers[0].ports`), even inside a loaded document.
 
 ## YAML as real files use it
 

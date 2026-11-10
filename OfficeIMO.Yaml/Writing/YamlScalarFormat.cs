@@ -160,7 +160,18 @@ internal static class YamlScalarFormat {
         if (double.IsNaN(value)) return ".nan";
         if (double.IsPositiveInfinity(value)) return ".inf";
         if (double.IsNegativeInfinity(value)) return "-.inf";
-        string text = value.ToString("R", CultureInfo.InvariantCulture);
+        return Shape(value.ToString("R", CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>Formats a single-precision float with its own shortest round-trip digits, in the same shape as <see cref="Format(double)"/>.</summary>
+    public static string Format(float value) {
+        if (float.IsNaN(value)) return ".nan";
+        if (float.IsPositiveInfinity(value)) return ".inf";
+        if (float.IsNegativeInfinity(value)) return "-.inf";
+        return Shape(value.ToString("R", CultureInfo.InvariantCulture));
+    }
+
+    private static string Shape(string text) {
         int exponent = text.IndexOf('E');
         string mantissa = exponent < 0 ? text : text.Substring(0, exponent);
         if (mantissa.IndexOf('.') < 0) mantissa += ".0";

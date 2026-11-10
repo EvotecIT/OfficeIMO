@@ -208,24 +208,42 @@ baseDoc.Save("values.merged.yaml");
 
 ### Serializer
 
-`YamlSerializer` converts between .NET objects and YAML. It follows `System.Text.Json`'s design because that is the API .NET developers already know:
+`YamlSerializer` converts between .NET objects and YAML. It follows `System.Text.Json`'s design, because .NET developers already know that API. The package README lists the supported types and scalar formats.
 
-- `YamlSerializer.Serialize`/`Deserialize` with `YamlSerializerOptions`.
-- A build-time source generator (`[YamlSerializable]` on a `YamlSerializerContext`) for trimming and NativeAOT. It ships inside the `OfficeIMO.Yaml` package as an analyzer, as `System.Text.Json` does, so versions can't drift. Reflection-based metadata is the non-AOT fallback and carries `RequiresUnreferencedCode`/`RequiresDynamicCode`.
-- It reads from `YamlReader` and writes to `YamlWriter` directly, not through the tree, so serialization stays allocation-light.
-- Supported shapes:
-  - objects, records and init-only/required members;
-  - constructor parameters;
-  - dictionaries and collections;
-  - enums;
-  - nullable types;
-  - polymorphism through an explicit discriminator;
-  - naming policies;
-  - `[YamlPropertyName]`, `[YamlIgnore]` and `[YamlRequired]`.
-- No dependency on `System.Text.Json` attributes, because that would add a package dependency to netstandard2.0/net472 consumers.
-- `YamlNode` ⇄ object conversion lets callers mix model edits with typed sections.
-
-The serializer is delivered last (Y4), after the event and model layers it builds on are stable and measured.
+- **API**:
+  - `Serialize`/`Deserialize` over strings, `Stream`, `TextReader`/`TextWriter`, `YamlReader`/`YamlWriter` and `YamlNode`, in generic and `Type` forms.
+  - `YamlSerializerOptions` holds the naming policy, `DefaultIgnoreCondition`, `ReferenceHandling`, `ReaderOptions` (schema, strictness and every limit), `WriterOptions` and `TypeInfoResolver`. Options become read-only on first use and cache their metadata.
+  - Overloads without metadata carry `RequiresUnreferencedCode`/`RequiresDynamicCode`. Overloads with `YamlTypeInfo<T>` or a `YamlSerializerContext` use none.
+- **One converter engine, two metadata sources.**
+  - The source generator emits calls to `YamlMetadataServices`: creators, constructor parameters, property getters and setters as delegates, and derived-type registrations.
+  - Reflection metadata builds the same values through the same methods. Both apply one set of shape rules: `YamlTypeShapes` at run time, mirrored by the generator's parser. So both write the same YAML, which the round-trip tests check.
+- **Generator packaging**:
+  - The generator ships inside `OfficeIMO.Yaml` (`analyzers/dotnet/cs`), as `System.Text.Json`'s does, so its version cannot drift from the runtime.
+  - `buildTransitive/OfficeIMO.Yaml.targets` turns reflection off for `PublishAot` and `PublishTrimmed` applications through the `OfficeIMO.Yaml.YamlSerializer.IsReflectionEnabledByDefault` switch (a `FeatureSwitchDefinition` on .NET 9+).
+  - Without metadata, such an application gets an exception that names the context to add.
+  - Shapes the serializer cannot handle are build errors at the context (`YAML001`–`YAML005`), never a runtime fallback.
+  - Init-only setters and constructors of types with `required` members use `UnsafeAccessor` where the consumer's runtime has it, and reflection on .NET Framework and .NET Standard consumers, which have no trimming.
+- **Streaming**:
+  - Reading goes through `YamlReader` events and writing through `YamlWriter` calls. No tree is built, and object keys are matched without allocating where the runtime allows (`Dictionary.AlternateLookup` on .NET 9+).
+  - `YamlNode` input is replayed as recorded events.
+  - `SerializeToNode` builds a detached tree through an internal node-building mode of `YamlWriter`, so the same converters produce text and nodes.
+- **Anchors and aliases**:
+  - Reading records the events of an anchored node only while that node is read, so input without anchors costs nothing extra.
+  - An alias replays the recorded events. Replayed nodes count against `MaxAliasExpansion`, and an alias inside its own anchor fails with `RecursiveAlias`.
+  - Merge keys fill only the members a mapping does not set.
+  - Writing has no reference handling by default and fails on a cycle. With `Preserve`, a pre-pass finds the objects reached more than once. Only those get anchors (`&id001`), and later references become aliases. Reading maps each alias back to the anchored instance, and objects register before their members are read, so cycles resolve.
+- **Polymorphism** goes only through `[YamlDerivedType]` registrations on the base type:
+  - The discriminator is a local tag (`!cat`, the YAML-native form other libraries map with tag registrations), or with `[YamlPolymorphic(DiscriminatorPropertyName = "kind")]` the first mapping key.
+  - Reading finds a property discriminator anywhere: the usual first-key case streams, and otherwise the mapping is captured and replayed.
+  - A tag never activates a type by itself; unknown discriminators fail with `UnknownDiscriminator`.
+- **Scalars** are read by target type: the decoded text is parsed with the document schema's rules whatever its quoting. Strings are written with the writer's YAML 1.1-safe quoting. Timestamps are written plain in ISO 8601.
+  - **Flags enums** are one comma-separated scalar (`Read, Write`). That is the spelling of `Enum.ToString`/`Enum.Parse`, which YamlDotNet and SharpYaml also read. It keeps zero and composite members as single values, and reading also accepts a sequence of names.
+- **Untyped values**:
+  - `object` reads as `Dictionary<string, object?>` and `List<object?>`. Scalars are resolved by the schema: `null`, `bool`, `long`, `BigInteger` beyond 64 bits, `double`, or `string`; timestamps stay strings.
+  - The dictionary enumerates in file order because entries are only added. A PowerShell `ConvertFrom-OfficeYaml` builds its ordered hashtable or `PSCustomObject` by walking it, so an ordered dictionary type in the C# API would add a type without a consumer.
+  - Writing dispatches on the runtime type and handles dictionaries (generic and `IDictionary`, which covers PowerShell's `Hashtable` and `[ordered]`), enumerables and scalars without metadata.
+- **Errors**: input that does not fit throws `YamlException` with `TypeMismatch`, `MissingRequiredMember`, `DuplicateKey` or `UnknownDiscriminator`. The position points at the node, also inside a loaded document. The message names the path.
+- **Dependencies**: there is no dependency on `System.Text.Json`. The attributes are the package's own.
 
 ## Resource and security limits
 
@@ -245,7 +263,7 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
 
 | Package | Depends on | Owns |
 |---|---|---|
-| `OfficeIMO.Yaml` | `OfficeIMO.Core` (diagnostics, shared IO) | Scanner, reader, writer, model, schemas, serializer, generator |
+| `OfficeIMO.Yaml` | `OfficeIMO.Core` (diagnostics, shared IO) | Scanner, reader, writer, model, schemas, serializer, generator (built from `OfficeIMO.Yaml.SourceGeneration`, packed as an analyzer) |
 | `OfficeIMO.Reader.Yaml` | `OfficeIMO.Reader.Core`, `OfficeIMO.Yaml` | Chunking and Markdown projection only; YamlDotNet removed |
 | `OfficeIMO.Markdown` | `OfficeIMO.Core`, `OfficeIMO.Yaml` | Front matter parsed and written through `YamlDocument` |
 
