@@ -5,11 +5,8 @@ namespace OfficeIMO.Html;
 internal sealed class HtmlRenderBoxStyle {
     internal bool HasIntrinsicWidths => IntrinsicWidth.HasValue || IntrinsicMinWidth.HasValue || IntrinsicMaxWidth.HasValue;
     internal string Display = "block";
-    internal string TableVerticalAlignment = "baseline";
     internal bool DisplayWasSpecified;
     internal bool PaintVisible = true;
-    internal string CaptionSide = "top";
-    internal string TableLayout = "auto";
     internal string BorderCollapse = "separate";
     internal double BorderSpacingX;
     internal double BorderSpacingY;
@@ -68,8 +65,6 @@ internal sealed class HtmlRenderBoxStyle {
         : ExplicitHeight.HasValue
             ? BorderBox ? Math.Max(0D, ExplicitHeight.Value - VerticalInsets) : ExplicitHeight.Value
             : null;
-    // Table tracks resolve percentages after the grid's content minimum is known.
-    internal string TablePercentageHeight = string.Empty;
     // Flex/grid stretching supplies a used height without changing the authored auto-height contract.
     internal bool AutoHeightLayoutStretch;
     internal bool HasPageMarginIntrinsicHeights => PageMarginIntrinsicHeight
@@ -171,6 +166,16 @@ internal sealed class HtmlRenderBoxStyle {
     internal OfficeTextFeatureSettings TextFeatureSettings { get => _text.TextFeatureSettings; set { if (!(ReferenceEquals(_text.TextFeatureSettings, value))) MutableText().TextFeatureSettings = value; } }
     internal string Direction { get => _text.Direction; set { if (!(string.Equals(_text.Direction, value, StringComparison.Ordinal))) MutableText().Direction = value; } }
     internal string WritingMode { get => _text.WritingMode; set { if (!(string.Equals(_text.WritingMode, value, StringComparison.Ordinal))) MutableText().WritingMode = value; } }
+    private TableValues _table = TableValues.Default;
+    private TableValues MutableTable() {
+        if ((_shared & 512) == 0) return _table;
+        _shared &= ~512;
+        return _table = _table.Copy();
+    }
+    internal string TableVerticalAlignment { get => _table.TableVerticalAlignment; set { if (!(string.Equals(_table.TableVerticalAlignment, value, StringComparison.Ordinal))) MutableTable().TableVerticalAlignment = value; } }
+    internal string CaptionSide { get => _table.CaptionSide; set { if (!(string.Equals(_table.CaptionSide, value, StringComparison.Ordinal))) MutableTable().CaptionSide = value; } }
+    internal string TableLayout { get => _table.TableLayout; set { if (!(string.Equals(_table.TableLayout, value, StringComparison.Ordinal))) MutableTable().TableLayout = value; } }
+    internal string TablePercentageHeight { get => _table.TablePercentageHeight; set { if (!(string.Equals(_table.TablePercentageHeight, value, StringComparison.Ordinal))) MutableTable().TablePercentageHeight = value; } }
     private TypographyValues _typography = TypographyValues.Default;
     private TypographyValues MutableTypography() {
         if ((_shared & 1) == 0) return _typography;
@@ -428,6 +433,16 @@ internal sealed class HtmlRenderBoxStyle {
         internal string Direction = "ltr";
         internal string WritingMode = "horizontal-tb";
         internal TextValues Copy() => (TextValues)MemberwiseClone();
+    }
+
+    private sealed class TableValues {
+        internal static readonly TableValues Default = new TableValues();
+        internal string TableVerticalAlignment = "baseline";
+        internal string CaptionSide = "top";
+        internal string TableLayout = "auto";
+        // Table tracks resolve percentages after the grid's content minimum is known.
+        internal string TablePercentageHeight = string.Empty;
+        internal TableValues Copy() => (TableValues)MemberwiseClone();
     }
 
     private sealed class TypographyValues {
