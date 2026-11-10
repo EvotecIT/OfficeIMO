@@ -266,6 +266,15 @@ internal static partial class CsvParser
             internal int LineBreaks;
             internal byte Terminator;
             internal bool EndsWithLineBreak;
+            /// <summary>Whether the block scanner already established if the record is ASCII.</summary>
+            internal AsciiState Ascii;
+        }
+
+        private enum AsciiState : byte
+        {
+            Unknown,
+            Ascii,
+            NonAscii
         }
 
         /// <summary>
@@ -307,6 +316,7 @@ internal static partial class CsvParser
             int lineBreaks = 0;
             bool innerLineBreaks = false;
             ulong insideQuotes = 0;
+            ulong nonAscii = 0;
             int cancellationCheckPosition = position + CancellationCheckInterval;
             ref byte data = ref MemoryMarshal.GetArrayDataReference(buffer);
             while (true)
@@ -316,21 +326,22 @@ internal static partial class CsvParser
                     return _endOfStream ? RecordScanResult.Irregular : RecordScanResult.NeedMoreData;
                 }
 
-                LoadBlockMasks(ref data, position, out ulong delimiters, out ulong quotes, out ulong lineSeparators);
+                LoadBlockMasks(ref data, position, out ulong delimiters, out ulong quotes, out ulong lineSeparators, out ulong high);
                 if ((quotes | insideQuotes) == 0 && fieldQuotes == 0)
                 {
                     // Common unquoted block: publish delimiters up to the first line separator.
                     if (lineSeparators == 0)
                     {
                         _visitor.VisitDelimiterMask(delimiters, position, ref fieldStart, ref fieldIndex);
+                        nonAscii |= high;
                         position += BlockSize;
                     }
                     else
                     {
                         int end = BitOperations.TrailingZeroCount(lineSeparators);
-                        _visitor.VisitDelimiterMask(
-                            delimiters & ((1UL << end) - 1UL), position, ref fieldStart, ref fieldIndex);
-                        return CompleteBlockRecord(position + end, fieldStart, fieldIndex, lineBreaks, out scan);
+                        ulong before = (1UL << end) - 1UL;
+                        _visitor.VisitDelimiterMask(delimiters & before, position, ref fieldStart, ref fieldIndex);
+                        return CompleteBlockRecord(position + end, fieldStart, fieldIndex, lineBreaks, (nonAscii | (high & before)) == 0, out scan);
                     }
                 }
                 else
@@ -363,7 +374,7 @@ internal static partial class CsvParser
                         fieldQuotes = 0;
                         if ((lineSeparators & (1UL << bit)) != 0)
                         {
-                            return CompleteBlockRecord(end, fieldStart: -1, fieldIndex, lineBreaks, out scan);
+                            return CompleteBlockRecord(end, fieldStart: -1, fieldIndex, lineBreaks, (nonAscii | (high & before)) == 0, out scan);
                         }
 
                         fieldIndex++;
@@ -372,6 +383,7 @@ internal static partial class CsvParser
                     }
 
                     fieldQuotes += BitOperations.PopCount(quotes);
+                    nonAscii |= high;
                     position += BlockSize;
                 }
 
@@ -385,7 +397,7 @@ internal static partial class CsvParser
         }
 
         /// <summary>Completes a block-scanned record at a line separator; a negative field start means its last field was visited.</summary>
-        private RecordScanResult CompleteBlockRecord(int end, int fieldStart, int fieldIndex, int lineBreaks, out RecordScan scan)
+        private RecordScanResult CompleteBlockRecord(int end, int fieldStart, int fieldIndex, int lineBreaks, bool isAscii, out RecordScan scan)
         {
             if (fieldStart >= 0)
             {
@@ -398,6 +410,7 @@ internal static partial class CsvParser
             scan.FieldCount = fieldIndex + 1;
             scan.LineBreaks = lineBreaks;
             scan.Terminator = _buffer[end];
+            scan.Ascii = isAscii ? AsciiState.Ascii : AsciiState.NonAscii;
             return RecordScanResult.Complete;
         }
 
@@ -442,11 +455,12 @@ internal static partial class CsvParser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadBlockMasks(ref byte data, int position, out ulong delimiters, out ulong quotes, out ulong lineSeparators)
+        private void LoadBlockMasks(ref byte data, int position, out ulong delimiters, out ulong quotes, out ulong lineSeparators, out ulong high)
         {
             if (Vector512.IsHardwareAccelerated)
             {
                 Vector512<byte> values = Vector512.LoadUnsafe(ref data, (nuint)position);
+                high = values.ExtractMostSignificantBits();
                 delimiters = Vector512.Equals(values, Vector512.Create(_delimiter)).ExtractMostSignificantBits();
                 quotes = Vector512.Equals(values, Vector512.Create((byte)'"')).ExtractMostSignificantBits();
                 lineSeparators = (Vector512.Equals(values, Vector512.Create((byte)'\r'))
@@ -454,18 +468,20 @@ internal static partial class CsvParser
             }
             else if (Vector256.IsHardwareAccelerated)
             {
-                LoadMasks256(ref data, position, out uint lowDelimiters, out uint lowQuotes, out uint lowLines);
-                LoadMasks256(ref data, position + 32, out uint highDelimiters, out uint highQuotes, out uint highLines);
+                LoadMasks256(ref data, position, out uint lowDelimiters, out uint lowQuotes, out uint lowLines, out uint lowHigh);
+                LoadMasks256(ref data, position + 32, out uint highDelimiters, out uint highQuotes, out uint highLines, out uint highHigh);
+                high = lowHigh | ((ulong)highHigh << 32);
                 delimiters = lowDelimiters | ((ulong)highDelimiters << 32);
                 quotes = lowQuotes | ((ulong)highQuotes << 32);
                 lineSeparators = lowLines | ((ulong)highLines << 32);
             }
             else
             {
-                delimiters = quotes = lineSeparators = 0;
+                delimiters = quotes = lineSeparators = high = 0;
                 for (int offset = 0; offset < BlockSize; offset += 16)
                 {
                     Vector128<byte> values = Vector128.LoadUnsafe(ref data, (nuint)(position + offset));
+                    high |= (ulong)values.ExtractMostSignificantBits() << offset;
                     delimiters |= (ulong)Vector128.Equals(values, Vector128.Create(_delimiter)).ExtractMostSignificantBits() << offset;
                     quotes |= (ulong)Vector128.Equals(values, Vector128.Create((byte)'"')).ExtractMostSignificantBits() << offset;
                     lineSeparators |= (ulong)(Vector128.Equals(values, Vector128.Create((byte)'\r'))
@@ -475,9 +491,10 @@ internal static partial class CsvParser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadMasks256(ref byte data, int position, out uint delimiters, out uint quotes, out uint lineSeparators)
+        private void LoadMasks256(ref byte data, int position, out uint delimiters, out uint quotes, out uint lineSeparators, out uint high)
         {
             Vector256<byte> values = Vector256.LoadUnsafe(ref data, (nuint)position);
+            high = values.ExtractMostSignificantBits();
             delimiters = Vector256.Equals(values, Vector256.Create(_delimiter)).ExtractMostSignificantBits();
             quotes = Vector256.Equals(values, Vector256.Create((byte)'"')).ExtractMostSignificantBits();
             lineSeparators = (Vector256.Equals(values, Vector256.Create((byte)'\r'))
@@ -876,8 +893,7 @@ internal static partial class CsvParser
 
         public bool IsNull(int ordinal, string? nullValue) =>
             _fallback?.IsNull(ordinal, nullValue) ??
-            (nullValue is not null && !_visitor.IsMissing(ordinal) &&
-                string.Equals(_visitor.GetString(ordinal), nullValue, StringComparison.Ordinal));
+            (nullValue is not null && !_visitor.IsMissing(ordinal) && _visitor.TextEquals(ordinal, nullValue));
 
         public int CopyStringValues(object[] values, int count, string? nullValue)
         {
@@ -1021,7 +1037,9 @@ internal static partial class CsvParser
             }
 
             int recordLength = scan.End - recordStart;
-            bool isAscii = Ascii.IsValid(_buffer.AsSpan(recordStart, recordLength));
+            bool isAscii = scan.Ascii == AsciiState.Unknown
+                ? Ascii.IsValid(_buffer.AsSpan(recordStart, recordLength))
+                : scan.Ascii == AsciiState.Ascii;
             if (!isAscii && _encoding.DecoderFallback is DecoderExceptionFallback)
                 _encoding.GetCharCount(_buffer, recordStart, recordLength);
             _visitor.Complete(

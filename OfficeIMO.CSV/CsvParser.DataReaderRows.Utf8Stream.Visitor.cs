@@ -178,51 +178,52 @@ internal static partial class CsvParser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal string GetString(int ordinal)
+        internal readonly string GetString(int ordinal)
         {
             ValidateOrdinal(ordinal);
             ref Field field = ref _fields[ordinal];
-            string? materialized = field.Materialized;
-            if (materialized is not null)
+            // Raw text becomes a new string on every call. Only interned and already decoded values
+            // are stored, so ordinary reads write no string references back into the field table.
+            if (field.Materialized is { } materialized)
             {
                 return materialized;
             }
 
             int length = field.Length;
-            if (length <= 0)
-            {
-                if (length == 0)
-                {
-                    return string.Empty;
-                }
-
-                materialized = CreateUnescapedString(field.Start, ~length);
-            }
-            else
+            if (length > 0)
             {
                 int start = field.Start;
                 if (length == 1 && _buffer[start] < SingleCharacterStrings.Length)
                 {
-                    materialized = SingleCharacterStrings[_buffer[start]];
+                    return SingleCharacterStrings[_buffer[start]];
                 }
-                else
+
+                return _allFieldsAscii ? CreateAsciiString(_buffer, start, length) : DecodeString(start, length);
+            }
+
+            return length == 0 ? string.Empty : CreateUnescapedString(field.Start, ~length);
+        }
+
+        /// <summary>Compares a field with text without creating a string for ASCII raw text.</summary>
+        internal readonly bool TextEquals(int ordinal, string value)
+        {
+            ref Field field = ref _fields[ordinal];
+            if (field.Materialized is null && field.Length >= 0)
+            {
+                ReadOnlySpan<byte> bytes = _buffer.AsSpan(field.Start, field.Length);
+                if (_allFieldsAscii || Ascii.IsValid(bytes))
                 {
-                    if (_allFieldsAscii)
-                    {
-                        materialized = CreateAsciiString(_buffer, start, length);
-                    }
-                    else
-                    {
-                        ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
-                        materialized = Ascii.IsValid(bytes)
-                            ? CreateAsciiString(_buffer, start, length)
-                            : _encoding.GetString(bytes);
-                    }
+                    return Ascii.Equals(bytes, value);
                 }
             }
 
-            field.Materialized = materialized;
-            return materialized;
+            return string.Equals(GetString(ordinal), value, StringComparison.Ordinal);
+        }
+
+        private readonly string DecodeString(int start, int length)
+        {
+            ReadOnlySpan<byte> bytes = _buffer.AsSpan(start, length);
+            return Ascii.IsValid(bytes) ? CreateAsciiString(_buffer, start, length) : _encoding.GetString(bytes);
         }
 
         /// <summary>Decodes quoted text whose escaped quote pairs each become one quote.</summary>
@@ -262,25 +263,59 @@ internal static partial class CsvParser
             return value;
         }
 
-        // Only validated ASCII reaches this method. The first and last bounded loads
-        // overlap for short tails, so every UTF-16 character is initialized without padding.
+        // Only validated ASCII reaches this method. A string allocated with '\0' is not filled
+        // before it is returned to us, and the first and last widening steps overlap so every
+        // load stays inside the source span and every store inside the new string.
         private static string CreateAsciiString(byte[] buffer, int start, int length)
         {
-            if (!BitConverter.IsLittleEndian || !Vector128.IsHardwareAccelerated || length < 2 || length >= 16)
+            if (!BitConverter.IsLittleEndian || !Vector128.IsHardwareAccelerated || length < 2)
             {
                 return Encoding.Latin1.GetString(buffer.AsSpan(start, length));
             }
 
-            return string.Create(length, (Buffer: buffer, Start: start), static (characters, state) =>
+            string value = new string('\0', length);
+            ref byte source = ref buffer[start];
+            ref byte destination = ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(value.AsSpan()));
+            if (length < 16)
             {
-                ReadOnlySpan<byte> bytes = state.Buffer.AsSpan(state.Start, characters.Length);
-                // The caller admits 2..15 bytes. Each endpoint load stays inside
-                // that span, and its widened store ends within the exact string length.
-                ref byte source = ref MemoryMarshal.GetReference(bytes);
-                ref byte destination = ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(characters));
-                int length = bytes.Length;
                 WidenShortAscii(ref source, ref destination, length);
-            });
+            }
+            else if (length < 32 || !Vector256.IsHardwareAccelerated)
+            {
+                for (int offset = 0; offset < length - 16; offset += 16)
+                {
+                    WidenSixteen(ref Unsafe.Add(ref source, offset), ref Unsafe.Add(ref destination, offset * 2));
+                }
+
+                WidenSixteen(ref Unsafe.Add(ref source, length - 16), ref Unsafe.Add(ref destination, (length - 16) * 2));
+            }
+            else
+            {
+                for (int offset = 0; offset < length - 32; offset += 32)
+                {
+                    WidenThirtyTwo(ref Unsafe.Add(ref source, offset), ref Unsafe.Add(ref destination, offset * 2));
+                }
+
+                WidenThirtyTwo(ref Unsafe.Add(ref source, length - 32), ref Unsafe.Add(ref destination, (length - 32) * 2));
+            }
+
+            return value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WidenSixteen(ref byte source, ref byte destination)
+        {
+            (Vector128<ushort> lower, Vector128<ushort> upper) = Vector128.Widen(Vector128.LoadUnsafe(ref source));
+            lower.AsByte().StoreUnsafe(ref destination);
+            upper.AsByte().StoreUnsafe(ref destination, 16);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WidenThirtyTwo(ref byte source, ref byte destination)
+        {
+            (Vector256<ushort> lower, Vector256<ushort> upper) = Vector256.Widen(Vector256.LoadUnsafe(ref source));
+            lower.AsByte().StoreUnsafe(ref destination);
+            upper.AsByte().StoreUnsafe(ref destination, 32);
         }
 
         /// <summary>Widens an already validated 2..15-byte ASCII span within its exact destination length.</summary>
@@ -396,7 +431,7 @@ internal static partial class CsvParser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ValidateOrdinal(int ordinal)
+        private readonly void ValidateOrdinal(int ordinal)
         {
             int maximum = SourceColumnCount > 0 ? SourceColumnCount : FieldCount;
             if ((uint)ordinal >= (uint)maximum)
