@@ -30,17 +30,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Returns whether the visible link text is meaningful without surrounding context.</summary>
         public bool HasMeaningfulHyperlinkLabel => Hyperlink == null || IsMeaningfulLinkLabel(Text);
 
-        internal static bool IsMeaningfulLinkLabel(string? value) {
-            if (string.IsNullOrWhiteSpace(value)) return false;
-            string normalized = value!.Trim();
-            if (normalized.Length < 3) return false;
-            if (Uri.TryCreate(normalized, UriKind.Absolute, out _)) return false;
-            return !string.Equals(normalized, "click here", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(normalized, "here", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(normalized, "more", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(normalized, "link", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(normalized, "read more", StringComparison.OrdinalIgnoreCase);
-        }
+        internal static bool IsMeaningfulLinkLabel(string? value) => OfficeIMO.Core.Internal.OfficeAccessibilityText.IsMeaningfulLinkLabel(value);
 
         internal static string? NormalizeLanguage(string? value) {
             if (string.IsNullOrWhiteSpace(value)) return null;
