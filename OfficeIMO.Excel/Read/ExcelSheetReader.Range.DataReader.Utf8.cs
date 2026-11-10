@@ -104,6 +104,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                if (TryCreateStreamingUsedRange(owner, ct, out source, out declaredFirstColumn)) return true;
                 byte[]? buffer = null;
                 bool validatedIndexedXml = false;
                 try {
@@ -225,11 +226,12 @@ namespace OfficeIMO.Excel {
 
             internal bool SelectRow(int rowIndex, CancellationToken lifetimeCt, CancellationToken readCt) {
                 EnsureNotDisposed();
-                while (_rowCursor < _rowCount && _rowIndexes![_rowCursor] < rowIndex) {
+                int rowCount = _streaming ? WaitForStreamRow(rowIndex, readCt) : _rowCount;
+                while (_rowCursor < rowCount && _rowIndexes![_rowCursor] < rowIndex) {
                     _rowCursor++;
                 }
 
-                if (_rowCursor >= _rowCount || _rowIndexes![_rowCursor] != rowIndex) {
+                if (_rowCursor >= rowCount || _rowIndexes![_rowCursor] != rowIndex) {
                     return false;
                 }
 
@@ -241,7 +243,8 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            internal bool CellsFitWithinRange => _cellsFitWithinRange;
+            // Single-pass reading proves the declared range at the end of the sheet instead.
+            internal bool CellsFitWithinRange => _streaming || _cellsFitWithinRange;
 
             internal bool IsNull(int ordinal) {
                 EnsureNotDisposed();
@@ -318,6 +321,7 @@ namespace OfficeIMO.Excel {
                 out int firstColumn,
                 out int lastRow,
                 out int lastColumn) {
+                if (TryGetStreamingBounds(out firstRow, out firstColumn, out lastRow, out lastColumn)) return true;
                 firstRow = _minimumCellRow;
                 firstColumn = _minimumCellColumn;
                 lastRow = _maximumCellRow;
@@ -439,6 +443,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
+                StopStreaming();
                 _disposed = true;
                 ReleaseSharedMappingStorage();
                 if (_buffer != null) {
@@ -692,6 +697,7 @@ namespace OfficeIMO.Excel {
                         _rowIndexes![_rowCount] = rowIndex;
                         RetainQualifiedRowPosition(_rowCount, indexedRowContentStart, position);
                         _rowCount++;
+                        if (_streaming) PublishStreamRows();
                     }
 
                     // A few sequential rows first resolve the style and shared-string parts helpers read.
@@ -1170,13 +1176,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 int capacity = _valueStarts!.Length;
-                _formulaStarts = ArrayPool<int>.Shared.Rent(capacity);
-                _formulaLengths = ArrayPool<int>.Shared.Rent(capacity);
+                int[] starts = ArrayPool<int>.Shared.Rent(capacity);
+                int[] lengths = ArrayPool<int>.Shared.Rent(capacity);
                 int initializedCellCount = GetInitializedFormulaCellCount();
-                Array.Clear(_formulaStarts, 0, initializedCellCount);
+                Array.Clear(starts, 0, initializedCellCount);
                 for (int index = 0; index < initializedCellCount; index++) {
-                    _formulaLengths[index] = -1;
+                    lengths[index] = -1;
                 }
+                // A single-pass reader may already inspect published rows; expose initialized arrays only.
+                _formulaStarts = starts;
+                Volatile.Write(ref _formulaLengths, lengths);
             }
 
             private void GrowCellKindArray(int capacity, int count) {

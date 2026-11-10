@@ -126,6 +126,7 @@ namespace OfficeIMO.Excel {
                     if (chunk.RequiresFullValidation) _sheetDataSupportsFastValidation = false;
                     previousRow = chunk.RowIndexes[rows - 1] + rowBase;
                     _rowCount += rows;
+                    if (_streaming) PublishStreamRows();
                     position = end;
                     return true;
                 } finally {

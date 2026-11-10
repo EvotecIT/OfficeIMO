@@ -76,6 +76,105 @@ public partial class Excel {
         Assert.Equal(sequential.Message, parallel.Message);
     }
 
+    /// <summary>Single-pass reading delivers the same values as the validate-first reader.</summary>
+    [Fact]
+    public void SinglePassReadingMatchesSequentialValues() {
+        byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: 0);
+        using DbDataReader expected = OpenParallelIndexReader(workbook, numericAsDecimal: true, sequential: true);
+        using DbDataReader actual = ExcelDocument.OpenReader(new MemoryStream(workbook, writable: false),
+            new ExcelReaderOptions { NumericAsDecimal = true, EnableSinglePassReading = true });
+        int rows = 0;
+        while (expected.Read()) {
+            Assert.True(actual.Read());
+            rows++;
+            for (int ordinal = 0; ordinal < expected.FieldCount; ordinal++) {
+                Assert.Equal(expected.GetValue(ordinal), actual.GetValue(ordinal));
+            }
+        }
+        Assert.False(actual.Read());
+        Assert.Equal(ParallelIndexRows - 1, rows);
+    }
+
+    /// <summary>
+    /// Single-pass reading returns exactly the valid rows that precede a malformed cell and then
+    /// raises the error the default reader raises before its first row, naming the same cell.
+    /// </summary>
+    [Fact]
+    public void SinglePassReadingReturnsTheValidPrefixThenTheSameError() {
+        int invalidRow = ParallelIndexRows - 3;
+        byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: invalidRow);
+        InvalidDataException expected = Assert.Throws<InvalidDataException>(() => ReadFirstParallelIndexRow(workbook, sequential: true));
+
+        using DbDataReader reference = OpenParallelIndexReader(CreateParallelIndexWorkbook(invalidSharedStringRow: 0), numericAsDecimal: true, sequential: true);
+        using DbDataReader reader = ExcelDocument.OpenReader(new MemoryStream(workbook, writable: false),
+            new ExcelReaderOptions { NumericAsDecimal = true, EnableSinglePassReading = true });
+        int delivered = 0;
+        InvalidDataException actual = Assert.Throws<InvalidDataException>(() => {
+            while (reader.Read()) {
+                Assert.True(reference.Read());
+                for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) {
+                    Assert.Equal(reference.GetValue(ordinal), reader.GetValue(ordinal));
+                }
+                delivered++;
+            }
+        });
+        Assert.Equal(expected.Message, actual.Message);
+#if NET8_0_OR_GREATER
+        // Data rows start at row 2, so every row before the malformed one was returned.
+        Assert.Equal(invalidRow - 2, delivered);
+#else
+        // Without background work the option keeps validate-first reading.
+        Assert.Equal(0, delivered);
+#endif
+    }
+    /// <summary>Malformed markup in a late row raises the default reader's XML error after the valid prefix.</summary>
+    [Fact]
+    public void SinglePassReadingReportsLateMalformedMarkupWithTheSameXmlError() {
+        byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: 0);
+        using (var buffer = new MemoryStream()) {
+            buffer.Write(workbook, 0, workbook.Length);
+            using (var archive = new ZipArchive(buffer, ZipArchiveMode.Update, leaveOpen: true)) {
+                ZipArchiveEntry entry = archive.GetEntry("xl/worksheets/sheet1.xml")!;
+                string xml;
+                using (var reader = new StreamReader(entry.Open())) xml = reader.ReadToEnd();
+                int cell = xml.IndexOf("</v></c>", xml.Length * 9 / 10, StringComparison.Ordinal);
+                ReplaceAsyncCultureEntry(archive, "xl/worksheets/sheet1.xml", xml.Substring(0, cell) + "</v></d>" + xml.Substring(cell + 8));
+            }
+            workbook = buffer.ToArray();
+        }
+
+        System.Xml.XmlException expected = Assert.Throws<System.Xml.XmlException>(() => ReadFirstParallelIndexRow(workbook, sequential: true));
+        using DbDataReader reference = OpenParallelIndexReader(CreateParallelIndexWorkbook(invalidSharedStringRow: 0), numericAsDecimal: true, sequential: true);
+        using DbDataReader singlePass = ExcelDocument.OpenReader(new MemoryStream(workbook, writable: false),
+            new ExcelReaderOptions { NumericAsDecimal = true, EnableSinglePassReading = true });
+        int delivered = 0;
+        System.Xml.XmlException actual = Assert.Throws<System.Xml.XmlException>(() => {
+            while (singlePass.Read()) {
+                Assert.True(reference.Read());
+                Assert.Equal(reference.GetValue(0), singlePass.GetValue(0));
+                Assert.Equal(reference.GetValue(3), singlePass.GetValue(3));
+                delivered++;
+            }
+        });
+        Assert.Equal(expected.Message, actual.Message);
+#if NET8_0_OR_GREATER
+        Assert.InRange(delivered, 1, ParallelIndexRows - 2);
+#else
+        Assert.Equal(0, delivered);
+#endif
+    }
+
+    /// <summary>Disposing a single-pass reader early joins its background work.</summary>
+    [Fact]
+    public void SinglePassReaderDisposesWhileTheWorksheetIsStillBeingRead() {
+        byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: 0);
+        for (int attempt = 0; attempt < 5; attempt++) {
+            using DbDataReader reader = ExcelDocument.OpenReader(new MemoryStream(workbook, writable: false),
+                new ExcelReaderOptions { EnableSinglePassReading = true });
+            Assert.True(reader.Read());
+        }
+    }
+
     private static void ReadFirstParallelIndexRow(byte[] workbook, bool sequential) {
         using DbDataReader reader = OpenParallelIndexReader(workbook, numericAsDecimal: true, sequential);
         reader.Read();

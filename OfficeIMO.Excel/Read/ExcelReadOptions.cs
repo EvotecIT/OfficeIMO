@@ -60,6 +60,25 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         public bool EnableWorksheetPrefetch { get; set; }
 
+        /// <summary>
+        /// Returns XLSX rows from the forward-only data reader while the rest of the worksheet is
+        /// still being decompressed and validated, instead of
+        /// validating the whole worksheet before the first row. Defaults to <c>false</c>.
+        /// </summary>
+        /// <remarks>
+        /// Every returned row has been fully parsed and checked, but the rows before an invalid cell
+        /// may already have been delivered when the reader reaches that cell. It then raises the same
+        /// exception, naming the same cell, that the default mode raises before its first row.
+        /// Problems found only by the final XML check are raised by the last <c>Read</c>. A valid
+        /// worksheet whose later content the fast reader cannot index, which the default mode reads
+        /// through its general XML parser, raises <see cref="NotSupportedException"/> instead. The option
+        /// applies on .NET 8 and later, when the execution policy allows background work, to XLSX
+        /// worksheets of 1 MB or more that declare their dimension. On .NET Framework and .NET Standard,
+        /// with a sequential execution policy, for other worksheets and in the XLS and XLSB readers,
+        /// the reader always validates before the first row.
+        /// </remarks>
+        public bool EnableSinglePassReading { get; set; }
+
         /// <summary>Gets or sets the maximum rows sampled when schema inference is enabled.</summary>
         public int SchemaSampleRows {
             get => _schemaSampleRows;
