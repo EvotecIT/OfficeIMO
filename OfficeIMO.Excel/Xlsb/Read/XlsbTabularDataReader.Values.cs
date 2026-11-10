@@ -133,6 +133,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         public override decimal GetDecimal(int ordinal) {
             ValidateReadableOrdinal(ordinal);
             if (IsNumericValueKind(_kinds[ordinal])) {
+                if (ExcelDecimalConversion.TryConvertHundredths(_numbers[ordinal], out decimal hundredths)) return hundredths;
                 try {
                     return (decimal)_numbers[ordinal];
                 } catch (OverflowException exception) {
