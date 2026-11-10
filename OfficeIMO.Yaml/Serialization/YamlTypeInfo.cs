@@ -13,6 +13,15 @@ public abstract class YamlTypeInfo {
     private readonly object _gate = new object();
     private volatile bool _configured;
 
+    /// <summary>
+    /// The length of the text last serialized from this type as a root, up to <see cref="MaxOutputLengthHint"/>. The
+    /// next serialization starts its buffer at that size instead of growing to it; a stale or racing value only
+    /// changes how often the buffer grows.
+    /// </summary>
+    internal int OutputLengthHint;
+
+    internal const int MaxOutputLengthHint = 1 << 20;
+
     private protected YamlTypeInfo(Type type, YamlSerializerOptions options) {
         Type = type;
         Options = options;
@@ -77,7 +86,19 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
         _nonPolymorphic = nonPolymorphic;
         _tracksReferences = IsReferenceType && converter.IsContainer;
         _handlesNull = converter.HandlesNull;
+        BuiltInScalar = _handlesNull ? YamlBuiltInScalar.None : converter switch {
+            YamlStringConverter => YamlBuiltInScalar.String,
+            YamlInt32Converter => YamlBuiltInScalar.Int32,
+            YamlInt64Converter => YamlBuiltInScalar.Int64,
+            YamlBooleanConverter => YamlBuiltInScalar.Boolean,
+            YamlDoubleConverter => YamlBuiltInScalar.Double,
+            YamlDecimalConverter => YamlBuiltInScalar.Decimal,
+            _ => YamlBuiltInScalar.None
+        };
     }
+
+    /// <summary>The built-in converter that reads the values, which a property can do directly, or none.</summary>
+    internal YamlBuiltInScalar BuiltInScalar { get; }
 
     internal YamlConverter<T> Converter => _converter;
 
@@ -278,6 +299,8 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
     private static readonly bool IsValueTypeValue = typeof(T).IsValueType;
     private readonly Func<object, T>? _getter;
     private readonly Action<object, T>? _setter;
+    // An instance flag, because shared generic code reads a static through a lookup.
+    private readonly bool _isString = typeof(T) == typeof(string);
     private YamlTypeInfo<T>? _typeInfo;
 
     public YamlPropertyInfo(YamlPropertyInfoValues<T> values)
@@ -304,13 +327,73 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
                 if (value is null || (IsValueTypeValue && EqualityComparer<T>.Default.Equals(value, default!))) return;
                 break;
         }
-        if (NameIsPlain) writer.WritePlainKey(Name);
-        else writer.WriteKey(Name);
+        if (NameIsPlain) {
+            // Strings and the common scalars write the whole entry at once where the writer allows; the text is the
+            // same as the key and the value written one by one below.
+            if (typeof(T) == typeof(int)) {
+                if (writer.TryWritePlainEntry(Name, (long)(int)(object)value!)) return;
+            } else if (typeof(T) == typeof(long)) {
+                if (writer.TryWritePlainEntry(Name, (long)(object)value!)) return;
+            } else if (typeof(T) == typeof(bool)) {
+                if (writer.TryWritePlainEntry(Name, (bool)(object)value!)) return;
+            } else if (_isString) {
+                string? text = Unsafe.As<T, string?>(ref value);
+                if (text is not null && writer.TryWritePlainEntry(Name, text)) return;
+            }
+            writer.WritePlainKey(Name);
+        } else {
+            writer.WriteKey(Name);
+        }
         TypeInfo.Write(writer, value, state);
     }
 
     internal override void ReadAndSet(YamlEventCursor cursor, YamlReadState state, object owner) {
+        // Strings and the common numbers read a live non-null scalar as their built-in converters would, without the
+        // dispatch; anything a converter would reject takes the general path, which reports it.
+        if (!state.Preserve && TryReadBuiltIn(cursor, out T value)) {
+            _setter!(owner, value);
+            return;
+        }
         _setter!(owner, TypeInfo.Read(cursor, state));
+    }
+
+    private bool TryReadBuiltIn(YamlEventCursor cursor, out T value) {
+        value = default!;
+        YamlBuiltInScalar kind = TypeInfo.BuiltInScalar;
+        if (kind == YamlBuiltInScalar.None) return false;
+        if (_isString) {
+            if (kind != YamlBuiltInScalar.String || !cursor.TryReadLiveString(out string? text)) return false;
+            value = Unsafe.As<string?, T>(ref text);
+            return true;
+        }
+        if (!cursor.TryGetLiveScalar(out ReadOnlySpan<char> scalar, out YamlSchema schema)) return false;
+        if (typeof(T) == typeof(int)) {
+            if (kind != YamlBuiltInScalar.Int32 || !YamlSchemaResolver.TryParseInt64(scalar, schema, out long number) || number < int.MinValue || number > int.MaxValue) return false;
+            int result = (int)number;
+            value = Unsafe.As<int, T>(ref result);
+            return true;
+        }
+        if (typeof(T) == typeof(long)) {
+            if (kind != YamlBuiltInScalar.Int64 || !YamlSchemaResolver.TryParseInt64(scalar, schema, out long number)) return false;
+            value = Unsafe.As<long, T>(ref number);
+            return true;
+        }
+        if (typeof(T) == typeof(bool)) {
+            if (kind != YamlBuiltInScalar.Boolean || !YamlSchemaResolver.TryParseBoolean(scalar, schema, out bool flag)) return false;
+            value = Unsafe.As<bool, T>(ref flag);
+            return true;
+        }
+        if (typeof(T) == typeof(double)) {
+            if (kind != YamlBuiltInScalar.Double || !YamlSchemaResolver.TryParseDouble(scalar, schema, out double number)) return false;
+            value = Unsafe.As<double, T>(ref number);
+            return true;
+        }
+        if (typeof(T) == typeof(decimal)) {
+            if (kind != YamlBuiltInScalar.Decimal || !YamlSchemaResolver.TryParseDecimal(scalar, schema, out decimal number)) return false;
+            value = Unsafe.As<decimal, T>(ref number);
+            return true;
+        }
+        return false;
     }
 
     internal override object? ReadBoxed(YamlEventCursor cursor, YamlReadState state) => TypeInfo.Read(cursor, state);
@@ -319,3 +402,6 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
 
     internal override void Collect(object owner, YamlReferenceCollector collector) => TypeInfo.Collect(_getter!(owner), collector);
 }
+
+/// <summary>The built-in scalar converters a property reads through directly.</summary>
+internal enum YamlBuiltInScalar : byte { None, String, Int32, Int64, Boolean, Double, Decimal }

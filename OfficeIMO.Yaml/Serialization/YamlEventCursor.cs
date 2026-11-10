@@ -56,7 +56,8 @@ internal sealed class YamlEventCursor {
     private readonly bool _mergeKeysByDefault;
     private readonly bool _strict;
     private readonly int _maxExpansion;
-    private Frame[] _frames = new Frame[4];
+    // Replay frames exist only for aliases, merges and recorded trees, so a live read allocates none.
+    private Frame[] _frames = Array.Empty<Frame>();
     private int _frameCount;
     private YamlRecordedEvent _current;
     private bool _live;
@@ -123,6 +124,32 @@ internal sealed class YamlEventCursor {
     }
 
     /// <summary>Gets whether the current node is a null scalar under its schema: plain <c>null</c>, <c>~</c>, empty, or <c>!!null</c>.</summary>
+    /// <summary>Reads the current live event as a string when it is a scalar that is not null, as the string converter would.</summary>
+    public bool TryReadLiveString(out string? text) {
+        text = null;
+        if (!_live) return false;
+        YamlReader reader = _reader!;
+        if (reader.TokenType != YamlTokenType.Scalar || reader.IsNullScalar()) return false;
+        text = reader.GetString();
+        return true;
+    }
+
+    /// <summary>
+    /// Gets the current live event's scalar text and the schema to resolve it with, as <see cref="ScalarSpan"/> and
+    /// <see cref="Schema"/> return them, when it is a scalar that is not null.
+    /// </summary>
+    public bool TryGetLiveScalar(out ReadOnlySpan<char> text, out YamlSchema schema) {
+        text = default;
+        schema = YamlSchema.Core;
+        if (!_live) return false;
+        YamlReader reader = _reader!;
+        if (reader.TokenType != YamlTokenType.Scalar || reader.IsNullScalar()) return false;
+        text = reader.ScalarValueSpan;
+        YamlSchema documentSchema = reader.DocumentSchema;
+        if (documentSchema != YamlSchema.Failsafe) schema = documentSchema;
+        return true;
+    }
+
     public bool IsNullScalar => _live ? _reader!.IsNullScalar() : _current.Type == YamlTokenType.Scalar && _current.IsNull;
 
     /// <summary>Gets whether the current scalar is the merge key <c>&lt;&lt;</c> where merge keys apply.</summary>
@@ -157,9 +184,19 @@ internal sealed class YamlEventCursor {
             return false;
         }
         _live = true;
+        YamlReader reader = _reader;
+        YamlTokenType type;
         while (true) {
-            if (!_reader.Read()) return false;
-            if (_reader.TokenType != YamlTokenType.Comment) break;
+            if (!reader.Read()) return false;
+            type = reader.TokenType;
+            if (type != YamlTokenType.Comment) break;
+        }
+        // Most events define no anchor and arrive while nothing records: only the depth changes.
+        if (type != YamlTokenType.DocumentStart && !reader.HasAnchor && _open is not { Count: > 0 } && _captures is not { Count: > 0 }) {
+            _currentLogIndex = -1;
+            if (type is YamlTokenType.MappingStart or YamlTokenType.SequenceStart) _depth++;
+            else if (type is YamlTokenType.MappingEnd or YamlTokenType.SequenceEnd) _depth--;
+            return true;
         }
         OnLiveEvent();
         return true;
@@ -230,7 +267,7 @@ internal sealed class YamlEventCursor {
     }
 
     private void PushFrame(List<YamlRecordedEvent> log, int start, int end, bool countsExpansion) {
-        if (_frameCount == _frames.Length) Array.Resize(ref _frames, _frames.Length * 2);
+        if (_frameCount == _frames.Length) Array.Resize(ref _frames, Math.Max(4, _frames.Length * 2));
         _frames[_frameCount++] = new Frame { Log = log, Position = start, End = end, CountsExpansion = countsExpansion };
     }
 
@@ -339,6 +376,8 @@ internal sealed class YamlEventCursor {
     private bool LiveIsMergeKey() {
         YamlReader reader = _reader!;
         if (reader.TokenType != YamlTokenType.Scalar) return false;
+        // Most keys are untagged text of another shape, which needs neither the tag nor the decoded text.
+        if (reader.IsUntaggedNonMergeText) return false;
         string? tag = reader.Tag;
         if (tag is not null) return tag == YamlSchemaResolver.TagPrefix + "merge";
         if (reader.Style != YamlStyle.Plain) return false;

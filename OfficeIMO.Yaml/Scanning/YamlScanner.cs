@@ -29,7 +29,23 @@ internal ref partial struct YamlScanner {
     // ---------------------------------------------------------------- token queue
 
     /// <summary>Returns the next token, scanning ahead as far as implicit keys require.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref YamlToken Peek() {
+        YamlScanContext c = _c;
+        // The common case answers NeedMoreTokens inline: a queued token in block context that the one implicit-key
+        // candidate does not wait on. Without a candidate nothing can go stale; with one, it must already have been
+        // checked at this position, because a stale required key is an error.
+        if (c.TokenCount > 0 && c.FlowLevel == 0) {
+            ref YamlSimpleKey key = ref c.SimpleKeys[0];
+            if (c.StreamEndProduced || !key.Possible || (key.TokenNumber != c.TokensParsed && c.StaleCheckedAt == c.Base + c.Pos)) {
+                return ref c.Tokens[c.TokenHead];
+            }
+        }
+        return ref PeekAhead();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private ref YamlToken PeekAhead() {
         YamlScanContext c = _c;
         while (NeedMoreTokens()) FetchNextToken();
         return ref c.Tokens[c.TokenHead];
@@ -48,7 +64,8 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         if (c.TokenCount == 0) return !c.StreamEndProduced;
         if (c.StreamEndProduced) return false;
-        StaleSimpleKeys();
+        // The parser peeks several times per token; candidates go stale only when the position moves.
+        if (c.Base + c.Pos != c.StaleCheckedAt) StaleSimpleKeys();
         YamlSimpleKey[] keys = c.SimpleKeys;
         for (int i = 0; i <= c.FlowLevel; i++) {
             if (keys[i].Possible && keys[i].TokenNumber == c.TokensParsed) return true;
@@ -214,8 +231,14 @@ internal ref partial struct YamlScanner {
         }
 
         ScanToNextToken();
-        StaleSimpleKeys();
-        UnrollIndent(c.Column);
+        // In block context with no implicit-key candidate there is nothing to go stale, and nothing to close unless the
+        // line is indented less than the open collection.
+        if (c.FlowLevel > 0 || c.SimpleKeys[0].Possible) {
+            if (c.StaleCheckedAt != c.Base + c.Pos) StaleSimpleKeys();
+        } else {
+            c.StaleCheckedAt = c.Base + c.Pos;
+        }
+        if (c.FlowLevel == 0 && c.Indent > c.Column) UnrollIndent(c.Column);
 
         int p = c.Pos;
         char ch = At(p);
@@ -342,33 +365,47 @@ internal ref partial struct YamlScanner {
     private void ScanToNextToken() {
         YamlScanContext c = _c;
         int lines = 0;
+        // The position and column stay in locals while blanks and line breaks are skipped; the context is updated
+        // before anything that reads it (comments, compaction, errors) and at the end.
+        int pos = c.Pos, column = c.Column;
         while (true) {
-            if (c.Column == 0 && !c.InDocument && At(c.Pos) == '﻿') {
-                c.Pos++;
+            if (column == 0 && !c.InDocument && At(pos) == '﻿') {
+                pos++;
             }
 
             int firstTabColumn = -1;
-            int runStart = c.Pos;
+            int runStart = pos;
+            char current;
             while (true) {
-                char ch = At(c.Pos);
-                if (ch == ' ') { Advance(1); continue; }
-                if (ch == '\t') {
-                    if (firstTabColumn < 0) firstTabColumn = c.Column;
-                    Advance(1);
+                current = At(pos);
+                if (current == ' ') {
+                    pos++;
+                    column++;
+                    continue;
+                }
+                if (current == '\t') {
+                    if (firstTabColumn < 0) firstTabColumn = column;
+                    pos++;
+                    column++;
                     continue;
                 }
                 break;
             }
 
-            char current = At(c.Pos);
             // A line start separates a comment like whitespace does; only a block scalar ends exactly there.
-            if (current == '#' && (c.Pos > runStart || Absolute(c.Pos) != c.LastEnd || c.Column == 0)) {
+            if (current == '#' && (pos > runStart || Absolute(pos) != c.LastEnd || column == 0)) {
+                c.Pos = pos;
+                c.Column = column;
                 SkipComment();
-                current = At(c.Pos);
+                pos = c.Pos;
+                column = c.Column;
+                current = At(pos);
             }
 
-            if (YamlChars.IsBreak(current)) {
-                AdvanceBreak();
+            if (current == '\n' || current == '\r') {
+                pos += current == '\r' && At(pos + 1) == '\n' ? 2 : 1;
+                c.Line++;
+                column = 0;
                 if (c.FlowLevel == 0) c.SimpleKeyAllowed = true;
                 if (++lines >= 64) {
                     lines = 0;
@@ -376,11 +413,16 @@ internal ref partial struct YamlScanner {
                         c.CancelCountdown = YamlScanContext.CancelInterval;
                         c.Cancellation.ThrowIfCancellationRequested();
                     }
+                    c.Pos = pos;
+                    c.Column = 0;
                     CompactAtSafePoint();
+                    pos = c.Pos;
                 }
                 continue;
             }
 
+            c.Pos = pos;
+            c.Column = column;
             c.TabBefore = false;
             if (firstTabColumn >= 0 && !(current == '\0' && !HasChar(c.Pos))) {
                 bool firstOnLine = c.LastLine != c.Line;
@@ -449,16 +491,19 @@ internal ref partial struct YamlScanner {
         YamlScanContext c = _c;
         YamlSimpleKey[] keys = c.SimpleKeys;
         int absolute = Absolute(c.Pos);
+        c.StaleCheckedAt = absolute;
+        int line = c.Line;
         for (int i = 0; i <= c.FlowLevel; i++) {
             ref YamlSimpleKey key = ref keys[i];
-            if (key.Possible && (key.Line < c.Line || absolute - key.Offset > MaxImplicitKeyLength)) {
-                if (key.Required) {
-                    throw Error(YamlErrorCodes.InvalidKey, "Could not find the ':' that completes this implicit key.", key.Offset, key.Line, key.Column);
-                }
+            if (key.Possible && (key.Line < line || absolute - key.Offset > MaxImplicitKeyLength)) {
+                if (key.Required) ThrowStaleKey(in key);
                 key.Possible = false;
             }
         }
     }
+
+    private static void ThrowStaleKey(in YamlSimpleKey key) =>
+        throw Error(YamlErrorCodes.InvalidKey, "Could not find the ':' that completes this implicit key.", key.Offset, key.Line, key.Column);
 
     private void SaveSimpleKey() {
         YamlScanContext c = _c;

@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace OfficeIMO.Yaml;
 
 /// <summary>
@@ -7,6 +10,7 @@ namespace OfficeIMO.Yaml;
 internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConverter<TCollection> where TCollection : IEnumerable<TElement> {
     private readonly Func<List<TElement>, TCollection> _finish;
     private readonly bool _listIsResult;
+    private readonly bool _stringElements = typeof(TElement) == typeof(string);
     private YamlTypeInfo<TElement>? _element;
 
     public YamlCollectionConverter(Func<List<TElement>, TCollection> finish) {
@@ -40,7 +44,16 @@ internal sealed class YamlCollectionConverter<TCollection, TElement> : YamlConve
         if (value is TElement[] array) {
             for (int i = 0; i < array.Length; i++) element.Write(writer, array[i], state);
         } else if (value is List<TElement> list) {
-            for (int i = 0; i < list.Count; i++) element.Write(writer, list[i], state);
+            if (_stringElements) {
+                // String items that need no quotes go out in one step, as the element metadata would write them.
+                for (int i = 0; i < list.Count; i++) {
+                    TElement item = list[i];
+                    if (Unsafe.As<TElement, string?>(ref item) is string text && writer.TryWritePlainItem(text)) continue;
+                    element.Write(writer, item, state);
+                }
+            } else {
+                for (int i = 0; i < list.Count; i++) element.Write(writer, list[i], state);
+            }
         } else {
             foreach (TElement item in value) element.Write(writer, item, state);
         }
@@ -63,6 +76,7 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
     where TKey : notnull {
     private readonly Func<Dictionary<TKey, TValue>, TDictionary> _finish;
     private readonly bool _dictionaryIsResult;
+    private readonly bool _stringValues = typeof(TValue) == typeof(string);
     private YamlTypeInfo<TKey>? _key;
     private YamlTypeInfo<TValue>? _value;
 
@@ -111,12 +125,26 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
                     dictionary.Add(key, valueInfo.Read(cursor, state));
                     (merged ??= new HashSet<TKey>(dictionary.Comparer)).Add(key);
                 }
-            } else if (dictionary.ContainsKey(key)) {
+            } else {
+#if NET8_0_OR_GREATER
+                // One lookup finds the key or reserves its slot. Reading the value never touches this dictionary, so
+                // the slot stays valid; a failed read abandons the dictionary with the rest of the result.
+                ref TValue slot = ref CollectionsMarshal.GetValueRefOrAddDefault(dictionary, key, out bool exists)!;
+                if (!exists) {
+                    slot = valueInfo.Read(cursor, state);
+                    state.Pop();
+                    continue;
+                }
+#else
+                if (!dictionary.ContainsKey(key)) {
+                    dictionary.Add(key, valueInfo.Read(cursor, state));
+                    state.Pop();
+                    continue;
+                }
+#endif
                 // An explicit key replaces a merged value once; a second explicit occurrence is a duplicate.
                 if (merged is null || !merged.Remove(key)) throw YamlSerializationErrors.DuplicateKey(cursor, state, keyText);
                 dictionary[key] = valueInfo.Read(cursor, state);
-            } else {
-                dictionary.Add(key, valueInfo.Read(cursor, state));
             }
             state.Pop();
         }
@@ -143,7 +171,16 @@ internal sealed class YamlDictionaryConverter<TDictionary, TKey, TValue> : YamlC
         YamlTypeInfo<TValue> valueInfo = _value!;
         writer.WriteStartMapping();
         if (value is Dictionary<TKey, TValue> dictionary) {
-            foreach (KeyValuePair<TKey, TValue> entry in dictionary) WriteEntry(writer, keyInfo, valueInfo, entry, state);
+            if (_stringValues) {
+                // String entries that need no quotes go out in one step, as WriteEntry would write them.
+                foreach (KeyValuePair<TKey, TValue> entry in dictionary) {
+                    TValue item = entry.Value;
+                    if (entry.Key is string key && Unsafe.As<TValue, string?>(ref item) is string text && writer.TryWritePlainEntry(key, text, checkKey: true)) continue;
+                    WriteEntry(writer, keyInfo, valueInfo, entry, state);
+                }
+            } else {
+                foreach (KeyValuePair<TKey, TValue> entry in dictionary) WriteEntry(writer, keyInfo, valueInfo, entry, state);
+            }
         } else {
             foreach (KeyValuePair<TKey, TValue> entry in value) WriteEntry(writer, keyInfo, valueInfo, entry, state);
         }

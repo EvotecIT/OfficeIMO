@@ -129,7 +129,8 @@ internal sealed class YamlObjectConverter<T> : YamlConverter<T>, IYamlObjectConv
         int count = _properties.Length;
         byte[]? rented = null;
         Span<byte> flags = count <= 128 ? stackalloc byte[count] : (rented = ArrayPool<byte>.Shared.Rent(count)).AsSpan(0, count);
-        flags.Clear();
+        // stackalloc memory starts zeroed; a rented array does not.
+        if (rented is not null) flags.Clear();
         try {
             object owner;
             if (!UsesArguments) {

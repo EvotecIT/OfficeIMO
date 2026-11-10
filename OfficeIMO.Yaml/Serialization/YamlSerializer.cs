@@ -152,9 +152,9 @@ public static class YamlSerializer {
     /// <summary>Writes <paramref name="value"/> with generated metadata and returns the text.</summary>
     public static string Serialize<T>(T value, YamlTypeInfo<T> typeInfo) {
         if (typeInfo is null) throw new ArgumentNullException(nameof(typeInfo));
-        using var output = new YamlCharBuffer();
+        using var output = new YamlCharBuffer(typeInfo.OutputLengthHint);
         using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) Write(writer, value, typeInfo);
-        return output.ToString();
+        return Finish(output, typeInfo);
     }
 
     /// <summary>Writes <paramref name="value"/> with generated metadata to a UTF-8 stream, which stays open.</summary>
@@ -312,8 +312,13 @@ public static class YamlSerializer {
     }
 
     private static string SerializeBoxed(object? value, YamlTypeInfo typeInfo) {
-        using var output = new YamlCharBuffer();
+        using var output = new YamlCharBuffer(typeInfo.OutputLengthHint);
         using (var writer = new YamlWriter(output, typeInfo.Options.EffectiveWriterOptions)) WriteBoxed(writer, value, typeInfo);
+        return Finish(output, typeInfo);
+    }
+
+    private static string Finish(YamlCharBuffer output, YamlTypeInfo typeInfo) {
+        typeInfo.OutputLengthHint = Math.Min(output.Length, YamlTypeInfo.MaxOutputLengthHint);
         return output.ToString();
     }
 

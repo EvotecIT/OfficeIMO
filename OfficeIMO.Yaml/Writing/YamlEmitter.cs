@@ -50,6 +50,10 @@ internal sealed class YamlEmitter {
     private readonly YamlCharBuffer? _buffer;
     private readonly YamlWriterOptions _options;
     private readonly string _newLine;
+    private const int LineStartCacheSize = 64;
+    // Line break plus indentation per indentation, shared by every emitter with the same line break.
+    private static readonly string?[] s_lfLineStarts = new string?[LineStartCacheSize];
+    private static readonly string?[] s_crlfLineStarts = new string?[LineStartCacheSize];
     private Frame[] _frames = new Frame[16];
     private int _depth;
     private int _column;
@@ -345,6 +349,78 @@ internal sealed class YamlEmitter {
     public YamlStyle ChooseStyle(string value, YamlStyle requested, YamlStyle quote = YamlStyle.SingleQuoted) =>
         YamlScalarFormat.Choose(value, requested, InFlow, AtKey, quote);
 
+    /// <summary>
+    /// Whether the next node is a key of a block mapping, including the first key of one just started, with no
+    /// anchor or tag set for it, where <see cref="WriteEntry"/> can write a whole entry.
+    /// </summary>
+    public bool AtBlockKey {
+        get {
+            if (_depth == 0 || _anchor is not null || _tag is not null) return false;
+            ref Frame top = ref _frames[_depth - 1];
+            return top.Kind == FrameKind.BlockMapping && !top.AtValue;
+        }
+    }
+
+    /// <summary>
+    /// Writes a block mapping entry at <see cref="AtBlockKey"/>: a key and a value the caller knows are plain on one line.
+    /// The text and the mapping's state are what a key and a value written one by one leave.
+    /// </summary>
+    public void WriteEntry(string key, ReadOnlySpan<char> value) {
+        ref Frame top = ref _frames[_depth - 1];
+        if (top.Pending) {
+            ResolvePending(empty: false);
+            top = ref _frames[_depth - 1];
+        }
+        if (top.Padding >= 0) {
+            WriteSpaces(top.Padding);
+            top.Padding = -1;
+        } else {
+            StartLine(top.Indent);
+        }
+        WriteRun(key, 0, key.Length);
+        if (_buffer is not null && value.Length > 0) {
+            _buffer.Append(": ".AsSpan());
+            _buffer.Append(value);
+            _column += 2 + value.Length;
+        } else {
+            Write(':');
+            if (value.Length > 0) {
+                Write(' ');
+                WriteSpan(value);
+            }
+        }
+        top.ExplicitKey = false;
+        top.AliasKey = false;
+        top.Count++;
+    }
+
+    /// <summary>Whether the next node is an item of a block sequence, including the first of one just started, with no anchor or tag set for it.</summary>
+    public bool AtBlockItem {
+        get {
+            if (_depth == 0 || _anchor is not null || _tag is not null) return false;
+            return _frames[_depth - 1].Kind == FrameKind.BlockSequence;
+        }
+    }
+
+    /// <summary>
+    /// Writes a block sequence item at <see cref="AtBlockItem"/> whose text the caller knows is plain on one line, with
+    /// the same text and sequence state as <see cref="WriteSingleLine"/> leaves.
+    /// </summary>
+    public void WriteItem(ReadOnlySpan<char> value) {
+        ref Frame top = ref _frames[_depth - 1];
+        if (top.Pending) {
+            ResolvePending(empty: false);
+            top = ref _frames[_depth - 1];
+        }
+        StartEntry(ref top);
+        Write('-');
+        top.Count++;
+        if (value.Length > 0) {
+            WriteSpaces(_options.ItemPadding);
+            WriteSpan(value);
+        }
+    }
+
     // ------------------------------------------------------------------ layout
 
     /// <summary>
@@ -370,8 +446,7 @@ internal sealed class YamlEmitter {
                     return top.Indent;
                 }
             } else if (simpleKey && top.Padding < 0) {
-                EnsureLineStart();
-                WriteSpaces(top.Indent);
+                StartLine(top.Indent);
                 top.AtValue = true;
                 top.ExplicitKey = false;
                 top.PendingColon = true;
@@ -541,8 +616,7 @@ internal sealed class YamlEmitter {
             WriteSpaces(top.Padding);
             top.Padding = -1;
         } else {
-            EnsureLineStart();
-            WriteSpaces(top.Indent);
+            StartLine(top.Indent);
         }
     }
 
@@ -750,6 +824,23 @@ internal sealed class YamlEmitter {
 
     private void EnsureLineStart() {
         if (_column > 0 || _trailingComment is not null) NewLine();
+    }
+
+    /// <summary>
+    /// Ends the current line, if any, and indents the next one. Into the char buffer, the line break and the
+    /// indentation go as one run cached per indentation.
+    /// </summary>
+    private void StartLine(int indent) {
+        if (_column > 0 && _trailingComment is null && _buffer is not null && (uint)indent < LineStartCacheSize) {
+            // The options allow only "\n" and "\r\n".
+            string?[] cache = _newLine.Length == 1 ? s_lfLineStarts : s_crlfLineStarts;
+            string text = cache[indent] ??= _newLine + new string(' ', indent);
+            _buffer.Append(text.AsSpan());
+            _column = indent;
+            return;
+        }
+        EnsureLineStart();
+        WriteSpaces(indent);
     }
 
     private void NewLine() {

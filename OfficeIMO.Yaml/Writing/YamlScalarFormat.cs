@@ -35,22 +35,32 @@ internal static class YamlScalarFormat {
         if (value.Length >= 3 && ((first == '-' && value[1] == '-' && value[2] == '-') || (first == '.' && value[1] == '.' && value[2] == '.'))
             && (value.Length == 3 || value[3] == ' ' || value[3] == '\t')) return false;
 #if NET8_0_OR_GREATER
-        // Printable ASCII without ':', '#' and the flow indicators is plain in any context; only text with those runs
-        // the character-by-character rules below.
-        if (value.IndexOfAnyExcept(s_plainEverywhere) < 0) return true;
-#endif
-        for (int i = 0; i < value.Length; i++) {
-            char c = value[i];
-            if (!IsPrintableInline(c)) return false;
-            if (c == ':') {
-                if (i + 1 < value.Length && (value[i + 1] == ' ' || value[i + 1] == '\t' || (flow && YamlChars.IsFlowIndicator(value[i + 1])))) return false;
-            } else if (c == '#') {
-                if (value[i - 1] == ' ' || value[i - 1] == '\t') return false;
-            } else if (flow && YamlChars.IsFlowIndicator(c)) {
-                return false;
-            }
+        // Printable ASCII without ':', '#' and the flow indicators is plain in any context, so only the other
+        // characters (a ':' in an image reference, a '#' in a fragment) go through the rules below.
+        int i = value.IndexOfAnyExcept(s_plainEverywhere);
+        while (i >= 0) {
+            if (!IsPlainCharacter(value, i, flow)) return false;
+            int next = value.Slice(i + 1).IndexOfAnyExcept(s_plainEverywhere);
+            if (next < 0) break;
+            i += next + 1;
         }
+#else
+        for (int i = 0; i < value.Length; i++) {
+            if (!IsPlainCharacter(value, i, flow)) return false;
+        }
+#endif
         return true;
+    }
+
+    /// <summary>Whether the character at <paramref name="i"/> (not the first) keeps a single-line plain scalar plain.</summary>
+    private static bool IsPlainCharacter(ReadOnlySpan<char> value, int i, bool flow) {
+        char c = value[i];
+        if (!IsPrintableInline(c)) return false;
+        if (c == ':') {
+            return !(i + 1 < value.Length && (value[i + 1] == ' ' || value[i + 1] == '\t' || (flow && YamlChars.IsFlowIndicator(value[i + 1]))));
+        }
+        if (c == '#') return !(value[i - 1] == ' ' || value[i - 1] == '\t');
+        return !(flow && YamlChars.IsFlowIndicator(c));
     }
 
     /// <summary>
@@ -82,14 +92,63 @@ internal static class YamlScalarFormat {
     /// <c>1:20</c>, <c>2001-12-14</c>, <c>&lt;&lt;</c>...). Versions such as <c>1.29.2</c> stay plain: those readers take
     /// them as strings.
     /// </summary>
-    public static bool IsSchemaAmbiguous(ReadOnlySpan<char> value) =>
-        !StartsAsText(value)
-        && (YamlSchemaResolver.Resolve(value, YamlSchema.Core) != YamlScalarKind.String
-            || YamlSchemaResolver.ReadsAsNonString11(value));
+    public static bool IsSchemaAmbiguous(ReadOnlySpan<char> value) {
+        if (StartsAsText(value)) return false;
+        switch (StartsAsNumber(value)) {
+            case NumberShape.Digits:
+                return true;
+            case NumberShape.Text:
+                return false;
+            default:
+                return IsSchemaAmbiguousResolved(value);
+        }
+    }
+
+    /// <summary>The definition the shortcuts in <see cref="IsSchemaAmbiguous"/> must agree with: full resolution under both schemas.</summary>
+    internal static bool IsSchemaAmbiguousResolved(ReadOnlySpan<char> value) =>
+        YamlSchemaResolver.Resolve(value, YamlSchema.Core) != YamlScalarKind.String
+        || YamlSchemaResolver.ReadsAsNonString11(value);
+
+    private enum NumberShape : byte { Other, Digits, Text }
+
+#if NET8_0_OR_GREATER
+    private static readonly SearchValues<char> s_numberCharacters = SearchValues.Create(NumberCharacters);
+#endif
+
+    /// <summary>
+    /// Every character a number, timestamp, infinity or NaN of either schema can contain once it starts with a digit, a
+    /// sign or a dot: digits, signs, '.', '_', ',', ':', the hexadecimal digits, the base prefixes, the timestamp
+    /// separators and the letters of <c>.inf</c> and <c>.nan</c>.
+    /// </summary>
+    private const string NumberCharacters = "0123456789+-._,: \tabcdefABCDEFxXoOtTZinIN";
+
+    /// <summary>
+    /// Classifies text that starts with a digit, a sign or a dot without the full resolution: decimal digits only are
+    /// a core integer, and a character no number or timestamp contains (the <c>m</c> of <c>100m</c>, the <c>Mi</c> of
+    /// <c>128Mi</c>) makes it a string in every schema. Anything else needs the resolver.
+    /// </summary>
+    private static NumberShape StartsAsNumber(ReadOnlySpan<char> value) {
+        if (value.Length == 0) return NumberShape.Other;
+        char first = value[0];
+        if (!IsDigit(first) && first is not ('-' or '+' or '.')) return NumberShape.Other;
+#if NET8_0_OR_GREATER
+        if (value.IndexOfAnyExceptInRange('0', '9') < 0) return NumberShape.Digits;
+        return value.IndexOfAnyExcept(s_numberCharacters) >= 0 ? NumberShape.Text : NumberShape.Other;
+#else
+        bool digits = true;
+        for (int i = 0; i < value.Length; i++) {
+            char c = value[i];
+            if (IsDigit(c)) continue;
+            digits = false;
+            if (NumberCharacters.IndexOf(c) < 0) return NumberShape.Text;
+        }
+        return digits ? NumberShape.Digits : NumberShape.Other;
+#endif
+    }
 
     /// <summary>
     /// Whether the text is a string in every schema without the full resolution. Numbers, timestamps, merge keys and
-    /// <c>~</c> start with a digit, a dot, a symbol, or a sign followed by a digit or a dot; the null and boolean words
+    /// <c>~</c> start with a digit, a dot, a symbol, or a sign followed by a digit, a dot or an underscore; the null and boolean words
     /// are the 1.1 spellings of <c>null</c>, <c>true</c>, <c>false</c>, <c>yes</c>, <c>no</c>, <c>on</c>,
     /// <c>off</c>, <c>y</c> and <c>n</c>. Most names and values in real files pass, so only text that starts like a
     /// number is resolved.
@@ -97,7 +156,8 @@ internal static class YamlScalarFormat {
     private static bool StartsAsText(ReadOnlySpan<char> value) {
         if (value.Length == 0) return false;
         char first = value[0];
-        if (first is '-' or '+') return value.Length > 1 && !IsDigit(value[1]) && value[1] != '.';
+        // go-yaml v2 drops underscores before parsing 1.1 numbers, so '+_1.' is a float there.
+        if (first is '-' or '+') return value.Length > 1 && !IsDigit(value[1]) && value[1] is not ('.' or '_');
         char c = (char)(first | 0x20);
         if (c < 'a' || c > 'z') return false;
         return value.Length > 5 || c is not ('n' or 'y' or 'o' or 't' or 'f') || !IsNullOrBooleanWord(value);

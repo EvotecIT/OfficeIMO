@@ -45,7 +45,7 @@ public sealed partial class YamlReader {
         }
     }
 
-    private YamlStringCache Strings => _strings ??= new YamlStringCache();
+    private YamlStringCache Strings => _strings ??= YamlStringCache.Rent();
 
     /// <summary>
     /// Returns the decoded value of the current scalar (folding, escapes and block chomping applied), the text of the
@@ -83,6 +83,13 @@ public sealed partial class YamlReader {
 
     /// <summary>Gets the current scalar's decoded value as a span, without allocating when the source holds it verbatim.</summary>
     internal ReadOnlySpan<char> ScalarValueSpan => ScalarText();
+
+    /// <summary>
+    /// Gets whether the current scalar is untagged and cannot be the plain text <c>&lt;&lt;</c>: it is not plain, or its
+    /// source is not two characters long. A plain scalar's value is its source on one line, and a value folded from
+    /// several lines contains a space, so a merge key's source is exactly <c>&lt;&lt;</c>.
+    /// </summary>
+    internal bool IsUntaggedNonMergeText => !_event.HasTag && (_event.Style != YamlStyle.Plain || _event.ValueEnd - _event.ValueStart != 2);
 
     /// <summary>
     /// Returns what <see cref="IsNull"/> returns for the current scalar, checking an untagged scalar's text directly

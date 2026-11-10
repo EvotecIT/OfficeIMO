@@ -298,4 +298,130 @@ public class YamlSerializerBehaviorTests {
         Assert.Contains("YamlSerializerContext", missing.Message, StringComparison.Ordinal);
         Assert.Null(Context.GetTypeInfo(typeof(Version)));
     }
+    // Properties with a plain name, string dictionaries and string lists write string, integer and boolean entries and
+    // items in one step. The text must be what the writer produces for the keys and values written one by one, at the
+    // root, nested and as a compact sequence item.
+    [Fact]
+    public void OneStepEntriesMatchKeyThenValueWrites() {
+        string[] texts = {
+            "", "plain", "yes", "8080", "100m", "128Mi", "a: b", "#x", "x #y", " lead", "trail ", "multi\nline", "it's", "ünï",
+            new string('x', 1200), "-", "- item", "~", "null", "1.5", "+_1.", "registry.example.com/app:1.2.0", "[x]", "{x}"
+        };
+        var options = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+        var root = new List<EntryShapes>();
+        for (int i = 0; i < texts.Length; i++) {
+            root.Add(new EntryShapes {
+                Text = texts[i], Number = i * 7 - 50, Name = texts[(i + 5) % texts.Length], Big = long.MinValue + i, Flag = i % 2 == 0,
+                Inner = new EntryLeaf { Value = texts[(i + 11) % texts.Length], Count = i },
+                Labels = { [texts[i]] = texts[(i + 3) % texts.Length], ["k" + i] = texts[(i + 7) % texts.Length] },
+                Tags = { texts[i], texts[(i + 13) % texts.Length] },
+                Items = { new EntryShapes { Text = texts[texts.Length - 1 - i], Number = i, Flag = i % 3 == 0 } }
+            });
+        }
+        var single = new StringWriter();
+        using (var writer = new YamlWriter(single)) Write(writer, root[3]);
+        Assert.Equal(single.ToString(), YamlSerializer.Serialize(root[3], options));
+
+        var expected = new StringWriter();
+        using (var writer = new YamlWriter(expected)) {
+            writer.WriteStartSequence();
+            foreach (EntryShapes item in root) Write(writer, item);
+            writer.WriteEndSequence();
+        }
+        Assert.Equal(expected.ToString(), YamlSerializer.Serialize(root, options));
+
+        static void Write(YamlWriter writer, EntryShapes value) {
+            writer.WriteStartMapping();
+            writer.WriteKey("text");
+            writer.WriteScalar(value.Text);
+            writer.WriteKey("number");
+            writer.WriteScalar(value.Number);
+            writer.WriteKey("name");
+            writer.WriteScalar(value.Name);
+            writer.WriteKey("big");
+            writer.WriteScalar(value.Big);
+            writer.WriteKey("flag");
+            writer.WriteScalar(value.Flag);
+            writer.WriteKey("inner");
+            writer.WriteStartMapping();
+            writer.WriteKey("value");
+            writer.WriteScalar(value.Inner.Value);
+            writer.WriteKey("count");
+            writer.WriteScalar(value.Inner.Count);
+            writer.WriteEndMapping();
+            writer.WriteKey("labels");
+            writer.WriteStartMapping();
+            foreach (KeyValuePair<string, string> label in value.Labels) {
+                writer.WriteKey(label.Key);
+                writer.WriteScalar(label.Value);
+            }
+            writer.WriteEndMapping();
+            writer.WriteKey("tags");
+            writer.WriteStartSequence();
+            foreach (string tag in value.Tags) writer.WriteScalar(tag);
+            writer.WriteEndSequence();
+            writer.WriteKey("items");
+            writer.WriteStartSequence();
+            foreach (EntryShapes item in value.Items) Write(writer, item);
+            writer.WriteEndSequence();
+            writer.WriteEndMapping();
+        }
+    }
+
+    // String and number properties read live scalars without their converters' dispatch unless references are
+    // preserved. Both routes must give the same value, or fail the same way, for every spelling in both schemas.
+    [Fact]
+    public void DirectScalarReadsMatchConverterReads() {
+        string[] spellings = {
+            "1", "-1", "+1", "0x1F", "0o17", "017", "0b101", "1_000", "1:20", "2147483648", "-2147483649", "9223372036854775808",
+            "1.5", "1.50", ".5", "1.", "1e3", "1.0e+3", "6.8523e-05", ".inf", "-.Inf", ".nan", "true", "True", "yes", "on", "off",
+            "~", "null", "", "'5'", "\"5\"", "!!str 5", "!!int 5", "!custom 3", "abc", "1,000", "0.0", "-0.0", "&a 7", "|\n  12\n"
+        };
+        var direct = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase };
+        var converters = new YamlSerializerOptions { PropertyNamingPolicy = YamlNamingPolicy.CamelCase, ReferenceHandling = YamlReferenceHandling.Preserve };
+        foreach (string header in new[] { "", "%YAML 1.1\n---\n" }) {
+            foreach (string property in new[] { "text", "number", "big", "flag", "ratio", "amount" }) {
+                foreach (string spelling in spellings) {
+                    string yaml = header + property + ": " + spelling + "\n";
+                    Assert.True(Read(yaml, direct) == Read(yaml, converters), yaml);
+                }
+            }
+        }
+
+        static string Read(string yaml, YamlSerializerOptions options) {
+            try {
+                ScalarShapes value = YamlSerializer.Deserialize<ScalarShapes>(yaml, options)!;
+                return (value.Text ?? "<null>") + "|" + value.Number + "|" + value.Big + "|" + value.Flag + "|"
+                    + BitConverter.DoubleToInt64Bits(value.Ratio) + "|" + string.Join(",", decimal.GetBits(value.Amount));
+            } catch (YamlException exception) {
+                return exception.GetType().Name + ": " + exception.Message;
+            }
+        }
+    }
+
+    public sealed class ScalarShapes {
+        public string? Text { get; set; } = "unset";
+        public int Number { get; set; }
+        public long Big { get; set; }
+        public bool Flag { get; set; }
+        public double Ratio { get; set; }
+        public decimal Amount { get; set; }
+    }
+
+    public sealed class EntryShapes {
+        public string Text { get; set; } = string.Empty;
+        public int Number { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public long Big { get; set; }
+        public bool Flag { get; set; }
+        public EntryLeaf Inner { get; set; } = new EntryLeaf();
+        public Dictionary<string, string> Labels { get; set; } = new Dictionary<string, string>();
+        public List<string> Tags { get; set; } = new List<string>();
+        public List<EntryShapes> Items { get; set; } = new List<EntryShapes>();
+    }
+
+    public sealed class EntryLeaf {
+        public string Value { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
 }

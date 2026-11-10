@@ -84,6 +84,7 @@ Source text (internal)                  decoded once, kept for lossless save [Y1
 - Input is decoded once into a single `char` buffer. `YamlDocument` retains that buffer as its source of truth for untouched text. Retaining it is the cheapest lossless representation: every node is two integers into it.
 - `YamlReader` over a `Stream`/`TextReader` uses a pooled sliding buffer instead. It retains only the window it needs, and the window grows only while one token is longer than the buffer.
 - Line endings are not normalized in the source. Scalar *values* fold line breaks as the specification requires, while the source keeps the original `\r\n`/`\n`.
+- The scanner reads UTF-16 only; there is no separate UTF-8 byte scanner. Decoding UTF-8 input costs about 2% or less of deserializing it in the serializer workloads, and the scanner's per-character work does not depend on the character width, so a second scanner would double the code that conformance and exact spans depend on for no measured gain.
 
 ### Scanner (internal)
 
@@ -289,6 +290,7 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
   - Mapping keys go through a small string cache, as `CsvParser.StringCache` does.
   - Buffers are pooled.
   - The model allocates nothing for trivia.
+  - Shortcuts past the general path (the quoting decision by text shape, one-step serializer entries, short decimals, the plain-stop search) each have a test that compares them with the general path.
 
 ## Qualification
 

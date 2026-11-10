@@ -123,6 +123,42 @@ public class YamlSchemaResolutionTests {
         using (YamlReader reader = ScalarReader(".inf")) Assert.False(reader.TryGetDecimal(out _));
     }
 
+    // Short decimals skip decimal.Parse. Every spelling of up to five digits, points and signs, and long digit runs at
+    // the length limit, must give the parser's exact bits (value, sign and scale) or defer to it.
+    [Fact]
+    public void ShortDecimalPathMatchesDecimalParse() {
+        const string alphabet = "0123456789.-+";
+        var buffer = new char[24];
+        int matched = 0;
+        void Check(int length) {
+            string text = new string(buffer, 0, length);
+            if (!YamlSchemaResolver.TryParseShortDecimal(text.AsSpan(), out decimal fast)) return;
+            Assert.True(decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal expected), text);
+            Assert.Equal(decimal.GetBits(expected), decimal.GetBits(fast));
+            matched++;
+        }
+        void Sweep(int length, int position) {
+            if (position == length) {
+                Check(length);
+                return;
+            }
+            foreach (char c in alphabet) {
+                buffer[position] = c;
+                Sweep(length, position + 1);
+            }
+        }
+        for (int length = 1; length <= 5; length++) Sweep(length, 0);
+        var random = new Random(20261110);
+        for (int i = 0; i < 20_000; i++) {
+            int length = random.Next(15, 21);
+            for (int j = 0; j < length; j++) buffer[j] = (char)('0' + random.Next(10));
+            if (random.Next(2) == 0) buffer[random.Next(1, length - 1)] = '.';
+            if (random.Next(3) == 0) buffer[0] = '-';
+            Check(length);
+        }
+        Assert.True(matched > 100_000);
+    }
+
     [Fact]
     public void Yaml11TimestampsAreNotNumbers() {
         using YamlReader reader = ScalarReader("2001-12-14 21:59:43.10 -5", YamlSchema.Yaml11);

@@ -100,8 +100,12 @@ internal static class YamlSchemaResolver {
         _ => IsNullCore(s)
     };
 
-    private static bool IsNullCore(ReadOnlySpan<char> s) =>
-        s.Length == 0 || Is(s, "~") || Is(s, "null") || Is(s, "Null") || Is(s, "NULL");
+    private static bool IsNullCore(ReadOnlySpan<char> s) => s.Length switch {
+        0 => true,
+        1 => s[0] == '~',
+        4 => s[0] is 'n' or 'N' && (Is(s, "null") || Is(s, "Null") || Is(s, "NULL")),
+        _ => false
+    };
 
     private static bool IsNull11(ReadOnlySpan<char> s) => IsNullCore(s);
 
@@ -124,8 +128,15 @@ internal static class YamlSchemaResolver {
 
     private static bool TryBooleanCore(ReadOnlySpan<char> s, out bool value) {
         value = false;
-        if (Is(s, "true") || Is(s, "True") || Is(s, "TRUE")) { value = true; return true; }
-        return Is(s, "false") || Is(s, "False") || Is(s, "FALSE");
+        switch (s.Length) {
+            case 4:
+                value = s[0] is 't' or 'T' && (Is(s, "true") || Is(s, "True") || Is(s, "TRUE"));
+                return value;
+            case 5:
+                return s[0] is 'f' or 'F' && (Is(s, "false") || Is(s, "False") || Is(s, "FALSE"));
+            default:
+                return false;
+        }
     }
 
     private static bool TryBoolean11(ReadOnlySpan<char> s, out bool value) {
@@ -464,6 +475,8 @@ internal static class YamlSchemaResolver {
     }
 
     private static bool ParseSpecialOrFloat(ReadOnlySpan<char> s, out double value) {
+        // The special values end in a letter; numbers end in a digit or a point.
+        if (s.Length > 0 && s[s.Length - 1] <= '9') return ParseFloat(s, out value);
         if (IsNaN(s)) { value = double.NaN; return true; }
         int i = s.Length > 0 && (s[0] == '-' || s[0] == '+') ? 1 : 0;
         if (IsInfinity(s.Slice(i))) {
@@ -503,6 +516,10 @@ internal static class YamlSchemaResolver {
     }
 
     private static bool ParseFloat(ReadOnlySpan<char> s, out double value) {
+#if NET8_0_OR_GREATER
+        // Underscores occur only in YAML 1.1 spellings; other text parses in place.
+        if (s.IndexOf('_') < 0) return double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+#endif
         Span<char> buffer = s.Length <= 128 ? stackalloc char[s.Length] : new char[s.Length];
         int n = CopyWithoutUnderscores(s, buffer);
 #if NET8_0_OR_GREATER
@@ -513,6 +530,10 @@ internal static class YamlSchemaResolver {
     }
 
     private static bool ParseDecimalText(ReadOnlySpan<char> s, out decimal value) {
+        if (TryParseShortDecimal(s, out value)) return true;
+#if NET8_0_OR_GREATER
+        if (s.IndexOf('_') < 0) return decimal.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+#endif
         Span<char> buffer = s.Length <= 128 ? stackalloc char[s.Length] : new char[s.Length];
         int n = CopyWithoutUnderscores(s, buffer);
 #if NET8_0_OR_GREATER
@@ -520,6 +541,41 @@ internal static class YamlSchemaResolver {
 #else
         return decimal.TryParse(buffer.Slice(0, n).ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #endif
+    }
+
+    /// <summary>
+    /// Parses the common decimal spelling, optional '-' or '+', up to 18 digits with an optional '.' between digits and
+    /// no exponent, the way <see cref="decimal.Parse(string, NumberStyles, IFormatProvider)"/> does: the digits become
+    /// the integer and the digits after the point the scale, so trailing zeros are kept. Zero, whose sign the general
+    /// parser decides, and every other spelling return false for the general path.
+    /// </summary>
+    internal static bool TryParseShortDecimal(ReadOnlySpan<char> s, out decimal value) {
+        value = 0;
+        int i = 0;
+        bool negative = false;
+        if (s.Length > 0 && (s[0] == '-' || s[0] == '+')) {
+            negative = s[0] == '-';
+            i = 1;
+        }
+        if (s.Length - i > 19 || i >= s.Length) return false;
+        ulong digits = 0;
+        int count = 0, scale = 0;
+        bool point = false;
+        for (; i < s.Length; i++) {
+            char ch = s[i];
+            if ((uint)(ch - '0') <= 9) {
+                digits = digits * 10 + (uint)(ch - '0');
+                count++;
+                if (point) scale++;
+            } else if (ch == '.' && !point && count > 0) {
+                point = true;
+            } else {
+                return false;
+            }
+        }
+        if (count == 0 || (point && scale == 0) || digits == 0) return false;
+        value = new decimal((int)(uint)digits, (int)(uint)(digits >> 32), 0, negative, (byte)scale);
+        return true;
     }
 
     private static int CopyWithoutUnderscores(ReadOnlySpan<char> s, Span<char> buffer) {
