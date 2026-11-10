@@ -96,6 +96,7 @@ public partial class Excel {
     [Theory]
     [InlineData("self-bound-formula")]
     [InlineData("undeclared-range-widens")]
+    [InlineData("inline-string-formula-cache")]
     public void EnumerateCells_ReturnsEveryCellForWriterShapesOutsideTheCompactLayout(string shape) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.EnumerateShapes.{Guid.NewGuid():N}.xlsx");
         try {
@@ -104,11 +105,14 @@ public partial class Excel {
                 document.Save();
             }
             const string main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
-            string rows = shape == "self-bound-formula"
+            string rows = shape switch {
                 // The Open XML SDK writes a formula created in code this way under a default-namespace root.
-                ? $"<row r=\"1\"><c r=\"A1\"><v>2</v></c><c r=\"B1\" t=\"n\"><x:f ca=\"0\" xmlns:x=\"{main}\">A1*3</x:f><v>6</v></c></row>"
+                "self-bound-formula" => $"<row r=\"1\"><c r=\"A1\"><v>2</v></c><c r=\"B1\" t=\"n\"><x:f ca=\"0\" xmlns:x=\"{main}\">A1*3</x:f><v>6</v></c></row>",
                 // No dimension, and the second row starts left of the first.
-                : "<row r=\"1\"><c r=\"B1\"><v>2</v></c><c r=\"C1\"><v>3</v></c></row><row r=\"2\"><c r=\"A2\"><v>1</v></c><c r=\"C2\"><v>4</v></c></row>";
+                "undeclared-range-widens" => "<row r=\"1\"><c r=\"B1\"><v>2</v></c><c r=\"C1\"><v>3</v></c></row><row r=\"2\"><c r=\"A2\"><v>1</v></c><c r=\"C2\"><v>4</v></c></row>",
+                // LibreOffice writes an external-link text result as an inline-string cell with only a cached value.
+                _ => "<row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><f aca=\"false\">B1</f><v t=\"inlineStr\">POI rocks!</v></c></row>"
+            };
             string worksheet = $"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"{main}\"><sheetData>{rows}</sheetData></worksheet>";
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(worksheet));
 
@@ -119,8 +123,10 @@ public partial class Excel {
             if (shape == "self-bound-formula") {
                 Assert.Equal(new[] { "A1=2", "B1=6" }, Read(cachedFormulaResults: true));
                 Assert.Equal(new[] { "A1=2", "B1=A1*3" }, Read(cachedFormulaResults: false));
-            } else {
+            } else if (shape == "undeclared-range-widens") {
                 Assert.Equal(new[] { "B1=2", "C1=3", "A2=1", "C2=4" }, Read(cachedFormulaResults: true));
+            } else {
+                Assert.Equal(new[] { "A1=POI rocks!" }, Read(cachedFormulaResults: true));
             }
         } finally {
             File.Delete(path);
