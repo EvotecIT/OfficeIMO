@@ -86,7 +86,11 @@ public sealed class YamlTypeInfo<T> : YamlTypeInfo {
         _nonPolymorphic = nonPolymorphic;
         _tracksReferences = IsReferenceType && converter.IsContainer;
         _handlesNull = converter.HandlesNull;
+        ReadsBuiltInString = converter is YamlStringConverter && !_handlesNull;
     }
+
+    /// <summary>Whether values are read by the built-in string converter, which a property can call for directly.</summary>
+    internal bool ReadsBuiltInString { get; }
 
     internal YamlConverter<T> Converter => _converter;
 
@@ -336,6 +340,11 @@ internal sealed class YamlPropertyInfo<T> : YamlPropertyInfo {
     }
 
     internal override void ReadAndSet(YamlEventCursor cursor, YamlReadState state, object owner) {
+        // A string property reads a live non-null scalar as the built-in converter would, without the dispatch.
+        if (_isString && !state.Preserve && TypeInfo.ReadsBuiltInString && cursor.TryReadLiveString(out string? text)) {
+            _setter!(owner, Unsafe.As<string?, T>(ref text));
+            return;
+        }
         _setter!(owner, TypeInfo.Read(cursor, state));
     }
 

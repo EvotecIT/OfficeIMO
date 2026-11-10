@@ -124,6 +124,16 @@ internal sealed class YamlEventCursor {
     }
 
     /// <summary>Gets whether the current node is a null scalar under its schema: plain <c>null</c>, <c>~</c>, empty, or <c>!!null</c>.</summary>
+    /// <summary>Reads the current live event as a string when it is a scalar that is not null, as the string converter would.</summary>
+    public bool TryReadLiveString(out string? text) {
+        text = null;
+        if (!_live) return false;
+        YamlReader reader = _reader!;
+        if (reader.TokenType != YamlTokenType.Scalar || reader.IsNullScalar()) return false;
+        text = reader.GetString();
+        return true;
+    }
+
     public bool IsNullScalar => _live ? _reader!.IsNullScalar() : _current.Type == YamlTokenType.Scalar && _current.IsNull;
 
     /// <summary>Gets whether the current scalar is the merge key <c>&lt;&lt;</c> where merge keys apply.</summary>
