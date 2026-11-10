@@ -32,6 +32,7 @@
     <ProjectReference Include="../OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj" />
     <ProjectReference Include="../OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="../OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj" />
     <None Include="README.md" Pack="true" PackagePath="README.md" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
