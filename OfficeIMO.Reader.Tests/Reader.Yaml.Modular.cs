@@ -331,6 +331,6 @@ public sealed class ReaderYamlModularTests {
 
         var row = Assert.Single(chunk.Tables![0].Rows);
         Assert.Equal(new[] { "$.name", "string", "second" }, row);
-        Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static w => w.Contains("Yaml.Load.DuplicateKey", StringComparison.Ordinal));
+        Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static w => w.Contains(OfficeIMO.OfficeDiagnosticCodes.YamlDuplicateKey, StringComparison.Ordinal));
     }
 }
