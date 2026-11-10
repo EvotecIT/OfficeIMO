@@ -245,6 +245,18 @@ public class PdfVisualComparerTests {
         Assert.Equal(new PdfPixelRegion(15, 5, 3, 10), stroke.ChangedBounds);
     }
 
+    [Fact]
+    public void CompareImages_ChargesDeclaredPngSizeBeforeDecoding() {
+        byte[] oversized = Block(edge: 96, extraStroke: false);
+        // Declare 60000 x 60000 pixels in the IHDR chunk without supplying that pixel data.
+        oversized[16] = 0; oversized[17] = 0; oversized[18] = 0xEA; oversized[19] = 0x60;
+        oversized[20] = 0; oversized[21] = 0; oversized[22] = 0xEA; oversized[23] = 0x60;
+
+        PdfReadLimitException limit = Assert.Throws<PdfReadLimitException>(() =>
+            PdfVisualComparer.CompareImages(new[] { oversized }, new[] { oversized }));
+        Assert.Equal(PdfReadLimitKind.RenderPixels, limit.Kind);
+    }
+
     private static byte[] Block(byte edge, bool extraStroke) {
         var image = new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.OfficeColor.White);
         for (int y = 5; y < 15; y++) {

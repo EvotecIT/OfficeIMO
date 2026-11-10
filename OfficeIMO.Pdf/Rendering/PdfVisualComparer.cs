@@ -195,11 +195,29 @@ public static class PdfVisualComparer {
     }
 
     private static OfficeRasterImage DecodePagePng(byte[] png, int pageNumber, string parameterName, PdfVisualComparisonOptions options, ref long totalPixels) {
-        if (!OfficePngReader.TryDecode(png, out OfficeRasterImage? image) || image is null) {
+        // Charge the declared size before decoding so the comparison budgets bound the raster allocation.
+        if (!TryReadPngSize(png, out int width, out int height)) {
             throw new ArgumentException("Page image " + pageNumber + " is not a readable PNG.", parameterName);
         }
-        AddPixelBudget(image.Width, image.Height, 1D, options, ref totalPixels);
+        AddPixelBudget(width, height, 1D, options, ref totalPixels);
+        if (!OfficePngReader.TryDecode(png, out OfficeRasterImage? image) || image is null
+            || image.Width != width || image.Height != height) {
+            throw new ArgumentException("Page image " + pageNumber + " is not a readable PNG.", parameterName);
+        }
         return image;
+    }
+
+    private static bool TryReadPngSize(byte[] png, out int width, out int height) {
+        width = 0;
+        height = 0;
+        // PNG signature, then the IHDR chunk: length, type, width, height.
+        if (png.Length < 24 || png[0] != 137 || png[1] != 80 || png[2] != 78 || png[3] != 71
+            || png[12] != (byte)'I' || png[13] != (byte)'H' || png[14] != (byte)'D' || png[15] != (byte)'R') {
+            return false;
+        }
+        width = png[16] << 24 | png[17] << 16 | png[18] << 8 | png[19];
+        height = png[20] << 24 | png[21] << 16 | png[22] << 8 | png[23];
+        return width > 0 && height > 0;
     }
 
     private static string ComputeSequenceSha256(IReadOnlyList<byte[]> images, CancellationToken cancellationToken) {
