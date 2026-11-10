@@ -18,6 +18,7 @@ internal static class PdfSymbolicFontEncoding {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxOutputCharacters, decodedLength);
             }
         }
+        if (bytes.Length == 1) return map[bytes[0]];
         var builder = new System.Text.StringBuilder((int)decodedLength);
         for (int i = 0; i < bytes.Length; i++) builder.Append(map[bytes[i]]);
         return builder.ToString();

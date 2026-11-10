@@ -141,6 +141,13 @@ internal static partial class ResourceResolver {
             if (bytes.Length == 0) return string.Empty;
             string?[] values = GetBuiltinEncodingValues(font);
             string[]? fallback = useWinAnsiFallback ? WinAnsiCodeValues.Value : null;
+            if (bytes.Length == 1) {
+                string? single = values[bytes[0]] ?? fallback?[bytes[0]];
+                if (single == null) throw new PdfUnsupportedTextMappingException(font);
+                if (single.Length > maximum)
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maximum, single.Length);
+                return single;
+            }
             var text = new StringBuilder();
             foreach (byte code in bytes) {
                 string? value = values[code] ?? fallback?[code];
@@ -177,6 +184,16 @@ internal static partial class ResourceResolver {
         if (bytes is null || bytes.Length == 0) return string.Empty;
         if (bytes.LongLength > maxDecodedTextCharacters) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxDecodedTextCharacters, bytes.LongLength);
+        }
+        if (bytes.Length == 1) {
+            // The base decoder receives the same one-byte code it would get from the loop below.
+            string single = differences.TryGetValue(bytes[0], out string? singleDifference)
+                ? singleDifference!
+                : baseDecoder(bytes);
+            if (single.Length > maxDecodedTextCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxDecodedTextCharacters, single.Length);
+            }
+            return single;
         }
         var builder = new System.Text.StringBuilder(bytes.Length);
         for (int i = 0; i < bytes.Length; i++) {

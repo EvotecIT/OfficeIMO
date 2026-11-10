@@ -17,6 +17,7 @@ internal static class PdfStandardEncoding {
             }
         }
 
+        if (bytes.Length == 1) return Map[bytes[0]];
         var builder = new System.Text.StringBuilder((int)decodedLength);
         for (int i = 0; i < bytes.Length; i++) {
             builder.Append(Map[bytes[i]]);
