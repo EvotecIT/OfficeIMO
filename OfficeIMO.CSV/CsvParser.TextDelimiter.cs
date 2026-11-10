@@ -4,7 +4,7 @@ namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
 {
-    private static bool UsesTextDelimiter(CsvParsingSettings options) =>
+    internal static bool UsesTextDelimiter(CsvParsingSettings options) =>
         !string.IsNullOrEmpty(options.DelimiterText) && options.DelimiterText!.Length > 1;
 
     internal static char GetDelimiterChar(CsvParsingSettings options) =>

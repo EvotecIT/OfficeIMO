@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace OfficeIMO.CSV;
@@ -88,6 +89,106 @@ internal static partial class CsvDataProjectionConverter
 
         var value = text.ToString();
         throw CreateConversionException(column, rowIndex, value, errorValuePolicy);
+    }
+
+    /// <summary>
+    /// Parses a numeric column's UTF-8 text with the styles and culture <see cref="ConvertTextSpan"/>
+    /// uses for the same characters. Returns false for other columns and for text that does not
+    /// parse, which the character path then converts or reports.
+    /// </summary>
+    internal static bool TryConvertUtf8Number(
+        ReadOnlySpan<byte> text,
+        CsvDataConversionKind kind,
+        CultureInfo culture,
+        [NotNullWhen(true)] out object? value)
+    {
+        switch (kind)
+        {
+            case CsvDataConversionKind.Int32:
+                if (ReferenceEquals(culture, CultureInfo.InvariantCulture) && TryParseInvariantInt32(text, out var invariantInt32))
+                {
+                    value = invariantInt32;
+                    return true;
+                }
+
+                if (int.TryParse(text, NumberStyles.Any, culture, out var int32))
+                {
+                    value = int32;
+                    return true;
+                }
+
+                break;
+            case CsvDataConversionKind.Int64 when long.TryParse(text, NumberStyles.Any, culture, out var int64):
+                value = int64;
+                return true;
+            case CsvDataConversionKind.Int16 when short.TryParse(text, NumberStyles.Any, culture, out var int16):
+                value = int16;
+                return true;
+            case CsvDataConversionKind.Byte when byte.TryParse(text, NumberStyles.Any, culture, out var byteValue):
+                value = byteValue;
+                return true;
+            case CsvDataConversionKind.Double when double.TryParse(text, NumberStyles.Any, culture, out var doubleValue):
+                value = doubleValue;
+                return true;
+            case CsvDataConversionKind.Decimal when decimal.TryParse(text, NumberStyles.Any, culture, out var decimalValue):
+                value = decimalValue;
+                return true;
+            case CsvDataConversionKind.Single when float.TryParse(text, NumberStyles.Any, culture, out var singleValue):
+                value = singleValue;
+                return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    internal static bool IsNumber(CsvDataConversionKind kind) => kind is CsvDataConversionKind.Int32 or CsvDataConversionKind.Int64
+        or CsvDataConversionKind.Int16 or CsvDataConversionKind.Byte or CsvDataConversionKind.Double
+        or CsvDataConversionKind.Decimal or CsvDataConversionKind.Single;
+
+    /// <summary>Accepts exactly the text <see cref="TryParseInvariantInt32(ReadOnlySpan{char}, out int)"/> accepts.</summary>
+    private static bool TryParseInvariantInt32(ReadOnlySpan<byte> text, out int value)
+    {
+        value = 0;
+        if (text.Length == 0)
+        {
+            return false;
+        }
+
+        var index = 0;
+        var negative = false;
+        if (text[0] == (byte)'-')
+        {
+            negative = true;
+            index = 1;
+        }
+        else if (text[0] == (byte)'+')
+        {
+            index = 1;
+        }
+
+        if (index == text.Length)
+        {
+            return false;
+        }
+
+        var result = 0u;
+        var limit = negative ? 2147483648u : int.MaxValue;
+        for (; index < text.Length; index++)
+        {
+            var digit = (uint)(text[index] - '0');
+            if (digit > 9 || result > (limit - digit) / 10)
+            {
+                return false;
+            }
+
+            result = (result * 10) + digit;
+        }
+
+        value = negative
+            ? result == 2147483648u ? int.MinValue : -(int)result
+            : (int)result;
+        return true;
     }
 
     private static bool TryParseInt32(ReadOnlySpan<char> text, CultureInfo culture, out int value)

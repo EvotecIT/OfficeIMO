@@ -945,7 +945,7 @@ string normalized = document.ToString(new CsvSaveOptions {
 
 ## Dependency footprint
 
-- **External:** No third-party CSV engine. `System.Buffers` and .NET Framework reference assemblies support compatibility targets.
+- **External:** No third-party CSV engine. On `netstandard2.0` and `net472`, `System.Memory` (the version `DocumentFormat.OpenXml` also uses) lets the UTF-8 stream reader run on those targets; .NET Framework reference assemblies support the `net472` build.
 - **OfficeIMO:** `OfficeIMO.Core`. Parsing, streaming, schemas, transforms, compression, and object mapping are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

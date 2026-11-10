@@ -4,7 +4,16 @@ namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
 {
-    internal static IEnumerable<IReadOnlyList<string>> ParseReusable(TextReader reader, CsvParsingSettings options)
+    /// <summary>
+    /// Parses reusable records. A reader that continues another reader's input passes the line and
+    /// emitted record count at which it starts, and that reader's string cache.
+    /// </summary>
+    internal static IEnumerable<IReadOnlyList<string>> ParseReusable(
+        TextReader reader,
+        CsvParsingSettings options,
+        int initialLineNumber = 1,
+        int initialEmittedRecordCount = 0,
+        CsvStringCache? sharedStringCache = null)
     {
         if (UsesTextDelimiter(options))
         {
@@ -16,24 +25,29 @@ internal static partial class CsvParser
             yield break;
         }
 
-        foreach (var record in ParseLineOrQuotedReusable(reader, options))
+        foreach (var record in ParseLineOrQuotedReusable(reader, options, initialLineNumber, initialEmittedRecordCount, sharedStringCache))
         {
             yield return record;
         }
     }
 
-    private static IEnumerable<IReadOnlyList<string>> ParseLineOrQuotedReusable(TextReader reader, CsvParsingSettings options)
+    private static IEnumerable<IReadOnlyList<string>> ParseLineOrQuotedReusable(
+        TextReader reader,
+        CsvParsingSettings options,
+        int initialLineNumber,
+        int initialEmittedRecordCount,
+        CsvStringCache? sharedStringCache)
     {
         var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;
         var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
-        var lineNumber = 1;
+        var lineNumber = initialLineNumber;
         var reusableRecord = new List<string>(64);
         var reusableQuotedRecord = new List<string>(64);
-        var emittedRecordCount = 0;
+        var emittedRecordCount = initialEmittedRecordCount;
         var pendingLines = new Queue<CsvLine>();
-        var stringCache = CreateStringCache(options);
+        var stringCache = sharedStringCache ?? CreateStringCache(options);
         using var lineReader = new CsvLineReader(reader, options);
 
         while (true)
