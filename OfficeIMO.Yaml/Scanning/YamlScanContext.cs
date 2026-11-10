@@ -52,6 +52,11 @@ internal sealed class YamlScanContext {
     public int CommentHead;
     public int CommentCount;
 
+    // Leniency. A finding is recorded once per outermost flow collection and once per quoted scalar.
+    public bool Strict;
+    public bool FlowLenientReported;
+    public List<YamlLenientFinding>? Findings;
+
     // Limits.
     public int MaxDepth;
     public int MaxScalarLength;
@@ -66,6 +71,7 @@ internal sealed class YamlScanContext {
         MaxDepth = options.MaxDepth;
         MaxScalarLength = options.MaxScalarLength;
         IncludeComments = options.IncludeComments;
+        Strict = options.Strict;
         Cancellation = cancellationToken;
         Indents = ArrayPool<int>.Shared.Rent(16);
         SimpleKeys = ArrayPool<YamlSimpleKey>.Shared.Rent(8);
@@ -130,6 +136,9 @@ internal sealed class YamlScanContext {
         Base += delta;
         Pos -= delta;
     }
+
+    public void AddFinding(YamlLenientKind kind, int offset, int line, int column) =>
+        (Findings ??= new List<YamlLenientFinding>()).Add(new YamlLenientFinding(kind, offset, line, column));
 
     public void Release() {
         Source?.Release();

@@ -23,6 +23,9 @@ internal sealed class YamlTreeBuilder {
     private long _expansion;
     private string?[] _identities = new string?[16];
     private Dictionary<string, int>? _seen;
+    private int _findingsTaken;
+    /// <summary>Whether the current part's merge keys still need their one note: they merge under the core schema only because the load is not strict.</summary>
+    private bool _noteMergeKeys;
 
     private struct Frame {
         public YamlNode Node;
@@ -37,11 +40,13 @@ internal sealed class YamlTreeBuilder {
 
     public void Run(YamlReader reader) {
         while (reader.Read()) {
+            if (reader.LenientFindings is { } findings && findings.Count > _findingsTaken) TakeFindings(findings);
             ref readonly YamlEvent ev = ref reader.CurrentEvent;
             switch (ev.Type) {
                 case YamlTokenType.DocumentStart:
                     _part = new YamlDocumentPart(_document, reader.DocumentSchema, reader.DocumentVersion, reader.CopyTagDirectives(), !ev.Implicit, ev.Start, ev.End);
                     _anchors?.Clear();
+                    _noteMergeKeys = _part.Schema == YamlSchema.Core && _part.MergeKeys;
                     _expansion = 0;
                     _documentNodes = 0;
                     break;
@@ -97,6 +102,7 @@ internal sealed class YamlTreeBuilder {
             mapping._entries = entries;
             mapping._count = entries.Length;
             mapping.Renumber(0);
+            if (_noteMergeKeys) NoteMergeKeys(mapping);
             CheckDuplicates(mapping);
         } else {
             var sequence = (YamlSequence)node;
@@ -210,6 +216,24 @@ internal sealed class YamlTreeBuilder {
             }
         }
         Array.Clear(identities, 0, count);
+    }
+
+    private void TakeFindings(List<YamlLenientFinding> findings) {
+        for (; _findingsTaken < findings.Count; _findingsTaken++) _document.AddDiagnostic(findings[_findingsTaken].ToDiagnostic(_document._source));
+    }
+
+    /// <summary>Notes, once per document part, that '&lt;&lt;' keys merge although no %YAML 1.1 directive asks for it.</summary>
+    private void NoteMergeKeys(YamlMapping mapping) {
+        YamlMappingEntry[] entries = mapping._entries;
+        for (int i = 0; i < mapping._count; i++) {
+            if (entries[i].Key is not YamlScalar key || !key.IsMergeKey()) continue;
+            _noteMergeKeys = false;
+            YamlPosition position = _document.GetPosition(key._start);
+            _document.AddDiagnostic(new OfficeDiagnostic(OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective, OfficeDiagnosticSeverity.Information,
+                "The document uses '<<' merge keys, such as the one at " + position + ", without a %YAML 1.1 directive; they were resolved as YAML 1.1 and common tools resolve them. Load with Strict to read '<<' as an ordinary key.",
+                position.ToString(), "YAML"));
+            return;
+        }
     }
 
     private void ReportDuplicate(YamlNode key, YamlNode first) {

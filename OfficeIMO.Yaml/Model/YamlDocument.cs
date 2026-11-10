@@ -26,11 +26,12 @@ public sealed partial class YamlDocument : IDisposable {
     /// <summary>The file the document was loaded from, which <see cref="Save()"/> writes back to.</summary>
     internal string? _path;
 
-    private YamlDocument(string source, YamlTextEncoding encoding, bool byteOrderMark, YamlDuplicateKeyPolicy duplicateKeys) {
+    private YamlDocument(string source, YamlTextEncoding encoding, bool byteOrderMark, YamlDuplicateKeyPolicy duplicateKeys, bool strict) {
         _source = source;
         _encoding = encoding;
         _byteOrderMark = byteOrderMark;
         DuplicateKeys = duplicateKeys;
+        Strict = strict;
     }
 
     /// <summary>
@@ -47,10 +48,13 @@ public sealed partial class YamlDocument : IDisposable {
     /// doc.Save("service.yaml");
     /// </code>
     /// </example>
-    public static YamlDocument Create() => new YamlDocument(string.Empty, YamlTextEncoding.Utf8, byteOrderMark: false, YamlDuplicateKeyPolicy.Error);
+    public static YamlDocument Create() => new YamlDocument(string.Empty, YamlTextEncoding.Utf8, byteOrderMark: false, YamlDuplicateKeyPolicy.Error, strict: false);
 
     /// <summary>Gets the policy the document was loaded with; lookups among equal keys follow it.</summary>
     internal YamlDuplicateKeyPolicy DuplicateKeys { get; }
+
+    /// <summary>Gets whether the document was loaded with <see cref="YamlLoadOptions.Strict"/>; without it, merge keys also apply under the core schema.</summary>
+    internal bool Strict { get; }
 
     /// <summary>Gets the documents of the stream in source order. An empty or comment-only stream has none.</summary>
     public IReadOnlyList<YamlDocumentPart> Documents => _parts;
@@ -68,9 +72,12 @@ public sealed partial class YamlDocument : IDisposable {
     }
 
     /// <summary>
-    /// Gets findings recorded while loading and editing: each duplicate key a lenient <see cref="YamlDuplicateKeyPolicy"/>
-    /// admitted (<see cref="OfficeDiagnosticCodes.YamlDuplicateKey"/>) and each edit of a node that aliases share
-    /// (<see cref="OfficeDiagnosticCodes.YamlAliasedNodeEdited"/>), with a line and column as the location.
+    /// Gets findings recorded while loading and editing, with a line and column as the location: each duplicate key a
+    /// lenient <see cref="YamlDuplicateKeyPolicy"/> admitted (<see cref="OfficeDiagnosticCodes.YamlDuplicateKey"/>), each
+    /// indentation the specification rejects that a non-strict load accepted (<see cref="OfficeDiagnosticCodes.YamlLenientIndentation"/>),
+    /// one note per document part that uses <c>&lt;&lt;</c> merge keys without a <c>%YAML 1.1</c> directive
+    /// (<see cref="OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective"/>), and each edit of a node that aliases share
+    /// (<see cref="OfficeDiagnosticCodes.YamlAliasedNodeEdited"/>).
     /// </summary>
     public IReadOnlyList<OfficeDiagnostic> Diagnostics => (IReadOnlyList<OfficeDiagnostic>?)_diagnostics ?? Array.Empty<OfficeDiagnostic>();
 

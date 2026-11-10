@@ -99,8 +99,8 @@ Source text (internal)                  decoded once, kept for lossless save [Y1
   - Properties: `TokenType`, `Style`, `Tag`, `Anchor`, `Start`/`End` positions (offset, line, column), `ValueSpan` (raw source) and `GetString()` (decoded and cached).
   - Typed accessors resolve through the active schema: `TryGetInt64`, `TryGetDouble`, `TryGetBoolean`, `TryGetDecimal`, `IsNull`.
   - It allocates nothing per event unless the caller asks for a string.
-- `YamlReaderOptions` holds the schema, limits, duplicate-key policy and `IncludeComments` (comment events are off by default and cost nothing when off).
-- Errors throw `YamlException` with a stable code, line, column and offset. `YamlDocument.Load` can also collect recoverable findings as `OfficeDiagnostic` values.
+- `YamlReaderOptions` holds the schema, limits, `Strict` and `IncludeComments` (comment events are off by default and cost nothing when off). The duplicate-key policy is a load option, because only the model compares keys.
+- Errors throw `YamlException` with a stable code, line, column and offset. Recoverable findings are `OfficeDiagnostic` values: `YamlReader.Diagnostics` returns a shared empty list until the scanner records one, so a clean read allocates nothing for it, and `YamlDocument.Diagnostics` collects the reader's findings with the model's own.
 
 ### Document model
 
@@ -137,7 +137,7 @@ doc.Save("deployment.yaml");
 - Anchors and aliases:
   - Renaming an anchor updates its aliases.
   - Editing through an alias edits the anchored node and is reported once per anchored node (`yaml-aliased-node-edited`). Setting a key that only a merge provides adds an own entry; merged mappings are never edited.
-  - `<<` merge keys (YAML 1.1 schema) are resolved in the typed view, never flattened in the tree.
+  - `<<` merge keys (YAML 1.1 schema, and Core unless strict; see [Schemas and versions](#schemas-and-versions)) are resolved in the typed view, never flattened in the tree.
 
 ### Merging
 
@@ -192,7 +192,13 @@ baseDoc.Save("values.merged.yaml");
   - Without a directive, `Core` applies.
   - `YamlReaderOptions.Schema` overrides both, for ecosystems (Ansible, older Kubernetes tooling) that assume 1.1 without declaring it.
 - **Typed values never rewrite raw text.** Reading `on` as a boolean under `Yaml11` and saving keeps `on`.
-- **Duplicate keys** are an error by default, as the specification requires. `DuplicateKeyPolicy.LastWins` and `FirstWins` exist for reading real files that violate it, and every duplicate is reported as a diagnostic.
+- **De-facto YAML by default; `Strict` for the specification.** Decision (Przemysław, 2026-11-10): the default reads what real files use and what libyaml (PyYAML, Ruby) and SharpYaml accept; YamlDotNet accepts the flow form but rejects most of the quoted form. `Strict` on `YamlReaderOptions` and `YamlLoadOptions` (default `false`) restores the specification's exact rules. One switch covers both kinds of leniency, because no consumer has needed one without the other; forcing `Schema = Yaml11` already gives merge keys with strict syntax. Without `Strict`:
+  - Lines inside a flow collection, such as a closing `]` under its key, and quoted-scalar continuation lines may be indented no deeper than the enclosing block collection when spaces indent them. A tab in that indentation, and a document marker at column 0, still fail. The large corpus has 28 such files from Azure Pipelines, GitHub Actions, SAM, Argo, bitnami and istio; the default mode loads all of them with data equal to SharpYaml's (and YamlDotNet's on the 15 it accepts) and saves them back byte for byte.
+  - `<<` is a merge key under `Core` as under `Yaml11`, in the typed view only and never flattened, so repeated `<<` keys (GitLab's `Deploy.gitlab-ci.yml`) are one merge list rather than duplicates. `Json` and `Failsafe` keep `<<` an ordinary key.
+  - Each accepted indentation is a `yaml-lenient-indentation` warning with its position, once per outermost flow collection and once per quoted scalar. Merge keys resolved without a `%YAML 1.1` directive or a forced schema are one `yaml-merge-key-without-directive` information note per document part, so compose files are not noisy.
+  - yaml-test-suite runs in both modes. Strict mode passes every case. The default mode also accepts exactly three error cases, listed with reasons in the reader conformance tests: `9C9N` and `VJP3/00` (flow lines at the key's indentation) and `QB6E` (quoted continuation at the key's indentation). `DK95/01` stays rejected because a tab indents its continuation.
+  - Saving copies source text no edit owns, so accepted text round-trips byte for byte. The writer and every edit write valid indentation; a re-emitted region takes the valid form.
+- **Duplicate keys** are an error by default, as the specification requires (repeated `<<` merge keys are not duplicates where merge keys apply). `DuplicateKeyPolicy.LastWins` and `FirstWins` exist for reading real files that violate it, and every duplicate is reported as a diagnostic.
 - **Custom tags** (`!Ref`, `!Sub`, `!reference`) are preserved verbatim. A caller can register a resolver for a tag. Unknown tags never fail a load.
 
 ### Serializer
@@ -264,8 +270,8 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
 ## Qualification
 
 - **yaml-test-suite:**
-  - events match `test.event`;
-  - error cases fail;
+  - events match `test.event` in both modes;
+  - error cases fail in strict mode, and the default mode accepts only the listed de-facto cases;
   - loaded values equal `in.json`;
   - `in.yaml` round-trips byte for byte;
   - emitted output re-parses to the same events as `out.yaml`/`emit.yaml`.

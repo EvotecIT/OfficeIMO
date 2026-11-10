@@ -15,7 +15,7 @@ public enum YamlScalarKind : byte {
     Float,
     /// <summary>A YAML 1.1 timestamp such as <c>2001-12-14</c>, or a scalar tagged <c>!!timestamp</c>.</summary>
     Timestamp,
-    /// <summary>The YAML 1.1 merge key <c>&lt;&lt;</c>.</summary>
+    /// <summary>The merge key <c>&lt;&lt;</c>: under YAML 1.1, and under the core schema unless the load is strict.</summary>
     Merge,
     /// <summary>The YAML 1.1 value key <c>=</c>.</summary>
     Value,

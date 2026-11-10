@@ -7,8 +7,23 @@ namespace OfficeIMO.Yaml.Tests.Conformance;
 /// from <see cref="YamlReader"/>, loading and round-tripping from <see cref="YamlDocument"/>.
 /// </summary>
 public sealed class OfficeIMOYamlConformanceEngine : IYamlConformanceEngine {
+    private readonly YamlReaderOptions _readerOptions;
+    private readonly YamlLoadOptions _loadOptions;
+    private readonly YamlLoadOptions _roundTripOptions;
+
+    /// <summary>Creates the adapter in the default mode, or with <see cref="YamlReaderOptions.Strict"/> for the specification's exact rules.</summary>
+    public OfficeIMOYamlConformanceEngine(bool strict = false) {
+        Strict = strict;
+        _readerOptions = new YamlReaderOptions { Strict = strict };
+        _loadOptions = new YamlLoadOptions { Strict = strict };
+        _roundTripOptions = new YamlLoadOptions { Strict = strict, DuplicateKeys = YamlDuplicateKeyPolicy.LastWins };
+    }
+
+    /// <summary>Whether the adapter reads with the specification's exact rules.</summary>
+    public bool Strict { get; }
+
     /// <inheritdoc />
-    public string Name => "OfficeIMO.Yaml";
+    public string Name => Strict ? "OfficeIMO.Yaml (strict)" : "OfficeIMO.Yaml";
 
     /// <inheritdoc />
     public YamlEngineFeatures Features => YamlEngineFeatures.Events | YamlEngineFeatures.Load | YamlEngineFeatures.RoundTrip | YamlEngineFeatures.Lossless | YamlEngineFeatures.Emit;
@@ -16,7 +31,7 @@ public sealed class OfficeIMOYamlConformanceEngine : IYamlConformanceEngine {
     /// <inheritdoc />
     public IReadOnlyList<YamlTestEvent> Parse(byte[] yaml) {
         var events = new List<YamlTestEvent>();
-        using var reader = new YamlReader(new MemoryStream(yaml, writable: false));
+        using var reader = new YamlReader(new MemoryStream(yaml, writable: false), _readerOptions);
         while (reader.Read()) {
             YamlTestEvent? converted = Convert(reader);
             if (converted != null) events.Add(converted);
@@ -27,7 +42,7 @@ public sealed class OfficeIMOYamlConformanceEngine : IYamlConformanceEngine {
 
     /// <inheritdoc />
     public IReadOnlyList<YamlConformanceNode> Load(byte[] yaml) {
-        YamlDocument document = YamlDocument.Load(new MemoryStream(yaml, writable: false));
+        YamlDocument document = YamlDocument.Load(new MemoryStream(yaml, writable: false), _loadOptions);
         var documents = new List<YamlConformanceNode>(document.Documents.Count);
         foreach (YamlDocumentPart part in document.Documents) documents.Add(ToConformance(part.Root));
         return documents;
@@ -38,7 +53,7 @@ public sealed class OfficeIMOYamlConformanceEngine : IYamlConformanceEngine {
     /// valid syntax, and a lossless editor must open files that repeat a key.
     /// </summary>
     public byte[] RoundTrip(byte[] yaml) {
-        YamlDocument document = YamlDocument.Load(new MemoryStream(yaml, writable: false), LenientKeys);
+        YamlDocument document = YamlDocument.Load(new MemoryStream(yaml, writable: false), _roundTripOptions);
         var output = new MemoryStream();
         document.Save(output);
         return output.ToArray();
@@ -90,8 +105,6 @@ public sealed class OfficeIMOYamlConformanceEngine : IYamlConformanceEngine {
         YamlTestScalarStyle.Folded => YamlStyle.Folded,
         _ => YamlStyle.Plain
     };
-
-    private static readonly YamlLoadOptions LenientKeys = new() { DuplicateKeys = YamlDuplicateKeyPolicy.LastWins };
 
     /// <summary>Converts a node through the model's public typed view, resolving aliases.</summary>
     public static YamlConformanceNode ToConformance(YamlNode node) {

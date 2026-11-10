@@ -85,20 +85,46 @@ public class YamlDocumentKeyTests {
         Assert.False(list.ContainsKey("missing"));
     }
 
+    // Compose and GitLab CI files merge without a %YAML 1.1 directive; strict loads keep '<<' an ordinary 1.2 key.
     [Fact]
-    public void MergeKeysAreOrdinaryKeysUnderTheCoreSchemaUnlessTheSchemaIsForced() {
-        YamlMapping single = YamlDocument.Parse(Merges).Root!.AsMapping()["single"].AsMapping();
+    public void MergeKeysResolveUnderTheCoreSchemaWithOneNotePerDocumentUnlessStrict() {
+        YamlDocument document = YamlDocument.Parse(Merges + "\n---\n" + Merges + "\n");
+        Assert.Equal(YamlSchema.Core, document.Documents[0].Schema);
+        Assert.Equal(80, document.Select("single.port")!.GetValue<int>());
+        Assert.Equal(YamlScalarKind.Merge, document.Root!.AsMapping()["single"].AsMapping()[0].Key.AsScalar().Kind);
+        Assert.Equal(2, document.Diagnostics.Count);
+        Assert.All(document.Diagnostics, d => {
+            Assert.Equal(OfficeDiagnosticCodes.YamlMergeKeyWithoutDirective, d.Code);
+            Assert.Equal(OfficeDiagnosticSeverity.Information, d.Severity);
+        });
+
+        YamlDocument strict = YamlDocument.Parse(Merges, new YamlLoadOptions { Strict = true });
+        YamlMapping single = strict.Root!.AsMapping()["single"].AsMapping();
         Assert.False(single.ContainsKey("port"));
         Assert.True(single.ContainsKey("<<"));
+        Assert.Empty(strict.Diagnostics);
 
-        YamlDocument forced = YamlDocument.Parse(Merges, new YamlLoadOptions { Schema = YamlSchema.Yaml11 });
+        // A directive or a forced schema asks for merges, so there is nothing to note.
+        Assert.Empty(YamlDocument.Parse("%YAML 1.1\n---\n" + Merges + "\n").Diagnostics);
+        YamlDocument forced = YamlDocument.Parse(Merges, new YamlLoadOptions { Schema = YamlSchema.Yaml11, Strict = true });
         Assert.Equal(80, forced.Select("single.port")!.GetValue<int>());
+        Assert.Empty(forced.Diagnostics);
     }
 
-    [Fact]
-    public void RepeatedMergeKeysAreNotDuplicatesUnderYaml11() {
-        YamlDocument document = YamlDocument.Parse("a: &a {x: 1}\nb: &b {y: 2}\nc:\n  <<: *a\n  <<: *b\n", new YamlLoadOptions { Schema = YamlSchema.Yaml11 });
+    // GitLab's Deploy.gitlab-ci.yml repeats '<<' in one mapping; each repeat adds to the merge list in order.
+    [Theory]
+    [InlineData(false, null)]
+    [InlineData(true, YamlSchema.Yaml11)]
+    public void RepeatedMergeKeysAreOneMergeListNotDuplicates(bool strict, YamlSchema? schema) {
+        const string yaml = "a: &a {x: 1, z: a}\nb: &b {y: 2, z: b}\nc:\n  <<: *a\n  <<: *b\n";
+        YamlDocument document = YamlDocument.Parse(yaml, new YamlLoadOptions { Strict = strict, Schema = schema });
+        Assert.Equal(1, document.Select("c.x")!.GetValue<int>());
         Assert.Equal(2, document.Select("c.y")!.GetValue<int>());
+        Assert.Equal("a", document.Select("c.z")!.AsString());
+        Assert.Equal(yaml, document.ToString());
+
+        YamlException error = Assert.Throws<YamlException>(() => YamlDocument.Parse(yaml, new YamlLoadOptions { Strict = true }));
+        Assert.Equal(YamlErrorCodes.DuplicateKey, error.Code);
     }
 
     [Fact]

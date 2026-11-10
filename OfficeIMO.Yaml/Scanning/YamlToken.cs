@@ -91,3 +91,39 @@ internal struct YamlComment {
     public int Line;
     public int Column;
 }
+
+/// <summary>What a lenient-indentation finding accepted.</summary>
+internal enum YamlLenientKind : byte {
+    /// <summary>A line inside a flow collection indented no deeper than the enclosing block collection.</summary>
+    FlowLine,
+    /// <summary>A quoted-scalar continuation line indented no deeper than the enclosing block collection.</summary>
+    QuotedLine
+}
+
+/// <summary>An indentation the specification rejects and the reader accepted because it is not strict. The offset is absolute.</summary>
+internal readonly struct YamlLenientFinding {
+    public YamlLenientFinding(YamlLenientKind kind, int offset, int line, int column) {
+        Kind = kind;
+        Offset = offset;
+        Line = line;
+        Column = column;
+    }
+
+    public YamlLenientKind Kind { get; }
+    public int Offset { get; }
+    /// <summary>Zero-based line.</summary>
+    public int Line { get; }
+    /// <summary>Zero-based column.</summary>
+    public int Column { get; }
+
+    public YamlPosition Position => new YamlPosition(Offset, Line + 1, Column + 1);
+
+    /// <summary>Describes the finding without a source excerpt.</summary>
+    public string Message => Kind == YamlLenientKind.FlowLine
+        ? "The flow collection line at " + Position + " is indented no deeper than the enclosing block collection; the specification rejects it, and it was accepted as other YAML libraries accept it."
+        : "The quoted scalar continuation line at " + Position + " is indented no deeper than the enclosing block collection; the specification rejects it, and it was accepted as other YAML libraries accept it.";
+
+    /// <summary>Creates the warning, with the source line when the source text is at hand.</summary>
+    public OfficeDiagnostic ToDiagnostic(string? source) => new OfficeDiagnostic(OfficeDiagnosticCodes.YamlLenientIndentation, OfficeDiagnosticSeverity.Warning,
+        source is null ? Message : Message + YamlExcerpt.Format(source, Offset), Position.ToString(), "YAML");
+}

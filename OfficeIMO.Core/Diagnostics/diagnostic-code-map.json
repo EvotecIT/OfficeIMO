@@ -11013,6 +11013,22 @@
       "origins": [
         "OfficeIMO.Yaml/Model/YamlEdit.cs"
       ]
+    },
+    {
+      "oldCode": "yaml-lenient-indentation",
+      "catalogCode": "yaml-lenient-indentation",
+      "member": "YamlLenientIndentation",
+      "origins": [
+        "OfficeIMO.Yaml/Scanning/YamlScanner.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-key-without-directive",
+      "catalogCode": "yaml-merge-key-without-directive",
+      "member": "YamlMergeKeyWithoutDirective",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlTreeBuilder.cs"
+      ]
     }
   ],
   "dynamicPatterns": [
