@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- Reference YAML libraries stay in this opt-in project; OfficeIMO runtime projects do not use them. -->
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="SharpYaml" Version="3.17.0" />
+    <PackageReference Include="YamlDotNet" Version="18.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- One conformance harness: compiled here by link so the comparison and the tests read the same code. -->
+    <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\**\*.cs" Link="Conformance\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,4 @@
+# YAML suite cases and corpus files are bound to upstream bytes and SHA-256 manifests.
+# Line endings, BOMs, tabs and trailing spaces are part of the test data.
+* -text -whitespace
+*.ps1 text eol=lf
