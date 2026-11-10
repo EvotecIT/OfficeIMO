@@ -15,6 +15,7 @@ internal sealed class PdfCorpusEntry {
     public string? Url { get; init; }
     public string? Sha256 { get; init; }
     public string? Generator { get; init; }
+    public string? Password { get; init; }
     public string Producer { get; init; } = string.Empty;
     public string License { get; init; } = string.Empty;
     public string? LicenseUrl { get; init; }
