@@ -34,7 +34,7 @@ public sealed class PdfSnapshotTests : IDisposable {
         PdfSnapshot.Verify(changedBadge, "badge", ignoringBadge);
 
         PdfSnapshotOptions ignoringElsewhere = Options();
-        ignoringElsewhere.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, SampleReport.BadgeRegion.Y + SampleReport.BadgeRegion.Height, 1224, 800));
+        ignoringElsewhere.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, SampleReport.BadgeRegion.Y + SampleReport.BadgeRegion.Height, 1836, 1200));
         Assert.Throws<PdfSnapshotMismatchException>(() => PdfSnapshot.Verify(changedBadge, "badge", ignoringElsewhere));
     }
 

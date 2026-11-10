@@ -73,7 +73,7 @@ Structure differs (invoice.structure.json):
 +         "| Total | 1,256.00 |"
         ]
       }
-Page 1 pixels differ: 19 changed (0.001%) within x=1047 y=298 w=9 h=7.
+Page 1 pixels differ: 63 changed (0.001%) within x=1570 y=447 w=14 h=10.
 Review: /src/Tests/__pdfsnapshots__/invoice.received.html
 ```
 
@@ -86,11 +86,11 @@ var options = new PdfSnapshotOptions {
     Directory = "Snapshots",          // default: __pdfsnapshots__ beside the test file
     Pdf = PdfSnapshotPdfMode.Store    // also keep the approved PDF
 };
-options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 1224, 120)); // a page header with today's date
+options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 1836, 180)); // a page header with today's date
 PdfSnapshot.Verify(pdfBytes, "statement", options);
 ```
 
-`Visual.Scale` sets the stored image resolution (default `2`, 144 DPI); ignored regions are pixel rectangles at that scale. By default `Visual.IgnoreAntialiasing` skips edges that moved by less than a pixel, `ChannelTolerance` (48) skips small colour differences, and `AllowedDifferenceRatio` (0.0002 %, about four pixels on a Letter page) still catches one changed digit in table text.
+`Visual.Scale` sets the stored image resolution (default `3`, 216 DPI); ignored regions are pixel rectangles at that scale. By default `Visual.IgnoreAntialiasing` skips edges that moved by less than a pixel, `ChannelTolerance` (48) skips small colour differences, and `AllowedDifferenceRatio` (0.0001 %, about four pixels on a Letter page) still catches one changed digit in table text.
 
 Builds that map source paths, such as deterministic CI builds, hide the test file's folder. Set `Directory` there.
 

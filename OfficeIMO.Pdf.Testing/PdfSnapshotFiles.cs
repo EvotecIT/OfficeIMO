@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using System.Globalization;
 
 namespace OfficeIMO.Pdf.Testing;
@@ -88,7 +89,7 @@ internal sealed class PdfSnapshotFiles {
         File.WriteAllText(Structure(received), capture.Structure, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         for (int index = 0; index < capture.Pages.Count; index++) {
             string path = Page(received, index + 1);
-            File.WriteAllBytes(path, capture.Pages[index]);
+            File.WriteAllBytes(path, Compact(capture.Pages[index]));
             written.Add(path);
         }
         if (pdf is not null) {
@@ -103,6 +104,13 @@ internal sealed class PdfSnapshotFiles {
         if (File.Exists(Structure(received))) File.Delete(Structure(received));
         if (File.Exists(Pdf(received))) File.Delete(Pdf(received));
         for (int page = 1; File.Exists(Page(received, page)); page++) File.Delete(Page(received, page));
+    }
+
+    /// <summary>Re-encodes a page image with the smallest PNG settings when it is written, since approved images are committed.</summary>
+    private static byte[] Compact(byte[] png) {
+        if (!OfficePngReader.TryDecode(png, out OfficeRasterImage? image) || image is null) return png;
+        byte[] smallest = OfficePngWriter.Encode(image, new OfficePngEncodeOptions { Effort = OfficeImageEncodingEffort.Smallest });
+        return smallest.Length < png.Length ? smallest : png;
     }
 
     private string Stem(bool received) => received ? Name + ReceivedMarker : Name;

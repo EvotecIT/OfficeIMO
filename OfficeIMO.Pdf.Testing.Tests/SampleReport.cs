@@ -1,8 +1,8 @@
 namespace OfficeIMO.Pdf.Testing.Tests;
 
 internal static class SampleReport {
-    /// <summary>Pixel area of the optional badge at the default snapshot scale of 2, with a margin for antialiasing.</summary>
-    public static PdfPixelRegion BadgeRegion { get; } = new(0, 0, 1224, 346);
+    /// <summary>Pixel area of the optional badge at the default snapshot scale of 3, with a margin for antialiasing.</summary>
+    public static PdfPixelRegion BadgeRegion { get; } = new(0, 0, 1836, 520);
 
     /// <summary>
     /// Builds the sample with the repository's baseline fonts, so every machine writes the same PDF. Without them
