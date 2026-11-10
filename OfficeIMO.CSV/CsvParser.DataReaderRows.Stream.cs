@@ -110,6 +110,9 @@ internal static partial class CsvParser
                 int recordStartLineNumber = recordStartedFromPendingLine
                     ? _pendingLines.Peek().PhysicalLineNumber
                     : _physicalLineOffset + _lineReader.PhysicalLineSeparatorsConsumed + 1;
+                // The line reader consumes separators inside quoted fields itself; progress and parse
+                // error lines continue from the physical line on which this record starts.
+                _lineNumber = recordStartLineNumber;
                 string? fastLine = null;
                 string lineSeparator;
                 CsvLineReadResult readResult;
@@ -144,7 +147,7 @@ internal static partial class CsvParser
 
                         _visitor.InternFields(_stringCache);
                         _emittedRecordCount++;
-                        ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
+                        ReportProgress(_options, _emittedRecordCount, recordStartLineNumber);
                         _visitor.Complete(fieldCount, _options.ColumnCountMismatchPolicy);
                         _currentPhysicalLineNumber = recordStartLineNumber;
                         _currentPhysicalEndLineNumber = GetCurrentPhysicalEndLineNumber(
@@ -194,7 +197,7 @@ internal static partial class CsvParser
                     VisitParsedFields(fields, _emittedRecordCount, null, ref _visitor);
                     _visitor.InternFields(_stringCache);
                     _emittedRecordCount++;
-                    ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
+                    ReportProgress(_options, _emittedRecordCount, recordStartLineNumber);
                     _visitor.Complete(fields.Length, _options.ColumnCountMismatchPolicy);
                     _currentPhysicalLineNumber = recordStartLineNumber;
                     _currentPhysicalEndLineNumber = GetCurrentPhysicalEndLineNumber(
@@ -242,7 +245,7 @@ internal static partial class CsvParser
                 VisitParsedFields(_quotedFields, _emittedRecordCount, null, ref _visitor);
                 _visitor.InternFields(_stringCache);
                 _emittedRecordCount++;
-                ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
+                ReportProgress(_options, _emittedRecordCount, recordStartLineNumber);
                 _visitor.Complete(_quotedFields.Count, _options.ColumnCountMismatchPolicy);
                 _currentPhysicalLineNumber = recordStartLineNumber;
                 _currentPhysicalEndLineNumber = GetCurrentPhysicalEndLineNumber(

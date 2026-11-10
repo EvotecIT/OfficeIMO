@@ -597,6 +597,14 @@ internal static partial class CsvParser
             CsvLineReadResult readResult;
             if (pendingLines.Count == 0)
             {
+                // Separators inside quoted fields are consumed by the line reader itself.
+                lineNumber = lineReader.PhysicalLineSeparatorsConsumed + 1;
+            }
+
+            // Progress reports the physical line on which the record starts.
+            int recordStartLineNumber = pendingLines.Count > 0 ? pendingLines.Peek().PhysicalLineNumber : lineNumber;
+            if (pendingLines.Count == 0)
+            {
                 readResult = lineReader.ReadUnquotedFieldSpansOrLine(
                     delimiter,
                     trim,
@@ -719,7 +727,7 @@ internal static partial class CsvParser
                     }
 
                     emittedRecordCount++;
-                    ReportProgress(options, emittedRecordCount, lineNumber);
+                    ReportProgress(options, emittedRecordCount, recordStartLineNumber);
                 }
             }
 

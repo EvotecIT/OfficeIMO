@@ -217,6 +217,11 @@ internal sealed partial class CsvLineReader : IDisposable
             specialIndex = _buffer.AsSpan(segmentStart, segmentLength).IndexOfAny('"', '\r', '\n');
         }
 
+        // A failed extension can still move the segment to the buffer start before it finds the end
+        // of input, so the final record is read from the current position.
+        segmentStart = _position;
+        segmentLength = _length - _position;
+
         var endsAtReaderEnd = false;
         if (specialIndex < 0)
         {
