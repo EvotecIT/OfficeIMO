@@ -194,6 +194,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         private readonly Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? _ordinaryTextPaintVisitor;
         private readonly Action<PdfPagePatternSelection>? _patternSelectionVisitor;
         private readonly Action<string>? _visibleColorSpaceVisitor;
+        private HashSet<string>? _publishedColorSpaceNames;
         private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
         private double _currentPaintOrder;
@@ -962,13 +963,33 @@ internal static partial class PdfPageXObjectInvocationParser {
         private void PublishVisibleColorSpaceUse(PdfType3PaintChannels channels) {
             if ((channels & PdfType3PaintChannels.Fill) != 0 &&
                 !string.IsNullOrEmpty(_fillColorSpaceResourceName)) {
-                _visibleColorSpaceVisitor?.Invoke(_fillColorSpaceResourceName!);
+                PublishVisibleColorSpace(_fillColorSpaceResourceName!);
             }
             if ((channels & PdfType3PaintChannels.Stroke) != 0 &&
                 !string.IsNullOrEmpty(_strokeColorSpaceResourceName)) {
-                _visibleColorSpaceVisitor?.Invoke(_strokeColorSpaceResourceName!);
+                PublishVisibleColorSpace(_strokeColorSpaceResourceName!);
             }
         }
+
+        private void PublishVisibleColorSpace(string name) {
+            if (_visibleColorSpaceVisitor == null) return;
+            (_publishedColorSpaceNames ??= new HashSet<string>(StringComparer.Ordinal)).Add(name);
+            _visibleColorSpaceVisitor(name);
+        }
+
+        private bool IsUnpublishedColorSpace(string? name) =>
+            _visibleColorSpaceVisitor != null && !string.IsNullOrEmpty(name) &&
+            _publishedColorSpaceNames?.Contains(name!) != true;
+
+        // Path visibility analysis only feeds the observers below. When none of them can
+        // observe this paint, the geometry work is skipped.
+        private bool PathPaintHasObserver(bool fill, bool stroke) =>
+            (fill && IsUnpublishedColorSpace(_fillColorSpaceResourceName)) ||
+            (stroke && IsUnpublishedColorSpace(_strokeColorSpaceResourceName)) ||
+            (fill && _patternState.FillDeferredVisibleUse && _patternState.Fill.HasValue) ||
+            (stroke && _patternState.StrokeDeferredVisibleUse && _patternState.Stroke.HasValue) ||
+            _graphicsEffectState.HasEffect || _graphicsEffectPaintVisitor != null ||
+            (stroke && _hasInexactDash && _unsupportedGraphicsEffectVisitor != null);
 
         private static bool IsBuiltInColorSpaceName(string name) =>
             name is "DeviceRGB" or "RGB" or "DeviceCMYK" or "CMYK" or
