@@ -96,6 +96,20 @@ _Dependency footprint:_ only `OfficeIMO.Core`; the package and IWA readers are f
 
 _Dependency footprint:_ `OfficeIMO.Core` and Apache.Arrow; Excel and CSV remain independently usable.
 
+#### [OfficeIMO.Data.Conversions](../OfficeIMO.Data.Conversions/README.md)
+
+- [x] Streaming conversions between JSON, JSON Lines, YAML, XML and CSV, with exact numbers and per-code loss reports
+- [x] Rows of JSON, YAML and XML as a public `DbDataReader` (`StructuredDataReader`) for bulk copy, Arrow and other ADO.NET consumers
+- [x] One documented XML convention and canonical-only CSV type inference
+
+_Dependency footprint:_ `OfficeIMO.Core`, `OfficeIMO.Yaml` and `OfficeIMO.CSV`; `System.Text.Json` on netstandard2.0 and net472 only.
+
+#### [OfficeIMO.Data.Conversions.Excel](../OfficeIMO.Data.Conversions.Excel/README.md)
+
+- [x] Worksheets and workbooks to JSON, JSON Lines and XML; JSON, YAML and XML rows to workbooks through the streaming writer
+
+_Dependency footprint:_ `OfficeIMO.Data.Conversions` and `OfficeIMO.Excel`.
+
 #### [OfficeIMO.Data.Generators](../OfficeIMO.Data.Generators/README.md)
 
 - [x] Compile-time `RowMapper<T>` configuration shared by Excel, CSV, and other `DbDataReader` sources

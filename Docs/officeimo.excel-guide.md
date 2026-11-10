@@ -1862,16 +1862,20 @@ OfficePackageSignatureValidationReport validation =
 
 ### DataTable and JSON exchange
 
+JSON, JSON Lines, YAML and XML conversions live in [`OfficeIMO.Data.Conversions.Excel`](../OfficeIMO.Data.Conversions.Excel/README.md).
+
 ```csharp
 using System.Data;
+using OfficeIMO.Data.Conversions;
 
 using var document = ExcelDocument.Load("data.xlsx");
 var sheet = document["Data"];
 
 DataTable table = sheet.ToDataTable("A1:C100");
-string json = sheet.ToJson("A1:C100");
+JsonNode? json = sheet.ToJson(new DataConversionOptions { Range = "A1:C100" });
 
-sheet.FromJson("[{\"Name\":\"Gamma\",\"Amount\":30}]", startRow: 8, startColumn: 1);
+using var rows = StructuredDataReader.Open(new MemoryStream("[{\"Name\":\"Gamma\",\"Amount\":30}]"u8.ToArray()), OfficeDocumentFormat.Json);
+sheet.InsertDataReader(rows, startRow: 8, startColumn: 1, createTable: false);
 ```
 
 ### Template markers
