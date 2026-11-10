@@ -13,7 +13,7 @@ namespace OfficeIMO.Yaml.Benchmarks.Comparison;
 /// </summary>
 internal static class YamlConformanceComparison {
     private static readonly YamlConformanceCheck[] SuiteChecks = {
-        YamlConformanceCheck.Events, YamlConformanceCheck.ErrorCase, YamlConformanceCheck.Json,
+        YamlConformanceCheck.Events, YamlConformanceCheck.EventContent, YamlConformanceCheck.ErrorCase, YamlConformanceCheck.Json,
         YamlConformanceCheck.RoundTrip, YamlConformanceCheck.RoundTripContent
     };
 
@@ -28,12 +28,12 @@ internal static class YamlConformanceComparison {
 
         YamlTestSuite suite = YamlTestSuite.Load();
         IReadOnlyList<YamlCorpusFile> corpus = YamlCorpus.Load();
-        IYamlConformanceEngine[] engines = { new OfficeIMOYamlConformanceEngine(), new YamlDotNetConformanceEngine(), new SharpYamlConformanceEngine(), new SharpYamlSyntaxConformanceEngine() };
+        IYamlConformanceEngine[] engines = { new OfficeIMOYamlConformanceEngine(), new YamlDotNetConformanceEngine(), new SharpYamlConformanceEngine(), new SharpYamlSyntaxConformanceEngine(), new VYamlConformanceEngine() };
 
         var runs = new List<EngineRun>();
         foreach (IYamlConformanceEngine engine in engines) {
             var checks = new YamlConformanceChecks(engine, TimeSpan.FromSeconds(seconds));
-            var suiteResults = suite.Cases.SelectMany(checks.CheckSuiteCase).ToList();
+            var suiteResults = suite.Cases.SelectMany(checks.CheckSuiteCase).Concat(suite.Cases.Select(checks.CheckEventContent)).ToList();
             var corpusResults = corpus.SelectMany(checks.CheckCorpusFile).ToList();
             runs.Add(new EngineRun(engine, suiteResults, corpusResults));
             Console.Error.WriteLine("Checked " + engine.Name + ".");
@@ -57,14 +57,14 @@ internal static class YamlConformanceComparison {
         text.AppendLine();
         text.AppendLine("- yaml-test-suite " + suite.Commit.Substring(0, 12) + ": " + suite.Cases.Count + " cases (" + (suite.Cases.Count - errorCases) + " valid, " + errorCases + " error, " + jsonCases + " with JSON)");
         text.AppendLine("- Corpus: " + corpus.Count + " files, " + corpus.Sum(f => (long)f.Bytes.Length).ToString("N0", CultureInfo.InvariantCulture) + " bytes");
-        text.AppendLine("- YamlDotNet " + Version(typeof(YamlDotNet.Core.Parser)) + ", SharpYaml " + Version(typeof(SharpYaml.Parser)) + ", " + RuntimeInformation.FrameworkDescription + ", " + RuntimeInformation.OSDescription);
+        text.AppendLine("- YamlDotNet " + Version(typeof(YamlDotNet.Core.Parser)) + ", SharpYaml " + Version(typeof(SharpYaml.Parser)) + ", VYaml " + VYamlConformanceEngine.PackageVersion + ", " + RuntimeInformation.FrameworkDescription + ", " + RuntimeInformation.OSDescription);
         text.AppendLine("- Cells are pass/applicable; failures (F) are wrong output or accepted invalid input, errors (E) are exceptions or timeouts on input the check expects to work.");
         text.AppendLine();
 
         text.AppendLine("## yaml-test-suite");
         text.AppendLine();
-        text.AppendLine("| Engine | Events | Error cases | JSON | Round-trip bytes | Round-trip content |");
-        text.AppendLine("|---|---|---|---|---|---|");
+        text.AppendLine("| Engine | Events | Event content | Error cases | JSON | Round-trip bytes | Round-trip content |");
+        text.AppendLine("|---|---|---|---|---|---|---|");
         foreach (EngineRun run in runs) {
             text.Append("| ").Append(run.Engine.Name).Append(Lossless(run.Engine));
             foreach (YamlConformanceCheck check in SuiteChecks) text.Append(" | ").Append(Cell(run.Suite, check));

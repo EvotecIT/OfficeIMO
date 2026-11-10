@@ -15,6 +15,10 @@ internal static class YamlWorkloadCheck {
                 failures += Check(library.Name + " emit", () => YamlWorkloadValidation.ValidateEmit(library, workload, inputs, inputs.Select(library.CaptureEvents).ToArray()));
             }
 
+            IYamlReferenceLibrary vyaml = VYamlLibrary.Instance;
+            failures += Check(vyaml.Name + " parse", () => YamlWorkloadValidation.ValidateParse(vyaml, workload, inputs));
+            failures += Check(vyaml.Name + " load", () => YamlWorkloadValidation.ValidateLoad(vyaml, workload, inputs));
+
             IYamlReferenceLibrary officeImo = YamlReferenceLibraries.OfficeIMOYaml;
             failures += Check(officeImo.Name + " parse", () => YamlWorkloadValidation.ValidateParse(officeImo, workload, inputs));
             failures += Check(officeImo.Name + " load", () => YamlWorkloadValidation.ValidateLoad(officeImo, workload, inputs));
