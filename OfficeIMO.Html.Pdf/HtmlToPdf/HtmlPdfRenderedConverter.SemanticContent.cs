@@ -28,14 +28,14 @@ internal static partial class HtmlPdfRenderedConverter {
             // an empty structure element. The same path handles groups whose paint is
             // entirely outside the page, while non-painting children still reach the
             // page canvas so empty anchors remain valid link targets.
-            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+            foreach (HtmlRenderVisual child in InPaintOrder(group.Visuals)) {
                 AddVisual(canvas, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned, pagePaint);
             }
             return;
         }
         if (group.Role == HtmlRenderSemanticGroupRole.Artifact) {
             var artifactContent = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
-            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+            foreach (HtmlRenderVisual child in InPaintOrder(group.Visuals)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 AddVisual(artifactContent, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls: false, cancellationToken, textAsSpan: true, activeClip: activeClip, logicalTextOwned: logicalTextOwned, pagePaint: pagePaint);
             }
@@ -64,7 +64,7 @@ internal static partial class HtmlPdfRenderedConverter {
             : null;
         bool outlineLimitReachedBeforeChildren = webFonts.OutlineBudget.IsPathLimitReached;
         var content = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
-        foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+        foreach (HtmlRenderVisual child in InPaintOrder(group.Visuals)) {
             cancellationToken.ThrowIfCancellationRequested();
             AddVisual(content, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls,
                 cancellationToken, childTextAsSpan, activeClip, logicalTextOwned || !string.IsNullOrEmpty(printableText), pagePaint);

@@ -264,7 +264,9 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderDocument rendered,
         ISet<string> activeWebFontFamilies,
         ISet<PdfCore.PdfStandardFont> reservedFontSlots) {
+        var mappedFamilyLists = new HashSet<string>(StringComparer.Ordinal);
         foreach (string familyNames in EnumerateUsedFontFamilyLists(rendered.Pages.SelectMany(page => page.Visuals))) {
+            if (!mappedFamilyLists.Add(familyNames)) continue;
             if (EnumerateFamilies(familyNames).Any(activeWebFontFamilies.Contains)) continue;
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(MapStandardFont(familyNames)));
         }

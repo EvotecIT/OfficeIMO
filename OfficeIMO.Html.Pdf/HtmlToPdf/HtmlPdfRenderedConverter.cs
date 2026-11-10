@@ -490,10 +490,18 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, bool interactiveFormControls, CancellationToken cancellationToken, HtmlPdfMathMlFiles mathMlFiles) {
         HtmlPdfPagePaintContext pagePaint = HtmlPdfPagePaintContext.Create(page, mathMlFiles);
-        foreach (HtmlRenderVisual visual in page.Scene.OrderBy(item => item.PaintOrder)) {
+        foreach (HtmlRenderVisual visual in InPaintOrder(page.Scene)) {
             cancellationToken.ThrowIfCancellationRequested();
             AddVisual(canvas, visual, webFonts, imageResources, conversionReport, page.Width, page.Height, interactiveFormControls, cancellationToken, pagePaint: pagePaint);
         }
+    }
+
+    /// <summary>Returns visuals in stable paint order; most lists are already ordered and are not copied.</summary>
+    private static IEnumerable<HtmlRenderVisual> InPaintOrder(IReadOnlyList<HtmlRenderVisual> visuals) {
+        for (int index = 1; index < visuals.Count; index++) {
+            if (visuals[index].PaintOrder < visuals[index - 1].PaintOrder) return visuals.OrderBy(item => item.PaintOrder);
+        }
+        return visuals;
     }
 
     private static void AddVisual(
@@ -566,7 +574,7 @@ internal static partial class HtmlPdfRenderedConverter {
         } else if (visual is HtmlRenderEffectGroup effectGroup) {
             AddEffectGroup(canvas, effectGroup, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned, pagePaint);
         } else if (visual is HtmlRenderLayoutRegion layoutRegion) {
-            foreach (HtmlRenderVisual child in layoutRegion.Visuals.OrderBy(item => item.PaintOrder)) {
+            foreach (HtmlRenderVisual child in InPaintOrder(layoutRegion.Visuals)) {
                 AddVisual(canvas, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned, pagePaint);
             }
         } else if (visual is HtmlRenderSemanticGroup semanticGroup) {
@@ -596,7 +604,7 @@ internal static partial class HtmlPdfRenderedConverter {
             || string.IsNullOrWhiteSpace(field.Name)
             || hasInvalidPdfButtonValue
             || field.FieldKind == HtmlRenderFormFieldKind.Choice && field.Options.Count == 0) {
-            foreach (HtmlRenderVisual child in field.Visuals.OrderBy(item => item.PaintOrder)) {
+            foreach (HtmlRenderVisual child in InPaintOrder(field.Visuals)) {
                 AddVisual(canvas, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned, pagePaint);
             }
             return;
@@ -739,7 +747,7 @@ internal static partial class HtmlPdfRenderedConverter {
             : ClipBounds.Intersect(activeClip, new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight));
         ClipBounds logicalWindow = currentWindow.InEffectCoordinateSpace(transform);
         canvas.Effect(scaled, group.Opacity, nested => {
-            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+            foreach (HtmlRenderVisual child in InPaintOrder(group.Visuals)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 AddVisual(nested, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, logicalWindow, logicalTextOwned, pagePaint);
             }
@@ -776,7 +784,7 @@ internal static partial class HtmlPdfRenderedConverter {
             (right - left) * PointsPerCssPixel,
             (bottom - top) * PointsPerCssPixel,
             clipped => {
-                foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                foreach (HtmlRenderVisual child in InPaintOrder(group.Visuals)) {
                     cancellationToken.ThrowIfCancellationRequested();
                     AddVisual(clipped, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, clip, logicalTextOwned, pagePaint);
                 }
@@ -810,7 +818,7 @@ internal static partial class HtmlPdfRenderedConverter {
             clipY,
             clipPath,
             clipped => {
-                foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                foreach (HtmlRenderVisual child in InPaintOrder(group.Visuals)) {
                     cancellationToken.ThrowIfCancellationRequested();
                     AddVisual(clipped, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, clip, logicalTextOwned, pagePaint);
                 }
