@@ -96,7 +96,11 @@ internal static class OfficeBase64 {
             run = next - offset;
 #endif
             if (run != 0) {
+#if NET8_0_OR_GREATER
+                input.AsSpan(offset, run).CopyTo(output.AsSpan(outputOffset, run));
+#else
                 Buffer.BlockCopy(input, offset, output, outputOffset, run);
+#endif
                 outputOffset += run;
                 offset += run;
             }
@@ -106,12 +110,19 @@ internal static class OfficeBase64 {
     }
 
     /// <summary>Decodes MIME bytes into bounded caller-owned storage, recovering missing terminal padding.</summary>
+    /// <remarks>Previously collected analysis may be reused only for the same unchanged input range.</remarks>
     internal static bool TryDecodeMime(byte[] input, int offset, int count, byte[] output,
-        out int written, out bool recoveredPadding) {
-        long length = GetMimeDecodedLength(input, offset, count, out bool valid, out recoveredPadding);
+        out int written, out bool recoveredPadding, MimeAnalysis? validatedAnalysis = null) {
+        MimeAnalysis analysis;
+        if (validatedAnalysis.HasValue) analysis = validatedAnalysis.Value;
+        else {
+            analysis = new MimeAnalysis();
+            analysis.Append(input, offset, count);
+        }
+        recoveredPadding = analysis.RecoveredPadding;
         written = 0;
-        if (!valid || length > output.Length) return false;
 #if NET8_0_OR_GREATER
+        if (!analysis.IsValid || analysis.DecodedLength > output.Length) return false;
         byte[] compact = ArrayPool<byte>.Shared.Rent(checked(count + 3));
         try {
             int compactLength = CompactMime(input, offset, count, compact, 0);
@@ -123,7 +134,8 @@ internal static class OfficeBase64 {
             ArrayPool<byte>.Shared.Return(compact);
         }
 #else
-        return DecodeScalar(input, offset, count, output, true, out written, out recoveredPadding);
+        bool decoded = DecodeScalar(input, offset, count, output, true, out written, out recoveredPadding);
+        return analysis.IsValid && decoded;
 #endif
     }
 
@@ -200,9 +212,10 @@ internal static class OfficeBase64 {
             }
         }
         if (group == 0) return true;
-        if (!mime || sawPadding || group == 1) return false;
-        recoveredPadding = true;
-        return WriteQuartet(output, ref written, first, second, group == 2 ? -2 : third, -2);
+        if (!mime || group == 1) return false;
+        bool recovered = WriteQuartet(output, ref written, first, second, group == 2 ? -2 : third, -2);
+        recoveredPadding = recovered;
+        return recovered;
     }
 
     private static bool WriteQuartet(byte[] output, ref int written, int first, int second, int third, int fourth) {

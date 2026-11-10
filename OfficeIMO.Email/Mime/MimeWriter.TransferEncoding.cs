@@ -75,14 +75,18 @@ internal static partial class MimeWriter {
                 // Move backwards so the complete runtime SIMD encode can share storage with line folding.
                 int sourceEnd = characters;
                 int targetEnd = length;
+                int take = characters - (lines - 1) * lineLength;
                 while (sourceEnd > 0) {
-                    int take = sourceEnd % lineLength;
-                    if (take == 0) take = lineLength;
                     encoded[--targetEnd] = (byte)'\n';
                     encoded[--targetEnd] = (byte)'\r';
                     sourceEnd -= take;
                     targetEnd -= take;
+#if NET8_0_OR_GREATER
+                    encoded.AsSpan(sourceEnd, take).CopyTo(encoded.AsSpan(targetEnd, take));
+#else
                     Buffer.BlockCopy(encoded, sourceEnd, encoded, targetEnd, take);
+#endif
+                    take = lineLength;
                 }
                 output.Write(encoded, 0, length);
             } finally {

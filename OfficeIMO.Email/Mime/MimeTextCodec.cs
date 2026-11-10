@@ -16,7 +16,7 @@ internal static class MimeTextCodec {
     }
 
     internal static bool ContainsEncodedWord(string value) =>
-        !string.IsNullOrEmpty(value) && EncodedWordPattern.IsMatch(value);
+        !string.IsNullOrEmpty(value) && value.IndexOf("=?", StringComparison.Ordinal) >= 0 && EncodedWordPattern.IsMatch(value);
 
     internal static string DecodeHeader(string value, IList<EmailDiagnostic> diagnostics, string location) {
         if (string.IsNullOrEmpty(value) || value.IndexOf("=?", StringComparison.Ordinal) < 0) return value;
@@ -169,11 +169,12 @@ internal static class MimeTextCodec {
     }
 
     internal static byte[] DecodeTransfer(byte[] bytes, int offset, int count, long decodedLength,
-        string? transferEncoding, IList<EmailDiagnostic> diagnostics, string location) {
+        string? transferEncoding, IList<EmailDiagnostic> diagnostics, string location,
+        OfficeBase64.MimeAnalysis? base64Analysis = null) {
         string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();
         switch (normalized) {
             case "base64":
-                return DecodeBase64(bytes, offset, count, decodedLength, diagnostics, location);
+                return DecodeBase64(bytes, offset, count, decodedLength, diagnostics, location, base64Analysis);
             case "quoted-printable":
                 return DecodeQuotedPrintable(bytes, offset, count, checked((int)decodedLength), false, diagnostics, location);
             case "7bit":
@@ -190,17 +191,25 @@ internal static class MimeTextCodec {
     }
 
     internal static long GetDecodedLength(byte[] bytes, int offset, int count, string? transferEncoding,
+        IList<EmailDiagnostic>? diagnostics = null, string? location = null) =>
+        GetDecodedLength(bytes, offset, count, transferEncoding, out _, diagnostics, location);
+
+    internal static long GetDecodedLength(byte[] bytes, int offset, int count, string? transferEncoding,
+        out OfficeBase64.MimeAnalysis? base64Analysis,
         IList<EmailDiagnostic>? diagnostics = null, string? location = null) {
+        base64Analysis = null;
         string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();
         switch (normalized) {
             case "base64":
-                long base64Length = GetBase64DecodedLength(bytes, offset, count,
-                    out bool validBase64, out bool recoveredPadding);
-                if (diagnostics != null && !validBase64) {
+                var analysis = new OfficeBase64.MimeAnalysis();
+                analysis.Append(bytes, offset, count);
+                base64Analysis = analysis;
+                long base64Length = analysis.IsValid ? analysis.DecodedLength : count;
+                if (diagnostics != null && !analysis.IsValid) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID",
                         "The invalid Base64 payload was preserved without decoding.",
                         EmailDiagnosticSeverity.Error, location));
-                } else if (diagnostics != null && recoveredPadding) {
+                } else if (diagnostics != null && analysis.RecoveredPadding) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_PADDING_RECOVERED",
                         "Missing Base64 padding was recovered.", EmailDiagnosticSeverity.Warning, location));
                 }
@@ -225,10 +234,6 @@ internal static class MimeTextCodec {
                 return count;
         }
     }
-
-    private static long GetBase64DecodedLength(byte[] bytes, int offset, int count,
-        out bool valid, out bool recoveredPadding) =>
-        OfficeBase64.GetMimeDecodedLength(bytes, offset, count, out valid, out recoveredPadding);
 
     private static long GetQuotedPrintableDecodedLength(byte[] bytes, int offset, int count, out bool invalid) {
         long length = count;
@@ -275,17 +280,22 @@ internal static class MimeTextCodec {
     }
 
     private static byte[] DecodeBase64(byte[] input, int offset, int count, long decodedLength,
-        IList<EmailDiagnostic> diagnostics, string location) {
+        IList<EmailDiagnostic> diagnostics, string location, OfficeBase64.MimeAnalysis? analysis) {
         if (decodedLength == 0) return Array.Empty<byte>();
         byte[] output = new byte[checked((int)decodedLength)];
-        if (OfficeBase64.TryDecodeMime(input, offset, count, output, out int written, out bool recoveredPadding)
-            && written == output.Length) {
-            if (recoveredPadding) {
-                diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_PADDING_RECOVERED",
-                    "Missing Base64 padding was recovered.", EmailDiagnosticSeverity.Warning, location));
-            }
-            return output;
+        bool decoded = OfficeBase64.TryDecodeMime(input, offset, count, output,
+            out int written, out bool recoveredPadding, analysis);
+#if NET8_0_OR_GREATER
+        bool reportRecovery = decoded && written == output.Length && recoveredPadding;
+#else
+        // Legacy decoding reports a recovered partial quartet even when the final length is invalid.
+        bool reportRecovery = recoveredPadding;
+#endif
+        if (reportRecovery) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_PADDING_RECOVERED",
+                "Missing Base64 padding was recovered.", EmailDiagnosticSeverity.Warning, location));
         }
+        if (decoded && written == output.Length) return output;
         diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID",
             "The invalid Base64 payload was preserved without decoding.",
             EmailDiagnosticSeverity.Error, location));

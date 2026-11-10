@@ -227,7 +227,7 @@ internal static partial class MimeParser {
             !semanticBodyPart;
         int payloadDiagnosticStart = state.Diagnostics.Count;
         long decodedLength = MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
-            skipAttachmentDecoding ? state.Diagnostics : null, skipAttachmentDecoding ? location : null);
+            out var base64Analysis, skipAttachmentDecoding ? state.Diagnostics : null, skipAttachmentDecoding ? location : null);
         if (!isBody) {
             state.CountAttachmentBytes(decodedLength);
             if (skipAttachmentDecoding) {
@@ -245,7 +245,7 @@ internal static partial class MimeParser {
 
         if (isBody || semanticBodyPart) state.Budget.CountDecodedPropertyBytes(decodedLength);
         byte[] decoded = MimeTextCodec.DecodeTransfer(data, offset, count, decodedLength,
-            transferEncoding, state.Diagnostics, location);
+            transferEncoding, state.Diagnostics, location, base64Analysis);
 
         if (isBody) {
             if (bodyProtection != EmailProtectionKind.None && !document.Protection.IsProtected) {

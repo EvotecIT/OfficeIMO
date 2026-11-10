@@ -5,6 +5,24 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class MimeTransferCodecTests {
     [Theory]
+    [InlineData("AA=")]
+    [InlineData("AAAAAA=")]
+    [InlineData(" A\tA=\v")]
+    public void MalformedPartialPaddingKeepsTheTargetSpecificDiagnosticSequence(string payload) {
+        byte[] source = Encoding.ASCII.GetBytes("Content-Type: application/octet-stream\r\n" +
+            "Content-Disposition: attachment; filename=partial.bin\r\nContent-Transfer-Encoding: base64\r\n\r\n" + payload);
+        using var result = new EmailDocumentReader().ReadDocument(source);
+        Assert.Equal(Encoding.ASCII.GetBytes(payload), Assert.Single(result.Document.Attachments).Content);
+        var target = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<
+            System.Runtime.Versioning.TargetFrameworkAttribute>(typeof(EmailDocument).Assembly)!;
+        string[] expected = target.FrameworkName.StartsWith(".NETCoreApp", StringComparison.Ordinal)
+            ? new[] { "EMAIL_MIME_BASE64_INVALID" }
+            : new[] { "EMAIL_MIME_BASE64_PADDING_RECOVERED", "EMAIL_MIME_BASE64_INVALID" };
+        Assert.Equal(expected, result.Diagnostics.Select(diagnostic => diagnostic.Code));
+        Assert.Equal(payload.Length, result.ProcessingBudget.AttachmentBytes);
+    }
+
+    [Theory]
     [InlineData("a b=\r\nc\n", "a=20b=3D\r\nc=0A\r\n")]
     [InlineData("line\r\n", "line\r\n")]
     [InlineData("", "\r\n")]
