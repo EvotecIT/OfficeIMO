@@ -945,6 +945,9 @@ public sealed partial class PdfReadPage {
                 patternTextClippingBudget: patternTextClippingBudget,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,
+                // The page's own content shares the cached root analysis with text, image and count reads.
+                invokedResourceNames: GetRootInvokedResourceNames(content, pageResources,
+                    pageContentBudget.CancellationToken.ThrowIfCancellationRequested),
                 scaleStrokeWidthWithTransform: scaleStrokeWidthWithTransform);
         }
 
