@@ -32,16 +32,18 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Embeds a font and registers a paragraph style using that font.
+        /// Embeds a font and adds a paragraph style to this document that uses it.
         /// </summary>
         /// <param name="fontPath">Path to a TrueType/OpenType font file.</param>
-        /// <param name="styleId">Style identifier to register.</param>
-        /// <param name="styleName">Optional friendly name for the style.</param>
-        public void EmbedFont(string fontPath, string styleId, string? styleName = null) {
+        /// <param name="styleId">Identifier of the paragraph style. An existing style with this identifier is updated to use the font.</param>
+        /// <param name="styleName">Optional friendly name for a new style.</param>
+        /// <returns>The paragraph style that uses the embedded font.</returns>
+        public WordStyle EmbedFont(string fontPath, string styleId, string? styleName = null) {
+            ArgumentException.ThrowIfNullOrWhiteSpace(styleId);
             EmbedFont(fontPath);
-            var fontName = Path.GetFileNameWithoutExtension(fontPath);
-            WordParagraphStyle.RegisterFontStyle(styleId, fontName, styleName);
-            EnsureStyleDefinition(styleId);
+            WordStyle style = Styles.FindById(styleId) ?? Styles.AddParagraphStyle(styleId, styleName);
+            style.FontFamily = Path.GetFileNameWithoutExtension(fontPath);
+            return style;
         }
     }
 }

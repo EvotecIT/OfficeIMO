@@ -196,8 +196,8 @@ namespace OfficeIMO.Tests {
             Styles styles = document._document.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
             switch (source) {
                 case "style":
-                    styles.Append(new WordParagraphStyleDefinition("FragmentBreakBase") { PageBreakBefore = true }.ToOpenXml());
-                    styles.Append(new WordParagraphStyleDefinition("FragmentBreakChild") { BasedOnStyleId = "FragmentBreakBase" }.ToOpenXml());
+                    document.Styles.AddParagraphStyle("FragmentBreakBase").PageBreakBefore = true;
+                    document.Styles.AddParagraphStyle("FragmentBreakChild").BasedOnStyleId = "FragmentBreakBase";
                     target.SetStyleId("FragmentBreakChild");
                     break;
                 case "defaults":
