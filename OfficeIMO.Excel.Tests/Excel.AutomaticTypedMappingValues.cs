@@ -362,6 +362,49 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         } finally { File.Delete(path); }
     }
 
+    [Fact]
+    public void ParallelBatchesKeepWorksheetValuesWhileOtherReadersReuseBuffers() {
+        const int count = 33;
+        string MakeRows(int offset) => string.Concat(Enumerable.Range(0, count).Select(index =>
+            $"<row r=\"{index + 2}\"><c r=\"A{index + 2}\"><v>{index + offset}</v></c>" +
+            $"<c r=\"B{index + 2}\" t=\"inlineStr\"><is><t>name&amp;{index + offset}</t></is></c>" +
+            $"<c r=\"C{index + 2}\" s=\"1\"><v>{45000 + index}</v></c>" +
+            $"<c r=\"D{index + 2}\"><v>{index}.25</v></c></row>"));
+        string path = CreateWorkbook(MakeRows(100), new[] { "Order Id", "Name", "Date", "Value" }, count + 1);
+        string otherPath = CreateWorkbook(MakeRows(900), new[] { "Order Id", "Name", "Date", "Value" }, count + 1);
+        try {
+            using var reader = ExcelDocument.OpenReader(path);
+            int index = 0;
+            foreach (NativeClass row in reader.RowsAsParallel<NativeClass>(new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2, BatchSize = 3
+            })) {
+                Assert.Equal(index + 100, row.Id);
+                Assert.Equal($"name&{index + 100}", row.Name);
+                Assert.Equal(DateTime.FromOADate(45000 + index), row.Date);
+                Assert.Equal(index + 0.25, row.Value);
+                index++;
+
+                // Completed worker readers are already disposed when their models arrive.
+                // Another workbook can reuse released buffers while later batches still run.
+                using var other = ExcelDocument.OpenReader(otherPath);
+                int otherIndex = 0;
+                while (other.Read()) {
+                    Assert.Equal(otherIndex + 900, other.GetInt32(0));
+                    Assert.Equal($"name&{otherIndex + 900}", other.GetString(1));
+                    Assert.Equal(DateTime.FromOADate(45000 + otherIndex), other.GetDateTime(2));
+                    Assert.Equal(otherIndex + 0.25, other.GetDouble(3));
+                    otherIndex++;
+                }
+                Assert.Equal(count, otherIndex);
+            }
+            Assert.Equal(count, index);
+            Assert.False(reader.IsClosed);
+        } finally {
+            File.Delete(path);
+            File.Delete(otherPath);
+        }
+    }
+
     [Theory]
     [InlineData(".xls")]
     [InlineData(".xlsb")]
