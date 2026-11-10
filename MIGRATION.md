@@ -9662,3 +9662,17 @@ PDF and image conversions no longer throw `HtmlConversionException` when no avai
 ## HTML-to-Excel error values
 
 A `data-officeimo-value` error value is written as an error cell only when it is one of `#NULL!`, `#DIV/0!`, `#VALUE!`, `#REF!`, `#NAME?`, `#NUM!` or `#N/A`. Any other text, including `#CALC!` and `#SPILL!`, is imported as the visible cell text and reported with `HtmlConversionDiagnosticCodes.SemanticValueInvalid`. Before, such text became an invalid error cell and XLSB saves threw.
+
+## YAML reader adapter
+
+`OfficeIMO.Reader.Yaml` reads YAML with the `OfficeIMO.Yaml` engine and no longer depends on YamlDotNet.
+
+- **Options.** `YamlReadOptions.MaxDepth`, `MaxNodes`, `MaxParseEvents` and `MaxScalarLength` are removed. Set limits through `YamlReadOptions.LoadOptions = new YamlLoadOptions { ... }`. `MaxNodes` now counts the nodes of each document instead of the whole stream, `MaxScalarLength` counts a scalar's source text, and the engine defaults (depth 256, 1,000,000 nodes per document, 100,000 alias-expanded nodes, 16 MiB scalars) apply when `LoadOptions` is null. There is no parse-event limit; `MaxNodes` and `ReaderOptions.MaxInputBytes` bound the work.
+- **Large files.** Streams over the old 20,000-node total, such as large OpenAPI documents, are now read instead of returning a limit warning.
+- **Paths.** Key text is exact: `"a  b": 1` reports `$["a  b"]` instead of `$["a b"]`, `" a ": 1` reports `$[" a "]` instead of `$.a`, and keys longer than 512 characters are no longer cut to `...`. A path selects its node with `YamlDocument.Select`, except where two keys differ only in type, such as `1` and `"1"`, which share the path `$["1"]`. Collection keys use their source text, such as `$["[one, two]"]` instead of `$["[one,two]"]`.
+- **Values.** Plain scalars keep their decoded text; `key: a  b` reports `a  b` instead of `a b`.
+- **Types.** Scalars resolve through the document's schema. Under the default YAML 1.2 core schema `1_000` is now `string` (was `number`) and `.inf`/`.nan` are `number` (were `string`); under `%YAML 1.1`, `yes`/`no`/`on`/`off` are `boolean`. Scalars with custom tags such as `!Ref 123` are `string`.
+- **Chunks.** Each document of a multi-document stream starts a new chunk, so one chunk never mixes `$[0]` and `$[1]` rows. Chunks carry `Location.StartLine` and `EndLine`; rows from an alias report the alias's lines.
+- **Errors.** Malformed input reports `YAML parse error (<code>): <message> (line L, column C)` with the stable `YamlErrorCodes` value, for example `YAML parse error (Yaml.Syntax.InvalidValue): A mapping value is not allowed here. (line 10, column 31)` instead of `YAML parse error: SemanticErrorException.` Exceeded limits use the same form with `Yaml.Limit.Exceeded` and the limit name, replacing `YAML parse limit exceeded: maximum ... reached.`
+- **Keys and aliases.** Duplicate keys compare as YAML values, so `1` and `0x1` are duplicates while `1` and `"1"` are not. With `YamlLoadOptions.DuplicateKeys` set to `FirstWins` or `LastWins`, only the entry a lookup returns is reported and each duplicate becomes a chunk warning. An alias inside its own anchor, which produced depth-limited rows, is now a `Yaml.Limit.Exceeded` warning. The `depth-limit` and `node-limit` row types are no longer emitted.
+- **Encoding.** UTF-16 and UTF-32 input is detected without a byte-order mark, and bytes that are invalid in the detected encoding report `Yaml.Encoding.Invalid` instead of being replaced with U+FFFD.

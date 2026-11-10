@@ -47,6 +47,13 @@ public sealed class ReaderYamlModularTests {
         Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("$[1].enabled | boolean | true", StringComparison.Ordinal));
         Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Path", StringComparer.Ordinal));
         Assert.All(chunks, c => {
+            var paths = c.Tables![0].Rows.Select(static r => r[0]).ToArray();
+            Assert.True(paths.All(static p => p.StartsWith("$[0]", StringComparison.Ordinal)) || paths.All(static p => p.StartsWith("$[1]", StringComparison.Ordinal)));
+        });
+        var secondDocument = Assert.Single(chunks, c => c.Tables![0].Rows[0][0].StartsWith("$[1]", StringComparison.Ordinal));
+        Assert.Equal(10, secondDocument.Location.StartLine);
+        Assert.Equal(11, secondDocument.Location.EndLine);
+        Assert.All(chunks, c => {
             Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
             Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));
             Assert.False(string.IsNullOrWhiteSpace(c.ChunkHash));
@@ -105,12 +112,15 @@ public sealed class ReaderYamlModularTests {
         Assert.Contains("printf 'a  b\\n'", chunk.Text ?? string.Empty, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void DocumentReaderYaml_ReadYamlStream_RecognizesYamlCoreNumericForms() {
-        const string yaml =
+    [Theory]
+    [InlineData("", "string", "string")]
+    [InlineData("%YAML 1.1\n---\n", "number", "boolean")]
+    public void DocumentReaderYaml_ReadYamlStream_ClassifiesScalarsThroughTheDocumentSchema(string header, string underscoredKind, string yesKind) {
+        string yaml = header +
             "mode: 0o755\n" +
             "mask: 0xFF\n" +
-            "total: 1_000\n";
+            "total: 1_000\n" +
+            "answer: yes\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
         var chunk = Assert.Single(YamlReaderAdapter.Read(
@@ -121,9 +131,9 @@ public sealed class ReaderYamlModularTests {
                 IncludeMarkdown = false
             }));
 
-        Assert.Contains("$.mode | number | 0o755", chunk.Text ?? string.Empty, StringComparison.Ordinal);
         Assert.Contains("$.mask | number | 0xFF", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains("$.total | number | 1_000", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("$.total | " + underscoredKind + " | 1_000", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("$.answer | " + yesKind + " | yes", chunk.Text ?? string.Empty, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -245,124 +255,82 @@ public sealed class ReaderYamlModularTests {
         Assert.Equal(ReaderInputKind.Yaml, reader.DetectKind("values.yml"));
     }
 
-    [Fact]
-    public void DocumentReaderYaml_ReadYamlStream_EnforcesNodeLimitBeforeModelLoad() {
-        const string yaml = "root:\n  child:\n    value: 1\n";
+    [Theory]
+    [InlineData("MaxNodes")]
+    [InlineData("MaxDepth")]
+    [InlineData("MaxScalarLength")]
+    public void DocumentReaderYaml_BuilderHandler_AppliesEngineLoadLimits(string limit) {
+        var loadOptions = new OfficeIMO.Yaml.YamlLoadOptions();
+        switch (limit) {
+            case "MaxNodes": loadOptions.MaxNodes = 2; break;
+            case "MaxDepth": loadOptions.MaxDepth = 1; break;
+            default: loadOptions.MaxScalarLength = 8; break;
+        }
+
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddYamlHandler(new YamlReadOptions { LoadOptions = loadOptions })
+            .Build();
+        const string yaml = "root:\n  child:\n    value: \"aaaaaaaaaaaaaaaa\"\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(YamlReaderAdapter.Read(
-            stream,
-            sourceName: "limited.yaml",
-            yamlOptions: new YamlReadOptions {
-                MaxNodes = 2,
-                ChunkRows = 10,
-                IncludeMarkdown = false
-            }));
+        var chunk = Assert.Single(reader.Enumerate(stream, "limited.yaml"));
 
-        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains("maximum node count reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        var warning = Assert.Single(chunk.Warnings ?? Array.Empty<string>());
+        Assert.StartsWith("YAML parse error (Yaml.Limit.Exceeded)", warning, StringComparison.Ordinal);
+        Assert.Contains(limit, warning, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void DocumentReaderYaml_ReadYamlStream_EnforcesParseEventLimitBeforeModelLoad() {
+    public void DocumentReaderYaml_ReadYamlStream_EmitsExactKeyPathsThatSelectTheirNodes() {
+        string longKey = new string('k', 600);
+        string yaml =
+            "\"two  spaces\": 1\n" +
+            "\" padded \": 2\n" +
+            "\"tab\\tand\\nline\": 3\n" +
+            longKey + ": 4\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(YamlReaderAdapter.Read(stream, sourceName: "keys.yaml"));
+
+        var paths = chunk.Tables![0].Rows.Select(static r => r[0]).ToArray();
+        Assert.Equal(new[] {
+            "$[\"two  spaces\"]",
+            "$[\" padded \"]",
+            "$[\"tab\\tand\\nline\"]",
+            "$." + longKey
+        }, paths);
+        var document = OfficeIMO.Yaml.YamlDocument.Parse(yaml);
+        for (int i = 0; i < paths.Length; i++) {
+            Assert.Equal((i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), document.Select(paths[i])?.AsString());
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_ExpandsAliasesAtTheAliasPath() {
         const string yaml =
-            "root:\n" +
-            "  - one\n" +
-            "  - two\n" +
-            "  - three\n";
+            "base: &base\n" +
+            "  port: 443\n" +
+            "copy: *base\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(YamlReaderAdapter.Read(
-            stream,
-            sourceName: "parse-limited.yaml",
-            yamlOptions: new YamlReadOptions {
-                MaxParseEvents = 3,
-                IncludeMarkdown = false
-            }));
+        var chunks = YamlReaderAdapter.Read(stream, sourceName: "alias.yaml", yamlOptions: new YamlReadOptions { ChunkRows = 1 }).ToList();
 
-        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains("maximum parse event count reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(new[] { "$.base.port", "$.copy.port" }, chunks.Select(static c => c.Tables![0].Rows[0][0]));
+        Assert.Equal("443", chunks[1].Tables![0].Rows[0][2]);
+        Assert.Equal(3, chunks[1].Location.StartLine);
     }
 
     [Fact]
-    public void DocumentReaderYaml_ReadYamlStream_EnforcesScalarLengthBeforeModelLoad() {
-        string yaml = "value: \"" + new string('a', 32) + "\"\n";
+    public void DocumentReaderYaml_ReadYamlStream_LenientDuplicateKeysReportOnlyTheSelectedEntry() {
+        const string yaml = "name: first\nname: second\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(YamlReaderAdapter.Read(
-            stream,
-            sourceName: "scalar-limited.yaml",
-            yamlOptions: new YamlReadOptions {
-                MaxScalarLength = 8,
-                IncludeMarkdown = false
-            }));
+        var chunk = Assert.Single(YamlReaderAdapter.Read(stream, sourceName: "duplicates.yaml", yamlOptions: new YamlReadOptions {
+            LoadOptions = new OfficeIMO.Yaml.YamlLoadOptions { DuplicateKeys = OfficeIMO.Yaml.YamlDuplicateKeyPolicy.LastWins }
+        }));
 
-        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains("scalar length exceeds maximum", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void DocumentReaderYaml_ReadYamlStream_EnforcesDepthLimitBeforeModelLoad() {
-        const string yaml =
-            "root:\n" +
-            "  child:\n" +
-            "    grandchild:\n" +
-            "      value: one\n";
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
-
-        var chunk = Assert.Single(YamlReaderAdapter.Read(
-            stream,
-            sourceName: "depth-limited.yaml",
-            yamlOptions: new YamlReadOptions {
-                MaxDepth = 1,
-                MaxNodes = 100,
-                ChunkRows = 10,
-                IncludeMarkdown = false
-            }));
-
-        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains("maximum depth reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void DocumentReaderYaml_ReadYamlStream_EnforcesScalarDepthBeforeModelLoad() {
-        const string yaml =
-            "root:\n" +
-            "  child:\n" +
-            "    value: one\n";
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
-
-        var chunk = Assert.Single(YamlReaderAdapter.Read(
-            stream,
-            sourceName: "scalar-depth-limited.yaml",
-            yamlOptions: new YamlReadOptions {
-                MaxDepth = 1,
-                MaxNodes = 100,
-                ChunkRows = 10,
-                IncludeMarkdown = false
-            }));
-
-        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains("maximum depth reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void DocumentReaderYaml_ReadYamlStream_BoundsComplexMappingKeysWithNodeLimit() {
-        const string yaml =
-            "? [one, two, three, four]\n" +
-            ": value\n";
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
-
-        var chunk = Assert.Single(YamlReaderAdapter.Read(
-            stream,
-            sourceName: "complex-key.yaml",
-            yamlOptions: new YamlReadOptions {
-                MaxNodes = 2,
-                ChunkRows = 10,
-                IncludeMarkdown = false
-            }));
-
-        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains("maximum node count reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        var row = Assert.Single(chunk.Tables![0].Rows);
+        Assert.Equal(new[] { "$.name", "string", "second" }, row);
+        Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static w => w.Contains("Yaml.Load.DuplicateKey", StringComparison.Ordinal));
     }
 }

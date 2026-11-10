@@ -21,7 +21,6 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
 | Optional ChartForgeX bridge | [ChartForgeX](https://github.com/EvotecIT/ChartForgeX) | Vector-first visual artifact conversion, OfficeDrawing fidelity reports, and Word, Excel, PowerPoint, and PDF placement |
 | Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, bounded legacy binary import, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
-| Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
 | Optional document AI | [OfficeIMO.AI](../OfficeIMO.AI/README.md) and [IntelligenceX adapter](../OfficeIMO.AI.IntelligenceX/README.md) | Read-only questions, summaries, field extraction and proposed structure with bounded source evidence; .NET 10 and caller-selected model execution |
 | Optional Apple raster codec | Installed Apple ImageIO, CoreGraphics and CoreFoundation frameworks | Bounded HEIC/HEIF composition, transforms, alpha and color policy in Core, with explicit .NET registration |
@@ -1196,11 +1195,11 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core` plus platform XML APIs.
 
 #### [OfficeIMO.Reader.Yaml](../OfficeIMO.Reader.Yaml/README.md)
 
-- [x] YAML representation traversal into path/type/value rows
-- [x] Multi-document streams, chunked output, and optional Markdown tables
+- [x] YAML document traversal into path/type/value rows whose paths select their node in `YamlDocument`
+- [x] Multi-document streams, chunked output with source lines, and optional Markdown tables
 - [x] Path/stream dispatch and malformed-input warnings
 
-_Dependency footprint:_ YamlDotNet plus `OfficeIMO.Reader.Core`.
+_Dependency footprint:_ `OfficeIMO.Yaml` plus `OfficeIMO.Reader.Core`.
 
 #### [OfficeIMO.Reader.Zip](../OfficeIMO.Reader.Zip/README.md)
 
