@@ -262,6 +262,33 @@ public class YamlSerializerBehaviorTests {
         Assert.Equal(YamlErrorCodes.InvalidDocument, Assert.Throws<YamlException>(() => YamlSerializer.Deserialize("Name: a\n---\nName: b\n", Context.AppConfig)).Code);
     }
 
+    // Typed sections read from and written into a loaded document; untouched text, comments included, saves unchanged.
+    [Fact]
+    public void TypedSectionsMixWithLosslessDocumentEdits() {
+        const string yaml = "# service settings\nname: web   # the app\nspec:\n  Name: app\n  Port: 80\nother: keep   # aligned\n";
+        YamlDocument document = YamlDocument.Parse(yaml);
+        AppConfig spec = YamlSerializer.Deserialize(document.Select("spec")!, Context.AppConfig)!;
+        Assert.Equal(("app", 80), (spec.Name, spec.Port));
+
+        // Leave out what the section did not have: defaults and the collections set to null.
+        var compact = new TestYamlContext(new YamlSerializerOptions { DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingDefault });
+        spec.Port = 8080;
+        spec.Tags = null!;
+        spec.Labels = null!;
+        spec.Hosts = null!;
+        spec.Features = null!;
+        document.Set("spec", YamlSerializer.SerializeToNode(spec, compact.AppConfig));
+        Assert.Equal("# service settings\nname: web   # the app\nspec:\n  Name: app\n  Port: 8080\nother: keep   # aligned\n", document.ToString());
+
+        YamlNode node = YamlSerializer.SerializeToNode(new Person("Ada", 36), Context.Person);
+        Assert.Equal(new Person("Ada", 36), YamlSerializer.Deserialize(node, Context.Person));
+
+        // Errors inside a loaded node point into the document's text.
+        YamlDocument invalid = YamlDocument.Parse("a: 1\nspec:\n  Port: x\n");
+        YamlException exception = Assert.Throws<YamlException>(() => YamlSerializer.Deserialize(invalid.Select("spec")!, Context.AppConfig));
+        Assert.Equal((YamlErrorCodes.TypeMismatch, 3, 9), (exception.Code, exception.Line, exception.Column));
+    }
+
     [Fact]
     public void MetadataSourcesFailClearly() {
         var options = new YamlSerializerOptions { TypeInfoResolver = Context };

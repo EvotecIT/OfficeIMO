@@ -27,7 +27,10 @@ public sealed class AppConfig {
     public Dictionary<string, string> Labels { get; set; } = new Dictionary<string, string>();
     public string[] Hosts { get; set; } = Array.Empty<string>();
 
+    // The interop tests read this model with YamlDotNet and SharpYaml too, which have their own name attributes.
     [YamlPropertyName("feature-flags")]
+    [global::YamlDotNet.Serialization.YamlMember(Alias = "feature-flags")]
+    [global::SharpYaml.Serialization.YamlPropertyName("feature-flags")]
     public Dictionary<string, bool> Features { get; set; } = new Dictionary<string, bool>();
 
     [YamlIgnore]
@@ -223,7 +226,7 @@ public sealed class ComposeFile {
 
 public sealed class ComposeService {
     public string? Image { get; set; }
-    public string? Command { get; set; }
+    public object? Command { get; set; }
     public Dictionary<string, string>? Environment { get; set; }
     public List<string>? Volumes { get; set; }
     public List<string>? Ports { get; set; }

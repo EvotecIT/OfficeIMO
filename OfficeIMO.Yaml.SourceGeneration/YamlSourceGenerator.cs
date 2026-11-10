@@ -121,10 +121,4 @@ internal static class YamlDiagnostics {
         "The derived-type registration is invalid",
         "The derived-type registration on '{0}' is invalid: {1}",
         Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
-
-    public static readonly DiagnosticDescriptor Inaccessible = new(
-        "YAML006",
-        "The type is not accessible from the context",
-        "The type '{0}' is not accessible from the YAML serializer context '{1}'; make it internal or public",
-        Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
 }

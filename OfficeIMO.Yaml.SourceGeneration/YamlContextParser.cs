@@ -70,7 +70,6 @@ internal sealed class YamlPropertyShape {
 /// dictionaries, and objects with their properties, constructor and derived types.
 /// </summary>
 internal sealed class YamlContextParser {
-    private readonly Compilation _compilation;
     private readonly INamedTypeSymbol _context;
     private readonly Location? _location;
     private readonly List<YamlDiagnosticInfo> _diagnostics = new List<YamlDiagnosticInfo>();
@@ -80,7 +79,6 @@ internal sealed class YamlContextParser {
     private readonly bool _genericUnsafeAccessor;
 
     private YamlContextParser(Compilation compilation, INamedTypeSymbol context, Location? location) {
-        _compilation = compilation;
         _context = context;
         _location = location;
         _unsafeAccessor = compilation.GetTypeByMetadataName("System.Runtime.CompilerServices.UnsafeAccessorAttribute") is not null;
@@ -179,10 +177,6 @@ internal sealed class YamlContextParser {
             return null;
         }
         if (IsBuiltIn(type)) return new YamlTypeEntry(type, YamlShape.BuiltIn);
-        if (!_compilation.IsSymbolAccessibleWithin(type, _context)) {
-            Report(YamlDiagnostics.Inaccessible, location, Display(type), _context.Name);
-            return null;
-        }
 
         if (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable) {
             return new YamlTypeEntry(type, YamlShape.Nullable) { Element = nullable.TypeArguments[0] };
