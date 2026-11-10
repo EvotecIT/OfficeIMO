@@ -48,7 +48,10 @@ public sealed class PdfDocumentViewingTests {
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Inspect());
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Read());
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Render.Drawing(1));
-        Assert.Throws<PdfPermissionDeniedException>(() => restricted.Render.Pages("1", new PdfPageRenderOptions { ContinueOnError = false }));
+        // Raster rendering is viewing; SVG output carries text and source images, so it stays an extraction.
+        Assert.Equal(raster.Bytes, restricted.Render.Pages("1", new PdfPageRenderOptions { ContinueOnError = false })[0].Bytes);
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.Render.Pages("1", new PdfPageRenderOptions {
+            ContinueOnError = false, Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
         Assert.False(restricted.PlanMutation(PdfMutationOperation.ExtractPages).CanExecute);
         Assert.False(restricted.PlanMutation(PdfMutationOperation.ChangeEncryption).CanExecute);
         if (!permissions.HasFlag(PdfStandardPermissions.Print))

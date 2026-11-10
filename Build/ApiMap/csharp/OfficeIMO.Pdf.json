@@ -3087,6 +3087,16 @@
       "applied": "applied"
     },
     {
+      "old": "OfficeIMO.Pdf.PdfDocumentRenderer.Pages(PdfPageSelection, PdfPageRenderOptions, CancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocumentRenderer.Pages(PdfPageSelection, PdfPageRenderOptions, CancellationToken)",
+      "reason": "PNG rendering of a user-password document no longer requires content-copy permission, matching DisplayPage and PDF viewers. SVG output, a custom ImageCodec or a TextShapingProvider still require extraction permission because they expose text or source images. Check permissions yourself if your application relied on the old refusal.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfPageImageRenderer.Batch.cs",
+      "category": "behavior",
+      "applied": "applied"
+    },
+    {
       "old": "OfficeIMO.Pdf.PdfRedactionMatchKind",
       "kind": "enum",
       "action": "change",

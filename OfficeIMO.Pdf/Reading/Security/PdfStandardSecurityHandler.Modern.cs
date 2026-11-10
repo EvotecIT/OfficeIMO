@@ -13,8 +13,9 @@ internal sealed partial class PdfStandardSecurityHandler {
         IOfficeAesCryptographyProvider? aesCryptographyProvider,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] ownerEntry = GetRequiredBytes(encryptionDictionary, "O");
-        byte[] userEntry = GetRequiredBytes(encryptionDictionary, "U");
+        // Acrobat X/XI pad /O and /U beyond 48 bytes; ISO 32000-2 defines only the first 48 (hash, validation salt, key salt).
+        byte[] ownerEntry = TruncateModernEntry(GetRequiredBytes(encryptionDictionary, "O"));
+        byte[] userEntry = TruncateModernEntry(GetRequiredBytes(encryptionDictionary, "U"));
         byte[] ownerEncryptedFileKey = GetRequiredBytes(encryptionDictionary, "OE");
         byte[] userEncryptedFileKey = GetRequiredBytes(encryptionDictionary, "UE");
         byte[] encryptedPermissions = GetRequiredBytes(encryptionDictionary, "Perms");
@@ -215,6 +216,8 @@ internal sealed partial class PdfStandardSecurityHandler {
             throw new PdfUnsupportedEncryptionException("AES-256 Standard security dictionary entries have invalid lengths.");
         }
     }
+
+    private static byte[] TruncateModernEntry(byte[] entry) => entry.Length > 48 ? SliceModern(entry, 0, 48) : entry;
 
     private static byte[] SliceModern(byte[] value, int start, int end) {
         var result = new byte[end - start];

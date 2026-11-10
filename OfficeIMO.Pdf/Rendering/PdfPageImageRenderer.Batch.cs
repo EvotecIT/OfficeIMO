@@ -40,7 +40,7 @@ internal static partial class PdfPageImageRenderer {
             long totalOutputBytes = 0;
             for (int i = 0; i < pages.Length; i++) {
                 execution.Token.ThrowIfCancellationRequested();
-                PdfPageRenderResult result = RenderPage(document, pages[i], effectiveOptions, execution.Token);
+                PdfPageRenderResult result = RenderPage(document, pages[i], effectiveOptions, execution.Token, ProducesPixelsOnly(effectiveOptions));
                 totalOutputBytes = checked(totalOutputBytes + result.OutputByteLength);
                 if (totalOutputBytes > effectiveOptions.MaxTotalOutputBytes) {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effectiveOptions.MaxTotalOutputBytes, totalOutputBytes);
@@ -117,6 +117,13 @@ internal static partial class PdfPageImageRenderer {
             options,
             cancellationToken);
     }
+
+    // Raster output exposes only pixels, which viewing permits without content-copy permission. SVG carries text and source
+    // images, and caller codecs and shaping providers receive source content, so those still require extraction permission.
+    private static bool ProducesPixelsOnly(PdfPageRenderOptions options) =>
+        options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png &&
+        options.ImageCodec is null &&
+        options.TextShapingProvider is null;
 
     internal static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken, bool forDisplay = false) {
         var timer = Stopwatch.StartNew();
