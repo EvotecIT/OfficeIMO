@@ -13,7 +13,7 @@ internal static partial class CsvWriter
         var includeHeader = options.IncludeHeader;
         var newLine = options.NewLine;
         var formulaInjectionPolicy = options.FormulaInjectionPolicy;
-        var quoteMode = options.QuoteMode;
+        var quoteMode = options.ResolvedQuoteMode;
         var quoteFields = CreateQuoteFieldSet(options.QuoteFields);
 
         if (includeHeader && document.Header.Count > 0)

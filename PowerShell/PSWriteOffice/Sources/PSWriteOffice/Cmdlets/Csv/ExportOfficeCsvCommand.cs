@@ -502,6 +502,8 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
             CompressionLevel = CompressionLevel,
             FormulaInjectionPolicy = FormulaInjectionPolicy,
             QuoteMode = UseQuotes,
+            // PowerShell's -UseQuotes Never writes fields unchanged; the engine rejects ambiguous fields by default.
+            WriteUnquotedFieldsLiterally = UseQuotes == CsvQuoteMode.Never,
             QuoteFields = QuoteFields
         };
 

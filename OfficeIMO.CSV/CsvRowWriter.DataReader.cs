@@ -157,7 +157,7 @@ public sealed partial class CsvRowWriter
                 {
                     CsvWriter.AppendDataReaderRecordBuffered(
                         _rowBuffer, rowValues, _delimiterText, _options.NewLine, _options.Culture,
-                        _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns,
+                        _options.FormulaInjectionPolicy, _options.ResolvedQuoteMode, _quoteFields, _columns,
                         _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
                     BufferCompletedRow();
                 }

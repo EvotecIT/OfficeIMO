@@ -24,6 +24,9 @@ internal sealed partial class CsvLineReader : IDisposable
     private char[] _buffer;
     private readonly CancellationToken _cancellationToken;
     private readonly CsvParsingSettings? _options;
+    // All bits when quotes delimit fields; zero when quotes are data, so SIMD scans never leave the unquoted path.
+    private readonly uint _quoteMask = uint.MaxValue;
+    private readonly bool _quotesAreData;
     private CancellationToken _operationCancellationToken;
     private int _position;
     private int _length;
@@ -67,6 +70,8 @@ internal sealed partial class CsvLineReader : IDisposable
         : this(reader, options?.CancellationToken ?? throw new ArgumentNullException(nameof(options)))
     {
         _options = options;
+        _quotesAreData = options.QuotesAreData;
+        _quoteMask = _quotesAreData ? 0u : uint.MaxValue;
     }
 
     internal void SetOperationCancellationToken(CancellationToken cancellationToken) =>
@@ -122,7 +127,7 @@ internal sealed partial class CsvLineReader : IDisposable
         }
 
         var lineLength = newlineIndex - segmentStart;
-        if (Array.IndexOf(_buffer, '"', segmentStart, lineLength) >= 0)
+        if (!_quotesAreData && Array.IndexOf(_buffer, '"', segmentStart, lineLength) >= 0)
         {
             line = ReadLine(out separator);
             return CsvLineReadResult.Line;
@@ -209,12 +214,12 @@ internal sealed partial class CsvLineReader : IDisposable
             return readResult;
         }
 
-        var specialIndex = _buffer.AsSpan(segmentStart, segmentLength).IndexOfAny('"', '\r', '\n');
+        var specialIndex = IndexOfRecordSpecial(segmentStart, segmentLength);
         while (specialIndex < 0 && TryExtendCurrentSegment())
         {
             segmentStart = _position;
             segmentLength = _length - _position;
-            specialIndex = _buffer.AsSpan(segmentStart, segmentLength).IndexOfAny('"', '\r', '\n');
+            specialIndex = IndexOfRecordSpecial(segmentStart, segmentLength);
         }
 
         var endsAtReaderEnd = false;
@@ -271,6 +276,12 @@ internal sealed partial class CsvLineReader : IDisposable
 
         return CsvLineReadResult.UnquotedRecord;
     }
+#endif
+
+#if NET8_0_OR_GREATER
+    private int IndexOfRecordSpecial(int start, int length) => _quotesAreData
+        ? _buffer.AsSpan(start, length).IndexOfAny('\r', '\n')
+        : _buffer.AsSpan(start, length).IndexOfAny('"', '\r', '\n');
 #endif
 
     public string? ReadLine(out string separator)

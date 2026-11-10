@@ -7,6 +7,22 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderCsvModularTests {
     [Fact]
+    public void DocumentReaderCsv_ReadTsv_TreatsQuotesAsData() {
+        const string tsv = "Id\tNote\n1\t\"open\n2\tsays \"hi\"\n";
+        var reader = new OfficeDocumentReaderBuilder().AddCsvHandler().Build();
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".tsv");
+        File.WriteAllText(path, tsv);
+        try {
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(tsv), writable: false);
+            foreach (OfficeDocumentReadResult result in new[] { reader.ReadDocument(path), reader.ReadDocument(stream, "notes.tsv") }) {
+                ReaderTable table = Assert.Single(result.Chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()));
+                Assert.Equal(new[] { "Id", "Note" }, table.Columns);
+                Assert.Equal(new[] { "\"open", "says \"hi\"" }, table.Rows.Select(row => row[1]).ToArray());
+            }
+        } finally { File.Delete(path); }
+    }
+
+    [Fact]
     public void DocumentReaderCsv_ReadCsvStream_ParsesCsvIntoStructuredChunks() {
         var csv =
             "Name,Score\n" +

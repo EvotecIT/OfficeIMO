@@ -182,7 +182,7 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                if (line.IndexOf('"') < 0 && TrySplitUnquotedRecord(line, _delimiter, _trim, out string[] fields))
+                if ((_options.QuotesAreData || line.IndexOf('"') < 0) && TrySplitUnquotedRecord(line, _delimiter, _trim, _options.QuotesAreData, out string[] fields))
                 {
                     _lineNumber++;
                     if (ShouldSkipCommentRecord(startsWithCommentCharacter, line, _options, _emittedRecordCount)

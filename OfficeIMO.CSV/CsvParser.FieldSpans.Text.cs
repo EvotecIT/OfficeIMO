@@ -19,7 +19,7 @@ internal static partial class CsvParser
         bool? textMayContainQuote = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
-        if (HasFieldLengthLimits(options))
+        if (RequiresFieldMaterialization(options))
         {
             using var reader = new StringReader(text.ToString());
             ReadFieldSpansMaterialized(reader, options, recordsToSkip, ref fieldVisitor);
@@ -57,7 +57,8 @@ internal static partial class CsvParser
         var emittedRecordCount = 0;
         var lineNumber = 1;
         var useAvx2UnquotedFastPath = true;
-        var mayContainQuote = textMayContainQuote ?? (text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0);
+        var mayContainQuote = !options.QuotesAreData &&
+            (textMayContainQuote ?? (text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0));
         var unquotedDelimiterIndexCapacity = 16;
         var projectedFieldVisitor = fieldVisitor as ICsvProjectedFieldSpanVisitor;
         char[]? scratch = null;
@@ -122,6 +123,7 @@ internal static partial class CsvParser
                             ref useAvx2UnquotedFastPath,
                             ref unquotedDelimiterIndexCapacity,
                             mayContainQuote,
+                            options.QuotesAreData,
                             delimiterVector,
                             ref position,
                             projectedFieldVisitor,
@@ -201,6 +203,7 @@ internal static partial class CsvParser
         ref bool useAvx2UnquotedFastPath,
         ref int unquotedDelimiterIndexCapacity,
         bool textMayContainQuote,
+        bool quotesAreData,
         System.Runtime.Intrinsics.Vector256<byte> delimiterVector,
         ref int position,
         ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
@@ -215,8 +218,10 @@ internal static partial class CsvParser
 
 #if NET8_0_OR_GREATER
         var encounteredQuote = false;
+        // The trimmed AVX2 path parses CSV quoting; quote-free dialects trim in the scalar path below.
         if (useAvx2UnquotedFastPath &&
             trim &&
+            !quotesAreData &&
             CanUseAvx2PackedDelimiter(delimiter) &&
             System.Runtime.Intrinsics.X86.Avx2.IsSupported &&
             TryReadTextQuoteAwareRecordFieldSpansAvx2(

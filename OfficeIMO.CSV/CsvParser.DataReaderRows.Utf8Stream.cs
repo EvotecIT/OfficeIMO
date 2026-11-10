@@ -27,6 +27,9 @@ internal static partial class CsvParser
         private readonly byte _delimiter;
         private readonly byte _commentCharacter;
         private readonly Vector256<byte> _delimiterVector;
+        // Quote-free dialects compare against line feed instead, which is already a record terminal.
+        private readonly Vector256<byte> _quoteVector;
+        private readonly bool _quotesAreData;
         private static readonly Vector256<byte> QuoteVector = Vector256.Create((byte)'"');
         private static readonly Vector256<byte> CarriageReturnVector = Vector256.Create((byte)'\r');
         private static readonly Vector256<byte> LineFeedVector = Vector256.Create((byte)'\n');
@@ -61,6 +64,8 @@ internal static partial class CsvParser
             _delimiter = checked((byte)GetDelimiterChar(options));
             _commentCharacter = checked((byte)options.CommentCharacter);
             _delimiterVector = Vector256.Create(_delimiter);
+            _quotesAreData = options.QuotesAreData;
+            _quoteVector = _quotesAreData ? LineFeedVector : QuoteVector;
             _allowEmpty = options.AllowEmptyLines;
             _buffer = buffer;
             _length = length;
@@ -238,7 +243,7 @@ internal static partial class CsvParser
                                 ref MemoryMarshal.GetArrayDataReference(_buffer), (nuint)chunkStart);
                             delimiterMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(values, _delimiterVector));
                             terminalMask = (uint)Avx2.MoveMask(Avx2.Or(
-                                Avx2.CompareEqual(values, QuoteVector),
+                                Avx2.CompareEqual(values, _quoteVector),
                                 Avx2.Or(Avx2.CompareEqual(values, CarriageReturnVector),
                                     Avx2.CompareEqual(values, LineFeedVector))));
                         }
@@ -246,7 +251,7 @@ internal static partial class CsvParser
                         {
                             CsvSimdMasks.ReadBytes32(ref MemoryMarshal.GetArrayDataReference(_buffer),
                                 chunkStart, _delimiter, out delimiterMask, out uint quotes, out uint newlines);
-                            terminalMask = quotes | newlines;
+                            terminalMask = (_quotesAreData ? 0u : quotes) | newlines;
                         }
                         if (terminalMask == 0)
                         {
@@ -260,7 +265,7 @@ internal static partial class CsvParser
                         VisitDelimiterMask(delimitersBeforeTerminal, chunkStart, ref fieldStart, ref fieldIndex);
                         int terminalIndex = chunkStart + terminalOffset;
                         byte terminal = _buffer[terminalIndex];
-                        if (terminal == (byte)'"')
+                        if (terminal == (byte)'"' && !_quotesAreData)
                         {
                             return StartFallback(recordStart, recordLineNumber, cancellationToken);
                         }
@@ -287,7 +292,7 @@ internal static partial class CsvParser
                     }
 
                     byte special = _buffer[_position];
-                    if (special != _delimiter && special != (byte)'"' &&
+                    if (special != _delimiter && (special != (byte)'"' || _quotesAreData) &&
                         special != (byte)'\r' && special != (byte)'\n')
                     {
                         _position++;
@@ -303,7 +308,7 @@ internal static partial class CsvParser
                         continue;
                     }
 
-                    if (special == (byte)'"')
+                    if (special == (byte)'"' && !_quotesAreData)
                     {
                         return StartFallback(recordStart, recordLineNumber, cancellationToken);
                     }

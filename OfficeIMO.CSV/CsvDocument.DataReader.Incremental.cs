@@ -18,7 +18,7 @@ public sealed partial class CsvDocument
         return CreateIncrementalReaderAsync(
             parsing => CsvFile.OpenTextReaderForAsyncRead(path, parsing,
                 CsvLineReader.DefaultBufferSize, largeFileBufferSize: 128 * 1024),
-            options, cancellationToken);
+            options ?? CsvProfiles.CreateDefaultReaderOptions(path), cancellationToken);
     }
 
     /// <summary>
