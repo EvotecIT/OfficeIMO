@@ -63,6 +63,12 @@ namespace OfficeIMO.Excel {
                 ref bool loaded = ref _currentValueLoaded[ordinal];
                 if (loaded || _owner._opt.CellValueConverter != null) return false;
                 bool numericAsDecimal = _owner._opt.NumericAsDecimal;
+                if (numericAsDecimal && _utf8Source.TryGetDecodedDecimalAt(ordinal + _utf8SourceOrdinalOffset, out value)) {
+                    GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Decimal;
+                    GetValidatedOrdinalSlot(_currentDecimalValues, ordinal) = value;
+                    loaded = true;
+                    return true;
+                }
 #if NET8_0_OR_GREATER
                 bool tryLiteral = true;
 #else

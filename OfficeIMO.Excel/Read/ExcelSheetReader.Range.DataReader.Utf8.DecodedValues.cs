@@ -32,6 +32,11 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            /// <summary>Reads a decoded current-row decimal without entering the literal parser.</summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal bool TryGetDecodedDecimalAt(int ordinal, out decimal value) =>
+                TryGetDecodedDecimal(_currentRowOffset + ordinal, out value);
+
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private bool TryGetDecodedDouble(int cellIndex, out double value) {
                 byte[]? tags = _decodedTags;
