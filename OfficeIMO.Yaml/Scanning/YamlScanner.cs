@@ -31,6 +31,12 @@ internal ref partial struct YamlScanner {
     /// <summary>Returns the next token, scanning ahead as far as implicit keys require.</summary>
     public ref YamlToken Peek() {
         YamlScanContext c = _c;
+        // The common case answers NeedMoreTokens inline: a queued token in block context, already checked for stale
+        // candidates at this position, that the one implicit-key candidate does not wait on.
+        if (c.TokenCount > 0 && c.FlowLevel == 0 && c.StaleCheckedAt == c.Base + c.Pos) {
+            ref YamlSimpleKey key = ref c.SimpleKeys[0];
+            if (c.StreamEndProduced || !key.Possible || key.TokenNumber != c.TokensParsed) return ref c.Tokens[c.TokenHead];
+        }
         while (NeedMoreTokens()) FetchNextToken();
         return ref c.Tokens[c.TokenHead];
     }
@@ -470,16 +476,18 @@ internal ref partial struct YamlScanner {
         YamlSimpleKey[] keys = c.SimpleKeys;
         int absolute = Absolute(c.Pos);
         c.StaleCheckedAt = absolute;
+        int line = c.Line;
         for (int i = 0; i <= c.FlowLevel; i++) {
             ref YamlSimpleKey key = ref keys[i];
-            if (key.Possible && (key.Line < c.Line || absolute - key.Offset > MaxImplicitKeyLength)) {
-                if (key.Required) {
-                    throw Error(YamlErrorCodes.InvalidKey, "Could not find the ':' that completes this implicit key.", key.Offset, key.Line, key.Column);
-                }
+            if (key.Possible && (key.Line < line || absolute - key.Offset > MaxImplicitKeyLength)) {
+                if (key.Required) ThrowStaleKey(in key);
                 key.Possible = false;
             }
         }
     }
+
+    private static void ThrowStaleKey(in YamlSimpleKey key) =>
+        throw Error(YamlErrorCodes.InvalidKey, "Could not find the ':' that completes this implicit key.", key.Offset, key.Line, key.Column);
 
     private void SaveSimpleKey() {
         YamlScanContext c = _c;
