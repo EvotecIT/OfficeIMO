@@ -44,20 +44,24 @@ internal static class YamlEncodingDetector {
     /// Decodes a complete YAML byte buffer once into text, recording the encoding and byte-order mark so a lossless
     /// save can reproduce them. The byte-order mark is not part of the returned text.
     /// </summary>
-    public static string Decode(ReadOnlySpan<byte> bytes, out YamlTextEncoding encoding, out bool hasByteOrderMark) {
-        encoding = Detect(bytes.Length >= 4 ? bytes.Slice(0, 4) : bytes, out int bomLength);
+    public static string Decode(byte[] bytes, int count, out YamlTextEncoding encoding, out bool hasByteOrderMark) {
+        encoding = Detect(new ReadOnlySpan<byte>(bytes, 0, Math.Min(count, 4)), out int bomLength);
         hasByteOrderMark = bomLength > 0;
-        ReadOnlySpan<byte> body = bytes.Slice(bomLength);
         try {
-#if NET8_0_OR_GREATER
-            return CreateEncoding(encoding).GetString(body);
-#else
-            return CreateEncoding(encoding).GetString(body.ToArray());
-#endif
+            return CreateEncoding(encoding).GetString(bytes, bomLength, count - bomLength);
         } catch (DecoderFallbackException ex) {
             throw new YamlException(YamlErrorCodes.InvalidEncoding, "The YAML input is not valid " + encoding + " text.", default, ex);
         }
     }
+
+    /// <summary>Returns the byte-order mark of an encoding.</summary>
+    public static byte[] GetByteOrderMark(YamlTextEncoding encoding) => encoding switch {
+        YamlTextEncoding.Utf16LittleEndian => new byte[] { 0xFF, 0xFE },
+        YamlTextEncoding.Utf16BigEndian => new byte[] { 0xFE, 0xFF },
+        YamlTextEncoding.Utf32LittleEndian => new byte[] { 0xFF, 0xFE, 0, 0 },
+        YamlTextEncoding.Utf32BigEndian => new byte[] { 0, 0, 0xFE, 0xFF },
+        _ => new byte[] { 0xEF, 0xBB, 0xBF }
+    };
 }
 
 /// <summary>Supplies decoded characters to the scanner's sliding buffer.</summary>
