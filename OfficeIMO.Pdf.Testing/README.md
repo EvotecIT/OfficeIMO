@@ -86,11 +86,11 @@ var options = new PdfSnapshotOptions {
     Directory = "Snapshots",          // default: __pdfsnapshots__ beside the test file
     Pdf = PdfSnapshotPdfMode.Store    // also keep the approved PDF
 };
-options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 1836, 180)); // a page header with today's date
+options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 1836, 180)); // a header with a changing logo
 PdfSnapshot.Verify(pdfBytes, "statement", options);
 ```
 
-`Visual.Scale` sets the stored image resolution (default `3`, 216 DPI); ignored regions are pixel rectangles at that scale. By default `Visual.IgnoreAntialiasing` skips edges that moved by less than a pixel, `ChannelTolerance` (48) skips small colour differences, and `AllowedDifferenceRatio` (0.0001 %, about four pixels on a Letter page) still catches one changed digit in table text.
+`Visual.Scale` sets the stored image resolution (default `3`, 216 DPI); ignored regions are pixel rectangles at that scale. They hide pixel changes only: text inside them is still part of the structure comparison, so pass a fixed date or other fixed values for content that changes between runs. By default `Visual.IgnoreAntialiasing` skips edges that moved by less than a pixel, `ChannelTolerance` (48) skips small colour differences, and `AllowedDifferenceRatio` (0.0001 %, about four pixels on a Letter page) still catches one changed digit in table text.
 
 Builds that map source paths, such as deterministic CI builds, hide the test file's folder. Set `Directory` there.
 

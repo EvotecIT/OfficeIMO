@@ -50,6 +50,12 @@ public sealed class PdfSnapshotTests : IDisposable {
     }
 
     [Fact]
+    public void DefaultBudgetsCompareTwelveLetterPages() {
+        byte[] pdf = SampleReport.Create("10", pages: 12);
+        Approve("long", pdf);
+    }
+
+    [Fact]
     public void MissingApprovedPageImagesAreNamed() {
         byte[] pdf = SampleReport.Create("10");
         Approve("partial", pdf);

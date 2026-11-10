@@ -25,10 +25,12 @@ public sealed class PdfSnapshotOptions {
     /// Pixel comparison settings. <see cref="PdfVisualComparisonOptions.Scale"/> sets the render scale of the stored page
     /// images (1 = 72 DPI, default 3) and ignored regions use pixels at that scale. By default edges that moved by less than
     /// a pixel and small channel differences are ignored, and about four other changed pixels are allowed on a Letter page,
-    /// so one changed digit in 10-point table text still fails.
+    /// so one changed digit in 10-point table text still fails. The total pixel budget covers the default 100 pages at
+    /// that scale, since each compared page charges the approved image, the received image and their comparison.
     /// </summary>
     public PdfVisualComparisonOptions Visual { get; } = new PdfVisualComparisonOptions {
         Scale = 3D,
+        MaxTotalPixels = 1_500_000_000L,
         ChannelTolerance = 48,
         AllowedDifferenceRatio = 0.000001D,
         IgnoreAntialiasing = true
