@@ -9,6 +9,8 @@ public sealed partial class YamlReader {
     private YamlTagDirective[] _tagDirectives = Array.Empty<YamlTagDirective>();
     private int _tagDirectiveCount;
     private YamlSchema _documentSchema = YamlSchema.Core;
+    private int _versionMajor = -1;
+    private int _versionMinor = -1;
 
     // End of the last consumed token: the position of empty nodes and implicit ends.
     private int _lastEnd;
@@ -332,6 +334,7 @@ public sealed partial class YamlReader {
             return;
         }
         _tagDirectiveCount = 0;
+        _versionMajor = _versionMinor = -1;
         bool version11 = false;
         if (implicitAllowed && token.Kind is not (YamlTokenKind.VersionDirective or YamlTokenKind.TagDirective or YamlTokenKind.ReservedDirective or YamlTokenKind.DocumentStart)) {
             _documentSchema = _options.Schema ?? YamlSchema.Core;
@@ -351,6 +354,8 @@ public sealed partial class YamlReader {
                 if (token.Extra != 1) throw ParseError(YamlErrorCodes.InvalidDirective, "Only YAML version 1.x is supported.", in token);
                 sawVersion = true;
                 version11 = token.Extra2 == 1;
+                _versionMajor = token.Extra;
+                _versionMinor = token.Extra2;
             } else if (token.Kind == YamlTokenKind.TagDirective) {
                 AddTagDirective(scanner.Text, in token);
             }

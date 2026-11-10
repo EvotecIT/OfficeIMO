@@ -34,7 +34,7 @@ public sealed class YamlReaderOptions {
     }
 
     /// <summary>
-    /// Gets or sets the maximum number of nodes a document model may hold. Defaults to 1,000,000.
+    /// Gets or sets the maximum number of nodes one document of a loaded model may hold. Defaults to 1,000,000.
     /// The forward-only reader does not enforce it, so streaming consumers can read unbounded multi-document streams.
     /// </summary>
     public int MaxNodes {

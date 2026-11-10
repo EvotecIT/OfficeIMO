@@ -201,6 +201,22 @@ public sealed partial class YamlReader : IDisposable {
     /// <summary>Gets whether the current scalar is a mapping key.</summary>
     internal bool IsKey => _event.IsKey;
 
+    /// <summary>Gets the current event for the document model, which builds nodes from its offsets.</summary>
+    internal ref readonly YamlEvent CurrentEvent => ref _event;
+
+    /// <summary>Gets the current document's <c>%YAML</c> version as <c>major.minor</c>, or <see langword="null"/> without the directive.</summary>
+    internal string? DocumentVersion => _versionMajor < 0
+        ? null
+        : _versionMajor.ToString(CultureInfo.InvariantCulture) + "." + _versionMinor.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>Copies the current document's <c>%TAG</c> directives, or returns an empty array.</summary>
+    internal YamlTagDirective[] CopyTagDirectives() {
+        if (_tagDirectiveCount == 0) return Array.Empty<YamlTagDirective>();
+        var copy = new YamlTagDirective[_tagDirectiveCount];
+        Array.Copy(_tagDirectives, copy, _tagDirectiveCount);
+        return copy;
+    }
+
     /// <summary>Returns pooled buffers. The caller's stream or text reader is not disposed.</summary>
     public void Dispose() {
         if (_disposed) return;

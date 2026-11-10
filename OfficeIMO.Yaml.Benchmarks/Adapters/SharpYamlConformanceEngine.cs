@@ -8,6 +8,11 @@ using SharpYamlStyle = SharpYaml.YamlStyle;
 
 namespace OfficeIMO.Yaml.Benchmarks.Adapters;
 
+// Inside the namespace so these win over the OfficeIMO.Yaml model types of the same name.
+using YamlDocument = SharpYaml.Model.YamlDocument;
+using YamlMapping = SharpYaml.Model.YamlMapping;
+using YamlSequence = SharpYaml.Model.YamlSequence;
+
 /// <summary>SharpYaml 3 through its parser and editable model (<see cref="SharpYaml.Model.YamlStream"/>).</summary>
 internal sealed class SharpYamlConformanceEngine : IYamlConformanceEngine {
     public string Name => "SharpYaml";

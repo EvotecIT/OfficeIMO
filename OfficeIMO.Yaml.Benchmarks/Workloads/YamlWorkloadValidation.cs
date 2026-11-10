@@ -37,10 +37,12 @@ internal static class YamlWorkloadValidation {
         }
     }
 
-    /// <summary>Saving keeps every loaded value.</summary>
+    /// <summary>Saving keeps every loaded value, and a library that claims lossless saving returns the input unchanged.</summary>
     public static void ValidateLoadAndSave(IYamlReferenceLibrary library, YamlWorkload workload, string[] inputs) {
+        bool lossless = (library.Conformance.Features & YamlEngineFeatures.Lossless) != 0;
         foreach (string input in Distinct(inputs)) {
             string saved = library.LoadAndSave(input);
+            Require(!lossless || string.Equals(saved, input, StringComparison.Ordinal), library, workload, "saved output differs from the input");
             string? difference = YamlJsonEquivalence.FindDifference(library.Conformance.Load(Utf8.GetBytes(input)), library.Conformance.Load(Utf8.GetBytes(saved)));
             Require(difference == null, library, workload, "saved output loads differently: " + difference);
         }

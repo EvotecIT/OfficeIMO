@@ -30,7 +30,7 @@ public class YamlException : Exception {
 }
 
 /// <summary>
-/// Raised when input exceeds one of the limits in <see cref="YamlReaderOptions"/>. The input may be valid YAML;
+/// Raised when input exceeds one of the limits in <see cref="YamlReaderOptions"/> or <see cref="YamlLoadOptions"/>. The input may be valid YAML;
 /// the limit protects the caller from resource exhaustion.
 /// </summary>
 public sealed class YamlLimitExceededException : YamlException {
@@ -77,6 +77,13 @@ public static class YamlErrorCodes {
     public const string InvalidDocument = "Yaml.Syntax.InvalidDocument";
     /// <summary>Bytes that are not valid in the detected Unicode encoding.</summary>
     public const string InvalidEncoding = "Yaml.Encoding.Invalid";
-    /// <summary>A limit from <see cref="YamlReaderOptions"/> was exceeded; see <see cref="YamlLimitExceededException"/>.</summary>
+    /// <summary>An alias (<c>*name</c>) that no preceding anchor in the same document defines.</summary>
+    public const string UndefinedAlias = "Yaml.Load.UndefinedAlias";
+    /// <summary>
+    /// A mapping with two equal keys. <see cref="YamlDocument"/> throws it under <see cref="YamlDuplicateKeyPolicy.Error"/>
+    /// and reports it as a warning diagnostic under the other policies.
+    /// </summary>
+    public const string DuplicateKey = "Yaml.Load.DuplicateKey";
+    /// <summary>A limit from <see cref="YamlReaderOptions"/> or <see cref="YamlLoadOptions"/> was exceeded; see <see cref="YamlLimitExceededException"/>.</summary>
     public const string LimitExceeded = "Yaml.Limit.Exceeded";
 }

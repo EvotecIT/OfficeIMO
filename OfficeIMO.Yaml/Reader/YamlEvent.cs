@@ -30,17 +30,6 @@ internal struct YamlEvent {
     public int TagSuffixEnd;
 }
 
-/// <summary>A %TAG directive in force for the current document.</summary>
-internal readonly struct YamlTagDirective {
-    public YamlTagDirective(string handle, string prefix) {
-        Handle = handle;
-        Prefix = prefix;
-    }
-
-    public string Handle { get; }
-    public string Prefix { get; }
-}
-
 /// <summary>Parser states, following the productions of the YAML 1.2.2 serialization grammar.</summary>
 internal enum YamlParserState : byte {
     StreamStart,

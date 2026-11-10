@@ -95,15 +95,8 @@ public sealed partial class YamlReader {
     private bool TryGetKind(out YamlScalarKind kind) {
         kind = YamlScalarKind.String;
         if (_event.Type != YamlTokenType.Scalar) return false;
-        if (_event.HasTag) {
-            string tag = Tag!;
-            if (tag == "!") return true;
-            if (!YamlSchemaResolver.TryGetTagKind(tag, out kind)) return false;
-            return _documentSchema != YamlSchema.Failsafe || kind == YamlScalarKind.String;
-        }
-        if (_event.Style != YamlStyle.Plain) return true;
-        kind = YamlSchemaResolver.Resolve(ScalarText(), _documentSchema);
-        return true;
+        bool plain = !_event.HasTag && _event.Style == YamlStyle.Plain;
+        return YamlSchemaResolver.TryGetKind(_event.HasTag ? Tag : null, _event.Style, plain ? ScalarText() : default, _documentSchema, out kind);
     }
 
     private YamlSchema NumericSchema => _documentSchema == YamlSchema.Failsafe ? YamlSchema.Core : _documentSchema;

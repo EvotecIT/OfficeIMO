@@ -55,11 +55,25 @@ public class YamlLoadTreeBenchmarks {
     [GlobalSetup(Target = nameof(SharpYaml))]
     public void SetupSharpYaml() => Setup(YamlReferenceLibraries.SharpYaml);
 
+    [GlobalSetup(Targets = new[] { nameof(OfficeIMOYaml), nameof(OfficeIMOYamlWithValues) })]
+    public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
+
     [Benchmark(Baseline = true)]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
+
+    [Benchmark]
+    public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
+
+    /// <summary>Also reads every scalar value, which the reference trees materialize while loading.</summary>
+    [Benchmark]
+    public long OfficeIMOYamlWithValues() {
+        long total = 0;
+        foreach (string input in _inputs) total += YamlReferenceLibraries.OfficeIMOYaml.LoadTreeAndValues(input);
+        return total;
+    }
 
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);
@@ -87,11 +101,17 @@ public class YamlLoadAndSaveBenchmarks {
     [GlobalSetup(Target = nameof(SharpYaml))]
     public void SetupSharpYaml() => Setup(YamlReferenceLibraries.SharpYaml);
 
+    [GlobalSetup(Target = nameof(OfficeIMOYaml))]
+    public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
+
     [Benchmark(Baseline = true)]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
+
+    [Benchmark]
+    public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
 
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);

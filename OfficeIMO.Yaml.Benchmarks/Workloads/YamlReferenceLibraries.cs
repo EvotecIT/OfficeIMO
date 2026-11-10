@@ -33,10 +33,10 @@ internal static class YamlReferenceLibraries {
 
     public static IYamlReferenceLibrary SharpYaml { get; } = new SharpYamlLibrary();
 
-    /// <summary>OfficeIMO.Yaml; only parse-to-events exists until the document model and writer land.</summary>
-    public static IYamlReferenceLibrary OfficeIMOYaml { get; } = new OfficeIMOYamlLibrary();
+    /// <summary>OfficeIMO.Yaml; emitting arrives with the writer.</summary>
+    public static OfficeIMOYamlLibrary OfficeIMOYaml { get; } = new OfficeIMOYamlLibrary();
 
-    private sealed class OfficeIMOYamlLibrary : IYamlReferenceLibrary {
+    internal sealed class OfficeIMOYamlLibrary : IYamlReferenceLibrary {
         public string Name => "OfficeIMO.Yaml";
 
         public IYamlConformanceEngine Conformance { get; } = new OfficeIMOYamlConformanceEngine();
@@ -69,13 +69,48 @@ internal static class YamlReferenceLibraries {
             return count;
         }
 
-        public int LoadTree(string yaml) => throw new NotSupportedException("OfficeIMO.Yaml has no document model yet.");
+        // The model decodes scalar values on first use, so loading the tree leaves them undecoded; LoadTreeAndValues
+        // measures the work of also reading every value as a string.
+        public int LoadTree(string yaml) {
+            global::OfficeIMO.Yaml.YamlDocument document = global::OfficeIMO.Yaml.YamlDocument.Parse(yaml);
+            int count = 0;
+            foreach (global::OfficeIMO.Yaml.YamlDocumentPart part in document.Documents) count += Count(part.Root, values: false);
+            return count;
+        }
 
-        public string LoadAndSave(string yaml) => throw new NotSupportedException("OfficeIMO.Yaml has no document model yet.");
+        public int LoadTreeAndValues(string yaml) {
+            global::OfficeIMO.Yaml.YamlDocument document = global::OfficeIMO.Yaml.YamlDocument.Parse(yaml);
+            int count = 0;
+            foreach (global::OfficeIMO.Yaml.YamlDocumentPart part in document.Documents) count += Count(part.Root, values: true);
+            return count;
+        }
+
+        // Saving an unchanged document copies its retained source, so the saved text is the input string itself.
+        public string LoadAndSave(string yaml) => global::OfficeIMO.Yaml.YamlDocument.Parse(yaml).ToString();
 
         public object CaptureEvents(string yaml) => throw new NotSupportedException("OfficeIMO.Yaml has no writer yet.");
 
         public string Emit(object events) => throw new NotSupportedException("OfficeIMO.Yaml has no writer yet.");
+
+        private static int Count(global::OfficeIMO.Yaml.YamlNode node, bool values) {
+            switch (node) {
+                case global::OfficeIMO.Yaml.YamlAlias alias:
+                    return Count(alias.Target, values);
+                case global::OfficeIMO.Yaml.YamlSequence sequence: {
+                    int count = 1;
+                    foreach (global::OfficeIMO.Yaml.YamlNode item in sequence) count += Count(item, values);
+                    return count;
+                }
+                case global::OfficeIMO.Yaml.YamlMapping mapping: {
+                    int count = 1;
+                    foreach (global::OfficeIMO.Yaml.YamlMappingEntry entry in mapping) count += Count(entry.Key, values) + Count(entry.Value, values);
+                    return count;
+                }
+                default:
+                    if (values) _ = node.AsString();
+                    return 1;
+            }
+        }
     }
 
     private sealed class YamlDotNetLibrary : IYamlReferenceLibrary {
