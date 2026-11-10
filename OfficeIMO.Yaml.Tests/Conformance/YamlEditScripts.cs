@@ -312,7 +312,7 @@ public static class YamlEditScripts {
 
     private static string KeyText(YamlMapping mapping, YamlNode value) {
         YamlNode key = KeyOf(value);
-        if (key.Resolved is not YamlScalar || mapping.IndexOf(key.AsString()) < 0 || !ReferenceEquals(mapping[mapping.IndexOf(key.AsString())].Value, value)) {
+        if (key is not YamlScalar || mapping.IndexOf(key.AsString()) < 0 || !ReferenceEquals(mapping[mapping.IndexOf(key.AsString())].Value, value)) {
             throw new InvalidOperationException("The key is not addressable by text.");
         }
         return key.AsString();

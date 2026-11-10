@@ -5,7 +5,7 @@ using Sharp = SharpYaml;
 
 namespace OfficeIMO.Yaml.Benchmarks.Workloads;
 
-/// <summary>The four measured operations, implemented directly against one reference library.</summary>
+/// <summary>The measured operations, implemented directly against one reference library.</summary>
 internal interface IYamlReferenceLibrary {
     string Name { get; }
 
@@ -21,6 +21,11 @@ internal interface IYamlReferenceLibrary {
     /// <summary>Loads the tree and saves it unchanged.</summary>
     string LoadAndSave(string yaml);
 
+    /// <summary>
+    /// Loads the stream, sets the first scalar value of the first mapping in document order to <c>edited</c> and saves.
+    /// </summary>
+    string EditAndSave(string yaml);
+
     /// <summary>Captures library-native events for <see cref="Emit"/>; runs outside timing.</summary>
     object CaptureEvents(string yaml);
 
@@ -33,7 +38,7 @@ internal static class YamlReferenceLibraries {
 
     public static IYamlReferenceLibrary SharpYaml { get; } = new SharpYamlLibrary();
 
-    /// <summary>OfficeIMO.Yaml; emitting arrives with the writer.</summary>
+    /// <summary>OfficeIMO.Yaml: reader, document model and writer.</summary>
     public static OfficeIMOYamlLibrary OfficeIMOYaml { get; } = new OfficeIMOYamlLibrary();
 
     internal sealed class OfficeIMOYamlLibrary : IYamlReferenceLibrary {
@@ -88,9 +93,29 @@ internal static class YamlReferenceLibraries {
         // Saving an unchanged document copies its retained source, so the saved text is the input string itself.
         public string LoadAndSave(string yaml) => global::OfficeIMO.Yaml.YamlDocument.Parse(yaml).ToString();
 
-        public object CaptureEvents(string yaml) => throw new NotSupportedException("OfficeIMO.Yaml has no writer yet.");
+        // Only the edited value's text changes; the rest of the output is copied from the source.
+        public string EditAndSave(string yaml) {
+            global::OfficeIMO.Yaml.YamlDocument document = global::OfficeIMO.Yaml.YamlDocument.Parse(yaml);
+            foreach (global::OfficeIMO.Yaml.YamlNode node in document.Documents[0].Root.Descendants()) {
+                if (node is global::OfficeIMO.Yaml.YamlMapping mapping && FirstScalarValue(mapping) is int index) {
+                    ((global::OfficeIMO.Yaml.YamlScalar)mapping[index].Value).SetValue("edited");
+                    break;
+                }
+            }
 
-        public string Emit(object events) => throw new NotSupportedException("OfficeIMO.Yaml has no writer yet.");
+            return document.ToString();
+        }
+
+        private static int? FirstScalarValue(global::OfficeIMO.Yaml.YamlMapping mapping) =>
+            mapping.Count > 0 && mapping[0].Value is global::OfficeIMO.Yaml.YamlScalar ? 0 : null;
+
+        public object CaptureEvents(string yaml) => Conformance.Parse(System.Text.Encoding.UTF8.GetBytes(yaml));
+
+        public string Emit(object events) {
+            var output = new StringWriter();
+            using (var writer = new global::OfficeIMO.Yaml.YamlWriter(output)) OfficeIMOYamlConformanceEngine.Replay((IReadOnlyList<YamlTestEvent>)events, writer);
+            return output.ToString();
+        }
 
         private static int Count(global::OfficeIMO.Yaml.YamlNode node, bool values) {
             switch (node) {
@@ -139,6 +164,35 @@ internal static class YamlReferenceLibraries {
             var output = new StringWriter();
             stream.Save(output, assignAnchors: false);
             return output.ToString();
+        }
+
+        public string EditAndSave(string yaml) {
+            var stream = new DotNet.RepresentationModel.YamlStream();
+            stream.Load(new StringReader(yaml));
+            if (stream.Documents.Count > 0 && FindFirst(stream.Documents[0].RootNode) is DotNet.RepresentationModel.YamlScalarNode scalar) scalar.Value = "edited";
+            var output = new StringWriter();
+            stream.Save(output, assignAnchors: false);
+            return output.ToString();
+        }
+
+        // Document order: a mapping is checked before its children, as the other lanes walk it.
+        private static DotNet.RepresentationModel.YamlNode? FindFirst(DotNet.RepresentationModel.YamlNode node) {
+            if (node is DotNet.RepresentationModel.YamlMappingNode mapping) {
+                foreach (KeyValuePair<DotNet.RepresentationModel.YamlNode, DotNet.RepresentationModel.YamlNode> entry in mapping.Children) {
+                    if (entry.Value is DotNet.RepresentationModel.YamlScalarNode) return entry.Value;
+                    break;
+                }
+                foreach (KeyValuePair<DotNet.RepresentationModel.YamlNode, DotNet.RepresentationModel.YamlNode> entry in mapping.Children) {
+                    if (FindFirst(entry.Key) is { } inKey) return inKey;
+                    if (FindFirst(entry.Value) is { } inValue) return inValue;
+                }
+            } else if (node is DotNet.RepresentationModel.YamlSequenceNode sequence) {
+                foreach (DotNet.RepresentationModel.YamlNode child in sequence.Children) {
+                    if (FindFirst(child) is { } found) return found;
+                }
+            }
+
+            return null;
         }
 
         public object CaptureEvents(string yaml) {
@@ -191,6 +245,37 @@ internal static class YamlReferenceLibraries {
             var output = new StringWriter();
             stream.WriteTo(output, false);
             return output.ToString();
+        }
+
+        public string EditAndSave(string yaml) {
+            Sharp.Model.YamlStream stream = Sharp.Model.YamlStream.Load(new StringReader(yaml));
+            foreach (Sharp.Model.YamlDocument document in stream) {
+                if (document.Contents is not null && FindFirst(document.Contents) is Sharp.Model.YamlValue scalar) scalar.Value = "edited";
+                break;
+            }
+
+            var output = new StringWriter();
+            stream.WriteTo(output, false);
+            return output.ToString();
+        }
+
+        private static Sharp.Model.YamlElement? FindFirst(Sharp.Model.YamlElement element) {
+            if (element is Sharp.Model.YamlMapping mapping) {
+                foreach (KeyValuePair<Sharp.Model.YamlElement, Sharp.Model.YamlElement?> entry in mapping) {
+                    if (entry.Value is Sharp.Model.YamlValue) return entry.Value;
+                    break;
+                }
+                foreach (KeyValuePair<Sharp.Model.YamlElement, Sharp.Model.YamlElement?> entry in mapping) {
+                    if (FindFirst(entry.Key) is { } inKey) return inKey;
+                    if (entry.Value is not null && FindFirst(entry.Value) is { } inValue) return inValue;
+                }
+            } else if (element is Sharp.Model.YamlSequence sequence) {
+                foreach (Sharp.Model.YamlElement child in sequence) {
+                    if (FindFirst(child) is { } found) return found;
+                }
+            }
+
+            return null;
         }
 
         public object CaptureEvents(string yaml) {

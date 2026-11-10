@@ -194,21 +194,18 @@ internal static class YamlReaderAdapter {
     /// explicit tags, and returns its decoded value.
     /// </summary>
     private static string Classify(YamlScalar scalar, out string value) {
-        if (scalar.IsNull) {
+        YamlScalarKind kind = scalar.Kind;
+        if (kind == YamlScalarKind.Null) {
             value = "null";
             return "null";
         }
 
         value = scalar.AsString();
-        if (scalar.TryGetValue<bool>(out _)) {
-            return "boolean";
-        }
-
-        if (scalar.TryGetValue<double>(out _)) {
-            return "number";
-        }
-
-        return "string";
+        return kind switch {
+            YamlScalarKind.Boolean => "boolean",
+            YamlScalarKind.Integer or YamlScalarKind.Float => "number",
+            _ => "string"
+        };
     }
 
     private static YamlLoadOptions BuildLoadOptions(YamlLoadOptions? configured, long? maxInputBytes) {
@@ -220,19 +217,7 @@ internal static class YamlReaderAdapter {
         return options;
     }
 
-    internal static YamlLoadOptions? CopyLoadOptions(YamlLoadOptions? options) {
-        if (options == null) return null;
-
-        return new YamlLoadOptions {
-            Schema = options.Schema,
-            DuplicateKeys = options.DuplicateKeys,
-            MaxDepth = options.MaxDepth,
-            MaxNodes = options.MaxNodes,
-            MaxAliasExpansion = options.MaxAliasExpansion,
-            MaxScalarLength = options.MaxScalarLength,
-            MaxInputBytes = options.MaxInputBytes
-        };
-    }
+    internal static YamlLoadOptions? CopyLoadOptions(YamlLoadOptions? options) => options?.Clone();
 
     private static ReaderChunk BuildChunk(
         SourceMetadata source,

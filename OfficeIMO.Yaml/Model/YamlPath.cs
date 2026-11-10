@@ -245,10 +245,11 @@ internal static class YamlPath {
                 var mapping = (YamlMapping)parent;
                 int index = mapping.IndexOfNode(current, out bool isKey);
                 YamlNode key = mapping._entries[index].Key;
-                string? text = isKey ? null : key.Resolved is YamlScalar scalar && scalar.Kind == YamlScalarKind.String ? scalar.Value : null;
-                if (text is null) steps.Add("[" + index.ToString(CultureInfo.InvariantCulture) + "]");
-                else if (IsName(text)) steps.Add("." + text);
-                else steps.Add("[" + Quote(text) + "]");
+                if (isKey || key.Resolved is not YamlScalar scalar) {
+                    throw new InvalidOperationException("No path addresses " + (isKey ? "a mapping key" : "a value under a collection key") + "; paths select values by key text.");
+                }
+                string text = scalar.Value;
+                steps.Add(IsName(text) ? "." + text : "[" + Quote(text) + "]");
             }
             current = parent;
         }

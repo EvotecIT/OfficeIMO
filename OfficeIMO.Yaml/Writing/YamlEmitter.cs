@@ -237,7 +237,8 @@ internal sealed class YamlEmitter {
             WriteBlockScalar(value, style == YamlStyle.Folded, parentIndent, contentIndent);
             return;
         }
-        bool simpleKey = (style != YamlStyle.Plain || value.Length > 0) && value.IndexOf('\n') < 0;
+        // An empty key is written as a bare ':' (`: value`), which every reader takes as an empty key.
+        bool simpleKey = value.IndexOf('\n') < 0;
         if (value.Length > YamlScalarFormat.MaxImplicitKeyLength) simpleKey = false;
         BeginNode(Shape.Inline, empty, simpleKey, aliasKey: false, sequence: false, out _, out _);
         switch (style) {

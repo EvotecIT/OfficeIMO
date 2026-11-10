@@ -191,7 +191,10 @@ public abstract class YamlNode {
     /// <item><description>A leading <c>$</c> stands for this node.</description></item>
     /// </list>
     /// Key steps match scalar keys by decoded text and follow aliases and, under the YAML 1.1 schema, <c>&lt;&lt;</c>
-    /// merge keys. Paths address nodes; they do not evaluate expressions. <see cref="YamlDocument.Set"/>,
+    /// merge keys. Paths address nodes; they do not evaluate expressions. Because steps match text, a path cannot reach
+    /// values under collection keys (<c>[a, b]: x</c>), and of two keys with the same text but different types
+    /// (<c>1</c> and <c>"1"</c>) it finds the one the document's duplicate-key policy picks; enumerate
+    /// <see cref="YamlMapping"/> entries to reach those. <see cref="YamlDocument.Set"/>,
     /// <see cref="YamlDocument.Add"/> and <see cref="YamlDocument.Remove"/> edit by the same paths.
     /// </summary>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
@@ -199,8 +202,8 @@ public abstract class YamlNode {
     public YamlNode? Select(string path) => YamlPath.Select(this, path, 0);
 
     /// <summary>Returns the path of this node from its document root, in the grammar <see cref="Select"/> reads.</summary>
-    /// <remarks>Keys that are not plain names (dots, brackets, quotes, non-string keys) use the <c>["key"]</c> form. A
-    /// collection key, which no path can address, is written as its index in brackets after the mapping's path.</remarks>
+    /// <remarks>Keys that are not plain names (dots, brackets, quotes) use the <c>["key"]</c> form.</remarks>
+    /// <exception cref="InvalidOperationException">The node is a mapping key, or sits under a collection key; see <see cref="Select"/>.</exception>
     public string GetPath() => YamlPath.Format(this);
 
     /// <summary>

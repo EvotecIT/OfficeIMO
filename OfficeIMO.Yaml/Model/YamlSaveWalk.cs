@@ -289,7 +289,11 @@ internal sealed class YamlSaveWalk {
             if (parent._style == YamlStyle.Flow) {
                 // An omitted value may have no ':' at all (`{a}`), or no space after it.
                 string flow = RenderSlot(node, YamlSlot.Flow, 0, Column(start));
-                if (!hasColon) flow = (key is YamlAlias || (start > 0 && _source[start - 1] == '?') ? " : " : ": ") + flow;
+                if (!hasColon) {
+                    // A key that spans lines cannot be implicit once it has a ':'; it becomes explicit.
+                    if (ContainsBreak(key._start, key._end) && _cursor <= key._start && YamlTrivia.EntryStart(_source, key._start, 0) == key._start && !PrecededByQuestion(key._start)) Insert(key._start, "? ");
+                    flow = (key is YamlAlias || (start > 0 && _source[start - 1] == '?') ? " : " : ": ") + flow;
+                }
                 else if (start == colonEnd) flow = " " + flow;
                 Replace(start, end, flow);
                 return false;
@@ -367,6 +371,12 @@ internal sealed class YamlSaveWalk {
         string multi = RenderSlot(node, YamlSlot.Inline, parentIndent, column, note, endLine: endsAtLineStart);
         Replace(start, endsAtLineStart ? end : lineEnd, prefix + multi);
         return true;
+    }
+
+    private bool PrecededByQuestion(int start) {
+        int i = start - 1;
+        while (i >= 0 && (_source[i] == ' ' || _source[i] == '\t' || YamlTrivia.IsBreak(_source[i]))) i--;
+        return i >= 0 && _source[i] == '?';
     }
 
     private bool NeedsSpace(int start) => start > 0 && _source[start - 1] != ' ' && _source[start - 1] != '\t' && !YamlTrivia.IsBreak(_source[start - 1]);
