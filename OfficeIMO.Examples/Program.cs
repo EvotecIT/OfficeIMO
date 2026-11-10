@@ -88,6 +88,7 @@ namespace OfficeIMO.Examples {
             PowerPoint.LayoutStrategyComparisonPowerPoint.Example_LayoutStrategyComparisonPowerPoint(folderPath, false);
             PowerPoint.DirectEditingPowerPoint.Example(folderPath, false);
             PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
+            PowerPoint.MastersLayoutsConnectorsPowerPoint.Example_MastersLayoutsConnectors(folderPath, false);
             PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
             PowerPoint.SectionsWithoutRepairPowerPoint.Example_PowerPointSectionsWithoutRepair(folderPath, false);
             PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
@@ -215,6 +216,11 @@ namespace OfficeIMO.Examples {
 
             if (HasArgument(args, "--powerpoint-layout-strategy")) {
                 PowerPoint.LayoutStrategyComparisonPowerPoint.Example_LayoutStrategyComparisonPowerPoint(folderPath, false);
+                return;
+            }
+
+            if (HasArgument(args, "--powerpoint-masters")) {
+                PowerPoint.MastersLayoutsConnectorsPowerPoint.Example_MastersLayoutsConnectors(folderPath, false);
                 return;
             }
 
