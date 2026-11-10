@@ -35,6 +35,9 @@ internal sealed class YamlDotNetConformanceEngine : IYamlConformanceEngine {
         return documents;
     }
 
+    /// <inheritdoc />
+    public byte[] Emit(IReadOnlyList<YamlTestEvent> events) => throw new NotSupportedException();
+
     public byte[] RoundTrip(byte[] yaml) {
         string text = YamlTextEncoding.Decode(yaml, out YamlTextEncoding encoding);
         var stream = new YamlStream();

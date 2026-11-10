@@ -12,7 +12,9 @@ public enum YamlEngineFeatures {
     /// <summary><see cref="IYamlConformanceEngine.RoundTrip"/> loads and saves a stream without edits.</summary>
     RoundTrip = 4,
     /// <summary>The engine claims that an unedited round-trip returns the input bytes unchanged.</summary>
-    Lossless = 8
+    Lossless = 8,
+    /// <summary><see cref="IYamlConformanceEngine.Emit"/> writes an event stream as YAML text.</summary>
+    Emit = 16
 }
 
 /// <summary>
@@ -38,4 +40,7 @@ public interface IYamlConformanceEngine {
 
     /// <summary>Loads the stream and saves it again without changes, returning the saved bytes.</summary>
     byte[] RoundTrip(byte[] yaml);
+
+    /// <summary>Writes an event stream, as <see cref="Parse"/> reports it, as a new YAML document and returns its bytes.</summary>
+    byte[] Emit(IReadOnlyList<YamlTestEvent> events);
 }

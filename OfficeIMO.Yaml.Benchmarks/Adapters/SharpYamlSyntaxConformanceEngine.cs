@@ -18,6 +18,9 @@ internal sealed class SharpYamlSyntaxConformanceEngine : IYamlConformanceEngine 
 
     public IReadOnlyList<YamlConformanceNode> Load(byte[] yaml) => throw new NotSupportedException();
 
+    /// <inheritdoc />
+    public byte[] Emit(IReadOnlyList<YamlTestEvent> events) => throw new NotSupportedException();
+
     public byte[] RoundTrip(byte[] yaml) {
         string text = YamlTextEncoding.Decode(yaml, out YamlTextEncoding encoding);
         return encoding.Encode(YamlSyntaxTree.Parse(text, Options).ToFullString());

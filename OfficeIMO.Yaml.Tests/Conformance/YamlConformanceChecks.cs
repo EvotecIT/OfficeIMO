@@ -15,7 +15,12 @@ public enum YamlConformanceCheck {
     /// <summary>Loading and saving without edits returns the input bytes.</summary>
     RoundTrip,
     /// <summary>Loading and saving without edits keeps the content: re-parsing the output gives the same values, tags and anchors.</summary>
-    RoundTripContent
+    RoundTripContent,
+    /// <summary>
+    /// Writing a valid case's events as a new document gives text that parses to the same events: equal content, and
+    /// plain scalars stay plain while quoted and block scalars stay non-plain, because plainness decides how a scalar resolves.
+    /// </summary>
+    Emit
 }
 
 /// <summary>Outcome of one check.</summary>
@@ -77,6 +82,7 @@ public sealed class YamlConformanceChecks {
         if (!testCase.IsError) {
             results.Add(CheckRoundTrip(testCase.Id, testCase.Input));
             results.Add(CheckRoundTripContent(testCase.Id, testCase.Input));
+            results.Add(CheckEmit(testCase.Id, testCase.Input));
         }
 
         return results;
@@ -85,7 +91,7 @@ public sealed class YamlConformanceChecks {
     /// <summary>Runs the acceptance and round-trip checks on a corpus file's YAML.</summary>
     public IReadOnlyList<YamlCheckResult> CheckCorpusFile(YamlCorpusFile file) {
         if (file == null) throw new ArgumentNullException(nameof(file));
-        return new[] { CheckAccepts(file.Path, file.Yaml), CheckRoundTrip(file.Path, file.Yaml), CheckRoundTripContent(file.Path, file.Yaml) };
+        return new[] { CheckAccepts(file.Path, file.Yaml), CheckRoundTrip(file.Path, file.Yaml), CheckRoundTripContent(file.Path, file.Yaml), CheckEmit(file.Path, file.Yaml) };
     }
 
     /// <summary>Compares the events of a valid case with <c>test.event</c>.</summary>
@@ -183,6 +189,38 @@ public sealed class YamlConformanceChecks {
         string expected = index < original!.Count ? original[index].ToString() : "<end>";
         string actual = index < saved!.Count ? saved[index].ToString() : "<end>";
         return new YamlCheckResult(subject, check, YamlCheckOutcome.Fail, "event " + index + ": expected '" + expected + "' but re-parsed '" + actual + "'");
+    }
+
+    /// <summary>Emits the input's events as a new document and checks that re-parsing it gives the same events.</summary>
+    public YamlCheckResult CheckEmit(string subject, byte[] yaml) {
+        const YamlConformanceCheck check = YamlConformanceCheck.Emit;
+        if (!Has(YamlEngineFeatures.Emit) || !Has(YamlEngineFeatures.Events)) return Skip(subject, check);
+        if (!TryRun(() => _engine.Parse(yaml), out IReadOnlyList<YamlTestEvent>? original, out string? error)) {
+            return new YamlCheckResult(subject, check, YamlCheckOutcome.Skipped, "input not parsed: " + error);
+        }
+
+        byte[]? emitted = null;
+        if (!TryRun(() => emitted = _engine.Emit(original!), out _, out error)) return new YamlCheckResult(subject, check, YamlCheckOutcome.Error, error);
+        if (!TryRun(() => _engine.Parse(emitted!), out IReadOnlyList<YamlTestEvent>? reparsed, out error)) {
+            return new YamlCheckResult(subject, check, YamlCheckOutcome.Fail, "emitted text does not parse: " + error);
+        }
+
+        int index = FindEmitDifference(original!, reparsed!);
+        if (index < 0) return new YamlCheckResult(subject, check, YamlCheckOutcome.Pass);
+        string expected = index < original!.Count ? original[index].ToString() : "<end>";
+        string actual = index < reparsed!.Count ? reparsed[index].ToString() : "<end>";
+        return new YamlCheckResult(subject, check, YamlCheckOutcome.Fail, "event " + index + ": expected '" + expected + "' but re-parsed '" + actual + "'");
+    }
+
+    /// <summary>Content difference, plus scalars that changed between plain and non-plain.</summary>
+    public static int FindEmitDifference(IReadOnlyList<YamlTestEvent> expected, IReadOnlyList<YamlTestEvent> actual) {
+        int index = YamlTestEventText.FindContentDifference(expected, actual);
+        if (index >= 0) return index;
+        for (int i = 0; i < expected.Count; i++) {
+            if (expected[i].Kind == YamlTestEventKind.Scalar && (expected[i].Style == YamlTestScalarStyle.Plain) != (actual[i].Style == YamlTestScalarStyle.Plain)) return i;
+        }
+
+        return -1;
     }
 
     private const string TimeoutPrefix = "timed out";
