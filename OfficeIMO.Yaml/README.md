@@ -22,7 +22,7 @@ document.Save();   // unchanged: the same bytes as the input
 
 - **Typed reads** go through the document's schema: `GetValue<T>()` and `TryGetValue<T>()` for `string`, `bool`, `int`, `long`, `double`, `float`, `decimal` and their nullable forms; `AsString()` for the decoded text; `IsNull`; `YamlScalar.Kind` for what a scalar resolves to (null, boolean, integer, float, string, timestamp, or a custom tag). `AsMapping()`, `AsSequence()` and `AsScalar()` throw an exception naming the actual node kind. Reading never changes the source text.
 - **Aliases** stay `YamlAlias` nodes in the tree. Typed reads and `Target` look through them to the anchored node.
-- **Merge keys** (`<<`) apply to key lookups and paths under the YAML 1.1 schema, without being flattened into the tree.
+- **Merge keys** (`<<`) apply to key lookups and paths, without being flattened into the tree: under the YAML 1.1 schema, and also under the default Core schema unless the load is strict (see [YAML as real files use it](#yaml-as-real-files-use-it)). A mapping's own keys win, then merged mappings in order; repeated `<<` keys form one merge list.
 - **Paths**: `Select("spec.containers[0].image")` returns a node or `null`, and `node.GetPath()` returns a node's path. Use `["key"]` with JSON escapes for keys containing dots or brackets, `[n]` for sequence items, and `$[n]` on a multi-document `YamlDocument` to pick a document. The grammar matches the paths `OfficeIMO.Reader.Yaml` reports. Steps match key text, so values under collection keys (`[a, b]: x`) are reached by enumerating the mapping, and of keys with equal text but different types (`1` and `"1"`) a path finds the one the duplicate-key policy picks.
 - **Comments**: `CommentBefore` returns the comment lines above a node's entry, `Comment` the comment at the end of its line, and `SpaceBefore` whether a blank line precedes it. A mapping value shares its key's lines. `YamlDocumentPart.CommentBefore` and `CommentAfter` hold a document's header (such as a license) and footer.
 - **Walking**: `node.Descendants()` enumerates a node and everything below it depth first, without allocating per node.
@@ -70,6 +70,27 @@ writer.WriteEndMapping();
 ```
 
 `YamlWriter` writes to a stream through a pooled UTF-8 buffer or to a `TextWriter`, and allocates nothing per call beyond that buffer. It covers mappings, sequences, keys, scalars with a requested style, aliases, anchors, tags, comments and document markers, and its output is deterministic. `YamlWriterOptions` sets the mapping indent, sequence indent and dash offset (2, 2 and 0 write `key:\n- item`; 2, 4 and 2 write `key:\n  - item`) and the line break. Long lines are never folded, empty collections are written as `[]` and `{}`, and multi-line strings become literal block scalars.
+
+## YAML as real files use it
+
+By default the reader and the loader read three forms the way real files use them and libyaml (behind PyYAML and Ruby) and SharpYaml read them, where the YAML 1.2.2 specification rejects them or reads them differently. Lines inside a flow collection and quoted-scalar continuation lines may be indented no deeper than the enclosing block collection, and `<<` merges under the Core schema:
+
+```yaml
+args: [
+  --verbose
+]                     # a flow collection's lines at the key's indentation
+message: 'first line
+second line'          # a quoted scalar's continuation at the key's indentation
+job:
+  <<: *defaults       # merge keys without a %YAML 1.1 directive (docker-compose, GitLab CI)
+  <<: *extra          # repeated merge keys add to one merge list
+```
+
+Each accepted indentation is a `yaml-lenient-indentation` warning with its line and column, once per outermost flow collection and once per quoted scalar, in `YamlReader.Diagnostics` and `YamlDocument.Diagnostics`. A document part that uses merge keys without a `%YAML 1.1` directive gets one `yaml-merge-key-without-directive` information note in `YamlDocument.Diagnostics`. Indentation that a tab provides is still rejected. `YamlReader.Diagnostics` is empty and allocation-free until a finding occurs.
+
+Set `Strict` on `YamlReaderOptions` or `YamlLoadOptions` for the specification's exact rules: both indentation forms are syntax errors, and `<<` is an ordinary key unless the YAML 1.1 schema applies, so a repeated one is a duplicate key.
+
+Saving copies accepted text that an edit does not own unchanged. New and edited text is always written in the valid form.
 
 ## Reading events
 
