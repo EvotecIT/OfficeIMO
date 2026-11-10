@@ -221,8 +221,11 @@ internal ref partial struct YamlScanner {
         }
 
         ScanToNextToken();
-        StaleSimpleKeys();
-        UnrollIndent(c.Column);
+        // In block context with no implicit-key candidate there is nothing to go stale, and nothing to close unless the
+        // line is indented less than the open collection.
+        if (c.FlowLevel > 0 || c.SimpleKeys[0].Possible) StaleSimpleKeys();
+        else c.StaleCheckedAt = c.Base + c.Pos;
+        if (c.FlowLevel == 0 && c.Indent > c.Column) UnrollIndent(c.Column);
 
         int p = c.Pos;
         char ch = At(p);
