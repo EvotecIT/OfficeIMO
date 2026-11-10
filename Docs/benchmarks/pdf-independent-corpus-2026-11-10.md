@@ -4,7 +4,7 @@ This run widens the PDF interoperability corpus with 60 hash-pinned public files
 
 ## Corpus
 
-[`pdf-corpus-extended.json`](../../OfficeIMO.Pdf.Benchmarks.Comparisons/Corpus/pdf-corpus-extended.json) adds 60 entries to the 16 in [`pdf-corpus.json`](../../OfficeIMO.Pdf.Benchmarks.Comparisons/Corpus/pdf-corpus.json). Each entry pins a commit or publisher URL, its SHA-256, and its license. Files are downloaded only by the opt-in runner and are never committed.
+[`pdf-corpus-extended.json`](../../OfficeIMO.Pdf.Benchmarks.Comparisons/Corpus/pdf-corpus-extended.json) adds 60 entries to the 16 in [`pdf-corpus.json`](../../OfficeIMO.Pdf.Benchmarks.Comparisons/Corpus/pdf-corpus.json). Each entry pins a commit or publisher URL, its SHA-256, and its license. The 51 files up to 2 MB are now committed under [`OfficeIMO.TestAssets/Pdf/IndependentCorpus`](../../OfficeIMO.TestAssets/Pdf/IndependentCorpus/PROVENANCE.md), and `PdfIndependentCorpusTests` reads them in ordinary test runs; the nine larger files remain download-only.
 
 | Source | Entries | License |
 | --- | ---: | --- |
@@ -30,7 +30,7 @@ Not covered: no Chrome/Skia-produced file with a clear license turned up. The [H
 
 ## Method
 
-All runs used macOS 27 on Apple silicon with .NET 10, the source at `923a2f612e`, and the heavy-run lock.
+All runs used macOS 27 on Apple silicon with .NET 10 and the heavy-run lock. The source was `923a2f612e` plus the runner changes listed at the end of this report, which the corpus command needs for the `password` field and offset headers.
 
 1. The repository `corpus` command, over both manifests:
 
@@ -68,7 +68,7 @@ Rendering: 148 of the first 150 pages were attempted and 133 produced PNGs. One 
 | `ExtractPages` | 10 | `Encryption` 3, `Outlines` 3, xref/object-stream preservation 3, `OpenActions` 1, `IncompleteObjectGraph` 1, `Read.MissingHeader` 1, `Read.NoPages` 1 |
 | `UpdateMetadata` | 6 | `AppendOnlyRequired` 5, `Encryption` 3 |
 
-Every blocked plan also reports `AppendOnly.NotImplemented.<operation>`.
+Every blocked `ModifyPageTree`, `Redact`, `MergeDocuments` and `ExtractPages` plan also reports `AppendOnly.NotImplemented.<operation>`. Append-only metadata updates are implemented, so the six `UpdateMetadata` blocks come from append-only preconditions (encryption, signatures, usage rights, an incomplete object graph) or from a read blocker.
 
 ## Ranked failures by root cause
 
