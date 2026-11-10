@@ -229,6 +229,32 @@ public class PdfVisualComparerTests {
                 cancellationToken: cancellation.Token));
     }
 
+    [Fact]
+    public void CompareImages_IgnoresAntialiasedEdgesButNotChangedStrokes() {
+        // The same block with a differently shaded antialiased left edge, as two renderers can produce.
+        byte[] expected = Block(edge: 96, extraStroke: false);
+        byte[] shiftedEdge = Block(edge: 160, extraStroke: false);
+        byte[] changedStroke = Block(edge: 160, extraStroke: true);
+        var plain = new PdfVisualComparisonOptions { ChannelTolerance = 48 };
+        var edgeAware = new PdfVisualComparisonOptions { ChannelTolerance = 48, IgnoreAntialiasing = true };
+
+        Assert.Equal(10, PdfVisualComparer.CompareImages(new[] { expected }, new[] { shiftedEdge }, plain).Pages[0].DifferentPixels);
+        Assert.True(PdfVisualComparer.CompareImages(new[] { expected }, new[] { shiftedEdge }, edgeAware).IsMatch);
+        PdfVisualPageComparison stroke = PdfVisualComparer.CompareImages(new[] { expected }, new[] { changedStroke }, edgeAware).Pages[0];
+        Assert.Equal(30, stroke.DifferentPixels);
+        Assert.Equal(new PdfPixelRegion(15, 5, 3, 10), stroke.ChangedBounds);
+    }
+
+    private static byte[] Block(byte edge, bool extraStroke) {
+        var image = new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.OfficeColor.White);
+        for (int y = 5; y < 15; y++) {
+            image.SetPixel(4, y, OfficeIMO.OfficeColor.FromRgb(edge, edge, edge));
+            for (int x = 5; x < 13; x++) image.SetPixel(x, y, OfficeIMO.OfficeColor.Black);
+            if (extraStroke) for (int x = 15; x < 18; x++) image.SetPixel(x, y, OfficeIMO.OfficeColor.Black);
+        }
+        return OfficeIMO.Drawing.OfficePngWriter.Encode(image);
+    }
+
     private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) } })
         .Paragraph(paragraph => paragraph.AddText(text))
         .ToBytes();

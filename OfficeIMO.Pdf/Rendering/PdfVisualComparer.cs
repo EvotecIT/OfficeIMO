@@ -255,7 +255,10 @@ public static class PdfVisualComparer {
                 compared++;
                 channelDifferenceTotal += pixelTotal;
                 maximumDifference = Math.Max(maximumDifference, pixelMax);
-                if (pixelMax > options.ChannelTolerance) {
+                if (pixelMax > options.ChannelTolerance && options.IgnoreAntialiasing && !hasSizeDifference
+                    && PdfVisualAntialiasing.IsEdgeShift(expectedImage, actualImage, x, y, options.ChannelTolerance)) {
+                    diff.SetPixel(x, y, OfficeColor.FromRgb(255, 224, 96));
+                } else if (pixelMax > options.ChannelTolerance) {
                     different++;
                     changedPixels[checked(y * width + x)] = true;
                     left = Math.Min(left, x); top = Math.Min(top, y);
