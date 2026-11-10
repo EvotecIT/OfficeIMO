@@ -61,7 +61,11 @@ internal static partial class LegacyXlsWriter {
 
         /// <summary>Writes the globals, then publishes them and each sheet's owned buffers straight into the compound file.</summary>
         internal void Complete(Stream destination) {
-            long capacity = 16_384L + _strings.EstimatedSerializedBytes;
+            // The SST estimate counts string bytes only. CONTINUE headers and split-string option bytes add
+            // 5 bytes per 8,224-byte record, and EXTSST up to about 1 KiB; without that room the buffer would
+            // double, which on .NET Framework allocates a second full-size array on every save.
+            long estimate = _strings.EstimatedSerializedBytes;
+            long capacity = 16_384L + estimate + estimate / 1_024L + 8_192L;
             if (capacity > int.MaxValue) throw new NotSupportedException("The native XLS workbook exceeds 2 GiB.");
             using var globals = new DirectTabularWorkbookStream((int)capacity);
             var boundSheets = new List<long>(_sheets.Count);
