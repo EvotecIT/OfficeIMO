@@ -4,9 +4,14 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private void RecordNormalFlowPlacement(IElement element, IElement parent, double x, double y, HtmlRenderBoxStyle style) {
-        if (!IsFirstColumnSourceFragment(element) && _normalFlowPlacements.ContainsKey(element)) return;
-        // Both records keep the same immutable snapshot; a later change clones it first.
-        HtmlRenderBoxStyle snapshot = style.Clone();
+        if (RecordsNormalFlowPlacement(element)) StoreNormalFlowPlacement(element, parent, x, y, style.Clone());
+    }
+
+    private bool RecordsNormalFlowPlacement(IElement element) =>
+        IsFirstColumnSourceFragment(element) || !_normalFlowPlacements.ContainsKey(element);
+
+    /// <summary>Both records keep the caller's snapshot, which nothing changes afterwards; a later change clones it first.</summary>
+    private void StoreNormalFlowPlacement(IElement element, IElement parent, double x, double y, HtmlRenderBoxStyle snapshot) {
         _normalFlowPlacements[element] = new NormalFlowPlacement(parent, x, y, snapshot);
         _layoutStyles[element] = snapshot;
     }
