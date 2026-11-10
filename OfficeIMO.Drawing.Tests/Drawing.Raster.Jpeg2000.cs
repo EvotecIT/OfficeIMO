@@ -39,13 +39,16 @@ public sealed class Jpeg2000DecoderTests {
     }
 
     [Fact]
-    public void RasterDecoderAppliesPaletteAndAlpha() {
+    public void RasterDecoderUsesManagedSamplesAndPalettes() {
         byte[] indexed = File.ReadAllBytes(Path.Combine(Folder, "openjpeg-lossless-indexed-u8-rgb-u8.jp2"));
-        byte[] rgba = File.ReadAllBytes(Path.Combine(Folder, "kakadu-lossless-rgba-u8-prog1-layers1-res6-mct.jp2"));
-        Assert.True(OfficeRasterImageDecoder.TryDecode(rgba, new OfficeRasterDecodeOptions(), out OfficeRasterImage? raster, out _));
-        Assert.True(OfficeJpeg2000Decoder.TryDecode(rgba, new OfficeJpeg2000DecodeOptions(), out OfficeJpeg2000Image? samples));
+        byte[] rgb = File.ReadAllBytes(Path.Combine(Folder, "kakadu-lossless-rgb-u8-prog1-layers1-res6-mct.jp2"));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(rgb, new OfficeRasterDecodeOptions(), out OfficeRasterImage? raster, out _));
+        Assert.True(OfficeJpeg2000Decoder.TryDecode(rgb, new OfficeJpeg2000DecodeOptions(), out OfficeJpeg2000Image? samples));
         Assert.Equal((samples!.Width, samples.Height), (raster!.Width, raster.Height));
-        for (int index = 0; index < samples.Samples.Length; index++) Assert.Equal(samples.Samples[index], raster.PixelBuffer[index]);
+        for (int pixel = 0; pixel < samples.Width * samples.Height; pixel++) {
+            for (int channel = 0; channel < 3; channel++) Assert.Equal(samples.Samples[pixel * 3 + channel], raster.PixelBuffer[pixel * 4 + channel]);
+            Assert.Equal(255, raster.PixelBuffer[pixel * 4 + 3]);
+        }
 
         Assert.True(OfficeJpeg2000Decoder.TryDecode(indexed, new OfficeJpeg2000DecodeOptions(), out OfficeJpeg2000Image? palette));
         Assert.True(palette!.UsedPalette);

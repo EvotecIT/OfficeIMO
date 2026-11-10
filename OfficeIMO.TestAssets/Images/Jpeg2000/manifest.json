@@ -79,13 +79,13 @@
       "file": "kakadu-lossless-rgba-u16-prog1-layers1-res6.jp2",
       "sha256": "aa15a3b392ed8ede862d8d5bade14eda0e82a00471297af6d4a6be1c9e56af29",
       "feature": "16-bit components scaled to eight bits",
-      "samplesSha256": "7d60f8cf2adc3c87020fb8d2df66f033ca126732351399c19bce4aaf28f6b75f"
+      "samplesSha256": "6215cfbc330650eac1bfa3111aff5e8d2cc3b6d6d08dc4520531793994dde533"
     },
     {
       "file": "openjpeg-lossless-rgba-u4.jp2",
       "sha256": "c664448db2fc3260e8c90dd759db65fb2d7a1f34d39b4dfbf1dedfbceafdeb21",
       "feature": "4-bit components",
-      "samplesSha256": "9e2ff80658bb6451d9a8f577e9d2b2e31d6a9c4d36c31c028edd4a9f4d796cbb"
+      "samplesSha256": "26ce3010de7648b7a82fcfee79207b4541e5018320c76fc8106498fa36784ded"
     },
     {
       "file": "openjpeg-lossless-indexed-u8-rgb-u8.jp2",
