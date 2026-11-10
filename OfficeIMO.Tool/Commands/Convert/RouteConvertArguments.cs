@@ -1,8 +1,9 @@
 using System.Globalization;
+using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Tool.Commands.Convert;
 
-internal sealed class OfficePdfArguments {
+internal sealed class RouteConvertArguments {
     internal const long DefaultMaxInputBytes = 64L * 1024L * 1024L;
     internal const long DefaultMaxOutputBytes = 256L * 1024L * 1024L;
     internal const long DefaultMaxCharactersInPart = 10_000_000L;
@@ -13,6 +14,8 @@ internal sealed class OfficePdfArguments {
     internal bool Force { get; private set; }
     internal bool AllowLegacyLoss { get; private set; }
     internal bool FailOnLoss { get; private set; }
+    internal bool TextOnly { get; private set; }
+    internal OfficeWorkflowRoute? Route { get; private set; }
     internal bool DiagramForPrint { get; private set; } = true;
     private bool HasDiagramOptions { get; set; }
     internal bool IsDrawInput => Path.GetExtension(InputPath ?? string.Empty).ToLowerInvariant() is ".odg" or ".fodg";
@@ -24,20 +27,20 @@ internal sealed class OfficePdfArguments {
     internal long MaxOutputBytes { get; private set; } = DefaultMaxOutputBytes;
     internal long MaxCharactersInPart { get; private set; } = DefaultMaxCharactersInPart;
 
-    internal static OfficePdfArguments Parse(string[] args) {
+    internal static RouteConvertArguments Parse(string[] args) {
         ArgumentNullException.ThrowIfNull(args);
-        if (args.Length == 0 || IsHelp(args[0])) return new OfficePdfArguments { Help = true };
+        if (args.Length == 0 || IsHelp(args[0])) return new RouteConvertArguments { Help = true };
 
-        var parsed = new OfficePdfArguments();
+        var parsed = new RouteConvertArguments();
         for (int index = 0; index < args.Length; index++) {
             string token = args[index];
-            if (IsHelp(token)) return new OfficePdfArguments { Help = true };
+            if (IsHelp(token)) return new RouteConvertArguments { Help = true };
 
             switch (token) {
                 case "--output":
                 case "-o":
                     if (parsed.OutputPath != null) {
-                        throw new OfficePdfUsageException("Only one output document may be specified.");
+                        throw new RouteConvertUsageException("Only one output document may be specified.");
                     }
                     parsed.OutputPath = NextValue(args, ref index, token);
                     break;
@@ -50,12 +53,15 @@ internal sealed class OfficePdfArguments {
                 case "--require-no-loss":
                     parsed.FailOnLoss = true;
                     break;
+                case "--text-only":
+                    parsed.TextOnly = true;
+                    break;
                 case "--diagram-layers":
                     parsed.HasDiagramOptions = true;
                     parsed.DiagramForPrint = NextValue(args, ref index, token) switch {
                         "print" => true,
                         "screen" => false,
-                        _ => throw new OfficePdfUsageException("Choose diagram layers: screen or print.")
+                        _ => throw new RouteConvertUsageException("Choose diagram layers: screen or print.")
                     };
                     break;
                 case "--text-encoding":
@@ -65,7 +71,7 @@ internal sealed class OfficePdfArguments {
                 case "--tab-size":
                     parsed.HasTextOptions = true;
                     long tabs = ParsePositiveLong(NextValue(args, ref index, token), token);
-                    if (tabs > 32) throw new OfficePdfUsageException("Tab size must be between 1 and 32.");
+                    if (tabs > 32) throw new RouteConvertUsageException("Tab size must be between 1 and 32.");
                     parsed.TabSize = (int)tabs;
                     break;
                 case "--max-input-bytes":
@@ -79,14 +85,14 @@ internal sealed class OfficePdfArguments {
                     break;
                 default:
                     if (token.StartsWith("-", StringComparison.Ordinal)) {
-                        throw new OfficePdfUsageException("Unknown option '" + token + "'.");
+                        throw new RouteConvertUsageException("Unknown option '" + token + "'.");
                     }
                     if (parsed.InputPath == null) {
                         parsed.InputPath = token;
                     } else if (parsed.OutputPath == null) {
                         parsed.OutputPath = token;
                     } else {
-                        throw new OfficePdfUsageException("Only one input and one output document may be specified.");
+                        throw new RouteConvertUsageException("Only one input and one output document may be specified.");
                     }
                     break;
             }
@@ -98,37 +104,38 @@ internal sealed class OfficePdfArguments {
 
     private void Validate() {
         if (string.IsNullOrWhiteSpace(InputPath)) {
-            throw new OfficePdfUsageException("The convert command requires an input DOC, DOCX, TXT, XLSX, PPTX, ODG, FODG, DjVu, or PUB file.");
+            throw new RouteConvertUsageException("The convert command requires an input document.");
         }
 
         string extension = Path.GetExtension(InputPath).ToLowerInvariant();
-        if (extension is not ".doc" and not ".docx" and not ".txt" and not ".xlsx" and not ".pptx" and not ".odg" and not ".fodg" and not ".djvu" and not ".djv" and not ".pub") {
-            throw new OfficePdfUsageException("The convert command supports DOC, DOCX, TXT, XLSX, PPTX, ODG, FODG, DjVu, and PUB input.");
-        }
-        if (AllowLegacyLoss && extension != ".doc") throw new OfficePdfUsageException("--allow-legacy-loss requires DOC input.");
-        if (HasTextOptions && extension != ".txt") throw new OfficePdfUsageException("Text encoding and tabs require TXT input.");
-        if (HasDiagramOptions && !IsDrawInput) throw new OfficePdfUsageException("Diagram options require ODG or FODG input.");
-        if (FailOnLoss && !IsDrawInput && !IsDjVuInput && extension != ".pub") throw new OfficePdfUsageException("--require-no-loss requires ODG, FODG, DjVu, or PUB input.");
-
         OutputPath ??= Path.ChangeExtension(InputPath, ".pdf");
-        if (Path.GetExtension(OutputPath).Equals(".pdf", StringComparison.OrdinalIgnoreCase) == false) {
-            throw new OfficePdfUsageException("The output path must use the .pdf extension.");
+        string target = Path.GetExtension(OutputPath).ToLowerInvariant();
+        Route = extension.Length == 0 || target.Length == 0 ? null : OfficeWorkflowCatalog.Find(extension, target, executableOnly: true);
+        if (Route is null) {
+            throw new RouteConvertUsageException("No conversion route converts '" + (extension.Length == 0 ? "(none)" : extension) + "' to '"
+                + (target.Length == 0 ? "(none)" : target) + "'. Run 'officeimo convert --help' for the supported routes.");
         }
+        if (AllowLegacyLoss && extension != ".doc") throw new RouteConvertUsageException("--allow-legacy-loss requires DOC input.");
+        if (HasTextOptions && Route.Id != "txt-pdf") throw new RouteConvertUsageException("Text encoding and tabs require TXT-to-PDF conversion.");
+        if (HasDiagramOptions && !IsDrawInput) throw new RouteConvertUsageException("Diagram options require ODG or FODG input.");
+        if (FailOnLoss && Route.Id is "doc-pdf" or "docx-pdf" or "txt-pdf" or "xlsx-pdf" or "pptx-pdf")
+            throw new RouteConvertUsageException("--require-no-loss is not available for DOC, DOCX, TXT, XLSX or PPTX to PDF.");
+        if (TextOnly && Route.Id != "email-pdf") throw new RouteConvertUsageException("--text-only requires email-to-PDF conversion.");
         if (OfficeImoToolPathSafety.PathsEqual(InputPath, OutputPath)) {
-            throw new OfficePdfUsageException("Input and output paths must be different.");
+            throw new RouteConvertUsageException("Input and output paths must be different.");
         }
     }
 
     private static string NextValue(string[] args, ref int index, string option) {
         if (++index >= args.Length || string.IsNullOrWhiteSpace(args[index])) {
-            throw new OfficePdfUsageException(option + " requires a value.");
+            throw new RouteConvertUsageException(option + " requires a value.");
         }
         return args[index];
     }
 
     private static long ParsePositiveLong(string value, string option) {
         if (!long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long parsed) || parsed <= 0) {
-            throw new OfficePdfUsageException(option + " requires a positive integer.");
+            throw new RouteConvertUsageException(option + " requires a positive integer.");
         }
         return parsed;
     }
@@ -136,6 +143,6 @@ internal sealed class OfficePdfArguments {
     private static bool IsHelp(string value) => value is "help" or "--help" or "-h";
 }
 
-internal sealed class OfficePdfUsageException : Exception {
-    internal OfficePdfUsageException(string message) : base(message) { }
+internal sealed class RouteConvertUsageException : Exception {
+    internal RouteConvertUsageException(string message) : base(message) { }
 }

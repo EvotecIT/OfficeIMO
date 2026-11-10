@@ -200,6 +200,8 @@ public sealed class OfficeConversionCapability {
     public string Id { get; }
     /// <summary>Whether the route needs a raster codec explicitly registered by a .NET caller.</summary>
     public bool RequiresImageCodec => Id == "heic-pdf";
+    /// <summary>Gets whether OfficeIMO.Workflows, the OfficeIMO.Tool CLI and its MCP server execute the route without a caller-registered adapter.</summary>
+    public bool HostExecutable => OfficeConversionCapabilityCatalog.IsHostExecutable(Id);
     /// <summary>Gets the source format label.</summary>
     public string Source { get; }
     /// <summary>Gets the destination format label.</summary>
@@ -245,7 +247,18 @@ public sealed class OfficeConversionCapability {
 /// <summary>The shared OfficeIMO conversion route catalog used by packages, agents, and browser surfaces.</summary>
 public static partial class OfficeConversionCapabilityCatalog {
     /// <summary>Gets the capability schema version.</summary>
-    public const int SchemaVersion = 9;
+    public const int SchemaVersion = 10;
+
+    // The shared host route set. OfficeIMO.Workflows executes exactly these routes and the Tool CLI and MCP server
+    // resolve conversions from it; host tests verify every id has an implementation.
+    private static readonly HashSet<string> HostExecutableIds = new(StringComparer.OrdinalIgnoreCase) {
+        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf", "rtf-pdf", "xps-pdf", "djvu-pdf", "heic-pdf",
+        "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "book-project-epub", "odg-pdf", "visio-pdf", "publisher-pdf", "chm-pdf", "chm-markdown", "chm-epub",
+        "odt-pdf", "ods-pdf", "odp-pdf", "email-pdf", "epub-pdf", "markdown-docx", "html-docx", "rtf-docx",
+        "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx"
+    };
+
+    internal static bool IsHostExecutable(string id) => HostExecutableIds.Contains(id);
 
     /// <summary>Gets all focused, public document-conversion routes in stable order.</summary>
     public static IReadOnlyList<OfficeConversionCapability> All { get; } =
@@ -278,10 +291,12 @@ public static partial class OfficeConversionCapabilityCatalog {
         markdown.AppendLine();
         markdown.AppendLine("Use this table to find the focused package, output model, proven support level, known limits, and result type for a source-to-target conversion.");
         markdown.AppendLine();
+        markdown.AppendLine("Hosts marks routes that OfficeIMO.Workflows, the `officeimo convert` command and the `officeimo_convert` MCP tool execute without registering an adapter.");
+        markdown.AppendLine();
         markdown.Append("Schema version: ").Append(SchemaVersion).AppendLine();
         markdown.AppendLine();
-        markdown.AppendLine("| Route | Source | Target | Package | Output model | Text formatting | Typography contract | Support | Evidence | Known limits | Browser | API | Result type | What it does |");
-        markdown.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+        markdown.AppendLine("| Route | Source | Target | Package | Output model | Text formatting | Typography contract | Support | Evidence | Known limits | Browser | Hosts | API | Result type | What it does |");
+        markdown.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
         foreach (OfficeConversionCapability route in All) {
             markdown.Append("| ").Append(EscapeMarkdown(route.Id))
                 .Append(" | ").Append(EscapeMarkdown(route.Source))
@@ -294,6 +309,7 @@ public static partial class OfficeConversionCapabilityCatalog {
                 .Append(" | ").Append(EscapeMarkdown(route.SupportEvidence))
                 .Append(" | ").Append(EscapeMarkdown(route.KnownLimitations))
                 .Append(" | ").Append(route.BrowserAvailable ? "Yes" : "No")
+                .Append(" | ").Append(route.HostExecutable ? "Yes" : "No")
                 .Append(" | `").Append(EscapeMarkdown(route.Api)).Append("`")
                 .Append(" | ").Append(EscapeMarkdown(route.ResultContract))
                 .Append(" | ").Append(EscapeMarkdown(route.Description)).AppendLine(" |");
@@ -338,7 +354,8 @@ public static partial class OfficeConversionCapabilityCatalog {
                 .Append(i3).Append("\"knownLimitations\":\"").Append(EscapeJson(route.KnownLimitations)).Append("\",").Append(newline)
                 .Append(i3).Append("\"resultContract\":\"").Append(EscapeJson(route.ResultContract)).Append("\",").Append(newline)
                 .Append(i3).Append("\"browserAvailable\":").Append(route.BrowserAvailable ? "true" : "false").Append(',').Append(newline)
-                .Append(i3).Append("\"agentDiscoverable\":").Append(route.AgentDiscoverable ? "true" : "false");
+                .Append(i3).Append("\"agentDiscoverable\":").Append(route.AgentDiscoverable ? "true" : "false").Append(',').Append(newline)
+                .Append(i3).Append("\"hostExecutable\":").Append(route.HostExecutable ? "true" : "false");
             if (route.RequiresImageCodec)
                 json.Append(',').Append(newline).Append(i3).Append("\"requiresImageCodec\":true");
             json.Append(newline).Append(i2).Append('}');

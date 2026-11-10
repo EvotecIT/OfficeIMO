@@ -17,6 +17,8 @@ Use the plugin's declared `officeimo_*` MCP tools. They return compact structure
 4. Call `officeimo_convert` only when the user wants a file written. Choose a new output path unless overwrite was explicitly requested.
 5. Call `officeimo_capabilities` only when format support is uncertain; filter by extension.
 
+`officeimo_convert` writes Markdown or Reader JSON, or runs a catalog conversion route chosen by the source extension and `format`, such as `pdf` from DOCX, ODT, Markdown, HTML, EML, MSG, EPUB or Visio, `docx` from Markdown, HTML, RTF or ODT, and `odt`, `ods` or `odp` from Office files. Email PDF renders the message with its header, body, inline images and attachment list. If a pair is rejected, call `officeimo_capabilities` with `operation: "convert"` for the source extension instead of guessing another format.
+
 For iWork ZIP files and directory packages, `officeimo_convert` also accepts the matching `docx`, `xlsx`, or `pptx` destination and `pdf`. Keep default strict acceptance unless the user explicitly accepts partial Office reconstruction. PDF always requires complete editable content; embedded previews and partial output are rejected. Retain `sourceSha256`, the workflow publication status, and per-stage fidelity diagnostics. Directory packages use the same allowed-root checks and captured source identity as file inputs.
 
 ## PDF output workflows
