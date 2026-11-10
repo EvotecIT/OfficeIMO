@@ -290,6 +290,16 @@ _Dependency footprint:_ `OfficeIMO.Invoicing` and `OfficeIMO.Pdf`. Install this 
 
 _Dependency footprint:_ only `OfficeIMO.Ocr` and `OfficeIMO.Pdf`; providers and native runtimes remain explicit application choices.
 
+#### [OfficeIMO.Pdf.Testing](../OfficeIMO.Pdf.Testing/README.md)
+
+- [x] Snapshot tests for PDFs in xUnit, NUnit, MSTest or any framework that reports exceptions
+- [x] Approved page images from the managed renderer plus an exact structure file with logical text, page sizes, outline, form fields and render diagnostics
+- [x] Optional approved PDF with a byte-identical fast path or an exact SHA-256 check
+- [x] Pixel tolerances and ignored regions, a line diff of the structure file and an HTML review gallery on mismatch
+- [x] Approval through `OFFICEIMO_PDF_SNAPSHOT_ACCEPT=1` or `PdfSnapshot.Accept`, and a clear failure for fonts that are not embedded
+
+_Dependency footprint:_ only `OfficeIMO.Pdf`; no test framework or image-comparison dependency.
+
 #### [OfficeIMO.Security](../OfficeIMO.Security/README.md)
 
 - [x] Detached and encapsulated CMS signing and verification with bounded parsing and structured findings

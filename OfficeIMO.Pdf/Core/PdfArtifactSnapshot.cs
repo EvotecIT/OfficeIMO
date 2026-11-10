@@ -135,7 +135,7 @@ public sealed class PdfArtifactInfo {
 #endif
     }
 
-    private static string ToLowerHex(byte[] bytes) {
+    internal static string ToLowerHex(byte[] bytes) {
         const string hex = "0123456789abcdef";
         char[] chars = new char[bytes.Length * 2];
         for (int i = 0; i < bytes.Length; i++) {

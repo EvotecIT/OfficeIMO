@@ -620,6 +620,35 @@ jobs:
           dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration Release --verbosity $env:TEST_VERBOSITY --filter "FullyQualifiedName~DrawingWoff2FontTests|FullyQualifiedName~DrawingCffFontTests|FullyQualifiedName~DrawingTrueTypeVariableFontTests"
           ./Build/Test-TypographyPackages.ps1
 
+  pdf-testing-package-consumers:
+    needs: changes
+    name: 'OfficeIMO PDF snapshot testing / ${{ matrix.os }}'
+    if: fromJSON(needs.changes.outputs.suites)['pdf-testing-package-consumers']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+          global-json-file: global.json
+      - uses: ./.github/actions/nuget-cache
+
+      - name: Test and package-smoke PDF snapshot testing
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Pdf.Testing.Tests/OfficeIMO.Pdf.Testing.Tests.csproj --configuration Release --verbosity $env:TEST_VERBOSITY
+          ./Build/Test-PdfTestingPackages.ps1
+
   email-package-consumers:
     needs: changes
     name: 'OfficeIMO email platform packed consumers'
@@ -2350,7 +2379,7 @@ jobs:
     name: PR validation
     if: always()
     runs-on: ubuntu-latest
-    needs: ["coverage", "changes", "archives-contracts", "chm-contracts", "legacy-imports", "browser-exports", "workflow-contracts", "document-ai-contracts", "studio-contracts", "studio-release-restore", "invoice-standards", "build-matrix", "html-package-consumers", "typography-package-consumers", "email-package-consumers", "google-workspace-package-consumers", "onenote-package-consumers", "opendocument-schema", "binary-powerpoint-libreoffice", "office-corpus-libreoffice", "test-windows", "word-vba-office-sip", "test-ubuntu-matrix", "officeimo-tool-package-gate", "excel-image-visual-gate", "office-interoperability-gate", "test-ubuntu", "test-macos-matrix", "test-macos", "aot-managed-analyzers", "aot-linux-scenarios", "aot-trim-analyzers", "aot-windows-scenarios", "aot-windows", "dbf-contracts", "odbc-contracts"]
+    needs: ["coverage", "changes", "archives-contracts", "chm-contracts", "legacy-imports", "browser-exports", "workflow-contracts", "document-ai-contracts", "studio-contracts", "studio-release-restore", "invoice-standards", "build-matrix", "html-package-consumers", "typography-package-consumers", "pdf-testing-package-consumers", "email-package-consumers", "google-workspace-package-consumers", "onenote-package-consumers", "opendocument-schema", "binary-powerpoint-libreoffice", "office-corpus-libreoffice", "test-windows", "word-vba-office-sip", "test-ubuntu-matrix", "officeimo-tool-package-gate", "excel-image-visual-gate", "office-interoperability-gate", "test-ubuntu", "test-macos-matrix", "test-macos", "aot-managed-analyzers", "aot-linux-scenarios", "aot-trim-analyzers", "aot-windows-scenarios", "aot-windows", "dbf-contracts", "odbc-contracts"]
     steps:
       - name: Require selection and every selected contract
         env:
